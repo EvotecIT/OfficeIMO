@@ -32,21 +32,10 @@ public static partial class MarkdownReader {
 
             int j = i + 1;
             bool firstIsTask = TryStripTaskMarker(firstContent, options, out _, out bool firstDone, out var strippedFirst);
-            var firstSourceLines = new List<MarkdownSourceLineSlice>();
-            var firstLines = ConsumeListContinuationLines(
-                lines,
-                ref j,
-                firstContinuationIndent,
-                strippedFirst,
-                options,
-                breakOnAnyOrderedListLine: true,
-                sourceLines: firstSourceLines,
-                absoluteLineOffset: state.SourceLineOffset,
-                initialLineIndex: i,
-                initialStartColumn: GetListLeadContentStartColumn(lines[i], firstIsTask));
-            var first = CreateListItemFromLeadLines(firstLines, firstIsTask, firstDone, options, state, firstSourceLines);
+            var firstLines = ConsumeListContinuationLines(lines, ref j, firstContinuationIndent, strippedFirst, options, breakOnAnyOrderedListLine: true);
+            var first = CreateListItemFromLeadLines(firstLines, firstIsTask, firstDone, options, state);
             first.Level = 0;
-            AddListItemLeadSyntaxNodes(first, firstLines, i, options, state, firstSourceLines);
+            AddListItemLeadSyntaxNodes(first, firstLines, i, options, state);
             ol.Items.Add(first);
 
             ConsumeNestedBlocksForListItem(lines, ref j, lvl0Abs, firstContinuationIndent, options, state, first, allowNestedOrdered: true, allowNestedUnordered: true);
@@ -55,21 +44,10 @@ public static partial class MarkdownReader {
                 int continuationIndent = GetListContinuationIndent(lines[j]);
                 int next = j + 1;
                 bool isTask = TryStripTaskMarker(content, options, out _, out bool done, out var stripped);
-                var itemSourceLines = new List<MarkdownSourceLineSlice>();
-                var itemLines = ConsumeListContinuationLines(
-                    lines,
-                    ref next,
-                    continuationIndent,
-                    stripped,
-                    options,
-                    breakOnAnyOrderedListLine: true,
-                    sourceLines: itemSourceLines,
-                    absoluteLineOffset: state.SourceLineOffset,
-                    initialLineIndex: j,
-                    initialStartColumn: GetListLeadContentStartColumn(lines[j], isTask));
-                var li = CreateListItemFromLeadLines(itemLines, isTask, done, options, state, itemSourceLines);
+                var itemLines = ConsumeListContinuationLines(lines, ref next, continuationIndent, stripped, options, breakOnAnyOrderedListLine: true);
+                var li = CreateListItemFromLeadLines(itemLines, isTask, done, options, state);
                 li.Level = lvlAbs - lvl0Abs;
-                AddListItemLeadSyntaxNodes(li, itemLines, j, options, state, itemSourceLines);
+                AddListItemLeadSyntaxNodes(li, itemLines, j, options, state);
                 ol.Items.Add(li);
                 j = next;
 

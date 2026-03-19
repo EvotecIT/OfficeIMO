@@ -583,51 +583,6 @@ _Caption_
         }
 
         [Fact]
-        public void Definition_List_Can_Parse_Multi_Paragraph_Definition_Bodies() {
-            string md = """
-Term: First paragraph
-  continued
-
-  Second paragraph
-
-Other: Value
-""";
-
-            var doc = MarkdownReader.Parse(md);
-
-            var defList = Assert.IsType<DefinitionListBlock>(doc.Blocks[0]);
-            Assert.Equal(2, defList.Entries.Count);
-            Assert.Equal("Term", defList.Entries[0].Term.RenderMarkdown());
-            Assert.Collection(defList.Entries[0].DefinitionBlocks,
-                block => Assert.Equal("First paragraph continued", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
-                block => Assert.Equal("Second paragraph", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
-            Assert.Equal("Other", defList.Entries[1].Term.RenderMarkdown());
-            Assert.Equal("Value", Assert.IsType<ParagraphBlock>(Assert.Single(defList.Entries[1].DefinitionBlocks)).Inlines.RenderMarkdown());
-        }
-
-        [Fact]
-        public void Definition_List_RenderMarkdown_Preserves_Multi_Block_Definition_Bodies_For_Reparse() {
-            string md = """
-Term: Intro
-
-  - first
-  - second
-
-Other: Value
-""";
-
-            var doc = MarkdownReader.Parse(md);
-            var roundTrip = MarkdownReader.Parse(doc.ToMarkdown());
-
-            var defList = Assert.IsType<DefinitionListBlock>(Assert.Single(roundTrip.Blocks));
-            Assert.Equal(2, defList.Entries.Count);
-            Assert.Collection(defList.Entries[0].DefinitionBlocks,
-                block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
-                block => Assert.IsType<UnorderedListBlock>(block));
-            Assert.Equal("Value", Assert.IsType<ParagraphBlock>(Assert.Single(defList.Entries[1].DefinitionBlocks)).Inlines.RenderMarkdown());
-        }
-
-        [Fact]
         public void Unordered_List_Item_With_Colon_Is_Not_Parsed_As_Definition_List() {
             string md = """
 - **AD1**: starkes Muster (`7034/7023`).
@@ -801,31 +756,6 @@ Text[^a]
             var html = MarkdownReader.Parse(md).ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
             Assert.Contains("<li id=\"fn:a\"><p>First", html, StringComparison.Ordinal);
             Assert.Contains("</p><p>Second", html, StringComparison.Ordinal);
-        }
-
-        [Fact]
-        public void Footnotes_Can_Parse_Nested_List_Blocks_And_RoundTrip() {
-            string md = """
-Lead[^a]
-
-[^a]: Intro
-
-  - first
-  - second
-""";
-
-            var doc = MarkdownReader.Parse(md);
-            var footnote = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(doc.Blocks, block => block is FootnoteDefinitionBlock));
-
-            Assert.Collection(footnote.Blocks,
-                block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
-                block => Assert.IsType<UnorderedListBlock>(block));
-
-            var roundTrip = MarkdownReader.Parse(doc.ToMarkdown());
-            var reparsedFootnote = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(roundTrip.Blocks, block => block is FootnoteDefinitionBlock));
-            Assert.Collection(reparsedFootnote.Blocks,
-                block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
-                block => Assert.IsType<UnorderedListBlock>(block));
         }
     }
 }

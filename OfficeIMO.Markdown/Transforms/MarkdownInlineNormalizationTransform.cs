@@ -81,14 +81,12 @@ public sealed class MarkdownInlineNormalizationTransform : IMarkdownDocumentTran
                 return NormalizeCallout(callout);
             case QuoteBlock quote:
                 NormalizeMutableBlockList(quote.Children);
-                quote.ClearSyntaxCache();
                 return quote;
             case DetailsBlock details:
                 if (details.Summary != null) {
                     NormalizeBlock(details.Summary);
                 }
                 NormalizeMutableBlockList(details.Children);
-                details.ClearSyntaxCache();
                 return details;
             case OrderedListBlock ordered:
                 NormalizeListItems(ordered.Items);
@@ -116,11 +114,7 @@ public sealed class MarkdownInlineNormalizationTransform : IMarkdownDocumentTran
             return callout;
         }
 
-        return new CalloutBlock(
-            callout.Kind,
-            callout.TitleInlines,
-            rewrittenChildren,
-            childChanged ? null : callout.SyntaxChildren);
+        return new CalloutBlock(callout.Kind, callout.TitleInlines, rewrittenChildren, callout.SyntaxChildren);
     }
 
     private void NormalizeListItems(IList<ListItem> items) {
@@ -140,25 +134,14 @@ public sealed class MarkdownInlineNormalizationTransform : IMarkdownDocumentTran
     }
 
     private void NormalizeDefinitionList(DefinitionListBlock definitions) {
-        bool changed = false;
-        for (int groupIndex = 0; groupIndex < definitions.Groups.Count; groupIndex++) {
-            var group = definitions.Groups[groupIndex];
-            if (group == null) {
+        for (int i = 0; i < definitions.Entries.Count; i++) {
+            var entry = definitions.Entries[i];
+            if (entry == null) {
                 continue;
             }
 
-            for (int termIndex = 0; termIndex < group.Terms.Count; termIndex++) {
-                changed |= MarkdownReader.NormalizeInlineSequenceInPlace(group.Terms[termIndex], Options);
-            }
-
-            for (int definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
-                NormalizeMutableBlockList(group.Definitions[definitionIndex].Blocks);
-                changed = true;
-            }
-        }
-
-        if (changed) {
-            definitions.ClearSyntaxCache();
+            MarkdownReader.NormalizeInlineSequenceInPlace(entry.Term, Options);
+            NormalizeMutableBlockList(entry.DefinitionBlocks);
         }
     }
 
@@ -169,7 +152,7 @@ public sealed class MarkdownInlineNormalizationTransform : IMarkdownDocumentTran
 
         var rewrittenBlocks = RewriteChildBlocks(footnote.Blocks, out bool changed);
         return changed
-            ? new FootnoteDefinitionBlock(footnote.Label, footnote.Text, rewrittenBlocks, syntaxChildren: null)
+            ? new FootnoteDefinitionBlock(footnote.Label, footnote.Text, rewrittenBlocks, footnote.SyntaxChildren)
             : footnote;
     }
 

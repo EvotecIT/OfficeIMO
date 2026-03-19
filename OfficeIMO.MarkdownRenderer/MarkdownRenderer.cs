@@ -47,7 +47,6 @@ public static class MarkdownRenderer {
         var parseResult = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, readerOptions);
         var transformDiagnostics = new List<MarkdownDocumentTransformDiagnostic>(parseResult.TransformDiagnostics);
         var topLevelBlockSourceSpans = BuildTopLevelBlockSourceSpans(parseResult);
-        var readerDiagnosticCount = transformDiagnostics.Count;
         var document = ApplyRendererDocumentTransforms(
             parseResult.Document,
             options,
@@ -55,18 +54,11 @@ public static class MarkdownRenderer {
             transformDiagnostics,
             parseResult.SyntaxTree,
             topLevelBlockSourceSpans);
-        var rendererDiagnostics = transformDiagnostics.Count > readerDiagnosticCount
-            ? transformDiagnostics.Skip(readerDiagnosticCount).ToArray()
-            : Array.Empty<MarkdownDocumentTransformDiagnostic>();
-        var finalSyntaxTree = rendererDiagnostics.Length == 0
-            ? parseResult.FinalSyntaxTree
-            : MarkdownReader.BuildFinalSyntaxTree(document, parseResult.FinalSyntaxTree, rendererDiagnostics);
 
         return new MarkdownRendererParseResult(
             document,
             markdown,
             parseResult.SyntaxTree,
-            finalSyntaxTree,
             transformDiagnostics,
             preProcessorDiagnostics);
     }
@@ -87,7 +79,6 @@ public static class MarkdownRenderer {
         var doc = MarkdownReader.Parse(markdown, readerOptions);
         doc = ApplyRendererDocumentTransforms(doc, options, readerOptions, diagnostics: null);
 
-        var priorBaseUri = htmlOptions.BaseUri;
         if (!string.IsNullOrWhiteSpace(options.BaseHref) && htmlOptions.BaseUri == null) {
             // Best-effort: use BaseHref for origin restrictions (if enabled). If parsing fails or BaseHref isn't absolute,
             // keep BaseUri null and origin restriction will effectively be disabled.
@@ -105,7 +96,6 @@ public static class MarkdownRenderer {
         try {
             html = doc.ToHtmlFragment(htmlOptions) ?? string.Empty;
         } finally {
-            htmlOptions.BaseUri = priorBaseUri;
             htmlOptions.CodeBlockHtmlRenderer = priorCodeBlockHtmlRenderer;
             htmlOptions.SemanticFencedBlockHtmlRenderer = priorSemanticFencedBlockHtmlRenderer;
         }
@@ -240,16 +230,10 @@ public static class MarkdownRenderer {
 
     private static IReadOnlyList<MarkdownSourceSpan?> BuildTopLevelBlockSourceSpans(MarkdownParseResult parseResult) {
         var children = parseResult.SyntaxTree.Children;
-        var spans = new List<MarkdownSourceSpan?>(parseResult.Document.Blocks.Count);
+        var spans = new List<MarkdownSourceSpan?>(children.Count > 0 ? children.Count : parseResult.Document.Blocks.Count);
 
         if (children.Count > 0) {
-            var topLevelBlocks = parseResult.Document.TopLevelBlocks;
-            var childCount = Math.Min(children.Count, topLevelBlocks.Count);
-            for (var i = 0; i < childCount; i++) {
-                if (topLevelBlocks[i] is FrontMatterBlock) {
-                    continue;
-                }
-
+            for (var i = 0; i < children.Count; i++) {
                 spans.Add(children[i].SourceSpan);
             }
         } else {

@@ -8,13 +8,7 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public static partial class MarkdownReader {
     private static bool IsAtxHeading(string line, out int level, out string text) {
-        return TryGetAtxHeadingContentRange(line, out level, out _, out _, out text);
-    }
-
-    private static bool TryGetAtxHeadingContentRange(string line, out int level, out int contentStart, out int contentEnd, out string text) {
         level = 0;
-        contentStart = 0;
-        contentEnd = 0;
         text = string.Empty;
         if (string.IsNullOrEmpty(line)) return false;
 
@@ -29,16 +23,15 @@ public static partial class MarkdownReader {
         if (count < 1 || count > 6) return false;
         if (i < line.Length && !char.IsWhiteSpace(line[i])) return false;
 
-        contentStart = i;
+        int contentStart = i;
         while (contentStart < line.Length && char.IsWhiteSpace(line[contentStart])) contentStart++;
         if (contentStart >= line.Length) {
             level = count;
             text = string.Empty;
-            contentEnd = contentStart;
             return true;
         }
 
-        contentEnd = line.Length;
+        int contentEnd = line.Length;
         while (contentEnd > contentStart && char.IsWhiteSpace(line[contentEnd - 1])) contentEnd--;
 
         int closingStart = contentEnd;
@@ -307,70 +300,40 @@ public static partial class MarkdownReader {
     }
 
     private static TableBlock ParseTable(string[] lines, int start, int end, MarkdownReaderOptions options, MarkdownReaderState state) {
-        int headerLine = state.SourceLineOffset + start + 1;
-        var cells0 = SplitTableRowWithSourceInfo(lines[start], headerLine, state);
+        var cells0 = SplitTableRow(lines[start]);
         var table = new TableBlock();
         var inlineOptions = CloneOptionsWithoutFrontMatter(options);
         var inlineState = CloneState(state);
         table.InlineRenderOptions = inlineOptions;
         table.InlineRenderState = inlineState;
         if (start + 1 <= end && IsAlignmentRow(lines[start + 1])) {
-            table.Headers.AddRange(cells0.Select(cell => cell.Text));
+            table.Headers.AddRange(cells0);
             var aligns = SplitTableRow(lines[start + 1]);
             for (int i = 0; i < aligns.Count; i++) table.Alignments.Add(ParseAlignmentCell(aligns[i]));
-            for (int i = start + 2; i <= end; i++) {
-                int absoluteLine = state.SourceLineOffset + i + 1;
-                var row = SplitTableRowWithSourceInfo(lines[i], absoluteLine, state);
-                table.Rows.Add(row.Select(cell => cell.Text).ToArray());
-            }
+            for (int i = start + 2; i <= end; i++) table.Rows.Add(SplitTableRow(lines[i]));
         } else {
-            for (int i = start; i <= end; i++) {
-                int absoluteLine = state.SourceLineOffset + i + 1;
-                var row = SplitTableRowWithSourceInfo(lines[i], absoluteLine, state);
-                table.Rows.Add(row.Select(cell => cell.Text).ToArray());
-            }
+            for (int i = start; i <= end; i++) table.Rows.Add(SplitTableRow(lines[i]));
         }
-
-        var headerCells = table.Headers.Count > 0
-            ? SplitTableRowWithSourceInfo(lines[start], headerLine, state)
-            : new List<TableCellSourceFragment>();
-        var bodyRows = new List<IReadOnlyList<TableCellSourceFragment>>(table.Rows.Count);
-        if (table.Headers.Count > 0) {
-            for (int i = start + 2; i <= end; i++) {
-                int absoluteLine = state.SourceLineOffset + i + 1;
-                bodyRows.Add(SplitTableRowWithSourceInfo(lines[i], absoluteLine, state));
-            }
-        } else {
-            for (int i = start; i <= end; i++) {
-                int absoluteLine = state.SourceLineOffset + i + 1;
-                bodyRows.Add(SplitTableRowWithSourceInfo(lines[i], absoluteLine, state));
-            }
-        }
-
         table.SetParsedCells(
-            ParseTableInlineCells(headerCells, inlineOptions, inlineState),
-            ParseTableInlineRows(bodyRows, inlineOptions, inlineState),
+            ParseTableInlineCells(table.Headers, inlineOptions, inlineState),
+            ParseTableInlineRows(table.Rows, inlineOptions, inlineState),
             table.ComputeContentSignature());
         table.SetStructuredCells(
-            BuildTableCells(headerCells, inlineOptions, inlineState),
-            BuildTableRows(bodyRows, inlineOptions, inlineState),
+            BuildTableCells(table.Headers, inlineOptions, inlineState),
+            BuildTableRows(table.Rows, inlineOptions, inlineState),
             table.ComputeContentSignature());
         return table;
     }
 
-    private static List<InlineSequence> ParseTableInlineCells(IReadOnlyList<TableCellSourceFragment> cells, MarkdownReaderOptions options, MarkdownReaderState state) {
-        var parsedCells = new List<InlineSequence>(cells?.Count ?? 0);
-        if (cells == null) {
-            return parsedCells;
-        }
-
+    private static List<InlineSequence> ParseTableInlineCells(IReadOnlyList<string> cells, MarkdownReaderOptions options, MarkdownReaderState state) {
+        var parsedCells = new List<InlineSequence>(cells.Count);
         for (int i = 0; i < cells.Count; i++) {
             parsedCells.Add(ParseTableCellInlines(cells[i], options, state));
         }
         return parsedCells;
     }
 
-    private static List<IReadOnlyList<InlineSequence>> ParseTableInlineRows(IReadOnlyList<IReadOnlyList<TableCellSourceFragment>> rows, MarkdownReaderOptions options, MarkdownReaderState state) {
+    private static List<IReadOnlyList<InlineSequence>> ParseTableInlineRows(IReadOnlyList<IReadOnlyList<string>> rows, MarkdownReaderOptions options, MarkdownReaderState state) {
         var parsedRows = new List<IReadOnlyList<InlineSequence>>(rows.Count);
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
             var row = rows[rowIndex];
@@ -388,28 +351,25 @@ public static partial class MarkdownReader {
         return parsedRows;
     }
 
-    private static InlineSequence ParseTableCellInlines(TableCellSourceFragment cell, MarkdownReaderOptions options, MarkdownReaderState state) {
-        if (string.IsNullOrEmpty(cell.Markdown)) {
+    private static InlineSequence ParseTableCellInlines(string? cell, MarkdownReaderOptions options, MarkdownReaderState state) {
+        if (string.IsNullOrEmpty(cell)) {
             return new InlineSequence();
         }
 
-        var (sanitized, sourceMap) = NormalizeTableCellInlineMarkdownWithSourceMap(cell, state);
-        return ParseInlines(sanitized, options, state, sourceMap);
+        var normalized = TableBlock.NormalizeBreakMarkers(cell ?? string.Empty);
+        var sanitized = TableBlock.SanitizeInlineMarkdownInput(normalized);
+        return ParseInlineText(sanitized, options, state);
     }
 
-    private static List<TableCell> BuildTableCells(IReadOnlyList<TableCellSourceFragment> cells, MarkdownReaderOptions options, MarkdownReaderState state) {
-        var typedCells = new List<TableCell>(cells?.Count ?? 0);
-        if (cells == null) {
-            return typedCells;
-        }
-
+    private static List<TableCell> BuildTableCells(IReadOnlyList<string> cells, MarkdownReaderOptions options, MarkdownReaderState state) {
+        var typedCells = new List<TableCell>(cells.Count);
         for (int i = 0; i < cells.Count; i++) {
             typedCells.Add(BuildTableCell(cells[i], options, state));
         }
         return typedCells;
     }
 
-    private static List<IReadOnlyList<TableCell>> BuildTableRows(IReadOnlyList<IReadOnlyList<TableCellSourceFragment>> rows, MarkdownReaderOptions options, MarkdownReaderState state) {
+    private static List<IReadOnlyList<TableCell>> BuildTableRows(IReadOnlyList<IReadOnlyList<string>> rows, MarkdownReaderOptions options, MarkdownReaderState state) {
         var typedRows = new List<IReadOnlyList<TableCell>>(rows.Count);
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
             var row = rows[rowIndex];
@@ -423,43 +383,38 @@ public static partial class MarkdownReader {
         return typedRows;
     }
 
-    private static TableCell BuildTableCell(TableCellSourceFragment cell, MarkdownReaderOptions options, MarkdownReaderState state) {
-        if (string.IsNullOrEmpty(cell.Markdown)) {
+    private static TableCell BuildTableCell(string? cell, MarkdownReaderOptions options, MarkdownReaderState state) {
+        if (string.IsNullOrEmpty(cell)) {
             return new TableCell();
         }
 
-        var structuredCell = TryParseStructuredTableCellBlocks(cell, options, state);
-        if (structuredCell.HasValue) {
-            return new TableCell(structuredCell.Value.Blocks) {
-                SourceSpan = cell.SourceSpan,
-                SyntaxChildren = structuredCell.Value.SyntaxChildren
-            };
+        var blocks = TryParseStructuredTableCellBlocks(cell, options, state);
+        if (blocks != null) {
+            return new TableCell(blocks);
         }
 
         return new TableCell(new[] {
             new ParagraphBlock(ParseTableCellInlines(cell, options, state))
-        }) {
-            SourceSpan = cell.SourceSpan
-        };
+        });
     }
 
-    private static (IReadOnlyList<IMarkdownBlock> Blocks, IReadOnlyList<MarkdownSyntaxNode> SyntaxChildren)? TryParseStructuredTableCellBlocks(
-        TableCellSourceFragment cell,
+    private static IReadOnlyList<IMarkdownBlock>? TryParseStructuredTableCellBlocks(
+        string? cell,
         MarkdownReaderOptions options,
         MarkdownReaderState state) {
-        if (string.IsNullOrEmpty(cell.Markdown)) {
+        if (string.IsNullOrEmpty(cell)) {
             return null;
         }
 
-        var normalized = BuildTableCellSourceLines(cell);
-        if (!TableBlock.LooksLikeStructuredMarkdownCell(string.Join("\n", normalized.Select(line => line.Text)))) {
+        var normalized = TableBlock.NormalizeBreakMarkers(cell ?? string.Empty);
+        if (!TableBlock.LooksLikeStructuredMarkdownCell(normalized)) {
             return null;
         }
 
         var fragmentOptions = CloneOptionsWithoutFrontMatter(options);
         fragmentOptions.Tables = false;
         var fragmentState = CloneState(state);
-        var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(normalized, fragmentOptions, fragmentState);
+        var blocks = ParseBlockFragment(normalized, fragmentOptions, fragmentState);
         if (blocks.Count == 0) {
             return null;
         }
@@ -472,19 +427,7 @@ public static partial class MarkdownReader {
             return null;
         }
 
-        return (blocks, syntaxChildren);
-    }
-
-    private readonly struct TableCellSourceFragment {
-        public TableCellSourceFragment(string markdown, string text, MarkdownSourceSpan sourceSpan) {
-            Markdown = markdown ?? string.Empty;
-            Text = text ?? string.Empty;
-            SourceSpan = sourceSpan;
-        }
-
-        public string Markdown { get; }
-        public string Text { get; }
-        public MarkdownSourceSpan SourceSpan { get; }
+        return blocks;
     }
 
     private static bool IsAlignmentRow(string line) {
@@ -512,223 +455,67 @@ public static partial class MarkdownReader {
 
     private static List<string> SplitTableRow(string line) {
         if (line is null) return new List<string>();
-        return SplitTableRowWithSourceInfo(line, absoluteLine: 1, state: null).Select(cell => cell.Text).ToList();
-    }
+        var t = line.Trim();
+        if (t.StartsWith("|")) t = t.Substring(1);
+        if (t.EndsWith("|") && t.Length > 0) t = t.Substring(0, t.Length - 1);
 
-    private static List<TableCellSourceFragment> SplitTableRowWithSourceInfo(string line, int absoluteLine, MarkdownReaderState? state) {
-        if (line is null) {
-            return new List<TableCellSourceFragment>();
-        }
+        // Split on unescaped pipes that are not inside backtick code spans.
+        // This covers the most common GFM-table cases:
+        // - Escaped pipes: \|
+        // - Pipes inside code spans: `a|b` or ``a|b``
+        var cells = new List<string>();
+        var sb = new StringBuilder(t.Length);
+        int i = 0;
+        int codeFenceLen = 0; // 0 = not in code span
 
-        int trimStart = 0;
-        int trimEndExclusive = line.Length;
-        while (trimStart < trimEndExclusive && char.IsWhiteSpace(line[trimStart])) {
-            trimStart++;
-        }
-        while (trimEndExclusive > trimStart && char.IsWhiteSpace(line[trimEndExclusive - 1])) {
-            trimEndExclusive--;
-        }
+        while (i < t.Length) {
+            char ch = t[i];
 
-        int contentStart = trimStart;
-        int contentEndExclusive = trimEndExclusive;
-        if (contentStart < contentEndExclusive && line[contentStart] == '|') {
-            contentStart++;
-        }
-        if (contentEndExclusive > contentStart && line[contentEndExclusive - 1] == '|') {
-            contentEndExclusive--;
-        }
-
-        var cells = new List<TableCellSourceFragment>();
-        int segmentStart = contentStart;
-        int index = contentStart;
-        int codeFenceLen = 0;
-
-        while (index < contentEndExclusive) {
-            char ch = line[index];
-            if (ch == '\\' && index + 1 < contentEndExclusive) {
-                index += 2;
+            // Backslash escape: keep as-is, but prevent the next char (including '|') from being treated specially.
+            if (ch == '\\' && i + 1 < t.Length) {
+                sb.Append(ch);
+                sb.Append(t[i + 1]);
+                i += 2;
                 continue;
             }
 
+            // Code span tracking: toggle on/off when encountering a run of backticks of the same length.
             if (ch == '`') {
                 int run = 1;
-                int tick = index + 1;
-                while (tick < contentEndExclusive && line[tick] == '`') {
-                    run++;
-                    tick++;
-                }
+                int j = i + 1;
+                while (j < t.Length && t[j] == '`') { run++; j++; }
 
                 if (codeFenceLen == 0) {
-                    if (HasClosingBacktickRun(line.Substring(contentStart, contentEndExclusive - contentStart), index - contentStart + run, run)) {
+                    if (HasClosingBacktickRun(t, j, run)) {
                         codeFenceLen = run;
                     }
-                } else if (run == codeFenceLen) {
-                    codeFenceLen = 0;
                 }
+                else if (run == codeFenceLen) codeFenceLen = 0;
 
-                index += run;
+                sb.Append(t, i, run);
+                i += run;
                 continue;
             }
 
             if (ch == '|' && codeFenceLen == 0) {
-                cells.Add(CreateTableCellSourceFragment(line, segmentStart, index, absoluteLine, state));
-                segmentStart = index + 1;
+                cells.Add(sb.ToString().Trim());
+                sb.Clear();
+                i++;
+                continue;
             }
 
-            index++;
+            sb.Append(ch);
+            i++;
         }
 
-        cells.Add(CreateTableCellSourceFragment(line, segmentStart, contentEndExclusive, absoluteLine, state));
+        cells.Add(sb.ToString().Trim());
+
+        // Unescape backslash escapes outside code spans for cell storage, so that doc->ToMarkdown roundtrips cleanly.
+        for (int c = 0; c < cells.Count; c++) {
+            cells[c] = UnescapeBackslashEscapesOutsideCodeSpans(cells[c]);
+        }
+
         return cells;
-    }
-
-    private static TableCellSourceFragment CreateTableCellSourceFragment(
-        string line,
-        int segmentStart,
-        int segmentEndExclusive,
-        int absoluteLine,
-        MarkdownReaderState? state) {
-        int trimmedStart = segmentStart;
-        int trimmedEndExclusive = segmentEndExclusive;
-
-        while (trimmedStart < trimmedEndExclusive && char.IsWhiteSpace(line[trimmedStart])) {
-            trimmedStart++;
-        }
-
-        while (trimmedEndExclusive > trimmedStart && char.IsWhiteSpace(line[trimmedEndExclusive - 1])) {
-            trimmedEndExclusive--;
-        }
-
-        string markdown = trimmedStart < trimmedEndExclusive
-            ? line.Substring(trimmedStart, trimmedEndExclusive - trimmedStart)
-            : string.Empty;
-        string text = UnescapeBackslashEscapesOutsideCodeSpans(markdown);
-        int startColumn = trimmedStart + 1;
-        int endColumn = trimmedStart < trimmedEndExclusive ? trimmedEndExclusive : startColumn;
-        var span = CreateSpan(state, absoluteLine, startColumn, absoluteLine, endColumn);
-        return new TableCellSourceFragment(markdown, text, span);
-    }
-
-    private static (string Text, MarkdownInlineSourceMap? SourceMap) NormalizeTableCellInlineMarkdownWithSourceMap(
-        TableCellSourceFragment cell,
-        MarkdownReaderState? state) {
-        if (string.IsNullOrEmpty(cell.Markdown)) {
-            return (string.Empty, null);
-        }
-
-        var builder = new StringBuilder(cell.Markdown.Length + 8);
-        List<MarkdownSourcePoint?>? points = state?.SourceTextMap == null ? null : new List<MarkdownSourcePoint?>(cell.Markdown.Length + 8);
-        int absoluteLine = cell.SourceSpan.StartLine;
-        int column = cell.SourceSpan.StartColumn ?? 1;
-
-        void AppendMapped(string value, int sourceColumn) {
-            builder.Append(value);
-            if (points == null) {
-                return;
-            }
-
-            var point = state!.SourceTextMap!.CreatePoint(absoluteLine, sourceColumn);
-            for (int i = 0; i < value.Length; i++) {
-                points.Add(point);
-            }
-        }
-
-        for (int i = 0; i < cell.Markdown.Length; i++) {
-            char ch = cell.Markdown[i];
-            if (ch == '\r') {
-                if (i + 1 < cell.Markdown.Length && cell.Markdown[i + 1] == '\n') {
-                    i++;
-                }
-                AppendMapped("\n", column);
-                column++;
-                continue;
-            }
-
-            if (ch == '\n') {
-                AppendMapped("\n", column);
-                column++;
-                continue;
-            }
-
-            if (ch == '<' && TableBlock.TryConsumeBreakTag(cell.Markdown, i, out int consumed)) {
-                AppendMapped("\n", column);
-                column += consumed;
-                i += consumed - 1;
-                continue;
-            }
-
-            switch (ch) {
-                case '<':
-                    AppendMapped("&lt;", column);
-                    break;
-                case '>':
-                    AppendMapped("&gt;", column);
-                    break;
-                case '&':
-                    AppendMapped("&amp;", column);
-                    break;
-                default:
-                    AppendMapped(ch.ToString(), column);
-                    break;
-            }
-
-            column++;
-        }
-
-        return (builder.ToString(), points == null ? null : new MarkdownInlineSourceMap(points.ToArray()));
-    }
-
-    private static List<MarkdownSourceLineSlice> BuildTableCellSourceLines(TableCellSourceFragment cell) {
-        var slices = new List<MarkdownSourceLineSlice>();
-        if (string.IsNullOrEmpty(cell.Markdown)) {
-            slices.Add(new MarkdownSourceLineSlice(string.Empty, cell.SourceSpan.StartLine, cell.SourceSpan.StartColumn ?? 1));
-            return slices;
-        }
-
-        var current = new StringBuilder(cell.Markdown.Length);
-        int absoluteLine = cell.SourceSpan.StartLine;
-        int column = cell.SourceSpan.StartColumn ?? 1;
-        int currentStartColumn = column;
-
-        void Flush() {
-            slices.Add(new MarkdownSourceLineSlice(current.ToString(), absoluteLine, currentStartColumn));
-            current.Clear();
-            currentStartColumn = column;
-        }
-
-        for (int i = 0; i < cell.Markdown.Length; i++) {
-            char ch = cell.Markdown[i];
-            if (ch == '\r') {
-                if (i + 1 < cell.Markdown.Length && cell.Markdown[i + 1] == '\n') {
-                    i++;
-                }
-                Flush();
-                column++;
-                currentStartColumn = column;
-                continue;
-            }
-
-            if (ch == '\n') {
-                Flush();
-                column++;
-                currentStartColumn = column;
-                continue;
-            }
-
-            if (ch == '<' && TableBlock.TryConsumeBreakTag(cell.Markdown, i, out int consumed)) {
-                Flush();
-                column += consumed;
-                currentStartColumn = column;
-                i += consumed - 1;
-                continue;
-            }
-
-            current.Append(ch);
-            column++;
-        }
-
-        Flush();
-        return slices;
     }
 
     private static string UnescapeBackslashEscapesOutsideCodeSpans(string value) {
@@ -866,28 +653,11 @@ public static partial class MarkdownReader {
         return false;
     }
 
-    private static List<string> ConsumeListContinuationLines(
-        string[] lines,
-        ref int nextIndex,
-        int continuationIndent,
-        string initialContent,
-        MarkdownReaderOptions options,
-        bool breakOnAnyOrderedListLine = false,
-        List<MarkdownSourceLineSlice>? sourceLines = null,
-        int absoluteLineOffset = 0,
-        int initialLineIndex = -1,
-        int initialStartColumn = 1) {
+    private static List<string> ConsumeListContinuationLines(string[] lines, ref int nextIndex, int continuationIndent, string initialContent, MarkdownReaderOptions options, bool breakOnAnyOrderedListLine = false) {
         if (lines == null) return new List<string> { initialContent ?? string.Empty };
         if (nextIndex < 0) nextIndex = 0;
 
         var collected = new List<string> { initialContent ?? string.Empty };
-        if (sourceLines != null) {
-            int initialAbsoluteLine = initialLineIndex >= 0
-                ? absoluteLineOffset + initialLineIndex + 1
-                : absoluteLineOffset + nextIndex + 1;
-            sourceLines.Add(new MarkdownSourceLineSlice(initialContent ?? string.Empty, initialAbsoluteLine, initialStartColumn));
-        }
-
         int k = nextIndex;
 
         while (k < lines.Length) {
@@ -943,7 +713,6 @@ public static partial class MarkdownReader {
                 if (nextIndentColumns < continuationIndent) break;
 
                 collected.Add(string.Empty);
-                sourceLines?.Add(new MarkdownSourceLineSlice(string.Empty, absoluteLineOffset + k + 1, 1));
                 k++;
                 continue;
             }
@@ -955,7 +724,6 @@ public static partial class MarkdownReader {
                     LooksLikeParagraphLine(collected, collected.Count - 1, options) &&
                     TryNormalizeListLazyContinuationLine(lines, k, options, breakOnAnyOrderedListLine, out var normalizedLazyLine)) {
                     collected.Add(normalizedLazyLine);
-                    sourceLines?.Add(new MarkdownSourceLineSlice(normalizedLazyLine, absoluteLineOffset + k + 1, indentColumns + 1));
                     k++;
                     continue;
                 }
@@ -965,11 +733,8 @@ public static partial class MarkdownReader {
 
             // Strip the required indent; keep the remainder as-is (including additional indentation).
             string cont = StripLeadingIndentColumns(line, continuationIndent);
-            int startColumn = continuationIndent + 1;
-            startColumn += CountLeadingIndentColumns(cont);
             cont = cont.TrimStart();
             collected.Add(cont);
-            sourceLines?.Add(new MarkdownSourceLineSlice(cont, absoluteLineOffset + k + 1, startColumn));
             k++;
         }
 
@@ -1165,42 +930,6 @@ public static partial class MarkdownReader {
         return trimmed.Length >= 2 && trimmed[1] == ' ' ? trimmed.Substring(2) : trimmed.Substring(1);
     }
 
-    private static int GetQuoteContentStartColumn(string line) {
-        if (string.IsNullOrEmpty(line)) {
-            return 1;
-        }
-
-        int column = 1;
-        int index = 0;
-        while (index < line.Length) {
-            char ch = line[index];
-            if (ch == ' ') {
-                column++;
-                index++;
-                continue;
-            }
-
-            if (ch == '\t') {
-                column += 4 - ((column - 1) % 4);
-                index++;
-                continue;
-            }
-
-            break;
-        }
-
-        if (index < line.Length && line[index] == '>') {
-            column++;
-            index++;
-        }
-
-        if (index < line.Length && line[index] == ' ') {
-            column++;
-        }
-
-        return column;
-    }
-
     private static bool TryParseNestedTableBlock(string[] lines, ref int index, int continuationIndent, MarkdownReaderOptions options, MarkdownReaderState state, out TableBlock? table) {
         table = null;
         if (lines == null || index < 0 || index >= lines.Length) return false;
@@ -1311,7 +1040,7 @@ public static partial class MarkdownReader {
                     if (parsers[p].TryParse(lines, ref i, opt, doc, state)) {
                         matched = true;
                         if (syntaxNodes != null && doc.Blocks.Count > previousBlockCount) {
-                            CaptureSyntaxNodes(doc, previousBlockCount, startLine, lineOffset + i, syntaxNodes, state);
+                            CaptureSyntaxNodes(doc, previousBlockCount, startLine, lineOffset + i, syntaxNodes);
                         }
                         break;
                     }
@@ -1335,18 +1064,6 @@ public static partial class MarkdownReader {
             if (count >= 2) return true;
         }
         return false;
-    }
-
-    private readonly struct MarkdownSourceLineSlice {
-        public MarkdownSourceLineSlice(string text, int absoluteLine, int startColumn) {
-            Text = text ?? string.Empty;
-            AbsoluteLine = absoluteLine;
-            StartColumn = startColumn < 1 ? 1 : startColumn;
-        }
-
-        public string Text { get; }
-        public int AbsoluteLine { get; }
-        public int StartColumn { get; }
     }
 
     private static List<InlineSequence> ParseParagraphsFromLines(List<string> lines, MarkdownReaderOptions options, MarkdownReaderState? state) {
@@ -1374,39 +1091,6 @@ public static partial class MarkdownReader {
         return paragraphs;
     }
 
-    private static List<InlineSequence> ParseParagraphsFromSourceLines(List<MarkdownSourceLineSlice> lines, MarkdownReaderOptions options, MarkdownReaderState? state) {
-        var paragraphs = new List<InlineSequence>();
-        if (lines == null || lines.Count == 0) {
-            paragraphs.Add(ParseInlines(string.Empty, options, state));
-            return paragraphs;
-        }
-
-        var current = new List<MarkdownSourceLineSlice>();
-        for (int i = 0; i < lines.Count; i++) {
-            if (string.IsNullOrEmpty(lines[i].Text)) {
-                if (current.Count > 0) {
-                    var (text, sourceMap) = JoinParagraphSourceLinesWithSourceMap(current, options, state);
-                    paragraphs.Add(ParseInlines(text, options, state, sourceMap));
-                    current.Clear();
-                }
-                continue;
-            }
-
-            current.Add(lines[i]);
-        }
-
-        if (current.Count > 0) {
-            var (text, sourceMap) = JoinParagraphSourceLinesWithSourceMap(current, options, state);
-            paragraphs.Add(ParseInlines(text, options, state, sourceMap));
-        }
-
-        if (paragraphs.Count == 0) {
-            paragraphs.Add(ParseInlines(string.Empty, options, state));
-        }
-
-        return paragraphs;
-    }
-
     private static List<ParagraphBlock> ParseParagraphBlocksFromLines(List<string> lines, MarkdownReaderOptions options, MarkdownReaderState? state) {
         var paragraphInlines = ParseParagraphsFromLines(lines, options, state);
         var blocks = new List<ParagraphBlock>(paragraphInlines.Count);
@@ -1416,23 +1100,14 @@ public static partial class MarkdownReader {
         return blocks;
     }
 
-    private static List<ParagraphBlock> ParseParagraphBlocksFromSourceLines(List<MarkdownSourceLineSlice> lines, MarkdownReaderOptions options, MarkdownReaderState? state) {
-        var paragraphInlines = ParseParagraphsFromSourceLines(lines, options, state);
-        var blocks = new List<ParagraphBlock>(paragraphInlines.Count);
-        for (int i = 0; i < paragraphInlines.Count; i++) {
-            blocks.Add(new ParagraphBlock(paragraphInlines[i]));
-        }
-        return blocks;
-    }
-
-    private static void AddListItemLeadSyntaxNodes(ListItem item, List<string> lines, int lineOffset, MarkdownReaderOptions options, MarkdownReaderState? state, List<MarkdownSourceLineSlice>? sourceLines = null) {
+    private static void AddListItemLeadSyntaxNodes(ListItem item, List<string> lines, int lineOffset, MarkdownReaderOptions options, MarkdownReaderState? state) {
         if (item == null || lines == null || lines.Count == 0) return;
         int absoluteLineOffset = (state?.SourceLineOffset ?? 0) + lineOffset;
 
         if (TryParseSetextHeadingParagraphLines(lines, options, out int level, out string headingText)) {
             item.SyntaxChildren.Add(new MarkdownSyntaxNode(
                 MarkdownSyntaxKind.Heading,
-                CreateLineSpan(state, absoluteLineOffset + 1, absoluteLineOffset + lines.Count),
+                new MarkdownSourceSpan(absoluteLineOffset + 1, absoluteLineOffset + lines.Count),
                 headingText));
             return;
         }
@@ -1440,21 +1115,14 @@ public static partial class MarkdownReader {
         if (TryGetLeadingSetextHeadingPrefix(lines, options, out int headingLineCount, out level, out headingText)) {
             item.SyntaxChildren.Add(new MarkdownSyntaxNode(
                 MarkdownSyntaxKind.Heading,
-                CreateLineSpan(state, absoluteLineOffset + 1, absoluteLineOffset + headingLineCount),
+                new MarkdownSourceSpan(absoluteLineOffset + 1, absoluteLineOffset + headingLineCount),
                 headingText));
 
             if (headingLineCount < lines.Count) {
                 var trailingLines = lines.GetRange(headingLineCount, lines.Count - headingLineCount);
                 if (!trailingLines.TrueForAll(string.IsNullOrWhiteSpace)) {
-                    IReadOnlyList<MarkdownSyntaxNode> trailingSyntax;
-                    if (sourceLines != null && sourceLines.Count >= headingLineCount) {
-                        trailingSyntax = ParseBlockSyntaxNodesFromSourceLines(sourceLines.GetRange(headingLineCount, lines.Count - headingLineCount), options, state);
-                    } else {
-                        var nestedSyntax = new List<MarkdownSyntaxNode>();
-                        _ = ParseBlocksFromLines(trailingLines.ToArray(), options, state ?? new MarkdownReaderState(), nestedSyntax, lineOffset: lineOffset + headingLineCount);
-                        trailingSyntax = nestedSyntax;
-                    }
-
+                    var trailingSyntax = new List<MarkdownSyntaxNode>();
+                    _ = ParseBlocksFromLines(trailingLines.ToArray(), options, state ?? new MarkdownReaderState(), trailingSyntax, lineOffset: lineOffset + headingLineCount);
                     for (int i = 0; i < trailingSyntax.Count; i++) {
                         item.SyntaxChildren.Add(trailingSyntax[i]);
                     }
@@ -1465,24 +1133,13 @@ public static partial class MarkdownReader {
 
         int firstBlank = lines.FindIndex(string.IsNullOrWhiteSpace);
         if (firstBlank > 0) {
-            if (sourceLines != null && sourceLines.Count >= firstBlank) {
-                AddParagraphSyntaxNodes(item.SyntaxChildren, sourceLines.GetRange(0, firstBlank), options, state);
-            } else {
-                AddParagraphSyntaxNodes(item.SyntaxChildren, lines.GetRange(0, firstBlank), absoluteLineOffset, options, state);
-            }
+            AddParagraphSyntaxNodes(item.SyntaxChildren, lines.GetRange(0, firstBlank), absoluteLineOffset, options, state);
 
             if (firstBlank + 1 < lines.Count) {
                 var trailingLines = lines.GetRange(firstBlank + 1, lines.Count - firstBlank - 1);
                 if (!trailingLines.TrueForAll(string.IsNullOrWhiteSpace)) {
-                    IReadOnlyList<MarkdownSyntaxNode> trailingSyntax;
-                    if (sourceLines != null && sourceLines.Count > firstBlank + 1) {
-                        trailingSyntax = ParseBlockSyntaxNodesFromSourceLines(sourceLines.GetRange(firstBlank + 1, lines.Count - firstBlank - 1), options, state);
-                    } else {
-                        var nestedSyntax = new List<MarkdownSyntaxNode>();
-                        _ = ParseBlocksFromLines(trailingLines.ToArray(), options, state ?? new MarkdownReaderState(), nestedSyntax, lineOffset: lineOffset + firstBlank + 1);
-                        trailingSyntax = nestedSyntax;
-                    }
-
+                    var trailingSyntax = new List<MarkdownSyntaxNode>();
+                    _ = ParseBlocksFromLines(trailingLines.ToArray(), options, state ?? new MarkdownReaderState(), trailingSyntax, lineOffset: lineOffset + firstBlank + 1);
                     for (int i = 0; i < trailingSyntax.Count; i++) {
                         item.SyntaxChildren.Add(trailingSyntax[i]);
                     }
@@ -1493,11 +1150,7 @@ public static partial class MarkdownReader {
             return;
         }
 
-        if (sourceLines != null && sourceLines.Count == lines.Count) {
-            AddParagraphSyntaxNodes(item.SyntaxChildren, sourceLines, options, state);
-        } else {
-            AddParagraphSyntaxNodes(item.SyntaxChildren, lines, absoluteLineOffset, options, state);
-        }
+        AddParagraphSyntaxNodes(item.SyntaxChildren, lines, absoluteLineOffset, options, state);
     }
 
     private static void AddParagraphSyntaxNodes(List<MarkdownSyntaxNode> nodes, List<string> lines, int lineOffset, MarkdownReaderOptions options, MarkdownReaderState? state) {
@@ -1522,66 +1175,24 @@ public static partial class MarkdownReader {
         FlushParagraphSyntaxNode(nodes, current, currentStart, lines.Count - 1, lineOffset, options, state);
     }
 
-    private static void AddParagraphSyntaxNodes(List<MarkdownSyntaxNode> nodes, List<MarkdownSourceLineSlice> lines, MarkdownReaderOptions options, MarkdownReaderState? state) {
-        if (nodes == null || lines == null || lines.Count == 0) return;
-
-        var current = new List<MarkdownSourceLineSlice>();
-        for (int i = 0; i < lines.Count; i++) {
-            if (string.IsNullOrEmpty(lines[i].Text)) {
-                FlushParagraphSyntaxNode(nodes, current, options, state);
-                current.Clear();
-                continue;
-            }
-
-            current.Add(lines[i]);
-        }
-
-        FlushParagraphSyntaxNode(nodes, current, options, state);
-    }
-
-    private static IReadOnlyList<MarkdownSyntaxNode> ParseBlockSyntaxNodesFromSourceLines(
-        List<MarkdownSourceLineSlice> lines,
-        MarkdownReaderOptions options,
-        MarkdownReaderState? state) {
-        if (lines == null || lines.Count == 0) {
-            return Array.Empty<MarkdownSyntaxNode>();
-        }
-
-        var effectiveState = state ?? new MarkdownReaderState();
-        var (_, syntaxChildren) = ParseNestedMarkdownBlocks(lines, options, effectiveState);
-        return syntaxChildren;
-    }
-
     private static void FlushParagraphSyntaxNode(List<MarkdownSyntaxNode> nodes, List<string> lines, int startIndex, int endIndex, int lineOffset, MarkdownReaderOptions options, MarkdownReaderState? state) {
         if (nodes == null || lines == null || lines.Count == 0 || startIndex < 0 || endIndex < startIndex) return;
 
-        var inlines = ParseInlines(JoinParagraphLines(lines, options), options, state);
-        var paragraph = new ParagraphBlock(inlines);
-        nodes.Add(BuildSyntaxNode(paragraph, CreateLineSpan(state, lineOffset + startIndex + 1, lineOffset + endIndex + 1)));
-    }
-
-    private static void FlushParagraphSyntaxNode(List<MarkdownSyntaxNode> nodes, List<MarkdownSourceLineSlice> lines, MarkdownReaderOptions options, MarkdownReaderState? state) {
-        if (nodes == null || lines == null || lines.Count == 0) return;
-
-        var (text, sourceMap) = JoinParagraphSourceLinesWithSourceMap(lines, options, state);
-        var inlines = ParseInlines(text, options, state, sourceMap);
-        var paragraph = new ParagraphBlock(inlines);
-        nodes.Add(BuildSyntaxNode(paragraph, CreateSpan(
-            state,
-            lines[0].AbsoluteLine,
-            lines[0].StartColumn,
-            lines[lines.Count - 1].AbsoluteLine,
-            lines[lines.Count - 1].StartColumn + Math.Max(0, lines[lines.Count - 1].Text.Length - 1))));
+        var literal = ParseInlines(JoinParagraphLines(lines, options), options, state).RenderMarkdown();
+        nodes.Add(new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.Paragraph,
+            new MarkdownSourceSpan(lineOffset + startIndex + 1, lineOffset + endIndex + 1),
+            literal));
     }
 
     private static void AddListItemChildSyntaxNode(ListItem item, IMarkdownBlock block, int startLineIndex, int endExclusiveLineIndex, MarkdownReaderState? state) {
         if (item == null || block == null) return;
         int absoluteStart = (state?.SourceLineOffset ?? 0) + startLineIndex;
         int absoluteEndExclusive = (state?.SourceLineOffset ?? 0) + endExclusiveLineIndex;
-        item.SyntaxChildren.Add(BuildSyntaxNode(block, CreateLineSpan(state, absoluteStart + 1, Math.Max(absoluteStart + 1, absoluteEndExclusive))));
+        item.SyntaxChildren.Add(BuildSyntaxNode(block, new MarkdownSourceSpan(absoluteStart + 1, Math.Max(absoluteStart + 1, absoluteEndExclusive))));
     }
 
-    private static ListItem CreateListItemFromLeadLines(List<string> lines, bool isTask, bool done, MarkdownReaderOptions options, MarkdownReaderState? state, List<MarkdownSourceLineSlice>? sourceLines = null) {
+    private static ListItem CreateListItemFromLeadLines(List<string> lines, bool isTask, bool done, MarkdownReaderOptions options, MarkdownReaderState? state) {
         if (TryParseListItemLeadSetextBlocks(lines, options, state, out var leadBlocks)) {
             var headingItem = isTask ? ListItem.TaskInlines(new InlineSequence(), done) : new ListItem(new InlineSequence());
             for (int i = 0; i < leadBlocks.Count; i++) {
@@ -1592,9 +1203,7 @@ public static partial class MarkdownReader {
 
         int firstBlank = lines.FindIndex(string.IsNullOrWhiteSpace);
         if (firstBlank <= 0) {
-            var paragraphs = sourceLines != null && sourceLines.Count == lines.Count
-                ? ParseParagraphsFromSourceLines(sourceLines, options, state)
-                : ParseParagraphsFromLines(lines, options, state);
+            var paragraphs = ParseParagraphsFromLines(lines, options, state);
             var item = isTask ? ListItem.TaskInlines(paragraphs[0], done) : new ListItem(paragraphs[0]);
             for (int i = 1; i < paragraphs.Count; i++) {
                 item.AdditionalParagraphs.Add(paragraphs[i]);
@@ -1602,36 +1211,13 @@ public static partial class MarkdownReader {
             return item;
         }
 
-        var firstParagraph = sourceLines != null && sourceLines.Count >= firstBlank
-            ? ParseParagraphsFromSourceLines(sourceLines.GetRange(0, firstBlank), options, state)[0]
-            : ParseParagraphsFromLines(lines.GetRange(0, firstBlank), options, state)[0];
+        var firstParagraph = ParseParagraphsFromLines(lines.GetRange(0, firstBlank), options, state)[0];
         var mixedItem = isTask ? ListItem.TaskInlines(firstParagraph, done) : new ListItem(firstParagraph);
 
         if (firstBlank + 1 >= lines.Count) return mixedItem;
 
         var trailingLines = lines.GetRange(firstBlank + 1, lines.Count - firstBlank - 1);
         if (trailingLines.TrueForAll(string.IsNullOrWhiteSpace)) return mixedItem;
-
-        if (sourceLines != null && sourceLines.Count > firstBlank + 1) {
-            var trailingSourceLines = sourceLines.GetRange(firstBlank + 1, lines.Count - firstBlank - 1);
-            if (!trailingSourceLines.TrueForAll(slice => string.IsNullOrWhiteSpace(slice.Text))) {
-                var effectiveState = state ?? new MarkdownReaderState();
-                var (trailingBlocksFromSource, trailingSyntaxFromSource) = ParseNestedMarkdownBlocks(trailingSourceLines, options, effectiveState);
-                if (trailingSyntaxFromSource.All(node => node.Kind == MarkdownSyntaxKind.Paragraph)) {
-                    var trailingParagraphs = ParseParagraphsFromSourceLines(trailingSourceLines, options, state);
-                    for (int i = 0; i < trailingParagraphs.Count; i++) {
-                        mixedItem.AdditionalParagraphs.Add(trailingParagraphs[i]);
-                    }
-                    return mixedItem;
-                }
-
-                for (int i = 0; i < trailingBlocksFromSource.Count; i++) {
-                    mixedItem.Children.Add(trailingBlocksFromSource[i]);
-                }
-                mixedItem.ForceLoose = true;
-                return mixedItem;
-            }
-        }
 
         var trailingBlocks = ParseBlocksFromLines(trailingLines.ToArray(), options, state ?? new MarkdownReaderState());
         if (mixedItem.TryAbsorbTrailingParagraphBlocks(trailingBlocks)) return mixedItem;
@@ -1726,107 +1312,6 @@ public static partial class MarkdownReader {
             prevHard = hard;
         }
         return sb.ToString();
-    }
-
-    private static (string Text, MarkdownInlineSourceMap? SourceMap) JoinParagraphLinesWithSourceMap(
-        List<string> lines,
-        int absoluteLineOffset,
-        MarkdownReaderOptions options,
-        MarkdownReaderState? state) {
-        var text = JoinParagraphLines(lines, options);
-        if (state?.SourceTextMap == null || string.IsNullOrEmpty(text)) {
-            return (text, null);
-        }
-
-        var points = new MarkdownSourcePoint?[text.Length];
-        var cursor = 0;
-        var previousLineForJoin = absoluteLineOffset + 1;
-        var previousJoinColumn = 1;
-
-        for (var i = 0; i < lines.Count; i++) {
-            var raw = lines[i] ?? string.Empty;
-            var trimmed = raw.TrimEnd();
-            trimmed = ConsumeTrailingBackslashHardBreak(trimmed, options, out _);
-
-            if (i > 0 && cursor < points.Length) {
-                points[cursor++] = state.SourceTextMap.CreatePoint(previousLineForJoin, previousJoinColumn);
-            }
-
-            var absoluteLine = absoluteLineOffset + i + 1;
-            for (var charIndex = 0; charIndex < trimmed.Length && cursor < points.Length; charIndex++) {
-                points[cursor++] = state.SourceTextMap.CreatePoint(absoluteLine, charIndex + 1);
-            }
-
-            previousLineForJoin = absoluteLine;
-            previousJoinColumn = Math.Max(1, trimmed.Length);
-        }
-
-        if (cursor < points.Length) {
-            Array.Resize(ref points, cursor);
-        }
-
-        return (text, new MarkdownInlineSourceMap(points));
-    }
-
-    private static (string Text, MarkdownInlineSourceMap? SourceMap) JoinParagraphSourceLinesWithSourceMap(
-        List<MarkdownSourceLineSlice> lines,
-        MarkdownReaderOptions options,
-        MarkdownReaderState? state) {
-        if (lines == null || lines.Count == 0) {
-            return (string.Empty, null);
-        }
-
-        var plainLines = new List<string>(lines.Count);
-        for (int i = 0; i < lines.Count; i++) {
-            plainLines.Add(lines[i].Text);
-        }
-
-        var text = JoinParagraphLines(plainLines, options);
-        if (state?.SourceTextMap == null || string.IsNullOrEmpty(text)) {
-            return (text, null);
-        }
-
-        var points = new MarkdownSourcePoint?[text.Length];
-        var cursor = 0;
-        var previousLine = lines[0].AbsoluteLine;
-        var previousJoinColumn = lines[0].StartColumn;
-
-        for (var i = 0; i < lines.Count; i++) {
-            if (i > 0 && cursor < points.Length) {
-                points[cursor++] = state.SourceTextMap.CreatePoint(previousLine, previousJoinColumn);
-            }
-
-            var slice = lines[i];
-            for (var charIndex = 0; charIndex < slice.Text.Length && cursor < points.Length; charIndex++) {
-                points[cursor++] = state.SourceTextMap.CreatePoint(slice.AbsoluteLine, slice.StartColumn + charIndex);
-            }
-
-            previousLine = slice.AbsoluteLine;
-            previousJoinColumn = slice.StartColumn + Math.Max(0, slice.Text.Length - 1);
-        }
-
-        if (cursor < points.Length) {
-            Array.Resize(ref points, cursor);
-        }
-
-        return (text, new MarkdownInlineSourceMap(points));
-    }
-
-    private static MarkdownInlineSourceMap? BuildInlineSourceMapForSingleLine(
-        string text,
-        int absoluteLine,
-        int startColumn,
-        MarkdownReaderState? state) {
-        if (state?.SourceTextMap == null || string.IsNullOrEmpty(text)) {
-            return null;
-        }
-
-        var points = new MarkdownSourcePoint?[text.Length];
-        for (var i = 0; i < text.Length; i++) {
-            points[i] = state.SourceTextMap.CreatePoint(absoluteLine, startColumn + i);
-        }
-
-        return new MarkdownInlineSourceMap(points);
     }
 
     private static string ConsumeTrailingBackslashHardBreak(string trimmed, MarkdownReaderOptions options, out bool hardBreak) {
@@ -2013,22 +1498,14 @@ public static partial class MarkdownReader {
 
         string firstContent = StripLeadingIndentColumns(line, continuationIndent);
         firstContent = firstContent.TrimStart();
-        int firstStartColumn = continuationIndent + CountLeadingIndentColumns(StripLeadingIndentColumns(line, continuationIndent)) + 1;
 
         int next = index + 1;
-        var paragraphSourceLines = new List<MarkdownSourceLineSlice>();
-        var paragraphLines = ConsumeListContinuationLines(
-            lines,
-            ref next,
-            continuationIndent,
-            firstContent,
-            options,
-            sourceLines: paragraphSourceLines,
-            absoluteLineOffset: state.SourceLineOffset,
-            initialLineIndex: index,
-            initialStartColumn: firstStartColumn);
-        paragraphs.AddRange(ParseParagraphBlocksFromSourceLines(paragraphSourceLines, options, state));
-        AddParagraphSyntaxNodes(syntaxNodes, paragraphSourceLines, options, state);
+        var paragraphLines = ConsumeListContinuationLines(lines, ref next, continuationIndent, firstContent, options);
+        var paragraphInlines = ParseParagraphsFromLines(paragraphLines, options, state);
+        for (int i = 0; i < paragraphInlines.Count; i++) {
+            paragraphs.Add(new ParagraphBlock(paragraphInlines[i]));
+        }
+        AddParagraphSyntaxNodes(syntaxNodes, paragraphLines, index, options, state);
 
         index = next;
         return paragraphs.Count > 0;
@@ -2093,31 +1570,12 @@ public static partial class MarkdownReader {
         if (!IsDefinitionLineBlockCandidate(line)) return false;
         if (!options.PreferNarrativeSingleLineDefinitions) return true;
 
-        return HasAdjacentDefinitionLine(lines, index) || HasDefinitionContinuation(lines, index);
+        return HasAdjacentDefinitionLine(lines, index);
     }
 
     private static bool HasAdjacentDefinitionLine(IReadOnlyList<string> lines, int index) {
         return IsDefinitionLineBlockCandidate(index > 0 ? lines[index - 1] : null)
                || IsDefinitionLineBlockCandidate(index + 1 < lines.Count ? lines[index + 1] : null);
-    }
-
-    private static bool HasDefinitionContinuation(IReadOnlyList<string> lines, int index) {
-        if (lines == null || index < 0 || index >= lines.Count) {
-            return false;
-        }
-
-        var line = lines[index] ?? string.Empty;
-        int continuationIndent = CountLeadingIndentColumns(line) + 2;
-        for (int i = index + 1; i < lines.Count; i++) {
-            var next = lines[i] ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(next)) {
-                continue;
-            }
-
-            return CountLeadingIndentColumns(next) >= continuationIndent;
-        }
-
-        return false;
     }
 
     private static bool IsDefinitionLineBlockCandidate(string? line) {
@@ -2313,51 +1771,6 @@ public static partial class MarkdownReader {
         }
 
         return spaces + 2;
-    }
-
-    private static int GetTaskMarkerConsumedColumns(string content) {
-        if (string.IsNullOrEmpty(content)) return 0;
-        if (content.StartsWith("[ ]", StringComparison.Ordinal)) {
-            return content.Length > 4 && content[3] == ' ' ? 4 : 0;
-        }
-
-        if (content.StartsWith("[x]", StringComparison.OrdinalIgnoreCase)) {
-            return content.Length > 4 && content[3] == ' ' ? 4 : 0;
-        }
-
-        return 0;
-    }
-
-    private static bool TryGetRawListItemContentAfterMarker(string line, out string content) {
-        content = string.Empty;
-        if (string.IsNullOrEmpty(line)) return false;
-
-        int spaces = CountLeadingSpaces(line);
-        int i = spaces;
-        while (i < line.Length && char.IsDigit(line[i])) i++;
-        if (i > spaces && i + 1 < line.Length && (line[i] == '.' || line[i] == ')') && line[i + 1] == ' ') {
-            content = line.Substring(i + 2);
-            return true;
-        }
-
-        if (spaces + 1 < line.Length) {
-            char marker = line[spaces];
-            if ((marker == '-' || marker == '*' || marker == '+') && line[spaces + 1] == ' ') {
-                content = line.Substring(spaces + 2);
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static int GetListLeadContentStartColumn(string line, bool stripTaskMarker = false) {
-        int startColumn = GetListContinuationIndent(line) + 1;
-        if (!stripTaskMarker) return startColumn;
-
-        return TryGetRawListItemContentAfterMarker(line, out string content)
-            ? startColumn + GetTaskMarkerConsumedColumns(content)
-            : startColumn;
     }
 
     private static Dictionary<string, object?> ParseFrontMatter(string[] lines, int start, int end) {

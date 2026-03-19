@@ -37,13 +37,8 @@ public static partial class MarkdownReader {
                 j++;
             }
             if (sb.Length == 0) return false;
-            var paragraphLines = new List<string>(j - i);
-            for (var lineIndex = i; lineIndex < j; lineIndex++) {
-                paragraphLines.Add(lines[lineIndex]);
-            }
-
-            var (text, sourceMap) = JoinParagraphLinesWithSourceMap(paragraphLines, state.SourceLineOffset + i, options, state);
-            doc.Add(new ParagraphBlock(ParseInlines(text, options, state, sourceMap)));
+            var text = ExpandReferenceLinks(sb.ToString(), state);
+            doc.Add(new ParagraphBlock(ParseInlines(text, options, state)));
             i = j; return true;
         }
 

@@ -18,46 +18,6 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
     public List<IReadOnlyList<string>> Rows { get; } = new List<IReadOnlyList<string>>();
     /// <summary>Typed row cell content.</summary>
     public IReadOnlyList<IReadOnlyList<TableCell>> RowCells => BuildRowCells();
-    /// <summary>Enumerates header and body cells in document order, preserving row/column metadata on each cell.</summary>
-    public IEnumerable<TableCell> EnumerateCells() {
-        var headers = HeaderCells;
-        for (int i = 0; i < headers.Count; i++) {
-            yield return headers[i];
-        }
-
-        var rows = RowCells;
-        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
-            var row = rows[rowIndex];
-            for (int columnIndex = 0; columnIndex < row.Count; columnIndex++) {
-                yield return row[columnIndex];
-            }
-        }
-    }
-
-    /// <summary>Gets a body cell by zero-based row and column index.</summary>
-    public TableCell? GetCell(int rowIndex, int columnIndex) {
-        if (rowIndex < 0 || columnIndex < 0) {
-            return null;
-        }
-
-        var rows = RowCells;
-        if (rowIndex >= rows.Count) {
-            return null;
-        }
-
-        var row = rows[rowIndex];
-        return columnIndex < row.Count ? row[columnIndex] : null;
-    }
-
-    /// <summary>Gets a header cell by zero-based column index.</summary>
-    public TableCell? GetHeaderCell(int columnIndex) {
-        if (columnIndex < 0) {
-            return null;
-        }
-
-        var headers = HeaderCells;
-        return columnIndex < headers.Count ? headers[columnIndex] : null;
-    }
     /// <summary>Parsed inline representation of the current data rows.</summary>
     public IReadOnlyList<IReadOnlyList<InlineSequence>> RowInlines => BuildRowInlines();
     /// <summary>Optional column alignments per column (used when headers are present).</summary>
@@ -221,11 +181,11 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
 
         bool useStructuredCells = StructuredContentSignature.HasValue && StructuredContentSignature.Value == ComputeContentSignature();
         if (useStructuredCells) {
-            return AssignTableCellLocations(PrepareStructuredRowCells(StructuredHeaders, columnCount), isHeader: true, rowIndex: -1);
+            return PrepareStructuredRowCells(StructuredHeaders, columnCount);
         }
 
         var headers = PrepareRowCells(Headers, columnCount);
-        return AssignTableCellLocations(BuildSimpleRowCells(headers), isHeader: true, rowIndex: -1);
+        return BuildSimpleRowCells(headers);
     }
 
     private IReadOnlyList<IReadOnlyList<TableCell>> BuildRowCells() {
@@ -239,11 +199,11 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
 
         for (int rowIndex = 0; rowIndex < Rows.Count; rowIndex++) {
             if (useStructuredCells && StructuredRows != null && rowIndex < StructuredRows.Count) {
-                rows.Add(AssignTableCellLocations(PrepareStructuredRowCells(StructuredRows[rowIndex], columnCount), isHeader: false, rowIndex: rowIndex));
+                rows.Add(PrepareStructuredRowCells(StructuredRows[rowIndex], columnCount));
                 continue;
             }
 
-            rows.Add(AssignTableCellLocations(BuildSimpleRowCells(PrepareRowCells(Rows[rowIndex], columnCount)), isHeader: false, rowIndex: rowIndex));
+            rows.Add(BuildSimpleRowCells(PrepareRowCells(Rows[rowIndex], columnCount)));
         }
 
         return rows;
@@ -571,21 +531,6 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
         return typedCells;
     }
 
-    private static IReadOnlyList<TableCell> AssignTableCellLocations(IReadOnlyList<TableCell> cells, bool isHeader, int rowIndex) {
-        for (int i = 0; i < cells.Count; i++) {
-            var cell = cells[i];
-            if (cell == null) {
-                continue;
-            }
-
-            cell.IsHeader = isHeader;
-            cell.RowIndex = isHeader ? -1 : rowIndex;
-            cell.ColumnIndex = i;
-        }
-
-        return cells;
-    }
-
     private TableCell BuildSimpleCell(string? cell) {
         if (string.IsNullOrEmpty(cell)) {
             return new TableCell();
@@ -747,17 +692,7 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
     }
 
     private static TableCell CloneStructuredCell(TableCell? cell) {
-        if (cell == null) {
-            return new TableCell();
-        }
-
-        return new TableCell(cell.Blocks) {
-            IsHeader = cell.IsHeader,
-            RowIndex = cell.RowIndex,
-            ColumnIndex = cell.ColumnIndex,
-            SourceSpan = cell.SourceSpan,
-            SyntaxChildren = cell.SyntaxChildren
-        };
+        return cell == null ? new TableCell() : new TableCell(cell.Blocks);
     }
 
     private static MarkdownReaderOptions CloneOptionsWithoutTables(MarkdownReaderOptions source) {
@@ -826,7 +761,6 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
         }
 
         clone.SourceLineOffset = state.SourceLineOffset;
-        clone.SourceTextMap = state.SourceTextMap;
         return clone;
     }
 
@@ -920,20 +854,12 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
 
         var nodes = new List<MarkdownSyntaxNode>();
         int line = span.Value.StartLine;
-        int columnCount = GetEffectiveColumnCount();
-        var bodyRows = RowCells;
 
         if (Headers.Count > 0) {
-            var headerCells = BuildHeaderCells();
-            var headerChildren = BuildTableCellSyntaxChildren(
-                PrepareRowCells(Headers, columnCount),
-                headerCells,
-                new MarkdownSourceSpan(line, line));
             nodes.Add(new MarkdownSyntaxNode(
                 MarkdownSyntaxKind.TableHeader,
-                MarkdownBlockSyntaxBuilder.GetAggregateSpan(headerChildren) ?? new MarkdownSourceSpan(line, line),
-                string.Join(" | ", Headers),
-                headerChildren));
+                new MarkdownSourceSpan(line, line),
+                string.Join(" | ", Headers)));
             line += 2;
         }
 
@@ -942,60 +868,11 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
                 break;
             }
 
-            var rowCells = i < bodyRows.Count ? bodyRows[i] : Array.Empty<TableCell>();
-            var rowChildren = BuildTableCellSyntaxChildren(
-                PrepareRowCells(Rows[i], columnCount),
-                rowCells,
-                new MarkdownSourceSpan(line, line));
             nodes.Add(new MarkdownSyntaxNode(
                 MarkdownSyntaxKind.TableRow,
-                MarkdownBlockSyntaxBuilder.GetAggregateSpan(rowChildren) ?? new MarkdownSourceSpan(line, line),
-                string.Join(" | ", Rows[i]),
-                rowChildren));
+                new MarkdownSourceSpan(line, line),
+                string.Join(" | ", Rows[i])));
             line++;
-        }
-
-        return nodes;
-    }
-
-    private static IReadOnlyList<MarkdownSyntaxNode> BuildTableCellSyntaxChildren(
-        IReadOnlyList<string> rawCells,
-        IReadOnlyList<TableCell> structuredCells,
-        MarkdownSourceSpan rowSpan) {
-        int cellCount = Math.Max(rawCells?.Count ?? 0, structuredCells?.Count ?? 0);
-        if (cellCount == 0) {
-            return Array.Empty<MarkdownSyntaxNode>();
-        }
-
-        var nodes = new List<MarkdownSyntaxNode>(cellCount);
-        for (int i = 0; i < cellCount; i++) {
-            string literal = rawCells != null && i < rawCells.Count
-                ? rawCells[i] ?? string.Empty
-                : structuredCells != null && i < structuredCells.Count
-                    ? structuredCells[i]?.Markdown ?? string.Empty
-                    : string.Empty;
-            var cellSpan = structuredCells != null && i < structuredCells.Count
-                ? structuredCells[i]?.SourceSpan ?? rowSpan
-                : rowSpan;
-
-            IReadOnlyList<MarkdownSyntaxNode> children;
-            if (structuredCells != null && i < structuredCells.Count && structuredCells[i]?.SyntaxChildren != null && structuredCells[i]!.SyntaxChildren!.Count > 0) {
-                children = structuredCells[i]!.SyntaxChildren!;
-            } else if (structuredCells != null && i < structuredCells.Count && structuredCells[i] != null && structuredCells[i].Blocks.Count > 0) {
-                var blockNodes = new List<MarkdownSyntaxNode>(structuredCells[i].Blocks.Count);
-                for (int blockIndex = 0; blockIndex < structuredCells[i].Blocks.Count; blockIndex++) {
-                    blockNodes.Add(MarkdownBlockSyntaxBuilder.BuildBlock(structuredCells[i].Blocks[blockIndex]));
-                }
-                children = blockNodes;
-            } else {
-                children = Array.Empty<MarkdownSyntaxNode>();
-            }
-
-            nodes.Add(new MarkdownSyntaxNode(
-                MarkdownSyntaxKind.TableCell,
-                MarkdownBlockSyntaxBuilder.GetAggregateSpan(children) ?? cellSpan,
-                literal,
-                children));
         }
 
         return nodes;

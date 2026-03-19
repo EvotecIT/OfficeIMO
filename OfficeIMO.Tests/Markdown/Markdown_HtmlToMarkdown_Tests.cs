@@ -1037,9 +1037,6 @@ public sealed class MarkdownHtmlToMarkdownTests {
         MarkdownDoc document = html.LoadFromHtml();
         var list = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
 
-        var group = Assert.Single(list.Groups);
-        Assert.Single(group.Terms);
-        Assert.Equal(2, group.Definitions.Count);
         Assert.Equal(2, list.Entries.Count);
         Assert.Equal("Term", list.Entries[0].Term.RenderMarkdown());
         Assert.Equal("First definition", Assert.IsType<ParagraphBlock>(Assert.Single(list.Entries[0].DefinitionBlocks)).Inlines.RenderMarkdown());
@@ -1123,9 +1120,6 @@ public sealed class MarkdownHtmlToMarkdownTests {
         MarkdownDoc document = html.LoadFromHtml();
         var list = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
 
-        var group = Assert.Single(list.Groups);
-        Assert.Equal(new[] { "Alpha", "Beta" }, group.Terms.Select(term => term.RenderMarkdown()).ToArray());
-        Assert.Equal(new[] { "Shared definition", "Follow-up definition" }, group.Definitions.Select(definition => definition.Markdown).ToArray());
         Assert.Equal(4, list.Entries.Count);
         Assert.Equal(("Alpha", "Shared definition"), list.Items[0]);
         Assert.Equal(("Beta", "Shared definition"), list.Items[1]);
@@ -1133,16 +1127,6 @@ public sealed class MarkdownHtmlToMarkdownTests {
         Assert.Equal(("Beta", "Follow-up definition"), list.Items[3]);
         Assert.Equal("Alpha", list.Entries[0].Term.RenderMarkdown());
         Assert.Equal("Shared definition", Assert.IsType<ParagraphBlock>(Assert.Single(list.Entries[0].DefinitionBlocks)).Inlines.RenderMarkdown());
-
-        string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
-        int alphaIndex = renderedHtml.IndexOf("<dt>Alpha</dt>", StringComparison.Ordinal);
-        int betaIndex = renderedHtml.IndexOf("<dt>Beta</dt>", StringComparison.Ordinal);
-        int sharedIndex = renderedHtml.IndexOf("<dd>Shared definition</dd>", StringComparison.Ordinal);
-        int followUpIndex = renderedHtml.IndexOf("<dd>Follow-up definition</dd>", StringComparison.Ordinal);
-        Assert.True(alphaIndex >= 0, "Expected Alpha term in rendered HTML.");
-        Assert.True(betaIndex > alphaIndex, "Expected grouped term order before definitions.");
-        Assert.True(sharedIndex > betaIndex, "Expected shared definition after grouped terms.");
-        Assert.True(followUpIndex > sharedIndex, "Expected follow-up definition after shared definition.");
     }
 
     [Fact]
