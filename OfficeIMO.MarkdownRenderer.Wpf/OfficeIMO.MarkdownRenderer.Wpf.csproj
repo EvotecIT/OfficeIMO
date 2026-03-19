@@ -1,0 +1,70 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Reusable WPF/WebView2 host control for OfficeIMO.MarkdownRenderer.</Description>
+    <AssemblyName>OfficeIMO.MarkdownRenderer.Wpf</AssemblyName>
+    <AssemblyTitle>OfficeIMO.MarkdownRenderer.Wpf</AssemblyTitle>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageId>OfficeIMO.MarkdownRenderer.Wpf</PackageId>
+    <PackageTags>markdown;renderer;wpf;webview2;desktop</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>0.1.0: introduces a reusable WPF/WebView2 MarkdownView host for OfficeIMO.MarkdownRenderer with host-driven preset, theming, clipboard, and external-link hooks.</PackageReleaseNotes>
+    <DebugType>portable</DebugType>
+    <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+    <IsPublishable>True</IsPublishable>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultPageItems>false</EnableDefaultPageItems>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
+    <TargetFrameworks>$(TargetFrameworks);net472;net8.0-windows;net10.0-windows</TargetFrameworks>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <IsWindowsMarkdownHostTarget>false</IsWindowsMarkdownHostTarget>
+    <IsWindowsMarkdownHostTarget Condition=" '$(TargetFramework)' == 'net472' ">true</IsWindowsMarkdownHostTarget>
+    <IsWindowsMarkdownHostTarget Condition=" $([System.String]::Copy('$(TargetFramework)').Contains('-windows')) ">true</IsWindowsMarkdownHostTarget>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(IsWindowsMarkdownHostTarget)' == 'true' ">
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Common\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(IsWindowsMarkdownHostTarget)' == 'true' ">
+    <Compile Include="Platforms\Windows\**\*.cs" />
+    <Page Include="Platforms\Windows\**\*.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.MarkdownRenderer\OfficeIMO.MarkdownRenderer.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(IsWindowsMarkdownHostTarget)' == 'true' ">
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="System" />
+  </ItemGroup>
+
+</Project>
