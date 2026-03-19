@@ -1,8 +1,12 @@
 using System;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Presentation;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests {
     public class PowerPointSlidesManagement {
@@ -204,6 +208,65 @@ namespace OfficeIMO.Tests {
 
             File.Delete(sourcePath);
             File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void ImportSlide_PreservesRichNotesMarkup() {
+            string sourcePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string targetPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation source = PowerPointPresentation.Create(sourcePath)) {
+                    PowerPointSlide sourceSlide = source.AddSlide();
+                    sourceSlide.AddTextBox("Imported slide");
+                    sourceSlide.Notes.Text = "Imported notes";
+                    source.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(sourcePath, true)) {
+                    NotesSlidePart notesPart = document.PresentationPart!.SlideParts.Single().NotesSlidePart!;
+                    ShapeTree shapeTree = notesPart.NotesSlide!.CommonSlideData!.ShapeTree!;
+                    shapeTree.Append(new Shape(
+                        new NonVisualShapeProperties(
+                            new NonVisualDrawingProperties { Id = 99U, Name = "Custom Notes Shape" },
+                            new NonVisualShapeDrawingProperties(),
+                            new ApplicationNonVisualDrawingProperties()),
+                        new ShapeProperties(),
+                        new TextBody(
+                            new A.BodyProperties(),
+                            new A.ListStyle(),
+                            new A.Paragraph(new A.Run(new A.Text("Extra notes shape"))))));
+                    notesPart.NotesSlide.Save();
+                }
+
+                using (PowerPointPresentation source = PowerPointPresentation.Open(sourcePath))
+                using (PowerPointPresentation target = PowerPointPresentation.Create(targetPath)) {
+                    PowerPointSlide imported = target.ImportSlide(source, 0);
+
+                    Assert.Equal("Imported notes", imported.Notes.Text);
+                    target.Save();
+                    Assert.Empty(target.ValidateDocument());
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(targetPath, false)) {
+                    OpenXmlValidator validator = new();
+                    Assert.Empty(validator.Validate(document));
+
+                    NotesSlidePart notesPart = document.PresentationPart!.SlideParts.Single().NotesSlidePart!;
+                    Shape[] shapes = notesPart.NotesSlide!.CommonSlideData!.ShapeTree!.Elements<Shape>().ToArray();
+                    Assert.Contains(shapes, shape =>
+                        shape.NonVisualShapeProperties?.NonVisualDrawingProperties?.Name?.Value == "Custom Notes Shape");
+                    Assert.Contains("Extra notes shape", notesPart.NotesSlide.OuterXml, StringComparison.Ordinal);
+                }
+            } finally {
+                if (File.Exists(sourcePath)) {
+                    File.Delete(sourcePath);
+                }
+
+                if (File.Exists(targetPath)) {
+                    File.Delete(targetPath);
+                }
+            }
         }
     }
 }

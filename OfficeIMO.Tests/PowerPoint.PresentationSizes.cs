@@ -104,5 +104,38 @@ namespace OfficeIMO.Tests {
 
             File.Delete(filePath);
         }
+
+        [Fact]
+        public void Save_RefreshesPresentationMetadata() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen4x3);
+
+                    PowerPointSlide slide1 = presentation.AddSlide();
+                    slide1.Notes.Text = "Notes";
+
+                    presentation.AddSlide();
+                    presentation.AddSlide().Hide();
+
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    var properties = document.ExtendedFilePropertiesPart!.Properties!;
+
+                    Assert.Equal("3", properties.Slides!.Text);
+                    Assert.Equal("1", properties.Notes!.Text);
+                    Assert.Equal("1", properties.HiddenSlides!.Text);
+                    Assert.Equal("Standard", properties.PresentationFormat!.Text);
+                    Assert.NotNull(document.PackageProperties.Modified);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
     }
 }

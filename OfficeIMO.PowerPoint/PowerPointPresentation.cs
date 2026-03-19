@@ -1401,10 +1401,7 @@ namespace OfficeIMO.PowerPoint {
             imported.Hidden = sourceSlide.Hidden;
 
             if (sourceSlide.SlidePart.NotesSlidePart != null) {
-                string notesText = sourceSlide.Notes.Text;
-                if (!string.IsNullOrWhiteSpace(notesText)) {
-                    imported.Notes.Text = notesText;
-                }
+                CloneImportedNotesSlidePart(sourceSlide.SlidePart, slidePart, mediaPartMap);
             }
 
             _slides.Insert(targetIndex, imported);
@@ -1478,6 +1475,7 @@ namespace OfficeIMO.PowerPoint {
                 slide.Save();
             }
 
+            PowerPointUtils.UpdateDocumentProperties(_presentationPart);
             _presentationPart.Presentation.Save();
             _document!.Save();
         }
@@ -1493,6 +1491,7 @@ namespace OfficeIMO.PowerPoint {
             foreach (PowerPointSlide slide in _slides) {
                 slide.Save();
             }
+            PowerPointUtils.UpdateDocumentProperties(_presentationPart);
             _presentationPart.Presentation.Save();
             _document!.Save();
 
@@ -2394,6 +2393,33 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool ShouldSharePart(OpenXmlPart part) {
             return part is SlideLayoutPart || part is NotesMasterPart;
+        }
+
+        private void CloneImportedNotesSlidePart(
+            SlidePart sourceSlidePart,
+            SlidePart targetSlidePart,
+            Dictionary<DataPart, MediaDataPart> mediaPartMap) {
+            NotesSlidePart? sourceNotesPart = sourceSlidePart.NotesSlidePart;
+            if (sourceNotesPart == null) {
+                return;
+            }
+
+            NotesSlidePart targetNotesPart = targetSlidePart.AddNewPart<NotesSlidePart>(GetNextRelationshipId(targetSlidePart));
+            if (sourceNotesPart.NotesSlide != null) {
+                targetNotesPart.NotesSlide = (NotesSlide)sourceNotesPart.NotesSlide.CloneNode(true);
+            }
+
+            CloneChildParts(
+                sourceNotesPart,
+                targetNotesPart,
+                shouldSkip: part => part is NotesMasterPart,
+                includeDataParts: true,
+                dataPartMap: mediaPartMap);
+
+            NotesMasterPart targetNotesMasterPart = PowerPointUtils.EnsureNotesMasterPart(_presentationPart);
+            if (!targetNotesPart.Parts.Any(pair => ReferenceEquals(pair.OpenXmlPart, targetNotesMasterPart))) {
+                targetNotesPart.AddPart(targetNotesMasterPart);
+            }
         }
 
         private static Guide CreateGuide(PowerPointGuideInfo guide) {
