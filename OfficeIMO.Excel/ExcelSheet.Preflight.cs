@@ -50,11 +50,27 @@ namespace OfficeIMO.Excel {
                     ws.RemoveChild(customSheetViews);
                 }
 
-                // Remove empty ConditionalFormatting entries
+                // Remove empty or malformed ConditionalFormatting entries
                 foreach (var conditional in ws.Elements<ConditionalFormatting>().ToList()) {
-                    if (!conditional.Elements<ConditionalFormattingRule>().Any()) {
+                    foreach (var rule in conditional.Elements<ConditionalFormattingRule>().ToList()) {
+                        if (rule.Type == null) {
+                            rule.Remove();
+                        }
+                    }
+
+                    bool hasRules = conditional.Elements<ConditionalFormattingRule>().Any();
+                    bool hasRanges = !string.IsNullOrWhiteSpace(conditional.SequenceOfReferences?.InnerText);
+                    if (!hasRules || !hasRanges) {
                         conditional.Remove();
                     }
+                }
+
+                int nextConditionalPriority = 1;
+                foreach (var rule in ws.Elements<ConditionalFormatting>().SelectMany(cf => cf.Elements<ConditionalFormattingRule>())) {
+                    if (rule.Priority?.Value != nextConditionalPriority) {
+                        rule.Priority = nextConditionalPriority;
+                    }
+                    nextConditionalPriority++;
                 }
 
                 CleanupCommentArtifacts();

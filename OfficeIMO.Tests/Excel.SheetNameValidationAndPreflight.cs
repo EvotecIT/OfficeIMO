@@ -284,6 +284,96 @@ namespace OfficeIMO.Tests {
             File.Delete(path);
             File.Delete(savePath);
         }
+
+        [Fact]
+        public void Preflight_RemovesConditionalFormattingWithoutRangesBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("ConditionalFormattingPreflight");
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var ws = wsPart.Worksheet;
+
+                var conditional = new ConditionalFormatting();
+                conditional.Append(new ConditionalFormattingRule {
+                    Type = ConditionalFormatValues.CellIs,
+                    Priority = 1
+                });
+                ws.AppendChild(conditional);
+                ws.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                Assert.Empty(wsPart.Worksheet.Elements<ConditionalFormatting>());
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
+        public void Preflight_NormalizesConditionalFormattingPrioritiesBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("ConditionalFormattingPriority");
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var ws = wsPart.Worksheet;
+
+                var first = new ConditionalFormatting {
+                    SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1:A2" }
+                };
+                first.Append(new ConditionalFormattingRule {
+                    Type = ConditionalFormatValues.CellIs,
+                    Priority = 9
+                });
+
+                var second = new ConditionalFormatting {
+                    SequenceOfReferences = new ListValue<StringValue> { InnerText = "B1:B2" }
+                };
+                second.Append(new ConditionalFormattingRule {
+                    Type = ConditionalFormatValues.ColorScale,
+                    Priority = 9
+                });
+
+                ws.Append(first);
+                ws.Append(second);
+                ws.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                var priorities = wsPart.Worksheet.Descendants<ConditionalFormattingRule>()
+                    .Select(rule => rule.Priority?.Value)
+                    .ToList();
+
+                Assert.Equal(new int?[] { 1, 2 }, priorities);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
     }
 }
 
