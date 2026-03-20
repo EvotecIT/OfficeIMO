@@ -31,6 +31,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Error", dv.ErrorTitle!.Value);
                 Assert.Equal("1-10", dv.Error!.Value);
             }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
         }
 
         [Fact]
@@ -49,6 +53,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(DataValidationOperatorValues.GreaterThan, dv.Operator!.Value);
                 Assert.Equal("5.5", dv.GetFirstChild<Formula1>()!.Text);
                 Assert.Null(dv.GetFirstChild<Formula2>());
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
             }
         }
 
@@ -70,6 +78,10 @@ namespace OfficeIMO.Tests {
                 string expected = dt.ToOADate().ToString(CultureInfo.InvariantCulture);
                 Assert.Equal(expected, dv.GetFirstChild<Formula1>()!.Text);
             }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
         }
 
         [Fact]
@@ -90,6 +102,10 @@ namespace OfficeIMO.Tests {
                 string expected = ts.TotalDays.ToString(CultureInfo.InvariantCulture);
                 Assert.Equal(expected, dv.GetFirstChild<Formula1>()!.Text);
             }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
         }
 
         [Fact]
@@ -108,6 +124,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(DataValidationOperatorValues.LessThan, dv.Operator!.Value);
                 Assert.Equal("10", dv.GetFirstChild<Formula1>()!.Text);
             }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
         }
 
         [Fact]
@@ -125,6 +145,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(DataValidationValues.Custom, dv.Type!.Value);
                 Assert.Null(dv.Operator);
                 Assert.Equal("SUM(A1:B1)>10", dv.GetFirstChild<Formula1>()!.Text);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
             }
         }
 
@@ -149,6 +173,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(DataValidationValues.List, dv.Type!.Value);
                 Assert.Equal("=StatusOptions", dv.GetFirstChild<Formula1>()!.Text);
             }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
         }
 
         [Fact]
@@ -171,6 +199,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(DataValidationValues.List, dv.Type!.Value);
                 Assert.Equal("='Options'!A1:A3", dv.GetFirstChild<Formula1>()!.Text);
             }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
         }
 
         [Fact]
@@ -191,6 +223,10 @@ namespace OfficeIMO.Tests {
                 DataValidation dv = wsPart.Worksheet.Descendants<DataValidation>().First();
                 Assert.Equal(DataValidationValues.List, dv.Type!.Value);
                 Assert.Equal("=D1:D3", dv.GetFirstChild<Formula1>()!.Text);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
             }
         }
     }

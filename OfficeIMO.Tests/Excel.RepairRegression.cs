@@ -56,6 +56,68 @@ namespace OfficeIMO.Tests {
 
             Assert.False(ExcelPackageUtilities.NormalizeContentTypes(filePath),
                 "Content types should already be normalized after save.");
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void MixedFeatureWorkbookValidatesWithoutRepairSignals() {
+            string filePath = Path.Combine(_directoryWithFiles, "RepairRegression.MixedFeatures.xlsx");
+            string logoPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var summary = document.AddWorkSheet("Summary");
+                summary.CellValue(1, 1, "Label");
+                summary.CellValue(1, 2, "Value");
+                summary.CellValue(2, 1, "Status");
+                summary.CellValue(2, 2, "Open");
+                summary.SetComment(2, 2, "Line 1\nLine 2", author: "Tester", initials: "TT");
+                summary.SetHyperlink(3, 1, "https://example.org", display: "Example");
+                summary.SetInternalLink(4, 1, "'Summary'!A1", display: "Back to top");
+                summary.SetHeaderFooter(headerCenter: "Repair Regression", headerRight: "Page &P of &N");
+                if (File.Exists(logoPath)) {
+                    summary.SetHeaderImage(HeaderFooterPosition.Center, File.ReadAllBytes(logoPath), "image/png", widthPoints: 96, heightPoints: 32);
+                }
+
+                var data = document.AddWorkSheet("Data");
+                data.CellValue(1, 1, "Category");
+                data.CellValue(1, 2, "Amount");
+                data.CellValue(1, 3, "Trend1");
+                data.CellValue(1, 4, "Trend2");
+
+                data.CellValue(2, 1, "A");
+                data.CellValue(2, 2, 10);
+                data.CellValue(2, 3, 3d);
+                data.CellValue(2, 4, 5d);
+
+                data.CellValue(3, 1, "B");
+                data.CellValue(3, 2, 20);
+                data.CellValue(3, 3, 4d);
+                data.CellValue(3, 4, 6d);
+
+                data.CellValue(4, 1, "A");
+                data.CellValue(4, 2, 15);
+                data.CellValue(4, 3, 5d);
+                data.CellValue(4, 4, 7d);
+
+                data.AddAutoFilter("A1:D4");
+                data.AddTable("A1:D4", hasHeader: true, name: "DataTable", OfficeIMO.Excel.TableStyle.TableStyleMedium9, includeAutoFilter: true);
+                data.AddSparklines("C2:D4", "E2:E4", displayMarkers: true, seriesColor: "#FF0000");
+                data.AddChartFromRange("A1:B4", row: 7, column: 1, widthPixels: 360, heightPixels: 220);
+                data.AddPivotTable("A1:B4", "G2", name: "DataPivot");
+
+                document.Save(filePath, false, new ExcelSaveOptions {
+                    SafePreflight = true,
+                    SafeRepairDefinedNames = true,
+                    ValidateOpenXml = true
+                });
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
         }
 
         [Fact]

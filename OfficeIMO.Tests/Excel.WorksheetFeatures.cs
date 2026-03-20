@@ -32,6 +32,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WorksheetComments_Multiline_OpenXmlValidation() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetCommentsMultiline.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Comments");
+                sheet.CellValue(1, 1, "Header");
+                sheet.SetComment(1, 1, "Line 1\nLine 2", author: "Tester", initials: "TT");
+                document.Save(false);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void Test_WorksheetProtectionOptions() {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetProtection.xlsx");
 

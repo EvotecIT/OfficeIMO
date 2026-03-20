@@ -1,7 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using System.Xml.Linq;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -191,7 +190,7 @@ namespace OfficeIMO.Excel {
                 string pivotName = EnsureUniquePivotTableName(name, existingNames);
 
                 var pivotPart = _worksheetPart.AddNewPart<PivotTablePart>();
-                string pivotRelId = _worksheetPart.GetIdOfPart(pivotPart);
+                pivotPart.AddPart(cacheDefPart);
 
                 var pivotFields = new PivotFields { Count = (uint)headers.Count };
                 for (int i = 0; i < headers.Count; i++) {
@@ -286,8 +285,6 @@ namespace OfficeIMO.Excel {
                 pivotPart.PivotTableDefinition = pivotDefinition;
                 pivotPart.PivotTableDefinition.Save();
 
-                EnsurePivotTablePartsElement(pivotRelId);
-
                 _worksheetPart.Worksheet.Save();
                 workbookPart.Workbook.Save();
             });
@@ -362,54 +359,6 @@ namespace OfficeIMO.Excel {
             string start = $"{A1.ColumnIndexToLetters(startColumn)}{startRow}";
             string end = $"{A1.ColumnIndexToLetters(endColumn)}{endRow}";
             return $"{start}:{end}";
-        }
-
-        private void EnsurePivotTablePartsElement(string relId) {
-            var worksheet = _worksheetPart.Worksheet;
-            const string mainNs = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
-            var existing = worksheet.ChildElements
-                .OfType<OpenXmlUnknownElement>()
-                .FirstOrDefault(e => e.LocalName == "pivotTableParts" && e.NamespaceUri == mainNs);
-
-            var relIds = new List<string>();
-            if (existing != null) {
-                try {
-                    var xdoc = XDocument.Parse(existing.OuterXml);
-                    XNamespace r = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-                    XNamespace s = mainNs;
-                    foreach (var part in xdoc.Root?.Elements(s + "pivotTablePart") ?? Enumerable.Empty<XElement>()) {
-                        var id = part.Attribute(r + "id")?.Value;
-                        if (!string.IsNullOrWhiteSpace(id)) relIds.Add(id!);
-                    }
-                } catch {
-                    // If parsing fails, fall back to only the new relationship.
-                }
-            }
-
-            if (!relIds.Contains(relId, StringComparer.OrdinalIgnoreCase)) {
-                relIds.Add(relId);
-            }
-
-            const string relNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-            var pivotParts = new OpenXmlUnknownElement("pivotTableParts", mainNs);
-            pivotParts.SetAttribute(new OpenXmlAttribute("", "count", "", relIds.Count.ToString()));
-            pivotParts.AddNamespaceDeclaration("r", relNs);
-
-            foreach (var id in relIds) {
-                var part = new OpenXmlUnknownElement("pivotTablePart", mainNs);
-                part.SetAttribute(new OpenXmlAttribute("r", "id", relNs, id));
-                pivotParts.Append(part);
-            }
-
-            var unknown = pivotParts;
-            existing?.Remove();
-
-            var ext = worksheet.Elements<ExtensionList>().FirstOrDefault();
-            if (ext != null) {
-                worksheet.InsertBefore(unknown, ext);
-            } else {
-                worksheet.Append(unknown);
-            }
         }
 
         private static uint NextPivotCacheId(WorkbookPart workbookPart) {

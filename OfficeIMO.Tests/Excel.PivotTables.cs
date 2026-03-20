@@ -63,6 +63,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(DataConsolidateFunctionValues.Sum, dataField.Function);
                 Assert.Equal("Total Sales", dataField.DisplayName);
             }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
         }
     }
 }

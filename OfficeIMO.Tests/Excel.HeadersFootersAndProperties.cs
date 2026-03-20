@@ -56,6 +56,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("&P", hf.HeaderRight);
                 Assert.Contains("&N", hf.HeaderRight);
                 Assert.True(hf.HeaderHasPicturePlaceholder);
+                Assert.Empty(verify.ValidateOpenXml());
             }
         }
 
@@ -82,6 +83,10 @@ namespace OfficeIMO.Tests {
                 var imagePart = Assert.Single(vmlPart!.ImageParts);
                 Assert.Equal("image/png", imagePart.ContentType);
             }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
         }
 
         [Fact]
@@ -106,6 +111,10 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(vmlPart);
                 var imagePart = Assert.Single(vmlPart!.ImageParts);
                 Assert.Equal("image/jpeg", imagePart.ContentType);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
             }
         }
 

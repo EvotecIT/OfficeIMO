@@ -135,13 +135,8 @@ namespace OfficeIMO.Excel {
         private static CommentText BuildCommentText(string text) {
             var commentText = new CommentText();
             var run = new Run();
-            var lines = text.Replace("\r\n", "\n").Split('\n');
-            for (int i = 0; i < lines.Length; i++) {
-                if (i > 0) {
-                    run.Append(new Break());
-                }
-                run.Append(new Text(lines[i]) { Space = SpaceProcessingModeValues.Preserve });
-            }
+            string normalizedText = text.Replace("\r\n", "\n").Replace('\r', '\n');
+            run.Append(new Text(normalizedText) { Space = SpaceProcessingModeValues.Preserve });
             commentText.Append(run);
             return commentText;
         }
