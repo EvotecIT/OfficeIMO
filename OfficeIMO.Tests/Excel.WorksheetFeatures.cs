@@ -29,6 +29,13 @@ namespace OfficeIMO.Tests {
                 Assert.False(sheet.HasComment(1, 1));
                 document.Save(false);
             }
+
+            using (var package = SpreadsheetDocument.Open(filePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                Assert.Null(wsPart.WorksheetCommentsPart);
+                Assert.Empty(wsPart.VmlDrawingParts);
+                Assert.Null(wsPart.Worksheet.Elements<LegacyDrawing>().FirstOrDefault());
+            }
         }
 
         [Fact]

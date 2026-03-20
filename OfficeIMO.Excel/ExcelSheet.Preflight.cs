@@ -57,6 +57,8 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
+                CleanupCommentArtifacts();
+
                 // Drop orphaned Drawing reference
                 var drawing = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
                 if (drawing?.Id?.Value is string dId) {
