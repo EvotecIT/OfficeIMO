@@ -844,6 +844,13 @@ public sealed class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownB
             }
         }
 
+        clone.InlineParserExtensions.Clear();
+        for (int i = 0; i < source.InlineParserExtensions.Count; i++) {
+            if (source.InlineParserExtensions[i] != null) {
+                clone.InlineParserExtensions.Add(source.InlineParserExtensions[i]);
+            }
+        }
+
         for (int i = 0; i < source.DocumentTransforms.Count; i++) {
             if (source.DocumentTransforms[i] != null) {
                 clone.DocumentTransforms.Add(source.DocumentTransforms[i]);
@@ -1049,5 +1056,6 @@ public sealed class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownB
             MarkdownSyntaxKind.Table,
             span,
             ((IMarkdownBlock)this).RenderMarkdown(),
-            BuildSyntaxChildren(span));
+            BuildSyntaxChildren(span),
+            this);
 }

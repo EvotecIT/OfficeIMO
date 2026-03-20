@@ -85,13 +85,14 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
 
     internal string RenderHtml() {
         StringBuilder sb = new StringBuilder();
+        var options = HtmlRenderContext.Options;
         for (int i = 0; i < _inlines.Count; i++) {
             if (AutoSpacing && i > 0) {
                 var prev = _inlines[i - 1];
                 var cur = _inlines[i];
                 if (prev is not HardBreakInline && cur is not HardBreakInline) sb.Append(' ');
             }
-            sb.Append(GetRenderable(_inlines[i]).RenderHtml());
+            sb.Append(RenderHtml(_inlines[i], options));
         }
         return sb.ToString();
     }
@@ -103,6 +104,14 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
     private static IRenderableMarkdownInline GetRenderable(IMarkdownInline node) {
         return node as IRenderableMarkdownInline
             ?? throw new InvalidOperationException($"Inline node of type '{node.GetType().FullName}' does not implement {nameof(IRenderableMarkdownInline)}.");
+    }
+
+    private static string RenderHtml(IMarkdownInline node, HtmlOptions? options) {
+        if (options != null && node is IContextualHtmlMarkdownInline contextualInline) {
+            return contextualInline.RenderHtml(options);
+        }
+
+        return GetRenderable(node).RenderHtml();
     }
 }
 

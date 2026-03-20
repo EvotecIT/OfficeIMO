@@ -18,6 +18,7 @@ public class Markdown_Reader_Profile_Tests {
         Assert.True(options.Tables);
         Assert.True(options.DefinitionLists);
         Assert.Empty(options.BlockParserExtensions);
+        Assert.Empty(options.InlineParserExtensions);
     }
 
     [Fact]
@@ -37,6 +38,7 @@ public class Markdown_Reader_Profile_Tests {
         Assert.True(options.HtmlBlocks);
         Assert.True(options.InlineHtml);
         Assert.Empty(options.BlockParserExtensions);
+        Assert.Empty(options.InlineParserExtensions);
     }
 
     [Fact]
@@ -54,6 +56,7 @@ public class Markdown_Reader_Profile_Tests {
         Assert.True(options.AutolinkWwwUrls);
         Assert.True(options.AutolinkEmails);
         Assert.Single(options.BlockParserExtensions);
+        Assert.Empty(options.InlineParserExtensions);
         Assert.Equal(MarkdownReaderBuiltInExtensions.FootnotesExtensionName, options.BlockParserExtensions[0].Name);
     }
 
@@ -66,12 +69,16 @@ public class Markdown_Reader_Profile_Tests {
 
         Assert.True(office.Callouts);
         Assert.Equal(3, office.BlockParserExtensions.Count);
+        Assert.Empty(office.InlineParserExtensions);
         Assert.False(commonMark.Callouts);
         Assert.Empty(commonMark.BlockParserExtensions);
+        Assert.Empty(commonMark.InlineParserExtensions);
         Assert.True(gfm.Tables);
         Assert.Single(gfm.BlockParserExtensions);
+        Assert.Empty(gfm.InlineParserExtensions);
         Assert.False(portable.Footnotes);
         Assert.Empty(portable.BlockParserExtensions);
+        Assert.Empty(portable.InlineParserExtensions);
     }
 
     [Fact]

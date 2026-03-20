@@ -10,6 +10,8 @@ public sealed class MarkdownSyntaxNode {
     public MarkdownSourceSpan? SourceSpan { get; }
     /// <summary>Optional literal payload for leaf-like nodes.</summary>
     public string? Literal { get; }
+    /// <summary>Optional custom extension kind for nodes emitted by syntax-aware extensions.</summary>
+    public string? CustomKind { get; }
     /// <summary>Optional originating model object (document/block/inline) for AST-aware consumers.</summary>
     public object? AssociatedObject { get; }
     /// <summary>Parent syntax node when this node belongs to a larger syntax tree.</summary>
@@ -31,10 +33,12 @@ public sealed class MarkdownSyntaxNode {
         MarkdownSourceSpan? sourceSpan = null,
         string? literal = null,
         IReadOnlyList<MarkdownSyntaxNode>? children = null,
-        object? associatedObject = null) {
+        object? associatedObject = null,
+        string? customKind = null) {
         Kind = kind;
         SourceSpan = sourceSpan;
         Literal = literal;
+        CustomKind = customKind;
         AssociatedObject = associatedObject;
         Children = children ?? Array.Empty<MarkdownSyntaxNode>();
         for (int i = 0; i < Children.Count; i++) {

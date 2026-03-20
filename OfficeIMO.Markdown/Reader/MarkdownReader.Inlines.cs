@@ -13,6 +13,7 @@ public static partial class MarkdownReader {
     private static InlineSequence ParseInlinesInternal(string text, MarkdownReaderOptions options, MarkdownReaderState? state, bool allowLinks, bool allowImages, MarkdownInlineSourceMap? sourceMap = null) {
         var root = new InlineSequence { AutoSpacing = false };
         if (string.IsNullOrEmpty(text)) return root;
+        var inlineParserExtensions = BuildEffectiveInlineParserExtensions(options);
 
         // We parse emphasis/strong/strikethrough using a simple stack of open frames so that nesting like
         // "*a **b** c*" behaves intuitively. This is not a full spec implementation, but it's materially
@@ -27,6 +28,24 @@ public static partial class MarkdownReader {
         }
         void AddTextNode(string literal, int start, int length) => AddRawNode(new TextRun(literal), start, length);
         void AddHardBreakNode(int start, int length) => AddRawNode(new HardBreakInline(), start, length);
+        InlineSequence ParseNestedInlineSegment(int relativeStart, int length, bool nestedAllowLinks, bool nestedAllowImages) {
+            if (relativeStart < 0 || length <= 0 || relativeStart >= text.Length) {
+                return new InlineSequence();
+            }
+
+            var safeLength = Math.Min(length, text.Length - relativeStart);
+            if (safeLength <= 0) {
+                return new InlineSequence();
+            }
+
+            return ParseInlinesInternal(
+                text.Substring(relativeStart, safeLength),
+                options,
+                state,
+                nestedAllowLinks,
+                nestedAllowImages,
+                SliceMap(relativeStart, safeLength));
+        }
 
         int pos = 0;
         while (pos < text.Length) {
@@ -47,6 +66,23 @@ public static partial class MarkdownReader {
                     AddHardBreakNode(pos, brSelfSpaced.Length); pos += brSelfSpaced.Length; continue;
                 }
             }
+
+            if (TryParseInlineExtension(
+                text,
+                pos,
+                options,
+                state,
+                allowLinks,
+                allowImages,
+                sourceMap,
+                inlineParserExtensions,
+                ParseNestedInlineSegment,
+                out var extensionResult)) {
+                AddRawNode(extensionResult.Inline, pos, extensionResult.ConsumedLength);
+                pos += extensionResult.ConsumedLength;
+                continue;
+            }
+
             // Backslash escape (CommonMark-ish): only escape punctuation we care about so that Windows paths like
             // "C:\Support\GitHub" keep their backslashes.
             if (text[pos] == '\\') {
@@ -421,6 +457,18 @@ public static partial class MarkdownReader {
                 if (options.AutolinkUrls && (text[pos] == 'h' || text[pos] == 'H') && StartsWithHttp(text, pos, out _)) break;
                 if (options.AutolinkWwwUrls && (text[pos] == 'w' || text[pos] == 'W') && StartsWithWww(text, pos, out _)) break;
                 if (options.AutolinkEmails && IsEmailStartChar(text[pos]) && TryConsumePlainEmail(text, pos, out _, out _)) break;
+                if (inlineParserExtensions.Count > 0
+                    && TryParseInlineExtension(
+                        text,
+                        pos,
+                        options,
+                        state,
+                        allowLinks,
+                        allowImages,
+                        sourceMap,
+                        inlineParserExtensions,
+                        ParseNestedInlineSegment,
+                        out _)) break;
                 pos++;
             }
             AddTextNode(text.Substring(start, pos - start), start, pos - start);
@@ -1756,4 +1804,71 @@ public static partial class MarkdownReader {
 
     internal static InlineSequence ParseInlineText(string? text, MarkdownReaderOptions? options, MarkdownReaderState? state) =>
         ParseInlines(text ?? string.Empty, options ?? new MarkdownReaderOptions(), state);
+
+    private static IReadOnlyList<MarkdownInlineParserExtension> BuildEffectiveInlineParserExtensions(MarkdownReaderOptions options) {
+        if (options?.InlineParserExtensions == null || options.InlineParserExtensions.Count == 0) {
+            return Array.Empty<MarkdownInlineParserExtension>();
+        }
+
+        var active = new List<MarkdownInlineParserExtension>(options.InlineParserExtensions.Count);
+        for (var i = 0; i < options.InlineParserExtensions.Count; i++) {
+            var extension = options.InlineParserExtensions[i];
+            if (extension != null && extension.AppliesTo(options)) {
+                active.Add(extension);
+            }
+        }
+
+        return active;
+    }
+
+    private static bool TryParseInlineExtension(
+        string text,
+        int position,
+        MarkdownReaderOptions options,
+        MarkdownReaderState? state,
+        bool allowLinks,
+        bool allowImages,
+        MarkdownInlineSourceMap? sourceMap,
+        IReadOnlyList<MarkdownInlineParserExtension> inlineParserExtensions,
+        Func<int, int, bool, bool, InlineSequence> parseNestedInlineSegment,
+        out MarkdownInlineParseResult result) {
+        result = default;
+        if (inlineParserExtensions == null || inlineParserExtensions.Count == 0) {
+            return false;
+        }
+
+        var context = new MarkdownInlineParserContext(
+            text,
+            position,
+            options,
+            state,
+            allowLinks,
+            allowImages,
+            sourceMap,
+            parseNestedInlineSegment);
+
+        for (var i = 0; i < inlineParserExtensions.Count; i++) {
+            var extension = inlineParserExtensions[i];
+            if (extension == null) {
+                continue;
+            }
+
+            if (!extension.Parser(context, out result)) {
+                continue;
+            }
+
+            if (result.ConsumedLength <= 0) {
+                throw new InvalidOperationException($"Inline parser extension '{extension.Name}' returned a non-positive consumed length.");
+            }
+
+            if (position + result.ConsumedLength > text.Length) {
+                throw new InvalidOperationException($"Inline parser extension '{extension.Name}' consumed past the end of the input.");
+            }
+
+            return true;
+        }
+
+        result = default;
+        return false;
+    }
 }

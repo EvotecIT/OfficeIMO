@@ -1,6 +1,8 @@
 namespace OfficeIMO.Markdown;
 
 internal static class MarkdownInlineSyntaxBuilder {
+    private static readonly MarkdownInlineSyntaxBuilderContext _context = new();
+
     internal static IReadOnlyList<MarkdownSyntaxNode> BuildChildren(InlineSequence? sequence) {
         if (sequence == null || sequence.Nodes.Count == 0) {
             return Array.Empty<MarkdownSyntaxNode>();
@@ -23,6 +25,10 @@ internal static class MarkdownInlineSyntaxBuilder {
         }
 
         var span = MarkdownInlineSourceSpans.Get(inline);
+        if (inline is ISyntaxMarkdownInline syntaxInline) {
+            return syntaxInline.BuildSyntaxNode(_context, span);
+        }
+
         switch (inline) {
             case TextRun text:
                 return new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineText, span, literal: text.Text, associatedObject: text);

@@ -1,12 +1,12 @@
 namespace OfficeIMO.Markdown;
 
 /// <summary>
-/// Context available while rendering a markdown document body to HTML.
+/// Context available while rendering a markdown document body back to Markdown text.
 /// </summary>
-public sealed class MarkdownBodyRenderContext {
-    internal MarkdownBodyRenderContext(
+public sealed class MarkdownWriteContext {
+    internal MarkdownWriteContext(
         IReadOnlyList<IMarkdownBlock> blocks,
-        HtmlOptions options,
+        MarkdownWriteOptions options,
         MarkdownHeadingCatalog headingCatalog) {
         Blocks = blocks;
         Options = options;
@@ -14,14 +14,14 @@ public sealed class MarkdownBodyRenderContext {
     }
 
     /// <summary>
-    /// Top-level blocks being rendered for the current body.
+    /// Top-level blocks being rendered for the current markdown document.
     /// </summary>
     public IReadOnlyList<IMarkdownBlock> Blocks { get; }
 
     /// <summary>
-    /// Active HTML rendering options.
+    /// Active markdown writer options.
     /// </summary>
-    public HtmlOptions Options { get; }
+    public MarkdownWriteOptions Options { get; }
 
     internal MarkdownHeadingCatalog HeadingCatalog { get; }
 
@@ -43,7 +43,7 @@ public sealed class MarkdownBodyRenderContext {
     }
 
     /// <summary>
-    /// Returns the resolved anchor id for a heading block within the current rendered body.
+    /// Returns the resolved anchor id for a heading block within the current rendered document.
     /// </summary>
     public string GetHeadingAnchor(IMarkdownBlock heading) =>
         heading is IHeadingMarkdownBlock headingBlock

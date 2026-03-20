@@ -36,6 +36,16 @@ public class Markdown_Reader_Callout_RichBody_Tests {
             block => Assert.IsType<ParagraphBlock>(block),
             block => Assert.IsType<UnorderedListBlock>(block),
             block => Assert.IsType<CodeBlock>(block));
+        Assert.Equal("""
+First line
+
+- Item 1
+- Item 2
+
+```csharp
+Console.WriteLine("x");
+```
+""".Replace("\r\n", "\n"), callout.Body.Replace("\r\n", "\n"));
     }
 
     [Fact]
@@ -90,6 +100,16 @@ public class Markdown_Reader_Callout_RichBody_Tests {
 
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         Assert.Contains("<strong>Use <a href=\"https://example.com\">linked <code>code</code></a></strong>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Callout_Body_Is_Derived_From_ChildBlocks_When_BlockContent_Is_Available() {
+        var paragraph = new ParagraphBlock(MarkdownReader.ParseInlineText("fresh body"));
+        var callout = new CalloutBlock("note", new InlineSequence().Text("Heads up"), new IMarkdownBlock[] { paragraph });
+
+        Assert.Equal("Heads up", callout.Title);
+        Assert.Equal("fresh body", callout.Body);
+        Assert.Same(paragraph, Assert.Single(callout.ChildBlocks));
     }
 }
 

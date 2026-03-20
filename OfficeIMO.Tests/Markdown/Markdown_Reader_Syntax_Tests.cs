@@ -99,6 +99,19 @@ Paragraph text
     }
 
     [Fact]
+    public void ParseWithSyntaxTreeAndDiagnostics_Detaches_Original_Syntax_Associations_When_Transform_Replaces_Document() {
+        var options = new MarkdownReaderOptions();
+        options.DocumentTransforms.Add(new RewriteFirstParagraphTransform("rewritten"));
+
+        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("hello", options);
+
+        Assert.Null(result.SyntaxTree.AssociatedObject);
+        Assert.Null(Assert.Single(result.SyntaxTree.Children).AssociatedObject);
+        Assert.Same(result.Document, result.FinalSyntaxTree.AssociatedObject);
+        Assert.IsType<ParagraphBlock>(Assert.Single(result.FinalSyntaxTree.Children).AssociatedObject);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Heading_Structure() {
         var markdown = """
 Heading Title
@@ -190,6 +203,41 @@ Heading Title
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Uses_Custom_Inline_Parser_Extensions_With_Nested_Ast_And_SourceSpans() {
+        const string markdown = "Lead {{**Bold** core}} tail";
+        var options = new MarkdownReaderOptions();
+        options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        var paragraph = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(new[] {
+            MarkdownSyntaxKind.InlineText,
+            MarkdownSyntaxKind.Unknown,
+            MarkdownSyntaxKind.InlineText
+        }, paragraph.Children.Select(node => node.Kind).ToArray());
+
+        var custom = paragraph.Children[1];
+        Assert.Equal("double-brace", custom.CustomKind);
+        Assert.Equal("{{**Bold** core}}", custom.Literal);
+        Assert.Equal(new[] {
+            MarkdownSyntaxKind.InlineStrong,
+            MarkdownSyntaxKind.InlineText
+        }, custom.Children.Select(node => node.Kind).ToArray());
+
+        var customStart = markdown.IndexOf("{{", StringComparison.Ordinal) + 1;
+        var customEnd = markdown.IndexOf("}}", StringComparison.Ordinal) + 2;
+        Assert.Equal(customStart, custom.SourceSpan!.Value.StartColumn);
+        Assert.Equal(customEnd, custom.SourceSpan!.Value.EndColumn);
+        Assert.Equal(custom.SourceSpan, ((DoubleBraceInline)custom.AssociatedObject!).SourceSpan);
+
+        var nestedStrong = custom.Children[0];
+        Assert.Equal(10, nestedStrong.SourceSpan!.Value.StartColumn);
+        Assert.Equal(13, nestedStrong.SourceSpan!.Value.EndColumn);
+        Assert.Equal(MarkdownSyntaxKind.InlineText, result.FindDeepestNodeAtPosition(1, 18)!.Kind);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Inline_SourceSpans_And_Position_Lookups() {
         const string markdown = "Use **bold** [docs](https://example.com) and `code`.";
 
@@ -220,6 +268,41 @@ Heading Title
             MarkdownSyntaxKind.InlineLink
         }, result.FindNodePathAtPosition(1, 30).Select(node => node.Kind).ToArray());
         Assert.Equal(MarkdownSyntaxKind.Paragraph, result.FindNearestBlockAtPosition(1, 48)!.Kind);
+    }
+
+    [Fact]
+    public void Table_RowInlines_Reuse_Custom_Inline_Parser_Extensions_When_Table_Clones_Reader_Options() {
+        const string markdown = """
+| Name |
+| --- |
+| {{Cell}} |
+""";
+        var options = new MarkdownReaderOptions();
+        options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
+
+        var document = MarkdownReader.Parse(markdown, options);
+
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+        var cellInlines = Assert.Single(Assert.Single(table.RowInlines));
+        var inline = Assert.IsType<DoubleBraceInline>(Assert.Single(cellInlines.Nodes));
+        Assert.Equal("Cell", InlinePlainText.Extract(inline.Inlines));
+    }
+
+    [Fact]
+    public void Custom_Inline_Can_Render_Html_With_Public_Html_Options_Context() {
+        const string markdown = "Lead {{core}} tail";
+        var options = new MarkdownReaderOptions();
+        options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var html = document.ToHtmlFragment(new HtmlOptions {
+            Kind = HtmlKind.Fragment,
+            Title = "inline-title"
+        });
+
+        Assert.Contains("data-inline=\"double-brace\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-title=\"inline-title\"", html, StringComparison.Ordinal);
+        Assert.Contains(">core<", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -387,6 +470,7 @@ Heading Title
 
         Assert.NotNull(header);
         Assert.NotNull(body);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 11), table.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 6), header!.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(3, 9, 3, 9), body!.SourceSpan);
     }
@@ -1202,6 +1286,23 @@ Lead[^1]
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Assigns_SourceSpan_To_FootnoteDefinition_ObjectModel() {
+        var markdown = """
+Lead[^1]
+
+[^1]: first line
+  continued
+
+  second paragraph
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var footnote = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(result.Document.Blocks, block => block is FootnoteDefinitionBlock));
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 6, 18), footnote.SourceSpan);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTreeAndDiagnostics_Rebuilds_Final_Footnote_Syntax_After_Nested_Transform() {
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));
@@ -1986,5 +2087,54 @@ Term: Definition
             block is ParagraphBlock
                 ? new ParagraphBlock(new InlineSequence().Text(text))
                 : block;
+    }
+
+    private sealed class DoubleBraceInline(InlineSequence inlines) : MarkdownInline, IRenderableMarkdownInline, IContextualHtmlMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline, ISyntaxMarkdownInline {
+        public InlineSequence Inlines { get; } = inlines ?? new InlineSequence();
+
+        public string RenderMarkdown() => "{{" + Inlines.RenderMarkdown() + "}}";
+
+        public string RenderHtml() => "<span data-inline=\"double-brace\">" + Inlines.RenderHtml() + "</span>";
+
+        string IContextualHtmlMarkdownInline.RenderHtml(HtmlOptions options) =>
+            "<span data-inline=\"double-brace\" data-title=\""
+            + System.Net.WebUtility.HtmlEncode(options.Title)
+            + "\">"
+            + Inlines.RenderHtml()
+            + "</span>";
+
+        public void AppendPlainText(System.Text.StringBuilder sb) => InlinePlainText.AppendPlainText(sb, Inlines);
+
+        public MarkdownSyntaxNode BuildSyntaxNode(MarkdownInlineSyntaxBuilderContext context, MarkdownSourceSpan? span) {
+            var children = context.BuildChildren(Inlines);
+            return new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.Unknown,
+                span ?? context.GetAggregateSpan(children),
+                literal: RenderMarkdown(),
+                children: children,
+                associatedObject: this,
+                customKind: "double-brace");
+        }
+
+        InlineSequence? IInlineContainerMarkdownInline.NestedInlines => Inlines;
+    }
+
+    private static bool TryParseDoubleBraceInline(MarkdownInlineParserContext context, out MarkdownInlineParseResult result) {
+        result = default;
+        if (context.CurrentChar != '{'
+            || context.Position + 1 >= context.Text.Length
+            || context.Text[context.Position + 1] != '{') {
+            return false;
+        }
+
+        var closing = context.Text.IndexOf("}}", context.Position + 2, StringComparison.Ordinal);
+        if (closing < 0) {
+            return false;
+        }
+
+        var innerLength = closing - (context.Position + 2);
+        var nested = context.ParseNestedInlines(2, innerLength);
+        result = new MarkdownInlineParseResult(new DoubleBraceInline(nested), closing + 2 - context.Position);
+        return true;
     }
 }

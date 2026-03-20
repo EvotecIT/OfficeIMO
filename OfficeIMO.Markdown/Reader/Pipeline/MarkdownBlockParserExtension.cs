@@ -5,6 +5,17 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class MarkdownBlockParserExtension {
     /// <summary>
+    /// Creates a block parser extension registration from a delegate-based parser.
+    /// </summary>
+    public MarkdownBlockParserExtension(
+        string name,
+        MarkdownBlockParserPlacement placement,
+        MarkdownBlockParser parser,
+        Func<MarkdownReaderOptions, bool>? isEnabled = null)
+        : this(name, placement, new DelegateMarkdownBlockParser(parser), isEnabled) {
+    }
+
+    /// <summary>
     /// Creates a block parser extension registration.
     /// </summary>
     public MarkdownBlockParserExtension(

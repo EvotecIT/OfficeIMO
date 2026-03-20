@@ -513,7 +513,8 @@ public class MarkdownDoc : MarkdownObject {
     public string ToMarkdown(MarkdownWriteOptions? options) {
         options ??= MarkdownWriteOptions.CreateOfficeIMOProfile();
         // Build a transient block list where TOC placeholders are realized
-        var (blocks, _) = GetBlocksAndHeadingSlugs();
+        var (blocks, headingCatalog) = GetBlocksAndHeadingSlugs();
+        var context = new MarkdownWriteContext(blocks, options, headingCatalog);
         using var _ctx = MarkdownRenderContext.Push(options);
         StringBuilder sb = new StringBuilder();
         if (_frontMatter != null) {
@@ -521,7 +522,7 @@ public class MarkdownDoc : MarkdownObject {
             sb.AppendLine();
         }
         for (int i = 0; i < blocks.Count; i++) {
-            string rendered = RenderMarkdownBlock(blocks[i], options);
+            string rendered = RenderMarkdownBlock(blocks[i], context);
             if (!string.IsNullOrEmpty(rendered)) sb.AppendLine(rendered);
             if (i < blocks.Count - 1) sb.AppendLine();
         }
@@ -695,8 +696,8 @@ public class MarkdownDoc : MarkdownObject {
         return (realized, headingCatalog);
     }
 
-    private static string RenderMarkdownBlock(IMarkdownBlock block, MarkdownWriteOptions options) {
-        var extensions = options.BlockRenderExtensions;
+    private static string RenderMarkdownBlock(IMarkdownBlock block, MarkdownWriteContext context) {
+        var extensions = context.Options.BlockRenderExtensions;
         if (extensions != null && extensions.Count > 0) {
             for (int i = extensions.Count - 1; i >= 0; i--) {
                 var extension = extensions[i];
@@ -704,7 +705,7 @@ public class MarkdownDoc : MarkdownObject {
                     continue;
                 }
 
-                var rendered = extension.RenderMarkdown(block, options);
+                var rendered = extension.RenderMarkdown(block, context);
                 if (rendered != null) {
                     return rendered;
                 }

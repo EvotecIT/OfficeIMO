@@ -223,7 +223,22 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains("href=\"https://example.com\"", html, StringComparison.Ordinal);
             Assert.Equal(2, footnote.Paragraphs.Count);
             Assert.Equal(2, footnote.ParagraphBlocks.Count);
+            Assert.Same(footnote.Blocks[0], footnote.ParagraphBlocks[0]);
+            Assert.Same(footnote.Blocks[1], footnote.ParagraphBlocks[1]);
+            Assert.Same(footnote.ParagraphBlocks[0].Inlines, footnote.Paragraphs[0]);
+            Assert.Same(footnote.ParagraphBlocks[1].Inlines, footnote.Paragraphs[1]);
             Assert.All(footnote.ParagraphBlocks, paragraph => Assert.False(string.IsNullOrWhiteSpace(paragraph.Inlines.RenderMarkdown())));
         }
+
+        [Fact]
+    public void Footnote_Text_Is_Derived_From_Blocks_When_BlockContent_Is_Available() {
+        var paragraph = new ParagraphBlock(MarkdownReader.ParseInlineText("fresh value"));
+        var footnote = new FootnoteDefinitionBlock("1", "stale value", new IMarkdownBlock[] { paragraph }, syntaxChildren: null);
+
+        Assert.Equal("fresh value", footnote.Text);
+        Assert.Same(paragraph, Assert.Single(footnote.Blocks));
+        Assert.Same(paragraph, Assert.Single(footnote.ParagraphBlocks));
+        Assert.Same(paragraph.Inlines, Assert.Single(footnote.Paragraphs));
     }
+}
 }
