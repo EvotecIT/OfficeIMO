@@ -73,6 +73,7 @@ namespace OfficeIMO.Excel {
                     nextConditionalPriority++;
                 }
 
+                CleanupAutoFilterArtifacts();
                 CleanupCommentArtifacts();
                 CleanupHeaderFooterPictureArtifacts();
                 CleanupWorksheetDrawingArtifacts();

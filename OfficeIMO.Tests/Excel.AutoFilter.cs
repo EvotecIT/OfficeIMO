@@ -48,6 +48,10 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(filter.Val);
                 Assert.Equal("A", filter.Val!.Value);
             }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
         }
 
         [Fact]
@@ -75,6 +79,10 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(autoFilter);
                 Assert.NotNull(autoFilter!.Reference);
                 Assert.Equal("A1:B3", autoFilter.Reference!.Value);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
             }
         }
 
@@ -150,6 +158,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(FilterOperatorValues.NotEqual, notEqualCondition.Operator?.Value);
                 Assert.Equal("10", notEqualCondition.Val!.Value);
             }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
         }
 
         [Fact]
@@ -196,6 +208,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("10", notBetweenConditions[0].Val!.Value);
                 Assert.Equal(FilterOperatorValues.GreaterThan, notBetweenConditions[1].Operator?.Value);
                 Assert.Equal("20", notBetweenConditions[1].Val!.Value);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
             }
         }
     }

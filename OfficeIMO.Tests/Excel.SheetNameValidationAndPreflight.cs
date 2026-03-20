@@ -534,6 +534,183 @@ namespace OfficeIMO.Tests {
             File.Delete(path);
             File.Delete(savePath);
         }
+
+        [Fact]
+        public void Preflight_RemovesWorksheetAutoFilterConflictingWithTableBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Filters");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Value");
+                sheet.CellValue(2, 1, "A");
+                sheet.CellValue(2, 2, 1d);
+                sheet.CellValue(3, 1, "B");
+                sheet.CellValue(3, 2, 2d);
+                sheet.AddTable("A1:B3", hasHeader: true, name: "FilterTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var ws = wsPart.Worksheet;
+
+                ws.AppendChild(new AutoFilter {
+                    Reference = "A1:B3"
+                });
+                ws.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                Assert.Null(wsPart.Worksheet.Elements<AutoFilter>().FirstOrDefault());
+                var tablePart = wsPart.TableDefinitionParts.Single();
+                Assert.Equal("A1:B3", tablePart.Table!.AutoFilter!.Reference!.Value);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
+        public void Preflight_RemovesWorksheetAutoFilterOverlappingTableBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Filters");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Value");
+                sheet.CellValue(2, 1, "A");
+                sheet.CellValue(2, 2, 1d);
+                sheet.CellValue(3, 1, "B");
+                sheet.CellValue(3, 2, 2d);
+                sheet.CellValue(4, 1, "C");
+                sheet.CellValue(4, 2, 3d);
+                sheet.AddTable("A1:B3", hasHeader: true, name: "FilterTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var ws = wsPart.Worksheet;
+
+                ws.AppendChild(new AutoFilter {
+                    Reference = "A2:B4"
+                });
+                ws.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                Assert.Null(wsPart.Worksheet.Elements<AutoFilter>().FirstOrDefault());
+                var tablePart = wsPart.TableDefinitionParts.Single();
+                Assert.Equal("A1:B3", tablePart.Table!.AutoFilter!.Reference!.Value);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
+        public void Preflight_RemovesWorksheetAutoFilterWithoutRangeBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Filters");
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var ws = wsPart.Worksheet;
+
+                var autoFilter = new AutoFilter();
+                var filterColumn = new FilterColumn { ColumnId = 0U };
+                filterColumn.Append(new Filters(new Filter { Val = "A" }));
+                autoFilter.Append(filterColumn);
+                ws.AppendChild(autoFilter);
+                ws.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                Assert.Null(wsPart.Worksheet.Elements<AutoFilter>().FirstOrDefault());
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
+        public void Preflight_NormalizesTableAutoFilterReferenceAndColumnsBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Filters");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Value");
+                sheet.CellValue(2, 1, "A");
+                sheet.CellValue(2, 2, 1d);
+                sheet.CellValue(3, 1, "B");
+                sheet.CellValue(3, 2, 2d);
+                sheet.AddTable("A1:B3", hasHeader: true, name: "FilterTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var tablePart = wsPart.TableDefinitionParts.Single();
+                var autoFilter = tablePart.Table!.AutoFilter!;
+                autoFilter.Reference = "A1:A3";
+                autoFilter.RemoveAllChildren<FilterColumn>();
+                var keep = new FilterColumn { ColumnId = 0U };
+                keep.Append(new Filters(new Filter { Val = "A" }));
+                var duplicate = new FilterColumn { ColumnId = 0U };
+                duplicate.Append(new Filters(new Filter { Val = "B" }));
+                var outOfRange = new FilterColumn { ColumnId = 9U };
+                outOfRange.Append(new Filters(new Filter { Val = "C" }));
+                var empty = new FilterColumn { ColumnId = 1U };
+                autoFilter.Append(keep, duplicate, outOfRange, empty);
+                tablePart.Table.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                var tablePart = wsPart.TableDefinitionParts.Single();
+                var autoFilter = tablePart.Table!.AutoFilter!;
+                Assert.Equal("A1:B3", autoFilter.Reference!.Value);
+                var filterColumns = autoFilter.Elements<FilterColumn>().ToList();
+                Assert.Single(filterColumns);
+                Assert.Equal(0U, filterColumns[0].ColumnId!.Value);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
     }
 }
 
