@@ -711,6 +711,137 @@ namespace OfficeIMO.Tests {
             File.Delete(path);
             File.Delete(savePath);
         }
+
+        [Fact]
+        public void Preflight_RecreatesMissingWorksheetTablePartsBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Tables");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Value");
+                sheet.CellValue(2, 1, "A");
+                sheet.CellValue(2, 2, 1d);
+                sheet.CellValue(3, 1, "B");
+                sheet.CellValue(3, 2, 2d);
+                sheet.AddTable("A1:B3", hasHeader: true, name: "RepairTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var tableParts = wsPart.Worksheet.Elements<TableParts>().FirstOrDefault();
+                Assert.NotNull(tableParts);
+                wsPart.Worksheet.RemoveChild(tableParts!);
+                wsPart.Worksheet.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                var tableParts = wsPart.Worksheet.Elements<TableParts>().Single();
+                Assert.Single(tableParts.Elements<TablePart>());
+                Assert.Single(wsPart.TableDefinitionParts);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
+        public void Preflight_RemovesTableDefinitionWithInvalidRangeBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Tables");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Value");
+                sheet.CellValue(2, 1, "A");
+                sheet.CellValue(2, 2, 1d);
+                sheet.CellValue(3, 1, "B");
+                sheet.CellValue(3, 2, 2d);
+                sheet.AddTable("A1:B3", hasHeader: true, name: "RepairTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var tablePart = wsPart.TableDefinitionParts.Single();
+                tablePart.Table!.Reference = "BadRange";
+                tablePart.Table.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                Assert.Empty(wsPart.TableDefinitionParts);
+                Assert.Null(wsPart.Worksheet.Elements<TableParts>().FirstOrDefault());
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
+        public void Preflight_NormalizesMalformedTableColumnsBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Tables");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Value");
+                sheet.CellValue(1, 3, "Note");
+                sheet.CellValue(2, 1, "A");
+                sheet.CellValue(2, 2, 1d);
+                sheet.CellValue(2, 3, "One");
+                sheet.CellValue(3, 1, "B");
+                sheet.CellValue(3, 2, 2d);
+                sheet.CellValue(3, 3, "Two");
+                sheet.AddTable("A1:C3", hasHeader: true, name: "RepairTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var tablePart = wsPart.TableDefinitionParts.Single();
+                tablePart.Table!.TableColumns = new TableColumns(
+                    new TableColumn { Id = 0U, Name = string.Empty },
+                    new TableColumn { Id = 1U, Name = "Name" },
+                    new TableColumn { Id = 1U, Name = string.Empty }) {
+                    Count = 3U
+                };
+                tablePart.Table.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                var table = wsPart.TableDefinitionParts.Single().Table!;
+                var columns = table.TableColumns!.Elements<TableColumn>().ToList();
+                Assert.Equal(3U, table.TableColumns.Count!.Value);
+                Assert.Equal(new uint[] { 1U, 2U, 3U }, columns.Select(column => column.Id!.Value).ToArray());
+                Assert.All(columns, column => Assert.False(string.IsNullOrWhiteSpace(column.Name?.Value)));
+                Assert.Equal(columns.Count, columns.Select(column => column.Name!.Value).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
     }
 }
 

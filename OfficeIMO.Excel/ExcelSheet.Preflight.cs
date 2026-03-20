@@ -73,6 +73,7 @@ namespace OfficeIMO.Excel {
                     nextConditionalPriority++;
                 }
 
+                CleanupTableArtifacts();
                 CleanupAutoFilterArtifacts();
                 CleanupCommentArtifacts();
                 CleanupHeaderFooterPictureArtifacts();
@@ -88,25 +89,6 @@ namespace OfficeIMO.Excel {
                 var legacy = ws.GetFirstChild<LegacyDrawingHeaderFooter>();
                 if (legacy?.Id?.Value is string lId) {
                     try { var _ = _worksheetPart.GetPartById(lId); } catch { ws.RemoveChild(legacy); }
-                }
-
-                // Clean invalid TableParts and de-duplicate
-                var parts = ws.Elements<TableParts>().FirstOrDefault();
-                if (parts != null) {
-                    var seen = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
-                    foreach (var tp in parts.Elements<TablePart>().ToList()) {
-                        var id = tp.Id?.Value ?? string.Empty;
-                        if (string.IsNullOrEmpty(id) || !seen.Add(id)) {
-                            tp.Remove();
-                            continue;
-                        }
-                        try { var _ = _worksheetPart.GetPartById(id); } catch { tp.Remove(); }
-                    }
-                    if (!parts.Elements<TablePart>().Any()) {
-                        ws.RemoveChild(parts);
-                    } else {
-                        parts.Count = (uint)parts.Elements<TablePart>().Count();
-                    }
                 }
 
                 ws.Save();
