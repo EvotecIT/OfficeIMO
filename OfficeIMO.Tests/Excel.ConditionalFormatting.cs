@@ -31,6 +31,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(ConditionalFormattingOperatorValues.GreaterThan, rule.Operator!.Value);
                 Assert.Equal("10", rule.Elements<Formula>().First().Text);
             }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
         }
 
         [Fact]
@@ -58,6 +62,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("FFFF0000", colors[0].Rgb!.Value);
                 Assert.Equal("FF00FF00", colors[1].Rgb!.Value);
             }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
         }
 
         [Fact]
@@ -83,6 +91,10 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(dataBar);
                 var color = dataBar!.Elements<DocumentFormat.OpenXml.Spreadsheet.Color>().First();
                 Assert.Equal("FF0000FF", color.Rgb!.Value);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
             }
         }
 
@@ -111,6 +123,10 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(formats, cf => cf.Elements<ConditionalFormattingRule>().Any(r => r.Type?.Value == ConditionalFormatValues.CellIs));
                 Assert.Contains(formats, cf => cf.Elements<ConditionalFormattingRule>().Any(r => r.Type?.Value == ConditionalFormatValues.ColorScale));
                 Assert.Contains(formats, cf => cf.Elements<ConditionalFormattingRule>().Any(r => r.Type?.Value == ConditionalFormatValues.DataBar));
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
             }
         }
     }

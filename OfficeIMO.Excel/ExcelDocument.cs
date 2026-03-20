@@ -495,7 +495,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 // Add new string
-                int newIndex = _sharedStringCache.Count;
+                int newIndex = sharedStringTable.Elements<SharedStringItem>().Count();
                 sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
                 sharedStringTable.Save();
                 _sharedStringCache[text] = newIndex;
@@ -1052,6 +1052,10 @@ namespace OfficeIMO.Excel {
             foreach (var sheet in Sheets) {
                 sheet.Preflight();
             }
+            CleanupWorkbookViewArtifacts(save: true);
+            CleanupStyleAndSharedStringArtifacts(save: true);
+            CleanupCalculationArtifacts(save: true);
+            CleanupDefinedNameArtifacts(includeAggressiveRepairs: false, save: true);
         }
 
         /// <summary>

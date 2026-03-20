@@ -243,6 +243,12 @@ namespace OfficeIMO.Tests {
                 var parts = wsPart.Worksheet.Elements<TableParts>().FirstOrDefault();
                 Assert.NotNull(parts);
                 Assert.True(parts!.Elements<TablePart>().Any());
+
+                doc.Save(false);
+            }
+
+            using (var verify = ExcelDocument.Load(path, readOnly: true)) {
+                Assert.Empty(verify.ValidateOpenXml());
             }
             File.Delete(path);
         }

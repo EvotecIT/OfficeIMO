@@ -82,6 +82,10 @@ namespace OfficeIMO.Tests {
                     .GetFirstChild<C.NumberingCache>()!;
                 Assert.Equal((uint)3, cache.PointCount!.Val!.Value);
             }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
         }
 
         [Fact]
@@ -195,6 +199,10 @@ namespace OfficeIMO.Tests {
 
                 Assert.NotNull(plotArea.GetFirstChild<C.ScatterChart>());
                 Assert.Equal(2, plotArea.Elements<C.ValueAxis>().Count());
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
             }
         }
 

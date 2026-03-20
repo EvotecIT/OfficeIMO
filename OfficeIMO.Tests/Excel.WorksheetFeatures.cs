@@ -29,6 +29,29 @@ namespace OfficeIMO.Tests {
                 Assert.False(sheet.HasComment(1, 1));
                 document.Save(false);
             }
+
+            using (var package = SpreadsheetDocument.Open(filePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                Assert.Null(wsPart.WorksheetCommentsPart);
+                Assert.Empty(wsPart.VmlDrawingParts);
+                Assert.Null(wsPart.Worksheet.Elements<LegacyDrawing>().FirstOrDefault());
+            }
+        }
+
+        [Fact]
+        public void Test_WorksheetComments_Multiline_OpenXmlValidation() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetCommentsMultiline.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Comments");
+                sheet.CellValue(1, 1, "Header");
+                sheet.SetComment(1, 1, "Line 1\nLine 2", author: "Tester", initials: "TT");
+                document.Save(false);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
         }
 
         [Fact]
@@ -67,6 +90,10 @@ namespace OfficeIMO.Tests {
                 sheet.Unprotect();
                 Assert.False(sheet.IsProtected);
                 document.Save(false);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
             }
 
             using (var doc = SpreadsheetDocument.Open(filePath, false)) {

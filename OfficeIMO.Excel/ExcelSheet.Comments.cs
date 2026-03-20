@@ -78,6 +78,7 @@ namespace OfficeIMO.Excel {
                 RemoveCommentInternal(commentsPart.Comments.CommentList, reference);
                 commentsPart.Comments.Save();
                 RemoveCommentVmlShape(row, column);
+                CleanupCommentArtifacts();
                 _worksheetPart.Worksheet.Save();
             });
         }
@@ -135,13 +136,8 @@ namespace OfficeIMO.Excel {
         private static CommentText BuildCommentText(string text) {
             var commentText = new CommentText();
             var run = new Run();
-            var lines = text.Replace("\r\n", "\n").Split('\n');
-            for (int i = 0; i < lines.Length; i++) {
-                if (i > 0) {
-                    run.Append(new Break());
-                }
-                run.Append(new Text(lines[i]) { Space = SpaceProcessingModeValues.Preserve });
-            }
+            string normalizedText = text.Replace("\r\n", "\n").Replace('\r', '\n');
+            run.Append(new Text(normalizedText) { Space = SpaceProcessingModeValues.Preserve });
             commentText.Append(run);
             return commentText;
         }
@@ -231,6 +227,34 @@ namespace OfficeIMO.Excel {
                 }
             }
             return removed;
+        }
+
+        internal void CleanupCommentArtifacts() {
+            var ws = _worksheetPart.Worksheet;
+            var commentsPart = _worksheetPart.WorksheetCommentsPart;
+            bool hasComments = commentsPart?.Comments?.CommentList?.Elements<Comment>().Any() is true;
+
+            if (!hasComments && commentsPart != null) {
+                _worksheetPart.DeletePart(commentsPart);
+            }
+
+            var legacy = ws.GetFirstChild<LegacyDrawing>();
+            if (legacy?.Id?.Value is not string legacyRelId || string.IsNullOrWhiteSpace(legacyRelId)) {
+                return;
+            }
+
+            OpenXmlPart? legacyPart = null;
+            try {
+                legacyPart = _worksheetPart.GetPartById(legacyRelId);
+            } catch {
+                ws.RemoveChild(legacy);
+                return;
+            }
+
+            if (!hasComments && legacyPart is VmlDrawingPart vmlPart) {
+                _worksheetPart.DeletePart(vmlPart);
+                ws.RemoveChild(legacy);
+            }
         }
 
         private VmlDrawingPart GetOrCreateCommentVmlPart() {

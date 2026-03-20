@@ -34,6 +34,10 @@ namespace OfficeIMO.Tests {
                 Assert.Single(relationships);
                 Assert.Equal("https://final.example/", relationships[0].Uri.ToString());
             }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
         }
 
         [Fact]
@@ -64,6 +68,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("'Target2'!B5", hyperlink.Location!.Value);
                 Assert.Null(hyperlink.Id);
                 Assert.Empty(worksheetPart.HyperlinkRelationships);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
             }
         }
 
@@ -120,6 +128,10 @@ namespace OfficeIMO.Tests {
                 var remainingRel = worksheetPart.HyperlinkRelationships.FirstOrDefault(r => r.Id == b1.Id!.Value);
                 Assert.NotNull(remainingRel);
                 Assert.Equal("https://shared.example/", remainingRel!.Uri.ToString());
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
             }
         }
     }
