@@ -1568,6 +1568,92 @@ namespace OfficeIMO.Tests {
             File.Delete(path);
             File.Delete(savePath);
         }
+
+        [Fact]
+        public void Save_RemovesDuplicateSheetDimensionAndRebuildsReferenceBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Dimension");
+                sheet.CellValue(2, 2, "Value");
+                sheet.CellValue(4, 3, "Other");
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var ws = wsPart.Worksheet;
+
+                var firstDimension = ws.GetFirstChild<SheetDimension>();
+                if (firstDimension == null) {
+                    firstDimension = ws.InsertAt(new SheetDimension { Reference = "Z99:Z100" }, 0);
+                } else {
+                    firstDimension.Reference = "Z99:Z100";
+                }
+
+                ws.InsertAfter(new SheetDimension { Reference = "BadRef" }, firstDimension);
+                ws.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var ws = package.WorkbookPart!.WorksheetParts.First().Worksheet;
+                var dimensions = ws.Elements<SheetDimension>().ToList();
+                Assert.Single(dimensions);
+                Assert.Equal("B2:C4", dimensions[0].Reference!.Value);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
+        public void Save_ComputesSheetDimensionFromRowsAndCellsWithoutReferences() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Dimension");
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var ws = wsPart.Worksheet;
+                var sheetData = ws.GetFirstChild<SheetData>()!;
+                sheetData.RemoveAllChildren<Row>();
+
+                var row = new Row { RowIndex = 3U };
+                row.Append(new Cell { CellValue = new CellValue("Alpha"), DataType = CellValues.String });
+                row.Append(new Cell { CellValue = new CellValue("Beta"), DataType = CellValues.String });
+                sheetData.Append(row);
+                ws.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var ws = package.WorkbookPart!.WorksheetParts.First().Worksheet;
+                var dimension = ws.GetFirstChild<SheetDimension>();
+                Assert.NotNull(dimension);
+                Assert.Equal("A3:B3", dimension!.Reference!.Value);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            using (var reopenedForRead = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Equal("A3:B3", reopenedForRead.Sheets.First().GetUsedRangeA1());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
     }
 }
 
