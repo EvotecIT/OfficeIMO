@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel {
             }
 
             string? worksheetRange = worksheetAutoFilter.Reference?.Value;
-            if (string.IsNullOrWhiteSpace(worksheetRange) || !A1.TryParseRange(worksheetRange, out int wsR1, out int wsC1, out int wsR2, out int wsC2)) {
+            if (string.IsNullOrWhiteSpace(worksheetRange) || !A1.TryParseRange(worksheetRange!, out int wsR1, out int wsC1, out int wsR2, out int wsC2)) {
                 ws.RemoveChild(worksheetAutoFilter);
                 return;
             }

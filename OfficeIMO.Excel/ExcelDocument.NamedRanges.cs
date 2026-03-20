@@ -281,7 +281,7 @@ namespace OfficeIMO.Excel {
                 uint? local = dn.LocalSheetId?.Value;
                 if (local.HasValue && (local.Value >= (uint)sheetCount)) { toRemove.Add(dn); continue; }
 
-                if (IsSheetScopedBuiltInDefinedName(name)) {
+                if (IsSheetScopedBuiltInDefinedName(name!)) {
                     if (!local.HasValue) { toRemove.Add(dn); continue; }
 
                     string expectedSheetName = sheets[(int)local.Value].Name?.Value ?? string.Empty;

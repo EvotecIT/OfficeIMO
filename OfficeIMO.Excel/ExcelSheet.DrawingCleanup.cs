@@ -79,7 +79,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 try {
-                    return drawingPart.GetPartById(embed) is ImagePart;
+                    return drawingPart.GetPartById(embed!) is ImagePart;
                 } catch {
                     return false;
                 }
@@ -93,7 +93,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 try {
-                    return drawingPart.GetPartById(relId) is ChartPart;
+                    return drawingPart.GetPartById(relId!) is ChartPart;
                 } catch {
                     return false;
                 }

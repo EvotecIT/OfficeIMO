@@ -43,7 +43,9 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool TryValidateProtectedRangeReferences(string referenceList) {
-            foreach (var candidate in referenceList.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)) {
+            string[] split = referenceList.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var rawCandidate in split) {
+                var candidate = rawCandidate.Trim();
                 if (string.IsNullOrWhiteSpace(candidate)) {
                     return false;
                 }
@@ -60,7 +62,7 @@ namespace OfficeIMO.Excel {
             string normalized = candidate.Trim();
             int bangIndex = normalized.LastIndexOf('!');
             if (bangIndex >= 0) {
-                normalized = normalized[(bangIndex + 1)..];
+                normalized = normalized.Substring(bangIndex + 1);
             }
 
             if (A1.TryParseRange(normalized, out _, out _, out _, out _)) {

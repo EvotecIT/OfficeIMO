@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
 
         private bool TryNormalizeTable(Table table, HashSet<uint> usedTableIds, HashSet<string> usedTableNames) {
             string? tableRange = table.Reference?.Value;
-            if (string.IsNullOrWhiteSpace(tableRange) || !A1.TryParseRange(tableRange, out int startRow, out int startColumn, out _, out int endColumn)) {
+            if (string.IsNullOrWhiteSpace(tableRange) || !A1.TryParseRange(tableRange!, out int startRow, out int startColumn, out _, out int endColumn)) {
                 return false;
             }
 
@@ -213,7 +213,7 @@ namespace OfficeIMO.Excel {
         private void DeleteTableDefinitionPart(TableDefinitionPart tableDefinitionPart) {
             string? tableName = tableDefinitionPart.Table?.Name?.Value;
             if (!string.IsNullOrWhiteSpace(tableName)) {
-                _excelDocument.RemoveReservedTableName(tableName);
+                _excelDocument.RemoveReservedTableName(tableName!);
             }
 
             _worksheetPart.DeletePart(tableDefinitionPart);
