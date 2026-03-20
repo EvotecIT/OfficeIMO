@@ -75,6 +75,7 @@ namespace OfficeIMO.Excel {
 
                 CleanupCommentArtifacts();
                 CleanupHeaderFooterPictureArtifacts();
+                CleanupWorksheetDrawingArtifacts();
 
                 // Drop orphaned Drawing reference
                 var drawing = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();

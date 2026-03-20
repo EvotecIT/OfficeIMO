@@ -6,6 +6,8 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
+using A = DocumentFormat.OpenXml.Drawing;
+using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -365,6 +367,105 @@ namespace OfficeIMO.Tests {
                     .ToList();
 
                 Assert.Equal(new int?[] { 1, 2 }, priorities);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
+        public void Preflight_RemovesEmptyWorksheetDrawingBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("DrawingPreflight");
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var ws = wsPart.Worksheet;
+
+                var drawingPart = wsPart.AddNewPart<DrawingsPart>();
+                drawingPart.WorksheetDrawing = new Xdr.WorksheetDrawing();
+                ws.Append(new DocumentFormat.OpenXml.Spreadsheet.Drawing { Id = wsPart.GetIdOfPart(drawingPart) });
+                ws.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                Assert.Null(wsPart.DrawingsPart);
+                Assert.Null(wsPart.Worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.Drawing>().FirstOrDefault());
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
+        public void Preflight_RemovesWorksheetDrawingAnchorWithMissingImageRelationshipBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("BrokenDrawing");
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var ws = wsPart.Worksheet;
+
+                var drawingPart = wsPart.AddNewPart<DrawingsPart>();
+                drawingPart.WorksheetDrawing = new Xdr.WorksheetDrawing(
+                    new Xdr.OneCellAnchor(
+                        new Xdr.FromMarker(
+                            new Xdr.ColumnId("0"),
+                            new Xdr.ColumnOffset("0"),
+                            new Xdr.RowId("0"),
+                            new Xdr.RowOffset("0")
+                        ),
+                        new Xdr.Extent { Cx = 9525, Cy = 9525 },
+                        new Xdr.Picture(
+                            new Xdr.NonVisualPictureProperties(
+                                new Xdr.NonVisualDrawingProperties { Id = 1U, Name = "Broken Picture" },
+                                new Xdr.NonVisualPictureDrawingProperties()
+                            ),
+                            new Xdr.BlipFill(
+                                new A.Blip { Embed = "rIdMissing" },
+                                new A.Stretch(new A.FillRectangle())
+                            ),
+                            new Xdr.ShapeProperties(
+                                new A.Transform2D(
+                                    new A.Offset { X = 0, Y = 0 },
+                                    new A.Extents { Cx = 9525, Cy = 9525 }
+                                ),
+                                new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }
+                            )
+                        ),
+                        new Xdr.ClientData()
+                    )
+                );
+                drawingPart.WorksheetDrawing.Save();
+                ws.Append(new DocumentFormat.OpenXml.Spreadsheet.Drawing { Id = wsPart.GetIdOfPart(drawingPart) });
+                ws.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                Assert.Null(wsPart.DrawingsPart);
+                Assert.Null(wsPart.Worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.Drawing>().FirstOrDefault());
             }
 
             using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
