@@ -138,7 +138,7 @@ namespace OfficeIMO.Tests {
             var nestedTable = bodyCell.AddTable(2, 1);
             nestedTable.Rows[0].Cells[0].Paragraphs[0].Text = "Inner Header";
             nestedTable.Rows[1].Cells[0].Paragraphs[0].Text = "Inner Value";
-            bodyCell.Paragraphs[^1].Text = "After nested";
+            bodyCell.Paragraphs[bodyCell.Paragraphs.Count - 1].Text = "After nested";
 
             MarkdownDoc markdown = doc.ToMarkdownDocument(new WordToMarkdownOptions());
             var table = Assert.IsType<TableBlock>(Assert.Single(markdown.Blocks));

@@ -257,13 +257,23 @@ namespace OfficeIMO.Word.Markdown {
                         hasRuns = false;
                     }
 
-                    bool hasCheckbox = paragraph.IsCheckBox;
-                    bool checkboxChecked = paragraph.CheckBox?.IsChecked == true;
+                    ResolveParagraphCheckboxState(paragraph, out bool hasCheckbox, out bool checkboxChecked);
+                    int backscan = i - 1;
+                    while (backscan >= 0 && elements[backscan] is WordParagraph previous && previous.Equals(paragraph)) {
+                        ResolveParagraphCheckboxState(previous, out bool previousHasCheckbox, out bool previousCheckboxChecked);
+                        if (previousHasCheckbox) {
+                            hasCheckbox = true;
+                            checkboxChecked = previousCheckboxChecked;
+                        }
+                        backscan--;
+                    }
+
                     int scan = i + 1;
                     while (scan < elements.Count && elements[scan] is WordParagraph sibling && sibling.Equals(paragraph)) {
-                        if (sibling.IsCheckBox) {
+                        ResolveParagraphCheckboxState(sibling, out bool siblingHasCheckbox, out bool siblingCheckboxChecked);
+                        if (siblingHasCheckbox) {
                             hasCheckbox = true;
-                            checkboxChecked = sibling.CheckBox?.IsChecked == true;
+                            checkboxChecked = siblingCheckboxChecked;
                         }
                         scan++;
                     }
@@ -382,6 +392,29 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             return sequence;
+        }
+
+        private static void ResolveParagraphCheckboxState(WordParagraph paragraph, out bool hasCheckbox, out bool checkboxChecked) {
+            hasCheckbox = paragraph.IsCheckBox;
+            checkboxChecked = paragraph.CheckBox?.IsChecked == true;
+
+            if (hasCheckbox) {
+                return;
+            }
+
+            try {
+                foreach (var run in paragraph.GetRuns()) {
+                    if (!run.IsCheckBox) {
+                        continue;
+                    }
+
+                    hasCheckbox = true;
+                    checkboxChecked = run.CheckBox?.IsChecked == true;
+                    return;
+                }
+            } catch (InvalidOperationException ex) {
+                Debug.WriteLine($"GetRuns() failed while resolving checkbox state for Markdown AST conversion: {ex.Message}");
+            }
         }
 
         private static void TrimBoundaryWhitespace(InlineSequence sequence) {

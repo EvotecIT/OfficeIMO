@@ -405,7 +405,6 @@
         </w:numPr>
       </w:pPr>
       <w:r>
-        <w:rPr />
         <w:t xml:space="preserve">How to add a table to document?</w:t>
       </w:r>
     </w:p>
@@ -651,7 +650,6 @@
         </w:numPr>
       </w:pPr>
       <w:r>
-        <w:rPr />
         <w:t xml:space="preserve">How to add a list to document?</w:t>
       </w:r>
     </w:p>
@@ -673,7 +671,6 @@
         </w:numPr>
       </w:pPr>
       <w:r>
-        <w:rPr />
         <w:t xml:space="preserve">First element of list</w:t>
       </w:r>
     </w:p>
@@ -686,7 +683,6 @@
         </w:numPr>
       </w:pPr>
       <w:r>
-        <w:rPr />
         <w:t xml:space="preserve">Second element of list</w:t>
       </w:r>
     </w:p>
@@ -714,7 +710,6 @@
         </w:numPr>
       </w:pPr>
       <w:r>
-        <w:rPr />
         <w:t xml:space="preserve">3rd element of list, but added after hyperlink</w:t>
       </w:r>
     </w:p>
@@ -727,7 +722,6 @@
         </w:numPr>
       </w:pPr>
       <w:r>
-        <w:rPr />
         <w:t xml:space="preserve">4th element with hyperlink </w:t>
       </w:r>
       <w:hyperlink w:history="true" r:id="R00000002">
@@ -753,7 +747,6 @@
         </w:numPr>
       </w:pPr>
       <w:r>
-        <w:rPr />
         <w:t xml:space="preserve">Different list number 1</w:t>
       </w:r>
     </w:p>
@@ -766,7 +759,6 @@
         </w:numPr>
       </w:pPr>
       <w:r>
-        <w:rPr />
         <w:t xml:space="preserve">Different list number 2</w:t>
       </w:r>
     </w:p>
@@ -779,7 +771,6 @@
         </w:numPr>
       </w:pPr>
       <w:r>
-        <w:rPr />
         <w:t xml:space="preserve">Different list number 3</w:t>
       </w:r>
     </w:p>
@@ -792,7 +783,6 @@
         </w:numPr>
       </w:pPr>
       <w:r>
-        <w:rPr />
         <w:t xml:space="preserve">Different list number 4</w:t>
       </w:r>
     </w:p>
@@ -815,7 +805,6 @@
         </w:numPr>
       </w:pPr>
       <w:r>
-        <w:rPr />
         <w:t xml:space="preserve">Adding headers / footers</w:t>
       </w:r>
     </w:p>
@@ -836,7 +825,6 @@
         </w:numPr>
       </w:pPr>
       <w:r>
-        <w:rPr />
         <w:t xml:space="preserve">Adding custom properties and page numbers to document</w:t>
       </w:r>
     </w:p>
