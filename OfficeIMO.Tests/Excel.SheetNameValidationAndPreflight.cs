@@ -1090,6 +1090,80 @@ namespace OfficeIMO.Tests {
             File.Delete(path);
             File.Delete(savePath);
         }
+
+        [Fact]
+        public void Preflight_RemovesCalculationChainAndMarksWorkbookForRecalcBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Calc");
+                sheet.CellValue(1, 1, 1d);
+                sheet.CellValue(2, 1, 2d);
+                sheet.CellFormula(3, 1, "SUM(A1:A2)");
+
+                var workbookPart = doc._spreadSheetDocument.WorkbookPart!;
+                var chainPart = workbookPart.AddNewPart<CalculationChainPart>();
+                chainPart.CalculationChain = new CalculationChain();
+                chainPart.CalculationChain.InnerXml = "<x:c xmlns:x=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" r=\"A3\" i=\"999\" />";
+                workbookPart.Workbook.AppendChild(new CalculationProperties {
+                    CalculationId = 1U,
+                    ForceFullCalculation = false,
+                    FullCalculationOnLoad = false
+                });
+                workbookPart.Workbook.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var workbookPart = package.WorkbookPart!;
+                Assert.Empty(workbookPart.GetPartsOfType<CalculationChainPart>());
+                var calcProps = workbookPart.Workbook.Elements<CalculationProperties>().FirstOrDefault();
+                Assert.NotNull(calcProps);
+                Assert.Equal(191029U, calcProps!.CalculationId!.Value);
+                Assert.True(calcProps.ForceFullCalculation?.Value ?? false);
+                Assert.True(calcProps.FullCalculationOnLoad?.Value ?? false);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
+        public void Preflight_RemovesCalculationChainWithoutFormulasBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Calc");
+                sheet.CellValue(1, 1, "Value");
+
+                var workbookPart = doc._spreadSheetDocument.WorkbookPart!;
+                var chainPart = workbookPart.AddNewPart<CalculationChainPart>();
+                chainPart.CalculationChain = new CalculationChain();
+                chainPart.CalculationChain.InnerXml = "<x:c xmlns:x=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" r=\"A1\" i=\"1\" />";
+                workbookPart.Workbook.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var workbookPart = package.WorkbookPart!;
+                Assert.Empty(workbookPart.GetPartsOfType<CalculationChainPart>());
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
     }
 }
 

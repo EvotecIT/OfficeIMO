@@ -1052,6 +1052,7 @@ namespace OfficeIMO.Excel {
             foreach (var sheet in Sheets) {
                 sheet.Preflight();
             }
+            CleanupCalculationArtifacts(save: true);
             CleanupDefinedNameArtifacts(includeAggressiveRepairs: false, save: true);
         }
 
