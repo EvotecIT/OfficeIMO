@@ -1301,6 +1301,150 @@ namespace OfficeIMO.Tests {
             File.Delete(path);
             File.Delete(savePath);
         }
+
+        [Fact]
+        public void Preflight_CreatesWorkbookViewAndNormalizesSheetViewReferenceBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("View");
+                sheet.SetGridlinesVisible(false);
+
+                var workbook = doc._spreadSheetDocument.WorkbookPart!.Workbook;
+                var workbookViews = workbook.GetFirstChild<BookViews>();
+                if (workbookViews != null) {
+                    workbook.RemoveChild(workbookViews);
+                }
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var sheetView = wsPart.Worksheet.GetFirstChild<SheetViews>()!.GetFirstChild<SheetView>()!;
+                sheetView.WorkbookViewId = 8U;
+                wsPart.Worksheet.Save();
+                workbook.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var workbook = package.WorkbookPart!.Workbook;
+                var workbookViews = workbook.GetFirstChild<BookViews>();
+                Assert.NotNull(workbookViews);
+                Assert.Single(workbookViews!.Elements<WorkbookView>());
+
+                var sheetView = package.WorkbookPart.WorksheetParts.First().Worksheet.GetFirstChild<SheetViews>()!.GetFirstChild<SheetView>()!;
+                Assert.Equal(0U, sheetView.WorkbookViewId!.Value);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
+        public void Preflight_RemovesPaneSelectionsWhenPaneIsMissingBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("View");
+                sheet.SetGridlinesVisible(false);
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var sheetView = wsPart.Worksheet.GetFirstChild<SheetViews>()!.GetFirstChild<SheetView>()!;
+                sheetView.Append(new Selection {
+                    Pane = PaneValues.TopRight,
+                    ActiveCell = "B1",
+                    SequenceOfReferences = new ListValue<StringValue> { InnerText = "B1" }
+                });
+                sheetView.Append(new Selection {
+                    ActiveCell = "A1",
+                    SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
+                });
+                wsPart.Worksheet.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var sheetView = package.WorkbookPart!.WorksheetParts.First().Worksheet.GetFirstChild<SheetViews>()!.GetFirstChild<SheetView>()!;
+                Assert.Null(sheetView.GetFirstChild<Pane>());
+
+                var selections = sheetView.Elements<Selection>().ToList();
+                Assert.Single(selections);
+                Assert.Null(selections[0].Pane);
+                Assert.Equal("A1", selections[0].ActiveCell!.Value);
+                Assert.Equal("A1", selections[0].SequenceOfReferences!.InnerText);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
+        public void Preflight_NormalizesFrozenPaneSelectionsBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Freeze");
+                sheet.Freeze(topRows: 1, leftCols: 1);
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var sheetView = wsPart.Worksheet.GetFirstChild<SheetViews>()!.GetFirstChild<SheetView>()!;
+                var pane = sheetView.GetFirstChild<Pane>()!;
+                pane.TopLeftCell = "NotACell";
+                pane.ActivePane = PaneValues.TopLeft;
+
+                sheetView.Append(new Selection {
+                    Pane = PaneValues.BottomRight,
+                    ActiveCell = "Bogus",
+                    SequenceOfReferences = new ListValue<StringValue> { InnerText = "Bogus" }
+                });
+                wsPart.Worksheet.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var sheetView = package.WorkbookPart!.WorksheetParts.First().Worksheet.GetFirstChild<SheetViews>()!.GetFirstChild<SheetView>()!;
+                var pane = sheetView.GetFirstChild<Pane>();
+                Assert.NotNull(pane);
+                Assert.Equal("B2", pane!.TopLeftCell!.Value);
+                Assert.Equal(PaneValues.BottomRight, pane.ActivePane!.Value);
+
+                var selections = sheetView.Elements<Selection>().ToList();
+                Assert.Equal(4, selections.Count);
+                Assert.Single(selections, selection => selection.Pane == null);
+                Assert.Single(selections, selection => selection.Pane?.Value == PaneValues.TopRight);
+                Assert.Single(selections, selection => selection.Pane?.Value == PaneValues.BottomLeft);
+                Assert.Single(selections, selection => selection.Pane?.Value == PaneValues.BottomRight);
+                Assert.All(selections.Where(selection => selection.Pane != null), selection => {
+                    Assert.Equal("B2", selection.ActiveCell!.Value);
+                    Assert.Equal("B2", selection.SequenceOfReferences!.InnerText);
+                });
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
     }
 }
 

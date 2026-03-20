@@ -52,6 +52,8 @@ namespace OfficeIMO.Excel {
                     ws.RemoveChild(customSheetViews);
                 }
 
+                CleanupSheetViewArtifacts();
+
                 // Remove empty or malformed ConditionalFormatting entries
                 foreach (var conditional in ws.Elements<ConditionalFormatting>().ToList()) {
                     foreach (var rule in conditional.Elements<ConditionalFormattingRule>().ToList()) {
