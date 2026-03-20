@@ -120,6 +120,38 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         [Trait("Category","ExcelHeaderFooterImages")]
+        public void Excel_HeaderFooter_TextUpdate_RemovesStalePictureArtifacts() {
+            string filePath = Path.Combine(_directoryWithFiles, "HeaderFooterPictureCleanup.xlsx");
+            if (File.Exists(filePath)) File.Delete(filePath);
+
+            using (var doc = ExcelDocument.Create(filePath))
+            {
+                var sheet = doc.AddWorkSheet("Sheet1");
+                var pngPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+                var pngBytes = File.ReadAllBytes(pngPath);
+                sheet.SetHeaderImage(HeaderFooterPosition.Center, pngBytes, "image/png");
+                sheet.SetHeaderFooter(headerCenter: "Plain header");
+                doc.Save(false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(filePath, false))
+            {
+                var sheetPart = package.WorkbookPart!.WorksheetParts.First();
+                Assert.Empty(sheetPart.VmlDrawingParts);
+                Assert.Null(sheetPart.Worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.LegacyDrawingHeaderFooter>().FirstOrDefault());
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                var sheet = document.Sheets.First();
+                var hf = sheet.GetHeaderFooter();
+                Assert.False(hf.HeaderHasPicturePlaceholder);
+                Assert.Equal("Plain header", hf.HeaderCenter);
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        [Trait("Category","ExcelHeaderFooterImages")]
         public async Task ImageDownloader_Reuses_Cache_For_Repeat_Urls()
         {
             OfficeIMO.Excel.ImageDownloader.ClearCache();

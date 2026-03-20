@@ -239,6 +239,51 @@ namespace OfficeIMO.Tests {
             File.Delete(path);
             File.Delete(savePath);
         }
+
+        [Fact]
+        public void Preflight_RemovesStaleHeaderFooterPictureArtifactsBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("HeaderFooterPreflight");
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var ws = wsPart.Worksheet;
+
+                ws.AppendChild(new HeaderFooter {
+                    OddHeader = new OddHeader("&CPlain header")
+                });
+
+                var vmlPart = wsPart.AddNewPart<VmlDrawingPart>();
+                using (var stream = vmlPart.GetStream(FileMode.Create, FileAccess.Write)) {
+                    using var writer = new StreamWriter(stream);
+                    writer.Write("<xml xmlns:v=\"urn:schemas-microsoft-com:vml\" xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" />");
+                }
+
+                ws.Append(new LegacyDrawingHeaderFooter { Id = wsPart.GetIdOfPart(vmlPart) });
+                ws.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                var ws = wsPart.Worksheet;
+
+                Assert.Empty(wsPart.VmlDrawingParts);
+                Assert.Null(ws.Elements<LegacyDrawingHeaderFooter>().FirstOrDefault());
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
     }
 }
 

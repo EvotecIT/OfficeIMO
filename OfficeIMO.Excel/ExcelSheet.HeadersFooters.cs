@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using SixLabors.ImageSharp;
@@ -165,12 +166,19 @@ namespace OfficeIMO.Excel {
                 if (differentOddEven) {
                     if (oddHeader != null) hf.EvenHeader = new EvenHeader(oddHeader);
                     if (oddFooter != null) hf.EvenFooter = new EvenFooter(oddFooter);
+                } else {
+                    hf.EvenHeader = null;
+                    hf.EvenFooter = null;
                 }
                 if (differentFirstPage) {
                     if (oddHeader != null) hf.FirstHeader = new FirstHeader(oddHeader);
                     if (oddFooter != null) hf.FirstFooter = new FirstFooter(oddFooter);
+                } else {
+                    hf.FirstHeader = null;
+                    hf.FirstFooter = null;
                 }
 
+                CleanupHeaderFooterPictureArtifacts();
                 ws.Save();
             });
         }
@@ -423,6 +431,49 @@ namespace OfficeIMO.Excel {
             }
 
             ws.Save();
+        }
+
+        internal void CleanupHeaderFooterPictureArtifacts() {
+            var ws = _worksheetPart.Worksheet;
+            var legacy = ws.GetFirstChild<LegacyDrawingHeaderFooter>();
+            if (legacy?.Id?.Value is not string legacyRelId || string.IsNullOrWhiteSpace(legacyRelId)) {
+                return;
+            }
+
+            OpenXmlPart? legacyPart = null;
+            try {
+                legacyPart = _worksheetPart.GetPartById(legacyRelId);
+            } catch {
+                ws.RemoveChild(legacy);
+                return;
+            }
+
+            if (HeaderFooterContainsPicturePlaceholder()) {
+                return;
+            }
+
+            if (legacyPart is VmlDrawingPart vmlPart) {
+                _worksheetPart.DeletePart(vmlPart);
+            }
+
+            ws.RemoveChild(legacy);
+        }
+
+        private bool HeaderFooterContainsPicturePlaceholder() {
+            var hf = _worksheetPart.Worksheet.GetFirstChild<HeaderFooter>();
+            if (hf == null) {
+                return false;
+            }
+
+            static bool HasPicture(OpenXmlLeafTextElement? element)
+                => element?.Text?.IndexOf("&G", StringComparison.Ordinal) >= 0;
+
+            return HasPicture(hf.OddHeader)
+                || HasPicture(hf.OddFooter)
+                || HasPicture(hf.EvenHeader)
+                || HasPicture(hf.EvenFooter)
+                || HasPicture(hf.FirstHeader)
+                || HasPicture(hf.FirstFooter);
         }
     }
 }
