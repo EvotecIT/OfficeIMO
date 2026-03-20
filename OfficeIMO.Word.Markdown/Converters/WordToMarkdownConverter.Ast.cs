@@ -395,7 +395,7 @@ namespace OfficeIMO.Word.Markdown {
                 nodes.RemoveAt(0);
             }
 
-            while (nodes.Count > 0 && nodes[^1] is HardBreakInline) {
+            while (nodes.Count > 0 && nodes[nodes.Count - 1] is HardBreakInline) {
                 nodes.RemoveAt(nodes.Count - 1);
             }
 
@@ -408,12 +408,12 @@ namespace OfficeIMO.Word.Markdown {
                 }
             }
 
-            if (nodes.Count > 0 && nodes[^1] is TextRun trailingText) {
+            if (nodes.Count > 0 && nodes[nodes.Count - 1] is TextRun trailingText) {
                 string trimmed = trailingText.Text.TrimEnd();
                 if (trimmed.Length == 0) {
                     nodes.RemoveAt(nodes.Count - 1);
                 } else if (!string.Equals(trimmed, trailingText.Text, StringComparison.Ordinal)) {
-                    nodes[^1] = new TextRun(trimmed);
+                    nodes[nodes.Count - 1] = new TextRun(trimmed);
                 }
             }
 

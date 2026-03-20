@@ -770,12 +770,13 @@ namespace OfficeIMO.Word.Markdown {
                 return HeaderFooterValues.Default;
             }
 
-            return slot.Trim().ToLowerInvariant() switch {
+            var normalizedSlot = (slot ?? string.Empty).Trim().ToLowerInvariant();
+            return normalizedSlot switch {
                 "default" => HeaderFooterValues.Default,
                 "odd" => HeaderFooterValues.Default,
                 "first" => HeaderFooterValues.First,
                 "even" => HeaderFooterValues.Even,
-                _ => WarnAndReturnDefault(slot, options, block)
+                _ => WarnAndReturnDefault(normalizedSlot, options, block)
             };
         }
 
