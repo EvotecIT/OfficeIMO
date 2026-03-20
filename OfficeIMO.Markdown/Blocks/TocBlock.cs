@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Table of contents block generated from document headings.
 /// </summary>
-public sealed class TocBlock : IMarkdownBlock, ISyntaxMarkdownBlock {
+public sealed class TocBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock {
     /// <summary>Single Table of Contents entry.</summary>
     public sealed class Entry {
         /// <summary>Heading level (1..6).</summary>
@@ -77,5 +77,5 @@ public sealed class TocBlock : IMarkdownBlock, ISyntaxMarkdownBlock {
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(MarkdownSyntaxKind.Toc, span, ((IMarkdownBlock)this).RenderMarkdown());
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.Toc, span, ((IMarkdownBlock)this).RenderMarkdown(), associatedObject: this);
 }

@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Raw inline HTML passthrough. Rendering obeys the active <see cref="RawHtmlHandling"/> policy.
 /// </summary>
-public sealed class HtmlRawInline : IMarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
+public sealed class HtmlRawInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
     /// <summary>Raw HTML fragment.</summary>
     public string Html { get; }
 

@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Paragraph block containing a sequence of inline nodes.
 /// </summary>
-public sealed class ParagraphBlock : IMarkdownBlock, IParagraphMarkdownBlock, IInlineSyntaxMarkdownBlock, ISyntaxMarkdownBlock {
+public sealed class ParagraphBlock : MarkdownBlock, IMarkdownBlock, IParagraphMarkdownBlock, IInlineSyntaxMarkdownBlock, ISyntaxMarkdownBlock {
     /// <summary>Inline content within this paragraph.</summary>
     public InlineSequence Inlines { get; }
     /// <summary>Creates a paragraph block.</summary>

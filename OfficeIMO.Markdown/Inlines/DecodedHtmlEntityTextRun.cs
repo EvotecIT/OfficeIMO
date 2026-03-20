@@ -5,7 +5,7 @@ namespace OfficeIMO.Markdown;
 /// Keeps the decoded text in the AST while re-encoding angle brackets during Markdown rendering
 /// so literal tag text does not become active HTML on roundtrip.
 /// </summary>
-internal sealed class DecodedHtmlEntityTextRun : IMarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
+internal sealed class DecodedHtmlEntityTextRun : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
     internal DecodedHtmlEntityTextRun(string text) {
         Text = text ?? string.Empty;
     }

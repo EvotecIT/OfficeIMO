@@ -28,5 +28,24 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] {0, 0, 1}, taskParagraphs.Select(p => p.ListItemLevel.GetValueOrDefault()).ToArray());
             Assert.Equal(new[] {"Task1", "Task2", "Subtask"}, taskParagraphs.Select(p => p.Text.Trim()).ToArray());
         }
+
+        [Fact]
+        public void MarkdownToWord_ListItem_WithMultipleParagraphs_Preserves_AllParagraphBlocks() {
+            const string md = """
+                - first paragraph
+
+                  second paragraph
+                - next item
+                """;
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+
+            var listParagraphs = doc.Paragraphs
+                .Where(p => p.IsListItem && !string.IsNullOrWhiteSpace(p.Text))
+                .ToArray();
+
+            Assert.Equal(new[] { 0, 0, 0 }, listParagraphs.Select(p => p.ListItemLevel.GetValueOrDefault()).ToArray());
+            Assert.Equal(new[] { "first paragraph", "second paragraph", "next item" }, listParagraphs.Select(p => p.Text.Trim()).ToArray());
+        }
     }
 }

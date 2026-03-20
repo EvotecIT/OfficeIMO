@@ -5,7 +5,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Typed table cell containing one or more markdown blocks.
 /// </summary>
-public sealed class TableCell {
+public sealed class TableCell : MarkdownObject {
     /// <summary>Structured cell content.</summary>
     public List<IMarkdownBlock> Blocks { get; } = new List<IMarkdownBlock>();
     /// <summary>Owned syntax nodes for the structured cell body.</summary>
@@ -16,9 +16,6 @@ public sealed class TableCell {
     public int RowIndex { get; internal set; } = -1;
     /// <summary>Zero-based column index within the row.</summary>
     public int ColumnIndex { get; internal set; } = -1;
-    /// <summary>Optional source span for the original table-cell content.</summary>
-    internal MarkdownSourceSpan? SourceSpan { get; set; }
-
     /// <summary>Creates a typed table cell.</summary>
     public TableCell(IEnumerable<IMarkdownBlock>? blocks = null) {
         if (blocks == null) {

@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Semantic definition-list group containing one or more shared terms and definition bodies.
 /// </summary>
-public sealed class DefinitionListGroup {
+public sealed class DefinitionListGroup : MarkdownObject {
     private readonly List<InlineSequence> _terms = new List<InlineSequence>();
     private readonly List<DefinitionListDefinition> _definitions = new List<DefinitionListDefinition>();
 

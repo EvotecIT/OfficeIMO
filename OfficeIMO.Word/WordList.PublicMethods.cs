@@ -27,9 +27,6 @@ namespace OfficeIMO.Word {
         /// <returns>The <see cref="WordParagraph"/> representing the created list item.</returns>
         public WordParagraph AddItem(string? text, int level = 0, WordParagraph? wordParagraph = null) {
             var paragraph = new Paragraph();
-            var run = new Run();
-            run.Append(new RunProperties());
-            run.Append(new Text { Space = SpaceProcessingModeValues.Preserve });
 
             var levelIndex = level;
             if (_isToc || IsToc) {
@@ -45,7 +42,6 @@ namespace OfficeIMO.Word {
                     new NumberingId { Val = _numberId }
                 ));
             paragraph.Append(paragraphProperties);
-            paragraph.Append(run);
 
             var insertionReference = GetInsertionReference(wordParagraph);
 
@@ -70,7 +66,7 @@ namespace OfficeIMO.Word {
                 _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
             }
 
-            var newParagraph = new WordParagraph(_document, paragraph, run);
+            var newParagraph = new WordParagraph(_document, paragraph);
             newParagraph._list = this;
             _listItems.Add(newParagraph);
             if (text != null) {

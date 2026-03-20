@@ -7,7 +7,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// YAML front matter block rendered at the beginning of the document.
 /// </summary>
-public sealed class FrontMatterBlock : IFrontMatterMarkdownBlock, ISyntaxMarkdownBlock {
+public sealed class FrontMatterBlock : MarkdownBlock, IFrontMatterMarkdownBlock, ISyntaxMarkdownBlock {
     /// <summary>Single front matter entry.</summary>
     public sealed class Entry {
         /// <summary>Entry key.</summary>
@@ -151,5 +151,5 @@ public sealed class FrontMatterBlock : IFrontMatterMarkdownBlock, ISyntaxMarkdow
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() => string.Empty;
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatter, span, Render());
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatter, span, Render(), associatedObject: this);
 }

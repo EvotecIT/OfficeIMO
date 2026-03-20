@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Markdown.Html;
 using OfficeIMO.Word.Html;
 using System.Collections.Generic;
 using System.Threading;
@@ -99,10 +100,12 @@ namespace OfficeIMO.Word.Markdown {
         private static Omd.MarkdownReaderOptions CreateEffectiveReaderOptions(MarkdownToWordOptions options) {
             var source = options.ReaderOptions;
             if (source == null) {
-                return new Omd.MarkdownReaderOptions {
+                var defaults = new Omd.MarkdownReaderOptions {
                     BaseUri = options.BaseUri,
                     PreferNarrativeSingleLineDefinitions = options.PreferNarrativeSingleLineDefinitions
                 };
+                WordMarkdownSemanticBlocks.ConfigureReaderOptions(defaults);
+                return defaults;
             }
 
             var effective = new Omd.MarkdownReaderOptions {
@@ -176,6 +179,7 @@ namespace OfficeIMO.Word.Markdown {
             CopyBlockParserExtensions(source, effective);
             CopyFencedBlockExtensions(source, effective);
             CopyDocumentTransforms(source, effective);
+            WordMarkdownSemanticBlocks.ConfigureReaderOptions(effective);
             return effective;
         }
 
@@ -460,6 +464,10 @@ namespace OfficeIMO.Word.Markdown {
                     .ToDictionary(g => g.Key, g => g.Last().Text)
                 : null;
 
+            if (omd.DocumentHeader != null) {
+                ProcessBlockOmd(omd.DocumentHeader, document, options, quoteDepth: 0, pageContentWidthPixels: pageContentWidthPixels);
+            }
+
             foreach (var block in blocks ?? Array.Empty<Omd.IMarkdownBlock>()) {
                 cancellationToken.ThrowIfCancellationRequested();
                 ProcessBlockOmd(block, document, options, quoteDepth: 0, pageContentWidthPixels: pageContentWidthPixels);
@@ -486,6 +494,19 @@ namespace OfficeIMO.Word.Markdown {
                 .ToDictionary(g => g.Key, g => g.Last().Text);
 
             var host = new DocumentWordBlockRenderHost(document);
+            if (markdown.DocumentHeader != null) {
+                RenderSharedBlockOmd(
+                    markdown.DocumentHeader,
+                    host,
+                    options,
+                    document,
+                    currentList: null,
+                    listLevel: 0,
+                    quoteDepth: 0,
+                    pageContentWidthPixels: pageContentWidthPixels,
+                    alignment: Omd.ColumnAlignment.None);
+            }
+
             foreach (var block in blocks) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (block == null) {
@@ -570,12 +591,200 @@ namespace OfficeIMO.Word.Markdown {
             public void InsertHorizontalRule() { }
         }
 
+        private sealed class HeaderFooterWordBlockRenderHost : IWordBlockRenderHost {
+            private readonly WordHeaderFooter _headerFooter;
+
+            public HeaderFooterWordBlockRenderHost(WordHeaderFooter headerFooter) {
+                _headerFooter = headerFooter ?? throw new ArgumentNullException(nameof(headerFooter));
+            }
+
+            public WordParagraph CreateParagraph() => _headerFooter.AddParagraph(string.Empty);
+            public WordList CreateList(WordListStyle style) => _headerFooter.AddList(style);
+            public WordTable CreateTable(int rows, int columns) => _headerFooter.AddTable(rows, columns);
+            public bool SupportsHtmlInsertion => false;
+            public void InsertHtml(string html) { }
+            public bool SupportsHorizontalRule => true;
+            public void InsertHorizontalRule() => _headerFooter.AddHorizontalLine();
+        }
+
         private static void ApplyBlockParagraphFormatting(WordParagraph paragraph, int quoteDepth, Omd.ColumnAlignment alignment) {
             if (quoteDepth > 0) {
                 paragraph.IndentationBefore = IndentTwipsPerLevel * quoteDepth;
             }
 
             ApplyAlignment(alignment, paragraph);
+        }
+
+        private static bool TryRenderHtmlFallbackViaMarkdownAst(
+            string html,
+            IWordBlockRenderHost host,
+            MarkdownToWordOptions options,
+            WordDocument document,
+            int quoteDepth,
+            double pageContentWidthPixels,
+            Omd.ColumnAlignment alignment) {
+            if (string.IsNullOrWhiteSpace(html)) {
+                return true;
+            }
+
+            Omd.MarkdownDoc htmlDocument;
+            try {
+                var htmlOptions = HtmlToMarkdownOptions.CreateOfficeIMOProfile();
+                htmlOptions.PreserveUnsupportedBlocks = false;
+                htmlOptions.PreserveUnsupportedInlineHtml = false;
+                htmlDocument = html.LoadFromHtml(htmlOptions);
+            } catch {
+                return false;
+            }
+
+            if (htmlDocument.DocumentHeader != null) {
+                RenderSharedBlockOmd(
+                    htmlDocument.DocumentHeader,
+                    host,
+                    options,
+                    document,
+                    currentList: null,
+                    listLevel: 0,
+                    quoteDepth: quoteDepth,
+                    pageContentWidthPixels: pageContentWidthPixels,
+                    alignment: alignment);
+            }
+
+            var renderedAny = false;
+            foreach (var block in htmlDocument.Blocks) {
+                if (block == null) {
+                    continue;
+                }
+
+                renderedAny = true;
+                RenderSharedBlockOmd(
+                    block,
+                    host,
+                    options,
+                    document,
+                    currentList: null,
+                    listLevel: 0,
+                    quoteDepth: quoteDepth,
+                    pageContentWidthPixels: pageContentWidthPixels,
+                    alignment: alignment);
+            }
+
+            return renderedAny;
+        }
+
+        private static bool TryRenderWordHeaderFooterSemanticBlock(
+            Omd.SemanticFencedBlock block,
+            IWordBlockRenderHost currentHost,
+            MarkdownToWordOptions options,
+            WordDocument document,
+            double pageContentWidthPixels) {
+            if (block == null || currentHost is not DocumentWordBlockRenderHost) {
+                return false;
+            }
+
+            if (!TryResolveWordHeaderFooterTarget(block, document, options, out var target)) {
+                return false;
+            }
+
+            var targetHost = new HeaderFooterWordBlockRenderHost(target);
+            if (!string.IsNullOrWhiteSpace(block.Content)) {
+                var readerOptions = CreateEffectiveReaderOptions(options);
+                readerOptions.FrontMatter = false;
+                var fragment = Omd.MarkdownReader.Parse(block.Content, readerOptions);
+
+                if (fragment.DocumentHeader != null) {
+                    RenderSharedBlockOmd(
+                        fragment.DocumentHeader,
+                        targetHost,
+                        options,
+                        document,
+                        currentList: null,
+                        listLevel: 0,
+                        quoteDepth: 0,
+                        pageContentWidthPixels: pageContentWidthPixels,
+                        alignment: Omd.ColumnAlignment.None);
+                }
+
+                foreach (var nested in fragment.Blocks ?? Array.Empty<Omd.IMarkdownBlock>()) {
+                    RenderSharedBlockOmd(
+                        nested,
+                        targetHost,
+                        options,
+                        document,
+                        currentList: null,
+                        listLevel: 0,
+                        quoteDepth: 0,
+                        pageContentWidthPixels: pageContentWidthPixels,
+                        alignment: Omd.ColumnAlignment.None);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(block.Caption)) {
+                target.AddParagraph(block.Caption!);
+            }
+
+            return true;
+        }
+
+        private static bool TryResolveWordHeaderFooterTarget(
+            Omd.SemanticFencedBlock block,
+            WordDocument document,
+            MarkdownToWordOptions options,
+            out WordHeaderFooter target) {
+            target = null!;
+            if (block == null) {
+                return false;
+            }
+
+            bool isHeader;
+            if (string.Equals(block.SemanticKind, WordMarkdownSemanticBlocks.HeaderSemanticKind, StringComparison.OrdinalIgnoreCase)) {
+                isHeader = true;
+            } else if (string.Equals(block.SemanticKind, WordMarkdownSemanticBlocks.FooterSemanticKind, StringComparison.OrdinalIgnoreCase)) {
+                isHeader = false;
+            } else {
+                return false;
+            }
+
+            int sectionNumber = 1;
+            if (block.FenceInfo.TryGetInt32Attribute("section", out var parsedSection) && parsedSection > 0) {
+                sectionNumber = parsedSection;
+            }
+
+            if (sectionNumber != 1) {
+                options.OnWarning?.Invoke($"Semantic {block.SemanticKind} block requested section {sectionNumber}, but MarkdownToWord currently restores headers and footers only for section 1.");
+            }
+
+            var slot = block.FenceInfo.GetAttribute("slot");
+            var type = ResolveHeaderFooterType(slot, options, block);
+            target = isHeader
+                ? document.Sections[0].GetOrCreateHeader(type)
+                : document.Sections[0].GetOrCreateFooter(type);
+            return true;
+        }
+
+        private static HeaderFooterValues ResolveHeaderFooterType(
+            string? slot,
+            MarkdownToWordOptions options,
+            Omd.SemanticFencedBlock block) {
+            if (string.IsNullOrWhiteSpace(slot)) {
+                return HeaderFooterValues.Default;
+            }
+
+            return slot.Trim().ToLowerInvariant() switch {
+                "default" => HeaderFooterValues.Default,
+                "odd" => HeaderFooterValues.Default,
+                "first" => HeaderFooterValues.First,
+                "even" => HeaderFooterValues.Even,
+                _ => WarnAndReturnDefault(slot, options, block)
+            };
+        }
+
+        private static HeaderFooterValues WarnAndReturnDefault(
+            string slot,
+            MarkdownToWordOptions options,
+            Omd.SemanticFencedBlock block) {
+            options.OnWarning?.Invoke($"Semantic {block.SemanticKind} block requested unsupported slot '{slot}'. Falling back to default header or footer.");
+            return HeaderFooterValues.Default;
         }
 
         private static void ProcessTableCellBlocksOmd(
@@ -756,6 +965,341 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
+        private sealed class BlockRenderer : Omd.MarkdownVisitor {
+            private readonly IWordBlockRenderHost _host;
+            private readonly MarkdownToWordOptions _options;
+            private readonly WordDocument _document;
+            private readonly int _listLevel;
+            private readonly int _quoteDepth;
+            private readonly double _pageContentWidthPixels;
+            private readonly Omd.ColumnAlignment _alignment;
+
+            public BlockRenderer(
+                IWordBlockRenderHost host,
+                MarkdownToWordOptions options,
+                WordDocument document,
+                int listLevel,
+                int quoteDepth,
+                double pageContentWidthPixels,
+                Omd.ColumnAlignment alignment) {
+                _host = host ?? throw new ArgumentNullException(nameof(host));
+                _options = options ?? throw new ArgumentNullException(nameof(options));
+                _document = document ?? throw new ArgumentNullException(nameof(document));
+                _listLevel = listLevel;
+                _quoteDepth = quoteDepth;
+                _pageContentWidthPixels = pageContentWidthPixels;
+                _alignment = alignment;
+            }
+
+            public void Render(Omd.IMarkdownBlock block) {
+                if (block == null) {
+                    return;
+                }
+
+                if (block is Omd.MarkdownObject markdownObject) {
+                    Visit(markdownObject);
+                } else {
+                    RenderFallback(block);
+                }
+            }
+
+            private void RenderNested(
+                Omd.IMarkdownBlock block,
+                int? listLevel = null,
+                int? quoteDepth = null,
+                double? pageContentWidthPixels = null,
+                Omd.ColumnAlignment? alignment = null) {
+                new BlockRenderer(
+                    _host,
+                    _options,
+                    _document,
+                    listLevel ?? _listLevel,
+                    quoteDepth ?? _quoteDepth,
+                    pageContentWidthPixels ?? _pageContentWidthPixels,
+                    alignment ?? _alignment)
+                    .Render(block);
+            }
+
+            private void RenderFallback(Omd.IMarkdownBlock block) {
+                var fallback = _host.CreateParagraph();
+                ApplyBlockParagraphFormatting(fallback, _quoteDepth, _alignment);
+                fallback.AddText(block.RenderMarkdown());
+            }
+
+            protected override void VisitBlock(Omd.MarkdownBlock block) {
+                if (block is Omd.IMarkdownBlock markdownBlock) {
+                    RenderFallback(markdownBlock);
+                }
+            }
+
+            protected override void VisitHeadingBlock(Omd.HeadingBlock block) {
+                var headingParagraph = _host.CreateParagraph();
+                ApplyBlockParagraphFormatting(headingParagraph, _quoteDepth, _alignment);
+                ProcessInlinesOmd(block.Inlines, headingParagraph, _options, _document, _currentFootnotes);
+                headingParagraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(block.Level);
+            }
+
+            protected override void VisitParagraphBlock(Omd.ParagraphBlock block) {
+                var paragraph = _host.CreateParagraph();
+                ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
+                ProcessInlinesOmd(block.Inlines, paragraph, _options, _document, _currentFootnotes);
+            }
+
+            protected override void VisitImageBlock(Omd.ImageBlock block) {
+                var paragraph = _host.CreateParagraph();
+                ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
+                var pathOrUrl = block.Path ?? string.Empty;
+                var contextWidthLimit = ResolveContextWidthLimitPixels(_options.ImageLayout, _pageContentWidthPixels, _listLevel, _quoteDepth);
+
+                if (System.IO.File.Exists(pathOrUrl)) {
+                    if (_options.AllowLocalImages && LocalPathAllowed(pathOrUrl, _options)) {
+                        double? naturalW = null;
+                        double? naturalH = null;
+                        if (TryGetImageDimensionsFromFile(pathOrUrl, out var fileW, out var fileH)) {
+                            naturalW = fileW;
+                            naturalH = fileH;
+                        }
+
+                        ResolveImageDimensions(
+                            _options,
+                            source: pathOrUrl,
+                            context: "block-local",
+                            requestedWidth: block.Width,
+                            requestedHeight: block.Height,
+                            naturalWidth: naturalW,
+                            naturalHeight: naturalH,
+                            pageContentWidthPixels: _pageContentWidthPixels,
+                            contextWidthLimitPixels: contextWidthLimit,
+                            out var finalW,
+                            out var finalH,
+                            out _);
+
+                        paragraph.AddImage(pathOrUrl, finalW, finalH, description: block.Alt ?? string.Empty);
+                    } else {
+                        var text = paragraph.AddText(block.Alt ?? System.IO.Path.GetFileName(pathOrUrl));
+                        var defaultFont = ResolveDefaultFontFamily(_options);
+                        if (!string.IsNullOrEmpty(defaultFont)) {
+                            text.SetFontFamily(defaultFont!);
+                        }
+                    }
+                } else if (System.Uri.TryCreate(pathOrUrl, System.UriKind.Absolute, out var uri)) {
+                    if (_options.AllowedImageSchemes.Contains(uri.Scheme) &&
+                        (_options.ImageUrlValidator == null || _options.ImageUrlValidator(uri))) {
+                        if (_options.AllowRemoteImages) {
+                            try {
+                                var bytes = DownloadRemoteImageBytes(uri, _options);
+                                var fileName = System.IO.Path.GetFileName(uri.LocalPath);
+                                if (string.IsNullOrWhiteSpace(fileName)) {
+                                    fileName = "image";
+                                }
+
+                                double? naturalW = null;
+                                double? naturalH = null;
+                                if (TryGetImageDimensionsFromBytes(bytes, out var remoteW, out var remoteH)) {
+                                    naturalW = remoteW;
+                                    naturalH = remoteH;
+                                }
+
+                                ResolveImageDimensions(
+                                    _options,
+                                    source: uri.ToString(),
+                                    context: "block-remote",
+                                    requestedWidth: block.Width,
+                                    requestedHeight: block.Height,
+                                    naturalWidth: naturalW,
+                                    naturalHeight: naturalH,
+                                    pageContentWidthPixels: _pageContentWidthPixels,
+                                    contextWidthLimitPixels: contextWidthLimit,
+                                    out var finalW,
+                                    out var finalH,
+                                    out _);
+
+                                using var stream = new System.IO.MemoryStream(bytes, writable: false);
+                                paragraph.AddImage(stream, fileName, finalW, finalH, description: block.Alt ?? string.Empty);
+                            } catch (Exception ex) {
+                                _options.OnWarning?.Invoke($"Remote image '{uri}' could not be downloaded. {ex.Message}");
+                                if (_options.FallbackRemoteImagesToHyperlinks) {
+                                    paragraph.AddHyperLink(block.Alt ?? uri.ToString(), uri);
+                                }
+                            }
+                        } else if (_options.FallbackRemoteImagesToHyperlinks) {
+                            paragraph.AddHyperLink(block.Alt ?? uri.ToString(), uri);
+                        }
+                    } else if (_options.FallbackRemoteImagesToHyperlinks) {
+                        paragraph.AddHyperLink(block.Alt ?? uri.ToString(), uri);
+                    }
+                } else {
+                    var text = paragraph.AddText(block.Alt ?? pathOrUrl);
+                    var defaultFont = ResolveDefaultFontFamily(_options);
+                    if (!string.IsNullOrEmpty(defaultFont)) {
+                        text.SetFontFamily(defaultFont!);
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(block.Caption)) {
+                    var captionParagraph = _host.CreateParagraph();
+                    ApplyBlockParagraphFormatting(captionParagraph, _quoteDepth, _alignment);
+                    captionParagraph.AddText(block.Caption!);
+                }
+            }
+
+            protected override void VisitCodeBlock(Omd.CodeBlock block) {
+                var codeParagraph = _host.CreateParagraph();
+                ApplyBlockParagraphFormatting(codeParagraph, _quoteDepth, _alignment);
+                var monoFont = FontResolver.Resolve("monospace") ?? "Consolas";
+                codeParagraph.AddFormattedText(block.Content ?? string.Empty).SetFontFamily(monoFont);
+                if (!string.IsNullOrWhiteSpace(block.Caption)) {
+                    var captionParagraph = _host.CreateParagraph();
+                    ApplyBlockParagraphFormatting(captionParagraph, _quoteDepth, _alignment);
+                    captionParagraph.AddText(block.Caption!);
+                }
+            }
+
+            protected override void VisitSemanticFencedBlock(Omd.SemanticFencedBlock block) {
+                if (TryRenderWordHeaderFooterSemanticBlock(block, _host, _options, _document, _pageContentWidthPixels)) {
+                    return;
+                }
+
+                var paragraph = _host.CreateParagraph();
+                ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
+                var monoFont = FontResolver.Resolve("monospace") ?? "Consolas";
+                paragraph.AddFormattedText(block.Content ?? string.Empty).SetFontFamily(monoFont);
+                if (!string.IsNullOrWhiteSpace(block.Caption)) {
+                    var captionParagraph = _host.CreateParagraph();
+                    ApplyBlockParagraphFormatting(captionParagraph, _quoteDepth, _alignment);
+                    captionParagraph.AddText(block.Caption!);
+                }
+            }
+
+            protected override void VisitTableBlock(Omd.TableBlock block) =>
+                RenderSharedTableBlockOmd(block, _host, _options, _document, _pageContentWidthPixels);
+
+            protected override void VisitUnorderedListBlock(Omd.UnorderedListBlock block) =>
+                RenderListBlock(block.Items, WordListStyle.Bulleted, startNumber: null);
+
+            protected override void VisitOrderedListBlock(Omd.OrderedListBlock block) =>
+                RenderListBlock(block.Items, WordListStyle.Numbered, block.Start);
+
+            protected override void VisitTocBlock(Omd.TocBlock block) { }
+
+            protected override void VisitHtmlCommentBlock(Omd.HtmlCommentBlock block) {
+                if (_host.SupportsHtmlInsertion) {
+                    _host.InsertHtml(block.Comment);
+                }
+            }
+
+            protected override void VisitHtmlRawBlock(Omd.HtmlRawBlock block) {
+                if (_host.SupportsHtmlInsertion) {
+                    _host.InsertHtml(block.Html);
+                } else if (TryRenderHtmlFallbackViaMarkdownAst(block.Html, _host, _options, _document, _quoteDepth, _pageContentWidthPixels, _alignment)) {
+                    return;
+                } else {
+                    var htmlParagraph = _host.CreateParagraph();
+                    ApplyBlockParagraphFormatting(htmlParagraph, _quoteDepth, _alignment);
+                    htmlParagraph.AddText(((Omd.IMarkdownBlock)block).RenderMarkdown());
+                }
+            }
+
+            protected override void VisitHorizontalRuleBlock(Omd.HorizontalRuleBlock block) {
+                if (_host.SupportsHorizontalRule) {
+                    _host.InsertHorizontalRule();
+                } else {
+                    var ruleParagraph = _host.CreateParagraph();
+                    ApplyBlockParagraphFormatting(ruleParagraph, _quoteDepth, _alignment);
+                    ruleParagraph.AddText("---");
+                }
+            }
+
+            protected override void VisitDefinitionListBlock(Omd.DefinitionListBlock block) {
+                foreach (var entry in block.Entries) {
+                    if (entry == null) {
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(entry.TermMarkdown) && entry.DefinitionBlocks.Count == 0) {
+                        continue;
+                    }
+
+                    RenderSharedDefinitionListEntryOmd(entry, _host, _options, _document, _quoteDepth, _pageContentWidthPixels, _alignment);
+                }
+            }
+
+            protected override void VisitQuoteBlock(Omd.QuoteBlock block) {
+                foreach (var child in block.Children) {
+                    RenderNested(child, quoteDepth: _quoteDepth + 1);
+                }
+            }
+
+            protected override void VisitCalloutBlock(Omd.CalloutBlock block) =>
+                RenderSharedCalloutBlockOmd(block, _host, _options, _document, _quoteDepth, _pageContentWidthPixels, _alignment);
+
+            protected override void VisitFootnoteDefinitionBlock(Omd.FootnoteDefinitionBlock block) { }
+
+            protected override void VisitDetailsBlock(Omd.DetailsBlock block) {
+                if (block.Summary != null) {
+                    var summaryParagraph = _host.CreateParagraph();
+                    ApplyBlockParagraphFormatting(summaryParagraph, _quoteDepth, _alignment);
+                    ProcessInlinesOmd(block.Summary.Inlines, summaryParagraph, _options, _document, _currentFootnotes);
+                    foreach (var run in summaryParagraph.GetRuns()) {
+                        run.SetBold();
+                    }
+                }
+
+                foreach (var child in block.ChildBlocks) {
+                    RenderNested(child, quoteDepth: _quoteDepth + 1);
+                }
+            }
+
+            protected override void VisitSummaryBlock(Omd.SummaryBlock block) {
+                var summaryParagraph = _host.CreateParagraph();
+                ApplyBlockParagraphFormatting(summaryParagraph, _quoteDepth, _alignment);
+                ProcessInlinesOmd(block.Inlines, summaryParagraph, _options, _document, _currentFootnotes);
+                foreach (var run in summaryParagraph.GetRuns()) {
+                    run.SetBold();
+                }
+            }
+
+            protected override void VisitFrontMatterBlock(Omd.FrontMatterBlock block) {
+                var lines = block.Render().Replace("\r", string.Empty).Split('\n');
+                var monoFont = FontResolver.Resolve("monospace") ?? "Consolas";
+
+                for (int i = 0; i < lines.Length; i++) {
+                    var paragraph = _host.CreateParagraph();
+                    ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
+                    paragraph.AddFormattedText(lines[i]).SetFontFamily(monoFont);
+                }
+            }
+
+            private void RenderListBlock(IReadOnlyList<Omd.ListItem> items, WordListStyle style, int? startNumber) {
+                var list = _host.CreateList(style);
+                if (startNumber.HasValue && startNumber.Value != 1) {
+                    list.Numbering.Levels[0].SetStartNumberingValue(startNumber.Value);
+                }
+
+                foreach (var item in items) {
+                    var effectiveLevel = _listLevel + item.Level;
+                    var firstParagraph = true;
+                    var blockChildren = item.BlockChildren;
+
+                    for (int i = 0; i < blockChildren.Count; i++) {
+                        if (blockChildren[i] is Omd.ParagraphBlock paragraph) {
+                            var listItemParagraph = list.AddItem((string?)null, effectiveLevel);
+                            if (firstParagraph && item.IsTask) {
+                                listItemParagraph.AddCheckBox(item.Checked);
+                            }
+
+                            ApplyBlockParagraphFormatting(listItemParagraph, _quoteDepth, _alignment);
+                            ProcessInlinesOmd(paragraph.Inlines, listItemParagraph, _options, _document, _currentFootnotes);
+                            firstParagraph = false;
+                            continue;
+                        }
+
+                        RenderNested(blockChildren[i], listLevel: effectiveLevel + 1);
+                    }
+                }
+            }
+        }
+
         private static void RenderSharedBlockOmd(
             Omd.IMarkdownBlock block,
             IWordBlockRenderHost host,
@@ -766,264 +1310,8 @@ namespace OfficeIMO.Word.Markdown {
             int quoteDepth = 0,
             double pageContentWidthPixels = 0,
             Omd.ColumnAlignment alignment = Omd.ColumnAlignment.None) {
-            switch (block) {
-                case Omd.HeadingBlock h: {
-                        var headingParagraph = host.CreateParagraph();
-                        ApplyBlockParagraphFormatting(headingParagraph, quoteDepth, alignment);
-                        headingParagraph.SetText(h.Text ?? string.Empty);
-                        headingParagraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(h.Level);
-                        break;
-                    }
-                case Omd.ParagraphBlock p:
-                    if (currentList == null) {
-                        var para = host.CreateParagraph();
-                        ApplyBlockParagraphFormatting(para, quoteDepth, alignment);
-                        ProcessInlinesOmd(p.Inlines, para, options, document, _currentFootnotes);
-                    } else {
-                        var li = currentList.AddItem(string.Empty, listLevel);
-                        ApplyBlockParagraphFormatting(li, quoteDepth, alignment);
-                        ProcessInlinesOmd(p.Inlines, li, options, document, _currentFootnotes);
-                    }
-                    break;
-                case Omd.ImageBlock img: {
-                        var par = host.CreateParagraph();
-                        ApplyBlockParagraphFormatting(par, quoteDepth, alignment);
-                        var pathOrUrl = img.Path ?? string.Empty;
-                        var contextWidthLimit = ResolveContextWidthLimitPixels(options.ImageLayout, pageContentWidthPixels, listLevel, quoteDepth);
-
-                        if (System.IO.File.Exists(pathOrUrl)) {
-                            if (options.AllowLocalImages && LocalPathAllowed(pathOrUrl, options)) {
-                                double? naturalW = null;
-                                double? naturalH = null;
-                                if (TryGetImageDimensionsFromFile(pathOrUrl, out var fileW, out var fileH)) {
-                                    naturalW = fileW;
-                                    naturalH = fileH;
-                                }
-
-                                ResolveImageDimensions(
-                                    options,
-                                    source: pathOrUrl,
-                                    context: "block-local",
-                                    requestedWidth: img.Width,
-                                    requestedHeight: img.Height,
-                                    naturalWidth: naturalW,
-                                    naturalHeight: naturalH,
-                                    pageContentWidthPixels: pageContentWidthPixels,
-                                    contextWidthLimitPixels: contextWidthLimit,
-                                    out var finalW,
-                                    out var finalH,
-                                    out _);
-
-                                par.AddImage(pathOrUrl, finalW, finalH, description: img.Alt ?? string.Empty);
-                            } else {
-                                var t1 = par.AddText(img.Alt ?? System.IO.Path.GetFileName(pathOrUrl));
-                                var defaultFont = ResolveDefaultFontFamily(options);
-                                if (!string.IsNullOrEmpty(defaultFont)) {
-                                    t1.SetFontFamily(defaultFont!);
-                                }
-                            }
-                        } else if (System.Uri.TryCreate(pathOrUrl, System.UriKind.Absolute, out var uri)) {
-                            if (options.AllowedImageSchemes.Contains(uri.Scheme) &&
-                                (options.ImageUrlValidator == null || options.ImageUrlValidator(uri))) {
-                                if (options.AllowRemoteImages) {
-                                    try {
-                                        var bytes = DownloadRemoteImageBytes(uri, options);
-                                        var fileName = System.IO.Path.GetFileName(uri.LocalPath);
-                                        if (string.IsNullOrWhiteSpace(fileName)) {
-                                            fileName = "image";
-                                        }
-
-                                        double? naturalW = null;
-                                        double? naturalH = null;
-                                        if (TryGetImageDimensionsFromBytes(bytes, out var remoteW, out var remoteH)) {
-                                            naturalW = remoteW;
-                                            naturalH = remoteH;
-                                        }
-
-                                        ResolveImageDimensions(
-                                            options,
-                                            source: uri.ToString(),
-                                            context: "block-remote",
-                                            requestedWidth: img.Width,
-                                            requestedHeight: img.Height,
-                                            naturalWidth: naturalW,
-                                            naturalHeight: naturalH,
-                                            pageContentWidthPixels: pageContentWidthPixels,
-                                            contextWidthLimitPixels: contextWidthLimit,
-                                            out var finalW,
-                                            out var finalH,
-                                            out _);
-
-                                        using var stream = new System.IO.MemoryStream(bytes, writable: false);
-                                        par.AddImage(stream, fileName, finalW, finalH, description: img.Alt ?? string.Empty);
-                                    } catch (Exception ex) {
-                                        options.OnWarning?.Invoke($"Remote image '{uri}' could not be downloaded. {ex.Message}");
-                                        if (options.FallbackRemoteImagesToHyperlinks) {
-                                            par.AddHyperLink(img.Alt ?? uri.ToString(), uri);
-                                        }
-                                    }
-                                } else if (options.FallbackRemoteImagesToHyperlinks) {
-                                    par.AddHyperLink(img.Alt ?? uri.ToString(), uri);
-                                }
-                            } else if (options.FallbackRemoteImagesToHyperlinks) {
-                                par.AddHyperLink(img.Alt ?? uri.ToString(), uri);
-                            }
-                        } else {
-                            var t2 = par.AddText(img.Alt ?? pathOrUrl);
-                            var defaultFont = ResolveDefaultFontFamily(options);
-                            if (!string.IsNullOrEmpty(defaultFont)) {
-                                t2.SetFontFamily(defaultFont!);
-                            }
-                        }
-
-                        if (!string.IsNullOrWhiteSpace(img.Caption)) {
-                            var captionParagraph = host.CreateParagraph();
-                            ApplyBlockParagraphFormatting(captionParagraph, quoteDepth, alignment);
-                            captionParagraph.AddText(img.Caption!);
-                        }
-                        break;
-                    }
-                case Omd.CodeBlock cb: {
-                        var codeParagraph = host.CreateParagraph();
-                        ApplyBlockParagraphFormatting(codeParagraph, quoteDepth, alignment);
-                        var monoFont = FontResolver.Resolve("monospace") ?? "Consolas";
-                        codeParagraph.AddFormattedText(cb.Content ?? string.Empty).SetFontFamily(monoFont);
-                        if (!string.IsNullOrWhiteSpace(cb.Caption)) {
-                            var captionParagraph = host.CreateParagraph();
-                            ApplyBlockParagraphFormatting(captionParagraph, quoteDepth, alignment);
-                            captionParagraph.AddText(cb.Caption!);
-                        }
-                        break;
-                    }
-                case Omd.SemanticFencedBlock semantic: {
-                        var semanticParagraph = host.CreateParagraph();
-                        ApplyBlockParagraphFormatting(semanticParagraph, quoteDepth, alignment);
-                        var monoFont = FontResolver.Resolve("monospace") ?? "Consolas";
-                        semanticParagraph.AddFormattedText(semantic.Content ?? string.Empty).SetFontFamily(monoFont);
-                        if (!string.IsNullOrWhiteSpace(semantic.Caption)) {
-                            var captionParagraph = host.CreateParagraph();
-                            ApplyBlockParagraphFormatting(captionParagraph, quoteDepth, alignment);
-                            captionParagraph.AddText(semantic.Caption!);
-                        }
-                        break;
-                    }
-                case Omd.TableBlock tb:
-                    RenderSharedTableBlockOmd(tb, host, options, document, pageContentWidthPixels);
-                    break;
-                case Omd.UnorderedListBlock ul: {
-                        var list = host.CreateList(WordListStyle.Bulleted);
-                        foreach (var item in ul.Items) {
-                            int effectiveLevel = listLevel + item.Level;
-                            var li = list.AddItem(string.Empty, effectiveLevel);
-                            if (item.IsTask) {
-                                li.AddCheckBox(item.Checked);
-                            }
-                            ApplyBlockParagraphFormatting(li, quoteDepth, alignment);
-                            ProcessInlinesOmd(item.Content, li, options, document, _currentFootnotes);
-
-                            if (item.AdditionalParagraphs != null && item.AdditionalParagraphs.Count > 0) {
-                                foreach (var extra in item.AdditionalParagraphs) {
-                                    var li2 = list.AddItem(string.Empty, effectiveLevel);
-                                    ApplyBlockParagraphFormatting(li2, quoteDepth, alignment);
-                                    ProcessInlinesOmd(extra, li2, options, document, _currentFootnotes);
-                                }
-                            }
-
-                            if (item.Children != null && item.Children.Count > 0) {
-                                foreach (var child in item.Children) {
-                                    RenderSharedBlockOmd(child, host, options, document, null, effectiveLevel + 1, quoteDepth, pageContentWidthPixels, alignment);
-                                }
-                            }
-                        }
-                        break;
-                    }
-                case Omd.OrderedListBlock ol: {
-                        var list = host.CreateList(WordListStyle.Numbered);
-                        if (ol.Start != 1) {
-                            list.Numbering.Levels[0].SetStartNumberingValue(ol.Start);
-                        }
-                        foreach (var item in ol.Items) {
-                            int effectiveLevel = listLevel + item.Level;
-                            var li = list.AddItem(string.Empty, effectiveLevel);
-                            if (item.IsTask) {
-                                li.AddCheckBox(item.Checked);
-                            }
-                            ApplyBlockParagraphFormatting(li, quoteDepth, alignment);
-                            ProcessInlinesOmd(item.Content, li, options, document, _currentFootnotes);
-
-                            if (item.AdditionalParagraphs != null && item.AdditionalParagraphs.Count > 0) {
-                                foreach (var extra in item.AdditionalParagraphs) {
-                                    var li2 = list.AddItem(string.Empty, effectiveLevel);
-                                    ApplyBlockParagraphFormatting(li2, quoteDepth, alignment);
-                                    ProcessInlinesOmd(extra, li2, options, document, _currentFootnotes);
-                                }
-                            }
-
-                            if (item.Children != null && item.Children.Count > 0) {
-                                foreach (var child in item.Children) {
-                                    RenderSharedBlockOmd(child, host, options, document, null, effectiveLevel + 1, quoteDepth, pageContentWidthPixels, alignment);
-                                }
-                            }
-                        }
-                        break;
-                    }
-                case Omd.TocBlock:
-                    break;
-                case Omd.HtmlCommentBlock comment:
-                    if (host.SupportsHtmlInsertion) {
-                        host.InsertHtml(comment.Comment);
-                    } else {
-                        var commentParagraph = host.CreateParagraph();
-                        ApplyBlockParagraphFormatting(commentParagraph, quoteDepth, alignment);
-                        commentParagraph.AddText(((Omd.IMarkdownBlock)comment).RenderMarkdown());
-                    }
-                    break;
-                case Omd.HtmlRawBlock html:
-                    if (host.SupportsHtmlInsertion) {
-                        host.InsertHtml(html.Html);
-                    } else {
-                        var htmlParagraph = host.CreateParagraph();
-                        ApplyBlockParagraphFormatting(htmlParagraph, quoteDepth, alignment);
-                        htmlParagraph.AddText(((Omd.IMarkdownBlock)html).RenderMarkdown());
-                    }
-                    break;
-                case Omd.HorizontalRuleBlock:
-                    if (host.SupportsHorizontalRule) {
-                        host.InsertHorizontalRule();
-                    } else {
-                        var ruleParagraph = host.CreateParagraph();
-                        ApplyBlockParagraphFormatting(ruleParagraph, quoteDepth, alignment);
-                        ruleParagraph.AddText("---");
-                    }
-                    break;
-                case Omd.DefinitionListBlock dl:
-                    foreach (var entry in dl.Entries) {
-                        if (entry == null) {
-                            continue;
-                        }
-
-                        if (string.IsNullOrWhiteSpace(entry.TermMarkdown) && entry.DefinitionBlocks.Count == 0) {
-                            continue;
-                        }
-
-                        RenderSharedDefinitionListEntryOmd(entry, host, options, document, quoteDepth, pageContentWidthPixels, alignment);
-                    }
-                    break;
-                case Omd.QuoteBlock qb:
-                    RenderSharedBlocksOmd(qb.Children, host, options, document, listLevel, quoteDepth + 1, pageContentWidthPixels, alignment);
-                    break;
-                case Omd.CalloutBlock callout:
-                    RenderSharedCalloutBlockOmd(callout, host, options, document, quoteDepth, pageContentWidthPixels, alignment);
-                    break;
-                case Omd.FootnoteDefinitionBlock:
-                    break;
-                default: {
-                        var fallback = host.CreateParagraph();
-                        ApplyBlockParagraphFormatting(fallback, quoteDepth, alignment);
-                        fallback.AddText(block.RenderMarkdown());
-                        break;
-                    }
-            }
+            _ = currentList;
+            new BlockRenderer(host, options, document, listLevel, quoteDepth, pageContentWidthPixels, alignment).Render(block);
         }
 
         private static void ProcessBlockOmd(

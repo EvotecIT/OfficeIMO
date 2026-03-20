@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Combined bold+italic inline, rendered as ***text*** in Markdown and <strong><em>text</em></strong> in HTML.
 /// </summary>
-public sealed class BoldItalicInline : IMarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
+public sealed class BoldItalicInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
     /// <summary>Content inside the emphasis.</summary>
     public string Text { get; }
     /// <summary>Create a bold+italic inline.</summary>

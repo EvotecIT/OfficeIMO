@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Italic/emphasis that contains nested inline nodes.
 /// Used by the reader so nested markup can be represented without changing the fluent builder API.
 /// </summary>
-public sealed class ItalicSequenceInline : IMarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline {
+public sealed class ItalicSequenceInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline {
     /// <summary>Inline content.</summary>
     public InlineSequence Inlines { get; }
 

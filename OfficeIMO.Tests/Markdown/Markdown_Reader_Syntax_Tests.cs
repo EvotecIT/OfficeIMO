@@ -223,6 +223,257 @@ Heading Title
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Assigns_Parent_Sibling_And_AssociatedObject_Metadata() {
+        const string markdown = "Use **bold** [docs](https://example.com) and `code`.";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        Assert.Same(result.Document, result.SyntaxTree.AssociatedObject);
+        Assert.Null(result.SyntaxTree.Parent);
+        Assert.Same(result.SyntaxTree, result.SyntaxTree.Root);
+
+        var paragraph = Assert.Single(result.SyntaxTree.Children);
+        Assert.Same(result.SyntaxTree, paragraph.Parent);
+        Assert.Equal(0, paragraph.IndexInParent);
+        Assert.Null(paragraph.PreviousSibling);
+        Assert.Null(paragraph.NextSibling);
+        Assert.IsType<ParagraphBlock>(paragraph.AssociatedObject);
+
+        var link = paragraph.Children[3];
+        Assert.Same(paragraph, link.Parent);
+        Assert.Equal(3, link.IndexInParent);
+        Assert.Equal(MarkdownSyntaxKind.InlineText, link.PreviousSibling!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineText, link.NextSibling!.Kind);
+        Assert.IsType<LinkInline>(link.AssociatedObject);
+        Assert.Equal(new[] { MarkdownSyntaxKind.Paragraph, MarkdownSyntaxKind.Document }, link.Ancestors().Select(node => node.Kind).ToArray());
+        Assert.Equal(new[] { MarkdownSyntaxKind.InlineLink, MarkdownSyntaxKind.Paragraph, MarkdownSyntaxKind.Document }, link.AncestorsAndSelf().Select(node => node.Kind).ToArray());
+        Assert.Same(result.SyntaxTree, link.Root);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Assigns_ObjectModel_Parents_Siblings_And_SourceSpans() {
+        const string markdown = """
+# Title
+
+- first [link](https://example.com)
+- second
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var document = result.Document;
+        var heading = Assert.IsType<HeadingBlock>(document.Blocks[0]);
+        var list = Assert.IsType<UnorderedListBlock>(document.Blocks[1]);
+        var firstItem = Assert.IsType<ListItem>(list.Items[0]);
+        var secondItem = Assert.IsType<ListItem>(list.Items[1]);
+        var headingText = Assert.IsType<TextRun>(Assert.Single(heading.Inlines.Nodes));
+        var link = Assert.Single(firstItem.Content.Nodes.OfType<LinkInline>());
+
+        Assert.Null(document.Parent);
+        Assert.Same(document, heading.Parent);
+        Assert.Same(document, list.Parent);
+        Assert.Equal(0, heading.IndexInParent);
+        Assert.Equal(1, list.IndexInParent);
+        Assert.Null(heading.PreviousSibling);
+        Assert.Same(list, heading.NextSibling);
+        Assert.Same(heading, list.PreviousSibling);
+
+        Assert.Same(heading, heading.Inlines.Parent);
+        Assert.Same(heading.Inlines, headingText.Parent);
+        Assert.Same(list, firstItem.Parent);
+        Assert.Same(list, secondItem.Parent);
+        Assert.Equal(0, firstItem.IndexInParent);
+        Assert.Equal(1, secondItem.IndexInParent);
+        Assert.Same(secondItem, firstItem.NextSibling);
+        Assert.Same(firstItem, secondItem.PreviousSibling);
+        var firstParagraph = Assert.IsType<ParagraphBlock>(firstItem.BlockChildren[0]);
+        Assert.Same(firstItem, firstParagraph.Parent);
+        Assert.Same(firstParagraph, firstItem.Content.Parent);
+        Assert.Same(firstItem.Content, link.Parent);
+
+        Assert.Same(document, link.Document);
+        Assert.Same(document, link.Root);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 4, 8), document.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 7), heading.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 7), heading.Inlines.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 7), headingText.SourceSpan);
+    }
+
+    [Fact]
+    public void FluentDocument_Assigns_ObjectModel_Parents_Without_SyntaxTree() {
+        var document = MarkdownDoc.Create()
+            .H1("Title")
+            .Ul(list => {
+                list.Item("first");
+                list.Item("second");
+            });
+
+        var heading = Assert.IsType<HeadingBlock>(document.Blocks[0]);
+        var list = Assert.IsType<UnorderedListBlock>(document.Blocks[1]);
+        var firstItem = Assert.IsType<ListItem>(list.Items[0]);
+        var secondItem = Assert.IsType<ListItem>(list.Items[1]);
+        var firstText = Assert.IsType<TextRun>(Assert.Single(firstItem.Content.Nodes));
+
+        Assert.Same(document, heading.Parent);
+        Assert.Same(document, list.Parent);
+        Assert.Same(heading, heading.Inlines.Parent);
+        Assert.Same(list, firstItem.Parent);
+        Assert.Same(list, secondItem.Parent);
+        var firstParagraph = Assert.IsType<ParagraphBlock>(firstItem.BlockChildren[0]);
+        Assert.Same(firstItem, firstParagraph.Parent);
+        Assert.Same(firstParagraph, firstItem.Content.Parent);
+        Assert.Same(firstItem.Content, firstText.Parent);
+        Assert.Null(heading.SourceSpan);
+        Assert.Equal(new MarkdownObject[] { heading, list }, document.ChildObjects.ToArray());
+        Assert.Equal(new MarkdownObject[] { firstItem, secondItem }, list.ChildObjects.ToArray());
+        Assert.Equal(new MarkdownObject[] { firstItem, list, document }, firstItem.AncestorsAndSelf().ToArray());
+    }
+
+    [Fact]
+    public void ListItem_ParagraphBlocks_And_TableCells_Are_Stable_Owned_Nodes() {
+        const string markdown = """
+- first paragraph
+
+  second paragraph
+
+| Name | Value |
+| --- | --- |
+| One | 1 |
+""";
+
+        var document = MarkdownReader.Parse(markdown);
+        var list = Assert.IsType<UnorderedListBlock>(document.Blocks[0]);
+        var item = Assert.Single(list.Items);
+        var table = Assert.IsType<TableBlock>(document.Blocks[1]);
+
+        var firstParagraphRead1 = item.ParagraphBlocks[0];
+        var firstParagraphRead2 = item.ParagraphBlocks[0];
+        var secondParagraph = item.ParagraphBlocks[1];
+        var blockChildrenRead1 = item.BlockChildren;
+        var blockChildrenRead2 = item.BlockChildren;
+
+        Assert.Same(firstParagraphRead1, firstParagraphRead2);
+        Assert.Same(blockChildrenRead1[0], blockChildrenRead2[0]);
+        Assert.Same(item, firstParagraphRead1.Parent);
+        Assert.Same(item, secondParagraph.Parent);
+        Assert.Same(firstParagraphRead1, item.Content.Parent);
+        Assert.Same(secondParagraph, item.AdditionalParagraphs[0].Parent);
+
+        var headerRead1 = table.HeaderCells[0];
+        var headerRead2 = table.HeaderCells[0];
+        var bodyRead1 = table.RowCells[0][1];
+        var bodyRead2 = table.GetCell(0, 1);
+
+        Assert.Same(headerRead1, headerRead2);
+        Assert.Same(bodyRead1, bodyRead2);
+        Assert.Same(table, headerRead1.Parent);
+        Assert.Same(table, bodyRead1.Parent);
+        Assert.All(table.EnumerateCells(), cell => Assert.Same(table, cell.Parent));
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Assigns_SourceSpans_To_TableCell_Ast_Objects() {
+        const string markdown = """
+| Name | Value |
+| --- | --- |
+| One | 1 |
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var table = Assert.IsType<TableBlock>(Assert.Single(result.Document.Blocks));
+
+        var header = table.GetHeaderCell(0);
+        var body = table.GetCell(0, 1);
+
+        Assert.NotNull(header);
+        Assert.NotNull(body);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 6), header!.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 9, 3, 9), body!.SourceSpan);
+    }
+
+    [Fact]
+    public void MarkdownVisitor_Walks_Public_ObjectTree_In_DepthFirst_Order() {
+        var document = MarkdownReader.Parse("""
+# Title
+
+- first
+
+| Name | Value |
+| --- | --- |
+| One | 1 |
+""");
+
+        var visitor = new CollectingMarkdownVisitor();
+        document.Accept(visitor);
+
+        Assert.Equal(new[] {
+            "MarkdownDoc",
+            "HeadingBlock",
+            "InlineSequence",
+            "TextRun",
+            "UnorderedListBlock",
+            "ListItem",
+            "ParagraphBlock",
+            "InlineSequence",
+            "TextRun",
+            "TableBlock",
+            "TableCell",
+            "ParagraphBlock",
+            "InlineSequence",
+            "TextRun",
+            "TableCell",
+            "ParagraphBlock",
+            "InlineSequence",
+            "TextRun",
+            "TableCell",
+            "ParagraphBlock",
+            "InlineSequence",
+            "TextRun",
+            "TableCell",
+            "ParagraphBlock",
+            "InlineSequence",
+            "TextRun"
+        }, visitor.NodeKinds);
+    }
+
+    [Fact]
+    public void MarkdownRewriter_Rewrites_Nested_Block_Content_And_Rebinds_Parents() {
+        var document = MarkdownReader.Parse("""
+> before
+
+- item
+""");
+
+        document.Rewrite(new ReplaceParagraphRewriter("after"));
+
+        var quote = Assert.IsType<QuoteBlock>(document.Blocks[0]);
+        var quoteParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
+        Assert.Equal("after", quoteParagraph.Inlines.RenderMarkdown());
+        Assert.Same(quote, quoteParagraph.Parent);
+        Assert.Same(quoteParagraph, quoteParagraph.Inlines.Parent);
+
+        var list = Assert.IsType<UnorderedListBlock>(document.Blocks[1]);
+        var itemParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(list.Items[0].BlockChildren));
+        Assert.Equal("after", itemParagraph.Inlines.RenderMarkdown());
+        Assert.Same(list.Items[0], itemParagraph.Parent);
+        Assert.Same(itemParagraph, itemParagraph.Inlines.Parent);
+    }
+
+    [Fact]
+    public void MarkdownSourceSpan_Uses_ColumnAware_Equality_Containment_And_Overlap() {
+        var outer = new MarkdownSourceSpan(3, 5, 3, 20);
+        var inner = new MarkdownSourceSpan(3, 8, 3, 12);
+        var disjointSameLine = new MarkdownSourceSpan(3, 21, 3, 24);
+        var sameLinesDifferentColumns = new MarkdownSourceSpan(3, 1, 3, 4);
+
+        Assert.NotEqual(outer, sameLinesDifferentColumns);
+        Assert.True(outer.Contains(inner));
+        Assert.False(outer.Contains(disjointSameLine));
+        Assert.False(outer.Overlaps(disjointSameLine));
+        Assert.True(outer.Overlaps(new MarkdownSourceSpan(3, 20, 3, 24)));
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Paragraph_Image_And_HardBreak_Inline_Nodes() {
         const string markdown = "See ![Alt](image.png \"Title\")  \nnext";
 
@@ -1719,5 +1970,21 @@ Term: Definition
                     : block);
             return document;
         }
+    }
+
+    private sealed class CollectingMarkdownVisitor : MarkdownVisitor {
+        public List<string> NodeKinds { get; } = new List<string>();
+
+        protected override void DefaultVisit(MarkdownObject node) {
+            NodeKinds.Add(node.GetType().Name);
+            base.DefaultVisit(node);
+        }
+    }
+
+    private sealed class ReplaceParagraphRewriter(string text) : MarkdownRewriter {
+        protected override IMarkdownBlock RewriteCurrentBlock(IMarkdownBlock block) =>
+            block is ParagraphBlock
+                ? new ParagraphBlock(new InlineSequence().Text(text))
+                : block;
     }
 }

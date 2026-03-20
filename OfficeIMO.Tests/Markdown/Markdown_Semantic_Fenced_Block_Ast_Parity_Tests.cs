@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.MarkdownRenderer;
@@ -109,6 +110,28 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var semantic = Assert.IsType<SemanticFencedBlock>(Assert.Single(list.Items[0].Children));
         Assert.Equal(payload, semantic.Content);
+    }
+
+    [Fact]
+    public void Registered_Fenced_Block_Transform_Skips_Rewrite_When_No_Matching_CodeBlock_Exists() {
+        var options = CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart);
+        var transform = new MarkdownRegisteredFencedBlockTransform(options.FencedBlockExtensions);
+        var lead = new InlineSequence().Text("Intro");
+        var additional = new InlineSequence().Text("Tail");
+        var item = new ListItem(lead);
+        item.AdditionalParagraphs.Add(additional);
+        var document = MarkdownDoc.Create().Add(new UnorderedListBlock {
+            Items = { item }
+        });
+
+        transform.Transform(
+            document,
+            new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.MarkdownReader, options));
+
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
+        Assert.Same(lead, list.Items[0].Content);
+        Assert.Same(additional, list.Items[0].AdditionalParagraphs[0]);
+        Assert.Equal(new[] { "Intro", "Tail" }, list.Items[0].BlockChildren.Select(block => block.RenderMarkdown()).ToArray());
     }
 
     [Fact]

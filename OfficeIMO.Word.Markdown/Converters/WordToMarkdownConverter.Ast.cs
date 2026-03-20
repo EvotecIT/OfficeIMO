@@ -34,10 +34,13 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private void BuildMarkdownDocument(WordDocument document, MarkdownDoc markdown, WordToMarkdownOptions options, CancellationToken cancellationToken) {
-            var listStack = new List<PendingListFrame>();
-
+            int sectionIndex = 0;
             foreach (var section in DocumentTraversal.EnumerateSections(document)) {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (options.IncludeHeadersAndFootersAsSemanticBlocks) {
+                    AppendHeaderFooterSemanticBlocks(markdown, section, options, cancellationToken, sectionIndex);
+                }
+
                 var elements = section.Elements;
                 if (elements == null || elements.Count == 0) {
                     elements = new List<WordElement>(section.Paragraphs.Count + section.Tables.Count);
@@ -45,82 +48,115 @@ namespace OfficeIMO.Word.Markdown {
                     elements.AddRange(section.Tables);
                 }
 
-                for (int i = 0; i < elements.Count; i++) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    var element = elements[i];
+                AppendBlocksFromElements(
+                    elements,
+                    block => markdown.Add(block),
+                    options,
+                    cancellationToken,
+                    allowQuoteHeuristic: true,
+                    trimBoundaryWhitespace: false);
 
-                    if (element is WordParagraph paragraph) {
-                        bool hasRuns = false;
-                        try {
-                            hasRuns = paragraph.GetRuns().Any();
-                        } catch (InvalidOperationException ex) {
-                            Debug.WriteLine($"GetRuns() failed for paragraph during Markdown AST conversion: {ex.Message}");
-                            hasRuns = false;
-                        }
-
-                        bool hasCheckbox = paragraph.IsCheckBox;
-                        bool checkboxChecked = paragraph.CheckBox?.IsChecked == true;
-                        int scan = i + 1;
-                        while (scan < elements.Count && elements[scan] is WordParagraph sibling && sibling.Equals(paragraph)) {
-                            if (sibling.IsCheckBox) {
-                                hasCheckbox = true;
-                                checkboxChecked = sibling.CheckBox?.IsChecked == true;
-                            }
-                            scan++;
-                        }
-
-                        if (hasRuns && !paragraph.IsFirstRun) {
-                            continue;
-                        }
-
-                        var listInfo = DocumentTraversal.GetListInfo(paragraph);
-                        if (listInfo != null) {
-                            AddListParagraph(markdown, listStack, paragraph, listInfo.Value, options, hasCheckbox, checkboxChecked);
-                            continue;
-                        }
-
-                        listStack.Clear();
-                        foreach (var block in BuildParagraphBlocks(paragraph, options, hasCheckbox, checkboxChecked, allowQuoteHeuristic: true)) {
-                            markdown.Add(block);
-                        }
-                        continue;
-                    }
-
-                    listStack.Clear();
-
-                    if (element is WordTable table) {
-                        markdown.Add(BuildTableBlock(table, options));
-                        continue;
-                    }
-
-                    if (element is WordEmbeddedDocument embeddedDocument) {
-                        var html = embeddedDocument.GetHtml();
-                        if (!string.IsNullOrWhiteSpace(html)) {
-                            markdown.Add(new HtmlRawBlock(html!.TrimEnd()));
-                        }
-                    }
+                if (options.IncludeHeadersAndFootersAsSemanticBlocks) {
+                    AppendFooterSemanticBlocks(markdown, section, options, cancellationToken, sectionIndex);
                 }
+
+                sectionIndex++;
             }
 
             AppendFootnotes(document, markdown, options);
         }
 
-        private void AddListParagraph(
+        private void AppendHeaderFooterSemanticBlocks(
             MarkdownDoc markdown,
+            WordSection section,
+            WordToMarkdownOptions options,
+            CancellationToken cancellationToken,
+            int sectionIndex) {
+            AppendHeaderFooterSemanticBlock(markdown, section.Header.Default, options, cancellationToken, sectionIndex, "default", isHeader: true);
+            AppendHeaderFooterSemanticBlock(markdown, section.Header.First, options, cancellationToken, sectionIndex, "first", isHeader: true);
+            AppendHeaderFooterSemanticBlock(markdown, section.Header.Even, options, cancellationToken, sectionIndex, "even", isHeader: true);
+        }
+
+        private void AppendFooterSemanticBlocks(
+            MarkdownDoc markdown,
+            WordSection section,
+            WordToMarkdownOptions options,
+            CancellationToken cancellationToken,
+            int sectionIndex) {
+            AppendHeaderFooterSemanticBlock(markdown, section.Footer.Default, options, cancellationToken, sectionIndex, "default", isHeader: false);
+            AppendHeaderFooterSemanticBlock(markdown, section.Footer.First, options, cancellationToken, sectionIndex, "first", isHeader: false);
+            AppendHeaderFooterSemanticBlock(markdown, section.Footer.Even, options, cancellationToken, sectionIndex, "even", isHeader: false);
+        }
+
+        private void AppendHeaderFooterSemanticBlock(
+            MarkdownDoc markdown,
+            WordHeaderFooter? headerFooter,
+            WordToMarkdownOptions options,
+            CancellationToken cancellationToken,
+            int sectionIndex,
+            string slot,
+            bool isHeader) {
+            if (headerFooter == null) {
+                return;
+            }
+
+            var blocks = new List<IMarkdownBlock>();
+            AppendBlocksFromElements(
+                headerFooter.Elements,
+                block => blocks.Add(block),
+                options,
+                cancellationToken,
+                allowQuoteHeuristic: true,
+                trimBoundaryWhitespace: false);
+
+            if (blocks.Count == 0) {
+                return;
+            }
+
+            var infoString = BuildHeaderFooterFenceInfoString(isHeader, sectionIndex + 1, slot);
+            var semanticKind = isHeader
+                ? WordMarkdownSemanticBlocks.HeaderSemanticKind
+                : WordMarkdownSemanticBlocks.FooterSemanticKind;
+
+            markdown.Add(new SemanticFencedBlock(
+                semanticKind,
+                infoString,
+                RenderMarkdownFragment(blocks)));
+        }
+
+        private static string BuildHeaderFooterFenceInfoString(bool isHeader, int sectionNumber, string slot) {
+            var language = isHeader
+                ? WordMarkdownSemanticBlocks.HeaderFenceLanguage
+                : WordMarkdownSemanticBlocks.FooterFenceLanguage;
+            return $"{language} section={sectionNumber} slot={slot}";
+        }
+
+        private static string RenderMarkdownFragment(IReadOnlyList<IMarkdownBlock> blocks) {
+            var fragment = MarkdownDoc.Create();
+            for (int i = 0; i < blocks.Count; i++) {
+                fragment.Add(blocks[i]);
+            }
+
+            return NormalizeMarkdownLineEndings(fragment.ToMarkdown());
+        }
+
+        private void AddListParagraph(
+            Action<IMarkdownBlock> addRootBlock,
             List<PendingListFrame> listStack,
             WordParagraph paragraph,
             DocumentTraversal.ListInfo listInfo,
             WordToMarkdownOptions options,
             bool hasCheckbox,
-            bool checkboxChecked) {
-            EnsureListFrame(markdown, listStack, listInfo);
+            bool checkboxChecked,
+            bool trimBoundaryWhitespace) {
+            EnsureListFrame(addRootBlock, listStack, listInfo);
 
-            var paragraphBlocks = BuildParagraphBlocks(paragraph, options, hasCheckbox, checkboxChecked, allowQuoteHeuristic: false);
+            var paragraphBlocks = BuildParagraphBlocks(paragraph, options, hasCheckbox, checkboxChecked, allowQuoteHeuristic: false, trimBoundaryWhitespace: trimBoundaryWhitespace);
             var item = CreateListItem(paragraphBlocks, listInfo.Level, hasCheckbox, checkboxChecked);
             listStack[listStack.Count - 1].AddItem(item);
         }
 
-        private static void EnsureListFrame(MarkdownDoc markdown, List<PendingListFrame> listStack, DocumentTraversal.ListInfo listInfo) {
+        private static void EnsureListFrame(Action<IMarkdownBlock> addRootBlock, List<PendingListFrame> listStack, DocumentTraversal.ListInfo listInfo) {
             int targetDepth = Math.Max(0, listInfo.Level) + 1;
 
             while (listStack.Count > targetDepth) {
@@ -139,7 +175,7 @@ namespace OfficeIMO.Word.Markdown {
                 }
 
                 if (listStack.Count == 0) {
-                    markdown.Add((IMarkdownBlock)block);
+                    addRootBlock((IMarkdownBlock)block);
                 } else {
                     var parentFrame = listStack[listStack.Count - 1];
                     if (parentFrame.LastItem == null) {
@@ -187,12 +223,91 @@ namespace OfficeIMO.Word.Markdown {
             return item;
         }
 
+        private void AppendBlocksFromElements(
+            IReadOnlyList<WordElement> elements,
+            Action<IMarkdownBlock> addRootBlock,
+            WordToMarkdownOptions options,
+            CancellationToken cancellationToken,
+            bool allowQuoteHeuristic,
+            bool trimBoundaryWhitespace) {
+            var listStack = new List<PendingListFrame>();
+
+            for (int i = 0; i < elements.Count; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                var element = elements[i];
+
+                if (element is WordParagraph paragraph) {
+                    if (paragraph.IsTextBox && paragraph.TextBox != null) {
+                        listStack.Clear();
+                        AppendBlocksFromElements(
+                            paragraph.TextBox.Elements,
+                            addRootBlock,
+                            options,
+                            cancellationToken,
+                            allowQuoteHeuristic: allowQuoteHeuristic,
+                            trimBoundaryWhitespace: true);
+                        continue;
+                    }
+
+                    bool hasRuns = false;
+                    try {
+                        hasRuns = paragraph.GetRuns().Any();
+                    } catch (InvalidOperationException ex) {
+                        Debug.WriteLine($"GetRuns() failed for paragraph during Markdown AST conversion: {ex.Message}");
+                        hasRuns = false;
+                    }
+
+                    bool hasCheckbox = paragraph.IsCheckBox;
+                    bool checkboxChecked = paragraph.CheckBox?.IsChecked == true;
+                    int scan = i + 1;
+                    while (scan < elements.Count && elements[scan] is WordParagraph sibling && sibling.Equals(paragraph)) {
+                        if (sibling.IsCheckBox) {
+                            hasCheckbox = true;
+                            checkboxChecked = sibling.CheckBox?.IsChecked == true;
+                        }
+                        scan++;
+                    }
+
+                    if (hasRuns && !paragraph.IsFirstRun) {
+                        continue;
+                    }
+
+                    var listInfo = DocumentTraversal.GetListInfo(paragraph);
+                    if (listInfo != null) {
+                        AddListParagraph(addRootBlock, listStack, paragraph, listInfo.Value, options, hasCheckbox, checkboxChecked, trimBoundaryWhitespace);
+                        continue;
+                    }
+
+                    listStack.Clear();
+                    foreach (var block in BuildParagraphBlocks(paragraph, options, hasCheckbox, checkboxChecked, allowQuoteHeuristic, trimBoundaryWhitespace)) {
+                        addRootBlock(block);
+                    }
+                    continue;
+                }
+
+                listStack.Clear();
+
+                if (element is WordTable table) {
+                    addRootBlock(BuildTableBlock(table, options));
+                    continue;
+                }
+
+                if (element is WordEmbeddedDocument embeddedDocument) {
+                    var html = embeddedDocument.GetHtml();
+                    if (!string.IsNullOrWhiteSpace(html)) {
+                        addRootBlock(new HtmlRawBlock(html!.TrimEnd()));
+                    }
+                }
+            }
+        }
+
         private IReadOnlyList<IMarkdownBlock> BuildParagraphBlocks(
             WordParagraph paragraph,
             WordToMarkdownOptions options,
             bool hasCheckbox,
             bool checkboxChecked,
-            bool allowQuoteHeuristic) {
+            bool allowQuoteHeuristic,
+            bool trimBoundaryWhitespace = false) {
             const string codeLangPrefix = "CodeLang_";
             var blocks = new List<IMarkdownBlock>();
 
@@ -210,7 +325,7 @@ namespace OfficeIMO.Word.Markdown {
                 }
             }
 
-            var inlines = BuildParagraphInlines(paragraph, options);
+            var inlines = BuildParagraphInlines(paragraph, options, trimBoundaryWhitespace);
             if (inlines.Nodes.Count == 0 && !hasCheckbox) {
                 return blocks;
             }
@@ -234,7 +349,7 @@ namespace OfficeIMO.Word.Markdown {
             return blocks;
         }
 
-        private InlineSequence BuildParagraphInlines(WordParagraph paragraph, WordToMarkdownOptions options) {
+        private InlineSequence BuildParagraphInlines(WordParagraph paragraph, WordToMarkdownOptions options, bool trimBoundaryWhitespace = false) {
             var sequence = new InlineSequence { AutoSpacing = false };
             string? preferredCodeFont = ResolveConfiguredCodeFont(options.FontFamily);
             string? implicitCodeFont = ResolveImplicitCodeFont();
@@ -262,7 +377,47 @@ namespace OfficeIMO.Word.Markdown {
                 AppendFormattedTextRun(sequence, run, text, options, preferredCodeFont, implicitCodeFont);
             }
 
+            if (trimBoundaryWhitespace) {
+                TrimBoundaryWhitespace(sequence);
+            }
+
             return sequence;
+        }
+
+        private static void TrimBoundaryWhitespace(InlineSequence sequence) {
+            if (sequence.Nodes.Count == 0) {
+                return;
+            }
+
+            var nodes = sequence.Nodes.ToList();
+
+            while (nodes.Count > 0 && nodes[0] is HardBreakInline) {
+                nodes.RemoveAt(0);
+            }
+
+            while (nodes.Count > 0 && nodes[^1] is HardBreakInline) {
+                nodes.RemoveAt(nodes.Count - 1);
+            }
+
+            if (nodes.Count > 0 && nodes[0] is TextRun leadingText) {
+                string trimmed = leadingText.Text.TrimStart();
+                if (trimmed.Length == 0) {
+                    nodes.RemoveAt(0);
+                } else if (!string.Equals(trimmed, leadingText.Text, StringComparison.Ordinal)) {
+                    nodes[0] = new TextRun(trimmed);
+                }
+            }
+
+            if (nodes.Count > 0 && nodes[^1] is TextRun trailingText) {
+                string trimmed = trailingText.Text.TrimEnd();
+                if (trimmed.Length == 0) {
+                    nodes.RemoveAt(nodes.Count - 1);
+                } else if (!string.Equals(trimmed, trailingText.Text, StringComparison.Ordinal)) {
+                    nodes[^1] = new TextRun(trimmed);
+                }
+            }
+
+            sequence.ReplaceItems(nodes);
         }
 
         private void AppendFormattedTextRun(
@@ -520,23 +675,8 @@ namespace OfficeIMO.Word.Markdown {
 
         private OmdTableCell BuildTableCell(WordTableCell cell, WordToMarkdownOptions options) {
             var blocks = new List<IMarkdownBlock>();
-            foreach (var paragraph in cell.Paragraphs) {
-                bool hasRuns = false;
-                try {
-                    hasRuns = paragraph.GetRuns().Any();
-                } catch (InvalidOperationException ex) {
-                    Debug.WriteLine($"GetRuns() failed for table cell paragraph during Markdown AST conversion: {ex.Message}");
-                    hasRuns = false;
-                }
-
-                if (hasRuns && !paragraph.IsFirstRun) {
-                    continue;
-                }
-
-                foreach (var block in BuildParagraphBlocks(paragraph, options, hasCheckbox: false, checkboxChecked: false, allowQuoteHeuristic: true)) {
-                    blocks.Add(block);
-                }
-            }
+            var elements = cell.Elements;
+            AppendBlocksFromElements(elements, block => blocks.Add(block), options, CancellationToken.None, allowQuoteHeuristic: true, trimBoundaryWhitespace: false);
 
             return new OmdTableCell(blocks);
         }
@@ -589,7 +729,7 @@ namespace OfficeIMO.Word.Markdown {
                         continue;
                     }
 
-                    var paragraphBlocks = BuildParagraphBlocks(paragraph, options, hasCheckbox: false, checkboxChecked: false, allowQuoteHeuristic: false);
+                    var paragraphBlocks = BuildParagraphBlocks(paragraph, options, hasCheckbox: false, checkboxChecked: false, allowQuoteHeuristic: false, trimBoundaryWhitespace: false);
                     for (int i = 0; i < paragraphBlocks.Count; i++) {
                         blocks.Add(paragraphBlocks[i]);
                     }

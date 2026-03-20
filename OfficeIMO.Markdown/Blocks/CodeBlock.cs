@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Fenced code block with optional caption. Fence length adapts to backticks inside the content.
 /// </summary>
-public sealed class CodeBlock : IMarkdownBlock, ICaptionable, ISyntaxMarkdownBlock {
+public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISyntaxMarkdownBlock {
     /// <summary>Parsed primary fence language token (for example <c>csharp</c> or <c>bash</c>).</summary>
     public string Language { get; }
     /// <summary>Full fenced-code info string as it appeared after the opening fence marker.</summary>
@@ -100,6 +100,7 @@ public sealed class CodeBlock : IMarkdownBlock, ICaptionable, ISyntaxMarkdownBlo
             MarkdownSyntaxKind.CodeBlock,
             span,
             MarkdownBlockSyntaxBuilder.NormalizeSyntaxLiteralLineEndings(Content),
-            nodes);
+            nodes,
+            this);
     }
 }

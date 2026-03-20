@@ -6,7 +6,7 @@ internal static class MarkdownBlockSyntaxBuilder {
             return syntaxBlock.BuildSyntaxNode(span);
         }
 
-        return new MarkdownSyntaxNode(MarkdownSyntaxKind.Unknown, span, block.RenderMarkdown());
+        return new MarkdownSyntaxNode(MarkdownSyntaxKind.Unknown, span, block.RenderMarkdown(), associatedObject: block);
     }
 
     internal static MarkdownSyntaxNode BuildInlineBlock(IInlineSyntaxMarkdownBlock inlineBlock, MarkdownSourceSpan? span = null) {
@@ -15,7 +15,8 @@ internal static class MarkdownBlockSyntaxBuilder {
             inlineBlock.SyntaxKind,
             span ?? inlineBlock.ProvidedSyntaxSpan ?? GetAggregateSpan(children),
             inlineBlock.SyntaxInlines.RenderMarkdown(),
-            children: children);
+            children: children,
+            associatedObject: inlineBlock);
     }
 
     internal static MarkdownSyntaxNode BuildInlineContainerNode(
@@ -28,7 +29,8 @@ internal static class MarkdownBlockSyntaxBuilder {
             kind,
             span ?? GetAggregateSpan(children),
             literal ?? inlines?.RenderMarkdown(),
-            children: children);
+            children: children,
+            associatedObject: inlines);
     }
 
     internal static IReadOnlyList<MarkdownSyntaxNode> BuildChildSyntaxNodes(IEnumerable<IMarkdownBlock> children) {

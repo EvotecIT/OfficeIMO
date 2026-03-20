@@ -10,15 +10,36 @@ public sealed class MarkdownSyntaxNode {
     public MarkdownSourceSpan? SourceSpan { get; }
     /// <summary>Optional literal payload for leaf-like nodes.</summary>
     public string? Literal { get; }
+    /// <summary>Optional originating model object (document/block/inline) for AST-aware consumers.</summary>
+    public object? AssociatedObject { get; }
+    /// <summary>Parent syntax node when this node belongs to a larger syntax tree.</summary>
+    public MarkdownSyntaxNode? Parent { get; private set; }
     /// <summary>Child syntax nodes.</summary>
     public IReadOnlyList<MarkdownSyntaxNode> Children { get; }
+    /// <summary>Zero-based child index within <see cref="Parent"/> when available.</summary>
+    public int IndexInParent => Parent == null ? -1 : Parent.IndexOfChild(this);
+    /// <summary>Nearest previous sibling node when present.</summary>
+    public MarkdownSyntaxNode? PreviousSibling => Parent == null ? null : Parent.GetChildOrNull(IndexInParent - 1);
+    /// <summary>Nearest next sibling node when present.</summary>
+    public MarkdownSyntaxNode? NextSibling => Parent == null ? null : Parent.GetChildOrNull(IndexInParent + 1);
+    /// <summary>Document root for this node.</summary>
+    public MarkdownSyntaxNode Root => Parent == null ? this : Parent.Root;
 
     /// <summary>Create a syntax node.</summary>
-    public MarkdownSyntaxNode(MarkdownSyntaxKind kind, MarkdownSourceSpan? sourceSpan = null, string? literal = null, IReadOnlyList<MarkdownSyntaxNode>? children = null) {
+    public MarkdownSyntaxNode(
+        MarkdownSyntaxKind kind,
+        MarkdownSourceSpan? sourceSpan = null,
+        string? literal = null,
+        IReadOnlyList<MarkdownSyntaxNode>? children = null,
+        object? associatedObject = null) {
         Kind = kind;
         SourceSpan = sourceSpan;
         Literal = literal;
+        AssociatedObject = associatedObject;
         Children = children ?? Array.Empty<MarkdownSyntaxNode>();
+        for (int i = 0; i < Children.Count; i++) {
+            Children[i]?.AttachToParent(this);
+        }
     }
 
     /// <summary>Returns this node and all descendant nodes in depth-first order.</summary>
@@ -28,6 +49,29 @@ public sealed class MarkdownSyntaxNode {
             foreach (var descendant in Children[i].DescendantsAndSelf()) {
                 yield return descendant;
             }
+        }
+    }
+
+    /// <summary>Returns all descendant nodes in depth-first order, excluding this node.</summary>
+    public IEnumerable<MarkdownSyntaxNode> Descendants() {
+        for (int i = 0; i < Children.Count; i++) {
+            foreach (var descendant in Children[i].DescendantsAndSelf()) {
+                yield return descendant;
+            }
+        }
+    }
+
+    /// <summary>Returns ancestor nodes from the immediate parent up to the root.</summary>
+    public IEnumerable<MarkdownSyntaxNode> Ancestors() {
+        for (var current = Parent; current != null; current = current.Parent) {
+            yield return current;
+        }
+    }
+
+    /// <summary>Returns this node followed by its ancestors up to the root.</summary>
+    public IEnumerable<MarkdownSyntaxNode> AncestorsAndSelf() {
+        for (var current = this; current != null; current = current.Parent) {
+            yield return current;
         }
     }
 
@@ -213,4 +257,21 @@ public sealed class MarkdownSyntaxNode {
                 return false;
         }
     }
+
+    private void AttachToParent(MarkdownSyntaxNode parent) {
+        Parent = parent;
+    }
+
+    private int IndexOfChild(MarkdownSyntaxNode child) {
+        for (int i = 0; i < Children.Count; i++) {
+            if (ReferenceEquals(Children[i], child)) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private MarkdownSyntaxNode? GetChildOrNull(int index) =>
+        index >= 0 && index < Children.Count ? Children[index] : null;
 }

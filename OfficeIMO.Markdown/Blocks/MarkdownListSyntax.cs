@@ -7,7 +7,8 @@ internal static class MarkdownListSyntax {
             listBlock.ListSyntaxKind,
             span ?? MarkdownBlockSyntaxBuilder.GetAggregateSpan(children),
             listBlock.ListLiteral,
-            children);
+            children,
+            listBlock);
     }
 
     private static IReadOnlyList<MarkdownSyntaxNode> BuildListItemSyntaxNodes(IReadOnlyList<ListItem> items, MarkdownSyntaxKind listKind) {

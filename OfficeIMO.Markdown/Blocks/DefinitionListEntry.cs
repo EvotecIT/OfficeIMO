@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Typed definition list entry containing a term and one or more definition blocks.
 /// </summary>
-public sealed class DefinitionListEntry {
+public sealed class DefinitionListEntry : MarkdownObject {
     private readonly DefinitionListDefinition _definition;
 
     /// <summary>Inline content for the definition term.</summary>

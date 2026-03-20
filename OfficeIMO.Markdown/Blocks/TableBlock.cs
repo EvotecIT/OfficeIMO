@@ -7,17 +7,23 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Pipe table with optional header row.
 /// </summary>
-public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMarkdownBlockContainer {
+public sealed class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock, IChildMarkdownBlockContainer {
+    private IReadOnlyList<TableCell>? _cachedHeaderCells;
+    private IReadOnlyList<IReadOnlyList<TableCell>>? _cachedRowCells;
+    private int? _cachedCellContentSignature;
+    private bool _cachedUsesStructuredCells;
+    private int _cachedCellColumnCount = -1;
+
     /// <summary>Optional header cells.</summary>
     public List<string> Headers { get; } = new List<string>();
     /// <summary>Typed header cell content.</summary>
-    public IReadOnlyList<TableCell> HeaderCells => BuildHeaderCells();
+    public IReadOnlyList<TableCell> HeaderCells => GetOrBuildHeaderCells();
     /// <summary>Parsed inline representation of the current header cells.</summary>
     public IReadOnlyList<InlineSequence> HeaderInlines => BuildHeaderInlines();
     /// <summary>Data rows.</summary>
     public List<IReadOnlyList<string>> Rows { get; } = new List<IReadOnlyList<string>>();
     /// <summary>Typed row cell content.</summary>
-    public IReadOnlyList<IReadOnlyList<TableCell>> RowCells => BuildRowCells();
+    public IReadOnlyList<IReadOnlyList<TableCell>> RowCells => GetOrBuildRowCells();
     /// <summary>Enumerates header and body cells in document order, preserving row/column metadata on each cell.</summary>
     public IEnumerable<TableCell> EnumerateCells() {
         var headers = HeaderCells;
@@ -94,6 +100,7 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
         }
 
         ParsedContentSignature = contentSignature;
+        InvalidateRealizedCellCache();
     }
 
     internal void SetStructuredCells(
@@ -111,6 +118,7 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
         }
 
         StructuredContentSignature = contentSignature;
+        InvalidateRealizedCellCache();
     }
 
     /// <inheritdoc />
@@ -165,8 +173,8 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
     string IMarkdownBlock.RenderHtml() {
         StringBuilder sb = new StringBuilder();
         sb.Append("<table>");
-        var headerCells = BuildHeaderCells();
-        var rowCells = BuildRowCells();
+        var headerCells = HeaderCells;
+        var rowCells = RowCells;
         var headerInlines = BuildHeaderInlines();
         var rowInlines = BuildRowInlines();
         if (Headers.Count > 0) {
@@ -213,13 +221,41 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
 
     IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => BuildChildBlocks();
 
-    private IReadOnlyList<TableCell> BuildHeaderCells() {
+    private IReadOnlyList<TableCell> GetOrBuildHeaderCells() {
+        EnsureRealizedCells();
+        return _cachedHeaderCells ?? Array.Empty<TableCell>();
+    }
+
+    private IReadOnlyList<IReadOnlyList<TableCell>> GetOrBuildRowCells() {
+        EnsureRealizedCells();
+        return _cachedRowCells ?? Array.Empty<IReadOnlyList<TableCell>>();
+    }
+
+    private void EnsureRealizedCells() {
+        int contentSignature = ComputeContentSignature();
         int columnCount = GetEffectiveColumnCount();
+        bool useStructuredCells = StructuredContentSignature.HasValue && StructuredContentSignature.Value == contentSignature;
+
+        if (_cachedHeaderCells != null
+            && _cachedRowCells != null
+            && _cachedCellContentSignature == contentSignature
+            && _cachedUsesStructuredCells == useStructuredCells
+            && _cachedCellColumnCount == columnCount) {
+            return;
+        }
+
+        _cachedHeaderCells = BuildHeaderCellsCore(columnCount, useStructuredCells);
+        _cachedRowCells = BuildRowCellsCore(columnCount, useStructuredCells);
+        _cachedCellContentSignature = contentSignature;
+        _cachedUsesStructuredCells = useStructuredCells;
+        _cachedCellColumnCount = columnCount;
+    }
+
+    private IReadOnlyList<TableCell> BuildHeaderCellsCore(int columnCount, bool useStructuredCells) {
         if (columnCount == 0) {
             return Array.Empty<TableCell>();
         }
 
-        bool useStructuredCells = StructuredContentSignature.HasValue && StructuredContentSignature.Value == ComputeContentSignature();
         if (useStructuredCells) {
             return AssignTableCellLocations(PrepareStructuredRowCells(StructuredHeaders, columnCount), isHeader: true, rowIndex: -1);
         }
@@ -228,13 +264,11 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
         return AssignTableCellLocations(BuildSimpleRowCells(headers), isHeader: true, rowIndex: -1);
     }
 
-    private IReadOnlyList<IReadOnlyList<TableCell>> BuildRowCells() {
+    private IReadOnlyList<IReadOnlyList<TableCell>> BuildRowCellsCore(int columnCount, bool useStructuredCells) {
         if (Rows.Count == 0) {
             return Array.Empty<IReadOnlyList<TableCell>>();
         }
 
-        int columnCount = GetEffectiveColumnCount();
-        bool useStructuredCells = StructuredContentSignature.HasValue && StructuredContentSignature.Value == ComputeContentSignature();
         var rows = new List<IReadOnlyList<TableCell>>(Rows.Count);
 
         for (int rowIndex = 0; rowIndex < Rows.Count; rowIndex++) {
@@ -832,14 +866,14 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
 
     private IReadOnlyList<IMarkdownBlock> BuildChildBlocks() {
         var blocks = new List<IMarkdownBlock>();
-        var headerCells = BuildHeaderCells();
+        var headerCells = HeaderCells;
         for (int i = 0; i < headerCells.Count; i++) {
             for (int j = 0; j < headerCells[i].Blocks.Count; j++) {
                 blocks.Add(headerCells[i].Blocks[j]);
             }
         }
 
-        var rowCells = BuildRowCells();
+        var rowCells = RowCells;
         for (int rowIndex = 0; rowIndex < rowCells.Count; rowIndex++) {
             for (int cellIndex = 0; cellIndex < rowCells[rowIndex].Count; cellIndex++) {
                 var cell = rowCells[rowIndex][cellIndex];
@@ -850,6 +884,14 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
         }
 
         return blocks;
+    }
+
+    private void InvalidateRealizedCellCache() {
+        _cachedHeaderCells = null;
+        _cachedRowCells = null;
+        _cachedCellContentSignature = null;
+        _cachedUsesStructuredCells = false;
+        _cachedCellColumnCount = -1;
     }
 
     internal int ComputeContentSignature() {
@@ -924,7 +966,7 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
         var bodyRows = RowCells;
 
         if (Headers.Count > 0) {
-            var headerCells = BuildHeaderCells();
+            var headerCells = HeaderCells;
             var headerChildren = BuildTableCellSyntaxChildren(
                 PrepareRowCells(Headers, columnCount),
                 headerCells,
@@ -995,7 +1037,8 @@ public sealed class TableBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMar
                 MarkdownSyntaxKind.TableCell,
                 MarkdownBlockSyntaxBuilder.GetAggregateSpan(children) ?? cellSpan,
                 literal,
-                children));
+                children,
+                structuredCells != null && i < structuredCells.Count ? structuredCells[i] : null));
         }
 
         return nodes;

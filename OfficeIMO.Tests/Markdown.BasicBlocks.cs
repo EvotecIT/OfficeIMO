@@ -63,5 +63,53 @@ code
             Assert.Contains("> Level 1", markdown);
             Assert.Contains("> > Level 2", markdown);
         }
+
+        [Fact]
+        public void MarkdownToWord_Renders_DetailsBlock_As_Structured_Paragraphs() {
+            const string md = """
+                <details open>
+                <summary>More info</summary>
+
+                Hidden text
+                </details>
+                """;
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+
+            var summaryIndex = doc.Paragraphs.FindIndex(p => string.Equals(p.Text.Trim(), "More info", StringComparison.Ordinal));
+            var bodyIndex = doc.Paragraphs.FindIndex(p => string.Equals(p.Text.Trim(), "Hidden text", StringComparison.Ordinal));
+            Assert.True(summaryIndex >= 0);
+            Assert.True(bodyIndex >= 0);
+
+            var summaryParagraph = doc.Paragraphs[summaryIndex];
+            Assert.Contains(summaryParagraph.GetRuns(), run => run.Bold);
+            Assert.True(bodyIndex > summaryIndex);
+        }
+
+        [Fact]
+        public void MarkdownToWord_Renders_FrontMatter_Header_Before_Body() {
+            const string md = """
+                ---
+                title: Sample
+                tags: [docs, ast]
+                ---
+
+                Body text
+                """;
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+
+            var paragraphs = doc.Paragraphs
+                .Select(p => p.Text.Trim())
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .ToList();
+
+            Assert.True(paragraphs.Count >= 5);
+            Assert.Equal("---", paragraphs[0]);
+            Assert.Equal("title: Sample", paragraphs[1]);
+            Assert.Equal("tags: [docs, ast]", paragraphs[2]);
+            Assert.Equal("---", paragraphs[3]);
+            Assert.Contains("Body text", paragraphs);
+        }
     }
 }
