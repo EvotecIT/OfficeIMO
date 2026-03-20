@@ -10,6 +10,8 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 var ws = _worksheetPart.Worksheet;
 
+                CleanupHyperlinkArtifacts();
+
                 // Remove empty Hyperlinks
                 var links = ws.Elements<Hyperlinks>().FirstOrDefault();
                 if (links != null && !links.Elements<Hyperlink>().Any()) {

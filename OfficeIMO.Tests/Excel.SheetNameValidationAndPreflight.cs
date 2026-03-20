@@ -983,6 +983,113 @@ namespace OfficeIMO.Tests {
             File.Delete(path);
             File.Delete(savePath);
         }
+
+        [Fact]
+        public void Preflight_RemovesHyperlinkWithMissingRelationshipBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Links");
+                sheet.SetHyperlink(1, 1, "https://example.com", display: "Example");
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var hyperlink = wsPart.Worksheet.Elements<Hyperlinks>().Single().Elements<Hyperlink>().Single();
+                var relationship = wsPart.HyperlinkRelationships.Single();
+                wsPart.DeleteReferenceRelationship(relationship);
+                wsPart.Worksheet.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                Assert.Null(wsPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault());
+                Assert.Empty(wsPart.HyperlinkRelationships);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
+        public void Preflight_RemovesUnreferencedHyperlinkRelationshipBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Links");
+                sheet.SetHyperlink(1, 1, "https://example.com/one", display: "One");
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                wsPart.AddHyperlinkRelationship(new Uri("https://example.com/orphan"), true, "rId999");
+                wsPart.Worksheet.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                Assert.Single(wsPart.Worksheet.Elements<Hyperlinks>().Single().Elements<Hyperlink>());
+                Assert.Single(wsPart.HyperlinkRelationships);
+                Assert.DoesNotContain(wsPart.HyperlinkRelationships, relationship => relationship.Id == "rId999");
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
+        public void Preflight_NormalizesDuplicateHyperlinksForSingleReferenceBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Links");
+                sheet.SetHyperlink(1, 1, "https://example.com/one", display: "One");
+                sheet.SetHyperlink(1, 2, "https://example.com/two", display: "Two");
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var hyperlinks = wsPart.Worksheet.Elements<Hyperlinks>().Single();
+                var a1 = hyperlinks.Elements<Hyperlink>().First(hyperlink => hyperlink.Reference!.Value == "A1");
+                var b1 = hyperlinks.Elements<Hyperlink>().First(hyperlink => hyperlink.Reference!.Value == "B1");
+                hyperlinks.InsertAfter((Hyperlink)b1.CloneNode(true), a1);
+                wsPart.Worksheet.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                var hyperlinks = wsPart.Worksheet.Elements<Hyperlinks>().Single();
+                var items = hyperlinks.Elements<Hyperlink>().ToList();
+                Assert.Equal(2, items.Count);
+                Assert.Single(items, hyperlink => hyperlink.Reference!.Value == "A1");
+                Assert.Single(items, hyperlink => hyperlink.Reference!.Value == "B1");
+                Assert.Equal(2, wsPart.HyperlinkRelationships.Count());
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
     }
 }
 
