@@ -121,6 +121,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SafeRepairDefinedNames_RemovesMalformedWorkbookNames() {
+            string filePath = Path.Combine(_directoryWithFiles, "RepairRegression.DefinedNames.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("Data");
+                var workbook = document._spreadSheetDocument.WorkbookPart!.Workbook;
+                workbook.DefinedNames = new DefinedNames(
+                    new DefinedName { Name = "DupName", Text = "'Data'!$A$1" },
+                    new DefinedName { Name = "DupName", Text = "'Data'!$A$2" },
+                    new DefinedName { Name = "BrokenRef", Text = "#REF!" },
+                    new DefinedName { Name = "_xlnm.Print_Area", LocalSheetId = 0U, Text = "'Missing'!$A$1:$A$2" }
+                );
+                workbook.Save();
+
+                document.Save(filePath, false, new ExcelSaveOptions {
+                    SafePreflight = true,
+                    SafeRepairDefinedNames = true,
+                    ValidateOpenXml = true
+                });
+            }
+
+            using (var package = SpreadsheetDocument.Open(filePath, false)) {
+                var names = package.WorkbookPart!.Workbook.DefinedNames!.Elements<DefinedName>().ToList();
+                Assert.Single(names);
+                Assert.Equal("DupName", names[0].Name?.Value);
+                Assert.Equal("'Data'!$A$1", names[0].Text);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void WrapCellsWithWidthPinsColumnDuringAutoFit() {
             string filePath = Path.Combine(_directoryWithFiles, "WrapWidth.xlsx");
 

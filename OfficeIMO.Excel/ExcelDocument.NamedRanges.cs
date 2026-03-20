@@ -257,6 +257,10 @@ namespace OfficeIMO.Excel {
         /// or references containing #REF!.
         /// </summary>
         internal void RepairDefinedNames(bool save = true) {
+            CleanupDefinedNameArtifacts(includeAggressiveRepairs: true, save: save);
+        }
+
+        internal void CleanupDefinedNameArtifacts(bool includeAggressiveRepairs, bool save = true) {
             var wb = _workBookPart.Workbook;
             var definedNames = wb.DefinedNames;
             if (definedNames == null) return;
@@ -271,14 +275,28 @@ namespace OfficeIMO.Excel {
                 string? name = dn.Name;
                 if (string.IsNullOrWhiteSpace(name)) { toRemove.Add(dn); continue; }
 
+                string text = dn.Text ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(text)) { toRemove.Add(dn); continue; }
+
                 uint? local = dn.LocalSheetId?.Value;
                 if (local.HasValue && (local.Value >= (uint)sheetCount)) { toRemove.Add(dn); continue; }
 
-                string key = (local.HasValue ? local.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "G") + "|" + name;
-                if (!seen.Add(key)) { toRemove.Add(dn); continue; }
+                if (IsSheetScopedBuiltInDefinedName(name)) {
+                    if (!local.HasValue) { toRemove.Add(dn); continue; }
 
-                string text = dn.Text ?? string.Empty;
-                if (text.IndexOf("#REF!", StringComparison.OrdinalIgnoreCase) >= 0) { toRemove.Add(dn); continue; }
+                    string expectedSheetName = sheets[(int)local.Value].Name?.Value ?? string.Empty;
+                    if (!DefinedNameReferencesExpectedSheet(text, expectedSheetName)) {
+                        toRemove.Add(dn);
+                        continue;
+                    }
+                }
+
+                if (includeAggressiveRepairs) {
+                    string key = (local.HasValue ? local.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "G") + "|" + name;
+                    if (!seen.Add(key)) { toRemove.Add(dn); continue; }
+
+                    if (text.IndexOf("#REF!", StringComparison.OrdinalIgnoreCase) >= 0) { toRemove.Add(dn); continue; }
+                }
             }
 
             if (toRemove.Count > 0) {
@@ -288,6 +306,62 @@ namespace OfficeIMO.Excel {
                 }
                 if (save) wb.Save();
             }
+        }
+
+        private static bool IsSheetScopedBuiltInDefinedName(string name) {
+            return string.Equals(name, "_xlnm.Print_Area", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "_xlnm.Print_Titles", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool DefinedNameReferencesExpectedSheet(string text, string expectedSheetName) {
+            foreach (string part in SplitDefinedNameReferenceList(text)) {
+                if (!SheetNameLookup.TryParseSheetQualifiedReference(part, out string actualSheetName, out _, allowExternalWorkbookReferences: false)) {
+                    return false;
+                }
+
+                if (!SheetNameLookup.Matches(expectedSheetName, actualSheetName)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static IReadOnlyList<string> SplitDefinedNameReferenceList(string text) {
+            var parts = new List<string>();
+            var current = new System.Text.StringBuilder(text.Length);
+            bool inQuote = false;
+
+            for (int i = 0; i < text.Length; i++) {
+                char ch = text[i];
+                if (ch == '\'') {
+                    current.Append(ch);
+                    if (inQuote && i + 1 < text.Length && text[i + 1] == '\'') {
+                        current.Append(text[++i]);
+                    } else {
+                        inQuote = !inQuote;
+                    }
+                    continue;
+                }
+
+                if (ch == ',' && !inQuote) {
+                    string part = current.ToString().Trim();
+                    if (part.Length > 0) {
+                        parts.Add(part);
+                    }
+                    current.Clear();
+                    continue;
+                }
+
+                current.Append(ch);
+            }
+
+            string finalPart = current.ToString().Trim();
+            if (finalPart.Length > 0) {
+                parts.Add(finalPart);
+            }
+
+            return parts;
         }
 
         /// <summary>

@@ -475,6 +475,65 @@ namespace OfficeIMO.Tests {
             File.Delete(path);
             File.Delete(savePath);
         }
+
+        [Fact]
+        public void Preflight_RemovesBlankBuiltInDefinedNamesBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                doc.AddWorkSheet("Data");
+                var workbook = doc._spreadSheetDocument.WorkbookPart!.Workbook;
+                workbook.DefinedNames = new DefinedNames(
+                    new DefinedName { Name = "_xlnm.Print_Area", LocalSheetId = 0U, Text = string.Empty },
+                    new DefinedName { Name = "_xlnm.Print_Titles", LocalSheetId = 0U, Text = "   " }
+                );
+                workbook.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                Assert.Null(package.WorkbookPart!.Workbook.DefinedNames);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
+        public void Preflight_RemovesBuiltInDefinedNamesPointingToWrongSheetBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                doc.AddWorkSheet("Data");
+                doc.AddWorkSheet("Summary");
+                var workbook = doc._spreadSheetDocument.WorkbookPart!.Workbook;
+                workbook.DefinedNames = new DefinedNames(
+                    new DefinedName { Name = "_xlnm.Print_Area", LocalSheetId = 0U, Text = "'Summary'!$A$1:$B$2" },
+                    new DefinedName { Name = "_xlnm.Print_Titles", LocalSheetId = 0U, Text = "'Summary'!$1:$1,'Summary'!$A:$A" }
+                );
+                workbook.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                Assert.Null(package.WorkbookPart!.Workbook.DefinedNames);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
     }
 }
 
