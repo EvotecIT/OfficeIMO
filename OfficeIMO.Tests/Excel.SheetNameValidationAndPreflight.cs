@@ -1164,6 +1164,143 @@ namespace OfficeIMO.Tests {
             File.Delete(path);
             File.Delete(savePath);
         }
+
+        [Fact]
+        public void Preflight_NormalizesStylesheetAndResetsInvalidStyleIndexesBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Styles");
+                sheet.CellValue(1, 1, "Value");
+
+                var workbookPart = doc._spreadSheetDocument.WorkbookPart!;
+                var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+                stylesPart.Stylesheet = new Stylesheet(
+                    new Fonts(new Font()) { Count = 9U },
+                    new Fills(new Fill(new PatternFill { PatternType = PatternValues.None })) { Count = 1U },
+                    new Borders(new Border()) { Count = 7U },
+                    new CellStyleFormats(new CellFormat()) { Count = 4U },
+                    new CellFormats(
+                        new CellFormat {
+                            FontId = 8U,
+                            FillId = 5U,
+                            BorderId = 4U,
+                            FormatId = 3U
+                        }) { Count = 1U });
+                stylesPart.Stylesheet.Save();
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var cell = wsPart.Worksheet.Descendants<Cell>().Single();
+                cell.StyleIndex = 42U;
+                wsPart.Worksheet.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var workbookPart = package.WorkbookPart!;
+                var stylesheet = workbookPart.WorkbookStylesPart!.Stylesheet!;
+                Assert.Equal(1U, stylesheet.Fonts!.Count!.Value);
+                Assert.Equal(2U, stylesheet.Fills!.Count!.Value);
+                Assert.Equal(1U, stylesheet.Borders!.Count!.Value);
+                Assert.Equal(1U, stylesheet.CellStyleFormats!.Count!.Value);
+                Assert.Equal(1U, stylesheet.CellFormats!.Count!.Value);
+
+                var baseFormat = stylesheet.CellFormats.Elements<CellFormat>().Single();
+                Assert.Equal(0U, baseFormat.FontId!.Value);
+                Assert.Equal(0U, baseFormat.FillId!.Value);
+                Assert.Equal(0U, baseFormat.BorderId!.Value);
+                Assert.Equal(0U, baseFormat.FormatId!.Value);
+
+                var cell = workbookPart.WorksheetParts.First().Worksheet.Descendants<Cell>().Single();
+                Assert.Equal(0U, cell.StyleIndex!.Value);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
+        public void Preflight_RepairsSharedStringTableMetadataAndMissingIndexesBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Strings");
+                sheet.CellValue(1, 1, "Alpha");
+                sheet.CellValue(2, 1, "Beta");
+
+                var workbookPart = doc._spreadSheetDocument.WorkbookPart!;
+                var sharedStringTable = workbookPart.SharedStringTablePart!.SharedStringTable!;
+                sharedStringTable.RemoveChild(sharedStringTable.Elements<SharedStringItem>().Last());
+                sharedStringTable.Count = 99U;
+                sharedStringTable.UniqueCount = 1U;
+                sharedStringTable.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var workbookPart = package.WorkbookPart!;
+                var sharedStringTable = workbookPart.SharedStringTablePart!.SharedStringTable!;
+                var items = sharedStringTable.Elements<SharedStringItem>().ToList();
+                Assert.Equal(2, items.Count);
+                Assert.Equal("Alpha", items[0].InnerText);
+                Assert.Equal(string.Empty, items[1].InnerText);
+                Assert.Equal(2U, sharedStringTable.Count!.Value);
+                Assert.Equal(2U, sharedStringTable.UniqueCount!.Value);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
+        public void Preflight_ConvertsMalformedSharedStringCellToInlineStringBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Strings");
+                sheet.CellValue(1, 1, "Alpha");
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var cell = wsPart.Worksheet.Descendants<Cell>().Single();
+                cell.DataType = CellValues.SharedString;
+                cell.CellValue = new CellValue("NotAnIndex");
+                cell.InlineString = null;
+                wsPart.Worksheet.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var cell = package.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().Single();
+                Assert.Equal(CellValues.InlineString, cell.DataType!.Value);
+                Assert.Null(cell.CellValue);
+                Assert.Equal("NotAnIndex", cell.InlineString!.InnerText);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
     }
 }
 
