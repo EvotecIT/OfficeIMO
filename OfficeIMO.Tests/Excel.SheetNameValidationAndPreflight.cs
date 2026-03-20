@@ -1445,6 +1445,129 @@ namespace OfficeIMO.Tests {
             File.Delete(path);
             File.Delete(savePath);
         }
+
+        [Fact]
+        public void Preflight_NormalizesPageBreakContainersBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Print");
+                sheet.CellValue(1, 1, "Value");
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var ws = wsPart.Worksheet;
+
+                ws.Append(new RowBreaks(
+                    new Break { Id = 5U, Min = 99U, Max = 1U },
+                    new Break { Id = 5U, Min = 0U, Max = 3U },
+                    new Break()) {
+                    Count = 99U,
+                    ManualBreakCount = 44U
+                });
+
+                ws.Append(new ColumnBreaks(
+                    new Break { Id = 2U, Min = 10U, Max = 1U },
+                    new Break { Id = 2U, Min = 0U, Max = 4U },
+                    new Break()) {
+                    Count = 88U,
+                    ManualBreakCount = 33U
+                });
+                ws.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var ws = package.WorkbookPart!.WorksheetParts.First().Worksheet;
+
+                var rowBreaks = ws.GetFirstChild<RowBreaks>();
+                Assert.NotNull(rowBreaks);
+                var rowBreak = Assert.Single(rowBreaks!.Elements<Break>());
+                Assert.Equal(5U, rowBreak.Id!.Value);
+                Assert.Equal(0U, rowBreak.Min!.Value);
+                Assert.Equal(16383U, rowBreak.Max!.Value);
+                Assert.True(rowBreak.ManualPageBreak!.Value);
+                Assert.Equal(1U, rowBreaks.Count!.Value);
+                Assert.Equal(1U, rowBreaks.ManualBreakCount!.Value);
+
+                var columnBreaks = ws.GetFirstChild<ColumnBreaks>();
+                Assert.NotNull(columnBreaks);
+                var columnBreak = Assert.Single(columnBreaks!.Elements<Break>());
+                Assert.Equal(2U, columnBreak.Id!.Value);
+                Assert.Equal(0U, columnBreak.Min!.Value);
+                Assert.Equal(1048575U, columnBreak.Max!.Value);
+                Assert.True(columnBreak.ManualPageBreak!.Value);
+                Assert.Equal(1U, columnBreaks.Count!.Value);
+                Assert.Equal(1U, columnBreaks.ManualBreakCount!.Value);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
+        public void Preflight_NormalizesPrintMarginsAndScaleBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Print");
+                sheet.CellValue(1, 1, "Value");
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var ws = wsPart.Worksheet;
+
+                ws.Append(new PrintOptions());
+                ws.Append(new PageMargins {
+                    Left = -1D,
+                    Right = -5D,
+                    Top = -2D,
+                    Bottom = -3D,
+                    Header = -4D,
+                    Footer = -6D
+                });
+                ws.Append(new PageSetup {
+                    Scale = 500U
+                });
+                ws.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var ws = package.WorkbookPart!.WorksheetParts.First().Worksheet;
+                Assert.Null(ws.GetFirstChild<PrintOptions>());
+
+                var pageMargins = ws.GetFirstChild<PageMargins>();
+                Assert.NotNull(pageMargins);
+                Assert.Equal(0.7D, pageMargins!.Left!.Value);
+                Assert.Equal(0.7D, pageMargins.Right!.Value);
+                Assert.Equal(0.75D, pageMargins.Top!.Value);
+                Assert.Equal(0.75D, pageMargins.Bottom!.Value);
+                Assert.Equal(0.3D, pageMargins.Header!.Value);
+                Assert.Equal(0.3D, pageMargins.Footer!.Value);
+
+                var pageSetup = ws.GetFirstChild<PageSetup>();
+                Assert.NotNull(pageSetup);
+                Assert.Equal(100U, pageSetup!.Scale!.Value);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
     }
 }
 

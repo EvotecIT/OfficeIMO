@@ -53,6 +53,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 CleanupSheetViewArtifacts();
+                CleanupPrintArtifacts();
 
                 // Remove empty or malformed ConditionalFormatting entries
                 foreach (var conditional in ws.Elements<ConditionalFormatting>().ToList()) {
