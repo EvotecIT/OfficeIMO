@@ -842,6 +842,147 @@ namespace OfficeIMO.Tests {
             File.Delete(path);
             File.Delete(savePath);
         }
+
+        [Fact]
+        public void Preflight_RemovesProtectedRangesWithoutSheetProtectionBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Protection");
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var ws = wsPart.Worksheet;
+
+                ws.AppendChild(new ProtectedRanges(
+                    new ProtectedRange {
+                        Name = "UnlockedBlock",
+                        SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1:B2" }
+                    }));
+                ws.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                Assert.Null(wsPart.Worksheet.Elements<SheetProtection>().FirstOrDefault());
+                Assert.Null(wsPart.Worksheet.Elements<ProtectedRanges>().FirstOrDefault());
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
+        public void Preflight_RemovesMalformedProtectedRangesBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Protection");
+                sheet.Protect();
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var ws = wsPart.Worksheet;
+
+                var protectedRanges = new ProtectedRanges(
+                    new ProtectedRange {
+                        Name = "ValidRange",
+                        SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1:B2" }
+                    },
+                    new ProtectedRange {
+                        Name = "ValidRange",
+                        SequenceOfReferences = new ListValue<StringValue> { InnerText = "C1:D2" }
+                    },
+                    new ProtectedRange {
+                        Name = "MissingRef"
+                    },
+                    new ProtectedRange {
+                        SequenceOfReferences = new ListValue<StringValue> { InnerText = "E1:F2" }
+                    },
+                    new ProtectedRange {
+                        Name = "BadRef",
+                        SequenceOfReferences = new ListValue<StringValue> { InnerText = "NotACell" }
+                    });
+
+                var existingRanges = ws.Elements<ProtectedRanges>().FirstOrDefault();
+                if (existingRanges != null) {
+                    ws.ReplaceChild(protectedRanges, existingRanges);
+                } else {
+                    ws.AppendChild(protectedRanges);
+                }
+                ws.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                var ranges = wsPart.Worksheet.Elements<ProtectedRanges>().Single();
+                var keptRanges = ranges.Elements<ProtectedRange>().ToList();
+                Assert.Single(keptRanges);
+                Assert.Equal("ValidRange", keptRanges[0].Name!.Value);
+                Assert.Equal("A1:B2", keptRanges[0].SequenceOfReferences!.InnerText);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
+        public void Preflight_NormalizesDuplicateSheetProtectionBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Protection");
+
+                var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(wsPartField);
+                var wsPart = (WorksheetPart)wsPartField!.GetValue(sheet)!;
+                var ws = wsPart.Worksheet;
+
+                ws.AppendChild(new SheetProtection {
+                    Sheet = false,
+                    AutoFilter = true
+                });
+                ws.AppendChild(new SheetProtection {
+                    Sheet = true,
+                    Sort = true
+                });
+                ws.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var wsPart = package.WorkbookPart!.WorksheetParts.First();
+                var protections = wsPart.Worksheet.Elements<SheetProtection>().ToList();
+                Assert.Single(protections);
+                Assert.True(protections[0].Sheet?.Value ?? false);
+                Assert.True(protections[0].AutoFilter?.Value ?? false);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
     }
 }
 

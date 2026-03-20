@@ -92,6 +92,10 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
 
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+
             using (var doc = SpreadsheetDocument.Open(filePath, false)) {
                 var wb = doc.WorkbookPart!;
                 var sheet = wb.Workbook.Sheets!.OfType<Sheet>().First(s => s.Name == "Protected");
