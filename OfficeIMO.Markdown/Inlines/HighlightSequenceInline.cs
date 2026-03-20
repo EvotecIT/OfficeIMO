@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Highlighted inline content that can contain nested inline nodes.
 /// Used by the reader so nested markup can be represented without flattening formatting.
 /// </summary>
-public sealed class HighlightSequenceInline : IMarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline {
+public sealed class HighlightSequenceInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline {
     /// <summary>Inline content.</summary>
     public InlineSequence Inlines { get; }
 

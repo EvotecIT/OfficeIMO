@@ -31,8 +31,9 @@ public static partial class MarkdownReader {
         var syntaxNodes = new List<MarkdownSyntaxNode>();
         var diagnostics = new List<MarkdownDocumentTransformDiagnostic>();
         var document = ParseInternal(markdown, options, state, allowFrontMatter: true, out var syntaxTree, syntaxNodes, lineOffset: 0, transformDiagnostics: diagnostics);
-        var originalSyntaxTree = syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes);
+        var originalSyntaxTree = syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes, document);
         var finalSyntaxTree = BuildFinalSyntaxTree(document, originalSyntaxTree, diagnostics);
+        MarkdownObjectTreeBinder.BindDocument(document, finalSyntaxTree);
         return new MarkdownParseResult(document, originalSyntaxTree, finalSyntaxTree);
     }
 
@@ -53,8 +54,9 @@ public static partial class MarkdownReader {
             syntaxNodes,
             lineOffset: 0,
             transformDiagnostics: diagnostics);
-        var originalSyntaxTree = syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes);
+        var originalSyntaxTree = syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes, document);
         var finalSyntaxTree = BuildFinalSyntaxTree(document, originalSyntaxTree, diagnostics);
+        MarkdownObjectTreeBinder.BindDocument(document, finalSyntaxTree);
         return new MarkdownParseResult(document, originalSyntaxTree, finalSyntaxTree, diagnostics);
     }
 
@@ -84,7 +86,7 @@ public static partial class MarkdownReader {
         int lineOffset = 0,
         ICollection<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null) {
         var doc = MarkdownDoc.Create();
-        syntaxTree = syntaxNodes != null ? BuildDocumentSyntaxTree(syntaxNodes) : null;
+        syntaxTree = syntaxNodes != null ? BuildDocumentSyntaxTree(syntaxNodes, doc) : null;
         if (string.IsNullOrEmpty(markdown)) return doc;
         int previousLineOffset = state.SourceLineOffset;
         var previousSourceTextMap = state.SourceTextMap;
@@ -159,8 +161,10 @@ public static partial class MarkdownReader {
                 if (!matched) i++; // defensive: avoid infinite loop
             }
 
-            syntaxTree = syntaxNodes != null ? BuildDocumentSyntaxTree(syntaxNodes) : null;
-            return ApplyDocumentTransforms(doc, options, transformDiagnostics, syntaxTree);
+            syntaxTree = syntaxNodes != null ? BuildDocumentSyntaxTree(syntaxNodes, doc) : null;
+            var transformed = ApplyDocumentTransforms(doc, options, transformDiagnostics, syntaxTree);
+            MarkdownObjectTreeBinder.BindDocument(transformed, syntaxTree);
+            return transformed;
         } finally {
             state.SourceLineOffset = previousLineOffset;
             state.SourceTextMap = previousSourceTextMap;
@@ -716,7 +720,7 @@ public static partial class MarkdownReader {
             children = remappedChildren;
         }
 
-        return new MarkdownSyntaxNode(node.Kind, span, node.Literal, children);
+        return new MarkdownSyntaxNode(node.Kind, span, node.Literal, children, node.AssociatedObject);
     }
 
     private static MarkdownSourceSpan? RemapNestedSourceSpan(

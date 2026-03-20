@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// First-class AST node for fenced blocks whose language maps to host-defined semantics
 /// such as diagrams, charts, data views, or other non-code contracts.
 /// </summary>
-public sealed class SemanticFencedBlock : IMarkdownBlock, ICaptionable, ISyntaxMarkdownBlock {
+public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISyntaxMarkdownBlock {
     /// <summary>Create a semantic fenced block.</summary>
     public SemanticFencedBlock(string semanticKind, string language, string content, string? caption = null)
         : this(semanticKind, language, content, caption, isFenced: true) {

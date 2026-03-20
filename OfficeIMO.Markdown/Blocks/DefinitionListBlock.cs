@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Definition list rendered as term/definition pairs. Markdown output uses
 /// a simple "Term: Definition" fallback; HTML uses &lt;dl&gt;.
 /// </summary>
-public sealed class DefinitionListBlock : IMarkdownBlock, ISyntaxMarkdownBlock, IChildMarkdownBlockContainer {
+public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock, IChildMarkdownBlockContainer {
     private readonly List<DefinitionListGroup> _groups = new List<DefinitionListGroup>();
     private readonly List<DefinitionListEntry> _entries = new List<DefinitionListEntry>();
 
@@ -284,7 +284,7 @@ public sealed class DefinitionListBlock : IMarkdownBlock, ISyntaxMarkdownBlock, 
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(MarkdownSyntaxKind.DefinitionList, span, children: BuildSyntaxItems());
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.DefinitionList, span, children: BuildSyntaxItems(), associatedObject: this);
 
     private sealed class LegacyDefinitionListItemList : IList<(string Term, string Definition)> {
         private readonly DefinitionListBlock _owner;

@@ -96,6 +96,10 @@ namespace OfficeIMO.Word {
                 return new List<WordParagraph>();
             }
         }
+        /// <summary>
+        /// Gets the direct child elements contained in the text box in document order.
+        /// </summary>
+        public List<WordElement> Elements => GetWordElements();
 
         /// <summary>
         /// Gets or sets horizontal relative position of the text box
@@ -734,6 +738,40 @@ namespace OfficeIMO.Word {
                 }
                 return null;
             }
+        }
+
+        private List<WordElement> GetWordElements() {
+            var elements = new List<WordElement>();
+            var content = GetTextBoxContent();
+            if (content == null) {
+                return elements;
+            }
+
+            foreach (var element in content.ChildElements) {
+                if (element is Paragraph paragraph) {
+                    elements.AddRange(WordSection.ConvertParagraphToWordParagraphs(_document, paragraph));
+                } else if (element is AltChunk altChunk) {
+                    elements.Add(new WordEmbeddedDocument(_document, altChunk));
+                } else if (element is SdtBlock sdtBlock) {
+                    elements.Add(WordSection.ConvertStdBlockToWordElements(_document, sdtBlock));
+                } else if (element is Table table) {
+                    elements.Add(new WordTable(_document, table));
+                }
+            }
+
+            return elements;
+        }
+
+        private DocumentFormat.OpenXml.Wordprocessing.TextBoxContent? GetTextBoxContent() {
+            if (_textBoxInfo2 != null) {
+                return _textBoxInfo2.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.TextBoxContent>();
+            }
+
+            if (_vmlTextBox != null) {
+                return _vmlTextBox.Descendants<DocumentFormat.OpenXml.Wordprocessing.TextBoxContent>().FirstOrDefault();
+            }
+
+            return null;
         }
 
         private VerticalPosition? AddVerticalPosition(Anchor? anchor, bool expectedPositionOffset = false) {

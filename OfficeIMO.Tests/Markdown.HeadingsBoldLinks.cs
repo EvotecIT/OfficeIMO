@@ -68,5 +68,39 @@ namespace OfficeIMO.Tests {
             Assert.False(boldRun.Italic);
             Assert.False(plainRun.Italic);
         }
+
+        [Fact]
+        public void MarkdownToWord_PreservesHtmlTagFormattingInsideLinkLabels() {
+            string md = "See [<q>quoted</q> H<sup>2</sup>O and H<sub>2</sub>O](https://example.com).";
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+
+            var hyperlinkRuns = doc.Paragraphs[0].GetRuns().Where(r => r.IsHyperLink).ToList();
+
+            Assert.Equal(2, hyperlinkRuns.Count(r => string.Equals(r.Text, "\"", StringComparison.Ordinal)));
+            Assert.Contains(hyperlinkRuns, r =>
+                string.Equals(r.Text, "2", StringComparison.Ordinal) &&
+                r.VerticalTextAlignment == DocumentFormat.OpenXml.Wordprocessing.VerticalPositionValues.Superscript);
+            Assert.Contains(hyperlinkRuns, r =>
+                string.Equals(r.Text, "2", StringComparison.Ordinal) &&
+                r.VerticalTextAlignment == DocumentFormat.OpenXml.Wordprocessing.VerticalPositionValues.Subscript);
+        }
+
+        [Fact]
+        public void MarkdownToWord_PreservesHeadingInlineFormatting() {
+            const string md = "# **Bold** [link](https://example.com)";
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+
+            var heading = doc.Paragraphs.First();
+            Assert.Equal(WordParagraphStyles.Heading1, heading.Style);
+            var runs = heading.GetRuns();
+
+            Assert.Contains(runs, r => string.Equals(r.Text, "Bold", StringComparison.Ordinal) && r.Bold);
+            Assert.Contains(runs, r =>
+                string.Equals(r.Text, "link", StringComparison.Ordinal) &&
+                r.IsHyperLink &&
+                string.Equals(r.Hyperlink?.Uri?.ToString(), "https://example.com/", StringComparison.Ordinal));
+        }
     }
 }

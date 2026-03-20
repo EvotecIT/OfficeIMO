@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -44,6 +45,11 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets the direct child elements contained in the header or footer in document order.
+        /// </summary>
+        public List<WordElement> Elements => GetWordElements();
+
+        /// <summary>
         /// Gets all tables contained in the header or footer.
         /// </summary>
         public List<WordTable> Tables {
@@ -55,6 +61,22 @@ namespace OfficeIMO.Word {
                 }
 
                 return new List<WordTable>();
+            }
+        }
+
+        /// <summary>
+        /// Gets all text boxes contained in the header or footer.
+        /// </summary>
+        public List<WordTextBox> TextBoxes {
+            get {
+                var list = new List<WordTextBox>();
+                foreach (var paragraph in Paragraphs.Where(p => p.IsTextBox)) {
+                    if (paragraph.TextBox != null) {
+                        list.Add(paragraph.TextBox);
+                    }
+                }
+
+                return list;
             }
         }
 
@@ -171,6 +193,28 @@ namespace OfficeIMO.Word {
 
                 return list;
             }
+        }
+
+        private List<WordElement> GetWordElements() {
+            var elements = new List<WordElement>();
+            var container = (OpenXmlCompositeElement?)_header ?? _footer;
+            if (container == null) {
+                return elements;
+            }
+
+            foreach (var element in container.ChildElements) {
+                if (element is Paragraph paragraph) {
+                    elements.AddRange(WordSection.ConvertParagraphToWordParagraphs(_document, paragraph));
+                } else if (element is AltChunk altChunk) {
+                    elements.Add(new WordEmbeddedDocument(_document, altChunk));
+                } else if (element is SdtBlock sdtBlock) {
+                    elements.Add(WordSection.ConvertStdBlockToWordElements(_document, sdtBlock));
+                } else if (element is Table table) {
+                    elements.Add(new WordTable(_document, table));
+                }
+            }
+
+            return elements;
         }
 
         /// <summary>

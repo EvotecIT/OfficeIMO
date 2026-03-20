@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Root document container and fluent API entrypoint for composing Markdown.
 /// Supports a fluent-chaining style and an explicit object model via <see cref="Add(IMarkdownBlock)"/>.
 /// </summary>
-public class MarkdownDoc {
+public class MarkdownDoc : MarkdownObject {
     /// <summary>Resolved heading metadata within a document.</summary>
     public sealed class HeadingInfo {
         /// <summary>The heading block.</summary>
@@ -50,13 +50,24 @@ public class MarkdownDoc {
             _blocks.Add(block);
             _lastBlock = block;
         }
+        MarkdownObjectTreeBinder.BindDocument(this);
         return this;
+    }
+
+    /// <summary>Rewrites the document using the provided rewriter.</summary>
+    public MarkdownDoc Rewrite(MarkdownRewriter rewriter) {
+        if (rewriter == null) {
+            throw new ArgumentNullException(nameof(rewriter));
+        }
+
+        return rewriter.Rewrite(this);
     }
 
     internal void ReplaceBlocks(IEnumerable<IMarkdownBlock>? blocks) {
         _blocks.Clear();
         _lastBlock = null;
         if (blocks == null) {
+            MarkdownObjectTreeBinder.BindDocument(this);
             return;
         }
 
@@ -68,10 +79,13 @@ public class MarkdownDoc {
             _blocks.Add(block);
             _lastBlock = block;
         }
+
+        MarkdownObjectTreeBinder.BindDocument(this);
     }
 
     /// <summary>Enumerates all document blocks depth-first, including front matter when present.</summary>
     public IEnumerable<IMarkdownBlock> DescendantsAndSelf() {
+        MarkdownObjectTreeBinder.BindDocument(this);
         foreach (var block in TopLevelBlocks) {
             foreach (var descendant in EnumerateBlockAndDescendants(block)) {
                 yield return descendant;
@@ -129,6 +143,7 @@ public class MarkdownDoc {
 
     /// <summary>Enumerates all list items in document order, including nested items.</summary>
     public IEnumerable<ListItem> DescendantListItems() {
+        MarkdownObjectTreeBinder.BindDocument(this);
         foreach (var block in TopLevelBlocks) {
             foreach (var item in EnumerateListItems(block)) {
                 yield return item;
@@ -265,6 +280,7 @@ public class MarkdownDoc {
     }
 
     private IReadOnlyList<IMarkdownBlock> BuildTopLevelBlocks() {
+        MarkdownObjectTreeBinder.BindDocument(this);
         if (_frontMatter == null) {
             return _blocks;
         }
@@ -329,6 +345,7 @@ public class MarkdownDoc {
     /// <summary>Sets YAML front matter from an anonymous object or dictionary.</summary>
     public MarkdownDoc FrontMatter(object data) {
         _frontMatter = FrontMatterBlock.FromObject(data);
+        MarkdownObjectTreeBinder.BindDocument(this);
         return this;
     }
 
@@ -627,6 +644,7 @@ public class MarkdownDoc {
             if (placeAtTop) _blocks.Insert(0, placeholder); else _blocks.Add(placeholder);
         }
         _lastBlock = placeholder;
+        MarkdownObjectTreeBinder.BindDocument(this);
         return this;
     }
 
@@ -646,6 +664,7 @@ public class MarkdownDoc {
         var placeholder = new TocPlaceholderBlock(opts);
         _blocks.Add(placeholder);
         _lastBlock = placeholder;
+        MarkdownObjectTreeBinder.BindDocument(this);
         return this;
     }
 

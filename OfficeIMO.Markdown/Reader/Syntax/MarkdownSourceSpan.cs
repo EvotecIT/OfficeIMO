@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Source span for markdown syntax nodes.
 /// </summary>
-public readonly struct MarkdownSourceSpan {
+public readonly struct MarkdownSourceSpan : IEquatable<MarkdownSourceSpan> {
     /// <summary>1-based start line.</summary>
     public int StartLine { get; }
     /// <summary>1-based start column.</summary>
@@ -67,12 +67,30 @@ public readonly struct MarkdownSourceSpan {
     }
 
     /// <summary>Returns true when this span fully contains the given span.</summary>
-    public bool Contains(MarkdownSourceSpan other) =>
-        other.StartLine >= StartLine && other.EndLine <= EndLine;
+    public bool Contains(MarkdownSourceSpan other) {
+        if (StartOffset.HasValue && EndOffset.HasValue && other.StartOffset.HasValue && other.EndOffset.HasValue) {
+            return StartOffset.Value <= other.StartOffset.Value && EndOffset.Value >= other.EndOffset.Value;
+        }
+
+        if (!StartColumn.HasValue || !EndColumn.HasValue || !other.StartColumn.HasValue || !other.EndColumn.HasValue) {
+            return other.StartLine >= StartLine && other.EndLine <= EndLine;
+        }
+
+        return CompareStartTo(other) <= 0 && CompareEndTo(other) >= 0;
+    }
 
     /// <summary>Returns true when this span overlaps the given span.</summary>
-    public bool Overlaps(MarkdownSourceSpan other) =>
-        other.EndLine >= StartLine && other.StartLine <= EndLine;
+    public bool Overlaps(MarkdownSourceSpan other) {
+        if (StartOffset.HasValue && EndOffset.HasValue && other.StartOffset.HasValue && other.EndOffset.HasValue) {
+            return StartOffset.Value <= other.EndOffset.Value && EndOffset.Value >= other.StartOffset.Value;
+        }
+
+        if (!StartColumn.HasValue || !EndColumn.HasValue || !other.StartColumn.HasValue || !other.EndColumn.HasValue) {
+            return other.EndLine >= StartLine && other.StartLine <= EndLine;
+        }
+
+        return CompareStartTo(other, useOtherEnd: true) <= 0 && CompareEndTo(other, useOtherStart: true) >= 0;
+    }
 
     /// <summary>Returns true when the span contains the given 1-based line and column.</summary>
     public bool ContainsPosition(int lineNumber, int columnNumber) {
@@ -112,7 +130,46 @@ public readonly struct MarkdownSourceSpan {
     public override bool Equals(object? obj) => obj is MarkdownSourceSpan other && Equals(other);
 
     /// <inheritdoc />
-    public override int GetHashCode() => (StartLine * 397) ^ EndLine;
+    public override int GetHashCode() {
+        unchecked {
+            int hash = StartLine;
+            hash = (hash * 397) ^ (StartColumn ?? 0);
+            hash = (hash * 397) ^ EndLine;
+            hash = (hash * 397) ^ (EndColumn ?? 0);
+            return hash;
+        }
+    }
 
-    private bool Equals(MarkdownSourceSpan other) => StartLine == other.StartLine && EndLine == other.EndLine;
+    /// <inheritdoc />
+    public bool Equals(MarkdownSourceSpan other) =>
+        StartLine == other.StartLine
+        && StartColumn == other.StartColumn
+        && EndLine == other.EndLine
+        && EndColumn == other.EndColumn;
+
+    private int CompareStartTo(MarkdownSourceSpan other, bool useOtherEnd = false) {
+        int otherLine = useOtherEnd ? other.EndLine : other.StartLine;
+        int? otherColumn = useOtherEnd ? other.EndColumn : other.StartColumn;
+        return ComparePosition(StartLine, StartColumn, otherLine, otherColumn, treatMissingAsMax: false);
+    }
+
+    private int CompareEndTo(MarkdownSourceSpan other, bool useOtherStart = false) {
+        int otherLine = useOtherStart ? other.StartLine : other.EndLine;
+        int? otherColumn = useOtherStart ? other.StartColumn : other.EndColumn;
+        return ComparePosition(EndLine, EndColumn, otherLine, otherColumn, treatMissingAsMax: true);
+    }
+
+    private static int ComparePosition(int leftLine, int? leftColumn, int rightLine, int? rightColumn, bool treatMissingAsMax) {
+        int lineCompare = leftLine.CompareTo(rightLine);
+        if (lineCompare != 0) {
+            return lineCompare;
+        }
+
+        int normalizedLeft = NormalizeColumn(leftColumn, treatMissingAsMax);
+        int normalizedRight = NormalizeColumn(rightColumn, treatMissingAsMax);
+        return normalizedLeft.CompareTo(normalizedRight);
+    }
+
+    private static int NormalizeColumn(int? column, bool treatMissingAsMax) =>
+        column ?? (treatMissingAsMax ? int.MaxValue : 1);
 }

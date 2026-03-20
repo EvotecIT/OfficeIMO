@@ -1,12 +1,19 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Linq;
+using V = DocumentFormat.OpenXml.Vml;
+using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
         private static object? ResolveParent(WordDocument document, Paragraph paragraph) {
             if (document == null || paragraph == null) {
                 return null;
+            }
+
+            var textBox = FindTextBox(document, paragraph);
+            if (textBox != null) {
+                return textBox;
             }
 
             var tableCell = paragraph.Ancestors<TableCell>().FirstOrDefault();
@@ -21,6 +28,22 @@ namespace OfficeIMO.Word {
                 Body => FindSection(document, paragraph),
                 _ => null
             };
+        }
+
+        private static WordTextBox? FindTextBox(WordDocument document, Paragraph paragraph) {
+            var hostRun = paragraph.Ancestors<Run>()
+                .FirstOrDefault(run => run.Descendants<Wps.TextBoxInfo2>().Any() || run.Descendants<V.TextBox>().Any());
+            if (hostRun == null) {
+                return null;
+            }
+
+            var hostParagraph = hostRun.Ancestors<Paragraph>()
+                .FirstOrDefault(candidate => !ReferenceEquals(candidate, paragraph));
+            if (hostParagraph == null) {
+                return null;
+            }
+
+            return new WordTextBox(document, hostParagraph, hostRun);
         }
 
         private static WordTableCell? CreateWordTableCell(WordDocument document, TableCell tableCell) {

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
@@ -105,6 +106,42 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Paragraphs.Count == 5, "Number of paragraphs on 1st section is wrong (load). Current: " + document.Sections[0].Paragraphs.Count);
             }
         }
+
+        [Fact]
+        public void HeaderFooter_Elements_Preserve_Document_Order() {
+            using var document = WordDocument.Create();
+            document.AddHeadersAndFooters();
+
+            var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+            header.AddParagraph("Alpha");
+            var headerTable = header.AddTable(2, 1);
+            headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "H";
+            headerTable.Rows[1].Cells[0].Paragraphs[0].Text = "V";
+            header.AddParagraph("Omega");
+
+            var orderedHeaderElements = header.Elements
+                .Where(element => element is WordTable || element is WordParagraph paragraph && !string.IsNullOrWhiteSpace(paragraph.Text))
+                .ToList();
+
+            Assert.Collection(
+                orderedHeaderElements,
+                element => Assert.Equal("Alpha", Assert.IsType<WordParagraph>(element).Text.TrimEnd('\n')),
+                element => Assert.IsType<WordTable>(element),
+                element => Assert.Equal("Omega", Assert.IsType<WordParagraph>(element).Text.TrimEnd('\n')));
+
+            var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
+            footer.AddParagraph("Footer alpha");
+            footer.AddParagraph("Footer omega");
+
+            var orderedFooterParagraphs = footer.Elements
+                .OfType<WordParagraph>()
+                .Where(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text))
+                .Select(paragraph => paragraph.Text.TrimEnd('\n'))
+                .ToList();
+
+            Assert.Equal(new[] { "Footer alpha", "Footer omega" }, orderedFooterParagraphs);
+        }
+
         [Fact]
         public void Test_CreatingWordDocumentWithDefaultHeadersAndFootersOddEven() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefault2.docx");

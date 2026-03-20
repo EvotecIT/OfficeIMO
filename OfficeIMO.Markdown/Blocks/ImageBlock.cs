@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Image block with optional title and caption.
 /// </summary>
-public sealed class ImageBlock : IMarkdownBlock, ICaptionable, ISyntaxMarkdownBlock {
+public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISyntaxMarkdownBlock {
     /// <summary>Image source path or URL.</summary>
     public string Path { get; }
     /// <summary>Optional hyperlink target wrapping the image.</summary>
@@ -164,7 +164,8 @@ public sealed class ImageBlock : IMarkdownBlock, ICaptionable, ISyntaxMarkdownBl
             MarkdownSyntaxKind.Image,
             span,
             ((IMarkdownBlock)this).RenderMarkdown(),
-            nodes);
+            nodes,
+            this);
     }
 
     private static string BuildLinkHtmlAttributes(HtmlOptions? options, string url, string? explicitTarget, string? explicitRel) {

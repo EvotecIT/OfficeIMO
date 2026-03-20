@@ -109,6 +109,41 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Healthy", cellParagraphs[0]);
             Assert.Equal("Observed from bridge", cellParagraphs[1]);
         }
+
+        [Fact]
+        public void MarkdownDoc_ToWordDocument_Bridges_RawHtml_TableCell_Content_Through_Ast() {
+            const string html = """
+                <table>
+                  <tr>
+                    <th>Notes</th>
+                  </tr>
+                  <tr>
+                    <td>
+                      <custom-card>
+                        <p>Alpha</p>
+                        <p><strong>Beta</strong></p>
+                      </custom-card>
+                    </td>
+                  </tr>
+                </table>
+                """;
+
+            var markdown = html.LoadFromHtml();
+            var rawCellBlock = Assert.IsType<OfficeIMO.Markdown.HtmlRawBlock>(Assert.Single(Assert.Single(markdown.Blocks.OfType<OfficeIMO.Markdown.TableBlock>()).RowCells[0][0].Blocks));
+
+            Assert.Contains("<custom-card>", rawCellBlock.Html);
+
+            using var doc = markdown.ToWordDocument(new MarkdownToWordOptions { FontFamily = "Calibri" });
+            var cellParagraphs = doc.Tables[0].Rows[1].Cells[0].Paragraphs
+                .Select(p => p.Text)
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .ToList();
+
+            Assert.Equal(2, cellParagraphs.Count);
+            Assert.Equal("Alpha", cellParagraphs[0]);
+            Assert.Equal("Beta", cellParagraphs[1]);
+            Assert.Contains(doc.Tables[0].Rows[1].Cells[0].Paragraphs.SelectMany(p => p.GetRuns()), run => run.Bold && string.Equals(run.Text, "Beta", System.StringComparison.Ordinal));
+        }
     }
 }
 

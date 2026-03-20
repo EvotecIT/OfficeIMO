@@ -3,7 +3,12 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// List item content; supports plain and task (checklist) items.
 /// </summary>
-public sealed class ListItem {
+public sealed class ListItem : MarkdownObject {
+    private readonly ParagraphBlock _leadParagraphBlock;
+    private readonly List<ParagraphBlock> _additionalParagraphBlocks = new List<ParagraphBlock>();
+    private readonly List<ParagraphBlock> _paragraphBlocks = new List<ParagraphBlock>();
+    private readonly List<IMarkdownBlock> _blockChildren = new List<IMarkdownBlock>();
+
     /// <summary>Inlines representing item content.</summary>
     public InlineSequence Content { get; }
     /// <summary>Additional paragraphs inside the list item (multi-paragraph list items).</summary>
@@ -12,13 +17,23 @@ public sealed class ListItem {
     /// Paragraph blocks owned by this list item.
     /// This exposes list-item paragraph content as blocks for AST-style consumers.
     /// </summary>
-    public IReadOnlyList<ParagraphBlock> ParagraphBlocks => BuildParagraphBlocks();
+    public IReadOnlyList<ParagraphBlock> ParagraphBlocks {
+        get {
+            EnsureParagraphBlocks();
+            return _paragraphBlocks;
+        }
+    }
     /// <summary>Nested block content inside the list item (e.g., nested ordered/unordered lists, code blocks).</summary>
     public List<IMarkdownBlock> Children { get; } = new List<IMarkdownBlock>();
     /// <summary>Read-only AST-style view of nested child blocks inside the list item.</summary>
     public IReadOnlyList<IMarkdownBlock> ChildBlocks => Children;
     /// <summary>Ordered AST-style view of all list-item child blocks, including lead paragraphs.</summary>
-    public IReadOnlyList<IMarkdownBlock> BlockChildren => BuildBlockChildren();
+    public IReadOnlyList<IMarkdownBlock> BlockChildren {
+        get {
+            EnsureBlockChildren();
+            return _blockChildren;
+        }
+    }
     /// <summary>True when rendered as a task item (<c>- [ ]</c> or <c>- [x]</c>).</summary>
     public bool IsTask { get; }
     /// <summary>Whether the task is checked.</summary>
@@ -30,8 +45,17 @@ public sealed class ListItem {
     internal List<MarkdownSyntaxNode> SyntaxChildren { get; } = new List<MarkdownSyntaxNode>();
 
     /// <summary>Creates a plain list item.</summary>
-    public ListItem(InlineSequence content) { Content = content; }
-    private ListItem(InlineSequence content, bool isTask, bool isChecked) { Content = content; IsTask = isTask; Checked = isChecked; }
+    public ListItem(InlineSequence content) {
+        Content = content ?? new InlineSequence();
+        _leadParagraphBlock = new ParagraphBlock(Content);
+    }
+
+    private ListItem(InlineSequence content, bool isTask, bool isChecked) {
+        Content = content ?? new InlineSequence();
+        _leadParagraphBlock = new ParagraphBlock(Content);
+        IsTask = isTask;
+        Checked = isChecked;
+    }
 
     /// <summary>Creates a plain text item.</summary>
     public static ListItem Text(string text) => new ListItem(new InlineSequence().Text(text));
@@ -132,7 +156,8 @@ public sealed class ListItem {
             MarkdownSyntaxKind.ListItem,
             MarkdownBlockSyntaxBuilder.GetAggregateSpan(children),
             literal,
-            children);
+            children,
+            this);
     }
 
     private List<MarkdownSyntaxNode> BuildOwnedSyntaxChildren() {
@@ -142,7 +167,7 @@ public sealed class ListItem {
             return children;
         }
 
-        var blockChildren = BuildBlockChildren();
+        var blockChildren = BlockChildren;
         for (int i = 0; i < blockChildren.Count; i++) {
             if (blockChildren[i] is ParagraphBlock paragraph) {
                 children.Add(BuildParagraphSyntaxNode(paragraph.Inlines));
@@ -154,31 +179,50 @@ public sealed class ListItem {
         return children;
     }
 
-    private IReadOnlyList<ParagraphBlock> BuildParagraphBlocks() {
-        var paragraphs = new List<ParagraphBlock>();
+    private void EnsureParagraphBlocks() {
+        SyncAdditionalParagraphBlocks();
+
+        _paragraphBlocks.Clear();
         if (Content.Nodes.Count > 0 || (AdditionalParagraphs.Count == 0 && Children.Count == 0)) {
-            paragraphs.Add(new ParagraphBlock(Content));
+            _paragraphBlocks.Add(_leadParagraphBlock);
         }
 
-        for (int i = 0; i < AdditionalParagraphs.Count; i++) {
-            paragraphs.Add(new ParagraphBlock(AdditionalParagraphs[i]));
+        for (int i = 0; i < _additionalParagraphBlocks.Count; i++) {
+            _paragraphBlocks.Add(_additionalParagraphBlocks[i]);
         }
-
-        return paragraphs;
     }
 
-    private IReadOnlyList<IMarkdownBlock> BuildBlockChildren() {
-        var blocks = new List<IMarkdownBlock>();
-        var paragraphs = BuildParagraphBlocks();
-        for (int i = 0; i < paragraphs.Count; i++) {
-            blocks.Add(paragraphs[i]);
+    private void EnsureBlockChildren() {
+        EnsureParagraphBlocks();
+
+        _blockChildren.Clear();
+        for (int i = 0; i < _paragraphBlocks.Count; i++) {
+            _blockChildren.Add(_paragraphBlocks[i]);
         }
 
         for (int i = 0; i < ChildBlocks.Count; i++) {
-            blocks.Add(ChildBlocks[i]);
+            _blockChildren.Add(ChildBlocks[i]);
+        }
+    }
+
+    private void SyncAdditionalParagraphBlocks() {
+        while (_additionalParagraphBlocks.Count > AdditionalParagraphs.Count) {
+            _additionalParagraphBlocks.RemoveAt(_additionalParagraphBlocks.Count - 1);
         }
 
-        return blocks;
+        for (int i = 0; i < AdditionalParagraphs.Count; i++) {
+            var paragraph = AdditionalParagraphs[i] ?? new InlineSequence();
+            if (i < _additionalParagraphBlocks.Count && ReferenceEquals(_additionalParagraphBlocks[i].Inlines, paragraph)) {
+                continue;
+            }
+
+            var block = new ParagraphBlock(paragraph);
+            if (i < _additionalParagraphBlocks.Count) {
+                _additionalParagraphBlocks[i] = block;
+            } else {
+                _additionalParagraphBlocks.Add(block);
+            }
+        }
     }
 
     private static MarkdownSyntaxNode BuildParagraphSyntaxNode(InlineSequence paragraph) =>

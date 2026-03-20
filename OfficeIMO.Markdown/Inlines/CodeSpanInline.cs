@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Inline code span.
 /// </summary>
-public sealed class CodeSpanInline : IMarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
+public sealed class CodeSpanInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
     /// <summary>Code content.</summary>
     public string Text { get; }
     /// <summary>Creates an inline code span.</summary>

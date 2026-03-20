@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Placeholder that is replaced with a generated Table of Contents at render time.
 /// </summary>
-internal sealed class TocPlaceholderBlock : IMarkdownBlock, ISyntaxMarkdownBlock, ITocPlaceholderMarkdownBlock {
+internal sealed class TocPlaceholderBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock, ITocPlaceholderMarkdownBlock {
     public TocOptions Options { get; }
     public TocPlaceholderBlock(TocOptions options) { Options = options; }
     string IMarkdownBlock.RenderMarkdown() => string.Empty; // Replaced during render
@@ -147,5 +147,5 @@ internal sealed class TocPlaceholderBlock : IMarkdownBlock, ISyntaxMarkdownBlock
         return sbNested.ToString();
     }
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(MarkdownSyntaxKind.TocPlaceholder, span);
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.TocPlaceholder, span, associatedObject: this);
 }

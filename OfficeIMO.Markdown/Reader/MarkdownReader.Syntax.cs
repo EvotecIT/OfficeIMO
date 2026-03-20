@@ -1,8 +1,8 @@
 namespace OfficeIMO.Markdown;
 
 public static partial class MarkdownReader {
-    private static MarkdownSyntaxNode BuildDocumentSyntaxTree(IReadOnlyList<MarkdownSyntaxNode> children) =>
-        new MarkdownSyntaxNode(MarkdownSyntaxKind.Document, MarkdownBlockSyntaxBuilder.GetAggregateSpan(children), children: children);
+    private static MarkdownSyntaxNode BuildDocumentSyntaxTree(IReadOnlyList<MarkdownSyntaxNode> children, MarkdownDoc? document = null) =>
+        new MarkdownSyntaxNode(MarkdownSyntaxKind.Document, MarkdownBlockSyntaxBuilder.GetAggregateSpan(children), children: children, associatedObject: document);
 
     internal static MarkdownSyntaxNode BuildSyntaxTree(
         MarkdownDoc document,
@@ -24,7 +24,7 @@ public static partial class MarkdownReader {
             children.Add(BuildSyntaxNode(document.Blocks[i], span));
         }
 
-        return BuildDocumentSyntaxTree(children);
+        return BuildDocumentSyntaxTree(children, document);
     }
 
     internal static MarkdownSyntaxNode BuildFinalSyntaxTree(

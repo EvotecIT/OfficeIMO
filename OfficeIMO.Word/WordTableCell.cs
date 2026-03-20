@@ -20,6 +20,10 @@ namespace OfficeIMO.Word {
         /// Gets all <see cref="WordParagraph"/> instances contained in the cell.
         /// </summary>
         public List<WordParagraph> Paragraphs => WordSection.ConvertParagraphsToWordParagraphs(_document, _tableCell.ChildElements.OfType<Paragraph>());
+        /// <summary>
+        /// Gets the direct child elements contained in the cell in document order.
+        /// </summary>
+        public List<WordElement> Elements => GetWordElements();
         private readonly WordTable _wordTable;
         private readonly WordTableRow _wordTableRow;
         private readonly WordDocument _document;
@@ -151,6 +155,23 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         public WordParagraph AddParagraph(string text, bool removeExistingParagraphs = false) {
             return AddParagraph(paragraph: null, removeExistingParagraphs).SetText(text);
+        }
+
+        private List<WordElement> GetWordElements() {
+            var elements = new List<WordElement>();
+            foreach (var element in _tableCell.ChildElements) {
+                if (element is Paragraph paragraph) {
+                    elements.AddRange(WordSection.ConvertParagraphToWordParagraphs(_document, paragraph));
+                } else if (element is AltChunk altChunk) {
+                    elements.Add(new WordEmbeddedDocument(_document, altChunk));
+                } else if (element is SdtBlock sdtBlock) {
+                    elements.Add(WordSection.ConvertStdBlockToWordElements(_document, sdtBlock));
+                } else if (element is Table table) {
+                    elements.Add(new WordTable(_document, table));
+                }
+            }
+
+            return elements;
         }
 
         /// <summary>

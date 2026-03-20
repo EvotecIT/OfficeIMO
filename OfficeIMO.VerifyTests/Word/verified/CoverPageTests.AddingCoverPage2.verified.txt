@@ -324,7 +324,6 @@
         </w:numPr>
       </w:pPr>
       <w:r>
-        <w:rPr />
         <w:t xml:space="preserve">Prepare document</w:t>
       </w:r>
     </w:p>
@@ -343,7 +342,6 @@
         </w:numPr>
       </w:pPr>
       <w:r>
-        <w:rPr />
         <w:t xml:space="preserve">Make it shine</w:t>
       </w:r>
     </w:p>
@@ -367,7 +365,6 @@
         </w:numPr>
       </w:pPr>
       <w:r>
-        <w:rPr />
         <w:t xml:space="preserve">More on the next page</w:t>
       </w:r>
     </w:p>

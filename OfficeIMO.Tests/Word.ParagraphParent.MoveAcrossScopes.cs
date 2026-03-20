@@ -78,5 +78,21 @@ namespace OfficeIMO.Tests {
             Assert.True(outerCell == outer.Rows[0].Cells[0]);
             Assert.True(outerCell.HasNestedTables);
         }
+
+        [Fact]
+        public void ParentUpdates_ForParagraphsInsideTextBoxes() {
+            using var doc = WordDocument.Create();
+
+            var bodyTextBox = doc.AddTextBox("Body textbox");
+            bodyTextBox.Paragraphs[0].AddParagraph("Body textbox second");
+
+            Assert.All(bodyTextBox.Paragraphs, paragraph => Assert.IsType<WordTextBox>(paragraph.Parent));
+
+            doc.AddHeadersAndFooters();
+            var headerTextBox = doc.Header!.Default!.AddTextBox("Header textbox");
+            headerTextBox.Paragraphs[0].AddParagraph("Header textbox second");
+
+            Assert.All(headerTextBox.Paragraphs, paragraph => Assert.IsType<WordTextBox>(paragraph.Parent));
+        }
     }
 }

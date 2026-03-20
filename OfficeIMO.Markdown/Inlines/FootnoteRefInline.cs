@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Footnote reference inline, e.g., [^1].
 /// </summary>
-public sealed class FootnoteRefInline : IMarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
+public sealed class FootnoteRefInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
     /// <summary>Reference label pointing to a footnote definition.</summary>
     public string Label { get; }
     /// <summary>Create a footnote reference inline.</summary>

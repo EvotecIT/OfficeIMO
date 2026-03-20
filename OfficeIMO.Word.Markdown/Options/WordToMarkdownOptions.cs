@@ -30,5 +30,24 @@ namespace OfficeIMO.Word.Markdown {
         /// images are written to this directory. If not specified, the current working directory is used.
         /// </summary>
         public string? ImageDirectory { get; set; }
+
+        /// <summary>
+        /// Enables exporting section headers and footers as semantic fenced blocks instead of omitting them.
+        /// The fenced payload contains markdown for the header/footer body and can be reparsed with
+        /// <see cref="CreateReaderOptions(OfficeIMO.Markdown.MarkdownReaderOptions.MarkdownDialectProfile)"/>.
+        /// </summary>
+        public bool IncludeHeadersAndFootersAsSemanticBlocks { get; set; }
+
+        /// <summary>
+        /// Creates reader options that understand the Word-specific semantic fenced blocks emitted by this converter.
+        /// </summary>
+        /// <param name="profile">Base markdown reader profile to start from.</param>
+        /// <returns>Configured reader options.</returns>
+        public OfficeIMO.Markdown.MarkdownReaderOptions CreateReaderOptions(
+            OfficeIMO.Markdown.MarkdownReaderOptions.MarkdownDialectProfile profile = OfficeIMO.Markdown.MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO) {
+            var options = OfficeIMO.Markdown.MarkdownReaderOptions.CreateProfile(profile);
+            WordMarkdownSemanticBlocks.ConfigureReaderOptions(options);
+            return options;
+        }
     }
 }

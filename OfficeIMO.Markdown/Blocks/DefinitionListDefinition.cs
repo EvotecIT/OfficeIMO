@@ -5,7 +5,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Structured definition body inside a definition-list group.
 /// </summary>
-public sealed class DefinitionListDefinition {
+public sealed class DefinitionListDefinition : MarkdownObject {
     private readonly List<IMarkdownBlock> _blocks = new List<IMarkdownBlock>();
 
     /// <summary>Structured markdown blocks that belong to this definition body.</summary>
