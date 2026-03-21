@@ -1,12 +1,26 @@
 namespace OfficeIMO.Markdown;
 
 internal static class MarkdownTransformSourceSpanHelper {
-    internal readonly record struct ChangedBlockRange(
-        int StartBefore,
-        int CountBefore,
-        int StartAfter,
-        int CountAfter,
-        int SuffixCount);
+    internal readonly struct ChangedBlockRange {
+        internal ChangedBlockRange(
+            int startBefore,
+            int countBefore,
+            int startAfter,
+            int countAfter,
+            int suffixCount) {
+            StartBefore = startBefore;
+            CountBefore = countBefore;
+            StartAfter = startAfter;
+            CountAfter = countAfter;
+            SuffixCount = suffixCount;
+        }
+
+        internal int StartBefore { get; }
+        internal int CountBefore { get; }
+        internal int StartAfter { get; }
+        internal int CountAfter { get; }
+        internal int SuffixCount { get; }
+    }
 
     internal static string[] CreateBlockFingerprints(IReadOnlyList<IMarkdownBlock> blocks) {
         var fingerprints = new string[blocks.Count];
@@ -38,11 +52,11 @@ internal static class MarkdownTransformSourceSpanHelper {
         }
 
         return new ChangedBlockRange(
-            StartBefore: prefix,
-            CountBefore: before.Length - prefix - suffix,
-            StartAfter: prefix,
-            CountAfter: after.Length - prefix - suffix,
-            SuffixCount: suffix);
+            startBefore: prefix,
+            countBefore: before.Length - prefix - suffix,
+            startAfter: prefix,
+            countAfter: after.Length - prefix - suffix,
+            suffixCount: suffix);
     }
 
     internal static MarkdownSourceSpan? AggregateSpans(
