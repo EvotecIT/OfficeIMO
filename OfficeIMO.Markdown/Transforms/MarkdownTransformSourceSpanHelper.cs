@@ -26,9 +26,14 @@ internal static class MarkdownTransformSourceSpanHelper {
         var fingerprints = new string[blocks.Count];
         for (var i = 0; i < blocks.Count; i++) {
             var block = blocks[i];
-            fingerprints[i] = block == null
-                ? string.Empty
-                : (block.GetType().FullName ?? block.GetType().Name) + "\n" + block.RenderMarkdown();
+            if (block == null) {
+                fingerprints[i] = string.Empty;
+                continue;
+            }
+
+            var typeName = block.GetType().FullName ?? block.GetType().Name;
+            var markdown = block.RenderMarkdown();
+            fingerprints[i] = string.Concat(typeName, "\n", markdown);
         }
 
         return fingerprints;
@@ -76,6 +81,10 @@ internal static class MarkdownTransformSourceSpanHelper {
             }
 
             var span = spans[i]!.Value;
+            if (!IsWellFormedSpan(span)) {
+                continue;
+            }
+
             if (!first.HasValue || CompareStart(span, first.Value) < 0) {
                 first = span;
             }
@@ -107,6 +116,10 @@ internal static class MarkdownTransformSourceSpanHelper {
             }
 
             var span = blockObject.SourceSpan.Value;
+            if (!IsWellFormedSpan(span)) {
+                continue;
+            }
+
             if (!first.HasValue || CompareStart(span, first.Value) < 0) {
                 first = span;
             }
@@ -222,4 +235,24 @@ internal static class MarkdownTransformSourceSpanHelper {
     private static int NormalizeStartColumn(int? column) => column ?? 1;
 
     private static int NormalizeEndColumn(int? column) => column ?? int.MaxValue;
+
+    private static bool IsWellFormedSpan(MarkdownSourceSpan span) {
+        if (span.StartLine < 1 || span.EndLine < span.StartLine) {
+            return false;
+        }
+
+        if (span.StartColumn.HasValue != span.EndColumn.HasValue) {
+            return false;
+        }
+
+        if (!span.StartColumn.HasValue) {
+            return true;
+        }
+
+        if (span.StartColumn.Value < 1 || span.EndColumn!.Value < 1) {
+            return false;
+        }
+
+        return span.EndLine > span.StartLine || span.EndColumn.Value >= span.StartColumn.Value;
+    }
 }

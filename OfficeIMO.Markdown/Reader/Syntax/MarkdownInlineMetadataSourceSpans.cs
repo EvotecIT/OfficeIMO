@@ -3,24 +3,38 @@ using System.Runtime.CompilerServices;
 namespace OfficeIMO.Markdown;
 
 internal static class MarkdownInlineMetadataSourceSpans {
-    private sealed class LinkHolder {
+    private sealed class LinkState {
         public MarkdownSourceSpan? TargetSpan;
         public MarkdownSourceSpan? TitleSpan;
         public MarkdownSourceSpan? HtmlTargetSpan;
         public MarkdownSourceSpan? HtmlRelSpan;
     }
 
-    private class ImageHolder {
+    private sealed class LinkHolder {
+        public LinkState? State;
+    }
+
+    private class ImageState {
         public MarkdownSourceSpan? AltSpan;
         public MarkdownSourceSpan? SourceSpan;
         public MarkdownSourceSpan? TitleSpan;
     }
 
-    private sealed class ImageLinkHolder : ImageHolder {
+    private class ImageHolder {
+        public ImageState? State;
+    }
+
+    private sealed class ImageLinkState : ImageState {
         public MarkdownSourceSpan? LinkTargetSpan;
         public MarkdownSourceSpan? LinkTitleSpan;
     }
 
+    private sealed class ImageLinkHolder : ImageHolder {
+        public new ImageLinkState? State;
+    }
+
+    // These tables hold weak references to markdown inline keys, so entries disappear when the
+    // owning inline objects are no longer referenced by the parse result or callers.
     private static readonly ConditionalWeakTable<LinkInline, LinkHolder> _linkSpans = new();
     private static readonly ConditionalWeakTable<ImageInline, ImageHolder> _imageSpans = new();
     private static readonly ConditionalWeakTable<ImageLinkInline, ImageLinkHolder> _imageLinkSpans = new();
@@ -39,26 +53,26 @@ internal static class MarkdownInlineMetadataSourceSpans {
             return;
         }
 
-        _linkSpans.Remove(inline);
-        _linkSpans.Add(inline, new LinkHolder {
+        var holder = _linkSpans.GetValue(inline, static _ => new LinkHolder());
+        holder.State = new LinkState {
             TargetSpan = targetSpan,
             TitleSpan = titleSpan,
             HtmlTargetSpan = htmlTargetSpan,
             HtmlRelSpan = htmlRelSpan
-        });
+        };
     }
 
     internal static MarkdownSourceSpan? GetLinkTargetSpan(LinkInline? inline) =>
-        inline != null && _linkSpans.TryGetValue(inline, out var holder) ? holder.TargetSpan : null;
+        inline != null && _linkSpans.TryGetValue(inline, out var holder) ? holder.State?.TargetSpan : null;
 
     internal static MarkdownSourceSpan? GetLinkTitleSpan(LinkInline? inline) =>
-        inline != null && _linkSpans.TryGetValue(inline, out var holder) ? holder.TitleSpan : null;
+        inline != null && _linkSpans.TryGetValue(inline, out var holder) ? holder.State?.TitleSpan : null;
 
     internal static MarkdownSourceSpan? GetLinkHtmlTargetSpan(LinkInline? inline) =>
-        inline != null && _linkSpans.TryGetValue(inline, out var holder) ? holder.HtmlTargetSpan : null;
+        inline != null && _linkSpans.TryGetValue(inline, out var holder) ? holder.State?.HtmlTargetSpan : null;
 
     internal static MarkdownSourceSpan? GetLinkHtmlRelSpan(LinkInline? inline) =>
-        inline != null && _linkSpans.TryGetValue(inline, out var holder) ? holder.HtmlRelSpan : null;
+        inline != null && _linkSpans.TryGetValue(inline, out var holder) ? holder.State?.HtmlRelSpan : null;
 
     internal static void SetImageParts(
         ImageInline? inline,
@@ -73,12 +87,12 @@ internal static class MarkdownInlineMetadataSourceSpans {
             return;
         }
 
-        _imageSpans.Remove(inline);
-        _imageSpans.Add(inline, new ImageHolder {
+        var holder = _imageSpans.GetValue(inline, static _ => new ImageHolder());
+        holder.State = new ImageState {
             AltSpan = altSpan,
             SourceSpan = sourceSpan,
             TitleSpan = titleSpan
-        });
+        };
     }
 
     internal static void SetImageLinkParts(
@@ -100,37 +114,37 @@ internal static class MarkdownInlineMetadataSourceSpans {
             return;
         }
 
-        _imageLinkSpans.Remove(inline);
-        _imageLinkSpans.Add(inline, new ImageLinkHolder {
+        var holder = _imageLinkSpans.GetValue(inline, static _ => new ImageLinkHolder());
+        holder.State = new ImageLinkState {
             AltSpan = altSpan,
             SourceSpan = sourceSpan,
             TitleSpan = imageTitleSpan,
             LinkTargetSpan = linkTargetSpan,
             LinkTitleSpan = linkTitleSpan
-        });
+        };
     }
 
     internal static MarkdownSourceSpan? GetImageAltSpan(ImageInline? inline) =>
-        inline != null && _imageSpans.TryGetValue(inline, out var holder) ? holder.AltSpan : null;
+        inline != null && _imageSpans.TryGetValue(inline, out var holder) ? holder.State?.AltSpan : null;
 
     internal static MarkdownSourceSpan? GetImageSourceSpan(ImageInline? inline) =>
-        inline != null && _imageSpans.TryGetValue(inline, out var holder) ? holder.SourceSpan : null;
+        inline != null && _imageSpans.TryGetValue(inline, out var holder) ? holder.State?.SourceSpan : null;
 
     internal static MarkdownSourceSpan? GetImageTitleSpan(ImageInline? inline) =>
-        inline != null && _imageSpans.TryGetValue(inline, out var holder) ? holder.TitleSpan : null;
+        inline != null && _imageSpans.TryGetValue(inline, out var holder) ? holder.State?.TitleSpan : null;
 
     internal static MarkdownSourceSpan? GetImageAltSpan(ImageLinkInline? inline) =>
-        inline != null && _imageLinkSpans.TryGetValue(inline, out var holder) ? holder.AltSpan : null;
+        inline != null && _imageLinkSpans.TryGetValue(inline, out var holder) ? holder.State?.AltSpan : null;
 
     internal static MarkdownSourceSpan? GetImageSourceSpan(ImageLinkInline? inline) =>
-        inline != null && _imageLinkSpans.TryGetValue(inline, out var holder) ? holder.SourceSpan : null;
+        inline != null && _imageLinkSpans.TryGetValue(inline, out var holder) ? holder.State?.SourceSpan : null;
 
     internal static MarkdownSourceSpan? GetImageTitleSpan(ImageLinkInline? inline) =>
-        inline != null && _imageLinkSpans.TryGetValue(inline, out var holder) ? holder.TitleSpan : null;
+        inline != null && _imageLinkSpans.TryGetValue(inline, out var holder) ? holder.State?.TitleSpan : null;
 
     internal static MarkdownSourceSpan? GetImageLinkTargetSpan(ImageLinkInline? inline) =>
-        inline != null && _imageLinkSpans.TryGetValue(inline, out var holder) ? holder.LinkTargetSpan : null;
+        inline != null && _imageLinkSpans.TryGetValue(inline, out var holder) ? holder.State?.LinkTargetSpan : null;
 
     internal static MarkdownSourceSpan? GetImageLinkTitleSpan(ImageLinkInline? inline) =>
-        inline != null && _imageLinkSpans.TryGetValue(inline, out var holder) ? holder.LinkTitleSpan : null;
+        inline != null && _imageLinkSpans.TryGetValue(inline, out var holder) ? holder.State?.LinkTitleSpan : null;
 }
