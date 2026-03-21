@@ -1263,9 +1263,9 @@ x^2 + 1
         var result = MarkdownRenderer.MarkdownRenderer.ParseDocumentResult("Use **bold** [docs](https://example.com) and `code`.", new MarkdownRendererOptions());
 
         Assert.Equal(MarkdownSyntaxKind.InlineText, result.FindDeepestNodeAtPosition(1, 8)!.Kind);
-        Assert.Equal(MarkdownSyntaxKind.InlineLink, result.FindDeepestNodeAtPosition(1, 30)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineLinkTarget, result.FindDeepestNodeAtPosition(1, 30)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.InlineCodeSpan, result.FindDeepestNodeAtPosition(1, 48)!.Kind);
-        Assert.Equal(new[] { MarkdownSyntaxKind.Document, MarkdownSyntaxKind.Paragraph, MarkdownSyntaxKind.InlineLink }, result.FindNodePathAtPosition(1, 30).Select(node => node.Kind).ToArray());
+        Assert.Equal(new[] { MarkdownSyntaxKind.Document, MarkdownSyntaxKind.Paragraph, MarkdownSyntaxKind.InlineLink, MarkdownSyntaxKind.InlineLinkTarget }, result.FindNodePathAtPosition(1, 30).Select(node => node.Kind).ToArray());
         Assert.Equal(MarkdownSyntaxKind.Paragraph, result.FindNearestBlockAtPosition(1, 48)!.Kind);
     }
 
