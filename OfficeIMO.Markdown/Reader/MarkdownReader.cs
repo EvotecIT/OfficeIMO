@@ -32,6 +32,10 @@ public static partial class MarkdownReader {
         var diagnostics = new List<MarkdownDocumentTransformDiagnostic>();
         var document = ParseInternal(markdown, options, state, allowFrontMatter: true, out var syntaxTree, syntaxNodes, lineOffset: 0, transformDiagnostics: diagnostics);
         var originalSyntaxTree = syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes, document);
+        if (diagnostics.Any(diagnostic => diagnostic.ReplacedDocument)) {
+            originalSyntaxTree = DetachOriginalSyntaxAssociations(originalSyntaxTree);
+        }
+
         var finalSyntaxTree = BuildFinalSyntaxTree(document, originalSyntaxTree, diagnostics);
         MarkdownObjectTreeBinder.BindDocument(document, finalSyntaxTree);
         return new MarkdownParseResult(document, originalSyntaxTree, finalSyntaxTree);
@@ -55,6 +59,10 @@ public static partial class MarkdownReader {
             lineOffset: 0,
             transformDiagnostics: diagnostics);
         var originalSyntaxTree = syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes, document);
+        if (diagnostics.Any(diagnostic => diagnostic.ReplacedDocument)) {
+            originalSyntaxTree = DetachOriginalSyntaxAssociations(originalSyntaxTree);
+        }
+
         var finalSyntaxTree = BuildFinalSyntaxTree(document, originalSyntaxTree, diagnostics);
         MarkdownObjectTreeBinder.BindDocument(document, finalSyntaxTree);
         return new MarkdownParseResult(document, originalSyntaxTree, finalSyntaxTree, diagnostics);
@@ -74,6 +82,36 @@ public static partial class MarkdownReader {
         state ??= new MarkdownReaderState();
         var (blocks, _) = ParseNestedMarkdownBlocks(markdown ?? string.Empty, options, state, state.SourceLineOffset);
         return blocks;
+    }
+
+    internal static IReadOnlyList<IMarkdownBlock> ParseNestedBlocksFromLineRange(
+        string[] lines,
+        int startIndex,
+        int lineCount,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state) {
+        if (lines == null || lines.Length == 0 || lineCount <= 0 || startIndex < 0 || startIndex >= lines.Length) {
+            return Array.Empty<IMarkdownBlock>();
+        }
+
+        var safeCount = Math.Min(lineCount, lines.Length - startIndex);
+        var sourceLines = new List<MarkdownSourceLineSlice>(safeCount);
+        for (int offset = 0; offset < safeCount; offset++) {
+            sourceLines.Add(new MarkdownSourceLineSlice(
+                lines[startIndex + offset] ?? string.Empty,
+                state.SourceLineOffset + startIndex + offset + 1,
+                startColumn: 1));
+        }
+
+        var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(sourceLines, options, state);
+        var nestedDocument = MarkdownDoc.Create();
+        for (int blockIndex = 0; blockIndex < blocks.Count; blockIndex++) {
+            nestedDocument.Add(blocks[blockIndex]);
+        }
+
+        var syntaxTree = BuildDocumentSyntaxTree(syntaxChildren, nestedDocument);
+        MarkdownObjectTreeBinder.BindDocument(nestedDocument, syntaxTree);
+        return nestedDocument.Blocks;
     }
 
     private static MarkdownDoc ParseInternal(
@@ -377,6 +415,7 @@ public static partial class MarkdownReader {
         };
 
         CopyBlockParserExtensions(source, clone);
+        CopyInlineParserExtensions(source, clone);
         CopyFencedBlockExtensions(source, clone);
         CopyDocumentTransforms(source, clone);
         return clone;
@@ -500,6 +539,25 @@ public static partial class MarkdownReader {
             var extension = extensions[i];
             if (extension != null) {
                 target.BlockParserExtensions.Add(extension);
+            }
+        }
+    }
+
+    private static void CopyInlineParserExtensions(MarkdownReaderOptions source, MarkdownReaderOptions target) {
+        if (source == null || target == null) {
+            return;
+        }
+
+        var extensions = source.InlineParserExtensions;
+        target.InlineParserExtensions.Clear();
+        if (extensions == null || extensions.Count == 0) {
+            return;
+        }
+
+        for (int i = 0; i < extensions.Count; i++) {
+            var extension = extensions[i];
+            if (extension != null) {
+                target.InlineParserExtensions.Add(extension);
             }
         }
     }
@@ -720,7 +778,7 @@ public static partial class MarkdownReader {
             children = remappedChildren;
         }
 
-        return new MarkdownSyntaxNode(node.Kind, span, node.Literal, children, node.AssociatedObject);
+        return new MarkdownSyntaxNode(node.Kind, span, node.Literal, children, node.AssociatedObject, node.CustomKind);
     }
 
     private static MarkdownSourceSpan? RemapNestedSourceSpan(

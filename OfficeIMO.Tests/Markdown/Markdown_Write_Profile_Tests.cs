@@ -107,4 +107,63 @@ Lead[^1]
         Assert.Contains("target=\"_blank\"", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("{width=", markdown, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Markdown_Block_Render_Extension_Can_Use_Public_Write_Context() {
+        var doc = MarkdownDoc.Create()
+            .H1("Intro")
+            .H2("Child")
+            .TocHere(options => {
+                options.IncludeTitle = false;
+                options.MinLevel = 2;
+                options.MaxLevel = 6;
+            });
+
+        var options = new MarkdownWriteOptions();
+        options.BlockRenderExtensions.Add(MarkdownBlockMarkdownRenderExtension.CreateContextual(
+            "toc-context",
+            typeof(TocBlock),
+            static (block, context) => {
+                if (block is not TocBlock toc) {
+                    return null;
+                }
+
+                var blockIndex = context.GetBlockIndex(toc);
+                var anchor = context.GetHeadingAnchor(context.Blocks[0]);
+                var entries = context.BuildTocEntries(blockIndex, new TocOptions {
+                    IncludeTitle = false,
+                    MinLevel = 2,
+                    MaxLevel = 6
+                });
+                return $"<!-- toc-index:{blockIndex}; anchor:{anchor}; entries:{string.Join(",", entries.Select(entry => entry.Anchor))} -->";
+            }));
+
+        var markdown = doc.ToMarkdown(options).Replace("\r\n", "\n");
+
+        Assert.Contains("<!-- toc-index:2; anchor:intro; entries:intro,child -->", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("- [Child](#child)", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Markdown_Block_Render_Extension_Legacy_Constructor_Still_Uses_Options_And_Applies() {
+        var doc = MarkdownReader.Parse("""
+> [!NOTE] Example
+> Body text
+""");
+        var options = new MarkdownWriteOptions();
+        options.BlockRenderExtensions.Add(new MarkdownBlockMarkdownRenderExtension(
+            "callout-legacy",
+            typeof(CalloutBlock),
+            static (block, writerOptions) => {
+                if (block is not CalloutBlock callout) {
+                    return null;
+                }
+
+                return $"<!-- mode:{writerOptions.ImageRenderingMode}; kind:{callout.Kind} -->";
+            }));
+
+        var markdown = doc.ToMarkdown(options).Replace("\r\n", "\n");
+
+        Assert.Contains("<!-- mode:RichMarkdown; kind:note -->", markdown, StringComparison.Ordinal);
+    }
 }

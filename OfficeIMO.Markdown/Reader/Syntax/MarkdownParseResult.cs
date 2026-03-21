@@ -6,7 +6,12 @@ namespace OfficeIMO.Markdown;
 public sealed class MarkdownParseResult {
     /// <summary>The parsed markdown object model.</summary>
     public MarkdownDoc Document { get; }
-    /// <summary>The original syntax tree produced before document transforms were applied.</summary>
+    /// <summary>
+    /// The original syntax tree produced before document transforms were applied.
+    /// When a transform replaces the document instance, this tree intentionally drops semantic
+    /// <see cref="MarkdownSyntaxNode.AssociatedObject"/> bindings to avoid stale object references.
+    /// Use <see cref="FinalSyntaxTree"/> for syntax-to-model navigation against <see cref="Document"/>.
+    /// </summary>
     public MarkdownSyntaxNode SyntaxTree { get; }
     /// <summary>The syntax tree corresponding to the final returned <see cref="Document"/>.</summary>
     public MarkdownSyntaxNode FinalSyntaxTree { get; }

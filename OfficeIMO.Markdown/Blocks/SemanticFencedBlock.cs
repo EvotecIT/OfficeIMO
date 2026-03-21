@@ -122,6 +122,7 @@ public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptio
             MarkdownSyntaxKind.SemanticFencedBlock,
             span,
             MarkdownBlockSyntaxBuilder.NormalizeSyntaxLiteralLineEndings(Content),
-            nodes);
+            nodes,
+            this);
     }
 }

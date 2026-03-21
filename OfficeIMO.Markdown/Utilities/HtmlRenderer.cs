@@ -135,7 +135,7 @@ internal static class HtmlRenderer {
     }
 
     private static string RenderBodyBlock(IMarkdownBlock block, MarkdownBodyRenderContext context) {
-        var overridden = TryRenderBlockOverride(block, context.Options);
+        var overridden = TryRenderBlockOverride(block, context);
         if (overridden != null) {
             return overridden;
         }
@@ -147,8 +147,8 @@ internal static class HtmlRenderer {
         return block.RenderHtml();
     }
 
-    private static string? TryRenderBlockOverride(IMarkdownBlock block, HtmlOptions options) {
-        var extensions = options.BlockRenderExtensions;
+    private static string? TryRenderBlockOverride(IMarkdownBlock block, MarkdownBodyRenderContext context) {
+        var extensions = context.Options.BlockRenderExtensions;
         if (extensions == null || extensions.Count == 0) {
             return null;
         }
@@ -159,7 +159,7 @@ internal static class HtmlRenderer {
                 continue;
             }
 
-            var rendered = extension.RenderHtml(block, options);
+            var rendered = extension.RenderHtml(block, context);
             if (rendered != null) {
                 return rendered;
             }

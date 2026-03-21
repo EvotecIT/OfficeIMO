@@ -153,6 +153,41 @@ Use semantic fenced blocks when a fenced language represents a host contract or 
 `context.Language` exposes the primary language token, while `context.InfoString` and `context.FenceInfo` preserve the full fence metadata for hosts that need attributes such as `title="..."`, boolean flags, or brace-style metadata like `{#summary .wide}`.
 `context.FenceInfo` also exposes typed helpers such as `TryGetBooleanAttribute(...)`, `TryGetInt32Attribute(...)`, and alias-aware `GetAttribute(...)` so downstream plugins can consume fence metadata through the AST model instead of reparsing raw strings.
 
+### Custom extension authoring
+
+`OfficeIMO.Markdown` now exposes public parser, AST, and renderer contracts for external extensions:
+
+- `MarkdownInlineParserExtension`
+- `MarkdownBlockParserExtension`
+- `MarkdownBlockParserContext`
+- `MarkdownBlockParseResult`
+- `MarkdownFencedBlockExtension`
+- `ISyntaxMarkdownInline`
+- `ISyntaxMarkdownBlock`
+- `ISyntaxMarkdownBlockWithContext`
+- `IChildMarkdownBlockContainer`
+- `IContextualHtmlMarkdownBlock`
+- `IContextualHtmlMarkdownInline`
+- `MarkdownBlockMarkdownRenderExtension`
+- `MarkdownWriteContext`
+
+`HtmlOptions.BlockRenderExtensions` now supports context-aware HTML overrides through `MarkdownBlockHtmlRenderExtension` registrations that receive `MarkdownBodyRenderContext`.
+`MarkdownWriteOptions.BlockRenderExtensions` now supports context-aware markdown overrides through `MarkdownBlockMarkdownRenderExtension.CreateContextual(...)` and `MarkdownWriteContext`.
+
+Use `MarkdownSyntaxNode.CustomKind` for extension-specific AST identity when your node does not map to an existing `MarkdownSyntaxKind`.
+
+For a full end-to-end example covering:
+
+- custom inline parsing
+- custom fenced blocks
+- syntax-tree participation
+- contextual HTML rendering
+
+see [../Docs/officeimo.markdown.extension-authoring.md](../Docs/officeimo.markdown.extension-authoring.md).
+The runnable sample lives at `../OfficeIMO.Examples/Markdown/Markdown07_Custom_Extensions.cs`.
+The runnable delegate-based block parser sample lives at `../OfficeIMO.Examples/Markdown/Markdown08_Custom_Block_Parsers.cs`.
+The runnable markdown write override sample lives at `../OfficeIMO.Examples/Markdown/Markdown09_Custom_Markdown_Write_Overrides.cs`.
+
 ### Post-parse document transforms
 
 ```csharp

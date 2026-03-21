@@ -2,8 +2,8 @@ namespace OfficeIMO.Markdown;
 
 /// <summary>
 /// Options for the Markdown reader. Profiles and feature toggles shape the generic markdown core,
-/// while <see cref="BlockParserExtensions"/> controls opt-in non-core block syntax such as
-/// OfficeIMO callouts, TOC placeholders, and footnotes.
+/// while <see cref="BlockParserExtensions"/> and <see cref="InlineParserExtensions"/> control opt-in
+/// syntax such as OfficeIMO callouts, TOC placeholders, footnotes, or custom inline tokens.
 /// </summary>
 public sealed class MarkdownReaderOptions {
     /// <summary>
@@ -260,6 +260,12 @@ public sealed class MarkdownReaderOptions {
     /// Profiles use this to opt into OfficeIMO/GFM-style non-core block syntax such as callouts, TOC placeholders, and footnotes.
     /// </summary>
     public List<MarkdownBlockParserExtension> BlockParserExtensions { get; } = new();
+
+    /// <summary>
+    /// Optional ordered inline parser extensions that get a chance to recognize custom inline tokens before
+    /// the built-in inline parser handles the current position.
+    /// </summary>
+    public List<MarkdownInlineParserExtension> InlineParserExtensions { get; } = new();
 
     /// <summary>
     /// Optional ordered post-parse document transforms.

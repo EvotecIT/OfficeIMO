@@ -496,6 +496,43 @@ Why it matters:missing evidence
         Assert.Equal(once, twice);
     }
 
+    [Fact]
+    public void MarkdownInlineNormalizationTransform_Updates_Footnote_Text_From_RewrittenBlocks() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+            NormalizeTightColonSpacing = true
+        }));
+
+        var document = MarkdownReader.Parse("""
+Lead[^1]
+
+[^1]: Why it matters:missing evidence
+""", options);
+
+        var footnote = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(document.Blocks, block => block is FootnoteDefinitionBlock));
+
+        Assert.Equal("Why it matters: missing evidence", footnote.Text);
+        Assert.Equal("Why it matters: missing evidence", Assert.Single(footnote.ParagraphBlocks).Inlines.RenderMarkdown());
+    }
+
+    [Fact]
+    public void MarkdownInlineNormalizationTransform_Updates_Callout_Body_From_RewrittenBlocks() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+            NormalizeTightColonSpacing = true
+        }));
+
+        var document = MarkdownReader.Parse("""
+> [!NOTE] Why it matters
+> coverage:missing evidence
+""", options);
+
+        var callout = Assert.IsType<CalloutBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("coverage: missing evidence", callout.Body);
+        Assert.Equal("coverage: missing evidence", Assert.IsType<ParagraphBlock>(Assert.Single(callout.ChildBlocks)).Inlines.RenderMarkdown());
+    }
+
     private static string NormalizeMarkdown(string markdown) {
         return (markdown ?? string.Empty)
             .Replace("\r\n", "\n")

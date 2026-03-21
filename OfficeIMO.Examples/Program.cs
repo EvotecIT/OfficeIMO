@@ -91,6 +91,12 @@ namespace OfficeIMO.Examples {
             // Markdown.Markdown04_TocLayoutsAndThemes.Example_Toc_ScrollSpy_Long_IndigoTheme(folderPath, false);
             // // Markdown: Built-in HTML style gallery
             // Markdown.Markdown05_ThemesGallery.Example_Themes(folderPath, false);
+            // // Markdown: Custom parser/AST/HTML extensions
+            // Markdown.Markdown07_Custom_Extensions.Example_Custom_Extensions(folderPath, false);
+            // // Markdown: Delegate-based custom block parser extensions
+            // Markdown.Markdown08_Custom_Block_Parsers.Example_Custom_Block_Parsers(folderPath, false);
+            // // Markdown: Context-aware markdown write overrides
+            // Markdown.Markdown09_Custom_Markdown_Write_Overrides.Example_Custom_Markdown_Write_Overrides(folderPath, false);
             // // Word ⇄ Markdown ⇄ HTML End-to-End
             // Word.EndToEnd.Word_EndToEnd.Example(folderPath, false);
             // // Markdown/DomainDetective report (mirrors the Excel structure)
