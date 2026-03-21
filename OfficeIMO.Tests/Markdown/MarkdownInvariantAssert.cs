@@ -84,7 +84,7 @@ internal static class MarkdownInvariantAssert {
             Assert.NotEmpty(ancestorChain);
             Assert.Same(child, ancestorChain[0]);
             Assert.Same(node, ancestorChain[1]);
-            Assert.Same(expectedRoot, ancestorChain[^1]);
+            Assert.Same(expectedRoot, ancestorChain[ancestorChain.Length - 1]);
 
             AssertSemanticNode(child, node, expectedDocument, expectedRoot);
         }
@@ -114,7 +114,7 @@ internal static class MarkdownInvariantAssert {
             Assert.NotEmpty(ancestorChain);
             Assert.Same(child, ancestorChain[0]);
             Assert.Same(node, ancestorChain[1]);
-            Assert.Same(expectedRoot, ancestorChain[^1]);
+            Assert.Same(expectedRoot, ancestorChain[ancestorChain.Length - 1]);
 
             AssertSyntaxNode(child, node, expectedRoot);
         }
