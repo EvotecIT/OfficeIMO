@@ -122,7 +122,8 @@ public static partial class MarkdownReader {
         out MarkdownSyntaxNode? syntaxTree,
         List<MarkdownSyntaxNode>? syntaxNodes = null,
         int lineOffset = 0,
-        ICollection<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null) {
+        ICollection<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null,
+        bool applyDocumentTransforms = true) {
         var doc = MarkdownDoc.Create();
         syntaxTree = syntaxNodes != null ? BuildDocumentSyntaxTree(syntaxNodes, doc) : null;
         if (string.IsNullOrEmpty(markdown)) return doc;
@@ -186,12 +187,15 @@ public static partial class MarkdownReader {
                 bool matched = false;
                 var parsers = pipeline.Parsers;
                 int previousBlockCount = doc.Blocks.Count;
+                int startIndex = i;
                 int startLine = lineOffset + i;
                 for (int p = 0; p < parsers.Count; p++) {
                     if (parsers[p].TryParse(lines, ref i, options, doc, state)) {
                         matched = true;
                         if (syntaxNodes != null && doc.Blocks.Count > previousBlockCount) {
                             CaptureSyntaxNodes(doc, previousBlockCount, startLine, lineOffset + i, syntaxNodes, state);
+                        } else if (syntaxNodes != null) {
+                            CaptureConsumedSyntaxNodes(parsers[p], lines, startIndex, options, syntaxNodes, state);
                         }
                         break;
                     }
@@ -200,8 +204,15 @@ public static partial class MarkdownReader {
             }
 
             syntaxTree = syntaxNodes != null ? BuildDocumentSyntaxTree(syntaxNodes, doc) : null;
+            if (syntaxTree != null) {
+                MarkdownObjectTreeBinder.BindDocument(doc, syntaxTree);
+            }
+
+            if (!applyDocumentTransforms) {
+                return doc;
+            }
+
             var transformed = ApplyDocumentTransforms(doc, options, transformDiagnostics, syntaxTree);
-            MarkdownObjectTreeBinder.BindDocument(transformed, syntaxTree);
             return transformed;
         } finally {
             state.SourceLineOffset = previousLineOffset;
@@ -241,18 +252,114 @@ public static partial class MarkdownReader {
             if (leading >= 4) continue;
             if (leading < line.Length && line[leading] == '\t') continue;
 
-            if (TryParseReferenceLinkDefinition(lines, idx, options, out var label, out var url, out var title, out var consumedLines)) {
+            if (TryParseReferenceLinkDefinition(
+                lines,
+                idx,
+                options,
+                state,
+                out var label,
+                out var url,
+                out var title,
+                out var consumedLines,
+                out var labelSpan,
+                out var urlSpan,
+                out var titleSpan)) {
                 var resolved = ResolveUrl(url, options);
-                if (resolved != null && !state.LinkRefs.ContainsKey(label)) state.LinkRefs[label] = (resolved!, title);
+                if (resolved != null && !state.LinkRefs.ContainsKey(label)) {
+                    state.LinkRefs[label] = new MarkdownReferenceLinkDefinition(label, resolved!, title, labelSpan, urlSpan, titleSpan);
+                }
                 idx += consumedLines - 1;
             }
         }
     }
 
-    private static bool TryParseReferenceLinkDefinition(string[] lines, int index, MarkdownReaderOptions options, out string label, out string url, out string? title, out int consumedLines) {
+    private static void CaptureConsumedSyntaxNodes(
+        IMarkdownBlockParser parser,
+        string[] lines,
+        int startIndex,
+        MarkdownReaderOptions options,
+        List<MarkdownSyntaxNode> syntaxNodes,
+        MarkdownReaderState state) {
+        if (parser is not ReferenceLinkDefParser) {
+            return;
+        }
+
+        if (TryBuildReferenceDefinitionSyntaxNode(lines, startIndex, options, state, out var node, out var consumedLines)) {
+            syntaxNodes.Add(node);
+        }
+    }
+
+    private static bool TryBuildReferenceDefinitionSyntaxNode(
+        string[] lines,
+        int index,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state,
+        out MarkdownSyntaxNode node,
+        out int consumedLines) {
+        node = null!;
+        consumedLines = 0;
+
+        if (!TryParseReferenceLinkDefinition(
+            lines,
+            index,
+            options,
+            state,
+            out var label,
+            out var url,
+            out var title,
+            out consumedLines,
+            out var labelSpan,
+            out var urlSpan,
+            out var titleSpan)) {
+            return false;
+        }
+
+        var children = new List<MarkdownSyntaxNode>(3) {
+            new MarkdownSyntaxNode(MarkdownSyntaxKind.ReferenceLinkLabel, labelSpan, label)
+        };
+
+        if (!string.IsNullOrEmpty(url)) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ReferenceLinkUrl, urlSpan, url));
+        }
+
+        if (!string.IsNullOrEmpty(title)) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ReferenceLinkTitle, titleSpan, title));
+        }
+
+        var definitionSpan = CreateLineSpan(
+            state,
+            state.SourceLineOffset + index + 1,
+            state.SourceLineOffset + index + consumedLines);
+        var literal = consumedLines > 1
+            ? string.Join("\n", lines.Skip(index).Take(consumedLines))
+            : lines[index];
+
+        node = new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.ReferenceLinkDefinition,
+            definitionSpan,
+            literal,
+            children);
+        return true;
+    }
+
+    private static bool TryParseReferenceLinkDefinition(
+        string[] lines,
+        int index,
+        MarkdownReaderOptions options,
+        MarkdownReaderState? state,
+        out string label,
+        out string url,
+        out string? title,
+        out int consumedLines,
+        out MarkdownSourceSpan? labelSpan,
+        out MarkdownSourceSpan? urlSpan,
+        out MarkdownSourceSpan? titleSpan) {
         label = url = string.Empty;
         title = null;
         consumedLines = 0;
+        labelSpan = null;
+        urlSpan = null;
+        titleSpan = null;
 
         if (index < 0 || index >= lines.Length) return false;
         var line = lines[index];
@@ -263,7 +370,7 @@ public static partial class MarkdownReader {
         if (leading >= 4) return false;
         if (leading < line.Length && line[leading] == '\t') return false;
 
-        var trimmed = line.Trim();
+        var trimmed = line.Substring(leading).TrimEnd();
         if (trimmed.Length < 5 || trimmed[0] != '[') return false;
         if (trimmed.Length > 1 && trimmed[1] == '^') return false;
 
@@ -272,13 +379,47 @@ public static partial class MarkdownReader {
         if (rb + 1 >= trimmed.Length || trimmed[rb + 1] != ':') return false;
 
         label = NormalizeReferenceLabel(trimmed.Substring(1, rb - 1));
-        string rest = trimmed.Substring(rb + 2).Trim();
+        labelSpan = CreateSpan(
+            state,
+            state?.SourceLineOffset + index + 1 ?? index + 1,
+            leading + 2,
+            state?.SourceLineOffset + index + 1 ?? index + 1,
+            leading + rb);
+        int restStart = rb + 2;
+        while (restStart < trimmed.Length && char.IsWhiteSpace(trimmed[restStart])) {
+            restStart++;
+        }
+
+        string rest = trimmed.Substring(restStart);
         if (string.IsNullOrEmpty(rest)) return false;
 
-        if (TrySplitUrlAndOptionalTitle(rest, out url, out title)) {
+        if (TrySplitUrlAndOptionalTitle(
+            rest,
+            out url,
+            out title,
+            out int urlInnerStart,
+            out int urlInnerLength,
+            out int? titleInnerStart,
+            out int? titleInnerLength)) {
             consumedLines = 1;
-            if (title == null && TryParseReferenceTitleContinuation(lines, index + 1, out var continuedTitle)) {
+            urlSpan = CreateSpan(
+                state,
+                state?.SourceLineOffset + index + 1 ?? index + 1,
+                leading + restStart + urlInnerStart + 1,
+                state?.SourceLineOffset + index + 1 ?? index + 1,
+                leading + restStart + urlInnerStart + urlInnerLength);
+            if (titleInnerStart.HasValue && titleInnerLength.HasValue) {
+                titleSpan = CreateSpan(
+                    state,
+                    state?.SourceLineOffset + index + 1 ?? index + 1,
+                    leading + restStart + titleInnerStart.Value + 1,
+                    state?.SourceLineOffset + index + 1 ?? index + 1,
+                    leading + restStart + titleInnerStart.Value + titleInnerLength.Value);
+            }
+
+            if (title == null && TryParseReferenceTitleContinuation(lines, index + 1, state, out var continuedTitle, out var continuedTitleSpan)) {
                 title = continuedTitle;
+                titleSpan = continuedTitleSpan;
                 consumedLines = 2;
             }
             return !string.IsNullOrEmpty(label);
@@ -289,17 +430,36 @@ public static partial class MarkdownReader {
         url = UnescapeMarkdownBackslashEscapes(rest);
         title = null;
         consumedLines = 1;
+        urlSpan = CreateSpan(
+            state,
+            state?.SourceLineOffset + index + 1 ?? index + 1,
+            leading + restStart + 1,
+            state?.SourceLineOffset + index + 1 ?? index + 1,
+            leading + restStart + rest.Length);
 
-        if (TryParseReferenceTitleContinuation(lines, index + 1, out var continuationTitle)) {
+        if (TryParseReferenceTitleContinuation(lines, index + 1, state, out var continuationTitle, out var continuationTitleSpan)) {
             title = continuationTitle;
+            titleSpan = continuationTitleSpan;
             consumedLines = 2;
         }
 
         return !string.IsNullOrEmpty(label);
     }
 
-    private static bool TryParseReferenceTitleContinuation(string[] lines, int index, out string? title) {
+    private static bool TryParseReferenceLinkDefinition(string[] lines, int index, MarkdownReaderOptions options, out string label, out string url, out string? title, out int consumedLines) =>
+        TryParseReferenceLinkDefinition(lines, index, options, state: null, out label, out url, out title, out consumedLines, out _, out _, out _);
+
+    private static bool TryParseReferenceTitleContinuation(string[] lines, int index, out string? title) =>
+        TryParseReferenceTitleContinuation(lines, index, state: null, out title, out _);
+
+    private static bool TryParseReferenceTitleContinuation(
+        string[] lines,
+        int index,
+        MarkdownReaderState? state,
+        out string? title,
+        out MarkdownSourceSpan? titleSpan) {
         title = null;
+        titleSpan = null;
         if (index < 0 || index >= lines.Length) return false;
 
         var line = lines[index];
@@ -310,10 +470,18 @@ public static partial class MarkdownReader {
         if (leading >= 4) return false;
         if (leading < line.Length && line[leading] == '\t') return false;
 
-        title = TryParseOptionalTitleToken(line.Trim());
-        if (title == null) return false;
+        var trimmed = line.Substring(leading).TrimEnd();
+        if (!TryParseOptionalTitleToken(trimmed, 0, trimmed.Length, out title, out int titleStart, out int titleLength) || title == null) {
+            return false;
+        }
 
         title = UnescapeMarkdownBackslashEscapes(title);
+        titleSpan = CreateSpan(
+            state,
+            state?.SourceLineOffset + index + 1 ?? index + 1,
+            leading + titleStart + 1,
+            state?.SourceLineOffset + index + 1 ?? index + 1,
+            leading + titleStart + titleLength);
         return true;
     }
 
@@ -729,7 +897,7 @@ public static partial class MarkdownReader {
         var nestedOptions = CloneOptionsWithoutFrontMatter(options);
         var nestedState = CloneState(state);
         var syntaxChildren = new List<MarkdownSyntaxNode>();
-        var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, out _, syntaxChildren, lineOffset: lineOffset);
+        var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, out _, syntaxChildren, lineOffset: lineOffset, applyDocumentTransforms: false);
         return (nestedDoc.Blocks, syntaxChildren);
     }
 
@@ -745,8 +913,11 @@ public static partial class MarkdownReader {
         var nestedOptions = CloneOptionsWithoutFrontMatter(options);
         var nestedState = CloneState(state);
         var syntaxChildren = new List<MarkdownSyntaxNode>();
-        var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, out _, syntaxChildren, lineOffset: 0);
-        return (nestedDoc.Blocks, RemapNestedSyntaxNodes(sourceLines, syntaxChildren));
+        var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, out _, syntaxChildren, lineOffset: 0, applyDocumentTransforms: false);
+        var remappedSyntaxChildren = RemapNestedSyntaxNodes(sourceLines, syntaxChildren);
+        var remappedSyntaxTree = BuildDocumentSyntaxTree(remappedSyntaxChildren, nestedDoc);
+        MarkdownObjectTreeBinder.BindDocument(nestedDoc, remappedSyntaxTree);
+        return (nestedDoc.Blocks, remappedSyntaxChildren);
     }
 
     private static IReadOnlyList<MarkdownSyntaxNode> RemapNestedSyntaxNodes(

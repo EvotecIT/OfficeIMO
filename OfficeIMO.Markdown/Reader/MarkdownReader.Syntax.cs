@@ -78,17 +78,18 @@ public static partial class MarkdownReader {
         MarkdownSyntaxNode originalSyntaxTree,
         IReadOnlyList<MarkdownDocumentTransformDiagnostic>? transformDiagnostics) {
         var children = originalSyntaxTree?.Children ?? Array.Empty<MarkdownSyntaxNode>();
+        var blockChildren = children.Where(static child => child.AssociatedObject is IMarkdownBlock).ToList();
         var topLevelBlocks = document.TopLevelBlocks;
         var spans = new List<MarkdownSourceSpan?>(document.Blocks.Count);
 
-        if (children.Count > 0) {
-            var childCount = Math.Min(children.Count, topLevelBlocks.Count);
+        if (blockChildren.Count > 0) {
+            var childCount = Math.Min(blockChildren.Count, topLevelBlocks.Count);
             for (int i = 0; i < childCount; i++) {
                 if (topLevelBlocks[i] is FrontMatterBlock) {
                     continue;
                 }
 
-                spans.Add(children[i].SourceSpan);
+                spans.Add(blockChildren[i].SourceSpan);
             }
         }
 

@@ -28,6 +28,11 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
     public IList<ImagePictureSource> PictureSources { get; } = new List<ImagePictureSource>();
     /// <inheritdoc />
     public string? Caption { get; set; }
+    internal MarkdownSourceSpan? AltSyntaxSpan { get; private set; }
+    internal MarkdownSourceSpan? SourceSyntaxSpan { get; private set; }
+    internal MarkdownSourceSpan? TitleSyntaxSpan { get; private set; }
+    internal MarkdownSourceSpan? LinkTargetSyntaxSpan { get; private set; }
+    internal MarkdownSourceSpan? LinkTitleSyntaxSpan { get; private set; }
 
     /// <summary>Create an image block.</summary>
     public ImageBlock(string path, string? alt, string? title)
@@ -135,17 +140,17 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
         var nodes = new List<MarkdownSyntaxNode>();
         if (!string.IsNullOrEmpty(Alt)) {
-            nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageAlt, span, Alt));
+            nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageAlt, AltSyntaxSpan, Alt));
         }
 
-        nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageSource, span, Path));
+        nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageSource, SourceSyntaxSpan, Path));
 
         if (!string.IsNullOrEmpty(LinkUrl)) {
-            nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageLinkTarget, span, LinkUrl));
+            nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageLinkTarget, LinkTargetSyntaxSpan, LinkUrl));
         }
 
         if (!string.IsNullOrEmpty(LinkTitle)) {
-            nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageLinkTitle, span, LinkTitle));
+            nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageLinkTitle, LinkTitleSyntaxSpan, LinkTitle));
         }
 
         if (!string.IsNullOrEmpty(LinkTarget)) {
@@ -157,7 +162,7 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
         }
 
         if (!string.IsNullOrEmpty(Title)) {
-            nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageTitle, span, Title));
+            nodes.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.ImageTitle, TitleSyntaxSpan, Title));
         }
 
         return new MarkdownSyntaxNode(
@@ -166,6 +171,32 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
             ((IMarkdownBlock)this).RenderMarkdown(),
             nodes,
             this);
+    }
+
+    internal void SetMarkdownSyntaxMetadataSpans(
+        MarkdownSourceSpan? altSpan,
+        MarkdownSourceSpan? sourceSpan,
+        MarkdownSourceSpan? titleSpan,
+        MarkdownSourceSpan? linkTargetSpan,
+        MarkdownSourceSpan? linkTitleSpan) {
+        AltSyntaxSpan = altSpan;
+        SourceSyntaxSpan = sourceSpan;
+        TitleSyntaxSpan = titleSpan;
+        LinkTargetSyntaxSpan = linkTargetSpan;
+        LinkTitleSyntaxSpan = linkTitleSpan;
+    }
+
+    internal void CopyMarkdownSyntaxMetadataSpansFrom(ImageBlock? source) {
+        if (source == null) {
+            return;
+        }
+
+        SetMarkdownSyntaxMetadataSpans(
+            source.AltSyntaxSpan,
+            source.SourceSyntaxSpan,
+            source.TitleSyntaxSpan,
+            source.LinkTargetSyntaxSpan,
+            source.LinkTitleSyntaxSpan);
     }
 
     private static string BuildLinkHtmlAttributes(HtmlOptions? options, string url, string? explicitTarget, string? explicitRel) {

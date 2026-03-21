@@ -162,15 +162,31 @@ public sealed class ListItem : MarkdownObject {
 
     private List<MarkdownSyntaxNode> BuildOwnedSyntaxChildren() {
         var children = new List<MarkdownSyntaxNode>();
+        var blockChildren = BlockChildren;
         if (SyntaxChildren.Count > 0) {
-            children.AddRange(SyntaxChildren);
+            for (int i = 0; i < SyntaxChildren.Count; i++) {
+                if (i < blockChildren.Count) {
+                    if (blockChildren[i] is ParagraphBlock paragraph && SyntaxChildren[i].Kind == MarkdownSyntaxKind.Paragraph) {
+                        children.Add(BuildParagraphSyntaxNode(paragraph, SyntaxChildren[i].SourceSpan));
+                        continue;
+                    }
+
+                    if (blockChildren[i] is IMarkdownBlock block
+                        && SyntaxChildren[i].AssociatedObject is MarkdownObject markdownObject
+                        && markdownObject.Document == null) {
+                        children.Add(MarkdownBlockSyntaxBuilder.BuildBlock(block, SyntaxChildren[i].SourceSpan));
+                        continue;
+                    }
+                }
+
+                children.Add(SyntaxChildren[i]);
+            }
             return children;
         }
 
-        var blockChildren = BlockChildren;
         for (int i = 0; i < blockChildren.Count; i++) {
             if (blockChildren[i] is ParagraphBlock paragraph) {
-                children.Add(BuildParagraphSyntaxNode(paragraph.Inlines));
+                children.Add(BuildParagraphSyntaxNode(paragraph));
             } else {
                 children.Add(MarkdownBlockSyntaxBuilder.BuildBlock(blockChildren[i]));
             }
@@ -225,9 +241,11 @@ public sealed class ListItem : MarkdownObject {
         }
     }
 
-    private static MarkdownSyntaxNode BuildParagraphSyntaxNode(InlineSequence paragraph) =>
+    private static MarkdownSyntaxNode BuildParagraphSyntaxNode(ParagraphBlock paragraph, MarkdownSourceSpan? span = null) =>
         MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(
             MarkdownSyntaxKind.Paragraph,
-            paragraph,
-            literal: paragraph.RenderMarkdown());
+            paragraph.Inlines,
+            span: span ?? paragraph.SourceSpan,
+            literal: paragraph.Inlines.RenderMarkdown(),
+            associatedObject: paragraph);
 }

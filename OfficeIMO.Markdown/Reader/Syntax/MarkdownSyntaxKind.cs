@@ -18,6 +18,14 @@ public enum MarkdownSyntaxKind {
     InlineCodeSpan,
     /// <summary>Hyperlink inline node.</summary>
     InlineLink,
+    /// <summary>Hyperlink destination URL metadata.</summary>
+    InlineLinkTarget,
+    /// <summary>Optional hyperlink title metadata.</summary>
+    InlineLinkTitle,
+    /// <summary>Optional hyperlink target attribute preserved from richer HTML sources.</summary>
+    InlineLinkHtmlTarget,
+    /// <summary>Optional hyperlink rel attribute preserved from richer HTML sources.</summary>
+    InlineLinkHtmlRel,
     /// <summary>Standalone inline image node.</summary>
     InlineImage,
     /// <summary>Linked inline image node.</summary>
@@ -90,6 +98,10 @@ public enum MarkdownSyntaxKind {
     ImageTitle,
     /// <summary>Callout or admonition block.</summary>
     Callout,
+    /// <summary>Callout/admonition marker kind such as note or tip.</summary>
+    CalloutKind,
+    /// <summary>Inline title/header content for a callout block.</summary>
+    CalloutTitle,
     /// <summary>Definition list block.</summary>
     DefinitionList,
     /// <summary>Semantic definition-list group with shared terms and definitions.</summary>
@@ -102,6 +114,16 @@ public enum MarkdownSyntaxKind {
     DefinitionValue,
     /// <summary>Footnote definition block.</summary>
     FootnoteDefinition,
+    /// <summary>Footnote definition label/identifier.</summary>
+    FootnoteLabel,
+    /// <summary>Reference-style link definition consumed during parsing.</summary>
+    ReferenceLinkDefinition,
+    /// <summary>Reference-style link definition label/identifier.</summary>
+    ReferenceLinkLabel,
+    /// <summary>Reference-style link definition URL/destination.</summary>
+    ReferenceLinkUrl,
+    /// <summary>Reference-style link definition optional title.</summary>
+    ReferenceLinkTitle,
     /// <summary>Details/disclosure block.</summary>
     Details,
     /// <summary>Summary node inside a details block.</summary>

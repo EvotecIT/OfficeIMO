@@ -189,13 +189,43 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
         return MarkdownBlockSyntaxBuilder.BuildChildSyntaxNodes(Blocks);
     }
 
-    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
+        var children = new List<MarkdownSyntaxNode> {
+            new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.FootnoteLabel,
+                GetFootnoteLabelSpan(span),
+                Label)
+        };
+
+        var bodyChildren = ((IOwnedSyntaxChildrenMarkdownBlock)this).BuildOwnedSyntaxChildren();
+        for (int i = 0; i < bodyChildren.Count; i++) {
+            children.Add(bodyChildren[i]);
+        }
+
+        return new MarkdownSyntaxNode(
             MarkdownSyntaxKind.FootnoteDefinition,
             span,
             Label,
-            ((IOwnedSyntaxChildrenMarkdownBlock)this).BuildOwnedSyntaxChildren(),
+            children,
             this);
+    }
+
+    private MarkdownSourceSpan? GetFootnoteLabelSpan(MarkdownSourceSpan? footnoteSpan) {
+        if (!footnoteSpan.HasValue || string.IsNullOrEmpty(Label)) {
+            return null;
+        }
+
+        var startColumn = footnoteSpan.Value.StartColumn;
+        if (!startColumn.HasValue) {
+            return null;
+        }
+
+        return new MarkdownSourceSpan(
+            footnoteSpan.Value.StartLine,
+            startColumn.Value + 2,
+            footnoteSpan.Value.StartLine,
+            startColumn.Value + 1 + Label.Length);
+    }
 
     private string RenderMarkdown() {
         var blocks = GetBlocksForRender();

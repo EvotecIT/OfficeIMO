@@ -7,10 +7,21 @@ public static partial class MarkdownReader {
     /// </summary>
     internal sealed class ReferenceLinkDefParser : IMarkdownBlockParser {
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
-            if (TryParseReferenceLinkDefinition(lines, i, options, out var label, out var url, out var title, out var consumedLines)) {
+            if (TryParseReferenceLinkDefinition(
+                lines,
+                i,
+                options,
+                state,
+                out var label,
+                out var url,
+                out var title,
+                out var consumedLines,
+                out var labelSpan,
+                out var urlSpan,
+                out var titleSpan)) {
                 var resolved = ResolveUrl(url, options);
                 if (resolved != null && !state.LinkRefs.ContainsKey(label)) {
-                    state.LinkRefs[label] = (resolved!, title);
+                    state.LinkRefs[label] = new MarkdownReferenceLinkDefinition(label, resolved!, title, labelSpan, urlSpan, titleSpan);
                 }
                 i += consumedLines;
                 return true;

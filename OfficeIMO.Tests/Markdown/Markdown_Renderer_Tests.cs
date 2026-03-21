@@ -1301,7 +1301,7 @@ x^2 + 1
         var rendererDiagnostic = Assert.Single(result.TransformDiagnostics, diagnostic =>
             diagnostic.Source == MarkdownDocumentTransformSource.MarkdownRenderer
             && diagnostic.TransformName.Contains(nameof(RendererRewriteFirstParagraphTransform), StringComparison.Ordinal));
-        Assert.Equal(new MarkdownSourceSpan(1, 1), rendererDiagnostic.AffectedSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 5), rendererDiagnostic.AffectedSourceSpan);
     }
 
     [Fact]
@@ -1322,7 +1322,7 @@ second
         var rendererDiagnostic = Assert.Single(result.TransformDiagnostics, diagnostic =>
             diagnostic.Source == MarkdownDocumentTransformSource.MarkdownRenderer
             && diagnostic.TransformName.Contains(nameof(RendererRewriteSecondParagraphTransform), StringComparison.Ordinal));
-        Assert.Equal(new MarkdownSourceSpan(7, 7), rendererDiagnostic.AffectedSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(7, 1, 7, 6), rendererDiagnostic.AffectedSourceSpan);
     }
 
     [Fact]

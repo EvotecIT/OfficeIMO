@@ -155,6 +155,24 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
             : MarkdownReader.ParseInlineText(markdown, options, state);
     }
 
+    private InlineSequence BuildDefinitionInline(
+        DefinitionListDefinition definition,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state) {
+        if (definition == null || definition.Blocks.Count == 0) {
+            return new InlineSequence();
+        }
+
+        if (definition.Blocks.Count == 1 && definition.Blocks[0] is ParagraphBlock paragraph) {
+            return paragraph.Inlines;
+        }
+
+        var markdown = definition.RenderMarkdown();
+        return string.IsNullOrEmpty(markdown)
+            ? new InlineSequence()
+            : MarkdownReader.ParseInlineText(markdown, options, state);
+    }
+
     private IReadOnlyList<IMarkdownBlock> BuildChildBlocks() {
         if (_groups.Count == 0) {
             return Array.Empty<IMarkdownBlock>();
@@ -259,8 +277,7 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
                 }
 
                 if (definitionChildren.Count == 0 && !string.IsNullOrEmpty(definitionLiteral)) {
-                    var fallbackEntry = new DefinitionListEntry(new InlineSequence(), definition);
-                    var fallbackInlines = BuildDefinitionInline(fallbackEntry, ReaderOptions ?? new MarkdownReaderOptions(), ReaderState ?? new MarkdownReaderState());
+                    var fallbackInlines = BuildDefinitionInline(definition, ReaderOptions ?? new MarkdownReaderOptions(), ReaderState ?? new MarkdownReaderState());
                     definitionChildren.Add(MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(
                         MarkdownSyntaxKind.Paragraph,
                         fallbackInlines,
@@ -271,13 +288,15 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
                     MarkdownSyntaxKind.DefinitionValue,
                     MarkdownBlockSyntaxBuilder.GetAggregateSpan(definitionChildren),
                     definitionLiteral,
-                    definitionChildren));
+                    definitionChildren,
+                    associatedObject: definition));
             }
 
             nodes.Add(new MarkdownSyntaxNode(
                 MarkdownSyntaxKind.DefinitionGroup,
                 MarkdownBlockSyntaxBuilder.GetAggregateSpan(groupChildren),
-                children: groupChildren));
+                children: groupChildren,
+                associatedObject: group));
         }
 
         return nodes;

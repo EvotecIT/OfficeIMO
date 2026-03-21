@@ -78,22 +78,26 @@ public static partial class MarkdownReader {
                     termInlines,
                     termSpan,
                     term);
+                var definitionObject = new DefinitionListDefinition(definitionBlocks);
                 var valueNode = new MarkdownSyntaxNode(
                     MarkdownSyntaxKind.DefinitionValue,
                     definitionSpan,
                     RenderDefinitionLiteral(definitionBlocks, def),
-                    definitionSyntaxChildren);
+                    definitionSyntaxChildren,
+                    associatedObject: definitionObject);
+                var group = new DefinitionListGroup(
+                    new[] { termInlines },
+                    new[] { definitionObject });
                 dl.AddParsedGroup(
-                    new DefinitionListGroup(
-                        new[] { termInlines },
-                        new[] { new DefinitionListDefinition(definitionBlocks) }),
+                    group,
                     new MarkdownSyntaxNode(
                         MarkdownSyntaxKind.DefinitionGroup,
                         MarkdownBlockSyntaxBuilder.GetAggregateSpan(new[] { termNode, valueNode }),
                         children: new[] {
                             termNode,
                             valueNode
-                        }));
+                        },
+                        associatedObject: group));
                 j = next;
                 int separator = j;
                 while (separator < lines.Length && string.IsNullOrWhiteSpace(lines[separator])) {
