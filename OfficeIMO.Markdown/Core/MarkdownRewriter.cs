@@ -66,7 +66,8 @@ public abstract class MarkdownRewriter {
                 break;
         }
 
-        return RewriteCurrentBlock(current) ?? current;
+        var rewritten = RewriteCurrentBlock(current) ?? current;
+        return PreserveSourceSpan(current, rewritten);
     }
 
     /// <summary>Hook invoked after child blocks have already been rewritten.</summary>
@@ -177,6 +178,19 @@ public abstract class MarkdownRewriter {
 
         var rewrittenChildren = RewriteBlocks(block.ChildBlocks);
         return new CalloutBlock(block.Kind, block.TitleInlines, rewrittenChildren, syntaxChildren: null);
+    }
+
+    private static IMarkdownBlock PreserveSourceSpan(IMarkdownBlock original, IMarkdownBlock rewritten) {
+        if (ReferenceEquals(original, rewritten)
+            || original is not MarkdownObject originalObject
+            || rewritten is not MarkdownObject rewrittenObject
+            || rewrittenObject.SourceSpan.HasValue
+            || !originalObject.SourceSpan.HasValue) {
+            return rewritten;
+        }
+
+        rewrittenObject.SourceSpan = originalObject.SourceSpan;
+        return rewritten;
     }
 }
 

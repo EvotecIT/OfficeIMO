@@ -182,7 +182,25 @@ public static partial class MarkdownReader {
                 if (rb > pos + 2) { var lab = text.Substring(pos + 2, rb - (pos + 2)); AddRawNode(new FootnoteRefInline(lab), pos, rb + 1 - pos); pos = rb + 1; continue; }
             }
 
-            if (TryParseImageLink(text, pos, out int consumed, out var alt2, out var img2, out var imgTitle2, out var href2, out var hrefTitle2)) {
+            if (TryParseImageLink(
+                text,
+                pos,
+                out int consumed,
+                out var alt2,
+                out var img2,
+                out var imgTitle2,
+                out var href2,
+                out var hrefTitle2,
+                out int altStart2,
+                out int altLength2,
+                out int imgStart2,
+                out int imgLength2,
+                out int? imgTitleStart2,
+                out int? imgTitleLength2,
+                out int imageLinkHrefStart,
+                out int imageLinkHrefLength,
+                out int? imageLinkHrefTitleStart,
+                out int? imageLinkHrefTitleLength)) {
                 if (allowLinks && allowImages) {
                     var imgResolved = ResolveUrl(img2, options);
                     var hrefResolved = ResolveUrl(href2, options);
@@ -190,7 +208,19 @@ public static partial class MarkdownReader {
                         // Unsafe URLs: keep content as plain text instead of a clickable linked image.
                         AddTextNode(string.IsNullOrEmpty(alt2) ? "image" : alt2, pos, consumed);
                     } else {
-                        AddRawNode(new ImageLinkInline(alt2, imgResolved!, hrefResolved!, imgTitle2, hrefTitle2), pos, consumed);
+                        var imageLink = new ImageLinkInline(alt2, imgResolved!, hrefResolved!, imgTitle2, hrefTitle2);
+                        AddRawNode(imageLink, pos, consumed);
+                        MarkdownInlineMetadataSourceSpans.SetImageLinkParts(
+                            imageLink,
+                            sourceMap?.GetSpan(altStart2, altLength2),
+                            sourceMap?.GetSpan(imgStart2, imgLength2),
+                            imgTitleStart2.HasValue && imgTitleLength2.HasValue
+                                ? sourceMap?.GetSpan(imgTitleStart2.Value, imgTitleLength2.Value)
+                                : null,
+                            sourceMap?.GetSpan(imageLinkHrefStart, imageLinkHrefLength),
+                            imageLinkHrefTitleStart.HasValue && imageLinkHrefTitleLength.HasValue
+                                ? sourceMap?.GetSpan(imageLinkHrefTitleStart.Value, imageLinkHrefTitleLength.Value)
+                                : null);
                     }
                     pos += consumed; continue;
                 }
@@ -199,14 +229,27 @@ public static partial class MarkdownReader {
             if (text[pos] == '!') {
                 if (allowImages) {
                     // Reference-style image: ![alt][label], ![alt][], or shortcut ![label]
-                    if (state != null && TryParseReferenceImage(text, pos, out int consumedRefImg, out var altRef, out var refLabel)) {
+                    if (state != null && TryParseReferenceImage(
+                        text,
+                        pos,
+                        out int consumedRefImg,
+                        out var altRef,
+                        out var refLabel,
+                        out int altRefStart,
+                        out int altRefLength)) {
                         var key = NormalizeReferenceLabel(refLabel);
                         if (state.LinkRefs.TryGetValue(key, out var defImg)) {
                             var resolved = ResolveUrl(defImg.Url, options);
                             if (resolved is null) {
                                 AddTextNode(string.IsNullOrEmpty(altRef) ? "image" : altRef, pos, consumedRefImg);
                             } else {
-                                AddRawNode(new ImageInline(altRef, resolved!, defImg.Title), pos, consumedRefImg);
+                                var image = new ImageInline(altRef, resolved!, defImg.Title);
+                                AddRawNode(image, pos, consumedRefImg);
+                                MarkdownInlineMetadataSourceSpans.SetImageParts(
+                                    image,
+                                    sourceMap?.GetSpan(altRefStart, altRefLength),
+                                    defImg.UrlSourceSpan,
+                                    defImg.TitleSourceSpan);
                             }
                         } else {
                             // Preserve literal syntax when the definition is missing.
@@ -216,12 +259,32 @@ public static partial class MarkdownReader {
                     }
 
                     // Inline image: ![alt](src "title")
-                    if (TryParseInlineImage(text, pos, out int consumedImg, out var altImg, out var srcImg, out var titleImg)) {
+                    if (TryParseInlineImage(
+                        text,
+                        pos,
+                        out int consumedImg,
+                        out var altImg,
+                        out var srcImg,
+                        out var titleImg,
+                        out int altStartImg,
+                        out int altLengthImg,
+                        out int srcStartImg,
+                        out int srcLengthImg,
+                        out int? titleStartImg,
+                        out int? titleLengthImg)) {
                         var srcResolved = ResolveUrl(srcImg, options);
                         if (srcResolved is null) {
                             AddTextNode(string.IsNullOrEmpty(altImg) ? "image" : altImg, pos, consumedImg);
                         } else {
-                            AddRawNode(new ImageInline(altImg, srcResolved!, titleImg), pos, consumedImg);
+                            var image = new ImageInline(altImg, srcResolved!, titleImg);
+                            AddRawNode(image, pos, consumedImg);
+                            MarkdownInlineMetadataSourceSpans.SetImageParts(
+                                image,
+                                sourceMap?.GetSpan(altStartImg, altLengthImg),
+                                sourceMap?.GetSpan(srcStartImg, srcLengthImg),
+                                titleStartImg.HasValue && titleLengthImg.HasValue
+                                    ? sourceMap?.GetSpan(titleStartImg.Value, titleLengthImg.Value)
+                                    : null);
                         }
                         pos += consumedImg; continue;
                     }
@@ -239,7 +302,12 @@ public static partial class MarkdownReader {
                 if (resolved is null) {
                     AddTextNode(text.Substring(pos, consumedAngle), pos, consumedAngle);
                 } else {
-                    AddRawNode(new LinkInline(labelAngle, resolved!, null), pos, consumedAngle);
+                    var link = new LinkInline(labelAngle, resolved!, null);
+                    AddRawNode(link, pos, consumedAngle);
+                    MarkdownInlineMetadataSourceSpans.SetLinkParts(
+                        link,
+                        sourceMap?.GetSpan(pos + 1, Math.Max(0, consumedAngle - 2)),
+                        null);
                 }
                 pos += consumedAngle;
                 continue;
@@ -254,7 +322,9 @@ public static partial class MarkdownReader {
                             if (resolved is null) {
                                 foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
                             } else {
-                                AddRawNode(new LinkInline(labelSeq, resolved!, def2.Title), pos, consumedC);
+                                var link = new LinkInline(labelSeq, resolved!, def2.Title);
+                                AddRawNode(link, pos, consumedC);
+                                MarkdownInlineMetadataSourceSpans.SetLinkParts(link, def2.UrlSourceSpan, def2.TitleSourceSpan);
                             }
                         } else {
                             AddTextNode(text.Substring(pos, consumedC), pos, consumedC);
@@ -269,7 +339,9 @@ public static partial class MarkdownReader {
                             if (resolved is null) {
                                 foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
                             } else {
-                                AddRawNode(new LinkInline(labelSeq, resolved!, def.Title), pos, consumedR);
+                                var link = new LinkInline(labelSeq, resolved!, def.Title);
+                                AddRawNode(link, pos, consumedR);
+                                MarkdownInlineMetadataSourceSpans.SetLinkParts(link, def.UrlSourceSpan, def.TitleSourceSpan);
                             }
                         } else {
                             AddTextNode(text.Substring(pos, consumedR), pos, consumedR);
@@ -284,26 +356,38 @@ public static partial class MarkdownReader {
                             if (resolved is null) {
                                 foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
                             } else {
-                                AddRawNode(new LinkInline(labelSeq, resolved!, def3.Title), pos, consumedS);
+                                var link = new LinkInline(labelSeq, resolved!, def3.Title);
+                                AddRawNode(link, pos, consumedS);
+                                MarkdownInlineMetadataSourceSpans.SetLinkParts(link, def3.UrlSourceSpan, def3.TitleSourceSpan);
                             }
                         } else {
                             AddTextNode(text.Substring(pos, consumedS), pos, consumedS);
                         }
                         pos += consumedS; continue;
                     }
-                    if (TryParseLink(text, pos, out int consumed2, out var label2, out var href3, out var title2)) {
+                    if (TryParseLink(text, pos, out int consumed2, out var label2, out var href3, out var title2, out int hrefStart2, out int hrefLength2, out int? titleStart2, out int? titleLength2)) {
                         var labelSeq = ParseInlinesInternal(label2, options, state, allowLinks: false, allowImages: false, SliceMap(pos + 1, label2.Length));
 
                         // Allow empty href: commonly used as placeholder or to be filled by the host.
                         if (string.IsNullOrWhiteSpace(href3)) {
-                            AddRawNode(new LinkInline(labelSeq, string.Empty, title2), pos, consumed2);
+                            var link = new LinkInline(labelSeq, string.Empty, title2);
+                            AddRawNode(link, pos, consumed2);
+                            MarkdownInlineMetadataSourceSpans.SetLinkParts(
+                                link,
+                                hrefLength2 > 0 ? sourceMap?.GetSpan(hrefStart2, hrefLength2) : null,
+                                titleStart2.HasValue && titleLength2.HasValue ? sourceMap?.GetSpan(titleStart2.Value, titleLength2.Value) : null);
                         } else {
                             var hrefResolved = ResolveUrl(href3, options);
                             if (hrefResolved is null) {
                                 // Unsafe URLs: keep the label as plain inline content instead of producing an <a href="...">.
                                 foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
                             } else {
-                                AddRawNode(new LinkInline(labelSeq, hrefResolved!, title2), pos, consumed2);
+                                var link = new LinkInline(labelSeq, hrefResolved!, title2);
+                                AddRawNode(link, pos, consumed2);
+                                MarkdownInlineMetadataSourceSpans.SetLinkParts(
+                                    link,
+                                    hrefLength2 > 0 ? sourceMap?.GetSpan(hrefStart2, hrefLength2) : null,
+                                    titleStart2.HasValue && titleLength2.HasValue ? sourceMap?.GetSpan(titleStart2.Value, titleLength2.Value) : null);
                             }
                         }
                         pos += consumed2; continue;
@@ -1401,8 +1485,19 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryParseLink(string text, int start, out int consumed, out string label, out string href, out string? title) {
+    private static bool TryParseLink(
+        string text,
+        int start,
+        out int consumed,
+        out string label,
+        out string href,
+        out string? title,
+        out int hrefStart,
+        out int hrefLength,
+        out int? titleStart,
+        out int? titleLength) {
         consumed = 0; label = href = string.Empty; title = null;
+        hrefStart = 0; hrefLength = 0; titleStart = null; titleLength = null;
         if (start >= text.Length || text[start] != '[') return false;
         int labelEnd = FindMatchingBracket(text, start);
         if (labelEnd < 0) return false;
@@ -1412,17 +1507,62 @@ public static partial class MarkdownReader {
         if (parenClose < 0) return false;
         label = text.Substring(start + 1, labelEnd - (start + 1));
         string inner = text.Substring(parenOpen + 1, parenClose - (parenOpen + 1));
-        if (!TrySplitUrlAndOptionalTitle(inner, out href, out title)) {
+        if (!TrySplitUrlAndOptionalTitle(inner, out href, out title, out int hrefInnerStart, out int hrefInnerLength, out int? titleInnerStart, out int? titleInnerLength)) {
             if (IndexOfWhitespace(inner.Trim()) >= 0) return false;
             href = UnescapeMarkdownBackslashEscapes(inner.Trim());
             title = null;
+            int trimmedStart = 0;
+            while (trimmedStart < inner.Length && char.IsWhiteSpace(inner[trimmedStart])) {
+                trimmedStart++;
+            }
+
+            int trimmedEndExclusive = inner.Length;
+            while (trimmedEndExclusive > trimmedStart && char.IsWhiteSpace(inner[trimmedEndExclusive - 1])) {
+                trimmedEndExclusive--;
+            }
+
+            hrefInnerStart = trimmedStart;
+            hrefInnerLength = Math.Max(0, trimmedEndExclusive - trimmedStart);
+            titleInnerStart = null;
+            titleInnerLength = null;
         }
+
+        hrefStart = parenOpen + 1 + hrefInnerStart;
+        hrefLength = hrefInnerLength;
+        if (titleInnerStart.HasValue && titleInnerLength.HasValue) {
+            titleStart = parenOpen + 1 + titleInnerStart.Value;
+            titleLength = titleInnerLength.Value;
+        }
+
         consumed = parenClose - start + 1;
         return true;
     }
 
-    private static bool TryParseImageLink(string text, int start, out int consumed, out string alt, out string img, out string? imgTitle, out string href, out string? hrefTitle) {
+    private static bool TryParseImageLink(string text, int start, out int consumed, out string alt, out string img, out string? imgTitle, out string href, out string? hrefTitle) =>
+        TryParseImageLink(text, start, out consumed, out alt, out img, out imgTitle, out href, out hrefTitle, out _, out _, out _, out _, out _, out _, out _, out _, out _, out _);
+
+    private static bool TryParseImageLink(
+        string text,
+        int start,
+        out int consumed,
+        out string alt,
+        out string img,
+        out string? imgTitle,
+        out string href,
+        out string? hrefTitle,
+        out int altStart,
+        out int altLength,
+        out int imgStart,
+        out int imgLength,
+        out int? imgTitleStart,
+        out int? imgTitleLength,
+        out int hrefStart,
+        out int hrefLength,
+        out int? hrefTitleStart,
+        out int? hrefTitleLength) {
         consumed = 0; alt = img = href = string.Empty; imgTitle = hrefTitle = null;
+        altStart = altLength = imgStart = imgLength = hrefStart = hrefLength = 0;
+        imgTitleStart = imgTitleLength = hrefTitleStart = hrefTitleLength = null;
         if (start >= text.Length || text[start] != '[') return false;
         if (start + 1 >= text.Length || text[start + 1] != '!') return false;
         if (start + 2 >= text.Length || text[start + 2] != '[') return false;
@@ -1431,13 +1571,33 @@ public static partial class MarkdownReader {
         if (altEnd + 1 >= text.Length || text[altEnd + 1] != '(') return false;
         int imgClose = FindMatchingParen(text, altEnd + 1);
         if (imgClose < 0) return false;
-        alt = text.Substring(start + 3, altEnd - (start + 3));
+        altStart = start + 3;
+        altLength = altEnd - altStart;
+        alt = text.Substring(altStart, altLength);
         string inner = text.Substring(altEnd + 2, imgClose - (altEnd + 2));
-        if (!TrySplitUrlAndOptionalTitle(inner, out img, out imgTitle)) {
+        if (!TrySplitUrlAndOptionalTitle(inner, out img, out imgTitle, out int imgInnerStart, out int imgInnerLength, out int? imgTitleInnerStart, out int? imgTitleInnerLength)) {
             if (IndexOfWhitespace(inner.Trim()) >= 0) return false;
             img = UnescapeMarkdownBackslashEscapes(inner.Trim());
             imgTitle = null;
+            int trimmedStart = 0;
+            while (trimmedStart < inner.Length && char.IsWhiteSpace(inner[trimmedStart])) {
+                trimmedStart++;
+            }
+
+            int trimmedEndExclusive = inner.Length;
+            while (trimmedEndExclusive > trimmedStart && char.IsWhiteSpace(inner[trimmedEndExclusive - 1])) {
+                trimmedEndExclusive--;
+            }
+
+            imgInnerStart = trimmedStart;
+            imgInnerLength = Math.Max(0, trimmedEndExclusive - trimmedStart);
+            imgTitleInnerStart = null;
+            imgTitleInnerLength = null;
         }
+        imgStart = altEnd + 2 + imgInnerStart;
+        imgLength = imgInnerLength;
+        imgTitleStart = imgTitleInnerStart.HasValue ? altEnd + 2 + imgTitleInnerStart.Value : null;
+        imgTitleLength = imgTitleInnerLength;
         int closeBracket = (imgClose + 1 < text.Length && text[imgClose + 1] == ']') ? imgClose + 1 : -1;
         if (closeBracket < 0) return false;
         int parenOpen2 = (closeBracket + 1 < text.Length && text[closeBracket + 1] == '(') ? closeBracket + 1 : -1;
@@ -1445,55 +1605,126 @@ public static partial class MarkdownReader {
         int parenClose2 = FindMatchingParen(text, parenOpen2);
         if (parenClose2 < 0) return false;
         string hrefInner = text.Substring(parenOpen2 + 1, parenClose2 - (parenOpen2 + 1));
-        if (!TrySplitUrlAndOptionalTitle(hrefInner, out href, out hrefTitle)) {
+        if (!TrySplitUrlAndOptionalTitle(hrefInner, out href, out hrefTitle, out int hrefInnerStart, out int hrefInnerLength, out int? hrefTitleInnerStart, out int? hrefTitleInnerLength)) {
             if (IndexOfWhitespace(hrefInner.Trim()) >= 0) return false;
             href = UnescapeMarkdownBackslashEscapes(hrefInner.Trim());
             hrefTitle = null;
+            int trimmedStart = 0;
+            while (trimmedStart < hrefInner.Length && char.IsWhiteSpace(hrefInner[trimmedStart])) {
+                trimmedStart++;
+            }
+
+            int trimmedEndExclusive = hrefInner.Length;
+            while (trimmedEndExclusive > trimmedStart && char.IsWhiteSpace(hrefInner[trimmedEndExclusive - 1])) {
+                trimmedEndExclusive--;
+            }
+
+            hrefInnerStart = trimmedStart;
+            hrefInnerLength = Math.Max(0, trimmedEndExclusive - trimmedStart);
+            hrefTitleInnerStart = null;
+            hrefTitleInnerLength = null;
         }
+        hrefStart = parenOpen2 + 1 + hrefInnerStart;
+        hrefLength = hrefInnerLength;
+        hrefTitleStart = hrefTitleInnerStart.HasValue ? parenOpen2 + 1 + hrefTitleInnerStart.Value : null;
+        hrefTitleLength = hrefTitleInnerLength;
         consumed = parenClose2 - start + 1;
         return true;
     }
 
-    private static bool TrySplitUrlAndOptionalTitle(string? inner, out string url, out string? title) {
+    private static bool TrySplitUrlAndOptionalTitle(
+        string? inner,
+        out string url,
+        out string? title,
+        out int urlStart,
+        out int urlLength,
+        out int? titleStart,
+        out int? titleLength) {
         url = string.Empty;
         title = null;
+        urlStart = 0;
+        urlLength = 0;
+        titleStart = null;
+        titleLength = null;
         if (inner == null) return false;
         if (string.IsNullOrWhiteSpace(inner)) return false;
 
-        var t = inner.Trim();
-        if (t.Length == 0) return false;
+        int start = 0;
+        while (start < inner.Length && char.IsWhiteSpace(inner[start])) {
+            start++;
+        }
+
+        int endExclusive = inner.Length;
+        while (endExclusive > start && char.IsWhiteSpace(inner[endExclusive - 1])) {
+            endExclusive--;
+        }
+
+        if (endExclusive <= start) return false;
 
         // CommonMark: destination can be wrapped in <...> to allow spaces and parentheses safely.
-        if (t[0] == '<') {
-            int gt = t.IndexOf('>');
-            if (gt >= 1) {
-                url = UnescapeMarkdownBackslashEscapes(t.Substring(1, gt - 1).Trim());
-                var rest = t.Substring(gt + 1).Trim();
-                if (rest.Length == 0) return true;
+        if (inner[start] == '<') {
+            int gt = inner.IndexOf('>', start + 1);
+            if (gt >= start + 1 && gt < endExclusive) {
+                urlStart = start + 1;
+                urlLength = gt - urlStart;
+                url = UnescapeMarkdownBackslashEscapes(inner.Substring(urlStart, urlLength).Trim());
 
-                title = TryParseOptionalTitleToken(rest);
-                if (title == null) return false;
-                title = UnescapeMarkdownBackslashEscapes(title);
+                int restStart = gt + 1;
+                while (restStart < endExclusive && char.IsWhiteSpace(inner[restStart])) {
+                    restStart++;
+                }
+
+                if (restStart >= endExclusive) {
+                    return true;
+                }
+
+                if (!TryParseOptionalTitleToken(inner, restStart, endExclusive, out title, out int parsedTitleStart, out int parsedTitleLength)) {
+                    return false;
+                }
+
+                title = UnescapeMarkdownBackslashEscapes(title!);
+                titleStart = parsedTitleStart;
+                titleLength = parsedTitleLength;
                 return true;
             }
         }
 
-        int ws = IndexOfWhitespace(t);
+        int ws = -1;
+        for (int i = start; i < endExclusive; i++) {
+            if (char.IsWhiteSpace(inner[i])) {
+                ws = i;
+                break;
+            }
+        }
+
         if (ws < 0) {
-            url = UnescapeMarkdownBackslashEscapes(t);
+            urlStart = start;
+            urlLength = endExclusive - start;
+            url = UnescapeMarkdownBackslashEscapes(inner.Substring(urlStart, urlLength));
             title = null;
             return true;
         }
 
-        url = UnescapeMarkdownBackslashEscapes(t.Substring(0, ws).Trim());
-        var remaining = t.Substring(ws).Trim();
-        if (remaining.Length == 0) { title = null; return true; }
+        urlStart = start;
+        urlLength = ws - start;
+        url = UnescapeMarkdownBackslashEscapes(inner.Substring(urlStart, urlLength).Trim());
 
-        title = TryParseOptionalTitleToken(remaining);
-        if (title == null) return false;
-        title = UnescapeMarkdownBackslashEscapes(title);
+        int remainingStart = ws;
+        while (remainingStart < endExclusive && char.IsWhiteSpace(inner[remainingStart])) {
+            remainingStart++;
+        }
+
+        if (remainingStart >= endExclusive) { title = null; return true; }
+
+        if (!TryParseOptionalTitleToken(inner, remainingStart, endExclusive, out title, out int parsedStart, out int parsedLength)) return false;
+        title = UnescapeMarkdownBackslashEscapes(title!);
+        titleStart = parsedStart;
+        titleLength = parsedLength;
         return true;
     }
+
+    private static bool TrySplitUrlAndOptionalTitle(string? inner, out string url, out string? title) =>
+        TrySplitUrlAndOptionalTitle(inner, out url, out title, out _, out _, out _, out _);
 
     private static int IndexOfWhitespace(string s) {
         for (int i = 0; i < s.Length; i++) if (char.IsWhiteSpace(s[i])) return i;
@@ -1502,42 +1733,147 @@ public static partial class MarkdownReader {
 
     private static string? TryParseOptionalTitleToken(string s) {
         if (string.IsNullOrWhiteSpace(s)) return null;
-        var t = s.Trim();
-        if (t.Length < 2) return null;
-        if ((t[0] == '"' && t[t.Length - 1] == '"') ||
-            (t[0] == '\'' && t[t.Length - 1] == '\'') ||
-            (t[0] == '(' && t[t.Length - 1] == ')')) {
-            return t.Substring(1, t.Length - 2);
+        int start = 0;
+        while (start < s.Length && char.IsWhiteSpace(s[start])) {
+            start++;
         }
-        return null;
+
+        int endExclusive = s.Length;
+        while (endExclusive > start && char.IsWhiteSpace(s[endExclusive - 1])) {
+            endExclusive--;
+        }
+
+        return TryParseOptionalTitleToken(s, start, endExclusive, out string? title, out _, out _) ? title : null;
     }
 
-    private static bool TryParseInlineImage(string text, int start, out int consumed, out string alt, out string src, out string? title) {
-        consumed = 0; alt = src = string.Empty; title = null;
+    private static bool TryParseOptionalTitleToken(
+        string s,
+        int start,
+        int endExclusive,
+        out string? title,
+        out int titleStart,
+        out int titleLength) {
+        title = null;
+        titleStart = 0;
+        titleLength = 0;
+        if (string.IsNullOrEmpty(s) || endExclusive - start < 2) {
+            return false;
+        }
+
+        char open = s[start];
+        char close = s[endExclusive - 1];
+        if ((open == '"' && close == '"') ||
+            (open == '\'' && close == '\'') ||
+            (open == '(' && close == ')')) {
+            titleStart = start + 1;
+            titleLength = endExclusive - start - 2;
+            title = s.Substring(titleStart, titleLength);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryParseInlineImage(string text, int start, out int consumed, out string alt, out string src, out string? title) =>
+        TryParseInlineImage(
+            text,
+            start,
+            out consumed,
+            out alt,
+            out src,
+            out title,
+            out _,
+            out _,
+            out _,
+            out _,
+            out _,
+            out _);
+
+    private static bool TryParseInlineImage(
+        string text,
+        int start,
+        out int consumed,
+        out string alt,
+        out string src,
+        out string? title,
+        out int altStart,
+        out int altLength,
+        out int srcStart,
+        out int srcLength,
+        out int? titleStart,
+        out int? titleLength) {
+        consumed = 0;
+        alt = src = string.Empty;
+        title = null;
+        altStart = altLength = srcStart = srcLength = 0;
+        titleStart = titleLength = null;
         if (start + 1 >= text.Length || text[start] != '!' || text[start + 1] != '[') return false;
         int altEnd = FindMatchingBracket(text, start + 1);
         if (altEnd < 0) return false;
         if (altEnd + 1 >= text.Length || text[altEnd + 1] != '(') return false;
         int parenClose = FindMatchingParen(text, altEnd + 1);
         if (parenClose < 0) return false;
-        alt = text.Substring(start + 2, altEnd - (start + 2));
+        altStart = start + 2;
+        altLength = altEnd - altStart;
+        alt = text.Substring(altStart, altLength);
         string inner = text.Substring(altEnd + 2, parenClose - (altEnd + 2));
-        if (!TrySplitUrlAndOptionalTitle(inner, out src, out title)) {
+        if (!TrySplitUrlAndOptionalTitle(
+            inner,
+            out src,
+            out title,
+            out int srcInnerStart,
+            out int srcInnerLength,
+            out int? titleInnerStart,
+            out int? titleInnerLength)) {
             if (IndexOfWhitespace(inner.Trim()) >= 0) return false;
             src = UnescapeMarkdownBackslashEscapes(inner.Trim());
             title = null;
+
+            int trimmedStart = 0;
+            while (trimmedStart < inner.Length && char.IsWhiteSpace(inner[trimmedStart])) {
+                trimmedStart++;
+            }
+
+            int trimmedEndExclusive = inner.Length;
+            while (trimmedEndExclusive > trimmedStart && char.IsWhiteSpace(inner[trimmedEndExclusive - 1])) {
+                trimmedEndExclusive--;
+            }
+
+            srcInnerStart = trimmedStart;
+            srcInnerLength = Math.Max(0, trimmedEndExclusive - trimmedStart);
+            titleInnerStart = null;
+            titleInnerLength = null;
         }
+
+        srcStart = altEnd + 2 + srcInnerStart;
+        srcLength = srcInnerLength;
+        titleStart = titleInnerStart.HasValue ? altEnd + 2 + titleInnerStart.Value : null;
+        titleLength = titleInnerLength;
         consumed = parenClose - start + 1;
         return true;
     }
 
-    private static bool TryParseReferenceImage(string text, int start, out int consumed, out string alt, out string label) {
-        consumed = 0; alt = label = string.Empty;
+    private static bool TryParseReferenceImage(string text, int start, out int consumed, out string alt, out string label) =>
+        TryParseReferenceImage(text, start, out consumed, out alt, out label, out _, out _);
+
+    private static bool TryParseReferenceImage(
+        string text,
+        int start,
+        out int consumed,
+        out string alt,
+        out string label,
+        out int altStart,
+        out int altLength) {
+        consumed = 0;
+        alt = label = string.Empty;
+        altStart = altLength = 0;
         if (start + 1 >= text.Length || text[start] != '!' || text[start + 1] != '[') return false;
         int altEnd = FindMatchingBracket(text, start + 1);
         if (altEnd < 0) return false;
 
-        alt = text.Substring(start + 2, altEnd - (start + 2));
+        altStart = start + 2;
+        altLength = altEnd - altStart;
+        alt = text.Substring(altStart, altLength);
 
         // Inline image uses "(...)" and is handled elsewhere.
         if (altEnd + 1 < text.Length && text[altEnd + 1] == '(') return false;

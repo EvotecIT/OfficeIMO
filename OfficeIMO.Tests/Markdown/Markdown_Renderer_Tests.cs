@@ -1263,9 +1263,9 @@ x^2 + 1
         var result = MarkdownRenderer.MarkdownRenderer.ParseDocumentResult("Use **bold** [docs](https://example.com) and `code`.", new MarkdownRendererOptions());
 
         Assert.Equal(MarkdownSyntaxKind.InlineText, result.FindDeepestNodeAtPosition(1, 8)!.Kind);
-        Assert.Equal(MarkdownSyntaxKind.InlineLink, result.FindDeepestNodeAtPosition(1, 30)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineLinkTarget, result.FindDeepestNodeAtPosition(1, 30)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.InlineCodeSpan, result.FindDeepestNodeAtPosition(1, 48)!.Kind);
-        Assert.Equal(new[] { MarkdownSyntaxKind.Document, MarkdownSyntaxKind.Paragraph, MarkdownSyntaxKind.InlineLink }, result.FindNodePathAtPosition(1, 30).Select(node => node.Kind).ToArray());
+        Assert.Equal(new[] { MarkdownSyntaxKind.Document, MarkdownSyntaxKind.Paragraph, MarkdownSyntaxKind.InlineLink, MarkdownSyntaxKind.InlineLinkTarget }, result.FindNodePathAtPosition(1, 30).Select(node => node.Kind).ToArray());
         Assert.Equal(MarkdownSyntaxKind.Paragraph, result.FindNearestBlockAtPosition(1, 48)!.Kind);
     }
 
@@ -1301,7 +1301,7 @@ x^2 + 1
         var rendererDiagnostic = Assert.Single(result.TransformDiagnostics, diagnostic =>
             diagnostic.Source == MarkdownDocumentTransformSource.MarkdownRenderer
             && diagnostic.TransformName.Contains(nameof(RendererRewriteFirstParagraphTransform), StringComparison.Ordinal));
-        Assert.Equal(new MarkdownSourceSpan(1, 1), rendererDiagnostic.AffectedSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 5), rendererDiagnostic.AffectedSourceSpan);
     }
 
     [Fact]
@@ -1322,7 +1322,7 @@ second
         var rendererDiagnostic = Assert.Single(result.TransformDiagnostics, diagnostic =>
             diagnostic.Source == MarkdownDocumentTransformSource.MarkdownRenderer
             && diagnostic.TransformName.Contains(nameof(RendererRewriteSecondParagraphTransform), StringComparison.Ordinal));
-        Assert.Equal(new MarkdownSourceSpan(7, 7), rendererDiagnostic.AffectedSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(7, 1, 7, 6), rendererDiagnostic.AffectedSourceSpan);
     }
 
     [Fact]

@@ -31,10 +31,12 @@ internal static class MarkdownDocumentBlockListExpander {
                 continue;
             }
 
-            rewritten.Add(RewriteBlock(block, context, blockListRewriter));
+            rewritten.Add(PreserveSourceSpan(block, RewriteBlock(block, context, blockListRewriter)));
         }
 
-        return blockListRewriter(rewritten, context) ?? rewritten;
+        var expanded = blockListRewriter(rewritten, context) ?? rewritten;
+        ApplyChangedRangeSourceSpans(rewritten, expanded);
+        return expanded;
     }
 
     private static IMarkdownBlock RewriteBlock(
@@ -177,5 +179,40 @@ internal static class MarkdownDocumentBlockListExpander {
 
         var rewrittenChildren = RewriteBlocks(block.ChildBlocks, context, blockListRewriter);
         return new CalloutBlock(block.Kind, block.TitleInlines, rewrittenChildren, syntaxChildren: null);
+    }
+
+    private static IMarkdownBlock PreserveSourceSpan(IMarkdownBlock original, IMarkdownBlock rewritten) {
+        if (ReferenceEquals(original, rewritten)
+            || original is not MarkdownObject originalObject
+            || rewritten is not MarkdownObject rewrittenObject
+            || rewrittenObject.SourceSpan.HasValue
+            || !originalObject.SourceSpan.HasValue) {
+            return rewritten;
+        }
+
+        rewrittenObject.SourceSpan = originalObject.SourceSpan;
+        return rewritten;
+    }
+
+    private static void ApplyChangedRangeSourceSpans(
+        IReadOnlyList<IMarkdownBlock> before,
+        IReadOnlyList<IMarkdownBlock> after) {
+        if (before == null || after == null || before.Count == 0 || after.Count == 0) {
+            return;
+        }
+
+        var change = MarkdownTransformSourceSpanHelper.ComputeChangedRange(
+            MarkdownTransformSourceSpanHelper.CreateBlockFingerprints(before),
+            MarkdownTransformSourceSpanHelper.CreateBlockFingerprints(after));
+        if (change.CountAfter == 0) {
+            return;
+        }
+
+        var affectedSourceSpan = MarkdownTransformSourceSpanHelper.AggregateBlockSpans(before, change.StartBefore, change.CountBefore);
+        if (!affectedSourceSpan.HasValue) {
+            return;
+        }
+
+        MarkdownTransformSourceSpanHelper.ApplyAffectedSpanToChangedBlocks(after, change, affectedSourceSpan);
     }
 }

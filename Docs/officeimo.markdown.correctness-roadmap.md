@@ -4,6 +4,8 @@ This document is the quality bar for `OfficeIMO.Markdown`, `OfficeIMO.MarkdownRe
 
 It is intentionally not a feature inventory.
 
+For issue-sized follow-up work, use `officeimo.markdown.correctness-backlog.md` alongside this roadmap.
+
 Why:
 
 - the implementation is moving quickly

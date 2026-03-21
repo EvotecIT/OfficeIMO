@@ -81,7 +81,7 @@ second
         Assert.Equal(1, diagnostic.ChangedBlockCountBefore);
         Assert.Equal(0, diagnostic.ChangedBlockStartAfter);
         Assert.Equal(2, diagnostic.ChangedBlockCountAfter);
-        Assert.Equal(new MarkdownSourceSpan(1, 1), diagnostic.AffectedSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), diagnostic.AffectedSourceSpan);
         Assert.Equal(2, transformed.Blocks.Count);
     }
 
@@ -94,7 +94,7 @@ second
 
         Assert.Equal(2, result.Document.Blocks.Count);
         Assert.Single(result.TransformDiagnostics);
-        Assert.Equal(new MarkdownSourceSpan(1, 1), result.TransformDiagnostics[0].AffectedSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), result.TransformDiagnostics[0].AffectedSourceSpan);
     }
 
     [Fact]

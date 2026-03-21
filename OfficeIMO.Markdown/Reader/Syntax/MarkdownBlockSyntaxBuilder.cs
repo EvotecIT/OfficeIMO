@@ -31,14 +31,15 @@ internal static class MarkdownBlockSyntaxBuilder {
         MarkdownSyntaxKind kind,
         InlineSequence inlines,
         MarkdownSourceSpan? span = null,
-        string? literal = null) {
+        string? literal = null,
+        object? associatedObject = null) {
         var children = MarkdownInlineSyntaxBuilder.BuildChildren(inlines);
         return new MarkdownSyntaxNode(
             kind,
             span ?? GetAggregateSpan(children),
             literal ?? inlines?.RenderMarkdown(),
             children: children,
-            associatedObject: inlines);
+            associatedObject: associatedObject ?? inlines);
     }
 
     internal static IReadOnlyList<MarkdownSyntaxNode> BuildChildSyntaxNodes(IEnumerable<IMarkdownBlock> children) {

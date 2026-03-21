@@ -5,6 +5,12 @@ public static partial class MarkdownReader {
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
             if (!options.Callouts) return false;
             if (!IsCalloutHeader(lines[i], out string kind, out string title)) return false;
+            var lineNumber = state.SourceLineOffset + i + 1;
+            var titleSourceMap = BuildInlineSourceMapForSingleLine(
+                title,
+                lineNumber,
+                GetCalloutTitleStartColumn(lines[i] ?? string.Empty),
+                state);
 
             // Collect contiguous quote lines as callout body, stripping one leading ">" level.
             var inner = new System.Collections.Generic.List<string>();
@@ -26,10 +32,45 @@ public static partial class MarkdownReader {
 
             // Parse callout body as Markdown so lists/code/etc work inside callouts.
             var (childBlocks, syntaxChildren) = ParseNestedMarkdownBlocks(innerSourceLines, options, state);
-            doc.Add(new CalloutBlock(kind, ParseInlines(title, options, state), childBlocks, syntaxChildren));
+            doc.Add(new CalloutBlock(kind, ParseInlines(title, options, state, titleSourceMap), childBlocks, syntaxChildren));
 
             i = j;
             return true;
         }
+    }
+
+    private static int GetCalloutTitleStartColumn(string line) {
+        if (string.IsNullOrEmpty(line)) {
+            return 1;
+        }
+
+        var index = 0;
+        while (index < line.Length && char.IsWhiteSpace(line[index])) {
+            index++;
+        }
+
+        if (index < line.Length && line[index] == '>') {
+            index++;
+        }
+
+        while (index < line.Length && char.IsWhiteSpace(line[index])) {
+            index++;
+        }
+
+        if (index + 1 >= line.Length || line[index] != '[' || line[index + 1] != '!') {
+            return Math.Min(line.Length + 1, index + 1);
+        }
+
+        var closeIndex = line.IndexOf(']', index + 2);
+        if (closeIndex < 0) {
+            return Math.Min(line.Length + 1, index + 1);
+        }
+
+        index = closeIndex + 1;
+        while (index < line.Length && char.IsWhiteSpace(line[index])) {
+            index++;
+        }
+
+        return index + 1;
     }
 }

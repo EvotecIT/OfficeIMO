@@ -248,6 +248,7 @@ public sealed class MarkdownSyntaxNode {
             case MarkdownSyntaxKind.DefinitionGroup:
             case MarkdownSyntaxKind.DefinitionItem:
             case MarkdownSyntaxKind.FootnoteDefinition:
+            case MarkdownSyntaxKind.ReferenceLinkDefinition:
             case MarkdownSyntaxKind.Details:
             case MarkdownSyntaxKind.Summary:
             case MarkdownSyntaxKind.FrontMatter:

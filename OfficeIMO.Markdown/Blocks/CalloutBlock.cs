@@ -173,11 +173,47 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
         var calloutTitleMarkdown = TitleInlines.RenderMarkdown();
+        var children = new List<MarkdownSyntaxNode>();
+        children.Add(new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.CalloutKind,
+            GetCalloutKindSpan(span),
+            Kind));
+
+        if (!string.IsNullOrWhiteSpace(calloutTitleMarkdown)) {
+            children.Add(MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(
+                MarkdownSyntaxKind.CalloutTitle,
+                TitleInlines,
+                TitleInlines.SourceSpan,
+                calloutTitleMarkdown));
+        }
+
+        var bodyChildren = ((IOwnedSyntaxChildrenMarkdownBlock)this).BuildOwnedSyntaxChildren();
+        for (int i = 0; i < bodyChildren.Count; i++) {
+            children.Add(bodyChildren[i]);
+        }
+
         return new MarkdownSyntaxNode(
             MarkdownSyntaxKind.Callout,
             span,
             string.IsNullOrWhiteSpace(calloutTitleMarkdown) ? Kind : Kind + ":" + calloutTitleMarkdown,
-            ((IOwnedSyntaxChildrenMarkdownBlock)this).BuildOwnedSyntaxChildren(),
+            children,
             this);
+    }
+
+    private MarkdownSourceSpan? GetCalloutKindSpan(MarkdownSourceSpan? calloutSpan) {
+        if (!calloutSpan.HasValue || string.IsNullOrWhiteSpace(Kind)) {
+            return null;
+        }
+
+        var startColumn = calloutSpan.Value.StartColumn;
+        if (!startColumn.HasValue) {
+            return null;
+        }
+
+        return new MarkdownSourceSpan(
+            calloutSpan.Value.StartLine,
+            startColumn.Value + 4,
+            calloutSpan.Value.StartLine,
+            startColumn.Value + 3 + Kind.Length);
     }
 }

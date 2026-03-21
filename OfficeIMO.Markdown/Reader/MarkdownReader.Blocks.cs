@@ -160,10 +160,37 @@ public static partial class MarkdownReader {
         return false;
     }
 
-    private static bool IsImageLine(string line) => TryParseImage(line, out _, out _);
-    private static bool TryParseImage(string line, out ImageBlock image, out string? sizeSpec) {
+    private readonly struct MarkdownImageSyntaxRanges(
+        int? altStart,
+        int? altLength,
+        int? sourceStart,
+        int? sourceLength,
+        int? titleStart,
+        int? titleLength,
+        int? linkTargetStart,
+        int? linkTargetLength,
+        int? linkTitleStart,
+        int? linkTitleLength) {
+        public int? AltStart { get; } = altStart;
+        public int? AltLength { get; } = altLength;
+        public int? SourceStart { get; } = sourceStart;
+        public int? SourceLength { get; } = sourceLength;
+        public int? TitleStart { get; } = titleStart;
+        public int? TitleLength { get; } = titleLength;
+        public int? LinkTargetStart { get; } = linkTargetStart;
+        public int? LinkTargetLength { get; } = linkTargetLength;
+        public int? LinkTitleStart { get; } = linkTitleStart;
+        public int? LinkTitleLength { get; } = linkTitleLength;
+    }
+
+    private static bool IsImageLine(string line) => TryParseImage(line, out _, out _, out _);
+    private static bool TryParseImage(string line, out ImageBlock image, out string? sizeSpec) =>
+        TryParseImage(line, out image, out sizeSpec, out _);
+
+    private static bool TryParseImage(string line, out ImageBlock image, out string? sizeSpec, out MarkdownImageSyntaxRanges ranges) {
         image = null!;
         sizeSpec = null;
+        ranges = default;
         if (string.IsNullOrEmpty(line)) return false;
         var t = line.Trim();
         if (!t.StartsWith("![", StringComparison.Ordinal)) return false;
@@ -174,12 +201,37 @@ public static partial class MarkdownReader {
         if (parenClose <= altEnd + 2) return false;
         string alt = t.Substring(2, altEnd - 2);
         string inner = t.Substring(altEnd + 2, parenClose - (altEnd + 2));
-        if (!TrySplitUrlAndOptionalTitle(inner, out var src, out var title)) {
+        if (!TrySplitUrlAndOptionalTitle(inner, out var src, out var title, out int srcStart, out int srcLength, out int? titleStart, out int? titleLength)) {
             if (IndexOfWhitespace(inner.Trim()) >= 0) return false;
             src = UnescapeMarkdownBackslashEscapes(inner.Trim());
             title = null;
+            int trimmedStart = 0;
+            while (trimmedStart < inner.Length && char.IsWhiteSpace(inner[trimmedStart])) {
+                trimmedStart++;
+            }
+
+            int trimmedEndExclusive = inner.Length;
+            while (trimmedEndExclusive > trimmedStart && char.IsWhiteSpace(inner[trimmedEndExclusive - 1])) {
+                trimmedEndExclusive--;
+            }
+
+            srcStart = trimmedStart;
+            srcLength = Math.Max(0, trimmedEndExclusive - trimmedStart);
+            titleStart = null;
+            titleLength = null;
         }
         image = new ImageBlock(src, alt, title);
+        ranges = new MarkdownImageSyntaxRanges(
+            altStart: 2,
+            altLength: altEnd - 2,
+            sourceStart: altEnd + 2 + srcStart,
+            sourceLength: srcLength,
+            titleStart: titleStart.HasValue ? altEnd + 2 + titleStart.Value : null,
+            titleLength: titleLength,
+            linkTargetStart: null,
+            linkTargetLength: null,
+            linkTitleStart: null,
+            linkTitleLength: null);
         // Optional attribute list: {width=.. height=..}
         if (parenClose + 1 < t.Length) {
             var rest = t.Substring(parenClose + 1).Trim();
@@ -205,15 +257,37 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryParseLinkedImageBlock(string line, out ImageBlock image, out string? sizeSpec) {
+    private static bool TryParseLinkedImageBlock(string line, out ImageBlock image, out string? sizeSpec) =>
+        TryParseLinkedImageBlock(line, out image, out sizeSpec, out _);
+
+    private static bool TryParseLinkedImageBlock(string line, out ImageBlock image, out string? sizeSpec, out MarkdownImageSyntaxRanges ranges) {
         image = null!;
         sizeSpec = null;
+        ranges = default;
         if (string.IsNullOrEmpty(line)) {
             return false;
         }
 
         var t = line.Trim();
-        if (!TryParseImageLink(t, 0, out int consumed, out var alt, out var src, out var title, out var href, out var hrefTitle) || consumed <= 0) {
+        if (!TryParseImageLink(
+            t,
+            0,
+            out int consumed,
+            out var alt,
+            out var src,
+            out var title,
+            out var href,
+            out var hrefTitle,
+            out int altStart,
+            out int altLength,
+            out int srcStart,
+            out int srcLength,
+            out int? titleStart,
+            out int? titleLength,
+            out int hrefStart,
+            out int hrefLength,
+            out int? hrefTitleStart,
+            out int? hrefTitleLength) || consumed <= 0) {
             return false;
         }
 
@@ -221,6 +295,17 @@ public static partial class MarkdownReader {
             LinkUrl = href,
             LinkTitle = hrefTitle
         };
+        ranges = new MarkdownImageSyntaxRanges(
+            altStart,
+            altLength,
+            srcStart,
+            srcLength,
+            titleStart,
+            titleLength,
+            hrefStart,
+            hrefLength,
+            hrefTitleStart,
+            hrefTitleLength);
 
         if (consumed < t.Length) {
             var rest = t.Substring(consumed).Trim();
