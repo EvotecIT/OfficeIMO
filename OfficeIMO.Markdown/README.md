@@ -356,7 +356,10 @@ Use `ParseWithSyntaxTreeAndDiagnostics(...)` when a host wants the final transfo
 ```csharp
 var body = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptBody(markdown);
 var withoutMarkers = MarkdownTranscriptTransportMarkers.StripIntelligenceXCachedEvidenceTransportMarkers(markdown);
-var export = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptForExport(withoutMarkers);
+var ixCompatibilityExport = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptForExport(withoutMarkers);
+var portableExport = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptForExport(
+    withoutMarkers,
+    MarkdownVisualFenceLanguageMode.GenericSemanticFence);
 var docx = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptForDocx(markdown, preservesGroupedDefinitionLikeParagraphs: false);
 var readerOptions = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
     preservesGroupedDefinitionLikeParagraphs: false,
@@ -365,6 +368,10 @@ var readerOptions = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptR
 
 Use `MarkdownTranscriptPreparation` when a host wants the explicit IX transcript prep contract as a visible composition point instead of manually chaining normalization, ordered-list repair, blank-line collapse, and DOCX definition-line compatibility helpers. Use `MarkdownTranscriptTransportMarkers.StripIntelligenceXCachedEvidenceTransportMarkers(...)` when the host is preparing IX transcript content for markdown export and needs that explicit transport cleanup before calling `PrepareIntelligenceXTranscriptForExport(...)`.
 Those IX transcript helpers are thin named compositions over generic reader/input-normalization/document-transform building blocks. They should stay as host contracts, not become the primary implementation home for generic markdown behavior.
+Treat transcript export as two explicit lanes:
+
+- `PrepareIntelligenceXTranscriptForExport(markdown)` keeps IX alias fences such as `ix-chart` and `ix-network` for compatibility-first transcript/runtime hosts.
+- `PrepareIntelligenceXTranscriptForExport(markdown, MarkdownVisualFenceLanguageMode.GenericSemanticFence)` emits neutral `chart`, `network`, and `dataview` fences for portable markdown artifact export.
 
 ### HTML fragments and full documents
 

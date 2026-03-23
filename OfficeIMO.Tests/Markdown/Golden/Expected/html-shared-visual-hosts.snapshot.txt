@@ -1,0 +1,49 @@
+[ast]
+0: Heading(level=1, text="Shared Visual Archive")
+1: Paragraph("Recovered visual blocks should remain semantic for downstream markdown consumers.")
+2: Semantic(kind=chart, language=chart, text="{"type":"bar","data":{"labels":["A"],"datasets":[{"label":"Count","data":[1]}]}}")
+3: Semantic(kind=network, language=network, text="{"nodes":[{"id":"A","label":"User"},{"id":"B","label":"Group"}],"edges":[{"so...")
+4: Semantic(kind=dataview, language=dataview, text="{"kind":"ix_tool_dataview_v1","rows":[["Name","Count"],["A","1"]]}")
+
+[office.markdown]
+# Shared Visual Archive
+
+Recovered visual blocks should remain semantic for downstream markdown consumers.
+
+```chart
+{"type":"bar","data":{"labels":["A"],"datasets":[{"label":"Count","data":[1]}]}}
+```
+_Chart preview_
+
+```network
+{"nodes":[{"id":"A","label":"User"},{"id":"B","label":"Group"}],"edges":[{"source":"A","target":"B","label":"memberOf"}]}
+```
+_Network preview_
+
+```dataview
+{"kind":"ix_tool_dataview_v1","rows":[["Name","Count"],["A","1"]]}
+```
+_Dataview preview_
+
+[portable.markdown]
+# Shared Visual Archive
+
+Recovered visual blocks should remain semantic for downstream markdown consumers.
+
+```chart
+{"type":"bar","data":{"labels":["A"],"datasets":[{"label":"Count","data":[1]}]}}
+```
+_Chart preview_
+
+```network
+{"nodes":[{"id":"A","label":"User"},{"id":"B","label":"Group"}],"edges":[{"source":"A","target":"B","label":"memberOf"}]}
+```
+_Network preview_
+
+```dataview
+{"kind":"ix_tool_dataview_v1","rows":[["Name","Count"],["A","1"]]}
+```
+_Dataview preview_
+
+[rendered.html]
+<h1 id="shared-visual-archive">Shared Visual Archive</h1><p>Recovered visual blocks should remain semantic for downstream markdown consumers.</p><pre><code class="language-chart">{&quot;type&quot;:&quot;bar&quot;,&quot;data&quot;:{&quot;labels&quot;:[&quot;A&quot;],&quot;datasets&quot;:[{&quot;label&quot;:&quot;Count&quot;,&quot;data&quot;:[1]}]}} </code></pre><div class="caption">Chart preview</div><pre><code class="language-network">{&quot;nodes&quot;:[{&quot;id&quot;:&quot;A&quot;,&quot;label&quot;:&quot;User&quot;},{&quot;id&quot;:&quot;B&quot;,&quot;label&quot;:&quot;Group&quot;}],&quot;edges&quot;:[{&quot;source&quot;:&quot;A&quot;,&quot;target&quot;:&quot;B&quot;,&quot;label&quot;:&quot;memberOf&quot;}]} </code></pre><div class="caption">Network preview</div><pre><code class="language-dataview">{&quot;kind&quot;:&quot;ix_tool_dataview_v1&quot;,&quot;rows&quot;:[[&quot;Name&quot;,&quot;Count&quot;],[&quot;A&quot;,&quot;1&quot;]]} </code></pre><div class="caption">Dataview preview</div>

@@ -13,10 +13,10 @@ InputNormalization changed=true before=177 after=176
 
 [legacy-tool-heading.transforms]
 MarkdownReader MarkdownRegisteredFencedBlockTransform before=6 after=6 changed-before=6+0 changed-after=6+0 span=- replaced=false
-MarkdownReader MarkdownSimpleDefinitionListParagraphTransform before=6 after=6 changed-before=6+0 changed-after=6+0 span=- replaced=false
-MarkdownReader MarkdownJsonVisualCodeBlockTransform before=6 after=6 changed-before=6+0 changed-after=6+0 span=- replaced=false
 MarkdownReader MarkdownIntelligenceXCachedToolEvidenceMarkerTransform before=6 after=6 changed-before=6+0 changed-after=6+0 span=- replaced=false
 MarkdownReader MarkdownIntelligenceXLegacyToolHeadingTransform before=6 after=4 changed-before=2+3 changed-after=2+1 span=L4:C1-L7:C27 replaced=false
+MarkdownReader MarkdownSimpleDefinitionListParagraphTransform before=4 after=4 changed-before=4+0 changed-after=4+0 span=- replaced=false
+MarkdownReader MarkdownJsonVisualCodeBlockTransform before=4 after=4 changed-before=4+0 changed-after=4+0 span=- replaced=false
 
 [legacy-tool-heading.ast]
 0: Paragraph("\[Cached evidence fallback\]")
@@ -62,10 +62,10 @@ Dataview preview:
 
 [cached-evidence-visuals.transforms]
 MarkdownReader MarkdownRegisteredFencedBlockTransform before=5 after=5 changed-before=5+0 changed-after=5+0 span=- replaced=false
-MarkdownReader MarkdownSimpleDefinitionListParagraphTransform before=5 after=5 changed-before=5+0 changed-after=5+0 span=- replaced=false
-MarkdownReader MarkdownJsonVisualCodeBlockTransform before=5 after=5 changed-before=2+3 changed-after=2+3 span=L5:C1-L31:C3 replaced=false
 MarkdownReader MarkdownIntelligenceXCachedToolEvidenceMarkerTransform before=5 after=4 changed-before=0+1 changed-after=0+0 span=L1:C1-C26 replaced=false
 MarkdownReader MarkdownIntelligenceXLegacyToolHeadingTransform before=4 after=4 changed-before=4+0 changed-after=4+0 span=- replaced=false
+MarkdownReader MarkdownSimpleDefinitionListParagraphTransform before=4 after=4 changed-before=4+0 changed-after=4+0 span=- replaced=false
+MarkdownReader MarkdownJsonVisualCodeBlockTransform before=4 after=4 changed-before=1+3 changed-after=1+3 span=L5:C1-L31:C3 replaced=false
 
 [cached-evidence-visuals.ast]
 0: Paragraph("Chart preview:")

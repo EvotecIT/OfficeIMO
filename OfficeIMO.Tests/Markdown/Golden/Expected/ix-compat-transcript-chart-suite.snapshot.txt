@@ -1,0 +1,217 @@
+[ix.html]
+<article class="markdown-body"><h2 id="user-2036-21">User (20:36: 21)</h2><p>Well what about some more real proper tests charts, colors so i can see how it all works</p><h2 id="assistant-2036-24">Assistant (20:36: 24)</h2><p>&lt;!-- ix: model: gpt-5.3-codex --&gt; Love it - let&#39;s do <strong>proper visual tests</strong>with realistic data + clear color behavior.<br/>I&#39;ll give you 4 chart types so you can validate palette, legends, stacking, and trend readability.</p><h2 id="1-risk-distribution-stacked-bar-severity-colors">1) Risk distribution (stacked bar, severity colors)</h2><canvas class="omd-visual omd-chart" data-omd-visual-contract="v1" data-omd-visual-kind="chart" data-omd-fence-language="ix-chart" data-omd-visual-hash="7d8fc49da3462d10" data-omd-config-format="json" data-omd-config-encoding="base64-utf8" data-omd-config-b64="ewogICJ0eXBlIjogImJhciIsCiAgImRhdGEiOiB7CiAgICAibGFiZWxzIjogWyJJZGVudGl0eSIsICJFbmRwb2ludHMiLCAiQUQiLCAiRW1haWwiLCAiQ2xvdWQiXSwKICAgICJkYXRhc2V0cyI6IFsKICAgICAgewogICAgICAgICJsYWJlbCI6ICJMb3ciLAogICAgICAgICJkYXRhIjogWzE0LCAyMiwgOCwgMTEsIDldLAogICAgICAgICJiYWNrZ3JvdW5kQ29sb3IiOiAiIzIyYzU1ZSIsCiAgICAgICAgInN0YWNrIjogInJpc2siCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAibGFiZWwiOiAiTWVkaXVtIiwKICAgICAgICAiZGF0YSI6IFs4LCAxMSwgNiwgNywgMTBdLAogICAgICAgICJiYWNrZ3JvdW5kQ29sb3IiOiAiI2Y1OWUwYiIsCiAgICAgICAgInN0YWNrIjogInJpc2siCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAibGFiZWwiOiAiSGlnaCIsCiAgICAgICAgImRhdGEiOiBbNCwgNiwgNSwgMywgN10sCiAgICAgICAgImJhY2tncm91bmRDb2xvciI6ICIjZWY0NDQ0IiwKICAgICAgICAic3RhY2siOiAicmlzayIKICAgICAgfSwKICAgICAgewogICAgICAgICJsYWJlbCI6ICJDcml0aWNhbCIsCiAgICAgICAgImRhdGEiOiBbMSwgMiwgMSwgMSwgMl0sCiAgICAgICAgImJhY2tncm91bmRDb2xvciI6ICIjZjQzZjVlIiwKICAgICAgICAic3RhY2siOiAicmlzayIKICAgICAgfQogICAgXQogIH0KfQ==" data-chart-hash="7d8fc49da3462d10" data-chart-config-b64="ewogICJ0eXBlIjogImJhciIsCiAgImRhdGEiOiB7CiAgICAibGFiZWxzIjogWyJJZGVudGl0eSIsICJFbmRwb2ludHMiLCAiQUQiLCAiRW1haWwiLCAiQ2xvdWQiXSwKICAgICJkYXRhc2V0cyI6IFsKICAgICAgewogICAgICAgICJsYWJlbCI6ICJMb3ciLAogICAgICAgICJkYXRhIjogWzE0LCAyMiwgOCwgMTEsIDldLAogICAgICAgICJiYWNrZ3JvdW5kQ29sb3IiOiAiIzIyYzU1ZSIsCiAgICAgICAgInN0YWNrIjogInJpc2siCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAibGFiZWwiOiAiTWVkaXVtIiwKICAgICAgICAiZGF0YSI6IFs4LCAxMSwgNiwgNywgMTBdLAogICAgICAgICJiYWNrZ3JvdW5kQ29sb3IiOiAiI2Y1OWUwYiIsCiAgICAgICAgInN0YWNrIjogInJpc2siCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAibGFiZWwiOiAiSGlnaCIsCiAgICAgICAgImRhdGEiOiBbNCwgNiwgNSwgMywgN10sCiAgICAgICAgImJhY2tncm91bmRDb2xvciI6ICIjZWY0NDQ0IiwKICAgICAgICAic3RhY2siOiAicmlzayIKICAgICAgfSwKICAgICAgewogICAgICAgICJsYWJlbCI6ICJDcml0aWNhbCIsCiAgICAgICAgImRhdGEiOiBbMSwgMiwgMSwgMSwgMl0sCiAgICAgICAgImJhY2tncm91bmRDb2xvciI6ICIjZjQzZjVlIiwKICAgICAgICAic3RhY2siOiAicmlzayIKICAgICAgfQogICAgXQogIH0KfQ=="></canvas><hr /><h2 id="2-30-day-security-trend-line-chart-multi-series">2) 30-day security trend (line chart, multi-series)</h2><canvas class="omd-visual omd-chart" data-omd-visual-contract="v1" data-omd-visual-kind="chart" data-omd-fence-language="ix-chart" data-omd-visual-hash="cd3ce9c30684db38" data-omd-config-format="json" data-omd-config-encoding="base64-utf8" data-omd-config-b64="ewogICJ0eXBlIjogImxpbmUiLAogICJkYXRhIjogewogICAgImxhYmVscyI6IFsiRC0yOSIsIkQtMjYiLCJELTIzIiwiRC0yMCIsIkQtMTciLCJELTE0IiwiRC0xMSIsIkQtOCIsIkQtNSIsIkQtMiJdLAogICAgImRhdGFzZXRzIjogWwogICAgICB7CiAgICAgICAgImxhYmVsIjogIkZhaWxlZCBMb2dvbnMgKDQ2MjUpIiwKICAgICAgICAiZGF0YSI6IFs0NSwgNTIsIDQ5LCA2MywgNTgsIDcxLCA2OSwgNjYsIDczLCA4MF0sCiAgICAgICAgImJvcmRlckNvbG9yIjogIiNlZjQ0NDQiLAogICAgICAgICJiYWNrZ3JvdW5kQ29sb3IiOiAiI2VmNDQ0NDIyIiwKICAgICAgICAidGVuc2lvbiI6IDAuMwogICAgICB9LAogICAgICB7CiAgICAgICAgImxhYmVsIjogIkFjY291bnQgTG9ja291dHMgKDQ3NDApIiwKICAgICAgICAiZGF0YSI6IFs1LCA3LCA2LCA5LCA4LCAxMCwgOSwgOCwgMTEsIDEyXSwKICAgICAgICAiYm9yZGVyQ29sb3IiOiAiI2Y1OWUwYiIsCiAgICAgICAgImJhY2tncm91bmRDb2xvciI6ICIjZjU5ZTBiMjIiLAogICAgICAgICJ0ZW5zaW9uIjogMC4zCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAibGFiZWwiOiAiUHJpdmlsZWdlZCBDaGFuZ2VzIiwKICAgICAgICAiZGF0YSI6IFsyLCAzLCAyLCA0LCAzLCA1LCA0LCAzLCA2LCA1XSwKICAgICAgICAiYm9yZGVyQ29sb3IiOiAiI2Y0M2Y1ZSIsCiAgICAgICAgImJhY2tncm91bmRDb2xvciI6ICIjZjQzZjVlMjIiLAogICAgICAgICJ0ZW5zaW9uIjogMC4zCiAgICAgIH0KICAgIF0KICB9Cn0=" data-chart-hash="cd3ce9c30684db38" data-chart-config-b64="ewogICJ0eXBlIjogImxpbmUiLAogICJkYXRhIjogewogICAgImxhYmVscyI6IFsiRC0yOSIsIkQtMjYiLCJELTIzIiwiRC0yMCIsIkQtMTciLCJELTE0IiwiRC0xMSIsIkQtOCIsIkQtNSIsIkQtMiJdLAogICAgImRhdGFzZXRzIjogWwogICAgICB7CiAgICAgICAgImxhYmVsIjogIkZhaWxlZCBMb2dvbnMgKDQ2MjUpIiwKICAgICAgICAiZGF0YSI6IFs0NSwgNTIsIDQ5LCA2MywgNTgsIDcxLCA2OSwgNjYsIDczLCA4MF0sCiAgICAgICAgImJvcmRlckNvbG9yIjogIiNlZjQ0NDQiLAogICAgICAgICJiYWNrZ3JvdW5kQ29sb3IiOiAiI2VmNDQ0NDIyIiwKICAgICAgICAidGVuc2lvbiI6IDAuMwogICAgICB9LAogICAgICB7CiAgICAgICAgImxhYmVsIjogIkFjY291bnQgTG9ja291dHMgKDQ3NDApIiwKICAgICAgICAiZGF0YSI6IFs1LCA3LCA2LCA5LCA4LCAxMCwgOSwgOCwgMTEsIDEyXSwKICAgICAgICAiYm9yZGVyQ29sb3IiOiAiI2Y1OWUwYiIsCiAgICAgICAgImJhY2tncm91bmRDb2xvciI6ICIjZjU5ZTBiMjIiLAogICAgICAgICJ0ZW5zaW9uIjogMC4zCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAibGFiZWwiOiAiUHJpdmlsZWdlZCBDaGFuZ2VzIiwKICAgICAgICAiZGF0YSI6IFsyLCAzLCAyLCA0LCAzLCA1LCA0LCAzLCA2LCA1XSwKICAgICAgICAiYm9yZGVyQ29sb3IiOiAiI2Y0M2Y1ZSIsCiAgICAgICAgImJhY2tncm91bmRDb2xvciI6ICIjZjQzZjVlMjIiLAogICAgICAgICJ0ZW5zaW9uIjogMC4zCiAgICAgIH0KICAgIF0KICB9Cn0="></canvas><hr /><h2 id="3-control-coverage-doughnut-with-rose-accent">3) Control coverage (doughnut with rose accent)</h2><canvas class="omd-visual omd-chart" data-omd-visual-contract="v1" data-omd-visual-kind="chart" data-omd-fence-language="ix-chart" data-omd-visual-hash="9d9242e1bc7a5a3d" data-omd-config-format="json" data-omd-config-encoding="base64-utf8" data-omd-config-b64="ewogICJ0eXBlIjogImRvdWdobnV0IiwKICAiZGF0YSI6IHsKICAgICJsYWJlbHMiOiBbIkNvbXBsaWFudCIsICJQYXJ0aWFsIiwgIk5vbi1jb21wbGlhbnQiLCAiTm90IEFzc2Vzc2VkIl0sCiAgICAiZGF0YXNldHMiOiBbCiAgICAgIHsKICAgICAgICAibGFiZWwiOiAiQ29udHJvbCBDb3ZlcmFnZSIsCiAgICAgICAgImRhdGEiOiBbNjIsIDIxLCAxMSwgNl0sCiAgICAgICAgImJhY2tncm91bmRDb2xvciI6IFsiIzIyYzU1ZSIsICIjZjU5ZTBiIiwgIiNlZjQ0NDQiLCAiI2Y0M2Y1ZSJdLAogICAgICAgICJib3JkZXJDb2xvciI6IFsiIzE2YTM0YSIsICIjZDk3NzA2IiwgIiNkYzI2MjYiLCAiI2UxMWQ0OCJdLAogICAgICAgICJib3JkZXJXaWR0aCI6IDEKICAgICAgfQogICAgXQogIH0KfQ==" data-chart-hash="9d9242e1bc7a5a3d" data-chart-config-b64="ewogICJ0eXBlIjogImRvdWdobnV0IiwKICAiZGF0YSI6IHsKICAgICJsYWJlbHMiOiBbIkNvbXBsaWFudCIsICJQYXJ0aWFsIiwgIk5vbi1jb21wbGlhbnQiLCAiTm90IEFzc2Vzc2VkIl0sCiAgICAiZGF0YXNldHMiOiBbCiAgICAgIHsKICAgICAgICAibGFiZWwiOiAiQ29udHJvbCBDb3ZlcmFnZSIsCiAgICAgICAgImRhdGEiOiBbNjIsIDIxLCAxMSwgNl0sCiAgICAgICAgImJhY2tncm91bmRDb2xvciI6IFsiIzIyYzU1ZSIsICIjZjU5ZTBiIiwgIiNlZjQ0NDQiLCAiI2Y0M2Y1ZSJdLAogICAgICAgICJib3JkZXJDb2xvciI6IFsiIzE2YTM0YSIsICIjZDk3NzA2IiwgIiNkYzI2MjYiLCAiI2UxMWQ0OCJdLAogICAgICAgICJib3JkZXJXaWR0aCI6IDEKICAgICAgfQogICAgXQogIH0KfQ=="></canvas><hr /><h2 id="4-heat-style-matrix-proxy-grouped-bar-for-intensity">4) Heat-style matrix proxy (grouped bar for intensity)</h2><canvas class="omd-visual omd-chart" data-omd-visual-contract="v1" data-omd-visual-kind="chart" data-omd-fence-language="ix-chart" data-omd-visual-hash="a396e43999b56565" data-omd-config-format="json" data-omd-config-encoding="base64-utf8" data-omd-config-b64="ewogICJ0eXBlIjogImJhciIsCiAgImRhdGEiOiB7CiAgICAibGFiZWxzIjogWyJNb24iLCJUdWUiLCJXZWQiLCJUaHUiLCJGcmkiLCJTYXQiLCJTdW4iXSwKICAgICJkYXRhc2V0cyI6IFsKICAgICAgewogICAgICAgICJsYWJlbCI6ICJBZG1pbiBMb2dvbnMiLAogICAgICAgICJkYXRhIjogWzE4LCAyNCwgMjEsIDI4LCAyNiwgMTEsIDldLAogICAgICAgICJiYWNrZ3JvdW5kQ29sb3IiOiAiIzIyYzU1ZSIKICAgICAgfSwKICAgICAgewogICAgICAgICJsYWJlbCI6ICJGYWlsZWQgQXV0aCBCdXJzdHMiLAogICAgICAgICJkYXRhIjogWzEyLCAxNSwgMTQsIDE5LCAyMywgOCwgN10sCiAgICAgICAgImJhY2tncm91bmRDb2xvciI6ICIjZWY0NDQ0IgogICAgICB9LAogICAgICB7CiAgICAgICAgImxhYmVsIjogIlN1c3BpY2lvdXMgU2NyaXB0IFJ1bnMiLAogICAgICAgICJkYXRhIjogWzQsIDYsIDUsIDcsIDksIDMsIDJdLAogICAgICAgICJiYWNrZ3JvdW5kQ29sb3IiOiAiI2Y0M2Y1ZSIKICAgICAgfQogICAgXQogIH0KfQ==" data-chart-hash="a396e43999b56565" data-chart-config-b64="ewogICJ0eXBlIjogImJhciIsCiAgImRhdGEiOiB7CiAgICAibGFiZWxzIjogWyJNb24iLCJUdWUiLCJXZWQiLCJUaHUiLCJGcmkiLCJTYXQiLCJTdW4iXSwKICAgICJkYXRhc2V0cyI6IFsKICAgICAgewogICAgICAgICJsYWJlbCI6ICJBZG1pbiBMb2dvbnMiLAogICAgICAgICJkYXRhIjogWzE4LCAyNCwgMjEsIDI4LCAyNiwgMTEsIDldLAogICAgICAgICJiYWNrZ3JvdW5kQ29sb3IiOiAiIzIyYzU1ZSIKICAgICAgfSwKICAgICAgewogICAgICAgICJsYWJlbCI6ICJGYWlsZWQgQXV0aCBCdXJzdHMiLAogICAgICAgICJkYXRhIjogWzEyLCAxNSwgMTQsIDE5LCAyMywgOCwgN10sCiAgICAgICAgImJhY2tncm91bmRDb2xvciI6ICIjZWY0NDQ0IgogICAgICB9LAogICAgICB7CiAgICAgICAgImxhYmVsIjogIlN1c3BpY2lvdXMgU2NyaXB0IFJ1bnMiLAogICAgICAgICJkYXRhIjogWzQsIDYsIDUsIDcsIDksIDMsIDJdLAogICAgICAgICJiYWNrZ3JvdW5kQ29sb3IiOiAiI2Y0M2Y1ZSIKICAgICAgfQogICAgXQogIH0KfQ=="></canvas><hr /><h2 id="user-2037-47">User (20:37: 47)</h2><p>you sure this is the chartjs thatwe support?</p><h2 id="assistant-2037-49">Assistant (20:37: 49)</h2><p>&lt;!-- ix: model: gpt-5.3-codex --&gt;</p><p>Yep - your instinct is right: don&#39;t trust &quot;looks fine,&quot; <strong>certify it</strong>.</p><p>You&#39;re using the correct contract shape (<code>ix-chart</code>with Chart.js-like <code>type</code>, <code>data.labels</code>, <code>data.datasets</code>).<br/>Now run this compact compatibility matrix to prove what your renderer actually supports.</p><table><thead><tr><th>Feature</th><th>Test block</th><th>Expected result</th><th>If it fails, likely cause</th></tr></thead><tbody><tr><td>Basic bar render</td><td>Test A (stacked bar)</td><td>Bars render + legend visible</td><td>JSON parse issue or chart plugin not loaded</td></tr><tr><td>Stacking</td><td>Test A <code>stack</code>+ <code>scales.*.stacked=true</code></td><td>Segments stack per category</td><td>Partial Chart.js options support</td></tr><tr><td>Line smoothing/fill</td><td>Test B <code>tension</code>+ <code>fill</code></td><td>Curved filled lines</td><td>Renderer strips advanced dataset options</td></tr><tr><td>Doughnut cutout</td><td>Test C <code>cutout:&quot;55%&quot;</code></td><td>Ring hole appears</td><td>Older Chart.js compatibility mode</td></tr><tr><td>Legend positioning</td><td>A/B/C <code>plugins.legend.position</code></td><td>Top/bottom/right respected</td><td>Options object partially ignored</td></tr><tr><td>Radar type</td><td>Test D</td><td>Radar renders</td><td>Chart type not enabled in runtime</td></tr></tbody></table><h2 id="proactive-catch-hidden-regressions-checks">Proactive &quot;catch hidden regressions&quot; checks</h2><ul><li>Validate <strong>strict JSON</strong>only (no trailing commas, no comments).</li><li>Keep color tokens deterministic (your green/amber/red/rose palette) to detect style fallback.</li><li>Re-run the same block after any markdown parser upgrade; diff screenshots for silent rendering drift.</li></ul><pre class="mermaid" data-mermaid-hash="{normalized}">flowchart LR A[Paste ix-chart block] --&gt; B{Renders chart?} B -- No --&gt; C[Validate JSON syntax] C --&gt; D{Valid now?} D -- No --&gt; E[Fix payload] D -- Yes --&gt; F[Renderer/feature mismatch] B -- Yes --&gt; G{Options applied?} G -- No --&gt; F G -- Yes --&gt; H[Mark feature as supported]</pre></article>
+
+[recovered.ast]
+0: Heading(level=2, text="User (20:36: 21)")
+1: Paragraph("Well what about some more real proper tests charts, colors so i can see how it all works")
+2: Heading(level=2, text="Assistant (20:36: 24)")
+3: Paragraph("<!-- ix: model: gpt-5.3-codex --> Love it - let's do **proper visual tests** with realistic data + clear color behavior.  \nI'll give you 4 chart types so you can validate palette, legends, stacking, and trend readability.")
+4: Heading(level=2, text="1) Risk distribution (stacked bar, severity colors)")
+5: Semantic(kind=chart, language=ix-chart, text="{\n  "type": "bar",\n  "data": {\n    "labels": ["Identity", "Endpoints", "AD", ...")
+6: HorizontalRuleBlock
+7: Heading(level=2, text="2) 30-day security trend (line chart, multi-series)")
+8: Semantic(kind=chart, language=ix-chart, text="{\n  "type": "line",\n  "data": {\n    "labels": ["D-29","D-26","D-23","D-20","D...")
+9: HorizontalRuleBlock
+10: Heading(level=2, text="3) Control coverage (doughnut with rose accent)")
+11: Semantic(kind=chart, language=ix-chart, text="{\n  "type": "doughnut",\n  "data": {\n    "labels": ["Compliant", "Partial", "N...")
+12: HorizontalRuleBlock
+13: Heading(level=2, text="4) Heat-style matrix proxy (grouped bar for intensity)")
+14: Semantic(kind=chart, language=ix-chart, text="{\n  "type": "bar",\n  "data": {\n    "labels": ["Mon","Tue","Wed","Thu","Fri","...")
+15: HorizontalRuleBlock
+16: Heading(level=2, text="User (20:37: 47)")
+17: Paragraph("you sure this is the chartjs thatwe support?")
+18: Heading(level=2, text="Assistant (20:37: 49)")
+19: Paragraph("<!-- ix: model: gpt-5.3-codex -->")
+20: Paragraph("Yep - your instinct is right: don't trust "looks fine," **certify it**.")
+21: Paragraph("You're using the correct contract shape \(`ix-chart` with Chart.js-like `type`, `data.labels`, `data.datasets`\).  \nNow run this compact compatibility matrix to prove what your renderer actually supports.")
+22: Table(headers=4, rows=6)
+  headers: "Feature" || "Test block" || "Expected result" || "If it fails, likely cause"
+  row[0]: "Basic bar render" || "Test A \(stacked bar\)" || "Bars render + legend visible" || "JSON parse issue or chart plugin not loaded"
+  row[1]: "Stacking" || "Test A `stack` + `scales.*.stacked=true`" || "Segments stack per category" || "Partial Chart.js options support"
+  row[2]: "Line smoothing/fill" || "Test B `tension` + `fill`" || "Curved filled lines" || "Renderer strips advanced dataset options"
+  row[3]: "Doughnut cutout" || "Test C `cutout:"55%"`" || "Ring hole appears" || "Older Chart.js compatibility mode"
+  row[4]: "Legend positioning" || "A/B/C `plugins.legend.position`" || "Top/bottom/right respected" || "Options object partially ignored"
+  row[5]: "Radar type" || "Test D" || "Radar renders" || "Chart type not enabled in runtime"
+23: Heading(level=2, text="Proactive "catch hidden regressions" checks")
+24: UnorderedList(items=3)
+  item[0]: task=no content="Validate **strict JSON** only \(no trailing commas, no comments\)."
+  item[1]: task=no content="Keep color tokens deterministic \(your green/amber/red/rose palette\) to detect style fallback."
+  item[2]: task=no content="Re-run the same block after any markdown parser upgrade; diff screenshots for silent rendering drift."
+25: Semantic(kind=mermaid, language=mermaid, text="flowchart LR\n    A[Paste ix-chart block] --> B{Renders chart?}\n    B -- No --...")
+
+[roundtrip.markdown]
+## User \(20:36: 21\)
+
+Well what about some more real proper tests charts, colors so i can see how it all works
+
+## Assistant \(20:36: 24\)
+
+<!-- ix: model: gpt-5.3-codex --> Love it - let's do **proper visual tests** with realistic data + clear color behavior.  
+I'll give you 4 chart types so you can validate palette, legends, stacking, and trend readability.
+
+## 1\) Risk distribution \(stacked bar, severity colors\)
+
+```ix-chart
+{
+  "type": "bar",
+  "data": {
+    "labels": ["Identity", "Endpoints", "AD", "Email", "Cloud"],
+    "datasets": [
+      {
+        "label": "Low",
+        "data": [14, 22, 8, 11, 9],
+        "backgroundColor": "#22c55e",
+        "stack": "risk"
+      },
+      {
+        "label": "Medium",
+        "data": [8, 11, 6, 7, 10],
+        "backgroundColor": "#f59e0b",
+        "stack": "risk"
+      },
+      {
+        "label": "High",
+        "data": [4, 6, 5, 3, 7],
+        "backgroundColor": "#ef4444",
+        "stack": "risk"
+      },
+      {
+        "label": "Critical",
+        "data": [1, 2, 1, 1, 2],
+        "backgroundColor": "#f43f5e",
+        "stack": "risk"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 2\) 30-day security trend \(line chart, multi-series\)
+
+```ix-chart
+{
+  "type": "line",
+  "data": {
+    "labels": ["D-29","D-26","D-23","D-20","D-17","D-14","D-11","D-8","D-5","D-2"],
+    "datasets": [
+      {
+        "label": "Failed Logons (4625)",
+        "data": [45, 52, 49, 63, 58, 71, 69, 66, 73, 80],
+        "borderColor": "#ef4444",
+        "backgroundColor": "#ef444422",
+        "tension": 0.3
+      },
+      {
+        "label": "Account Lockouts (4740)",
+        "data": [5, 7, 6, 9, 8, 10, 9, 8, 11, 12],
+        "borderColor": "#f59e0b",
+        "backgroundColor": "#f59e0b22",
+        "tension": 0.3
+      },
+      {
+        "label": "Privileged Changes",
+        "data": [2, 3, 2, 4, 3, 5, 4, 3, 6, 5],
+        "borderColor": "#f43f5e",
+        "backgroundColor": "#f43f5e22",
+        "tension": 0.3
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 3\) Control coverage \(doughnut with rose accent\)
+
+```ix-chart
+{
+  "type": "doughnut",
+  "data": {
+    "labels": ["Compliant", "Partial", "Non-compliant", "Not Assessed"],
+    "datasets": [
+      {
+        "label": "Control Coverage",
+        "data": [62, 21, 11, 6],
+        "backgroundColor": ["#22c55e", "#f59e0b", "#ef4444", "#f43f5e"],
+        "borderColor": ["#16a34a", "#d97706", "#dc2626", "#e11d48"],
+        "borderWidth": 1
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 4\) Heat-style matrix proxy \(grouped bar for intensity\)
+
+```ix-chart
+{
+  "type": "bar",
+  "data": {
+    "labels": ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+    "datasets": [
+      {
+        "label": "Admin Logons",
+        "data": [18, 24, 21, 28, 26, 11, 9],
+        "backgroundColor": "#22c55e"
+      },
+      {
+        "label": "Failed Auth Bursts",
+        "data": [12, 15, 14, 19, 23, 8, 7],
+        "backgroundColor": "#ef4444"
+      },
+      {
+        "label": "Suspicious Script Runs",
+        "data": [4, 6, 5, 7, 9, 3, 2],
+        "backgroundColor": "#f43f5e"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## User \(20:37: 47\)
+
+you sure this is the chartjs thatwe support?
+
+## Assistant \(20:37: 49\)
+
+<!-- ix: model: gpt-5.3-codex -->
+
+Yep - your instinct is right: don't trust "looks fine," **certify it**.
+
+You're using the correct contract shape \(`ix-chart` with Chart.js-like `type`, `data.labels`, `data.datasets`\).  
+Now run this compact compatibility matrix to prove what your renderer actually supports.
+
+| Feature | Test block | Expected result | If it fails, likely cause |
+| --- | --- | --- | --- |
+| Basic bar render | Test A \\(stacked bar\\) | Bars render + legend visible | JSON parse issue or chart plugin not loaded |
+| Stacking | Test A `stack` + `scales.*.stacked=true` | Segments stack per category | Partial Chart.js options support |
+| Line smoothing/fill | Test B `tension` + `fill` | Curved filled lines | Renderer strips advanced dataset options |
+| Doughnut cutout | Test C `cutout:"55%"` | Ring hole appears | Older Chart.js compatibility mode |
+| Legend positioning | A/B/C `plugins.legend.position` | Top/bottom/right respected | Options object partially ignored |
+| Radar type | Test D | Radar renders | Chart type not enabled in runtime |
+
+## Proactive "catch hidden regressions" checks
+
+- Validate **strict JSON** only \(no trailing commas, no comments\).
+- Keep color tokens deterministic \(your green/amber/red/rose palette\) to detect style fallback.
+- Re-run the same block after any markdown parser upgrade; diff screenshots for silent rendering drift.
+
+```mermaid
+flowchart LR
+    A[Paste ix-chart block] --> B{Renders chart?}
+    B -- No --> C[Validate JSON syntax]
+    C --> D{Valid now?}
+    D -- No --> E[Fix payload]
+    D -- Yes --> F[Renderer/feature mismatch]
+    B -- Yes --> G{Options applied?}
+    G -- No --> F
+    G -- Yes --> H[Mark feature as supported]
+```
