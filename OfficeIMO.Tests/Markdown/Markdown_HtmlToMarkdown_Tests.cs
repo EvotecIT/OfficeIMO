@@ -1533,8 +1533,8 @@ x^2 + 1
     }
 
     [Fact]
-    public void HtmlToMarkdown_RoundTrips_ExportedTranscriptVisualPack_WithSemanticRecovery() {
-        string markdown = LoadCompatibilityFixture("ix-exported-transcript-visual-pack.md");
+    public void HtmlToMarkdown_RoundTrips_IxCompatibilityTranscriptVisualPack_WithSemanticRecovery() {
+        string markdown = LoadCompatibilityFixture("ix-compat-transcript-visual-pack.md");
         var options = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
         options.Chart.Enabled = true;
         options.Network.Enabled = true;
@@ -1565,8 +1565,8 @@ x^2 + 1
     }
 
     [Fact]
-    public void HtmlToMarkdown_RoundTrips_ExportedTranscriptVisualPack_PreservesSemanticBlockOrder() {
-        string markdown = LoadCompatibilityFixture("ix-exported-transcript-visual-pack.md");
+    public void HtmlToMarkdown_RoundTrips_IxCompatibilityTranscriptVisualPack_PreservesSemanticBlockOrder() {
+        string markdown = LoadCompatibilityFixture("ix-compat-transcript-visual-pack.md");
         var options = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
         options.Chart.Enabled = true;
         options.Network.Enabled = true;
@@ -1601,8 +1601,8 @@ x^2 + 1
     }
 
     [Fact]
-    public void HtmlToMarkdown_RoundTrips_ExportedTranscriptChartSuite_WithSemanticRecovery() {
-        string markdown = LoadCompatibilityFixture("ix-exported-transcript-chart-suite.md");
+    public void HtmlToMarkdown_RoundTrips_IxCompatibilityTranscriptChartSuite_WithSemanticRecovery() {
+        string markdown = LoadCompatibilityFixture("ix-compat-transcript-chart-suite.md");
         var options = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
         options.Chart.Enabled = true;
         options.Mermaid.Enabled = true;

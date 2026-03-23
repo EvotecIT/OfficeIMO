@@ -29,12 +29,16 @@ public sealed class MarkdownTranscriptPreparationTests {
         Assert.NotNull(preserved.InputNormalization);
         AssertInputNormalizationMatches(expectedNormalization, preserved.InputNormalization!);
         Assert.True(preserved.PreferNarrativeSingleLineDefinitions);
+        Assert.Contains(preserved.DocumentTransforms, transform => transform is MarkdownIntelligenceXCachedToolEvidenceMarkerTransform);
+        Assert.Contains(preserved.DocumentTransforms, transform => transform is MarkdownIntelligenceXLegacyToolHeadingTransform);
         Assert.DoesNotContain(preserved.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
         Assert.DoesNotContain(preserved.DocumentTransforms, transform => transform is MarkdownJsonVisualCodeBlockTransform);
 
         Assert.NotNull(flattened.InputNormalization);
         AssertInputNormalizationMatches(expectedNormalization, flattened.InputNormalization!);
         Assert.True(flattened.PreferNarrativeSingleLineDefinitions);
+        Assert.Contains(flattened.DocumentTransforms, transform => transform is MarkdownIntelligenceXCachedToolEvidenceMarkerTransform);
+        Assert.Contains(flattened.DocumentTransforms, transform => transform is MarkdownIntelligenceXLegacyToolHeadingTransform);
         Assert.Contains(flattened.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
         Assert.Contains(flattened.DocumentTransforms, transform =>
             transform is MarkdownJsonVisualCodeBlockTransform visual
@@ -87,6 +91,8 @@ public sealed class MarkdownTranscriptPreparationTests {
         Assert.False(options.AllowDataUrls);
         Assert.False(options.AllowProtocolRelativeUrls);
         Assert.True(options.RestrictUrlSchemes);
+        Assert.Contains(options.DocumentTransforms, transform => transform is MarkdownIntelligenceXCachedToolEvidenceMarkerTransform);
+        Assert.Contains(options.DocumentTransforms, transform => transform is MarkdownIntelligenceXLegacyToolHeadingTransform);
         Assert.Contains(options.DocumentTransforms, transform => transform is MarkdownSimpleDefinitionListParagraphTransform);
         Assert.Contains(options.DocumentTransforms, transform =>
             transform is MarkdownJsonVisualCodeBlockTransform visual
@@ -111,6 +117,65 @@ public sealed class MarkdownTranscriptPreparationTests {
 
         Assert.DoesNotContain("\n\n\n", prepared, StringComparison.Ordinal);
         Assert.Contains("# Transcript\n\nStatus: healthy\n\n### Result", prepared, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PrepareIntelligenceXTranscriptForExport_PromotesLegacyToolHeadings_And_UpgradesLegacyVisualPayloads() {
+        const string markdown = """
+            ix:cached-tool-evidence:v1
+
+            Recent evidence:
+            - eventlog_top_events: ### Top 30 recent events (preview)
+
+            #### ad_environment_discover
+            ### Active Directory: Environment Discovery
+
+            ```json
+            {"nodes":[{"id":"A","label":"Forest: ad.evotec.xyz"}],"edges":[{"source":"A","target":"B","label":"contains"}]}
+            ```
+            """;
+
+        var prepared = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptForExport(markdown)
+            .Replace("\r\n", "\n");
+
+        Assert.DoesNotContain("cached-tool-evidence", prepared, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("eventlog_top_events:", prepared, StringComparison.Ordinal);
+        Assert.DoesNotContain("#### ad_environment_discover", prepared, StringComparison.Ordinal);
+        Assert.Contains("Top 30 recent events", prepared, StringComparison.Ordinal);
+        Assert.Contains("### Active Directory: Environment Discovery", prepared, StringComparison.Ordinal);
+        Assert.Contains("```ix-network", prepared, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PrepareIntelligenceXTranscriptForExport_Can_Emit_Generic_Semantic_Visual_Fence_Languages() {
+        const string markdown = """
+            ix:cached-tool-evidence:v1
+
+            ```json
+            {"type":"bar","data":{"labels":["A"],"datasets":[{"label":"Count","data":[1]}]}}
+            ```
+
+            ```json
+            {"nodes":[{"id":"A","label":"Forest: ad.evotec.xyz"}],"edges":[{"source":"A","target":"B","label":"contains"}]}
+            ```
+
+            ```json
+            {"kind":"ix_tool_dataview_v1","rows":[["Server","Fails"],["AD0","0"]]}
+            ```
+            """;
+
+        var prepared = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptForExport(
+                markdown,
+                MarkdownVisualFenceLanguageMode.GenericSemanticFence)
+            .Replace("\r\n", "\n");
+
+        Assert.DoesNotContain("cached-tool-evidence", prepared, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("```chart", prepared, StringComparison.Ordinal);
+        Assert.Contains("```network", prepared, StringComparison.Ordinal);
+        Assert.Contains("```dataview", prepared, StringComparison.Ordinal);
+        Assert.DoesNotContain("```ix-chart", prepared, StringComparison.Ordinal);
+        Assert.DoesNotContain("```ix-network", prepared, StringComparison.Ordinal);
+        Assert.DoesNotContain("```ix-dataview", prepared, StringComparison.Ordinal);
     }
 
     [Fact]

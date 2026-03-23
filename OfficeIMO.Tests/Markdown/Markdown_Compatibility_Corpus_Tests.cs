@@ -97,8 +97,37 @@ public class Markdown_Compatibility_Corpus_Tests {
     }
 
     [Fact]
-    public void Compatibility_Fixture_Ix_ExportedTranscriptVisualPack_Preserves_Semantic_Block_Recovery() {
-        string markdown = LoadCompatibilityFixture("ix-exported-transcript-visual-pack.md");
+    public void Compatibility_Fixture_SharedVisualHosts_Html_Ingestion_Preserves_Generic_Semantic_Block_Recovery() {
+        string html = LoadHtmlFixture("shared-visual-hosts.html");
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/visuals/archive.html")
+        });
+        string markdown = document.ToMarkdown(MarkdownWriteOptions.CreateOfficeIMOProfile());
+
+        Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Level == 1 && heading.Text == "Shared Visual Archive");
+
+        var semanticBlocks = document.Blocks.OfType<SemanticFencedBlock>().ToList();
+        Assert.Equal(3, semanticBlocks.Count);
+        Assert.Contains(semanticBlocks, block => block.Language == "chart" && block.Caption == "Chart preview");
+        Assert.Contains(semanticBlocks, block => block.Language == "network" && block.Caption == "Network preview");
+        Assert.Contains(semanticBlocks, block => block.Language == "dataview" && block.Caption == "Dataview preview");
+        Assert.Contains(semanticBlocks, block => block.Content.Contains("\"label\":\"Count\"", StringComparison.Ordinal));
+        Assert.Contains(semanticBlocks, block => block.Content.Contains("\"label\":\"memberOf\"", StringComparison.Ordinal));
+        Assert.Contains(semanticBlocks, block => block.Content.Contains("\"kind\":\"ix_tool_dataview_v1\"", StringComparison.Ordinal));
+
+        Assert.Contains("```chart", markdown, StringComparison.Ordinal);
+        Assert.Contains("```network", markdown, StringComparison.Ordinal);
+        Assert.Contains("```dataview", markdown, StringComparison.Ordinal);
+        Assert.Contains("_Chart preview_", markdown, StringComparison.Ordinal);
+        Assert.Contains("_Network preview_", markdown, StringComparison.Ordinal);
+        Assert.Contains("_Dataview preview_", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-omd-visual-kind", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Compatibility_Fixture_Ix_CompatibilityTranscriptVisualPack_Preserves_Semantic_Block_Recovery() {
+        string markdown = LoadCompatibilityFixture("ix-compat-transcript-visual-pack.md");
 
         var ix = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
         ix.Chart.Enabled = true;
@@ -121,8 +150,8 @@ public class Markdown_Compatibility_Corpus_Tests {
     }
 
     [Fact]
-    public void Compatibility_Fixture_Ix_ExportedTranscriptChartSuite_Preserves_ChartHeavy_Transcript_Recovery() {
-        string markdown = LoadCompatibilityFixture("ix-exported-transcript-chart-suite.md");
+    public void Compatibility_Fixture_Ix_CompatibilityTranscriptChartSuite_Preserves_ChartHeavy_Transcript_Recovery() {
+        string markdown = LoadCompatibilityFixture("ix-compat-transcript-chart-suite.md");
 
         var ix = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
         ix.Chart.Enabled = true;
@@ -143,6 +172,28 @@ public class Markdown_Compatibility_Corpus_Tests {
         Assert.Contains("Risk distribution", document.ToMarkdown(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Compatibility_Fixture_Ix_PortableExportLegacyJsonVisuals_Separates_Compatibility_And_Portable_Export_Lanes() {
+        string markdown = LoadCompatibilityFixture("ix-portable-export-legacy-json-visuals.md");
+
+        string ixCompatibilityExport = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptForExport(markdown);
+        string portableExport = MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptForExport(
+            markdown,
+            MarkdownVisualFenceLanguageMode.GenericSemanticFence);
+
+        Assert.Contains("```ix-chart", ixCompatibilityExport, StringComparison.Ordinal);
+        Assert.Contains("```ix-dataview", ixCompatibilityExport, StringComparison.Ordinal);
+        Assert.DoesNotContain("```chart", ixCompatibilityExport, StringComparison.Ordinal);
+        Assert.DoesNotContain("```dataview", ixCompatibilityExport, StringComparison.Ordinal);
+
+        Assert.Contains("```chart", portableExport, StringComparison.Ordinal);
+        Assert.Contains("```dataview", portableExport, StringComparison.Ordinal);
+        Assert.DoesNotContain("```ix-chart", portableExport, StringComparison.Ordinal);
+        Assert.DoesNotContain("```ix-dataview", portableExport, StringComparison.Ordinal);
+        Assert.DoesNotContain("ix:cached-tool-evidence:v1", portableExport, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"label\": \"Count\"", portableExport, StringComparison.Ordinal);
+    }
+
     private static HtmlOptions CreatePlainHtmlOptions() {
         return new HtmlOptions {
             Style = HtmlStyle.Plain,
@@ -158,6 +209,17 @@ public class Markdown_Compatibility_Corpus_Tests {
             "Markdown",
             "Fixtures",
             "Compatibility",
+            name);
+
+        return File.ReadAllText(path);
+    }
+
+    private static string LoadHtmlFixture(string name) {
+        string path = Path.Combine(
+            AppContext.BaseDirectory,
+            "..", "..", "..",
+            "Markdown",
+            "Fixtures",
             name);
 
         return File.ReadAllText(path);

@@ -33,19 +33,11 @@ public static class MarkdownTranscriptPreparation {
 
         options.InputNormalization = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscript();
         options.PreferNarrativeSingleLineDefinitions = true;
+        AddDocumentTransformIfMissing<MarkdownIntelligenceXCachedToolEvidenceMarkerTransform>(options);
+        AddDocumentTransformIfMissing<MarkdownIntelligenceXLegacyToolHeadingTransform>(options);
 
         if (!preservesGroupedDefinitionLikeParagraphs && options.DefinitionLists) {
-            bool hasDefinitionCompatibilityTransform = false;
-            for (var i = 0; i < options.DocumentTransforms.Count; i++) {
-                if (options.DocumentTransforms[i] is MarkdownSimpleDefinitionListParagraphTransform) {
-                    hasDefinitionCompatibilityTransform = true;
-                    break;
-                }
-            }
-
-            if (!hasDefinitionCompatibilityTransform) {
-                options.DocumentTransforms.Add(new MarkdownSimpleDefinitionListParagraphTransform());
-            }
+            AddDocumentTransformIfMissing<MarkdownSimpleDefinitionListParagraphTransform>(options);
         }
 
         if (visualFenceLanguageMode.HasValue) {
@@ -113,10 +105,38 @@ public static class MarkdownTranscriptPreparation {
     /// have already been stripped.
     /// </summary>
     /// <param name="markdown">Transcript markdown source after host-specific marker cleanup.</param>
+    /// <param name="visualFenceLanguageMode">
+    /// Target fence-language mode for upgraded legacy JSON visual payloads.
+    /// Use <see cref="MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence"/> for compatibility-first IX exports
+    /// or <see cref="MarkdownVisualFenceLanguageMode.GenericSemanticFence"/> for portable generic markdown exports.
+    /// </param>
     /// <returns>Export-prepared transcript markdown.</returns>
-    public static string PrepareIntelligenceXTranscriptForExport(string? markdown) {
+    public static string PrepareIntelligenceXTranscriptForExport(
+        string? markdown,
+        MarkdownVisualFenceLanguageMode visualFenceLanguageMode) {
+        var prepared = PrepareIntelligenceXTranscriptBody(markdown);
+        if (prepared.Length == 0) {
+            return string.Empty;
+        }
+
+        var document = PrepareIntelligenceXTranscriptDocument(
+            prepared,
+            visualFenceLanguageMode: visualFenceLanguageMode);
+
         return MarkdownBlankLines.CollapseDuplicateBlankLines(
-            PrepareIntelligenceXTranscriptBody(markdown));
+            document.ToMarkdown(MarkdownWriteOptions.CreateOfficeIMOProfile())).TrimEnd();
+    }
+
+    /// <summary>
+    /// Applies the shared IX transcript export-preparation contract after any host-specific transport markers
+    /// have already been stripped.
+    /// </summary>
+    /// <param name="markdown">Transcript markdown source after host-specific marker cleanup.</param>
+    /// <returns>Export-prepared transcript markdown using legacy IX alias fence languages.</returns>
+    public static string PrepareIntelligenceXTranscriptForExport(string? markdown) {
+        return PrepareIntelligenceXTranscriptForExport(
+            markdown,
+            MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
     }
 
     /// <summary>
@@ -181,5 +201,16 @@ public static class MarkdownTranscriptPreparation {
             preservesGroupedDefinitionLikeParagraphs,
             visualFenceLanguageMode);
         return MarkdownReader.Parse(value, options);
+    }
+
+    private static void AddDocumentTransformIfMissing<TTransform>(MarkdownReaderOptions options)
+        where TTransform : IMarkdownDocumentTransform, new() {
+        for (var i = 0; i < options.DocumentTransforms.Count; i++) {
+            if (options.DocumentTransforms[i] is TTransform) {
+                return;
+            }
+        }
+
+        options.DocumentTransforms.Add(new TTransform());
     }
 }

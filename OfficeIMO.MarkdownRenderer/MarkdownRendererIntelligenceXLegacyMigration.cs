@@ -33,8 +33,8 @@ public static class MarkdownRendererIntelligenceXLegacyMigration {
 
         var transforms = options.ReaderOptions.DocumentTransforms;
         for (var i = 0; i < transforms.Count; i++) {
-            if (ReferenceEquals(transforms[i], CachedToolEvidenceMarkerTransform)
-                || ReferenceEquals(transforms[i], LegacyToolHeadingTransform)) {
+            if (transforms[i] is MarkdownIntelligenceXCachedToolEvidenceMarkerTransform
+                || transforms[i] is MarkdownIntelligenceXLegacyToolHeadingTransform) {
                 return true;
             }
         }
@@ -45,7 +45,10 @@ public static class MarkdownRendererIntelligenceXLegacyMigration {
     private static void AddReaderTransformIfMissing(MarkdownRendererOptions options, IMarkdownDocumentTransform transform) {
         var transforms = options.ReaderOptions.DocumentTransforms;
         for (var i = 0; i < transforms.Count; i++) {
-            if (ReferenceEquals(transforms[i], transform)) {
+            if ((transform is MarkdownIntelligenceXCachedToolEvidenceMarkerTransform
+                    && transforms[i] is MarkdownIntelligenceXCachedToolEvidenceMarkerTransform)
+                || (transform is MarkdownIntelligenceXLegacyToolHeadingTransform
+                    && transforms[i] is MarkdownIntelligenceXLegacyToolHeadingTransform)) {
                 return;
             }
         }

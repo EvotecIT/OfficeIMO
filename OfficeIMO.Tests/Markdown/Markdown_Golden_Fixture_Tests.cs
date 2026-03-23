@@ -186,6 +186,21 @@ public sealed class Markdown_Golden_Fixture_Tests {
     }
 
     [Fact]
+    public void MarkdownGolden_IxPortableExportLegacyJsonVisuals() {
+        string markdown = LoadCompatibilityFixture("ix-portable-export-legacy-json-visuals.md");
+
+        var sb = new StringBuilder();
+        AppendSection(sb, "ix-compat.markdown", NormalizeText(
+            MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptForExport(markdown)));
+        AppendSection(sb, "portable-export.markdown", NormalizeText(
+            MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptForExport(
+                markdown,
+                MarkdownVisualFenceLanguageMode.GenericSemanticFence)));
+
+        AssertGolden("ix-portable-export-legacy-json-visuals", sb.ToString().TrimEnd());
+    }
+
+    [Fact]
     public void MarkdownGolden_HtmlRichAst() {
         string html = LoadCompatibilityFixture("html-rich-ast.html");
 
@@ -204,6 +219,29 @@ public sealed class Markdown_Golden_Fixture_Tests {
     }
 
     [Fact]
+    public void MarkdownGolden_HtmlSharedVisualHosts() {
+        string html = LoadHtmlFixture("shared-visual-hosts.html");
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/visuals/archive.html")
+        });
+        string officeMarkdown = document.ToMarkdown(MarkdownWriteOptions.CreateOfficeIMOProfile());
+        string portableMarkdown = html.ToMarkdown(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/visuals/archive.html"),
+            MarkdownWriteOptions = MarkdownWriteOptions.CreatePortableProfile()
+        });
+        string renderedHtml = document.ToHtmlFragment(CreatePlainHtmlOptions());
+
+        var sb = new StringBuilder();
+        AppendSection(sb, "ast", BuildDocumentSummary(document));
+        AppendSection(sb, "office.markdown", NormalizeText(officeMarkdown));
+        AppendSection(sb, "portable.markdown", NormalizeText(portableMarkdown));
+        AppendSection(sb, "rendered.html", NormalizeHtml(renderedHtml));
+
+        AssertGolden("html-shared-visual-hosts", sb.ToString().TrimEnd());
+    }
+
+    [Fact]
     public void MarkdownGolden_HtmlPublisherFigureFixtures() {
         var sb = new StringBuilder();
         AppendHtmlFixtureSnapshot(sb, "linked", "publisher-linked-picture-article.html");
@@ -215,8 +253,8 @@ public sealed class Markdown_Golden_Fixture_Tests {
     }
 
     [Fact]
-    public void MarkdownGolden_IxExportedTranscriptVisualPackRoundTrip() {
-        string markdown = LoadCompatibilityFixture("ix-exported-transcript-visual-pack.md");
+    public void MarkdownGolden_IxCompatibilityTranscriptVisualPackRoundTrip() {
+        string markdown = LoadCompatibilityFixture("ix-compat-transcript-visual-pack.md");
         var ix = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
         ix.Chart.Enabled = true;
         ix.Network.Enabled = true;
@@ -230,12 +268,12 @@ public sealed class Markdown_Golden_Fixture_Tests {
         AppendSection(sb, "recovered.ast", BuildDocumentSummary(document));
         AppendSection(sb, "roundtrip.markdown", NormalizeText(document.ToMarkdown()));
 
-        AssertGolden("ix-exported-transcript-visual-pack", sb.ToString().TrimEnd());
+        AssertGolden("ix-compat-transcript-visual-pack", sb.ToString().TrimEnd());
     }
 
     [Fact]
-    public void MarkdownGolden_IxExportedTranscriptChartSuiteRoundTrip() {
-        string markdown = LoadCompatibilityFixture("ix-exported-transcript-chart-suite.md");
+    public void MarkdownGolden_IxCompatibilityTranscriptChartSuiteRoundTrip() {
+        string markdown = LoadCompatibilityFixture("ix-compat-transcript-chart-suite.md");
         var ix = MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal();
         ix.Chart.Enabled = true;
         ix.Mermaid.Enabled = true;
@@ -248,7 +286,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
         AppendSection(sb, "recovered.ast", BuildDocumentSummary(document));
         AppendSection(sb, "roundtrip.markdown", NormalizeText(document.ToMarkdown()));
 
-        AssertGolden("ix-exported-transcript-chart-suite", sb.ToString().TrimEnd());
+        AssertGolden("ix-compat-transcript-chart-suite", sb.ToString().TrimEnd());
     }
 
     [Fact]
