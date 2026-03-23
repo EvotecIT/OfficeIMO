@@ -76,6 +76,17 @@ f.AddPageNumber();
 doc.AddParagraph().AddHyperLink("OpenAI", new Uri("https://openai.com/"));
 ```
 
+### Append another document
+```csharp
+using var destination = WordDocument.Load("report-main.docx");
+using var appendix = WordDocument.Load("report-appendix.docx");
+
+destination.AppendDocument(appendix);
+destination.SaveAs("report-merged.docx");
+```
+
+Sample: `OfficeIMO.Examples/Word/MergeDocuments/MergeDocuments.Basic.cs`
+
 ### Fields
 ```csharp
 var para = doc.AddParagraph();
@@ -192,7 +203,7 @@ var fluent = new WordFluentDocument(doc)
 
 ## Feature Highlights
 
-- Document: create/load/save, clean/repair, compatibility settings, protection
+- Document: create/load/save, clean/repair, compatibility settings, protection, append/merge other `.docx` files
 - Sections: margins, size/orientation, columns, headers/footers (first/even/odd)
 - Paragraphs/Runs: bold/italic/underline/strike, shading, tabs, breaks, justification
 - Tables: create, merge/split, borders/shading, widths, header row repeat, page breaks
