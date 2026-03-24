@@ -43,7 +43,7 @@ namespace OfficeIMO.Word {
                 }
                 var chartRef = _drawing.Inline?.Graphic?.GraphicData?.GetFirstChild<ChartReference>();
                 var id = chartRef?.Id?.Value;
-                return id != null ? (ChartPart?)_document._wordprocessingDocument.MainDocumentPart!.GetPartById(id) : null;
+                return id != null ? (ChartPart?)_document.MainDocumentPartRoot.GetPartById(id) : null;
             }
         }
         private Drawing? _drawing;
@@ -69,7 +69,7 @@ namespace OfficeIMO.Word {
         public BarGroupingValues? BarGrouping {
             get {
                 if (_chartPart != null) {
-                    var chart = _chartPart.ChartSpace.GetFirstChild<Chart>();
+                    var chart = ChartSpaceRoot.GetFirstChild<Chart>();
                     var barChart = chart?.PlotArea?.GetFirstChild<BarChart>();
                     if (barChart?.BarGrouping != null) {
                         return barChart.BarGrouping.Val?.Value;
@@ -80,7 +80,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (_chartPart != null) {
-                    var chart = _chartPart.ChartSpace.GetFirstChild<Chart>();
+                    var chart = ChartSpaceRoot.GetFirstChild<Chart>();
                     var barChart = chart?.PlotArea?.GetFirstChild<BarChart>();
                     if (barChart != null) {
                         if (value.HasValue) {
@@ -98,7 +98,7 @@ namespace OfficeIMO.Word {
         public BarDirectionValues? BarDirection {
             get {
                 if (_chartPart != null) {
-                    var chart = _chartPart.ChartSpace.GetFirstChild<Chart>();
+                    var chart = ChartSpaceRoot.GetFirstChild<Chart>();
                     var barChart = chart?.PlotArea?.GetFirstChild<BarChart>();
                     if (barChart?.BarDirection != null) {
                         return barChart.BarDirection.Val?.Value;
@@ -109,7 +109,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (_chartPart != null) {
-                    var chart = _chartPart.ChartSpace.GetFirstChild<Chart>();
+                    var chart = ChartSpaceRoot.GetFirstChild<Chart>();
                     var barChart = chart?.PlotArea?.GetFirstChild<BarChart>();
                     if (barChart != null) {
                         if (value.HasValue) {
@@ -126,7 +126,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool RoundedCorners {
             get {
-                var roundedCorners = _chartPart?.ChartSpace.GetFirstChild<RoundedCorners>();
+                var roundedCorners = _chartPart?.ChartSpace?.GetFirstChild<RoundedCorners>();
                 if (roundedCorners?.Val != null) {
                     return roundedCorners.Val;
                 }
@@ -135,7 +135,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (_chartPart == null) return;
-                var roundedCorners = _chartPart.ChartSpace.GetFirstChild<RoundedCorners>();
+                var roundedCorners = ChartSpaceRoot.GetFirstChild<RoundedCorners>();
                 if (roundedCorners == null) {
                     roundedCorners = new RoundedCorners() { Val = value };
                 }

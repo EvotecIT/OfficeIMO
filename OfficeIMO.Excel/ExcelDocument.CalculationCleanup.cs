@@ -5,16 +5,18 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         internal void CleanupCalculationArtifacts(bool save = true) {
-            var workbookPart = _workBookPart;
+            var workbookPart = WorkbookPartRoot;
 
             foreach (var calculationChainPart in workbookPart.GetPartsOfType<CalculationChainPart>().ToList()) {
                 workbookPart.DeletePart(calculationChainPart);
             }
 
             bool hasCellFormulas = workbookPart.WorksheetParts
-                .Any(worksheetPart => worksheetPart.Worksheet.Descendants<CellFormula>().Any(formula => !string.IsNullOrWhiteSpace(formula.Text)));
+                .Any(worksheetPart => (worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is null."))
+                    .Descendants<CellFormula>()
+                    .Any(formula => !string.IsNullOrWhiteSpace(formula.Text)));
 
-            var workbook = workbookPart.Workbook;
+            var workbook = WorkbookRoot;
             var calculationProperties = workbook.Elements<CalculationProperties>().FirstOrDefault();
             if (!hasCellFormulas) {
                 if (save) {

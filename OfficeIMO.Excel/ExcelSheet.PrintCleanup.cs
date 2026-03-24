@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
         private const uint MaxExcelColumnIndex = 16_383U;
 
         internal void CleanupPrintArtifacts() {
-            var worksheet = _worksheetPart.Worksheet;
+            var worksheet = WorksheetRoot;
 
             CleanupRowBreaks(worksheet.GetFirstChild<RowBreaks>());
             CleanupColumnBreaks(worksheet.GetFirstChild<ColumnBreaks>());

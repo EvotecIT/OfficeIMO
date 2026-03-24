@@ -927,13 +927,13 @@ namespace OfficeIMO.Word {
             }
 
             foreach (var header in _wordprocessingDocument?.MainDocumentPart?.HeaderParts ?? Enumerable.Empty<HeaderPart>()) {
-                foreach (var paragraph in header.Header.Descendants<Paragraph>().ToList()) {
+                foreach (var paragraph in (header.Header?.Descendants<Paragraph>() ?? Enumerable.Empty<Paragraph>()).ToList()) {
                     count += CleanupParagraph(paragraph, options);
                 }
             }
 
             foreach (var footer in _wordprocessingDocument?.MainDocumentPart?.FooterParts ?? Enumerable.Empty<FooterPart>()) {
-                foreach (var paragraph in footer.Footer.Descendants<Paragraph>().ToList()) {
+                foreach (var paragraph in (footer.Footer?.Descendants<Paragraph>() ?? Enumerable.Empty<Paragraph>()).ToList()) {
                     count += CleanupParagraph(paragraph, options);
                 }
             }

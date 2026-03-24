@@ -108,13 +108,13 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string? BackgroundColor {
             get {
-                CommonSlideData? common = _slidePart.Slide.CommonSlideData;
+                CommonSlideData? common = SlideRoot.CommonSlideData;
                 Background? bg = common?.Background;
                 A.SolidFill? solid = bg?.BackgroundProperties?.GetFirstChild<A.SolidFill>();
                 return solid?.RgbColorModelHex?.Val;
             }
             set {
-                CommonSlideData common = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
+                CommonSlideData common = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
                 if (value == null) {
                     BackgroundProperties? properties = common.Background?.BackgroundProperties;
                     if (properties == null) {
@@ -169,7 +169,7 @@ namespace OfficeIMO.PowerPoint {
             imagePart.FeedData(stream);
             string relationshipId = _slidePart.GetIdOfPart(imagePart);
 
-            CommonSlideData common = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
+            CommonSlideData common = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             Background background = common.Background ?? new Background();
             BackgroundProperties props = background.BackgroundProperties ?? new BackgroundProperties();
 
@@ -190,7 +190,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Clears any background image from the slide.
         /// </summary>
         public void ClearBackgroundImage() {
-            CommonSlideData? common = _slidePart.Slide.CommonSlideData;
+            CommonSlideData? common = SlideRoot.CommonSlideData;
             if (common?.Background?.BackgroundProperties == null) {
                 return;
             }
@@ -359,7 +359,7 @@ namespace OfficeIMO.PowerPoint {
                         break;
                 }
 
-                _slidePart.Slide.Transition = transition;
+                SlideRoot.Transition = transition;
             }
         }
 
@@ -415,7 +415,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private Transition? GetTransitionElement() {
-            Transition? transition = _slidePart.Slide.Transition;
+            Transition? transition = SlideRoot.Transition;
             if (transition != null) {
                 return transition;
             }
@@ -436,19 +436,19 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private AlternateContent? GetTransitionAlternateContent() {
-            return _slidePart.Slide.Elements<AlternateContent>()
+            return SlideRoot.Elements<AlternateContent>()
                 .FirstOrDefault(content =>
                     content.Elements<AlternateContentChoice>().Any(choice => choice.GetFirstChild<Transition>() != null) ||
                     content.GetFirstChild<AlternateContentFallback>()?.GetFirstChild<Transition>() != null);
         }
 
         private void RemoveTransitionMarkup() {
-            _slidePart.Slide.Transition = null;
+            SlideRoot.Transition = null;
             GetTransitionAlternateContent()?.Remove();
         }
 
         private void SetMorphTransition() {
-            Slide slide = _slidePart.Slide;
+            Slide slide = SlideRoot;
             slide.AddNamespaceDeclaration("mc", MarkupCompatibilityNamespace);
             slide.AddNamespaceDeclaration("p159", P159Namespace);
             slide.MCAttributes = MergeIgnorableNamespace(slide.MCAttributes, "p159");
@@ -471,7 +471,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private void InsertTransitionAlternateContent(AlternateContent alternateContent) {
-            Slide slide = _slidePart.Slide;
+            Slide slide = SlideRoot;
             OpenXmlElement? insertBefore = slide.GetFirstChild<Timing>();
             insertBefore ??= slide.GetFirstChild<ExtensionListWithModification>();
             if (insertBefore != null) {
@@ -518,7 +518,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private A.Blip? GetBackgroundBlip() {
-            return _slidePart.Slide.CommonSlideData?.Background?.BackgroundProperties?.GetFirstChild<A.BlipFill>()?.Blip;
+            return SlideRoot.CommonSlideData?.Background?.BackgroundProperties?.GetFirstChild<A.BlipFill>()?.Blip;
         }
 
         private void RemoveUnusedImagePart(string? relationshipId, A.Blip? currentBlip) {
@@ -538,7 +538,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private bool IsImageRelationshipReferenced(string relationshipId, A.Blip? currentBlip) {
-            return _slidePart.Slide
+            return SlideRoot
                 .Descendants<A.Blip>()
                 .Any(blip => !ReferenceEquals(blip, currentBlip) && blip.Embed?.Value == relationshipId);
         }
@@ -865,7 +865,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal void Save() {
-            _slidePart.Slide.Save();
+            SlideRoot.Save();
             _notes?.Save();
         }
 
@@ -935,7 +935,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private void LoadExistingShapes() {
-            ShapeTree? tree = _slidePart.Slide.CommonSlideData?.ShapeTree;
+            ShapeTree? tree = SlideRoot.CommonSlideData?.ShapeTree;
             if (tree == null) {
                 return;
             }

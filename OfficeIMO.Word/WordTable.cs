@@ -506,7 +506,7 @@ namespace OfficeIMO.Word {
 
             if (insert) {
                 // Append the table to the document.
-                document._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Append(_table);
+                BodyRoot.Append(_table);
             }
         }
 

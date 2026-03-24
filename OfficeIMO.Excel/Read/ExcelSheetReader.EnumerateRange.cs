@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IEnumerable<CellValueInfo> EnumerateRange(string a1Range) {
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
-            var sheetData = _wsPart.Worksheet.GetFirstChild<SheetData>();
+            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData == null) yield break;
 
             foreach (var row in sheetData.Elements<Row>()) {

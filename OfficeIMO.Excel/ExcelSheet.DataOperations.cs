@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
         public void AutoFilterAdd(string a1Range) {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             WriteLock(() => {
-                var ws = _worksheetPart.Worksheet;
+                var ws = WorksheetRoot;
                 // Remove existing AutoFilter, if any
                 var existing = ws.Elements<AutoFilter>().FirstOrDefault();
                 existing?.Remove();
@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void AutoFilterClear() {
             WriteLock(() => {
-                var ws = _worksheetPart.Worksheet;
+                var ws = WorksheetRoot;
                 var existing = ws.Elements<AutoFilter>().FirstOrDefault();
                 existing?.Remove();
                 ws.Save();
@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 if (!TryGetColumnIndexByHeader(header, out var colIndex))
                     return;
-                var ws = _worksheetPart.Worksheet;
+                var ws = WorksheetRoot;
                 var af = ws.Elements<AutoFilter>().FirstOrDefault();
                 if (af == null) {
                     var used = GetUsedRangeA1();
@@ -96,7 +96,7 @@ namespace OfficeIMO.Excel {
                 }
                 if (toApply.Count == 0) return;
 
-                var ws = _worksheetPart.Worksheet;
+                var ws = WorksheetRoot;
                 var af = ws.Elements<AutoFilter>().FirstOrDefault();
                 if (af == null) {
                     var used = GetUsedRangeA1();
@@ -239,7 +239,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string? FindFirst(string text) {
             if (string.IsNullOrEmpty(text)) return null;
-            var ws = _worksheetPart.Worksheet;
+            var ws = WorksheetRoot;
             var sd = ws.GetFirstChild<SheetData>();
             if (sd == null) return null;
 
@@ -261,7 +261,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrEmpty(oldText)) return 0;
             int count = 0;
             WriteLock(() => {
-                var ws = _worksheetPart.Worksheet;
+                var ws = WorksheetRoot;
                 var sd = ws.GetFirstChild<SheetData>();
                 if (sd == null) return;
 
@@ -302,7 +302,7 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 if (!TryGetColumnIndexByHeader(header, out var colIndex))
                     return;
-                var ws = _worksheetPart.Worksheet;
+                var ws = WorksheetRoot;
                 var af = ws.Elements<AutoFilter>().FirstOrDefault();
                 if (af == null) {
                     var used = GetUsedRangeA1();
@@ -340,7 +340,7 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 if (!TryGetColumnIndexByHeader(header, out var colIndex))
                     return;
-                var ws = _worksheetPart.Worksheet;
+                var ws = WorksheetRoot;
                 var af = ws.Elements<AutoFilter>().FirstOrDefault();
                 if (af == null) {
                     var used = GetUsedRangeA1();
@@ -388,7 +388,7 @@ namespace OfficeIMO.Excel {
             var formula = "\"" + joined + "\""; // e.g., "New,Processed,Hold"
 
             WriteLock(() => {
-                var ws = _worksheetPart.Worksheet;
+                var ws = WorksheetRoot;
                 var dvs = ws.GetFirstChild<DataValidations>();
                 if (dvs == null) {
                     dvs = new DataValidations();
@@ -419,7 +419,7 @@ namespace OfficeIMO.Excel {
             }
 
             WriteLock(() => {
-                var ws = _worksheetPart.Worksheet;
+                var ws = WorksheetRoot;
                 var dvs = ws.GetFirstChild<DataValidations>();
                 if (dvs == null) {
                     dvs = new DataValidations();
@@ -460,7 +460,7 @@ namespace OfficeIMO.Excel {
             var formula = "=" + formulaRange;
 
             WriteLock(() => {
-                var ws = _worksheetPart.Worksheet;
+                var ws = WorksheetRoot;
                 var dvs = ws.GetFirstChild<DataValidations>();
                 if (dvs == null) {
                     dvs = new DataValidations();
@@ -557,7 +557,7 @@ namespace OfficeIMO.Excel {
             }
 
             WriteLock(() => {
-                Worksheet ws = _worksheetPart.Worksheet;
+                Worksheet ws = WorksheetRoot;
                 DataValidations? dvs = ws.GetFirstChild<DataValidations>();
                 if (dvs == null) {
                     dvs = new DataValidations();

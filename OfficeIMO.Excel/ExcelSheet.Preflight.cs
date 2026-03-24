@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         internal void Preflight() {
             WriteLock(() => {
-                var ws = _worksheetPart.Worksheet;
+                var ws = WorksheetRoot;
 
                 CleanupHyperlinkArtifacts();
 

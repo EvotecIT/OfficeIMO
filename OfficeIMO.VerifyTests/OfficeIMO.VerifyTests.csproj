@@ -4,6 +4,7 @@
         <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
+        <WarningsNotAsErrors>$(WarningsNotAsErrors);CS8600;CS8601;CS8602;CS8603;CS8604;CS8625</WarningsNotAsErrors>
     </PropertyGroup>
 
     <ItemGroup>

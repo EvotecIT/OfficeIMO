@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel {
         /// Helps avoid rare "dimension" repair messages in Excel when generating sheets programmatically.
         /// </summary>
         internal void UpdateSheetDimension() {
-            var ws = _worksheetPart.Worksheet;
+            var ws = WorksheetRoot;
             var dimensions = ws.Elements<SheetDimension>().ToList();
             SheetDimension? dimEl = dimensions.FirstOrDefault();
             foreach (var extraDimension in dimensions.Skip(1).ToList()) {

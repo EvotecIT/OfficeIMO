@@ -59,7 +59,7 @@ namespace OfficeIMO.PowerPoint {
                 )
             );
 
-            CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
+            CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(picture);
             PowerPointPicture pic = new(picture, _slidePart);
@@ -126,7 +126,7 @@ namespace OfficeIMO.PowerPoint {
                 )
             );
 
-            CommonSlideData data = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
+            CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(picture);
             PowerPointPicture pic = new(picture, _slidePart);

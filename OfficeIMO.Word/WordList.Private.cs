@@ -11,7 +11,10 @@ public partial class WordList : WordElement {
     /// Retrieves the <see cref="AbstractNum"/> associated with this list.
     /// </summary>
     private AbstractNum? GetAbstractNum() {
-        var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+        var numbering = TryGetNumberingRoot();
+        if (numbering == null) {
+            return null;
+        }
         if (_abstractId == 0) {
             var instance = numbering.Elements<NumberingInstance>()
                 .FirstOrDefault(n => n.NumberID != null && n.NumberID.Value == _numberId);
@@ -90,7 +93,7 @@ public partial class WordList : WordElement {
     /// </summary>
     /// <param name="document">The Word document.</param>
     private void CreateNumberingDefinition(WordDocument document) {
-        var numberingDefinitionsPart = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart ?? document._wordprocessingDocument.MainDocumentPart!.AddNewPart<NumberingDefinitionsPart>();
+        var numberingDefinitionsPart = EnsureNumberingDefinitionsPartRoot();
         if (numberingDefinitionsPart.Numbering == null) {
             // the check for null is required even tho Resharper claims it's not
             Numbering numbering1 = new Numbering() { MCAttributes = new MarkupCompatibilityAttributes() { Ignorable = "w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14" } };
@@ -129,7 +132,7 @@ public partial class WordList : WordElement {
             numbering1.AddNamespaceDeclaration("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape");
 
             numberingDefinitionsPart.Numbering = numbering1;
-            numbering1.Save(_document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!);
+            numbering1.Save(numberingDefinitionsPart);
         }
     }
 
@@ -214,7 +217,7 @@ public partial class WordList : WordElement {
     /// <param name="style">The list style to apply.</param>
     internal void AddList(WordListStyle style) {
         CreateNumberingDefinition(_document);
-        var numbering = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+        var numbering = EnsureNumberingRoot();
 
         _abstractId = GetNextAbstractNum(numbering);
         _numberId = GetNextNumberingInstance(numbering);
@@ -229,12 +232,12 @@ public partial class WordList : WordElement {
     }
 
     private WordList Clone(OpenXmlElement referenceParagraph, bool after) {
-        var numberingPart = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart;
+        var numberingPart = MainDocumentPartRoot.NumberingDefinitionsPart;
         if (numberingPart == null) {
-            numberingPart = _document._wordprocessingDocument.MainDocumentPart.AddNewPart<NumberingDefinitionsPart>();
+            numberingPart = MainDocumentPartRoot.AddNewPart<NumberingDefinitionsPart>();
             numberingPart.Numbering = new Numbering();
         }
-        var numbering = numberingPart.Numbering;
+        var numbering = numberingPart.Numbering ??= new Numbering();
 
         var originalAbstract = numbering.Elements<AbstractNum>().First(a => a.AbstractNumberId != null && a.AbstractNumberId.Value == _abstractId);
         var originalInstance = numbering.Elements<NumberingInstance>().First(n => n.NumberID != null && n.NumberID.Value == _numberId);
@@ -335,8 +338,8 @@ public partial class WordList : WordElement {
     /// </summary>
     /// <param name="newAbstract">The new abstract numbering definition.</param>
     private void ReplaceAbstractNum(AbstractNum newAbstract) {
-        var numberingPart = _document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!;
-        var numbering = numberingPart.Numbering;
+        var numberingPart = EnsureNumberingDefinitionsPartRoot();
+        var numbering = numberingPart.Numbering ??= new Numbering();
 
         var oldAbstract = numbering.Elements<AbstractNum>().FirstOrDefault(a => a.AbstractNumberId != null && a.AbstractNumberId.Value == _abstractId);
         if (oldAbstract == null) {

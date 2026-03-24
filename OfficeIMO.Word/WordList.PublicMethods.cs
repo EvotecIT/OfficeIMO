@@ -48,7 +48,7 @@ namespace OfficeIMO.Word {
             if (insertionReference is not null) {
                 insertionReference.InsertAfterSelf(paragraph);
             } else if (_isToc || IsToc) {
-                _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
+                _document.BodyRoot.AppendChild(paragraph);
             } else if (_headerFooter != null) {
                 if (_headerFooter._header is not null) {
                     _headerFooter._header.Append(paragraph);
@@ -63,7 +63,7 @@ namespace OfficeIMO.Word {
                     parent.Append(paragraph);
                 }
             } else {
-                _wordprocessingDocument.MainDocumentPart!.Document.Body!.AppendChild(paragraph);
+                _document.BodyRoot.AppendChild(paragraph);
             }
 
             var newParagraph = new WordParagraph(_document, paragraph);
@@ -96,8 +96,7 @@ namespace OfficeIMO.Word {
                 ?? (levels.Count > level ? levels[level] : null);
             targetLevel?.SetStartNumberingValue(value);
 
-            var numbering = _document._wordprocessingDocument.MainDocumentPart?
-                .NumberingDefinitionsPart?.Numbering;
+            var numbering = TryGetNumberingRoot();
             if (numbering == null) {
                 return;
             }
@@ -326,10 +325,10 @@ namespace OfficeIMO.Word {
 
             var numberingPart = document._wordprocessingDocument?.MainDocumentPart?.NumberingDefinitionsPart;
             if (numberingPart == null) {
-                numberingPart = document._wordprocessingDocument!.MainDocumentPart!.AddNewPart<NumberingDefinitionsPart>();
+                numberingPart = document.MainDocumentPartRoot.AddNewPart<NumberingDefinitionsPart>();
                 numberingPart.Numbering = new Numbering();
             }
-            var numbering = numberingPart.Numbering;
+            var numbering = numberingPart.Numbering ??= new Numbering();
             EnsureW15Namespace(numbering);
 
             string relId = Helpers.UseSeekableImageStream(imageStream, preparedImageStream => {

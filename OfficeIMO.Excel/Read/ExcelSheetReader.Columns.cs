@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
             if (c1 != c2) throw new ArgumentException("ReadColumn expects a single-column A1 range (e.g., 'B2:B100').", nameof(a1Range));
 
-            var sheetData = _wsPart.Worksheet.GetFirstChild<SheetData>();
+            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData is null) yield break;
 
             var rowMap = new Dictionary<int, Row>();

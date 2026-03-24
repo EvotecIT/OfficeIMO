@@ -1193,7 +1193,7 @@ namespace OfficeIMO.Word {
             // add a section that's assigned to top of the document
             var wordSection = new WordSection(this, null!, null!);
 
-            var list = this._wordprocessingDocument.MainDocumentPart!.Document.Body!.ChildElements.ToList(); //.OfType<Paragraph>().ToList();
+            var list = BodyRoot.ChildElements.ToList(); //.OfType<Paragraph>().ToList();
             foreach (var element in list) {
                 if (element is Paragraph) {
                     Paragraph paragraph = (Paragraph)element;
@@ -1286,7 +1286,7 @@ namespace OfficeIMO.Word {
 
                 word.FilePath = filePath;
                 word._wordprocessingDocument = wordDocument;
-                word._document = wordDocument.MainDocumentPart!.Document;
+                word._document = wordDocument.MainDocumentPart?.Document ?? throw new InvalidOperationException("Document is missing.");
                 word.LoadDocument();
                 if (applyOverrideStyles) {
                     // Ensure overrides are applied after any document initialization that may touch styles
@@ -1335,7 +1335,7 @@ namespace OfficeIMO.Word {
             var word = new WordDocument {
                 FilePath = filePath,
                 _wordprocessingDocument = wordDocument,
-                _document = wordDocument.MainDocumentPart!.Document
+                _document = wordDocument.MainDocumentPart?.Document ?? throw new InvalidOperationException("Document is missing.")
             };
 
             bool applyOverrideStyles = overrideStyles && !readOnly;
@@ -1372,7 +1372,7 @@ namespace OfficeIMO.Word {
             InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
 
             document._wordprocessingDocument = wordDocument;
-            document._document = wordDocument.MainDocumentPart!.Document;
+            document._document = wordDocument.MainDocumentPart?.Document ?? throw new InvalidOperationException("Document is missing.");
             document.LoadDocument();
             if (applyOverrideStyles) {
                 InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
@@ -1744,7 +1744,7 @@ namespace OfficeIMO.Word {
         /// Needs more work, but this is what Word does all the time
         /// </summary>
         private void MoveSectionProperties() {
-            var body = this._wordprocessingDocument.MainDocumentPart!.Document.Body!;
+            var body = BodyRoot;
             var sectionProperties = body.Elements<SectionProperties>().LastOrDefault();
             if (sectionProperties != null) {
                 body.RemoveChild(sectionProperties);

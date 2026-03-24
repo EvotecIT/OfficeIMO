@@ -145,7 +145,7 @@ namespace OfficeIMO.Excel {
 
         private List<Sheet> ReadSheetElements()
         {
-            var sheets = _spreadSheetDocument?.WorkbookPart?.Workbook.Sheets;
+            var sheets = _spreadSheetDocument?.WorkbookPart?.Workbook?.Sheets;
             if (sheets == null) {
                 return new List<Sheet>();
             }
@@ -370,7 +370,7 @@ namespace OfficeIMO.Excel {
             if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld)) {
                 if (_tableNameCache == null) {
                     var set = new HashSet<string>(_tableNameComparer);
-                    var wb = _spreadSheetDocument.WorkbookPart;
+                    var wb = WorkbookPartRoot;
                     if (wb != null) {
                         foreach (var ws in wb.WorksheetParts) {
                             foreach (var tdp in ws.TableDefinitionParts) {
@@ -388,7 +388,7 @@ namespace OfficeIMO.Excel {
             return Locking.ExecuteWrite(EnsureLock(), () => {
                 if (_tableNameCache != null) return _tableNameCache;
                 var set = new HashSet<string>(_tableNameComparer);
-                var wb = _spreadSheetDocument.WorkbookPart;
+                var wb = WorkbookPartRoot;
                 if (wb != null) {
                     foreach (var ws in wb.WorksheetParts) {
                         foreach (var tdp in ws.TableDefinitionParts) {
@@ -478,7 +478,7 @@ namespace OfficeIMO.Excel {
                     return cachedIndex;
                 }
 
-                var sharedStringTable = SharedStringTablePart.SharedStringTable;
+                var sharedStringTable = SharedStringTablePart.SharedStringTable ??= new SharedStringTable();
 
                 // If cache is empty, rebuild it
                 if (_sharedStringCache.Count == 0) {
@@ -944,7 +944,7 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                var target = _workBookPart.Workbook.Sheets?
+                var target = WorkbookRoot.Sheets?
                     .OfType<DocumentFormat.OpenXml.Spreadsheet.Sheet>()
                     .FirstOrDefault(s => ReferenceEquals(s, sheet.SheetElement)
                                          || string.Equals(s.Name?.Value, currentName, StringComparison.Ordinal));
@@ -954,14 +954,14 @@ namespace OfficeIMO.Excel {
 
                 target.Name = validatedName;
                 UpdateSheetNameReferences(currentName, validatedName);
-                _workBookPart.Workbook.Save();
+                WorkbookRoot.Save();
             });
         }
 
         private string ValidateOrSanitizeSheetName(string name, SheetNameValidationMode mode, string? currentSheetName) {
             // Collect existing names (case-insensitive)
             var existing = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
-            foreach (var s in _workBookPart.Workbook.Sheets?.OfType<DocumentFormat.OpenXml.Spreadsheet.Sheet>() ?? System.Linq.Enumerable.Empty<DocumentFormat.OpenXml.Spreadsheet.Sheet>()) {
+            foreach (var s in WorkbookRoot.Sheets?.OfType<DocumentFormat.OpenXml.Spreadsheet.Sheet>() ?? System.Linq.Enumerable.Empty<DocumentFormat.OpenXml.Spreadsheet.Sheet>()) {
                 var existingName = s.Name?.Value;
                 if (string.IsNullOrEmpty(existingName)) continue;
                 if (!string.IsNullOrEmpty(currentSheetName) && string.Equals(existingName, currentSheetName, StringComparison.OrdinalIgnoreCase)) continue;
@@ -1341,7 +1341,7 @@ namespace OfficeIMO.Excel {
                 try { RepairDefinedNames(save: true); } catch { }
             }
 
-            _workBookPart.Workbook.Save();
+            WorkbookRoot.Save();
             try { _spreadSheetDocument.PackageProperties.Modified = DateTime.UtcNow; } catch { }
 
             PackagePropertiesSnapshot propertiesSnapshot = PackagePropertiesSnapshot.Capture(_spreadSheetDocument);
@@ -1497,7 +1497,7 @@ namespace OfficeIMO.Excel {
             mem.Position = 0;
             var reopenSettings = new OpenSettings { AutoSave = true };
             _spreadSheetDocument = SpreadsheetDocument.Open(mem, true, reopenSettings);
-            _workBookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+            _workBookPart = WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             _sharedStringTablePart = null;
             _packageStream = keepPackageStream ? mem : null;
 
@@ -1689,7 +1689,7 @@ namespace OfficeIMO.Excel {
             if (this._spreadSheetDocument != null) {
                 try {
                     if (this._spreadSheetDocument.AutoSave && this._spreadSheetDocument.FileOpenAccess != FileAccess.Read) {
-                        _workBookPart?.Workbook.Save();
+                        WorkbookRoot.Save();
                     }
 
                     await Task.Run(() => this._spreadSheetDocument.Dispose()).ConfigureAwait(false);

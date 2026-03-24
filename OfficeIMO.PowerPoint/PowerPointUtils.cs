@@ -25,6 +25,7 @@ namespace OfficeIMO.PowerPoint {
         private const int DefaultRestoredTopSize = 94660;
         private const string DefaultTableStyleGuid = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}";
         private const string DefaultDocumentAuthor = "OfficeIMO";
+        internal const string RelationshipIdNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
         public static PresentationDocument CreatePresentation(string filepath) {
             // Create a presentation at a specified file path. The presentation document type is pptx by default.
@@ -38,15 +39,20 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal static void CreatePresentationParts(PresentationDocument presentationDocument, PresentationPart presentationPart) {
-            SlideMasterIdList slideMasterIdList1 = new SlideMasterIdList(new SlideMasterId() { Id = (UInt32Value)2147483648U, RelationshipId = "rId1" });
-            SlideIdList slideIdList1 = new SlideIdList(new SlideId() { Id = (UInt32Value)256U, RelationshipId = "rId2" });
+            Presentation presentation = presentationPart.Presentation ??= new Presentation();
+            SlideMasterId slideMasterId = new SlideMasterId() { Id = (UInt32Value)2147483648U };
+            SetRelationshipIdValue(slideMasterId, "rId1");
+            SlideMasterIdList slideMasterIdList1 = new SlideMasterIdList(slideMasterId);
+            SlideId slideId = new SlideId() { Id = (UInt32Value)256U };
+            SetRelationshipIdValue(slideId, "rId2");
+            SlideIdList slideIdList1 = new SlideIdList(slideId);
             // Match the common 16:9 widescreen default (same as the shipped blank template)
             SlideSize slideSize1 = new SlideSize() { Cx = 12192000, Cy = 6858000, Type = SlideSizeValues.Screen16x9 };
             NotesSize notesSize1 = new NotesSize() { Cx = 6858000, Cy = 9144000 };
             DefaultTextStyle defaultTextStyle1 = new DefaultTextStyle();
 
-            presentationPart.Presentation.Append(slideMasterIdList1, slideIdList1, slideSize1, notesSize1, defaultTextStyle1);
-            presentationPart.Presentation.SaveSubsetFonts = true;
+            presentation.Append(slideMasterIdList1, slideIdList1, slideSize1, notesSize1, defaultTextStyle1);
+            presentation.SaveSubsetFonts = true;
 
             // Create master and layouts directly under the presentation part so they land at ppt/slideMasters and ppt/slideLayouts.
             SlideMasterPart slideMasterPart1 = presentationPart.AddNewPart<SlideMasterPart>("rId1");
@@ -88,6 +94,15 @@ namespace OfficeIMO.PowerPoint {
             using var buffer = new MemoryStream();
             stream.CopyTo(buffer);
             return buffer.ToArray();
+        }
+
+        internal static string? GetRelationshipIdValue(OpenXmlElement element) {
+            OpenXmlAttribute attribute = element.GetAttribute("id", RelationshipIdNamespace);
+            return string.IsNullOrEmpty(attribute.Value) ? null : attribute.Value;
+        }
+
+        internal static void SetRelationshipIdValue(OpenXmlElement element, string relationshipId) {
+            element.SetAttribute(new OpenXmlAttribute("r", "id", RelationshipIdNamespace, relationshipId));
         }
 
     }

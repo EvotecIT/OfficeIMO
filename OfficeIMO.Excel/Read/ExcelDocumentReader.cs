@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel {
         /// Returns the list of sheet names in workbook order.
         /// </summary>
         public IReadOnlyList<string> GetSheetNames() {
-            var wb = _doc.WorkbookPart!.Workbook;
+            var wb = WorkbookRoot;
             return wb.Sheets!.Elements<Sheet>().Select(s => s.Name!.Value!).ToList();
         }
 
@@ -49,10 +49,10 @@ namespace OfficeIMO.Excel {
         /// Gets a reader for the specified worksheet name.
         /// </summary>
         public ExcelSheetReader GetSheet(string name) {
-            var wb = _doc.WorkbookPart!.Workbook;
+            var wb = WorkbookRoot;
             var sheet = wb.Sheets!.Elements<Sheet>().FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
             if (sheet is null) throw new KeyNotFoundException($"Sheet '{name}' not found.");
-            var wsPart = (WorksheetPart)_doc.WorkbookPart!.GetPartById(sheet.Id!);
+            var wsPart = (WorksheetPart)WorkbookPartRoot.GetPartById(sheet.Id!);
             return new ExcelSheetReader(sheet.Name!, wsPart, _sst, _styles, _opt);
         }
 

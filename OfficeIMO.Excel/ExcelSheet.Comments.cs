@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel {
                 comments.Save();
 
                 EnsureCommentVmlShape(row, column);
-                _worksheetPart.Worksheet.Save();
+                WorksheetRoot.Save();
             });
         }
 
@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 string reference = A1.ColumnIndexToLetters(column) + row.ToString(CultureInfo.InvariantCulture);
 
-                var commentsPart = _worksheetPart.WorksheetCommentsPart;
+                var commentsPart = WorksheetCommentsPartRoot;
                 if (commentsPart?.Comments?.CommentList == null) {
                     RemoveCommentVmlShape(row, column);
                     return;
@@ -79,7 +79,7 @@ namespace OfficeIMO.Excel {
                 commentsPart.Comments.Save();
                 RemoveCommentVmlShape(row, column);
                 CleanupCommentArtifacts();
-                _worksheetPart.Worksheet.Save();
+                WorksheetRoot.Save();
             });
         }
 
@@ -102,7 +102,7 @@ namespace OfficeIMO.Excel {
             if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row), "Row and column are 1-based and must be positive.");
             if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column), "Row and column are 1-based and must be positive.");
             string reference = A1.ColumnIndexToLetters(column) + row.ToString(CultureInfo.InvariantCulture);
-            var commentsPart = _worksheetPart.WorksheetCommentsPart;
+            var commentsPart = WorksheetCommentsPartRoot;
             return commentsPart?.Comments?.CommentList?
                 .Elements<Comment>()
                 .Any(c => string.Equals(c.Reference?.Value, reference, StringComparison.OrdinalIgnoreCase)) is true;
@@ -143,7 +143,7 @@ namespace OfficeIMO.Excel {
         }
 
         private WorksheetCommentsPart GetOrCreateCommentsPart() {
-            var part = _worksheetPart.WorksheetCommentsPart;
+            var part = WorksheetCommentsPartRoot;
             if (part == null) {
                 part = _worksheetPart.AddNewPart<WorksheetCommentsPart>();
                 part.Comments = new Comments(new Authors(), new CommentList());
@@ -230,8 +230,8 @@ namespace OfficeIMO.Excel {
         }
 
         internal void CleanupCommentArtifacts() {
-            var ws = _worksheetPart.Worksheet;
-            var commentsPart = _worksheetPart.WorksheetCommentsPart;
+            var ws = WorksheetRoot;
+            var commentsPart = WorksheetCommentsPartRoot;
             bool hasComments = commentsPart?.Comments?.CommentList?.Elements<Comment>().Any() is true;
 
             if (!hasComments && commentsPart != null) {
@@ -258,7 +258,7 @@ namespace OfficeIMO.Excel {
         }
 
         private VmlDrawingPart GetOrCreateCommentVmlPart() {
-            var ws = _worksheetPart.Worksheet;
+            var ws = WorksheetRoot;
             var legacy = ws.GetFirstChild<LegacyDrawing>();
             if (legacy?.Id?.Value is string legacyRelId && !string.IsNullOrWhiteSpace(legacyRelId)) {
                 return (VmlDrawingPart)_worksheetPart.GetPartById(legacyRelId);
@@ -279,7 +279,7 @@ namespace OfficeIMO.Excel {
         }
 
         private VmlDrawingPart? TryGetCommentVmlPart() {
-            var legacy = _worksheetPart.Worksheet.GetFirstChild<LegacyDrawing>();
+            var legacy = WorksheetRoot.GetFirstChild<LegacyDrawing>();
             if (legacy?.Id?.Value is string legacyRelId && !string.IsNullOrWhiteSpace(legacyRelId)) {
                 return (VmlDrawingPart)_worksheetPart.GetPartById(legacyRelId);
             }

@@ -4,7 +4,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         internal void CleanupHyperlinkArtifacts() {
-            var worksheet = _worksheetPart.Worksheet;
+            var worksheet = WorksheetRoot;
             var hyperlinks = worksheet.Elements<Hyperlinks>().FirstOrDefault();
             if (hyperlinks == null) {
                 CleanupUnreferencedHyperlinkRelationships(Array.Empty<string>());

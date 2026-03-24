@@ -4,7 +4,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         internal void CleanupTableArtifacts() {
-            var worksheet = _worksheetPart.Worksheet;
+            var worksheet = WorksheetRoot;
             var usedTableIds = CollectUsedTableIds(excludeWorksheetPart: _worksheetPart);
             var usedTableNames = CollectUsedTableNames(excludeWorksheetPart: _worksheetPart);
             var validRelationshipIds = new List<string>();
@@ -221,7 +221,7 @@ namespace OfficeIMO.Excel {
 
         private HashSet<uint> CollectUsedTableIds(WorksheetPart excludeWorksheetPart) {
             var usedIds = new HashSet<uint>();
-            var workbookPart = _spreadSheetDocument.WorkbookPart;
+            var workbookPart = WorkbookPartRoot;
             if (workbookPart == null) {
                 return usedIds;
             }
@@ -244,7 +244,7 @@ namespace OfficeIMO.Excel {
 
         private HashSet<string> CollectUsedTableNames(WorksheetPart excludeWorksheetPart) {
             var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var workbookPart = _spreadSheetDocument.WorkbookPart;
+            var workbookPart = WorkbookPartRoot;
             if (workbookPart == null) {
                 return usedNames;
             }
@@ -269,7 +269,7 @@ namespace OfficeIMO.Excel {
             var cache = _excelDocument.GetOrInitTableNameCache();
             cache.Clear();
 
-            var workbookPart = _spreadSheetDocument.WorkbookPart;
+            var workbookPart = WorkbookPartRoot;
             if (workbookPart == null) {
                 return;
             }

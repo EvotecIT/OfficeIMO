@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public bool IsProtected {
             get {
-                var ws = _worksheetPart.Worksheet;
+                var ws = WorksheetRoot;
                 return ws.Elements<SheetProtection>().Any();
             }
         }
@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel {
             var opts = options ?? new ExcelSheetProtectionOptions();
 
             WriteLock(() => {
-                var ws = _worksheetPart.Worksheet;
+                var ws = WorksheetRoot;
                 var protection = ws.Elements<SheetProtection>().FirstOrDefault();
                 if (protection == null) {
                     protection = new SheetProtection();
@@ -53,7 +53,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void Unprotect() {
             WriteLock(() => {
-                var ws = _worksheetPart.Worksheet;
+                var ws = WorksheetRoot;
                 var protection = ws.Elements<SheetProtection>().FirstOrDefault();
                 if (protection != null) {
                     ws.RemoveChild(protection);

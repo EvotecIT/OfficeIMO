@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(locationRange)) throw new ArgumentException("LocationRange is required.", nameof(locationRange));
 
             WriteLock(() => {
-                var ws = _worksheetPart.Worksheet;
+                var ws = WorksheetRoot;
                 var groups = GetOrCreateSparklineGroups(ws);
 
                 var group = new SparklineGroup { Type = type };

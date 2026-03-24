@@ -39,7 +39,7 @@ namespace OfficeIMO.Word {
         internal static void InitializeAxisIdSeed(WordprocessingDocument document) {
             uint max = (uint)_axisIdSeed;
             foreach (var part in document.MainDocumentPart?.ChartParts ?? Enumerable.Empty<ChartPart>()) {
-                var chart = part.ChartSpace.GetFirstChild<Chart>();
+                var chart = part.ChartSpace?.GetFirstChild<Chart>();
                 if (chart == null) continue;
                 foreach (var axis in chart.Descendants<AxisId>()) {
                     if (axis.Val != null && axis.Val.Value > max) {

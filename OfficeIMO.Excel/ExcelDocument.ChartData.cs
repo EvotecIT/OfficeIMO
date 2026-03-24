@@ -38,7 +38,7 @@ namespace OfficeIMO.Excel {
                 return _chartDataSheet;
             }
 
-            var sheets = _workBookPart.Workbook.Sheets?.OfType<Sheet>() ?? Enumerable.Empty<Sheet>();
+            var sheets = WorkbookRoot.Sheets?.OfType<Sheet>() ?? Enumerable.Empty<Sheet>();
             var existing = sheets.FirstOrDefault(s => string.Equals(s.Name?.Value, ChartDataSheetName, StringComparison.OrdinalIgnoreCase));
             if (existing != null) {
                 _chartDataSheet = new ExcelSheet(this, _spreadSheetDocument, existing);

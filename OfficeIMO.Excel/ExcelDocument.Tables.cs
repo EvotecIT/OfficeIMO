@@ -14,7 +14,8 @@ namespace OfficeIMO.Excel {
                     return result;
                 }
 
-                var sheets = workbookPart.Workbook.Sheets?.OfType<Sheet>().ToList() ?? new List<Sheet>();
+                var workbook = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook is missing.");
+                var sheets = workbook.Sheets?.OfType<Sheet>().ToList() ?? new List<Sheet>();
                 var sheetLookup = new Dictionary<string, (string Name, int Index)>(StringComparer.OrdinalIgnoreCase);
                 for (int i = 0; i < sheets.Count; i++) {
                     var sheet = sheets[i];

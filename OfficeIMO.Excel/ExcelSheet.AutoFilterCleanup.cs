@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         internal void CleanupAutoFilterArtifacts() {
-            var ws = _worksheetPart.Worksheet;
+            var ws = WorksheetRoot;
 
             var tableRanges = new List<(int RowStart, int ColumnStart, int RowEnd, int ColumnEnd)>();
             foreach (var tableDefinitionPart in _worksheetPart.TableDefinitionParts) {

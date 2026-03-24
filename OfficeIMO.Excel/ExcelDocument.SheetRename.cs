@@ -26,7 +26,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void UpdateDefinedNameReferences(string oldSheetName, string newSheetName) {
-            var definedNames = _workBookPart.Workbook.DefinedNames;
+            var definedNames = WorkbookRoot.DefinedNames;
             if (definedNames == null) {
                 return;
             }
@@ -46,15 +46,16 @@ namespace OfficeIMO.Excel {
             }
 
             if (changed) {
-                _workBookPart.Workbook.Save();
+                WorkbookRoot.Save();
             }
         }
 
         private void UpdateWorksheetReferences(string oldSheetName, string newSheetName) {
-            foreach (var worksheetPart in _workBookPart.WorksheetParts) {
+            foreach (var worksheetPart in WorkbookPartRoot.WorksheetParts) {
+                var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
                 bool changed = false;
 
-                foreach (var formula in worksheetPart.Worksheet.Descendants<CellFormula>()) {
+                foreach (var formula in worksheet.Descendants<CellFormula>()) {
                     string? text = formula.Text;
                     if (string.IsNullOrEmpty(text)) {
                         continue;
@@ -67,7 +68,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                foreach (var formula in worksheetPart.Worksheet.Descendants<Formula>()) {
+                foreach (var formula in worksheet.Descendants<Formula>()) {
                     string? text = formula.Text;
                     if (string.IsNullOrEmpty(text)) {
                         continue;
@@ -80,7 +81,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                foreach (var formula in worksheetPart.Worksheet.Descendants<Formula1>()) {
+                foreach (var formula in worksheet.Descendants<Formula1>()) {
                     string? text = formula.Text;
                     if (string.IsNullOrEmpty(text)) {
                         continue;
@@ -93,7 +94,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                foreach (var formula in worksheetPart.Worksheet.Descendants<Formula2>()) {
+                foreach (var formula in worksheet.Descendants<Formula2>()) {
                     string? text = formula.Text;
                     if (string.IsNullOrEmpty(text)) {
                         continue;
@@ -106,7 +107,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                foreach (var formula in worksheetPart.Worksheet.Descendants<OfficeFormula>()) {
+                foreach (var formula in worksheet.Descendants<OfficeFormula>()) {
                     string? text = formula.Text;
                     if (string.IsNullOrEmpty(text)) {
                         continue;
@@ -119,7 +120,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                foreach (var hyperlink in worksheetPart.Worksheet.Descendants<Hyperlink>()) {
+                foreach (var hyperlink in worksheet.Descendants<Hyperlink>()) {
                     string? location = hyperlink.Location?.Value;
                     if (string.IsNullOrEmpty(location)) {
                         continue;
@@ -134,13 +135,13 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (changed) {
-                    worksheetPart.Worksheet.Save();
+                    worksheet.Save();
                 }
             }
         }
 
         private void UpdateChartReferences(string oldSheetName, string newSheetName) {
-            foreach (var worksheetPart in _workBookPart.WorksheetParts) {
+            foreach (var worksheetPart in WorkbookPartRoot.WorksheetParts) {
                 var drawingsPart = worksheetPart.DrawingsPart;
                 if (drawingsPart?.WorksheetDrawing == null) {
                     continue;
@@ -174,7 +175,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void UpdateTableReferences(string oldSheetName, string newSheetName) {
-            foreach (var worksheetPart in _workBookPart.WorksheetParts) {
+            foreach (var worksheetPart in WorkbookPartRoot.WorksheetParts) {
                 foreach (var tableDefinitionPart in worksheetPart.TableDefinitionParts) {
                     var table = tableDefinitionPart.Table;
                     if (table == null) {
@@ -216,7 +217,7 @@ namespace OfficeIMO.Excel {
             }
         }
         private void UpdatePivotCacheReferences(string oldSheetName, string newSheetName) {
-            foreach (var cacheDefinitionPart in _workBookPart.GetPartsOfType<PivotTableCacheDefinitionPart>()) {
+            foreach (var cacheDefinitionPart in WorkbookPartRoot.GetPartsOfType<PivotTableCacheDefinitionPart>()) {
                 var worksheetSource = cacheDefinitionPart.PivotCacheDefinition?.CacheSource?.WorksheetSource;
                 string? sourceSheet = worksheetSource?.Sheet?.Value;
                 if (worksheetSource == null || !string.Equals(sourceSheet, oldSheetName, StringComparison.OrdinalIgnoreCase)) {
@@ -239,7 +240,8 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            var cell = worksheetPart.Worksheet.Descendants<Cell>()
+            var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
+            var cell = worksheet.Descendants<Cell>()
                 .FirstOrDefault(c => string.Equals(c.CellReference?.Value, cellReference, StringComparison.OrdinalIgnoreCase));
             if (cell == null) {
                 return;

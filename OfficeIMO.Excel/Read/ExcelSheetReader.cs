@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel {
         /// Enumerates non-empty cells as (Row, Column, Value). Values are typed when possible.
         /// </summary>
         public IEnumerable<CellValueInfo> EnumerateCells() {
-            var sheetData = _wsPart.Worksheet.GetFirstChild<SheetData>();
+            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData == null) yield break;
 
             foreach (var row in sheetData.Elements<Row>()) {

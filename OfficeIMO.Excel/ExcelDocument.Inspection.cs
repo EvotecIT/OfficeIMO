@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel {
             }
 
             using (var reader = CreateReader(effectiveOptions)) {
-                var workbookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is missing.");
+                var workbookPart = WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is missing.");
                 var workbook = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook is missing.");
                 var styleContext = StyleInspectionContext.Create(workbookPart.WorkbookStylesPart?.Stylesheet);
                 var sheetElements = workbook.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
@@ -32,6 +32,7 @@ namespace OfficeIMO.Excel {
                 for (int sheetIndex = 0; sheetIndex < sheetElements.Count; sheetIndex++) {
                     var sheet = sheetElements[sheetIndex];
                     var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+                    var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
                     var sheetName = sheet.Name?.Value ?? $"Sheet{sheetIndex + 1}";
                     var readerSheet = reader.GetSheet(sheetName);
                     var typedValues = BuildTypedCellMap(readerSheet);
@@ -42,16 +43,16 @@ namespace OfficeIMO.Excel {
                         Name = sheetName,
                         Index = sheetIndex,
                         Hidden = sheet.State?.Value == SheetStateValues.Hidden || sheet.State?.Value == SheetStateValues.VeryHidden,
-                        RightToLeft = worksheetPart.Worksheet
+                        RightToLeft = worksheet
                             .GetFirstChild<SheetViews>()?
                             .Elements<SheetView>()
                             .FirstOrDefault()?
                             .RightToLeft?.Value == true,
-                        TabColorArgb = GetColorArgb(worksheetPart.Worksheet.GetFirstChild<SheetProperties>()?.TabColor),
+                        TabColorArgb = GetColorArgb(worksheet.GetFirstChild<SheetProperties>()?.TabColor),
                         UsedRangeA1 = readerSheet.GetUsedRangeA1(),
                     };
 
-                    var pane = worksheetPart.Worksheet
+                    var pane = worksheet
                         .GetFirstChild<SheetViews>()?
                         .Elements<SheetView>()
                         .FirstOrDefault()?
@@ -62,7 +63,7 @@ namespace OfficeIMO.Excel {
                         worksheetSnapshot.FrozenColumnCount = ConvertToInt(pane.HorizontalSplit);
                     }
 
-                    var columns = worksheetPart.Worksheet.GetFirstChild<Columns>();
+                    var columns = worksheet.GetFirstChild<Columns>();
                     if (columns != null) {
                         foreach (var column in columns.Elements<Column>()) {
                             var min = checked((int)(column.Min?.Value ?? 0U));
@@ -81,7 +82,7 @@ namespace OfficeIMO.Excel {
                         }
                     }
 
-                    var sheetData = worksheetPart.Worksheet.GetFirstChild<SheetData>();
+                    var sheetData = worksheet.GetFirstChild<SheetData>();
                     if (sheetData != null) {
                         foreach (var row in sheetData.Elements<Row>()) {
                             var rowIndex = checked((int)(row.RowIndex?.Value ?? 0U));
@@ -119,7 +120,7 @@ namespace OfficeIMO.Excel {
                         }
                     }
 
-                    var mergeCells = worksheetPart.Worksheet.Elements<MergeCells>().FirstOrDefault();
+                    var mergeCells = worksheet.Elements<MergeCells>().FirstOrDefault();
                     if (mergeCells != null) {
                         foreach (var mergeCell in mergeCells.Elements<MergeCell>()) {
                             var reference = mergeCell.Reference?.Value;
@@ -146,10 +147,10 @@ namespace OfficeIMO.Excel {
                     }
 
                     worksheetSnapshot.AutoFilter = BuildAutoFilterSnapshot(
-                        worksheetPart.Worksheet.Elements<AutoFilter>().FirstOrDefault());
+                        worksheet.Elements<AutoFilter>().FirstOrDefault());
                     worksheetSnapshot.Protection = BuildWorksheetProtectionSnapshot(
-                        worksheetPart.Worksheet.Elements<SheetProtection>().FirstOrDefault());
-                    foreach (var validation in BuildDataValidationSnapshots(worksheetPart.Worksheet.GetFirstChild<DataValidations>())) {
+                        worksheet.Elements<SheetProtection>().FirstOrDefault());
+                    foreach (var validation in BuildDataValidationSnapshots(worksheet.GetFirstChild<DataValidations>())) {
                         worksheetSnapshot.AddValidation(validation);
                     }
 
@@ -208,7 +209,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static Dictionary<string, ExcelHyperlinkSnapshot> BuildHyperlinkMap(WorksheetPart worksheetPart) {
-            var hyperlinks = worksheetPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
+            var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
+            var hyperlinks = worksheet.Elements<Hyperlinks>().FirstOrDefault();
             if (hyperlinks == null) {
                 return new Dictionary<string, ExcelHyperlinkSnapshot>(StringComparer.OrdinalIgnoreCase);
             }

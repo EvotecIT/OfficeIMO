@@ -14,16 +14,16 @@ namespace OfficeIMO.Excel {
             var list = GetSheetNames();
             if (index > list.Count) throw new ArgumentOutOfRangeException(nameof(index));
 
-            var wb = _doc.WorkbookPart!.Workbook;
+            var wb = WorkbookRoot;
             var sheet = wb.Sheets!.Elements<Sheet>().ElementAt(index - 1);
-            var wsPart = (WorksheetPart)_doc.WorkbookPart!.GetPartById(sheet.Id!);
+            var wsPart = (WorksheetPart)WorkbookPartRoot.GetPartById(sheet.Id!);
             return new ExcelSheetReader(sheet.Name!, wsPart, _sst, _styles, _opt);
         }
 
         /// <summary>
         /// The number of worksheets in the workbook.
         /// </summary>
-        public int SheetCount => _doc.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>().Count();
+        public int SheetCount => WorkbookRoot.Sheets!.Elements<Sheet>().Count();
     }
 }
 

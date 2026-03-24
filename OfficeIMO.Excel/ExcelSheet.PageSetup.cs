@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void SetOrientation(ExcelPageOrientation orientation) {
             WriteLock(() => {
-                var ws = _worksheetPart.Worksheet;
+                var ws = WorksheetRoot;
                 var pageSetup = ws.GetFirstChild<PageSetup>();
                 if (pageSetup == null) {
                     pageSetup = new PageSetup();
@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void SetMargins(double left, double right, double top, double bottom, double header = 0.3, double footer = 0.3) {
             WriteLock(() => {
-                var ws = _worksheetPart.Worksheet;
+                var ws = WorksheetRoot;
                 var margins = ws.GetFirstChild<PageMargins>();
                 if (margins == null) {
                     margins = new PageMargins();

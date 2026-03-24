@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel {
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) yield break;
 
-            var sheetData = _wsPart.Worksheet.GetFirstChild<SheetData>();
+            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData is null) yield break;
 
             // Build quick row lookup for the requested span
