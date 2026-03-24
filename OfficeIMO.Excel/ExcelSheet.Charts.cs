@@ -171,12 +171,12 @@ namespace OfficeIMO.Excel {
             DrawingsPart? drawingPart = null;
 
             WriteLock(() => {
-                var drawing = _worksheetPart.Worksheet.GetFirstChild<Drawing>();
+                var drawing = WorksheetRoot.GetFirstChild<Drawing>();
                 if (drawing == null) {
                     drawingPart = _worksheetPart.AddNewPart<DrawingsPart>();
                     drawingPart.WorksheetDrawing = new Xdr.WorksheetDrawing();
                     string relId = _worksheetPart.GetIdOfPart(drawingPart);
-                    _worksheetPart.Worksheet.Append(new Drawing { Id = relId });
+                    WorksheetRoot.Append(new Drawing { Id = relId });
                 } else {
                     drawingPart = (DrawingsPart)_worksheetPart.GetPartById(drawing.Id!);
                     drawingPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
@@ -225,7 +225,7 @@ namespace OfficeIMO.Excel {
 
                 drawingPart.WorksheetDrawing.Append(anchor);
                 drawingPart.WorksheetDrawing.Save();
-                _worksheetPart.Worksheet.Save();
+                WorksheetRoot.Save();
             });
 
             return new ExcelChart(frame!, drawingPart!, this);
@@ -237,12 +237,12 @@ namespace OfficeIMO.Excel {
             DrawingsPart? drawingPart = null;
 
             WriteLock(() => {
-                var drawing = _worksheetPart.Worksheet.GetFirstChild<Drawing>();
+                var drawing = WorksheetRoot.GetFirstChild<Drawing>();
                 if (drawing == null) {
                     drawingPart = _worksheetPart.AddNewPart<DrawingsPart>();
                     drawingPart.WorksheetDrawing = new Xdr.WorksheetDrawing();
                     string relId = _worksheetPart.GetIdOfPart(drawingPart);
-                    _worksheetPart.Worksheet.Append(new Drawing { Id = relId });
+                    WorksheetRoot.Append(new Drawing { Id = relId });
                 } else {
                     drawingPart = (DrawingsPart)_worksheetPart.GetPartById(drawing.Id!);
                     drawingPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
@@ -291,7 +291,7 @@ namespace OfficeIMO.Excel {
 
                 drawingPart.WorksheetDrawing.Append(anchor);
                 drawingPart.WorksheetDrawing.Save();
-                _worksheetPart.Worksheet.Save();
+                WorksheetRoot.Save();
             });
 
             return new ExcelChart(frame!, drawingPart!, this, range);

@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel {
             System.Collections.Generic.Dictionary<string, bool>? dnHiddenLookup = null;
             if (includeNamedRanges) {
                 dnHiddenLookup = new System.Collections.Generic.Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
-                var dnRoot = _workBookPart.Workbook.DefinedNames;
+                var dnRoot = WorkbookRoot.DefinedNames;
                 if (dnRoot != null) {
                     foreach (var d in dnRoot.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>()) {
                         var name = d.Name?.Value;
@@ -115,7 +115,7 @@ namespace OfficeIMO.Excel {
 
         private void MoveSheetToBeginning(string sheetName) {
             Locking.ExecuteWrite(EnsureLock(), () => {
-                var wb = _workBookPart.Workbook;
+                var wb = WorkbookRoot;
                 var sheets = wb.Sheets;
                 if (sheets == null) return;
 
@@ -155,7 +155,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void RemoveWorkSheet(string sheetName) {
             Locking.ExecuteWrite(EnsureLock(), () => {
-                var wb = _workBookPart.Workbook;
+                var wb = WorkbookRoot;
                 var sheets = wb.Sheets;
                 if (sheets == null) return;
                 var all = sheets.Elements<DocumentFormat.OpenXml.Spreadsheet.Sheet>().ToList();

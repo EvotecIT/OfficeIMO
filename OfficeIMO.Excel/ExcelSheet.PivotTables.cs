@@ -10,8 +10,7 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<ExcelPivotTableInfo> GetPivotTables() {
             return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
                 var list = new List<ExcelPivotTableInfo>();
-                var workbookPart = _spreadSheetDocument.WorkbookPart;
-                if (workbookPart == null) return list;
+                var workbookPart = WorkbookPartRoot;
 
                 var cacheMap = BuildPivotCacheMap(workbookPart);
                 var sheetIndex = ResolveSheetIndex(workbookPart);
@@ -144,7 +143,8 @@ namespace OfficeIMO.Excel {
                     dataFieldIndices.Add(idx);
                 }
 
-                var workbookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null.");
+                var workbookPart = WorkbookPartRoot;
+                var workbook = workbookPart.Workbook ??= new Workbook();
                 uint cacheId = NextPivotCacheId(workbookPart);
 
                 var cacheDefPart = workbookPart.AddNewPart<PivotTableCacheDefinitionPart>();
@@ -175,7 +175,7 @@ namespace OfficeIMO.Excel {
                 cacheRecordsPart.PivotCacheRecords = new PivotCacheRecords { Count = 0U };
                 cacheRecordsPart.PivotCacheRecords.Save();
 
-                var pivotCaches = workbookPart.Workbook.PivotCaches ?? workbookPart.Workbook.AppendChild(new PivotCaches());
+                var pivotCaches = workbook.PivotCaches ?? workbook.AppendChild(new PivotCaches());
                 pivotCaches.Append(new PivotCache {
                     CacheId = cacheId,
                     Id = workbookPart.GetIdOfPart(cacheDefPart)
@@ -285,8 +285,8 @@ namespace OfficeIMO.Excel {
                 pivotPart.PivotTableDefinition = pivotDefinition;
                 pivotPart.PivotTableDefinition.Save();
 
-                _worksheetPart.Worksheet.Save();
-                workbookPart.Workbook.Save();
+                WorksheetRoot.Save();
+                workbook.Save();
             });
         }
 
@@ -362,7 +362,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static uint NextPivotCacheId(WorkbookPart workbookPart) {
-            var pivotCaches = workbookPart.Workbook.PivotCaches;
+            var workbook = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook is missing.");
+            var pivotCaches = workbook.PivotCaches;
             if (pivotCaches == null) return 1;
             uint max = 0;
             foreach (var cache in pivotCaches.Elements<PivotCache>()) {
@@ -373,7 +374,8 @@ namespace OfficeIMO.Excel {
 
         private static Dictionary<uint, PivotCacheDefinition> BuildPivotCacheMap(WorkbookPart workbookPart) {
             var map = new Dictionary<uint, PivotCacheDefinition>();
-            var pivotCaches = workbookPart.Workbook.PivotCaches;
+            var workbook = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook is missing.");
+            var pivotCaches = workbook.PivotCaches;
             if (pivotCaches == null) return map;
             foreach (var cache in pivotCaches.Elements<PivotCache>()) {
                 if (cache.CacheId == null) continue;
@@ -442,7 +444,8 @@ namespace OfficeIMO.Excel {
         }
 
         private int ResolveSheetIndex(WorkbookPart workbookPart) {
-            var sheets = workbookPart.Workbook.Sheets?.OfType<Sheet>().ToList();
+            var workbook = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook is missing.");
+            var sheets = workbook.Sheets?.OfType<Sheet>().ToList();
             if (sheets == null) return -1;
             for (int i = 0; i < sheets.Count; i++) {
                 if (ReferenceEquals(sheets[i], _sheet)) return i;

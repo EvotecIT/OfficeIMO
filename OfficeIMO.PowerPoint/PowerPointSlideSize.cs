@@ -14,11 +14,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private SlideSize EnsureSlideSize() {
-            _presentationPart.Presentation ??= new Presentation();
-            SlideSize? size = _presentationPart.Presentation.SlideSize;
+            Presentation presentation = _presentationPart.Presentation ??= new Presentation();
+            SlideSize? size = presentation.SlideSize;
             if (size == null) {
                 size = new SlideSize { Cx = 12192000, Cy = 6858000, Type = SlideSizeValues.Screen16x9 };
-                _presentationPart.Presentation.SlideSize = size;
+                presentation.SlideSize = size;
             }
             return size;
         }

@@ -47,6 +47,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void CreateAdditionalSlideLayouts(SlideMasterPart slideMasterPart, SlideLayoutPart initialLayoutPart) {
+            SlideMaster slideMaster = slideMasterPart.SlideMaster ?? throw new InvalidOperationException("Slide master is missing.");
             List<(SlideLayoutPart Part, string RelationshipId, uint LayoutId)> layoutEntries = new();
 
             string initialRelationshipId = slideMasterPart.GetIdOfPart(initialLayoutPart);
@@ -59,14 +60,14 @@ namespace OfficeIMO.PowerPoint {
                 layoutEntries.Add((layoutPart, definition.RelationshipId, definition.LayoutId));
             }
 
-            SlideLayoutIdList slideLayoutIdList = slideMasterPart.SlideMaster.SlideLayoutIdList ?? new SlideLayoutIdList();
+            SlideLayoutIdList slideLayoutIdList = slideMaster.SlideLayoutIdList ?? new SlideLayoutIdList();
             slideLayoutIdList.RemoveAllChildren<SlideLayoutId>();
 
             foreach ((SlideLayoutPart Part, string RelationshipId, uint LayoutId) entry in layoutEntries) {
                 slideLayoutIdList.Append(new SlideLayoutId() { Id = (UInt32Value)entry.LayoutId, RelationshipId = entry.RelationshipId });
             }
 
-            slideMasterPart.SlideMaster.SlideLayoutIdList = slideLayoutIdList;
+            slideMaster.SlideLayoutIdList = slideLayoutIdList;
         }
 
         private static IEnumerable<SlideLayoutDefinition> GetDefaultSlideLayoutDefinitions() {

@@ -138,10 +138,11 @@ namespace OfficeIMO.Word {
                 _altContent = chunk;
                 _document = wordDocument;
 
-                var body = mainDocPart.Document.Body ?? throw new InvalidOperationException("The document does not contain a body element.");
+                var documentRoot = mainDocPart.Document ?? throw new InvalidOperationException("The document is missing its root element.");
+                var body = documentRoot.Body ?? throw new InvalidOperationException("The document does not contain a body element.");
                 body.Append(altChunk);
 
-                mainDocPart.Document.Save();
+                documentRoot.Save();
             } catch {
                 mainDocPart.DeletePart(chunk);
                 throw;

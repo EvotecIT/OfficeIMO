@@ -8,7 +8,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Represents an image placed on a slide.
     /// </summary>
-    public class PowerPointPicture : PowerPointShape {
+    public partial class PowerPointPicture : PowerPointShape {
         private readonly SlidePart _slidePart;
 
         internal PowerPointPicture(Picture picture, SlidePart slidePart) : base(picture) {
@@ -239,7 +239,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private bool IsRelationshipReferenced(string relationshipId, A.Blip currentBlip) {
-            return _slidePart.Slide
+            return SlideRoot
                 .Descendants<A.Blip>()
                 .Any(blip => !ReferenceEquals(blip, currentBlip) && blip.Embed?.Value == relationshipId);
         }

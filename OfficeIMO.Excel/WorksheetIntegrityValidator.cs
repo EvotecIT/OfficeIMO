@@ -33,7 +33,8 @@ namespace OfficeIMO.Excel {
                         || mode == WorksheetValidationMode.DebugOnly
                         || (mode == WorksheetValidationMode.DiagnosticsOnly && policy.AreDiagnosticsRequested))) {
                     var validator = new OpenXmlValidator();
-                    var firstError = validator.Validate(worksheetPart.Worksheet).FirstOrDefault();
+                    var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
+                    var firstError = validator.Validate(worksheet).FirstOrDefault();
                     if (firstError != null) {
                         throw new InvalidOperationException($"OpenXmlValidator failure in worksheet '{sheetName}': {firstError.Description}");
                     }
@@ -62,7 +63,8 @@ namespace OfficeIMO.Excel {
 
             var sw = Stopwatch.StartNew();
             for (int i = 0; i < iterations; i++) {
-                using var sr = new StringReader(worksheetPart.Worksheet.OuterXml);
+                var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
+                using var sr = new StringReader(worksheet.OuterXml);
                 using var reader = XmlReader.Create(sr, new XmlReaderSettings { IgnoreWhitespace = true });
                 while (reader.Read()) { }
             }
@@ -71,7 +73,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static void EnsureInvariants(WorksheetPart worksheetPart, string sheetName) {
-            var sheetData = worksheetPart.Worksheet.GetFirstChild<SheetData>();
+            var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
+            var sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) {
                 return;
             }

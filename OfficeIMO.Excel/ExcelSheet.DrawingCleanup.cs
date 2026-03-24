@@ -8,7 +8,7 @@ using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         internal void CleanupWorksheetDrawingArtifacts() {
-            var ws = _worksheetPart.Worksheet;
+            var ws = WorksheetRoot;
             var drawing = ws.GetFirstChild<Drawing>();
             if (drawing?.Id?.Value is not string drawingRelId || string.IsNullOrWhiteSpace(drawingRelId)) {
                 return;

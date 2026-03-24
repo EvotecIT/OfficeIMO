@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
             }
 
             WriteLock(() => {
-                Worksheet worksheet = _worksheetPart.Worksheet;
+                Worksheet worksheet = WorksheetRoot;
 
                 int priority = 1;
                 var existingRules = worksheet.Descendants<ConditionalFormattingRule>();
@@ -89,7 +89,7 @@ namespace OfficeIMO.Excel {
             }
 
             WriteLock(() => {
-                Worksheet worksheet = _worksheetPart.Worksheet;
+                Worksheet worksheet = WorksheetRoot;
 
                 int priority = 1;
                 var existingRules = worksheet.Descendants<ConditionalFormattingRule>();
@@ -156,7 +156,7 @@ namespace OfficeIMO.Excel {
             }
 
             WriteLock(() => {
-                Worksheet worksheet = _worksheetPart.Worksheet;
+                Worksheet worksheet = WorksheetRoot;
 
                 int priority = 1;
                 var existingRules = worksheet.Descendants<ConditionalFormattingRule>();
@@ -222,7 +222,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrEmpty(range)) throw new ArgumentNullException(nameof(range));
 
             WriteLock(() => {
-                Worksheet worksheet = _worksheetPart.Worksheet;
+                Worksheet worksheet = WorksheetRoot;
 
                 int priority = 1;
                 var existingRules = worksheet.Descendants<ConditionalFormattingRule>();

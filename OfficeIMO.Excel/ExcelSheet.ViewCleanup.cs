@@ -5,7 +5,7 @@ using System.Globalization;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         internal void CleanupSheetViewArtifacts() {
-            var worksheet = _worksheetPart.Worksheet;
+            var worksheet = WorksheetRoot;
             var sheetViews = worksheet.GetFirstChild<SheetViews>();
             if (sheetViews == null) {
                 return;

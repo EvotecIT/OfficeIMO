@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
         /// If the sheet is empty, returns "A1:A1".
         /// </summary>
         public string GetUsedRangeA1() {
-            string reference = ExcelSheet.ComputeSheetDimensionReference(_wsPart.Worksheet);
+            string reference = ExcelSheet.ComputeSheetDimensionReference(WorksheetRoot);
             return reference.Contains(":", StringComparison.Ordinal) ? reference : reference + ":" + reference;
         }
         /// <summary>
@@ -111,7 +111,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void SnapshotCellsInto(List<CellRaw> buffer, int r1, int c1, int r2, int c2) {
-            var sheetData = _wsPart.Worksheet.GetFirstChild<SheetData>();
+            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData == null) return;
 
             foreach (var row in sheetData.Elements<Row>()) {

@@ -27,12 +27,12 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 // Ensure a drawing part exists and is referenced by the worksheet
                 DrawingsPart drawingPart;
-                var drawing = _worksheetPart.Worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
+                var drawing = WorksheetRoot.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
                 if (drawing == null) {
                     drawingPart = _worksheetPart.AddNewPart<DrawingsPart>();
                     drawingPart.WorksheetDrawing = new Xdr.WorksheetDrawing();
                     string relId = _worksheetPart.GetIdOfPart(drawingPart);
-                    _worksheetPart.Worksheet.Append(new DocumentFormat.OpenXml.Spreadsheet.Drawing { Id = relId });
+                    WorksheetRoot.Append(new DocumentFormat.OpenXml.Spreadsheet.Drawing { Id = relId });
                 } else {
                     drawingPart = (DrawingsPart)_worksheetPart.GetPartById(drawing.Id!);
                     drawingPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
@@ -87,7 +87,7 @@ namespace OfficeIMO.Excel {
 
                 drawingPart.WorksheetDrawing.Append(anchor);
                 drawingPart.WorksheetDrawing.Save();
-                _worksheetPart.Worksheet.Save();
+                WorksheetRoot.Save();
             });
         }
 

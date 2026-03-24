@@ -315,8 +315,9 @@ namespace OfficeIMO.PowerPoint {
         private string CloneChartPart(ChartPart sourceChartPart) {
             string relationshipId = GetNextRelationshipId(_slidePart);
             ChartPart targetChartPart = (ChartPart)AddNewPartWithContentType(_slidePart, sourceChartPart, relationshipId);
-            if (sourceChartPart.ChartSpace != null) {
-                targetChartPart.ChartSpace = (C.ChartSpace)sourceChartPart.ChartSpace.CloneNode(true);
+            C.ChartSpace? sourceChartSpace = sourceChartPart.ChartSpace;
+            if (sourceChartSpace != null) {
+                targetChartPart.ChartSpace = (C.ChartSpace)sourceChartSpace.CloneNode(true);
                 targetChartPart.ChartSpace.Save();
             } else {
                 CopyPartData(sourceChartPart, targetChartPart);

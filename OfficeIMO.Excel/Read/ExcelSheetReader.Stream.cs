@@ -33,7 +33,7 @@ namespace OfficeIMO.Excel {
             int nextToYield = 0;
             int chunkIndex = 0;
 
-            var sheetData = _wsPart.Worksheet.GetFirstChild<SheetData>();
+            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData is null) yield break;
 
             List<Row> bufferRows = new(chunkRows);

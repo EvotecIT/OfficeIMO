@@ -21,7 +21,8 @@ namespace OfficeIMO.PowerPoint {
                     notesThemePart.Theme = (D.Theme)presentationPart.ThemePart.Theme.CloneNode(true);
                 } else {
                     ThemePart fallback = CreateTheme(presentationPart);
-                    notesThemePart.Theme = (D.Theme)fallback.Theme.CloneNode(true);
+                    D.Theme fallbackTheme = fallback.Theme ?? throw new InvalidOperationException("Theme part did not contain a theme.");
+                    notesThemePart.Theme = (D.Theme)fallbackTheme.CloneNode(true);
                 }
             }
 

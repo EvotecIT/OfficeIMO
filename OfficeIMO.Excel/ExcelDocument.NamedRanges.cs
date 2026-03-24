@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel {
             }
 #endif
 
-            var workbook = _workBookPart.Workbook;
+            var workbook = WorkbookRoot;
             var definedNames = workbook.DefinedNames ??= new DefinedNames();
 
             // Validate or sanitize the defined name
@@ -72,7 +72,7 @@ namespace OfficeIMO.Excel {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentException("Range cannot be null or whitespace.", nameof(range));
 
-            var workbook = _workBookPart.Workbook;
+            var workbook = WorkbookRoot;
             var definedNames = workbook.DefinedNames ??= new DefinedNames();
 
             // Remove existing sheet-local Print_Area for this sheet
@@ -102,7 +102,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("Name cannot be null or whitespace.", nameof(name));
             }
 #endif
-            var definedNames = _workBookPart.Workbook.DefinedNames;
+            var definedNames = WorkbookRoot.DefinedNames;
             if (definedNames == null) return null;
 
             if (scope != null) {
@@ -125,7 +125,7 @@ namespace OfficeIMO.Excel {
         /// Returns all defined names with their A1 ranges, optionally limited to a sheet scope.
         /// </summary>
         public IReadOnlyDictionary<string, string> GetAllNamedRanges(ExcelSheet? scope = null) {
-            var definedNames = _workBookPart.Workbook.DefinedNames;
+            var definedNames = WorkbookRoot.DefinedNames;
             var result = new System.Collections.Generic.Dictionary<string, string>();
             if (definedNames == null) return result;
 
@@ -161,7 +161,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("Name cannot be null or whitespace.", nameof(name));
             }
 #endif
-            var definedNames = _workBookPart.Workbook.DefinedNames;
+            var definedNames = WorkbookRoot.DefinedNames;
             if (definedNames == null) return false;
 
             DefinedName? target = null;
@@ -174,16 +174,16 @@ namespace OfficeIMO.Excel {
             if (target == null) return false;
             target.Remove();
             if (!definedNames.Elements<DefinedName>().Any()) {
-                _workBookPart.Workbook.DefinedNames = null;
+                WorkbookRoot.DefinedNames = null;
             }
             if (save) {
-                _workBookPart.Workbook.Save();
+                WorkbookRoot.Save();
             }
             return true;
         }
 
         private uint GetSheetIndex(ExcelSheet sheet) {
-            var sheets = _workBookPart.Workbook.Sheets?.OfType<Sheet>().ToList() ?? new();
+            var sheets = WorkbookRoot.Sheets?.OfType<Sheet>().ToList() ?? new();
             for (int i = 0; i < sheets.Count; i++) {
                 if (sheets[i].Name == sheet.Name) {
                     var id = sheets[i].SheetId;
@@ -197,7 +197,7 @@ namespace OfficeIMO.Excel {
         }
 
         private ushort GetSheetPositionIndex(ExcelSheet sheet) {
-            var sheets = _workBookPart.Workbook.Sheets?.OfType<Sheet>().ToList() ?? new();
+            var sheets = WorkbookRoot.Sheets?.OfType<Sheet>().ToList() ?? new();
             for (ushort i = 0; i < sheets.Count; i++) {
                 if (sheets[i].Name == sheet.Name) return i; // 0-based position
             }
@@ -217,7 +217,7 @@ namespace OfficeIMO.Excel {
         public void SetPrintTitles(ExcelSheet sheet, int? firstRow, int? lastRow, int? firstCol, int? lastCol, bool save = true) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
 
-            var workbook = _workBookPart.Workbook;
+            var workbook = WorkbookRoot;
             var definedNames = workbook.DefinedNames ??= new DefinedNames();
 
             // Remove existing sheet-local Print_Titles for this sheet
@@ -261,7 +261,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal void CleanupDefinedNameArtifacts(bool includeAggressiveRepairs, bool save = true) {
-            var wb = _workBookPart.Workbook;
+            var wb = WorkbookRoot;
             var definedNames = wb.DefinedNames;
             if (definedNames == null) return;
 

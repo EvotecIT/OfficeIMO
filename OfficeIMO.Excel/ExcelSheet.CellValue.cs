@@ -193,7 +193,7 @@ namespace OfficeIMO.Excel {
                 // Resolve shared string if needed
                 if (cell.DataType != null && cell.DataType.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) {
                     if (int.TryParse(cell.InnerText, System.Globalization.NumberStyles.Integer, CultureInfo.InvariantCulture, out int ssid)) {
-                        var wb = _excelDocument._spreadSheetDocument.WorkbookPart;
+                        var wb = _excelDocument.WorkbookPartRoot;
                         var sst = wb?.SharedStringTablePart?.SharedStringTable;
                         var si = sst?.Elements<SharedStringItem>().ElementAtOrDefault(ssid);
                         if (si != null) {
@@ -235,7 +235,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void ApplyWrapText(Cell cell) {
-            var workbookPart = _excelDocument._spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
             if (stylesPart == null) {
                 stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
@@ -329,7 +329,7 @@ namespace OfficeIMO.Excel {
         public void CellAlign(int row, int column, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues alignment) {
             WriteLockConditional(() => {
                 var cell = GetCell(row, column);
-                var workbookPart = _excelDocument._spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+                var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
                 var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
                 var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
                 EnsureDefaultStylePrimitives(stylesheet);
@@ -387,7 +387,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(hexColor)) return;
             WriteLockConditional(() => {
                 var cell = GetCell(row, column);
-                var workbookPart = _excelDocument._spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+                var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
                 var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
                 var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
                 EnsureDefaultStylePrimitives(stylesheet);
@@ -436,7 +436,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void ApplyFontBold(Cell cell, bool bold) {
-            var workbookPart = _excelDocument._spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             var stylesPart = workbookPart.WorkbookStylesPart;
             if (stylesPart == null)
                 stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
@@ -499,7 +499,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void ApplyBackground(Cell cell, string hexColor) {
-            var workbookPart = _excelDocument._spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             var stylesPart = workbookPart.WorkbookStylesPart;
             if (stylesPart == null)
                 stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
@@ -550,7 +550,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void ApplyBuiltInNumberFormat(Cell cell, uint builtInFormatId) {
-            var workbookPart = _excelDocument._spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
             if (stylesPart == null) {
                 stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
@@ -583,7 +583,7 @@ namespace OfficeIMO.Excel {
         private void FormatCellCore(int row, int column, string numberFormat) {
             Cell cell = GetCell(row, column);
 
-            var workbookPart = _excelDocument._spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
             if (stylesPart == null) {
                 stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();

@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
         public void SetHidden(bool hidden) {
             WriteLockConditional(() => {
                 _sheet.State = hidden ? SheetStateValues.Hidden : (SheetStateValues?)null;
-                _spreadSheetDocument.WorkbookPart?.Workbook.Save();
+                WorkbookRoot.Save();
             });
         }
     }

@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
         /// This must be called before saving to prevent validation errors.
         /// </summary>
         internal void EnsureWorksheetElementOrder() {
-            var worksheet = _worksheetPart.Worksheet;
+            var worksheet = WorksheetRoot;
             const string SpreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 
             // Define the correct order of elements according to OpenXML schema

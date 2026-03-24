@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
 
                 var reference = GetColumnName(column) + row.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 // Ensure Hyperlinks container exists
-                var ws = _worksheetPart.Worksheet;
+                var ws = WorksheetRoot;
                 var hyperlinks = ws.Elements<Hyperlinks>().FirstOrDefault();
                 if (hyperlinks == null) {
                     hyperlinks = new Hyperlinks();
@@ -78,7 +78,7 @@ namespace OfficeIMO.Excel {
                 string text = string.IsNullOrEmpty(display) ? normalizedLocation : display!;
                 CellValueCore(row, column, text);
                 var reference = GetColumnName(column) + row.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                var ws = _worksheetPart.Worksheet;
+                var ws = WorksheetRoot;
                 var hyperlinks = ws.Elements<Hyperlinks>().FirstOrDefault();
                 if (hyperlinks == null) {
                     hyperlinks = new Hyperlinks();
@@ -116,7 +116,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void ApplyHyperlinkStyle(Cell cell) {
-            var workbookPart = _excelDocument._spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             // Ensure primitives

@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel {
                 itemCount: columnsList.Count,
                 overrideMode: mode,
                 sequentialCore: () => {
-                    var worksheet = _worksheetPart.Worksheet;
+                    var worksheet = WorksheetRoot;
                     var sheetData = worksheet.GetFirstChild<SheetData>();
                     if (sheetData == null) return;
 
@@ -90,7 +90,7 @@ namespace OfficeIMO.Excel {
                     }
                 },
                 applySequential: () => {
-                    var worksheet = _worksheetPart.Worksheet;
+                    var worksheet = WorksheetRoot;
                     for (int i = 0; i < columnsList.Count; i++) {
                         SetColumnWidthCore(columnsList[i], computed[i]);
                     }
@@ -101,7 +101,7 @@ namespace OfficeIMO.Excel {
         }
 
         private HashSet<int> GetAllColumnIndices() {
-            var worksheet = _worksheetPart.Worksheet;
+            var worksheet = WorksheetRoot;
             SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) return new HashSet<int>();
 
@@ -130,7 +130,7 @@ namespace OfficeIMO.Excel {
         }
 
         private double CalculateColumnWidth(int columnIndex) {
-            var worksheet = _worksheetPart.Worksheet;
+            var worksheet = WorksheetRoot;
             SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) return 0;
 
@@ -232,7 +232,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void SetColumnWidthCore(int columnIndex, double width) {
-            var worksheet = _worksheetPart.Worksheet;
+            var worksheet = WorksheetRoot;
             var columns = worksheet.GetFirstChild<Columns>();
             if (columns == null) {
                 columns = worksheet.InsertAt(new Columns(), 0);
@@ -263,7 +263,7 @@ namespace OfficeIMO.Excel {
         }
 
         private double GetDefaultRowHeightPoints() {
-            var sheetFormat = _worksheetPart.Worksheet.GetFirstChild<SheetFormatProperties>();
+            var sheetFormat = WorksheetRoot.GetFirstChild<SheetFormatProperties>();
             if (sheetFormat?.DefaultRowHeight != null && sheetFormat.DefaultRowHeight.Value > 0) {
                 return sheetFormat.DefaultRowHeight.Value;
             }
@@ -273,7 +273,7 @@ namespace OfficeIMO.Excel {
         private bool HasWrapText(Cell cell) {
             if (cell.StyleIndex == null) return false;
 
-            var stylesPart = _excelDocument._spreadSheetDocument.WorkbookPart?.WorkbookStylesPart;
+            var stylesPart = _excelDocument.WorkbookPartRoot?.WorkbookStylesPart;
             var stylesheet = stylesPart?.Stylesheet;
             var cellFormats = stylesheet?.CellFormats;
 
@@ -286,7 +286,7 @@ namespace OfficeIMO.Excel {
         }
 
         private double CalculateRowHeight(int rowIndex) {
-            var worksheet = _worksheetPart.Worksheet;
+            var worksheet = WorksheetRoot;
             SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) return 0;
 
@@ -452,7 +452,7 @@ namespace OfficeIMO.Excel {
         }
 
         private (int fromCol, int toCol)? GetCellMergeSpan(Cell cell) {
-            var ws = _worksheetPart.Worksheet;
+            var ws = WorksheetRoot;
             var merges = ws.Elements<MergeCells>().FirstOrDefault();
             if (merges == null) return null;
             var r = cell.CellReference?.Value;
@@ -484,7 +484,7 @@ namespace OfficeIMO.Excel {
         }
 
         private double GetColumnWidthUnits(int columnIndex) {
-            var ws = _worksheetPart.Worksheet;
+            var ws = WorksheetRoot;
             var columns = ws.GetFirstChild<Columns>();
             var col = columns?.Elements<Column>()
                 .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
@@ -499,7 +499,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void SetRowHeightCore(int rowIndex, double height) {
-            var worksheet = _worksheetPart.Worksheet;
+            var worksheet = WorksheetRoot;
             SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) return;
             Row? row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == (uint)rowIndex);
@@ -516,7 +516,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void UpdateSheetFormat() {
-            var worksheet = _worksheetPart.Worksheet;
+            var worksheet = WorksheetRoot;
             SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
             var sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
 
@@ -540,7 +540,7 @@ namespace OfficeIMO.Excel {
         /// <param name="mode">Overrides how the auto-fit work is scheduled across rows.</param>
         /// <param name="ct">Cancels the row auto-fit pass while heights are being calculated or applied.</param>
         public void AutoFitRows(ExecutionMode? mode = null, CancellationToken ct = default) {
-            var worksheet = _worksheetPart.Worksheet;
+            var worksheet = WorksheetRoot;
             SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) return;
 
@@ -610,7 +610,7 @@ namespace OfficeIMO.Excel {
             WriteLockConditional(() => {
                 var width = CalculateColumnWidth(columnIndex);
                 SetColumnWidthCore(columnIndex, width);
-                _worksheetPart.Worksheet.Save();
+                WorksheetRoot.Save();
             });
         }
 
@@ -671,7 +671,7 @@ namespace OfficeIMO.Excel {
         public void SetColumnWidth(int columnIndex, double width) {
             width = NormalizeColumnWidth(width);
             WriteLock(() => {
-                var worksheet = _worksheetPart.Worksheet;
+                var worksheet = WorksheetRoot;
                 var columns = worksheet.GetFirstChild<Columns>();
                 if (columns == null) {
                     columns = worksheet.InsertAt(new Columns(), 0);
@@ -701,7 +701,7 @@ namespace OfficeIMO.Excel {
         /// <param name="hidden">True to hide the column; false to show it.</param>
         public void SetColumnHidden(int columnIndex, bool hidden) {
             WriteLock(() => {
-                var worksheet = _worksheetPart.Worksheet;
+                var worksheet = WorksheetRoot;
                 var columns = worksheet.GetFirstChild<Columns>();
                 if (columns == null) {
                     columns = worksheet.InsertAt(new Columns(), 0);
@@ -726,7 +726,7 @@ namespace OfficeIMO.Excel {
                 var height = CalculateRowHeight(rowIndex);
                 SetRowHeightCore(rowIndex, height);
                 UpdateSheetFormat();
-                _worksheetPart.Worksheet.Save();
+                WorksheetRoot.Save();
             });
         }
 
@@ -737,7 +737,7 @@ namespace OfficeIMO.Excel {
         /// <param name="leftCols">Number of columns on the left to freeze.</param>
         public void Freeze(int topRows = 0, int leftCols = 0) {
             WriteLock(() => {
-                Worksheet worksheet = _worksheetPart.Worksheet;
+                Worksheet worksheet = WorksheetRoot;
                 SheetViews? sheetViews = worksheet.GetFirstChild<SheetViews>();
 
                 if (topRows == 0 && leftCols == 0) {
@@ -835,7 +835,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void SetGridlinesVisible(bool visible) {
             WriteLock(() => {
-                var worksheet = _worksheetPart.Worksheet;
+                var worksheet = WorksheetRoot;
                 var sheetViews = worksheet.GetFirstChild<SheetViews>();
                 if (sheetViews == null) {
                     sheetViews = new SheetViews();
@@ -859,7 +859,7 @@ namespace OfficeIMO.Excel {
         /// <param name="scale">Manual scale (10-400). Ignored if FitToWidth/Height are specified.</param>
         public void SetPageSetup(uint? fitToWidth = null, uint? fitToHeight = null, uint? scale = null) {
             WriteLock(() => {
-                var ws = _worksheetPart.Worksheet;
+                var ws = WorksheetRoot;
                 var pageSetup = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.PageSetup>();
                 if (pageSetup == null) {
                     pageSetup = new DocumentFormat.OpenXml.Spreadsheet.PageSetup();

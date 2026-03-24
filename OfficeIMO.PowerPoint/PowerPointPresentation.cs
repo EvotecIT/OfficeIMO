@@ -16,7 +16,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Represents a PowerPoint presentation providing basic create, open and save operations.
     /// </summary>
-    public sealed class PowerPointPresentation : IDisposable {
+    public sealed partial class PowerPointPresentation : IDisposable {
         private PresentationDocument? _document;
         private PresentationPart _presentationPart;
         private readonly List<PowerPointSlide> _slides = new();
@@ -50,16 +50,16 @@ namespace OfficeIMO.PowerPoint {
             _document = document;
             _filePath = filePath;
             _presentationPart = document.PresentationPart ?? document.AddPresentationPart();
-            if (_presentationPart.Presentation == null) {
+            if (isNewPresentation || _presentationPart.Presentation == null) {
                 // New presentation - create with required initial structure
-                _presentationPart.Presentation = new Presentation();
+                PresentationRoot = new Presentation();
                 InitializeDefaultParts();
 
                 // After initialization, we have one slide created by PowerPointUtils
                 // Track it and mark it as untouched
-                if (_presentationPart.Presentation.SlideIdList != null) {
-                    foreach (SlideId slideId in _presentationPart.Presentation.SlideIdList.Elements<SlideId>()) {
-                        string? relId = slideId.RelationshipId;
+                if (PresentationRoot.SlideIdList != null) {
+                    foreach (SlideId slideId in PresentationRoot.SlideIdList.Elements<SlideId>()) {
+                        string? relId = PowerPointUtils.GetRelationshipIdValue(slideId);
                         if (!string.IsNullOrEmpty(relId)) {
                             SlidePart slidePart = (SlidePart)_presentationPart.GetPartById(relId!);
                             _slides.Add(new PowerPointSlide(slidePart));
@@ -165,7 +165,7 @@ namespace OfficeIMO.PowerPoint {
                 return Array.Empty<PowerPointSectionInfo>();
             }
 
-            List<SlideId> slideIds = _presentationPart.Presentation?.SlideIdList?
+            List<SlideId> slideIds = PresentationRoot?.SlideIdList?
                 .Elements<SlideId>()
                 .ToList() ?? new List<SlideId>();
             Dictionary<uint, int> slideIndexMap = BuildSlideIndexMap(slideIds);
@@ -201,7 +201,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException("Section name cannot be null or empty.", nameof(name));
             }
 
-            SlideIdList? slideIdList = _presentationPart.Presentation?.SlideIdList;
+            SlideIdList? slideIdList = PresentationRoot?.SlideIdList;
             if (slideIdList == null) {
                 throw new InvalidOperationException("Presentation has no slides.");
             }
@@ -1020,7 +1020,7 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointPresentation Create(string filePath) {
             PresentationDocument document = PresentationDocument.Create(filePath, PresentationDocumentType.Presentation);
             PowerPointPresentation presentation = new(document, filePath, isNewPresentation: true);
-            presentation._presentationPart.Presentation.Save();
+            presentation.PresentationRoot.Save();
             presentation._document?.Save();
             return presentation;
         }
@@ -1043,7 +1043,7 @@ namespace OfficeIMO.PowerPoint {
 
             PresentationDocument document = PresentationDocument.Create(packageStream, PresentationDocumentType.Presentation, autoSave: true);
             PowerPointPresentation presentation = new(document, string.Empty, isNewPresentation: true);
-            presentation._presentationPart.Presentation.Save();
+            presentation.PresentationRoot.Save();
             presentation._document?.Save();
             presentation.ConfigureStreamCopy(packageStream, stream, autoSave, leaveSourceStreamOpen: true);
             return presentation;
@@ -1176,15 +1176,16 @@ namespace OfficeIMO.PowerPoint {
             }
             // If the layout is already referenced, we don't need to add it again
 
-            if (_presentationPart.Presentation.SlideIdList == null) {
-                _presentationPart.Presentation.SlideIdList = new SlideIdList();
+            if (PresentationRoot.SlideIdList == null) {
+                PresentationRoot.SlideIdList = new SlideIdList();
             }
 
             uint newId = GetNextSlideId();
-            SlideId slideId = new() { Id = newId, RelationshipId = slideRelId };
-            _presentationPart.Presentation.SlideIdList.Append(slideId);
+            SlideId slideId = new() { Id = newId };
+            PowerPointUtils.SetRelationshipIdValue(slideId, slideRelId);
+            PresentationRoot.SlideIdList.Append(slideId);
             AssignSlideToNearestSection(newId, _slides.Count);
-            _presentationPart.Presentation.Save();
+            PresentationRoot.Save();
 
             PowerPointSlide slide = new(slidePart);
             _slides.Add(slide);
@@ -1209,24 +1210,25 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException("Cannot remove the last slide from the presentation.");
             }
 
-            SlideIdList? slideIdList = _presentationPart.Presentation.SlideIdList;
+            SlideIdList? slideIdList = PresentationRoot.SlideIdList;
             if (slideIdList == null) {
                 throw new InvalidOperationException("Presentation has no slides.");
             }
 
             SlideId slideId = slideIdList.Elements<SlideId>().ElementAt(index);
-            StringValue? relIdValue = slideId.RelationshipId;
+            string? relIdValue = PowerPointUtils.GetRelationshipIdValue(slideId);
 
             _slides.RemoveAt(index);
             slideId.Remove();
 
-            if (relIdValue is { Value: { Length: > 0 } relId }) {
+            if (!string.IsNullOrWhiteSpace(relIdValue)) {
+                string relId = relIdValue!;
                 OpenXmlPart part = _presentationPart.GetPartById(relId);
                 _presentationPart.DeletePart(part);
             }
 
             SyncSectionsWithSlides();
-            _presentationPart.Presentation.Save();
+            PresentationRoot.Save();
         }
 
         /// <summary>
@@ -1252,7 +1254,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            SlideIdList? slideIdList = _presentationPart.Presentation.SlideIdList;
+            SlideIdList? slideIdList = PresentationRoot.SlideIdList;
             if (slideIdList == null) {
                 throw new InvalidOperationException("Presentation has no slides.");
             }
@@ -1272,7 +1274,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             SyncSectionsWithSlides();
-            _presentationPart.Presentation.Save();
+            PresentationRoot.Save();
         }
 
         /// <summary>
@@ -1297,17 +1299,19 @@ namespace OfficeIMO.PowerPoint {
 
             PowerPointSlide sourceSlide = _slides[index];
             SlidePart sourcePart = sourceSlide.SlidePart;
+            Slide sourceSlideRoot = sourcePart.Slide ?? throw new InvalidOperationException("Source slide is missing its slide definition.");
 
             sourceSlide.Save();
 
             string slideRelId = GetNextSlideRelationshipId();
             SlidePart slidePart = _presentationPart.AddNewPart<SlidePart>(slideRelId);
-            slidePart.Slide = (Slide)sourcePart.Slide.CloneNode(true);
+            slidePart.Slide = (Slide)sourceSlideRoot.CloneNode(true);
 
             CloneSlidePartRelationships(sourcePart, slidePart, ShouldSharePart, includeDataParts: true);
 
-            SlideIdList slideIdList = _presentationPart.Presentation.SlideIdList ??= new SlideIdList();
-            SlideId slideId = new() { Id = GetNextSlideId(), RelationshipId = slideRelId };
+            SlideIdList slideIdList = PresentationRoot.SlideIdList ??= new SlideIdList();
+            SlideId slideId = new() { Id = GetNextSlideId() };
+            PowerPointUtils.SetRelationshipIdValue(slideId, slideRelId);
             InsertSlideId(slideIdList, slideId, targetIndex);
             AssignSlideToNearestSection(slideId.Id?.Value ?? throw new InvalidOperationException("Slide ID is missing."),
                 targetIndex);
@@ -1315,7 +1319,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointSlide duplicate = new(slidePart);
             duplicate.Hidden = sourceSlide.Hidden;
             _slides.Insert(targetIndex, duplicate);
-            _presentationPart.Presentation.Save();
+            PresentationRoot.Save();
             return duplicate;
         }
 
@@ -1352,6 +1356,7 @@ namespace OfficeIMO.PowerPoint {
 
             PowerPointSlide sourceSlide = sourceSlides[sourceIndex];
             sourceSlide.Save();
+            Slide sourceSlideRoot = sourceSlide.SlidePart.Slide ?? throw new InvalidOperationException("Source slide is missing its slide definition.");
 
             SlideLayoutPart? sourceLayoutPart = sourceSlide.SlidePart.SlideLayoutPart;
             if (sourceLayoutPart == null) {
@@ -1373,7 +1378,7 @@ namespace OfficeIMO.PowerPoint {
 
             string slideRelId = GetNextSlideRelationshipId();
             SlidePart slidePart = _presentationPart.AddNewPart<SlidePart>(slideRelId);
-            slidePart.Slide = (Slide)sourceSlide.SlidePart.Slide.CloneNode(true);
+            slidePart.Slide = (Slide)sourceSlideRoot.CloneNode(true);
 
             Dictionary<DataPart, MediaDataPart> mediaPartMap = new();
             CloneSlidePartRelationships(
@@ -1391,8 +1396,9 @@ namespace OfficeIMO.PowerPoint {
 
             slidePart.AddPart(targetLayoutPart, layoutRelId);
 
-            SlideIdList slideIdList = _presentationPart.Presentation.SlideIdList ??= new SlideIdList();
-            SlideId slideId = new() { Id = GetNextSlideId(), RelationshipId = slideRelId };
+            SlideIdList slideIdList = PresentationRoot.SlideIdList ??= new SlideIdList();
+            SlideId slideId = new() { Id = GetNextSlideId() };
+            PowerPointUtils.SetRelationshipIdValue(slideId, slideRelId);
             InsertSlideId(slideIdList, slideId, targetIndex);
             AssignSlideToNearestSection(slideId.Id?.Value ?? throw new InvalidOperationException("Slide ID is missing."),
                 targetIndex);
@@ -1405,7 +1411,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             _slides.Insert(targetIndex, imported);
-            _presentationPart.Presentation.Save();
+            PresentationRoot.Save();
 
             if (initialSlidePart != null) {
                 _initialSlideUntouched = false;
@@ -1476,7 +1482,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             PowerPointUtils.UpdateDocumentProperties(_presentationPart);
-            _presentationPart.Presentation.Save();
+            PresentationRoot.Save();
             _document!.Save();
         }
 
@@ -1492,7 +1498,7 @@ namespace OfficeIMO.PowerPoint {
                 slide.Save();
             }
             PowerPointUtils.UpdateDocumentProperties(_presentationPart);
-            _presentationPart.Presentation.Save();
+            PresentationRoot.Save();
             _document!.Save();
 
             if (destination.CanSeek) {
@@ -1593,9 +1599,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private void LoadExistingSlides() {
-            if (_presentationPart.Presentation.SlideIdList != null) {
-                foreach (SlideId slideId in _presentationPart.Presentation.SlideIdList.Elements<SlideId>()) {
-                    string? relId = slideId.RelationshipId;
+            if (PresentationRoot.SlideIdList != null) {
+                foreach (SlideId slideId in PresentationRoot.SlideIdList.Elements<SlideId>()) {
+                    string? relId = PowerPointUtils.GetRelationshipIdValue(slideId);
                     if (!string.IsNullOrEmpty(relId)) {
                         SlidePart slidePart = (SlidePart)_presentationPart.GetPartById(relId!);
                         _slides.Add(new PowerPointSlide(slidePart));
@@ -1614,10 +1620,11 @@ namespace OfficeIMO.PowerPoint {
                     .Select(id => id!)
             );
 
-            if (_presentationPart.Presentation.SlideIdList != null) {
-                foreach (SlideId existingSlideId in _presentationPart.Presentation.SlideIdList.Elements<SlideId>()) {
-                    if (existingSlideId.RelationshipId is { Value: { Length: > 0 } relId }) {
-                        existingRelationships.Add(relId);
+            if (PresentationRoot.SlideIdList != null) {
+                foreach (SlideId existingSlideId in PresentationRoot.SlideIdList.Elements<SlideId>()) {
+                    string? relId = PowerPointUtils.GetRelationshipIdValue(existingSlideId);
+                    if (!string.IsNullOrEmpty(relId)) {
+                        existingRelationships.Add(relId!);
                     }
                 }
             }
@@ -1634,7 +1641,7 @@ namespace OfficeIMO.PowerPoint {
 
         private uint GetNextSlideId() {
             uint maxId = 255;
-            SlideIdList? slideIdList = _presentationPart.Presentation.SlideIdList;
+            SlideIdList? slideIdList = PresentationRoot.SlideIdList;
             if (slideIdList != null && slideIdList.Elements<SlideId>().Any()) {
                 maxId = slideIdList.Elements<SlideId>().Max(s => s.Id?.Value ?? 255);
             }
@@ -1748,10 +1755,11 @@ namespace OfficeIMO.PowerPoint {
                     .Select(id => id!)
             );
 
-            if (_presentationPart.Presentation.SlideMasterIdList != null) {
-                foreach (SlideMasterId existingMasterId in _presentationPart.Presentation.SlideMasterIdList.Elements<SlideMasterId>()) {
-                    if (existingMasterId.RelationshipId is { Value: { Length: > 0 } existingRelId }) {
-                        existingRelationships.Add(existingRelId);
+            if (PresentationRoot.SlideMasterIdList != null) {
+                foreach (SlideMasterId existingMasterId in PresentationRoot.SlideMasterIdList.Elements<SlideMasterId>()) {
+                    string? existingRelId = PowerPointUtils.GetRelationshipIdValue(existingMasterId);
+                    if (!string.IsNullOrEmpty(existingRelId)) {
+                        existingRelationships.Add(existingRelId!);
                     }
                 }
             }
@@ -1767,7 +1775,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private uint GetNextSlideMasterId() {
-            SlideMasterIdList? slideMasterIdList = _presentationPart.Presentation.SlideMasterIdList;
+            SlideMasterIdList? slideMasterIdList = PresentationRoot.SlideMasterIdList;
             if (slideMasterIdList != null && slideMasterIdList.Elements<SlideMasterId>().Any()) {
                 uint maxId = slideMasterIdList.Elements<SlideMasterId>().Max(s => s.Id?.Value ?? 0U);
                 return maxId >= 2147483648U ? maxId + 1U : 2147483648U;
@@ -1812,7 +1820,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private P14.SectionList? GetSectionList(bool create) {
-            Presentation presentation = _presentationPart.Presentation ??= new Presentation();
+            Presentation presentation = PresentationRoot ??= new Presentation();
             PresentationExtensionList? extList = presentation.GetFirstChild<PresentationExtensionList>();
             if (extList == null && create) {
                 extList = new PresentationExtensionList();
@@ -1996,7 +2004,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            List<SlideId> slideIds = _presentationPart.Presentation?.SlideIdList?
+            List<SlideId> slideIds = PresentationRoot?.SlideIdList?
                 .Elements<SlideId>()
                 .ToList() ?? new List<SlideId>();
             if (slideIds.Count == 0) {
@@ -2040,7 +2048,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            List<SlideId> slideIds = _presentationPart.Presentation?.SlideIdList?
+            List<SlideId> slideIds = PresentationRoot?.SlideIdList?
                 .Elements<SlideId>()
                 .ToList() ?? new List<SlideId>();
             if (slideIds.Count == 0) {
@@ -2126,9 +2134,11 @@ namespace OfficeIMO.PowerPoint {
 
             CloneReferenceRelationships(sourceMasterPart, targetMasterPart, includeDataParts: false);
 
-            SlideMasterIdList slideMasterIdList = _presentationPart.Presentation.SlideMasterIdList ??= new SlideMasterIdList();
-            slideMasterIdList.Append(new SlideMasterId { Id = GetNextSlideMasterId(), RelationshipId = masterRelId });
-            _presentationPart.Presentation.Save();
+            SlideMasterIdList slideMasterIdList = PresentationRoot.SlideMasterIdList ??= new SlideMasterIdList();
+            SlideMasterId slideMasterId = new SlideMasterId { Id = GetNextSlideMasterId() };
+            PowerPointUtils.SetRelationshipIdValue(slideMasterId, masterRelId);
+            slideMasterIdList.Append(slideMasterId);
+            PresentationRoot.Save();
 
             return targetMasterPart;
         }

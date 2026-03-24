@@ -872,7 +872,7 @@ namespace OfficeIMO.PowerPoint {
                 })
             );
 
-            CommonSlideData dataElement = _slidePart.Slide.CommonSlideData ??= new CommonSlideData(new ShapeTree());
+            CommonSlideData dataElement = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = dataElement.ShapeTree ??= new ShapeTree();
             tree.AppendChild(frame);
             PowerPointChart chart = new(frame, _slidePart);

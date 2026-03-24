@@ -20,18 +20,19 @@ namespace OfficeIMO.Excel {
                     var table = tdp.Table;
                     if (table?.Reference?.Value != range) continue;
                     table.TotalsRowShown = true;
-                    var headerNames = table.TableColumns?.Elements<TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList() ?? new System.Collections.Generic.List<string>();
+                    var tableColumns = table.TableColumns ?? throw new InvalidOperationException("Table columns are missing.");
+                    var headerNames = tableColumns.Elements<TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList();
                     int idx = 0;
-                    foreach (var tc in table.TableColumns!.Elements<TableColumn>()) {
+                    foreach (var tc in tableColumns.Elements<TableColumn>()) {
                         var name = headerNames[idx++];
                         if (totalsByHeader.TryGetValue(name, out var fn)) {
                             tc.TotalsRowFunction = fn;
                         }
                     }
-                    tdp.Table.Save();
+                    table.Save();
                     break;
                 }
-                _worksheetPart.Worksheet.Save();
+                WorksheetRoot.Save();
             });
         }
         /// <summary>
@@ -61,9 +62,9 @@ namespace OfficeIMO.Excel {
                         // Found a table on the same range - add/update its AutoFilter
 
                         // First, remove any worksheet-level AutoFilter to avoid conflicts
-                        var worksheetAutoFilter = _worksheetPart.Worksheet.Elements<AutoFilter>().FirstOrDefault();
+                        var worksheetAutoFilter = WorksheetRoot.Elements<AutoFilter>().FirstOrDefault();
                         if (worksheetAutoFilter != null && worksheetAutoFilter.Reference?.Value == range) {
-                            _worksheetPart.Worksheet.RemoveChild(worksheetAutoFilter);
+                            WorksheetRoot.RemoveChild(worksheetAutoFilter);
                         }
 
                         // Now handle the table's AutoFilter
@@ -97,13 +98,13 @@ namespace OfficeIMO.Excel {
                             table.InsertAt(newAutoFilter, 0);
                         }
 
-                        tableDefinitionPart.Table.Save();
+                        table.Save();
                         return; // Exit early - we've handled the AutoFilter via the table
                     }
                 }
 
                 // No table found, add worksheet-level AutoFilter
-                Worksheet worksheet = _worksheetPart.Worksheet;
+                Worksheet worksheet = WorksheetRoot;
 
                 // Remove any existing worksheet AutoFilter
                 AutoFilter? existing = worksheet.Elements<AutoFilter>().FirstOrDefault();
@@ -243,7 +244,7 @@ namespace OfficeIMO.Excel {
                 lock (_tableIdLock) {
                     // Get max existing table ID across all sheets to ensure uniqueness when opening existing files
                     uint maxExistingId = 0;
-                    var wbPart = _spreadSheetDocument.WorkbookPart;
+                    var wbPart = WorkbookPartRoot;
                     if (wbPart != null) {
                         foreach (var ws in wbPart.WorksheetParts) {
                             foreach (var part in ws.TableDefinitionParts) {
@@ -318,7 +319,7 @@ namespace OfficeIMO.Excel {
 
                 // SMART AUTOFILTER HANDLING
                 // Check if there's already a worksheet-level AutoFilter on this range
-                AutoFilter? existingWorksheetAutoFilter = _worksheetPart.Worksheet.Elements<AutoFilter>().FirstOrDefault();
+                AutoFilter? existingWorksheetAutoFilter = WorksheetRoot.Elements<AutoFilter>().FirstOrDefault();
                 bool hasExistingFilter = existingWorksheetAutoFilter?.Reference?.Value == range;
 
                 if (includeAutoFilter) {
@@ -328,7 +329,7 @@ namespace OfficeIMO.Excel {
                         var tableAutoFilter = (AutoFilter)existingWorksheetAutoFilter.CloneNode(true);
 
                         // Remove from worksheet to avoid conflicts
-                        _worksheetPart.Worksheet.RemoveChild(existingWorksheetAutoFilter);
+                        WorksheetRoot.RemoveChild(existingWorksheetAutoFilter);
 
                         // Add to table
                         table.Append(tableAutoFilter);
@@ -341,7 +342,7 @@ namespace OfficeIMO.Excel {
                     if (hasExistingFilter && existingWorksheetAutoFilter != null) {
                         // REMOVE: Excel doesn't allow worksheet AutoFilter and table on same range
                         // We must remove the worksheet AutoFilter to avoid conflicts
-                        _worksheetPart.Worksheet.RemoveChild(existingWorksheetAutoFilter);
+                        WorksheetRoot.RemoveChild(existingWorksheetAutoFilter);
                         // Note: User explicitly set includeAutoFilter=false, so we honor that
                     }
                     // Don't add AutoFilter to the table
@@ -360,10 +361,10 @@ namespace OfficeIMO.Excel {
                 tableDefinitionPart.Table = table;
                 tableDefinitionPart.Table.Save();
 
-                var tableParts = _worksheetPart.Worksheet.Elements<TableParts>().FirstOrDefault();
+                var tableParts = WorksheetRoot.Elements<TableParts>().FirstOrDefault();
                 if (tableParts == null) {
                     tableParts = new TableParts();
-                    _worksheetPart.Worksheet.Append(tableParts);
+                    WorksheetRoot.Append(tableParts);
                 }
                 var relId = _worksheetPart.GetIdOfPart(tableDefinitionPart);
                 // Avoid duplicate TablePart entries
@@ -372,7 +373,7 @@ namespace OfficeIMO.Excel {
                     tableParts.Append(new TablePart { Id = relId });
                 tableParts.Count = (uint)tableParts.Elements<TablePart>().Count();
 
-                _worksheetPart.Worksheet.Save();
+                WorksheetRoot.Save();
             });
         }
 

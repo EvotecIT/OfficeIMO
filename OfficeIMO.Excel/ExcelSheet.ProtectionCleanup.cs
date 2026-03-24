@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         internal void CleanupProtectionArtifacts() {
-            var worksheet = _worksheetPart.Worksheet;
+            var worksheet = WorksheetRoot;
 
             var protections = worksheet.Elements<SheetProtection>().ToList();
             SheetProtection? primaryProtection = protections.FirstOrDefault();

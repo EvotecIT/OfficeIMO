@@ -5,13 +5,13 @@ using System.Globalization;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         internal void CleanupStyleAndSharedStringArtifacts(bool save = true) {
-            var workbookPart = _workBookPart;
+            var workbookPart = WorkbookPartRoot;
 
             NormalizeStylesheet(workbookPart);
             CleanupSharedStringArtifacts(workbookPart);
 
             if (save) {
-                workbookPart.Workbook.Save();
+                WorkbookRoot.Save();
             }
         }
 
@@ -55,8 +55,9 @@ namespace OfficeIMO.Excel {
 
             int cellFormatCount = cellFormats.Count;
             foreach (var worksheetPart in workbookPart.WorksheetParts) {
+                var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
                 bool worksheetChanged = false;
-                foreach (var cell in worksheetPart.Worksheet.Descendants<Cell>()) {
+                foreach (var cell in worksheet.Descendants<Cell>()) {
                     if (cell.StyleIndex?.Value >= cellFormatCount) {
                         cell.StyleIndex = 0U;
                         worksheetChanged = true;
@@ -64,7 +65,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (worksheetChanged) {
-                    worksheetPart.Worksheet.Save();
+                    worksheet.Save();
                 }
             }
 
@@ -81,8 +82,9 @@ namespace OfficeIMO.Excel {
             bool sharedStringTableChanged = false;
 
             foreach (var worksheetPart in workbookPart.WorksheetParts) {
+                var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
                 bool worksheetChanged = false;
-                foreach (var cell in worksheetPart.Worksheet.Descendants<Cell>()) {
+                foreach (var cell in worksheet.Descendants<Cell>()) {
                     if (cell.DataType?.Value != CellValues.SharedString) {
                         continue;
                     }
@@ -104,7 +106,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (worksheetChanged) {
-                    worksheetPart.Worksheet.Save();
+                    worksheet.Save();
                 }
             }
 

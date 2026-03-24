@@ -1,4 +1,4 @@
-﻿using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using SixLabors.Fonts;
@@ -115,11 +115,12 @@ namespace OfficeIMO.Excel {
 
             // Add Sheets to the Workbook.
             var spWorkbookPart = spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+            var workbook = spWorkbookPart.Workbook ??= new Workbook();
             Sheets sheets;
-            if (spWorkbookPart.Workbook.Sheets != null) {
-                sheets = spWorkbookPart.Workbook.Sheets;
+            if (workbook.Sheets != null) {
+                sheets = workbook.Sheets;
             } else {
-                sheets = spWorkbookPart.Workbook.AppendChild(new Sheets());
+                sheets = workbook.AppendChild(new Sheets());
             }
 
             // Append a new worksheet and associate it with the workbook.
@@ -146,9 +147,9 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(column));
             }
 
-            SheetData? sheetData = _worksheetPart.Worksheet.GetFirstChild<SheetData>();
+            SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData == null) {
-                sheetData = _worksheetPart.Worksheet.AppendChild(new SheetData());
+                sheetData = WorksheetRoot.AppendChild(new SheetData());
             }
 
             // Find or create row with proper ordering
@@ -351,7 +352,7 @@ namespace OfficeIMO.Excel {
 
         private SixLabors.Fonts.Font? GetWorkbookDefaultFont() {
             try {
-                var workbookPart = _spreadSheetDocument.WorkbookPart;
+                var workbookPart = WorkbookPartRoot;
                 var stylesPart = workbookPart?.WorkbookStylesPart;
                 var stylesheet = stylesPart?.Stylesheet;
                 var fonts = stylesheet?.Fonts;
@@ -390,7 +391,7 @@ namespace OfficeIMO.Excel {
             var defaultFont = GetDefaultFont();
             if (cell.StyleIndex == null) return defaultFont;
 
-            var workbookPart = _spreadSheetDocument.WorkbookPart;
+            var workbookPart = WorkbookPartRoot;
             var stylesPart = workbookPart?.WorkbookStylesPart;
             var stylesheet = stylesPart?.Stylesheet;
             var fonts = stylesheet?.Fonts;

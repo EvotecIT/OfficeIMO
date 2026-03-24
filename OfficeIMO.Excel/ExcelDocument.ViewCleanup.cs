@@ -3,9 +3,10 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         internal void CleanupWorkbookViewArtifacts(bool save = true) {
-            var workbook = _workBookPart.Workbook;
-            bool hasSheetViews = _workBookPart.WorksheetParts.Any(worksheetPart =>
-                worksheetPart.Worksheet.GetFirstChild<SheetViews>()?.Elements<SheetView>().Any() == true);
+            var workbook = WorkbookRoot;
+            bool hasSheetViews = WorkbookPartRoot.WorksheetParts.Any(worksheetPart =>
+                (worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing."))
+                    .GetFirstChild<SheetViews>()?.Elements<SheetView>().Any() == true);
 
             var workbookViews = workbook.GetFirstChild<BookViews>();
             bool workbookChanged = false;
@@ -36,9 +37,10 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                foreach (var worksheetPart in _workBookPart.WorksheetParts) {
+                foreach (var worksheetPart in WorkbookPartRoot.WorksheetParts) {
+                    var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
                     bool worksheetChanged = false;
-                    foreach (var sheetView in worksheetPart.Worksheet.Descendants<SheetView>()) {
+                    foreach (var sheetView in worksheet.Descendants<SheetView>()) {
                         if (sheetView.WorkbookViewId == null || sheetView.WorkbookViewId.Value >= workbookViewCount) {
                             sheetView.WorkbookViewId = 0U;
                             worksheetChanged = true;
@@ -46,7 +48,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (worksheetChanged) {
-                        worksheetPart.Worksheet.Save();
+                        worksheet.Save();
                     }
                 }
             } else if (workbookViews != null && !workbookViews.Elements<WorkbookView>().Any()) {

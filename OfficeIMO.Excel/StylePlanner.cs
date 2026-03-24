@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            var workbookPart = doc._spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
+            var workbookPart = doc.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
             if (stylesPart == null) {
                 stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
