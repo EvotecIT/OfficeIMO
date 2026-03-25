@@ -41,8 +41,11 @@ string markdown = await document.ToMarkdownAsync();
 Get a typed `MarkdownDoc` AST for further processing:
 
 ```csharp
+using OfficeIMO.Word;
+using OfficeIMO.Word.Markdown;
 using OfficeIMO.Markdown;
 
+using var document = WordDocument.Load("report.docx");
 MarkdownDoc markdownDoc = document.ToMarkdownDocument();
 
 // Inspect the structure
@@ -51,7 +54,7 @@ foreach (var heading in markdownDoc.DescendantHeadings()) {
 }
 
 // Render to string
-string output = markdownDoc.ToString();
+var output = markdownDoc.ToMarkdown();
 ```
 
 ### Save as Markdown File
@@ -73,8 +76,14 @@ document.SaveAsMarkdown(stream);
 ### Conversion Options
 
 ```csharp
+using OfficeIMO.Word;
+using OfficeIMO.Word.Markdown;
+
+using var document = WordDocument.Load("report.docx");
+
 var options = new WordToMarkdownOptions {
-    // Configure heading mapping, image handling, etc.
+    EnableUnderline = true,
+    EnableHighlight = true
 };
 
 string markdown = document.ToMarkdown(options);
@@ -143,7 +152,7 @@ var md = MarkdownDoc.Create()
     .H1("Generated Report")
     .P("Created programmatically.")
     .Table(t => t
-        .Header("Item", "Count")
+        .Headers("Item", "Count")
         .Row("Widgets", "42")
         .Row("Gadgets", "17")
     );

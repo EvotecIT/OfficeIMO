@@ -28,7 +28,7 @@ using OfficeIMO.CSV;
 
 var csv = new CsvDocument()
     .WithDelimiter(',')
-    .WithHeaders("Name", "Age", "City")
+    .WithHeader("Name", "Age", "City")
     .AddRow("Alice", "30", "New York")
     .AddRow("Bob", "25", "London")
     .AddRow("Carol", "35", "Tokyo");
@@ -54,6 +54,8 @@ csv.Save("employees.csv");
 You can customize the delimiter, culture, and encoding:
 
 ```csharp
+using System.Globalization;
+
 var csv = CsvDocument.FromObjects(
     employees,
     delimiter: ';',
@@ -74,9 +76,11 @@ foreach (var row in csv.Rows) {
 ### Load Options
 
 ```csharp
+using System.Text;
+
 var csv = CsvDocument.Load("data.csv", new CsvLoadOptions {
     Delimiter = '\t',
-    HasHeaders = true,
+    HasHeaderRow = true,
     Encoding = Encoding.UTF8,
     Mode = CsvLoadMode.InMemory
 });
@@ -88,12 +92,12 @@ For large files, use streaming mode to avoid loading everything into memory:
 
 ```csharp
 var csv = CsvDocument.Load("large.csv", new CsvLoadOptions {
-    Mode = CsvLoadMode.Streaming
+    Mode = CsvLoadMode.Stream
 });
 
 foreach (var row in csv.Rows) {
     // Rows are read one at a time from disk
-    ProcessRow(row);
+    Console.WriteLine(row.Get<string>("Name"));
 }
 ```
 
@@ -102,12 +106,16 @@ foreach (var row in csv.Rows) {
 Define a schema to enforce column types and constraints:
 
 ```csharp
-var schema = new CsvSchema()
-    .Column("Name", typeof(string), required: true)
-    .Column("Age", typeof(int), required: true, min: 0, max: 150)
-    .Column("Email", typeof(string), pattern: @"^[\w.-]+@[\w.-]+\.\w+$");
+using System.Text.RegularExpressions;
 
-var errors = CsvValidator.Validate(csv, schema);
+var validated = csv
+    .EnsureSchema(schema => schema
+        .Column("Name").AsString().Required()
+        .Column("Age").AsInt32().Required().Validate(v => (int)v! >= 0 && (int)v! <= 150, "Age must be between 0 and 150.")
+        .Column("Email").AsString().Optional().Validate(
+            v => v is null || Regex.IsMatch((string)v, @"^[\w.-]+@[\w.-]+\.\w+$"),
+            "Email must be a valid address."))
+    .Validate(out var errors);
 
 foreach (var error in errors) {
     Console.WriteLine($"Row {error.RowIndex}, Column '{error.Column}': {error.Message}");
@@ -126,7 +134,11 @@ public class Person {
 }
 
 var csv = CsvDocument.Load("people.csv");
-var people = CsvMapper.Map<Person>(csv);
+var people = csv.Map<Person>(map => map
+    .FromColumn<string>("Name", (person, value) => person.Name = value)
+    .FromColumn<int>("Age", (person, value) => person.Age = value)
+    .FromColumn<string>("City", (person, value) => person.City = value)
+).ToList();
 
 foreach (var person in people) {
     Console.WriteLine($"{person.Name} ({person.Age}) lives in {person.City}");
@@ -136,11 +148,12 @@ foreach (var person in people) {
 ## Save Options
 
 ```csharp
+using System.Text;
+
 csv.Save("output.csv", new CsvSaveOptions {
     Delimiter = ',',
-    IncludeHeaders = true,
-    Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
-    QuoteAll = false
+    IncludeHeader = true,
+    Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)
 });
 ```
 
@@ -167,9 +180,11 @@ var psv = new CsvDocument().WithDelimiter('|');
 ## Culture-Aware Formatting
 
 ```csharp
+using System.Globalization;
+
 var csv = new CsvDocument()
     .WithCulture(new CultureInfo("fr-FR"))
-    .WithHeaders("Produit", "Prix")
+    .WithHeader("Produit", "Prix")
     .AddRow("Widget A", "9,99")   // French decimal separator
     .AddRow("Widget B", "14,99");
 ```

@@ -22,7 +22,7 @@ OfficeIMO is not a single library; it is a coordinated set of packages, each foc
 | **OfficeIMO.Word** | Create and read DOCX files with paragraphs, tables, images, headers, footers, and styles |
 | **OfficeIMO.Excel** | Build XLSX workbooks with sheets, formulas, charts, and parallel compute for bulk operations |
 | **OfficeIMO.Markdown** | A zero-dependency Markdown parser and builder with a typed AST |
-| **OfficeIMO.Reader** | Extract text and metadata from any supported Office format for search and AI pipelines |
+| **OfficeIMO.Reader** | Extract normalized text chunks and source information from supported document formats for search and AI pipelines |
 | **OfficeIMO.Word.Pdf** | Convert DOCX to PDF on Windows and Linux without Office installed |
 
 All packages target **.NET 6+**, with most also supporting **.NET Framework 4.7.2** for legacy environments.

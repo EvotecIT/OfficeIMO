@@ -389,6 +389,31 @@
 .member-summary,
 .member-inherited { margin-top: 0.65rem; }
 
+.example-origin,
+.example-media-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.75rem;
+  color: var(--imo-text-muted);
+  font-size: 0.78rem;
+}
+
+.example-origin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--imo-glass-border-hover);
+  background: rgba(56, 189, 248, 0.08);
+  color: var(--imo-accent);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .member-toggle {
   display: flex;
   align-items: center;

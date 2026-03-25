@@ -27,22 +27,23 @@ Every Markdown construct maps to a sealed class:
 ```csharp
 using OfficeIMO.Markdown;
 
-MarkdownDocument doc = MarkdownParser.Parse(input);
+string input = File.ReadAllText("README.md");
+MarkdownDoc doc = MarkdownReader.Parse(input);
 
-foreach (MarkdownBlock block in doc.Blocks)
+foreach (var block in doc.TopLevelBlocks)
 {
     switch (block)
     {
-        case MarkdownHeading h:
-            Console.WriteLine($"H{h.Level}: {h.InlineText}");
+        case HeadingBlock h:
+            Console.WriteLine($"H{h.Level}: {h.Text}");
             break;
-        case MarkdownParagraph p:
-            Console.WriteLine($"Paragraph: {p.InlineText}");
+        case ParagraphBlock p:
+            Console.WriteLine($"Paragraph with {p.Inlines.Nodes.Count} inline nodes");
             break;
-        case MarkdownCodeBlock cb:
-            Console.WriteLine($"Code ({cb.Language}): {cb.Code.Length} chars");
+        case CodeBlock cb:
+            Console.WriteLine($"Code ({cb.Language}): {cb.Content.Length} chars");
             break;
-        case MarkdownTable t:
+        case TableBlock t:
             Console.WriteLine($"Table: {t.Rows.Count} rows");
             break;
     }
@@ -56,19 +57,17 @@ Pattern matching on sealed types gives you exhaustiveness checking at compile ti
 Creating Markdown is just as clean:
 
 ```csharp
-var builder = new MarkdownBuilder();
+using OfficeIMO.Markdown;
 
-builder.AddHeading("Release Notes", level: 2);
-builder.AddParagraph("Version 1.4.0 ships with the following changes:");
-builder.AddUnorderedList(new[]
-{
-    "Parallel AutoFit in OfficeIMO.Excel",
-    "Cross-platform PDF conversion",
-    "Improved table border handling"
-});
-builder.AddCodeBlock("csharp", "var doc = WordDocument.Create(\"demo.docx\");");
-
-string markdown = builder.ToString();
+var markdown = MarkdownDoc.Create()
+    .H2("Release Notes")
+    .P("Version 1.4.0 ships with the following changes:")
+    .Ul(ul => ul
+        .Item("Parallel AutoFit in OfficeIMO.Excel")
+        .Item("Cross-platform PDF conversion")
+        .Item("Improved table border handling"))
+    .Code("csharp", "var doc = WordDocument.Create(\"demo.docx\");")
+    .ToMarkdown();
 ```
 
 The builder handles blank-line separation, fence formatting, and list indentation so you never have to think about whitespace rules.
@@ -78,16 +77,16 @@ The builder handles blank-line separation, fence formatting, and list indentatio
 Because the AST is mutable, you can write transformation passes:
 
 ```csharp
-var doc = MarkdownParser.Parse(File.ReadAllText("README.md"));
+var doc = MarkdownReader.Parse(File.ReadAllText("README.md"));
 
 // Bump all headings down one level
-foreach (var heading in doc.Blocks.OfType<MarkdownHeading>())
+foreach (var heading in doc.DescendantHeadings())
 {
     heading.Level = Math.Min(heading.Level + 1, 6);
 }
 
 // Remove code blocks in a specific language
-doc.Blocks.RemoveAll(b => b is MarkdownCodeBlock cb && cb.Language == "diff");
+doc.TopLevelBlocks.RemoveAll(b => b is CodeBlock cb && cb.Language == "diff");
 
 string output = doc.ToMarkdown();
 ```

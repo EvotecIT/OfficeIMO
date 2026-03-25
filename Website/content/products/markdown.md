@@ -33,40 +33,35 @@ OfficeIMO.Markdown is a purpose-built Markdown engine for .NET. It gives you a s
 ```csharp
 using OfficeIMO.Markdown;
 
-// Build a document with the fluent API
-var doc = new MarkdownDocumentBuilder()
-    .AddHeading(1, "Release Notes")
-    .AddParagraph("Version 3.0 introduces several improvements.")
-    .AddHeading(2, "New Features")
-    .AddUnorderedList(
-        "Fluent builder API for document construction",
-        "Source span tracking on every AST node",
-        "GFM table and task list support"
-    )
-    .AddHeading(2, "Performance")
-    .AddTable(
-        new[] { "Benchmark", "v2.4", "v3.0" },
-        new[] { "Parse 10K lines", "48 ms", "21 ms" },
-        new[] { "Render to HTML", "35 ms", "14 ms" },
-        new[] { "Round-trip fidelity", "97%", "100%" }
-    )
-    .AddHeading(2, "Upgrade Guide")
-    .AddParagraph("See the [migration docs](/docs/markdown/migration/) for details.")
-    .Build();
+var doc = MarkdownDoc.Create()
+    .FrontMatter(new { title = "Release Notes", tags = new[] { "docs", "release" } })
+    .H1("Release Notes")
+    .P("Version 3.0 introduces several improvements.")
+    .H2("New Features")
+    .Ul(ul => ul
+        .Item("Fluent document builder")
+        .Item("Typed AST and traversal helpers")
+        .Item("HTML fragment and full-page rendering"))
+    .H2("Performance")
+    .Table(t => t
+        .Headers("Benchmark", "v2.4", "v3.0")
+        .Row("Parse 10K lines", "48 ms", "21 ms")
+        .Row("Render to HTML", "35 ms", "14 ms")
+        .Row("Round-trip fidelity", "97%", "100%")
+        .AlignNumericRight())
+    .Code("powershell", "dotnet add package OfficeIMO.Markdown");
 
-// Render to HTML fragment
-string html = doc.ToHtml();
-
-// Render to Markdown text
 string markdown = doc.ToMarkdown();
+string html = doc.ToHtmlFragment();
 
-// Parse existing Markdown with the GFM profile
-var parsed = MarkdownDocument.Parse(markdown, MarkdownReaderProfile.Gfm);
+var parsed = MarkdownReader.Parse(
+    markdown,
+    MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
 
 // Inspect the AST
-foreach (var block in parsed.Blocks)
+foreach (var block in parsed.DescendantsAndSelf())
 {
-    Console.WriteLine($"{block.GetType().Name} at {block.Span}");
+    Console.WriteLine(block.GetType().Name);
 }
 ```
 

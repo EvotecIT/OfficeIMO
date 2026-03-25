@@ -47,7 +47,7 @@ var doc = MarkdownDoc.Create()
     .H2("License")
     .P("MIT License");
 
-string markdown = doc.ToString();
+var markdown = doc.ToMarkdown();
 Console.WriteLine(markdown);
 ```
 
@@ -75,7 +75,8 @@ var doc = MarkdownDoc.Create()
 
 var options = new HtmlOptions {
     Style = HtmlStyle.GitHub,
-    IncludeTableOfContents = true
+    InjectTocAtTop = true,
+    Prism = new PrismOptions { Enabled = true }
 };
 
 string html = doc.ToHtml(options);

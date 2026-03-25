@@ -119,7 +119,7 @@ doc.Dl(dl => dl
 
 ```csharp
 doc.Table(t => t
-    .Header("Name", "Role", "Location")
+    .Headers("Name", "Role", "Location")
     .Row("Alice", "Developer", "New York")
     .Row("Bob", "Designer", "London")
     .Row("Carol", "Manager", "Tokyo")
@@ -171,7 +171,7 @@ doc.TableFrom(data,
 
 ```csharp
 doc.Table(t => t
-    .Header("Left", "Center", "Right")
+    .Headers("Left", "Center", "Right")
     .Align(ColumnAlignment.Left, ColumnAlignment.Center, ColumnAlignment.Right)
     .Row("A", "B", "C")
 );
@@ -307,7 +307,7 @@ File.WriteAllText("output.md", markdown);
 ```csharp
 string html = doc.ToHtml(new HtmlOptions {
     Style = HtmlStyle.GitHub,
-    IncludeTableOfContents = true,
-    PrismOptions = new PrismOptions { Enabled = true }
+    InjectTocAtTop = true,
+    Prism = new PrismOptions { Enabled = true }
 });
 ```

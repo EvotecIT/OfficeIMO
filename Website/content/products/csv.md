@@ -18,7 +18,7 @@ OfficeIMO.CSV treats CSV files as first-class documents rather than raw text. De
 - **Document-centric CSV model** -- headers, rows, and metadata wrapped in a structured document object
 - **Schema definition & validation** -- declare column names, types, and constraints; reject invalid rows at parse time
 - **Typed mapping without reflection** -- map rows to POCOs using compile-time delegates instead of runtime reflection
-- **Streaming mode for large files** -- process millions of rows with constant memory using `IAsyncEnumerable<T>`
+- **Streaming mode for large files** -- process millions of rows with constant memory using forward-only enumeration
 - **Sort, filter & transform** -- chain LINQ-style operations directly on the CSV document
 - **AOT-friendly & trimming-safe** -- compatible with Native AOT and IL trimming in .NET 8+
 - **Zero external dependencies** -- ships as a single assembly with no third-party references
@@ -27,28 +27,25 @@ OfficeIMO.CSV treats CSV files as first-class documents rather than raw text. De
 
 ```csharp
 using OfficeIMO.CSV;
+using System.Globalization;
 
-// Define a schema
-var schema = new CsvSchema()
-    .AddColumn("Name", CsvColumnType.String, required: true)
-    .AddColumn("Department", CsvColumnType.String)
-    .AddColumn("Salary", CsvColumnType.Decimal, required: true)
-    .AddColumn("StartDate", CsvColumnType.Date);
+var document = CsvDocument.Load("employees.csv")
+    .EnsureSchema(schema => schema
+        .Column("Name").AsString().Required()
+        .Column("Department").AsString().Optional()
+        .Column("Salary").AsType(typeof(decimal)).Required()
+        .Column("StartDate").AsDateTime().Optional()
+    )
+    .ValidateOrThrow();
 
-// Read and validate a CSV file
-using var document = CsvDocument.Open("employees.csv", schema);
-
-Console.WriteLine($"Rows: {document.Rows.Count}");
-Console.WriteLine($"Valid: {document.ValidationErrors.Count == 0}");
-
-// Typed mapping without reflection
-var employees = document.MapRows(row => new
-{
-    Name = row.GetString("Name"),
-    Department = row.GetString("Department"),
-    Salary = row.GetDecimal("Salary"),
-    StartDate = row.GetDate("StartDate")
-});
+var employees = document
+    .Map<Employee>(map => map
+        .FromColumn<string>("Name", (employee, value) => employee with { Name = value })
+        .FromColumn<string>("Department", (employee, value) => employee with { Department = value })
+        .FromColumn<decimal>("Salary", (employee, value) => employee with { Salary = value })
+        .FromColumn<DateTime>("StartDate", (employee, value) => employee with { StartDate = value })
+    )
+    .ToList();
 
 // Filter and transform
 var highEarners = employees
@@ -60,11 +57,22 @@ foreach (var emp in highEarners)
     Console.WriteLine($"{emp.Name} -- {emp.Department} -- {emp.Salary:C}");
 }
 
-// Stream large files with constant memory
-await foreach (var row in CsvDocument.StreamAsync("large-dataset.csv", schema))
+foreach (var row in CsvDocument.Load("large-dataset.csv", new CsvLoadOptions
 {
-    // Process each row individually
-    ProcessRow(row);
+    Mode = CsvLoadMode.Stream,
+    HasHeaderRow = true,
+    Culture = CultureInfo.InvariantCulture
+}).AsEnumerable())
+{
+    Console.WriteLine(row.Get<string>("Name"));
+}
+
+public sealed record Employee
+{
+    public string Name { get; init; } = string.Empty;
+    public string Department { get; init; } = string.Empty;
+    public decimal Salary { get; init; }
+    public DateTime StartDate { get; init; }
 }
 ```
 

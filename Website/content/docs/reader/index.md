@@ -6,42 +6,38 @@ order: 55
 
 # Reader and Extraction
 
-`OfficeIMO.Reader` provides a single extraction surface for Office and adjacent document formats. Instead of maintaining separate parsing pipelines for `.docx`, `.xlsx`, `.pptx`, Markdown, or PDF files, you can normalize them into one structured result model and then feed that output into indexing, search, and AI workflows.
+`OfficeIMO.Reader` provides a single extraction surface for Office and adjacent document formats. Instead of maintaining separate parsing pipelines for `.docx`, `.xlsx`, `.pptx`, Markdown, PDF, or text-like files, you can normalize them into one chunk model and then feed that output into indexing, search, and AI workflows.
 
 ## Best fit scenarios
 
 - Build ingestion pipelines for RAG, semantic search, or compliance review.
 - Normalize mixed document folders into one extraction and chunking model.
-- Preserve headings, citations, and metadata while preparing content for downstream tools.
+- Preserve headings, citations, token estimates, and source hashes while preparing content for downstream tools.
 - Run extraction in background workers, containers, Azure Functions, or scheduled jobs.
 
 ## Core workflow
 
-1. Extract a file into a structured result with text, metadata, and source information.
-2. Chunk the result into deterministic slices sized for search or AI prompts.
-3. Store chunks, citations, and metadata in your vector store, search index, or audit trail.
+1. Extract a file into `ReaderChunk` instances with text, markdown, tables, visuals, and source information.
+2. Tune `ReaderOptions` so emitted slices stay deterministic and sized for search or AI prompts.
+3. Store chunks, citations, and source identifiers in your vector store, search index, or audit trail.
 
 ## Quick start
 
 ```csharp
 using OfficeIMO.Reader;
 
-var extraction = DocumentReader.Extract("proposal.docx");
-
-Console.WriteLine(extraction.Title);
-Console.WriteLine(extraction.Text.Length);
-
-var chunks = DocumentReader.Chunk("proposal.docx", new ChunkOptions
+var chunks = DocumentReader.Read("proposal.docx", new ReaderOptions
 {
-    MaxTokens = 512,
-    Overlap = 64,
-    PreserveHeadings = true
-});
+    MaxChars = 4_000,
+    IncludeWordFootnotes = true,
+    ComputeHashes = true
+}).ToList();
 
 foreach (var chunk in chunks)
 {
-    Console.WriteLine($"{chunk.Index}: {chunk.Heading}");
-    Console.WriteLine(chunk.Citation);
+    Console.WriteLine($"{chunk.Id} :: {chunk.Kind}");
+    Console.WriteLine(chunk.Location.HeadingPath ?? chunk.Location.Path);
+    Console.WriteLine(chunk.TokenEstimate);
 }
 ```
 
@@ -59,7 +55,8 @@ foreach (var chunk in chunks)
 
 - **Deterministic chunking** so repeated runs produce stable chunk boundaries.
 - **Heading-aware extraction** so downstream systems retain document structure.
-- **Citation-friendly metadata** so search and AI responses can reference original sources.
+- **Citation-friendly location data** so search and AI responses can reference original sources.
+- **Incremental indexing support** through source IDs, hashes, and per-document chunk summaries.
 - **Container-friendly execution** with no Office installation requirements.
 
 ## Related packages

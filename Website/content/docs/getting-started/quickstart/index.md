@@ -101,7 +101,7 @@ var doc = MarkdownDoc.Create()
     .P("Generated automatically by OfficeIMO.Markdown.")
     .H2("Summary")
     .Table(t => t
-        .Header("Task", "Status", "Owner")
+        .Headers("Task", "Status", "Owner")
         .Row("Backend API", "Complete", "Alice")
         .Row("Frontend UI", "In Progress", "Bob")
         .Row("Documentation", "Planned", "Carol")
@@ -112,7 +112,7 @@ var doc = MarkdownDoc.Create()
         .Item("Demo scheduled for Monday")
     );
 
-string markdown = doc.ToString();
+var markdown = doc.ToMarkdown();
 File.WriteAllText("status.md", markdown);
 ```
 
@@ -123,7 +123,7 @@ using OfficeIMO.CSV;
 
 var csv = new CsvDocument()
     .WithDelimiter(',')
-    .WithHeaders("Name", "Age", "City")
+    .WithHeader("Name", "Age", "City")
     .AddRow("Alice", "30", "New York")
     .AddRow("Bob", "25", "London")
     .AddRow("Carol", "35", "Tokyo");

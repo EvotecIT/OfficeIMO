@@ -106,7 +106,7 @@ var doc = MarkdownDoc.Create()
     .H1("AOT Report")
     .P("Generated from a native AOT binary.")
     .Table(t => t
-        .Header("Metric", "Value")
+        .Headers("Metric", "Value")
         .Row("Startup", "< 10ms")
         .Row("Binary Size", "~8 MB")
     );

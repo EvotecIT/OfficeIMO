@@ -56,15 +56,21 @@ document.SaveAsHtml(stream);
 Customize the conversion with `WordToHtmlOptions`:
 
 ```csharp
+using OfficeIMO.Word;
+using OfficeIMO.Word.Html;
+
+using var document = WordDocument.Load("report.docx");
+
 var options = new WordToHtmlOptions {
-    // Include or exclude document properties
-    IncludeDocumentProperties = true,
+    // Include font and list styling in the generated HTML
+    IncludeFontStyles = true,
+    IncludeListStyles = true,
 
     // Control image handling
-    EmbedImages = true,  // Base64-encode images inline
+    EmbedImagesAsBase64 = true,
 
     // CSS options
-    IncludeStyles = true
+    IncludeDefaultCss = true
 };
 
 string html = document.ToHtml(options);
@@ -106,14 +112,12 @@ document.Save("from-html.docx");
 ### HTML to Word Options
 
 ```csharp
-var options = new HtmlToWordOptions {
-    // Default font settings
-    DefaultFontFamily = "Calibri",
-    DefaultFontSize = 11,
+using OfficeIMO.Word.Html;
 
-    // Page setup
-    DefaultPageWidth = 12240,   // Letter width in twips
-    DefaultPageHeight = 15840,  // Letter height in twips
+var options = new HtmlToWordOptions {
+    FontFamily = "Calibri",
+    IncludeListStyles = true,
+    BasePath = AppContext.BaseDirectory
 };
 
 using var document = html.LoadFromHtml(options);
