@@ -1,15 +1,14 @@
 ---
 title: Documentation
 description: Complete documentation for the OfficeIMO suite of .NET libraries for creating and manipulating Office documents.
+layout: docs-home
 order: 1
 slug: index
 ---
 
-# OfficeIMO Documentation
-
 OfficeIMO is an open-source, cross-platform suite of .NET libraries for creating and manipulating Office document formats without requiring Office to be installed. Built on top of the Open XML SDK and related package-specific components, OfficeIMO provides focused APIs for Word, Excel, PowerPoint, Markdown, CSV, and adjacent conversion workflows.
 
-## Packages
+## Package Feeds
 
 | Package | Package Feed | Description |
 |---------|--------------|-------------|
