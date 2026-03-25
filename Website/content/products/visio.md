@@ -22,6 +22,15 @@ OfficeIMO.Visio lets you generate and modify `.vsdx` diagrams from pure .NET cod
 - **Multiple measurement units** -- work in inches, millimeters, centimeters, or points
 - **Connection points** -- define and target specific connection points on shapes for precise routing
 
+## Diagram types you can automate
+
+| Diagram type | Typical source data | Outcome |
+|--------------|---------------------|---------|
+| Infrastructure topology | Inventory exports, deployment metadata, cloud resources | Repeatable architecture diagrams that stay in sync with real systems |
+| Process and approval flows | Workflow definitions, queue stages, or policy steps | Clear step-by-step diagrams for operations and compliance teams |
+| Org and service maps | HR systems, ownership registries, service catalogs | Diagrams that show teams, responsibilities, and platform boundaries |
+| Release and runbook visuals | CI pipelines, deployment targets, or support procedures | Supporting diagrams that travel with Word reports and PowerPoint decks |
+
 ## Quick start
 
 ```csharp
@@ -55,6 +64,14 @@ page.AddConnector(appServer, cache, "Redis");
 diagram.Save();
 ```
 
+## Repeatable modeling flow
+
+1. Start from the system, process, or ownership data you already have instead of hand-placing every shape.
+2. Map each entity to a stable shape type, label, and color so regenerated diagrams stay easy to compare.
+3. Use connectors to represent traffic, dependency, or approval flow, then reserve shape text for the labels people need to scan quickly.
+4. Generate the `.vsdx` file as part of a report build, architecture export, or operational handoff package.
+5. Pair the diagram with OfficeIMO.Word or OfficeIMO.PowerPoint when the same workflow also needs narrative or presentation output.
+
 ## Compatibility
 
 | Target Framework  | Supported |
@@ -72,4 +89,5 @@ OfficeIMO.Visio runs on Windows, Linux, and macOS. Generated files open in Micro
 |-------|-------------|
 | [Visio documentation](/docs/visio/) | Review the shape, page, and connector model before you build diagrams. |
 | [Getting Started](/docs/getting-started/) | Set up the package and validate your first generated diagram. |
-| [OfficeIMO.Reader](/products/reader/) | Extract and analyze diagram-adjacent document content in the same workflow. |
+| [OfficeIMO.Word](/products/word/) | Pair diagrams with generated reports, architecture notes, or implementation docs. |
+| [OfficeIMO.PowerPoint](/products/powerpoint/) | Turn the same topology or process data into stakeholder-ready slide decks. |

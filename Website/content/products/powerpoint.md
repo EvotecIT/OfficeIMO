@@ -26,6 +26,15 @@ OfficeIMO.PowerPoint lets you create polished `.pptx` presentations from code. A
 - **Speaker notes** -- attach presenter notes to any slide
 - **Slide copying & importing** -- copy slides within a presentation or import from another `.pptx` file
 
+## Common deck patterns
+
+| Deck type | Typical content | Why OfficeIMO.PowerPoint helps |
+|-----------|-----------------|--------------------------------|
+| Weekly status and KPI decks | Title slides, bullet summaries, charts, and callouts | Generated slides keep recurring reports consistent across every run |
+| Customer QBR and account reviews | Repeated sections, data-driven visuals, and speaker notes | You can build once and swap in customer-specific data at runtime |
+| Training and onboarding packs | Reusable layouts, screenshots, and step-by-step slides | Code-first generation makes it easier to version and refresh content |
+| Release demos and roadmap decks | Imported slides, product screenshots, and comparison tables | Copying and composing slides keeps larger decks maintainable |
+
 ## Quick start
 
 ```csharp
@@ -57,6 +66,14 @@ chart.AddSeries("2024", new[] { "Q1", "Q2", "Q3", "Q4" }, new double[] { 2.8, 3.
 presentation.Save();
 ```
 
+## Repeatable slide workflow
+
+1. Start with a small set of deck templates or layout conventions so generated presentations feel intentional, not improvised.
+2. Build slides from domain data, not from presentation-specific strings scattered throughout your code.
+3. Reserve charts, tables, and notes for the slides that benefit from structured output rather than manual formatting.
+4. Export decks as pipeline artifacts for email, GitHub Actions, scheduled reports, or customer handoff packages.
+5. Reuse the same source data across Word, Excel, Reader, and PowerPoint outputs when your workflow needs multiple deliverables.
+
 ## Compatibility
 
 | Target Framework  | Supported |
@@ -74,4 +91,5 @@ OfficeIMO.PowerPoint runs on Windows, Linux, and macOS. Output files are compati
 |-------|-------------|
 | [PowerPoint documentation](/docs/powerpoint/) | Start with the package overview and supported presentation workflow. |
 | [Slides guide](/docs/powerpoint/slides/) | Build title slides, content slides, charts, and slide layouts. |
+| [Getting Started](/docs/getting-started/) | Set up the package family and choose the right companion libraries for reporting pipelines. |
 | [PSWriteOffice](/products/pswriteoffice/) | Use PowerShell to automate the same presentation scenarios from scripts. |
