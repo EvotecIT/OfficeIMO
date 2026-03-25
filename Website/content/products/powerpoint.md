@@ -7,6 +7,7 @@ install: "dotnet add package OfficeIMO.PowerPoint"
 nuget: "OfficeIMO.PowerPoint"
 docs_url: "/docs/powerpoint/"
 api_url: ""
+preview_id: "powerpoint"
 ---
 
 ## Why OfficeIMO.PowerPoint?

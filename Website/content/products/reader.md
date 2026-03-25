@@ -7,6 +7,7 @@ install: "dotnet add package OfficeIMO.Reader"
 nuget: "OfficeIMO.Reader"
 docs_url: "/docs/reader/"
 api_url: ""
+preview_id: "reader"
 ---
 
 ## Why OfficeIMO.Reader?

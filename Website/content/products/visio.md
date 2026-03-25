@@ -7,6 +7,7 @@ install: "dotnet add package OfficeIMO.Visio"
 nuget: "OfficeIMO.Visio"
 docs_url: "/docs/visio/"
 api_url: ""
+preview_id: "visio"
 ---
 
 ## Why OfficeIMO.Visio?
