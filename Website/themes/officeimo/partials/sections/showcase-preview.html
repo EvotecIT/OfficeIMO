@@ -1,0 +1,39 @@
+{{ if data.showcase && data.showcase.cards }}
+<section class="imo-showcase-preview">
+  <div class="imo-container">
+    <h2 class="imo-section__title">{{ data.showcase.title ?? "Showcase" }}</h2>
+    {{ if data.showcase.description }}
+    <p class="imo-section__subtitle">{{ data.showcase.description }}</p>
+    {{ end }}
+
+    <div class="imo-showcase-preview__grid" role="list">
+      {{ for card in data.showcase.cards }}
+      {{ if for.index < 4 }}
+      <article class="imo-showcase-card" role="listitem">
+        {{ if card.image }}
+        <div class="imo-showcase-card__media">
+          <img src="{{ card.image }}" alt="{{ card.title }}" loading="lazy" />
+        </div>
+        {{ end }}
+        <div class="imo-showcase-card__body">
+          <h3>{{ card.title }}</h3>
+          <p>{{ card.description }}</p>
+          {{ if card.tags }}
+          <div class="imo-showcase-card__tags">
+            {{ for tag in card.tags }}
+            <span class="imo-badge">{{ tag }}</span>
+            {{ end }}
+          </div>
+          {{ end }}
+        </div>
+      </article>
+      {{ end }}
+      {{ end }}
+    </div>
+
+    <div class="imo-showcase-preview__footer">
+      <a href="/showcase/" class="imo-btn imo-btn-ghost">View Full Showcase</a>
+    </div>
+  </div>
+</section>
+{{ end }}

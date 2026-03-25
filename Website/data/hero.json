@@ -1,0 +1,19 @@
+{
+  "badge": "Open Source \u2022 MIT License \u2022 10+ Packages",
+  "title": "Office Documents Without Office",
+  "tagline": "Create, read, and edit Word, Excel, PowerPoint, Markdown, and more from .NET and PowerShell. Zero COM dependencies, cross-platform, AOT-ready.",
+  "ctas": [
+    { "label": "Get Started", "href": "/docs/getting-started/", "style": "primary" },
+    { "label": "View on GitHub", "href": "https://github.com/EvotecIT/OfficeIMO", "style": "ghost", "external": true }
+  ],
+  "install": {
+    "dotnet": "dotnet add package OfficeIMO.Word",
+    "powershell": "Install-Module PSWriteOffice"
+  },
+  "badges": [
+    { "alt": "OfficeIMO.Word NuGet", "src": "https://img.shields.io/nuget/dt/OfficeIMO.Word?label=Word&color=2563eb" },
+    { "alt": "OfficeIMO.Excel NuGet", "src": "https://img.shields.io/nuget/dt/OfficeIMO.Excel?label=Excel&color=059669" },
+    { "alt": "OfficeIMO.Markdown NuGet", "src": "https://img.shields.io/nuget/dt/OfficeIMO.Markdown?label=Markdown&color=7c3aed" },
+    { "alt": "PSWriteOffice Gallery", "src": "https://img.shields.io/powershellgallery/dt/PSWriteOffice?label=PSWriteOffice&color=d97706" }
+  ]
+}

@@ -1,0 +1,9 @@
+/* Critical above-the-fold CSS for OfficeIMO */
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--imo-ink);background:var(--imo-bg);line-height:1.6}
+a{color:var(--imo-primary);text-decoration:none}
+a:hover{text-decoration:underline}
+.skip-link{position:absolute;top:-40px;left:0;padding:8px;z-index:100}
+.skip-link:focus{top:0}
+.imo-header{position:sticky;top:0;z-index:50;background:var(--imo-header-bg);backdrop-filter:blur(12px);border-bottom:1px solid var(--imo-border);height:var(--imo-header-height)}
+.imo-container{max-width:var(--imo-max-width);margin:0 auto;padding:0 1.5rem}

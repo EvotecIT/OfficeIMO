@@ -1,0 +1,30 @@
+{{ if data.products }}
+<section class="imo-product-grid">
+  <div class="imo-container">
+    <h2 class="imo-section__title">A Library for Every Format</h2>
+    <div class="imo-product-grid__grid">
+      {{ for product in data.products }}
+      <div class="imo-product-card">
+        <div class="imo-product-card__header">
+          <div class="imo-product-card__icon">{{ product.icon_svg }}</div>
+          <div>
+            <span class="imo-product-card__name">{{ product.title }}</span>
+            {{ if product.tag }}<span class="imo-badge">{{ product.tag }}</span>{{ end }}
+          </div>
+        </div>
+        <p class="imo-product-card__desc">{{ product.tagline }}</p>
+        {{ if product.install }}
+        <div class="imo-install" style="margin-bottom:1rem;">
+          <code class="imo-install__code">{{ product.install }}</code>
+          <button class="imo-install__copy" type="button" data-copy="{{ product.install }}" aria-label="Copy">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          </button>
+        </div>
+        {{ end }}
+        <a href="{{ product.url }}" style="margin-top:auto;font-weight:600;font-size:0.9375rem;">Learn more &rarr;</a>
+      </div>
+      {{ end }}
+    </div>
+  </div>
+</section>
+{{ end }}

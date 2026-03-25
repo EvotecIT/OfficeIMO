@@ -1,0 +1,26 @@
+{
+  "title": "What You Can Build",
+  "description": "See real-world documents generated with OfficeIMO and PSWriteOffice.",
+  "cards": [
+    {
+      "title": "Automated Sales Report",
+      "description": "Complete Word document with formatted tables, charts, headers, footers, and table of contents generated from database queries.",
+      "tags": ["Word", "Tables", "Charts", "TOC"]
+    },
+    {
+      "title": "Financial Dashboard",
+      "description": "Excel workbook with multiple sheets, pivot tables, conditional formatting, sparklines, and interactive charts.",
+      "tags": ["Excel", "Charts", "Pivot Tables", "Formatting"]
+    },
+    {
+      "title": "Quarterly Presentation",
+      "description": "PowerPoint deck with branded slides, data-driven charts, shape layouts, and speaker notes auto-generated from templates.",
+      "tags": ["PowerPoint", "Slides", "Charts", "Shapes"]
+    },
+    {
+      "title": "Documentation Pipeline",
+      "description": "Markdown documents built with the fluent API, parsed into typed ASTs, and rendered to HTML for blog posts and release notes.",
+      "tags": ["Markdown", "HTML", "Blog", "CI/CD"]
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+/* ===== Custom Prism Theme — IntelligenceX Dark =====
+   Overrides Prism's built-in token colors to match the site palette.
+   Loaded globally so all pages (home, docs, API) share the same highlighting.
+   ===== */
+
+/* Central token palette so all layouts keep consistent, accessible colors. */
+:root {
+  --pf-prism-comment: #94A3B8;
+  --pf-prism-keyword: #00D9FF;
+  --pf-prism-string: #10B981;
+  --pf-prism-punctuation: var(--pf-ink);
+  --pf-prism-operator: var(--pf-ink);
+  --pf-prism-function: #A78BFA;
+  --pf-prism-number: #F59E0B;
+  --pf-prism-variable: #00D9FF;
+  --pf-prism-important: #F59E0B;
+}
+
+[data-theme="light"] {
+  --pf-prism-comment: #475569;
+  --pf-prism-keyword: #0B6078;
+  --pf-prism-string: #166534;
+  --pf-prism-punctuation: #1E293B;
+  --pf-prism-operator: #1E293B;
+  --pf-prism-function: #6D28D9;
+  --pf-prism-number: #92400E;
+  --pf-prism-variable: #0B6078;
+  --pf-prism-important: #92400E;
+}
+
+/* Base: code block background & text */
+pre[class*="language-"],
+code[class*="language-"] {
+  background: var(--pf-code-bg);
+  color: var(--pf-ink);
+  text-shadow: none;
+}
+
+pre[class*="language-"] {
+  border: 1px solid var(--pf-code-border);
+  border-radius: var(--pf-radius-sm, 8px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+:not(pre) > code[class*="language-"] {
+  border-radius: 4px;
+  padding: 0.15em 0.35em;
+}
+
+/* ----- Token colors ----- */
+
+/* Comments */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: var(--pf-prism-comment);
+}
+
+/* Keywords, properties, tags */
+.token.property,
+.token.tag,
+.token.constant,
+.token.symbol,
+.token.deleted,
+.token.atrule,
+.token.attr-name,
+.token.selector,
+.token.keyword {
+  color: var(--pf-prism-keyword);
+}
+
+/* Strings, inserted text */
+.token.attr-value,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+  color: var(--pf-prism-string);
+}
+
+/* Punctuation */
+.token.punctuation {
+  color: var(--pf-prism-punctuation);
+}
+
+/* Operators, entities, URLs */
+.token.operator,
+.token.entity,
+.token.url {
+  color: var(--pf-prism-operator);
+}
+
+/* Functions, class names */
+.token.function,
+.token.class-name {
+  color: var(--pf-prism-function);
+}
+
+/* Numbers, booleans */
+.token.number,
+.token.boolean {
+  color: var(--pf-prism-number);
+}
+
+/* Variables */
+.token.variable {
+  color: var(--pf-prism-variable);
+}
+
+/* Regex, important */
+.token.regex,
+.token.important {
+  color: var(--pf-prism-important);
+}
+
+/* ===== Light mode overrides ===== */
+
+[data-theme="light"] pre[class*="language-"] {
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+}

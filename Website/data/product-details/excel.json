@@ -1,0 +1,20 @@
+{
+  "id": "excel",
+  "title": "OfficeIMO.Excel",
+  "nuget": "OfficeIMO.Excel",
+  "install": "dotnet add package OfficeIMO.Excel",
+  "color": "#059669",
+  "docsUrl": "/docs/excel/",
+  "apiUrl": "/api/excel/",
+  "targets": [".NET 8.0", ".NET 10.0", ".NET Standard 2.0", ".NET Framework 4.7.2"],
+  "dependencies": ["DocumentFormat.OpenXml", "SixLabors.ImageSharp"],
+  "features": [
+    { "title": "Worksheets & Cells", "description": "Create workbooks with multiple sheets, typed cell values, formulas, and named ranges.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z'/></svg>" },
+    { "title": "Tables & AutoFilter", "description": "Excel tables with AutoFilter, sorting, and automatic column sizing.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z'/></svg>" },
+    { "title": "Charts", "description": "Column, pie, doughnut, scatter, bubble, and combo charts with formatting.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z'/><path d='M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z'/></svg>" },
+    { "title": "Conditional Formatting", "description": "Color scales, data bars, icon sets, and custom rules for visual data analysis.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01'/></svg>" },
+    { "title": "Parallel Execution", "description": "Multi-threaded bulk operations for AutoFit, cell writes, and large datasets.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M13 10V3L4 14h7v7l9-11h-7z'/></svg>" },
+    { "title": "Validation", "description": "List, whole number, decimal, date, time, text length, and custom validation rules.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'/></svg>" }
+  ],
+  "relatedPackages": []
+}

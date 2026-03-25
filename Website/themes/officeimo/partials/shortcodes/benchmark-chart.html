@@ -1,0 +1,22 @@
+<div class="imo-benchmarks">
+  <table class="imo-benchmark-table">
+    <thead>
+      <tr>
+        <th>Scenario</th>
+        <th>Library</th>
+        <th>Result</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ for row in data.benchmarks.scenarios }}
+      <tr>
+        <td>{{ row.name }}</td>
+        <td><code>{{ row.library }}</code></td>
+        <td class="imo-benchmark-result">{{ row.result }}</td>
+        <td>{{ row.notes }}</td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+</div>

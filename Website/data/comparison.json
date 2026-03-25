@@ -1,0 +1,21 @@
+{
+  "title": "How OfficeIMO Compares",
+  "description": "See how OfficeIMO stacks up against commercial alternatives.",
+  "columns": ["Feature", "OfficeIMO", "Aspose", "GemBox", "Syncfusion"],
+  "rows": [
+    { "feature": "License", "values": ["MIT (Free)", "$999/dev/yr", "$890/dev", "~$995/dev"] },
+    { "feature": "Open Source", "values": [true, false, false, false] },
+    { "feature": "COM-Free", "values": [true, true, true, true] },
+    { "feature": "Cross-Platform", "values": [true, true, true, true] },
+    { "feature": "NativeAOT Ready", "values": [true, false, false, false] },
+    { "feature": ".NET Standard 2.0", "values": [true, true, true, true] },
+    { "feature": "PowerShell Module", "values": [true, false, false, false] },
+    { "feature": "Word (.docx)", "values": [true, true, true, true] },
+    { "feature": "Excel (.xlsx)", "values": [true, true, true, true] },
+    { "feature": "PowerPoint (.pptx)", "values": [true, true, true, true] },
+    { "feature": "Markdown", "values": [true, false, false, false] },
+    { "feature": "CSV (typed)", "values": [true, false, false, false] },
+    { "feature": "Visio (.vsdx)", "values": [true, true, false, false] },
+    { "feature": "Document Reader", "values": [true, false, false, false] }
+  ]
+}

@@ -1,0 +1,14 @@
+{{ if data.trust_banner && data.trust_banner.items }}
+<section class="imo-trust-banner">
+  <div class="imo-container imo-trust-banner__inner">
+    <div class="imo-trust-banner__items">
+      {{ for item in data.trust_banner.items }}
+      <div class="imo-trust-banner__item">
+        {{ item.icon_svg }}
+        <span>{{ item.text }}</span>
+      </div>
+      {{ end }}
+    </div>
+  </div>
+</section>
+{{ end }}

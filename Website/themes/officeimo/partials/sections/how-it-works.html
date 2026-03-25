@@ -1,0 +1,15 @@
+{{ if data.how_it_works }}
+<section class="imo-how-it-works">
+  <div class="imo-container">
+    <h2 class="imo-section__title">{{ data.how_it_works.title }}</h2>
+    <div class="imo-how-it-works__grid">
+      {{ for step in data.how_it_works.steps }}
+      <div class="imo-how-it-works__step">
+        <h3 class="imo-how-it-works__step-title">{{ step.title }}</h3>
+        <p class="imo-how-it-works__step-desc">{{ step.description }}</p>
+      </div>
+      {{ end }}
+    </div>
+  </div>
+</section>
+{{ end }}

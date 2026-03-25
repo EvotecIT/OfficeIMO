@@ -1,0 +1,20 @@
+{
+  "id": "powerpoint",
+  "title": "OfficeIMO.PowerPoint",
+  "nuget": "OfficeIMO.PowerPoint",
+  "install": "dotnet add package OfficeIMO.PowerPoint",
+  "color": "#dc2626",
+  "docsUrl": "/docs/powerpoint/",
+  "apiUrl": "/api/powerpoint/",
+  "targets": [".NET 8.0", ".NET 10.0", ".NET Standard 2.0", ".NET Framework 4.7.2"],
+  "dependencies": ["DocumentFormat.OpenXml", "SixLabors.ImageSharp"],
+  "features": [
+    { "title": "Slides & Layouts", "description": "Create slides with layouts, sections, transitions, and themes.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z'/></svg>" },
+    { "title": "Text & Bullets", "description": "Text boxes with margins, auto-fit, bullets, and speaker notes.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 6h16M4 12h8m-8 6h16'/></svg>" },
+    { "title": "Shapes & Effects", "description": "Rectangles, ellipses, lines with fill, stroke, shadow, glow, and reflection.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6z'/></svg>" },
+    { "title": "Images", "description": "Insert PNG, JPEG, GIF, BMP, TIFF, EMF, WMF from files or streams.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'/></svg>" },
+    { "title": "Charts", "description": "Full chart support with formatting, legends, data labels, and axis configuration.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10'/></svg>" },
+    { "title": "Tables", "description": "Tables with merged cells, styling presets, and borders.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z'/></svg>" }
+  ],
+  "relatedPackages": []
+}

@@ -1,0 +1,19 @@
+{{ if data.code_examples && data.code_examples.tabs }}
+<section class="imo-code-examples">
+  <div class="imo-container">
+    <h2 class="imo-section__title">{{ data.code_examples.title ?? "Code Examples" }}</h2>
+    <div class="imo-code-examples__panel">
+      <div class="imo-code-examples__tabs" role="tablist">
+        {{ for tab in data.code_examples.tabs }}
+        <button class="imo-code-examples__tab{{ if for.first }} is-active{{ end }}" role="tab" id="tab-{{ tab.id }}" aria-controls="panel-{{ tab.id }}" aria-selected="{{ if for.first }}true{{ else }}false{{ end }}"{{ if !for.first }} tabindex="-1"{{ end }}>{{ tab.label }}</button>
+        {{ end }}
+      </div>
+      {{ for tab in data.code_examples.tabs }}
+      <div class="imo-code-examples__content{{ if for.first }} is-active{{ end }}" role="tabpanel" id="panel-{{ tab.id }}" aria-labelledby="tab-{{ tab.id }}"{{ if !for.first }} hidden{{ end }}>
+        <pre><code class="language-{{ tab.language }}">{{ tab.code }}</code></pre>
+      </div>
+      {{ end }}
+    </div>
+  </div>
+</section>
+{{ end }}

@@ -1,0 +1,94 @@
+{
+  "hero": {
+    "label": "Pricing",
+    "title": "Free, Open Source, Forever",
+    "description": "OfficeIMO is MIT-licensed with no feature gating. Sponsorships fund ongoing development and give you a voice in the project's direction."
+  },
+  "comparison": {
+    "title": "Why Open Source?",
+    "description": "See what you save compared to commercial alternatives.",
+    "items": [
+      { "name": "OfficeIMO", "price": "$0", "period": "forever", "highlight": true },
+      { "name": "Aspose.Total", "price": "$999", "period": "per dev/year", "highlight": false },
+      { "name": "GemBox Bundle", "price": "$890", "period": "per developer", "highlight": false },
+      { "name": "Syncfusion", "price": "~$995", "period": "per dev/year", "highlight": false }
+    ]
+  },
+  "cards": [
+    {
+      "class": "pricing-card",
+      "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'><path d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'/></svg>",
+      "title": "Community",
+      "tag": "Open Source",
+      "amount": "Free",
+      "description": "Everything you need. No limits, no paywalls, no feature gating.",
+      "features": [
+        "All packages included",
+        "All future features included",
+        "No usage limits",
+        "MIT license for any use",
+        "Community support via GitHub Issues",
+        "Full source code access"
+      ],
+      "cta": {
+        "label": "Install from NuGet",
+        "href": "https://www.nuget.org/packages?q=OfficeIMO",
+        "class": "pricing-btn pricing-btn-secondary",
+        "target": "_blank",
+        "rel": "noopener"
+      }
+    },
+    {
+      "class": "pricing-card pricing-card-featured",
+      "badge": "Recommended",
+      "icon_svg": "<svg viewBox='0 0 24 24' fill='currentColor'><path d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z'/></svg>",
+      "title": "Supporter",
+      "tag": "GitHub Sponsors",
+      "amount": "$5/mo",
+      "description": "Support ongoing development and help shape the roadmap.",
+      "features": [
+        "Everything in Community",
+        "Name in SPONSORS.md",
+        "Discord supporter role",
+        "Priority feature requests",
+        "Help shape the roadmap",
+        "Early access to pre-release"
+      ],
+      "cta": {
+        "label": "Become a Sponsor",
+        "href": "https://github.com/sponsors/PrzemyslawKlys",
+        "class": "pricing-btn pricing-btn-primary",
+        "target": "_blank",
+        "rel": "noopener"
+      }
+    },
+    {
+      "class": "pricing-card",
+      "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5'><path d='M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'/></svg>",
+      "title": "Enterprise",
+      "tag": "Custom Support",
+      "amount": "Contact Us",
+      "description": "Dedicated support, custom features, and SLA for your organization.",
+      "features": [
+        "Everything in Community",
+        "Priority bug fixes",
+        "Monthly consultation call",
+        "Custom feature development",
+        "Logo on website",
+        "VAT invoices available"
+      ],
+      "cta": {
+        "label": "Contact Us",
+        "href": "mailto:contact@evotec.pl",
+        "class": "pricing-btn pricing-btn-secondary"
+      }
+    }
+  ],
+  "note": {
+    "title": "Why Support Open Source?",
+    "paragraphs": [
+      "<p>OfficeIMO is built and maintained by <a href='https://twitter.com/PrzemyslawKlys' target='_blank' rel='noopener'>Przemys\u0142aw K\u0142ys</a> at <a href='https://evotec.xyz' target='_blank' rel='noopener'>Evotec Services sp. z o.o.</a> Your sponsorship directly funds development time, testing infrastructure, and documentation.</p>",
+      "<p><strong>Need an invoice?</strong> Contact us at <a href='mailto:contact@evotec.pl'>contact@evotec.pl</a> &mdash; we provide VAT invoices for corporate sponsors.</p>"
+    ]
+  }
+}

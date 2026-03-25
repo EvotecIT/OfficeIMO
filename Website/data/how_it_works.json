@@ -1,0 +1,23 @@
+{
+  "title": "Get Started in Three Steps",
+  "steps": [
+    {
+      "step": 1,
+      "title": "Install the Package",
+      "description": "Add the NuGet package for the document format you need, or install the PSWriteOffice PowerShell module. Targets .NET 8+, .NET Standard 2.0, and .NET Framework 4.7.2.",
+      "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4'/></svg>"
+    },
+    {
+      "step": 2,
+      "title": "Write Fluent Code",
+      "description": "Use the intuitive, object-oriented API to create, read, or edit documents. Available in C# with fluent builders and PowerShell with DSL aliases.",
+      "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4'/></svg>"
+    },
+    {
+      "step": 3,
+      "title": "Get Perfect Documents",
+      "description": "Output standards-compliant Office documents that open flawlessly in Microsoft Office, LibreOffice, and Google Docs. No manual XML wrangling required.",
+      "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'/></svg>"
+    }
+  ]
+}

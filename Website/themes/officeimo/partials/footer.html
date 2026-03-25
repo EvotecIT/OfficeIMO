@@ -1,0 +1,69 @@
+<footer class="imo-footer">
+  <div class="imo-container">
+    <div class="imo-footer__grid">
+      <div class="imo-footer__brand">
+        <strong>OfficeIMO</strong>
+        <p>Open source .NET libraries for Office documents.</p>
+      </div>
+
+      {{ fp = null; fd = null; fr = null; fc = null }}
+      {{ if navigation.menus }}
+        {{ for menu in navigation.menus }}
+          {{ if menu.name == "footer-products" }}{{ fp = menu }}{{ end }}
+          {{ if menu.name == "footer-docs" }}{{ fd = menu }}{{ end }}
+          {{ if menu.name == "footer-resources" }}{{ fr = menu }}{{ end }}
+          {{ if menu.name == "footer-community" }}{{ fc = menu }}{{ end }}
+        {{ end }}
+      {{ end }}
+
+      {{ if fp && fp.items && fp.items.size > 0 }}
+      <div>
+        <p class="imo-footer__heading">Products</p>
+        <ul class="imo-footer__links">
+          {{ for link in fp.items }}
+          <li><a href="{{ link.url }}"{{ if link.external }} target="_blank" rel="noopener"{{ end }}>{{ link.title }}</a></li>
+          {{ end }}
+        </ul>
+      </div>
+      {{ end }}
+
+      {{ if fd && fd.items && fd.items.size > 0 }}
+      <div>
+        <p class="imo-footer__heading">Documentation</p>
+        <ul class="imo-footer__links">
+          {{ for link in fd.items }}
+          <li><a href="{{ link.url }}"{{ if link.external }} target="_blank" rel="noopener"{{ end }}>{{ link.title }}</a></li>
+          {{ end }}
+        </ul>
+      </div>
+      {{ end }}
+
+      {{ if fr && fr.items && fr.items.size > 0 }}
+      <div>
+        <p class="imo-footer__heading">Resources</p>
+        <ul class="imo-footer__links">
+          {{ for link in fr.items }}
+          <li><a href="{{ link.url }}"{{ if link.external }} target="_blank" rel="noopener"{{ end }}>{{ link.title }}</a></li>
+          {{ end }}
+        </ul>
+      </div>
+      {{ end }}
+
+      {{ if fc && fc.items && fc.items.size > 0 }}
+      <div>
+        <p class="imo-footer__heading">Community</p>
+        <ul class="imo-footer__links">
+          {{ for link in fc.items }}
+          <li><a href="{{ link.url }}"{{ if link.external }} target="_blank" rel="noopener"{{ end }}>{{ link.title }}</a></li>
+          {{ end }}
+        </ul>
+      </div>
+      {{ end }}
+    </div>
+
+    <div class="imo-footer__bottom">
+      <p>MIT License. Built with <a href="https://github.com/EvotecIT/PSPublishModule" target="_blank" rel="noopener">PowerForge</a>.</p>
+      <p>Developed by <a href="https://evotec.xyz" target="_blank" rel="noopener">Evotec Services</a></p>
+    </div>
+  </div>
+</footer>

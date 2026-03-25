@@ -1,0 +1,23 @@
+{
+  "id": "markdown",
+  "title": "OfficeIMO.Markdown",
+  "nuget": "OfficeIMO.Markdown",
+  "install": "dotnet add package OfficeIMO.Markdown",
+  "color": "#7c3aed",
+  "docsUrl": "/docs/markdown/",
+  "apiUrl": "/api/markdown/",
+  "targets": [".NET 8.0", ".NET 10.0", ".NET Standard 2.0", ".NET Framework 4.7.2"],
+  "dependencies": [],
+  "features": [
+    { "title": "Fluent Builder", "description": "Chain headings, paragraphs, lists, tables, code blocks, and callouts with a clean API.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4'/></svg>" },
+    { "title": "Typed AST", "description": "Parse markdown into a fully typed block/inline document model with source spans.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z'/></svg>" },
+    { "title": "HTML Rendering", "description": "Render to HTML fragments or full documents with customizable output.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M7 8l-4 4 4 4m10-8l4 4-4 4M14 4l-4 16'/></svg>" },
+    { "title": "Multiple Profiles", "description": "OfficeIMO, CommonMark, GitHub Flavored Markdown, and Portable reader profiles.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4'/></svg>" },
+    { "title": "Zero Dependencies", "description": "No external dependencies. Fully AOT and trimming safe.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M13 10V3L4 14h7v7l9-11h-7z'/></svg>" },
+    { "title": "Document Transforms", "description": "Post-parse transforms and extension API for custom inline/block parsers.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'/></svg>" }
+  ],
+  "relatedPackages": [
+    { "name": "OfficeIMO.MarkdownRenderer", "description": "WebView/browser rendering for Markdown", "install": "dotnet add package OfficeIMO.MarkdownRenderer" },
+    { "name": "OfficeIMO.MarkdownRenderer.Wpf", "description": "WPF desktop control for Markdown rendering", "install": "dotnet add package OfficeIMO.MarkdownRenderer.Wpf" }
+  ]
+}

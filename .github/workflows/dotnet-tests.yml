@@ -8,6 +8,9 @@ on:
       - '*.md'
       - 'Docs/**'
       - 'Examples/**'
+      - 'Website/**'
+      - '.github/workflows/website-ci.yml'
+      - '.github/workflows/deploy-website.yml'
       - '.gitignore'
   pull_request:
     branches:
@@ -16,6 +19,9 @@ on:
       - '*.md'
       - 'Docs/**'
       - 'Examples/**'
+      - 'Website/**'
+      - '.github/workflows/website-ci.yml'
+      - '.github/workflows/deploy-website.yml'
       - '.gitignore'
 
 env:

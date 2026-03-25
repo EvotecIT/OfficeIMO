@@ -375,3 +375,6 @@ packages-microsoft-prod.deb
 CLAUDE.md
 .claude/*
 nul
+Website/_site/
+Website/_temp/
+Website/_reports/

@@ -1,0 +1,14 @@
+{{ if data.stats && data.stats.items }}
+<section class="imo-stats">
+  <div class="imo-container">
+    <div class="imo-stats__grid">
+      {{ for stat in data.stats.items }}
+      <div class="imo-stats__card">
+        <span class="imo-stats__number">{{ stat.value }}</span>
+        <span class="imo-stats__label">{{ stat.label }}</span>
+      </div>
+      {{ end }}
+    </div>
+  </div>
+</section>
+{{ end }}

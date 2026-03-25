@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ page.title }} | {{ site.name }}</title>
+  {{ description_meta_html }}
+  {{ canonical_html }}
+  {{ head_html }}
+  <script>(function(){var t=localStorage.getItem('imo-theme')||'dark';if(t==='auto')t=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';document.documentElement.dataset.theme=t;})();</script>
+  {{ assets.preloads_html }}
+  {{ assets.critical_css_html }}
+  {{ include "theme-tokens" }}
+  {{ extra_css_html }}
+  {{ assets.css_html }}
+  {{ opengraph_html }}
+  {{ structured_data_html }}
+</head>
+<body class="imo-body imo-body--page">
+  <a class="imo-skip-link" href="#content">Skip to main content</a>
+  {{ include "header" }}
+  <main id="content">
+    <section class="imo-page-hero">
+      <div class="imo-container">
+        <h1>{{ page.title }}</h1>
+        {{ if page.description }}<p class="imo-page-hero-desc">{{ page.description }}</p>{{ end }}
+      </div>
+    </section>
+    <section class="imo-section">
+      <div class="imo-container">
+        {{ if data.faq && data.faq.sections }}
+        {{ for section in data.faq.sections }}
+        <div class="imo-faq-section">
+          <h2>{{ section.title }}</h2>
+          <div class="imo-faq-list">
+            {{ for item in section.items }}
+            <details class="imo-faq-item">
+              <summary class="imo-faq-question">{{ item.question }}</summary>
+              <div class="imo-faq-answer">{{ item.answer }}</div>
+            </details>
+            {{ end }}
+          </div>
+        </div>
+        {{ end }}
+        {{ end }}
+      </div>
+    </section>
+  </main>
+  {{ include "footer" }}
+  {{ assets.js_html }}
+  {{ extra_scripts_html }}
+</body>
+</html>

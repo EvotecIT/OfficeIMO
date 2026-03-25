@@ -1,0 +1,43 @@
+{{ if data.comparison }}
+<section class="imo-comparison-strip">
+  <div class="imo-container">
+    <h2 class="imo-section__title">{{ data.comparison.title }}</h2>
+    {{ if data.comparison.description }}
+    <p class="imo-section__subtitle">{{ data.comparison.description }}</p>
+    {{ end }}
+    <div class="imo-comparison-strip__wrap">
+      <table class="imo-comparison-strip__table">
+        <thead>
+          <tr>
+            {{ for col in data.comparison.columns }}
+            <th{{ if col == "OfficeIMO" }} class="imo-comparison-strip__highlight"{{ end }}>{{ col }}</th>
+            {{ end }}
+          </tr>
+        </thead>
+        <tbody>
+          {{ for row in data.comparison.rows }}
+          <tr>
+            <td>{{ row.feature }}</td>
+            {{ for val in row.values }}
+            <td>
+              {{ if val == true }}
+              <span class="imo-comparison-strip__check" aria-label="Yes">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              {{ else if val == false }}
+              <span class="imo-comparison-strip__cross" aria-label="No">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </span>
+              {{ else }}
+              {{ val }}
+              {{ end }}
+            </td>
+            {{ end }}
+          </tr>
+          {{ end }}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{{ end }}
