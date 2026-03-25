@@ -5,8 +5,8 @@ layout: product
 product_color: "#ea580c"
 install: "dotnet add package OfficeIMO.Visio"
 nuget: "OfficeIMO.Visio"
-docs_url: "/docs/"
-api_url: "/api/"
+docs_url: "/docs/visio/"
+api_url: ""
 ---
 
 ## Why OfficeIMO.Visio?
@@ -65,3 +65,11 @@ diagram.Save();
 | .NET Framework 4.7.2 | Yes   |
 
 OfficeIMO.Visio runs on Windows, Linux, and macOS. Generated files open in Microsoft Visio and other VSDX-compatible viewers.
+
+## Related guides
+
+| Guide | Description |
+|-------|-------------|
+| [Visio documentation](/docs/visio/) | Review the shape, page, and connector model before you build diagrams. |
+| [Getting Started](/docs/getting-started/) | Set up the package and validate your first generated diagram. |
+| [OfficeIMO.Reader](/products/reader/) | Extract and analyze diagram-adjacent document content in the same workflow. |

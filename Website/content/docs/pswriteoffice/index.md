@@ -1,12 +1,19 @@
 ---
 title: PSWriteOffice
-description: Overview of the PSWriteOffice PowerShell module for creating Word and Excel documents.
+description: Overview of the PSWriteOffice PowerShell module for Word, Excel, PowerPoint, and Markdown automation.
 order: 60
 ---
 
 # PSWriteOffice
 
-PSWriteOffice is a PowerShell module that wraps the OfficeIMO .NET libraries, bringing Word and Excel document creation to PowerShell scripts and automation workflows. It provides cmdlets for creating, editing, and saving Office documents without requiring Microsoft Office.
+PSWriteOffice is the PowerShell surface for the OfficeIMO ecosystem. It brings document generation and automation to scripts, build agents, scheduled jobs, and admin tooling without requiring Microsoft Office to be installed.
+
+## What it covers
+
+- Word document creation and editing for reports, runbooks, and generated business documents.
+- Excel workbook generation for exports, inventory reports, dashboards, and structured data handoffs.
+- PowerPoint presentation automation for status decks, reviews, and generated slides.
+- Markdown document generation for READMEs, reports, release notes, and developer-facing content.
 
 ## Installation
 
@@ -56,6 +63,32 @@ Update-Module -Name PSWriteOffice
 | `Close-OfficeExcel` | Close and dispose the workbook |
 | `Add-OfficeExcelWorkSheet` | Add a worksheet |
 | `Add-OfficeExcelTable` | Add a table to a worksheet |
+
+### PowerPoint Cmdlets
+
+| Cmdlet | Description |
+|--------|-------------|
+| `New-OfficePowerPoint` | Create a new presentation |
+| `Add-OfficePowerPointSlide` | Add a slide to the presentation |
+| `Add-OfficePowerPointTextBox` | Insert positioned text boxes |
+| `Add-OfficePowerPointBullets` | Add bulleted content to a slide |
+| `Add-OfficePowerPointTable` | Render tabular data in a slide |
+| `Add-OfficePowerPointChart` | Add charts from series data |
+| `Add-OfficePowerPointImage` | Place images on a slide |
+| `Add-OfficePowerPointSection` | Group slides into named sections |
+
+### Markdown Cmdlets
+
+| Cmdlet | Description |
+|--------|-------------|
+| `New-OfficeMarkdown` | Create a new Markdown document |
+| `Add-OfficeMarkdownHeading` | Add headings to a document |
+| `Add-OfficeMarkdownParagraph` | Add body paragraphs |
+| `Add-OfficeMarkdownTable` | Render object data as a Markdown table |
+| `Add-OfficeMarkdownCode` | Add fenced code blocks |
+| `Add-OfficeMarkdownCallout` | Add note, warning, or tip callouts |
+| `Add-OfficeMarkdownTaskList` | Add GitHub-style task lists |
+| `Add-OfficeMarkdownTableOfContents` | Generate a TOC from headings |
 
 ## Quick Example
 
@@ -111,3 +144,5 @@ Get-Help Add-OfficeWordParagraph -Examples
 
 - [Word Cmdlets](/docs/pswriteoffice/word) -- Detailed guide to Word document cmdlets.
 - [Excel Cmdlets](/docs/pswriteoffice/excel) -- Detailed guide to Excel workbook cmdlets.
+- [PowerPoint Cmdlets](/docs/pswriteoffice/powerpoint) -- Build presentation decks with cmdlets and DSL aliases.
+- [Markdown Cmdlets](/docs/pswriteoffice/markdown) -- Generate Markdown reports and docs from PowerShell.

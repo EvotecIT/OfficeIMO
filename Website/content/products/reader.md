@@ -5,8 +5,8 @@ layout: product
 product_color: "#4f46e5"
 install: "dotnet add package OfficeIMO.Reader"
 nuget: "OfficeIMO.Reader"
-docs_url: "/docs/"
-api_url: "/api/"
+docs_url: "/docs/reader/"
+api_url: ""
 ---
 
 ## Why OfficeIMO.Reader?
@@ -70,3 +70,11 @@ Console.WriteLine($"Total chunks: {results.Sum(r => r.Chunks.Count)}");
 | .NET Framework 4.7.2 | Yes   |
 
 OfficeIMO.Reader runs on Windows, Linux, and macOS. It has no native dependencies and works in containers, Azure Functions, AWS Lambda, and any .NET hosting environment.
+
+## Related guides
+
+| Guide | Description |
+|-------|-------------|
+| [Reader documentation](/docs/reader/) | Learn the core extraction model, chunking workflow, and ingestion patterns. |
+| [AOT and trimming](/docs/advanced/aot-trimming/) | Review runtime and deployment guidance for lean extraction services. |
+| [OfficeIMO.Markdown](/products/markdown/) | Pair extraction with markdown rendering and transformation workflows. |

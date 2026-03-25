@@ -6,7 +6,7 @@ product_color: "#dc2626"
 install: "dotnet add package OfficeIMO.PowerPoint"
 nuget: "OfficeIMO.PowerPoint"
 docs_url: "/docs/powerpoint/"
-api_url: "/api/"
+api_url: ""
 ---
 
 ## Why OfficeIMO.PowerPoint?
@@ -67,3 +67,11 @@ presentation.Save();
 | .NET Framework 4.7.2 | Yes   |
 
 OfficeIMO.PowerPoint runs on Windows, Linux, and macOS. Output files are compatible with Microsoft PowerPoint, LibreOffice Impress, Google Slides, and Keynote.
+
+## Related guides
+
+| Guide | Description |
+|-------|-------------|
+| [PowerPoint documentation](/docs/powerpoint/) | Start with the package overview and supported presentation workflow. |
+| [Slides guide](/docs/powerpoint/slides/) | Build title slides, content slides, charts, and slide layouts. |
+| [PSWriteOffice](/products/pswriteoffice/) | Use PowerShell to automate the same presentation scenarios from scripts. |

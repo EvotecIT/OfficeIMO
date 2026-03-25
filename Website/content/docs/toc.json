@@ -48,11 +48,25 @@
     ]
   },
   {
+    "title": "Visio",
+    "items": [
+      { "title": "Visio Overview", "path": "visio/index.md", "href": "/docs/visio/" }
+    ]
+  },
+  {
+    "title": "Reader",
+    "items": [
+      { "title": "Reader Overview", "path": "reader/index.md", "href": "/docs/reader/" }
+    ]
+  },
+  {
     "title": "PSWriteOffice",
     "items": [
       { "title": "PSWriteOffice Overview", "path": "pswriteoffice/index.md", "href": "/docs/pswriteoffice/" },
       { "title": "Word Cmdlets", "path": "pswriteoffice/word/index.md", "href": "/docs/pswriteoffice/word/" },
-      { "title": "Excel Cmdlets", "path": "pswriteoffice/excel/index.md", "href": "/docs/pswriteoffice/excel/" }
+      { "title": "Excel Cmdlets", "path": "pswriteoffice/excel/index.md", "href": "/docs/pswriteoffice/excel/" },
+      { "title": "PowerPoint Cmdlets", "path": "pswriteoffice/powerpoint/index.md", "href": "/docs/pswriteoffice/powerpoint/" },
+      { "title": "Markdown Cmdlets", "path": "pswriteoffice/markdown/index.md", "href": "/docs/pswriteoffice/markdown/" }
     ]
   },
   {

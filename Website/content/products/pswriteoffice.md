@@ -90,6 +90,15 @@ New-OfficePowerPoint -FilePath "Status.pptx" {
 
 PSWriteOffice is available from the [PowerShell Gallery](https://www.powershellgallery.com/packages/PSWriteOffice) and can be installed with a single command.
 
+## Related guides
+
+| Guide | Description |
+|-------|-------------|
+| [PSWriteOffice overview](/docs/pswriteoffice/) | Start with installation, command families, and module scope. |
+| [PowerPoint cmdlets](/docs/pswriteoffice/powerpoint/) | Build generated decks with slides, bullets, tables, and images. |
+| [Markdown cmdlets](/docs/pswriteoffice/markdown/) | Generate Markdown reports and repository-friendly docs from scripts. |
+| [PowerShell API reference](/api/powershell/) | Browse the full cmdlet surface with parameters and examples. |
+
 ## Related packages
 
 | Package | Description |

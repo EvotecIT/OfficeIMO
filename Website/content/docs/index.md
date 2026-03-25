@@ -15,11 +15,14 @@ OfficeIMO is an open-source, cross-platform suite of .NET libraries for creating
 |---------|--------------|-------------|
 | **OfficeIMO.Word** | [OfficeIMO.Word on NuGet](https://www.nuget.org/packages/OfficeIMO.Word) | Create, read, and modify Word (.docx) documents |
 | **OfficeIMO.Excel** | [OfficeIMO.Excel on NuGet](https://www.nuget.org/packages/OfficeIMO.Excel) | Create, read, and modify Excel (.xlsx) workbooks |
+| **OfficeIMO.PowerPoint** | [OfficeIMO.PowerPoint on NuGet](https://www.nuget.org/packages/OfficeIMO.PowerPoint) | Generate PowerPoint (.pptx) presentations with slides, charts, and layouts |
 | **OfficeIMO.Markdown** | [OfficeIMO.Markdown on NuGet](https://www.nuget.org/packages/OfficeIMO.Markdown) | Fluent Markdown builder, reader/AST, and HTML renderer |
 | **OfficeIMO.CSV** | [OfficeIMO.CSV on NuGet](https://www.nuget.org/packages/OfficeIMO.CSV) | Strongly-typed CSV document model |
+| **OfficeIMO.Visio** | [OfficeIMO.Visio on NuGet](https://www.nuget.org/packages/OfficeIMO.Visio) | Create and modify Visio (.vsdx) diagrams with shapes and connectors |
+| **OfficeIMO.Reader** | [OfficeIMO.Reader on NuGet](https://www.nuget.org/packages/OfficeIMO.Reader) | Extract and chunk document content for indexing, search, and AI ingestion |
 | **OfficeIMO.Word.Html** | [OfficeIMO.Word.Html on NuGet](https://www.nuget.org/packages/OfficeIMO.Word.Html) | Convert Word documents to/from HTML |
 | **OfficeIMO.Word.Markdown** | [OfficeIMO.Word.Markdown on NuGet](https://www.nuget.org/packages/OfficeIMO.Word.Markdown) | Convert Word documents to/from Markdown |
-| **PSWriteOffice** | [PSWriteOffice on PowerShell Gallery](https://www.powershellgallery.com/packages/PSWriteOffice) | PowerShell module wrapping OfficeIMO for Word and Excel |
+| **PSWriteOffice** | [PSWriteOffice on PowerShell Gallery](https://www.powershellgallery.com/packages/PSWriteOffice) | PowerShell module wrapping OfficeIMO for Word, Excel, PowerPoint, and Markdown |
 
 ## Quick Links
 
@@ -34,6 +37,8 @@ OfficeIMO is an open-source, cross-platform suite of .NET libraries for creating
 - [PowerPoint Presentations](/docs/powerpoint/) -- Slides, text boxes, shapes, and images.
 - [Markdown](/docs/markdown/) -- Fluent builder, typed AST reader, and HTML rendering pipeline.
 - [CSV](/docs/csv/) -- Typed read/write workflows with validation and streaming.
+- [Visio Diagrams](/docs/visio/) -- Pages, shapes, connectors, and diagram generation patterns.
+- [Reader & Extraction](/docs/reader/) -- Unified extraction, chunking, and ingestion workflows.
 
 ### Converters
 
@@ -42,7 +47,9 @@ OfficeIMO is an open-source, cross-platform suite of .NET libraries for creating
 
 ### PowerShell
 
-- [PSWriteOffice Docs](/docs/pswriteoffice/) -- PowerShell cmdlets for Word and Excel automation.
+- [PSWriteOffice Docs](/docs/pswriteoffice/) -- PowerShell cmdlets for Office document and Markdown automation.
+- [PowerPoint Cmdlets](/docs/pswriteoffice/powerpoint/) -- Build slide decks with cmdlets and DSL aliases.
+- [Markdown Cmdlets](/docs/pswriteoffice/markdown/) -- Generate Markdown reports, READMEs, and automation output.
 
 ### Advanced
 
