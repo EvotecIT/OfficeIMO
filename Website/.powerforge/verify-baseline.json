@@ -1,12 +1,6 @@
 {
   "version": 1,
-  "generatedAtUtc": "2026-03-25T06:34:24.7683975+00:00",
-  "warningCount": 5,
-  "warningKeys": [
-    "Markdown hygiene: \u0027content/docs/converters/word-html/index.md\u0027 contains raw HTML tags (h1, h6, p, strong, b). Prefer Markdown syntax when possible.",
-    "Navigation lint: Navigation.Menus[\u0027footer-resources\u0027].Items[\u0027Blog\u0027] points to \u0027/blog/\u0027 which does not match any generated route.",
-    "Navigation lint: Navigation.Menus[\u0027main\u0027].Items[\u0027Blog\u0027] points to \u0027/blog/\u0027 which does not match any generated route.",
-    "Theme CSS contract: feature \u0027blog\u0027 layout \u0027page\u0027 uses pf.editorial_cards selectors that are not declared in featureContracts.blog.requiredCssSelectors: .pf-editorial-grid--featured, .pf-editorial-card--featured. Suggested additions: \u0022featureContracts\u0022: { \u0022blog\u0022: { \u0022cssHrefs\u0022: [\u0022/css/app.css\u0022], \u0022requiredCssSelectors\u0022: [\u0022.pf-editorial-card--featured\u0022, \u0022.pf-editorial-grid--featured\u0022] } }",
-    "Theme CSS contract: feature \u0027blog\u0027 missing expected selectors: .imo-editorial-list-blog, .imo-editorial-card-blog (checked: app.css)."
-  ]
+  "generatedAtUtc": "2026-03-25T07:59:36.2376717+00:00",
+  "warningCount": 0,
+  "warningKeys": []
 }

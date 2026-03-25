@@ -23,7 +23,7 @@ OfficeIMO is a family of focused libraries rather than one giant abstraction. Th
 - [PowerPoint](/docs/powerpoint/) for slide generation and presentation automation.
 - [Markdown](/docs/markdown/) for fluent Markdown generation, parsing, and rendering.
 - [CSV](/docs/csv/) for typed read/write workflows.
-- [PSWriteOffice](/docs/pswriteoffice/) for PowerShell automation on top of OfficeIMO.
+- [PSWriteOffice Docs](/docs/pswriteoffice/) for PowerShell automation on top of OfficeIMO.
 
 ## Recommended First Flow
 

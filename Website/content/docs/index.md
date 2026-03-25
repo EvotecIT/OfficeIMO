@@ -11,15 +11,15 @@ OfficeIMO is an open-source, cross-platform suite of .NET libraries for creating
 
 ## Packages
 
-| Package | NuGet | Description |
-|---------|-------|-------------|
-| **OfficeIMO.Word** | [![NuGet](https://img.shields.io/nuget/v/OfficeIMO.Word)](https://www.nuget.org/packages/OfficeIMO.Word) | Create, read, and modify Word (.docx) documents |
-| **OfficeIMO.Excel** | [![NuGet](https://img.shields.io/nuget/v/OfficeIMO.Excel)](https://www.nuget.org/packages/OfficeIMO.Excel) | Create, read, and modify Excel (.xlsx) workbooks |
-| **OfficeIMO.Markdown** | [![NuGet](https://img.shields.io/nuget/v/OfficeIMO.Markdown)](https://www.nuget.org/packages/OfficeIMO.Markdown) | Fluent Markdown builder, reader/AST, and HTML renderer |
-| **OfficeIMO.CSV** | [![NuGet](https://img.shields.io/nuget/v/OfficeIMO.CSV)](https://www.nuget.org/packages/OfficeIMO.CSV) | Strongly-typed CSV document model |
-| **OfficeIMO.Word.Html** | [![NuGet](https://img.shields.io/nuget/v/OfficeIMO.Word.Html)](https://www.nuget.org/packages/OfficeIMO.Word.Html) | Convert Word documents to/from HTML |
-| **OfficeIMO.Word.Markdown** | [![NuGet](https://img.shields.io/nuget/v/OfficeIMO.Word.Markdown)](https://www.nuget.org/packages/OfficeIMO.Word.Markdown) | Convert Word documents to/from Markdown |
-| **PSWriteOffice** | [![PowerShell Gallery](https://img.shields.io/powershellgallery/v/PSWriteOffice)](https://www.powershellgallery.com/packages/PSWriteOffice) | PowerShell module wrapping OfficeIMO for Word and Excel |
+| Package | Package Feed | Description |
+|---------|--------------|-------------|
+| **OfficeIMO.Word** | [OfficeIMO.Word on NuGet](https://www.nuget.org/packages/OfficeIMO.Word) | Create, read, and modify Word (.docx) documents |
+| **OfficeIMO.Excel** | [OfficeIMO.Excel on NuGet](https://www.nuget.org/packages/OfficeIMO.Excel) | Create, read, and modify Excel (.xlsx) workbooks |
+| **OfficeIMO.Markdown** | [OfficeIMO.Markdown on NuGet](https://www.nuget.org/packages/OfficeIMO.Markdown) | Fluent Markdown builder, reader/AST, and HTML renderer |
+| **OfficeIMO.CSV** | [OfficeIMO.CSV on NuGet](https://www.nuget.org/packages/OfficeIMO.CSV) | Strongly-typed CSV document model |
+| **OfficeIMO.Word.Html** | [OfficeIMO.Word.Html on NuGet](https://www.nuget.org/packages/OfficeIMO.Word.Html) | Convert Word documents to/from HTML |
+| **OfficeIMO.Word.Markdown** | [OfficeIMO.Word.Markdown on NuGet](https://www.nuget.org/packages/OfficeIMO.Word.Markdown) | Convert Word documents to/from Markdown |
+| **PSWriteOffice** | [PSWriteOffice on PowerShell Gallery](https://www.powershellgallery.com/packages/PSWriteOffice) | PowerShell module wrapping OfficeIMO for Word and Excel |
 
 ## Quick Links
 
@@ -42,7 +42,7 @@ OfficeIMO is an open-source, cross-platform suite of .NET libraries for creating
 
 ### PowerShell
 
-- [PSWriteOffice](/docs/pswriteoffice/) -- PowerShell cmdlets for Word and Excel automation.
+- [PSWriteOffice Docs](/docs/pswriteoffice/) -- PowerShell cmdlets for Word and Excel automation.
 
 ### Advanced
 

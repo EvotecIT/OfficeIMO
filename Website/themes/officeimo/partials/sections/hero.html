@@ -41,7 +41,11 @@
     {{ if data.hero.badges && data.hero.badges.size > 0 }}
     <div class="imo-hero__badges">
       {{ for badge in data.hero.badges }}
-      <img src="{{ badge.src }}" alt="{{ badge.alt }}" loading="lazy" />
+      {{ if badge.href }}
+      <a class="imo-hero__badge-link" href="{{ badge.href }}" target="_blank" rel="noopener">{{ badge.label }}</a>
+      {{ else }}
+      <span class="imo-hero__badge-link">{{ badge.label }}</span>
+      {{ end }}
       {{ end }}
     </div>
     {{ end }}

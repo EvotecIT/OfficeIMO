@@ -252,6 +252,7 @@
       "jsonOut": "./_site/sitemap/index.json",
       "html": true,
       "htmlOutput": "./_site/sitemap/index.html",
+      "htmlTemplate": "./themes/officeimo/templates/sitemap.html",
       "htmlTitle": "OfficeIMO Sitemap"
     },
     {

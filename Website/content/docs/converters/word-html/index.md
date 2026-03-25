@@ -4,8 +4,6 @@ description: Bidirectional conversion between Word documents and HTML using Offi
 order: 70
 ---
 
-# Word to HTML Conversion
-
 The `OfficeIMO.Word.Html` package provides bidirectional conversion between Word documents and HTML. It uses [AngleSharp](https://anglesharp.github.io/) for HTML parsing and DOM manipulation, and supports both synchronous and asynchronous workflows.
 
 ## Installation
@@ -78,21 +76,23 @@ string html = document.ToHtml(options);
 
 ```csharp
 using OfficeIMO.Word.Html;
+using System.Net;
 
-string html = @"
-<html>
-<body>
-    <h1>Report Title</h1>
-    <p>This is a <strong>bold</strong> and <em>italic</em> paragraph.</p>
-    <table>
-        <tr><th>Name</th><th>Value</th></tr>
-        <tr><td>Alpha</td><td>100</td></tr>
-        <tr><td>Beta</td><td>200</td></tr>
-    </table>
-</body>
-</html>";
+string html = """
+&lt;html&gt;
+&lt;body&gt;
+    &lt;h1&gt;Report Title&lt;/h1&gt;
+    &lt;p&gt;This is a &lt;strong&gt;bold&lt;/strong&gt; and &lt;em&gt;italic&lt;/em&gt; paragraph.&lt;/p&gt;
+    &lt;table&gt;
+        &lt;tr&gt;&lt;th&gt;Name&lt;/th&gt;&lt;th&gt;Value&lt;/th&gt;&lt;/tr&gt;
+        &lt;tr&gt;&lt;td&gt;Alpha&lt;/td&gt;&lt;td&gt;100&lt;/td&gt;&lt;/tr&gt;
+        &lt;tr&gt;&lt;td&gt;Beta&lt;/td&gt;&lt;td&gt;200&lt;/td&gt;&lt;/tr&gt;
+    &lt;/table&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+""";
 
-using var document = html.LoadFromHtml();
+using var document = WebUtility.HtmlDecode(html).LoadFromHtml();
 document.Save("from-html.docx");
 ```
 
@@ -169,19 +169,19 @@ The converter handles the following HTML elements:
 
 | HTML Element | Word Equivalent |
 |-------------|-----------------|
-| `<h1>` -- `<h6>` | Heading1 -- Heading6 paragraph styles |
-| `<p>` | Normal paragraph |
-| `<strong>`, `<b>` | Bold formatting |
-| `<em>`, `<i>` | Italic formatting |
-| `<u>` | Underline formatting |
-| `<s>`, `<del>` | Strikethrough |
-| `<table>`, `<tr>`, `<td>`, `<th>` | Word tables with cells |
-| `<ul>`, `<ol>`, `<li>` | Bulleted and numbered lists |
-| `<img>` | Inline images |
-| `<a>` | Hyperlinks |
-| `<br>` | Line breaks |
-| `<hr>` | Horizontal rules |
-| `<code>`, `<pre>` | Monospace formatting |
+| `&lt;h1&gt;` -- `&lt;h6&gt;` | Heading1 -- Heading6 paragraph styles |
+| `&lt;p&gt;` | Normal paragraph |
+| `&lt;strong&gt;`, `&lt;b&gt;` | Bold formatting |
+| `&lt;em&gt;`, `&lt;i&gt;` | Italic formatting |
+| `&lt;u&gt;` | Underline formatting |
+| `&lt;s&gt;`, `&lt;del&gt;` | Strikethrough |
+| `&lt;table&gt;`, `&lt;tr&gt;`, `&lt;td&gt;`, `&lt;th&gt;` | Word tables with cells |
+| `&lt;ul&gt;`, `&lt;ol&gt;`, `&lt;li&gt;` | Bulleted and numbered lists |
+| `&lt;img&gt;` | Inline images |
+| `&lt;a&gt;` | Hyperlinks |
+| `&lt;br&gt;` | Line breaks |
+| `&lt;hr&gt;` | Horizontal rules |
+| `&lt;code&gt;`, `&lt;pre&gt;` | Monospace formatting |
 
 ## CSS Style Mapping
 

@@ -3,7 +3,7 @@
   {
     "title": "Getting Started",
     "items": [
-      { "title": "Overview", "path": "getting-started/index.md", "href": "/docs/getting-started/" },
+      { "title": "Getting Started Guide", "path": "getting-started/index.md", "href": "/docs/getting-started/" },
       { "title": "Installation", "path": "getting-started/installation/index.md", "href": "/docs/getting-started/installation/" },
       { "title": "Quick Start", "path": "getting-started/quickstart/index.md", "href": "/docs/getting-started/quickstart/" },
       { "title": "Platform Support", "path": "getting-started/platform-support/index.md", "href": "/docs/getting-started/platform-support/" }
@@ -12,7 +12,7 @@
   {
     "title": "Word Documents",
     "items": [
-      { "title": "Overview", "path": "word/index.md", "href": "/docs/word/" },
+      { "title": "Word Overview", "path": "word/index.md", "href": "/docs/word/" },
       { "title": "Paragraphs", "path": "word/paragraphs/index.md", "href": "/docs/word/paragraphs/" },
       { "title": "Tables", "path": "word/tables/index.md", "href": "/docs/word/tables/" },
       { "title": "Images", "path": "word/images/index.md", "href": "/docs/word/images/" },
@@ -22,7 +22,7 @@
   {
     "title": "Excel Workbooks",
     "items": [
-      { "title": "Overview", "path": "excel/index.md", "href": "/docs/excel/" },
+      { "title": "Excel Overview", "path": "excel/index.md", "href": "/docs/excel/" },
       { "title": "Worksheets", "path": "excel/worksheets/index.md", "href": "/docs/excel/worksheets/" },
       { "title": "Tables & Ranges", "path": "excel/tables-ranges/index.md", "href": "/docs/excel/tables-ranges/" }
     ]
@@ -30,27 +30,27 @@
   {
     "title": "PowerPoint",
     "items": [
-      { "title": "Overview", "path": "powerpoint/index.md", "href": "/docs/powerpoint/" },
+      { "title": "PowerPoint Overview", "path": "powerpoint/index.md", "href": "/docs/powerpoint/" },
       { "title": "Slides", "path": "powerpoint/slides/index.md", "href": "/docs/powerpoint/slides/" }
     ]
   },
   {
     "title": "Markdown",
     "items": [
-      { "title": "Overview", "path": "markdown/index.md", "href": "/docs/markdown/" },
+      { "title": "Markdown Overview", "path": "markdown/index.md", "href": "/docs/markdown/" },
       { "title": "Builder API", "path": "markdown/builder/index.md", "href": "/docs/markdown/builder/" }
     ]
   },
   {
     "title": "CSV",
     "items": [
-      { "title": "Overview", "path": "csv/index.md", "href": "/docs/csv/" }
+      { "title": "CSV Overview", "path": "csv/index.md", "href": "/docs/csv/" }
     ]
   },
   {
     "title": "PSWriteOffice",
     "items": [
-      { "title": "Overview", "path": "pswriteoffice/index.md", "href": "/docs/pswriteoffice/" },
+      { "title": "PSWriteOffice Overview", "path": "pswriteoffice/index.md", "href": "/docs/pswriteoffice/" },
       { "title": "Word Cmdlets", "path": "pswriteoffice/word/index.md", "href": "/docs/pswriteoffice/word/" },
       { "title": "Excel Cmdlets", "path": "pswriteoffice/excel/index.md", "href": "/docs/pswriteoffice/excel/" }
     ]

@@ -19,8 +19,9 @@
 .imo-hero__install{display:flex;flex-direction:column;gap:0.5rem;max-width:480px;margin:0 auto 2.5rem}
 .imo-hero__install .imo-install{box-shadow:var(--imo-shadow-lg),inset 0 1px 0 rgba(255,255,255,0.05),0 0 40px rgba(56,189,248,0.04)}
 .imo-hero__badges{display:flex;flex-wrap:wrap;justify-content:center;gap:0.6rem}
-.imo-hero__badges img{height:22px;width:auto;display:inline-block;border-radius:4px;opacity:0.85}
-.imo-hero__badges img:hover{opacity:1}
+.imo-hero__badge-link{display:inline-flex;align-items:center;justify-content:center;padding:0.45rem 0.8rem;border-radius:999px;border:1px solid rgba(56,189,248,0.14);background:rgba(56,189,248,0.06);color:var(--imo-text-secondary);font-size:0.8rem;font-weight:600;text-decoration:none;transition:all var(--imo-duration)}
+.imo-hero__badge-link:hover{color:var(--imo-text);border-color:rgba(56,189,248,0.24);background:rgba(56,189,248,0.1);transform:translateY(-1px)}
+[data-theme="light"] .imo-hero__badge-link{background:rgba(37,99,235,0.05);border-color:rgba(37,99,235,0.12)}
 
 /* Trust Banner */
 .imo-trust-banner{padding:2.25rem 0;border-top:1px solid var(--imo-glass-border);border-bottom:1px solid var(--imo-glass-border);background:rgba(255,255,255,0.01);backdrop-filter:blur(8px)}

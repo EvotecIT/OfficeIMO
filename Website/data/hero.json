@@ -11,9 +11,9 @@
     "powershell": "Install-Module PSWriteOffice"
   },
   "badges": [
-    { "alt": "OfficeIMO.Word NuGet", "src": "https://img.shields.io/nuget/dt/OfficeIMO.Word?label=Word&color=2563eb" },
-    { "alt": "OfficeIMO.Excel NuGet", "src": "https://img.shields.io/nuget/dt/OfficeIMO.Excel?label=Excel&color=059669" },
-    { "alt": "OfficeIMO.Markdown NuGet", "src": "https://img.shields.io/nuget/dt/OfficeIMO.Markdown?label=Markdown&color=7c3aed" },
-    { "alt": "PSWriteOffice Gallery", "src": "https://img.shields.io/powershellgallery/dt/PSWriteOffice?label=PSWriteOffice&color=d97706" }
+    { "label": "OfficeIMO.Word on NuGet", "href": "https://www.nuget.org/packages/OfficeIMO.Word" },
+    { "label": "OfficeIMO.Excel on NuGet", "href": "https://www.nuget.org/packages/OfficeIMO.Excel" },
+    { "label": "OfficeIMO.Markdown on NuGet", "href": "https://www.nuget.org/packages/OfficeIMO.Markdown" },
+    { "label": "PSWriteOffice on PowerShell Gallery", "href": "https://www.powershellgallery.com/packages/PSWriteOffice" }
   ]
 }

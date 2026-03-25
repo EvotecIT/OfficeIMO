@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ page.title }} | {{ site.name }}</title>
+  {{ description_meta_html }}
+  {{ canonical_html }}
+  {{ head_html }}
+  <meta name="robots" content="noindex" />
+  <script>(function(){var t=localStorage.getItem('imo-theme')||'dark';if(t==='auto')t=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';document.documentElement.dataset.theme=t;})();</script>
+  {{ assets.preloads_html }}
+  {{ assets.critical_css_html }}
+  {{ include "theme-tokens" }}
+  {{ extra_css_html }}
+  {{ assets.css_html }}
+  {{ opengraph_html }}
+  {{ structured_data_html }}
+  <style>
+    .imo-search{padding:4rem 0 5rem}
+    .imo-search__panel{max-width:900px;margin:0 auto;padding:2rem;background:var(--imo-glass);backdrop-filter:blur(16px);border:1px solid var(--imo-glass-border);border-radius:var(--imo-radius-xl);box-shadow:var(--imo-shadow-lg)}
+    .imo-search__intro{margin-bottom:1.5rem}
+    .imo-search__input{width:100%;box-sizing:border-box;padding:1rem 1.1rem;border-radius:var(--imo-radius-lg);border:1px solid var(--imo-glass-border);background:rgba(255,255,255,0.04);color:var(--imo-text);font:inherit}
+    .imo-search__input:focus{outline:none;border-color:rgba(56,189,248,0.28);box-shadow:0 0 0 3px rgba(56,189,248,0.12)}
+    .imo-search__meta{margin-top:0.85rem;color:var(--imo-text-secondary);font-size:0.95rem}
+    .imo-search__results{margin-top:1.5rem;display:grid;gap:1rem}
+    .imo-search__result{padding:1rem 1.1rem;border:1px solid var(--imo-glass-border);border-radius:var(--imo-radius-lg);background:rgba(255,255,255,0.02)}
+    .imo-search__result a{font-weight:700;text-decoration:none}
+    .imo-search__desc,.imo-search__snippet{margin-top:0.45rem;color:var(--imo-text-secondary);font-size:0.92rem;line-height:1.6}
+    .imo-search__tags{margin-top:0.7rem;display:flex;gap:0.45rem;flex-wrap:wrap}
+    .imo-search__tag{padding:0.2rem 0.55rem;border-radius:999px;border:1px solid var(--imo-glass-border);font-size:0.75rem;color:var(--imo-text-secondary)}
+  </style>
+</head>
+<body class="imo-body imo-body--page">
+  <a class="imo-skip-link" href="#content">Skip to main content</a>
+
+  {{ include "header" }}
+
+  <main id="content" class="imo-main imo-main--page">
+    <section class="imo-search">
+      <div class="imo-container">
+        <div class="imo-search__panel">
+          <div class="imo-search__intro">
+            <h1 class="imo-page__title">{{ page.title }}</h1>
+            <p class="imo-page__description">{{ page.description }}</p>
+          </div>
+          <input id="imo-search-query" class="imo-search__input" type="search" autocomplete="off" placeholder="Search docs, APIs, blog posts, products, and pages" />
+          <div id="imo-search-meta" class="imo-search__meta">Loading search index...</div>
+          <div id="imo-search-results" class="imo-search__results"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  {{ include "footer" }}
+
+  {{ assets.js_html }}
+  <script src="/js/search-page.js"></script>
+  {{ extra_scripts_html }}
+</body>
+</html>
