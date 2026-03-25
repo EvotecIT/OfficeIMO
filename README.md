@@ -47,6 +47,11 @@ Each package is shipped independently under the MIT license unless noted otherwi
   - `OfficeIMO.Markdown.Benchmarks`
 - Release prep
   - [Docs/officeimo.markdown.release-checklist.md](Docs/officeimo.markdown.release-checklist.md)
+
+## Website
+
+- Public site content and GitHub Pages deployment live under [`Website/`](Website/)
+- Maintainer notes for the website pipeline and API ingestion live in [Docs/officeimo.website.md](Docs/officeimo.website.md)
 ## Package Families
 
 ### Word family

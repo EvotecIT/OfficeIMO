@@ -36,6 +36,11 @@ The OfficeIMO website ships two API surfaces:
 3. Jump into a type page for signatures, summaries, parameters, and source links.
 4. Cross-reference the conceptual guides under [Getting Started](/docs/getting-started/) and the package docs under [Documentation](/docs/).
 
+## How These Pages Are Generated
+
+- .NET library reference is generated from the current `OfficeIMO` build outputs during website CI.
+- PSWriteOffice reference is generated from synced PowerShell help XML and example scripts, with a checked-in fallback snapshot for local and clean-checkout builds.
+
 ## Need A Practical Entry Point?
 
 - [Getting Started](/docs/getting-started/) for installation and first steps.
