@@ -25,6 +25,7 @@
   },
   "products": {
     "label": "Product Family",
-    "title": "A Library for Every Format"
+    "title": "A Library for Every Format",
+    "description": "Start with the document builder you need today, then layer in Reader for ingestion and PSWriteOffice for scripting and automation."
   }
 }

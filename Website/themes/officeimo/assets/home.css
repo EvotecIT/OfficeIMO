@@ -96,6 +96,32 @@
   max-width: 480px;
 }
 
+.imo-hero__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  margin-top: 1.5rem;
+}
+
+.imo-hero__badge-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.8rem;
+  border-radius: 9999px;
+  background: var(--imo-surface);
+  border: 1px solid var(--imo-border);
+  color: var(--imo-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: all var(--imo-duration) var(--imo-ease);
+}
+
+.imo-hero__badge-link:hover {
+  color: var(--imo-text);
+  border-color: var(--imo-border-strong);
+  box-shadow: var(--imo-shadow-sm);
+}
+
 .imo-hero__visual {
   display: flex;
   align-items: center;
@@ -298,10 +324,45 @@
   padding: var(--imo-section-gap) 0;
 }
 
+.imo-product-grid__groups {
+  display: grid;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.imo-product-grid__group {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.imo-product-grid__group-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.imo-product-grid__group-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.imo-product-grid__group-desc {
+  max-width: 620px;
+  color: var(--imo-text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+
 .imo-product-grid__grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1.5rem;
+}
+
+.imo-product-grid__grid--compact {
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .imo-product-card {
@@ -359,6 +420,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.375rem;
+  margin-top: auto;
 }
 
 .imo-product-card__format {
@@ -373,6 +435,36 @@
 [data-theme="dark"] .imo-product-card__format {
   background: var(--imo-gray-800);
   color: var(--imo-gray-300);
+}
+
+.imo-product-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.imo-product-card__primary {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--imo-text);
+}
+
+.imo-product-card__primary:hover {
+  color: var(--product-color, var(--imo-primary));
+}
+
+.imo-product-card__secondary {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--imo-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.imo-product-card__secondary:hover {
+  color: var(--product-color, var(--imo-primary));
 }
 
 /* ---------- Code Examples ---------- */
@@ -715,6 +807,10 @@
     margin-inline: auto;
   }
 
+  .imo-hero__badges {
+    justify-content: center;
+  }
+
   .imo-hero__visual {
     order: -1;
   }
@@ -725,6 +821,10 @@
 
   .imo-showcase-preview__grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .imo-product-grid__group-header {
+    align-items: start;
   }
 }
 
@@ -742,6 +842,10 @@
   }
 
   .imo-product-grid__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .imo-product-grid__grid--compact {
     grid-template-columns: 1fr;
   }
 
