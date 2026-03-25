@@ -3,12 +3,12 @@ title: "OfficeIMO Blog"
 description: "Release notes, workflow guides, performance notes, and practical examples for building Office document automation with OfficeIMO and PSWriteOffice."
 slug: index
 collection: blog
-layout: page
+layout: blog-home
 ---
 
-## Latest Posts
+## All Posts
 
-This page automatically lists the newest OfficeIMO articles, walkthroughs, and release updates.
+This page automatically lists the newest OfficeIMO articles, walkthroughs, and release updates after the curated reading paths above.
 
 ## What You'll Find Here
 
