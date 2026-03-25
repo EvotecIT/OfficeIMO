@@ -378,4 +378,5 @@ nul
 Website/_site/
 Website/_temp/
 Website/_reports/
-Website/data/apidocs/powershell/examples/
+Website/data/apidocs/powershell/examples/*
+!Website/data/apidocs/powershell/examples/.gitkeep

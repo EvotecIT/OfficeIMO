@@ -8,6 +8,22 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+function Ensure-ExamplesPlaceholder {
+    param(
+        [Parameter(Mandatory)]
+        [string] $ExamplesPath
+    )
+
+    if (-not (Test-Path -LiteralPath $ExamplesPath -PathType Container)) {
+        New-Item -ItemType Directory -Force -Path $ExamplesPath | Out-Null
+    }
+
+    $placeholderPath = Join-Path $ExamplesPath '.gitkeep'
+    if (-not (Test-Path -LiteralPath $placeholderPath -PathType Leaf)) {
+        Set-Content -LiteralPath $placeholderPath -Value '' -NoNewline
+    }
+}
+
 function Resolve-PSWriteOfficeRoot {
     param(
         [string] $RequestedRoot
@@ -58,7 +74,8 @@ function Resolve-PSWriteOfficeRoot {
 
 $resolvedRoot = Resolve-PSWriteOfficeRoot -RequestedRoot $PSWriteOfficeRoot
 if (-not $resolvedRoot) {
-    Write-Warning 'PSWriteOffice repo not found. Keeping the vendored PowerShell API snapshot.'
+    Ensure-ExamplesPlaceholder -ExamplesPath (Join-Path $OutputRoot 'examples')
+    Write-Warning 'PSWriteOffice repo not found. Keeping the checked-in PowerShell API inputs.'
     exit 0
 }
 
@@ -72,12 +89,14 @@ $helpSource = $helpCandidates | Where-Object { Test-Path -LiteralPath $_ -PathTy
 $examplesSource = Join-Path $resolvedRoot 'Examples'
 
 if (-not $helpSource) {
-    Write-Warning "PSWriteOffice help XML not found under '$resolvedRoot'. Keeping the vendored PowerShell API snapshot."
+    Ensure-ExamplesPlaceholder -ExamplesPath (Join-Path $OutputRoot 'examples')
+    Write-Warning "PSWriteOffice help XML not found under '$resolvedRoot'. Keeping the checked-in PowerShell API inputs."
     exit 0
 }
 
 if (-not (Test-Path -LiteralPath $examplesSource -PathType Container)) {
-    Write-Warning "PSWriteOffice Examples folder not found under '$resolvedRoot'. Keeping the vendored PowerShell API snapshot."
+    Ensure-ExamplesPlaceholder -ExamplesPath (Join-Path $OutputRoot 'examples')
+    Write-Warning "PSWriteOffice Examples folder not found under '$resolvedRoot'. Keeping the checked-in PowerShell API inputs."
     exit 0
 }
 
@@ -96,6 +115,7 @@ if (Test-Path -LiteralPath $examplesDestination) {
 }
 New-Item -ItemType Directory -Path $examplesDestination -Force | Out-Null
 Copy-Item -Path (Join-Path $examplesSource '*') -Destination $examplesDestination -Recurse -Force
+Ensure-ExamplesPlaceholder -ExamplesPath $examplesDestination
 
 Write-Host "Synced PSWriteOffice API docs from: $resolvedRoot" -ForegroundColor Cyan
 Write-Host "Help XML: $helpSource" -ForegroundColor DarkGray
