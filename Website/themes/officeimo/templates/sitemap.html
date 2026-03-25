@@ -3,67 +3,101 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
   <title>{{ title }}</title>
-  <script>(function(){var t=localStorage.getItem('imo-theme')||'dark';if(t==='auto')t=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';document.documentElement.dataset.theme=t;})();</script>
   {{ if css_href && css_href != "" }}<link rel="stylesheet" href="{{ css_href }}" />{{ end }}
   <style>
-    :root{color-scheme:light dark}
-    body{margin:0}
+    :root{color-scheme:dark}
+    body{margin:0;background:#08111f;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    a{color:#7dd3fc}
+    .imo-sitemap-header{position:sticky;top:0;z-index:20;background:rgba(8,17,31,0.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(148,163,184,0.14)}
+    .imo-sitemap-header__inner{max-width:1200px;margin:0 auto;padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+    .imo-sitemap-brand{display:inline-flex;align-items:center;gap:.65rem;color:#f8fafc;font-weight:800;text-decoration:none}
+    .imo-sitemap-brand svg{flex:none}
+    .imo-sitemap-nav{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+    .imo-sitemap-nav a,.imo-sitemap-nav button{color:#cbd5e1;background:none;border:0;padding:0;font:inherit;font-weight:600;text-decoration:none;cursor:default}
+    .imo-sitemap-nav button{display:inline-flex;align-items:center;gap:.35rem}
+    .imo-sitemap-nav button svg{opacity:.75}
+    .imo-sitemap-nav .imo-dropdown{display:none}
     .imo-sitemap{padding:3rem 0 5rem}
-    .imo-sitemap__panel{max-width:980px;margin:0 auto;padding:2rem;background:rgba(255,255,255,0.03);border:1px solid rgba(148,163,184,0.14);border-radius:24px}
+    .imo-sitemap__panel{padding:2rem;background:rgba(15,23,42,0.9);border:1px solid rgba(148,163,184,0.16);border-radius:24px;box-shadow:0 20px 60px rgba(2,6,23,0.4)}
+    .imo-sitemap__header{display:grid;gap:1rem;margin-bottom:2rem}
+    .imo-sitemap__header h1{margin:0}
+    .imo-sitemap__header p{margin:0}
     .imo-sitemap__meta{color:#94a3b8;font-size:.9rem}
     .imo-sitemap__groups{display:grid;gap:1.5rem;margin-top:2rem}
-    .imo-sitemap__group{padding:1.25rem 1.35rem;border:1px solid rgba(148,163,184,0.14);border-radius:18px;background:rgba(255,255,255,0.02)}
+    .imo-sitemap__group{padding:1.25rem 1.35rem;border:1px solid rgba(148,163,184,0.14);border-radius:18px;background:rgba(15,23,42,0.55)}
     .imo-sitemap__group h2{margin:0 0 1rem;font-size:1.15rem}
     .imo-sitemap__list{margin:0;padding:0;list-style:none;display:grid;gap:.65rem}
     .imo-sitemap__list a{font-weight:600;text-decoration:none}
     .imo-sitemap__desc{display:block;margin-top:.2rem;font-size:.9rem;color:#94a3b8}
-    .imo-sitemap-header{max-width:1200px;margin:0 auto;padding:1rem 1.5rem}
-    .imo-sitemap-brand{display:inline-block;margin-bottom:.75rem;font-size:1.05rem;font-weight:800;text-decoration:none;color:inherit}
-    .imo-sitemap-nav{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}
-    .imo-sitemap-links{display:flex;flex-wrap:wrap;gap:.9rem;list-style:none;margin:0;padding:0}
-    .imo-sitemap-links a{text-decoration:none;color:inherit;font-weight:600}
-    .imo-sitemap-links--secondary{margin-top:.55rem;gap:.75rem}
-    .imo-sitemap-links--secondary a{font-size:.92rem;font-weight:500;opacity:.88}
-    .imo-sitemap-links--secondary a span{display:block}
-    .imo-sitemap-links--secondary a .imo-sitemap-link-desc{margin-top:.18rem;font-size:.8rem;font-weight:400;opacity:.72}
-    .imo-sitemap-footer{max-width:1200px;margin:0 auto;padding:1.25rem 1.5rem 2rem;color:#94a3b8;font-size:.9rem}
-    @media (max-width: 860px){.imo-sitemap-nav{flex-direction:column;align-items:flex-start}.imo-sitemap{padding-top:2rem}}
+    @media (max-width: 860px){.imo-sitemap{padding-top:.5rem}.imo-sitemap-header__inner{align-items:flex-start;flex-direction:column}.imo-sitemap-nav{gap:.85rem}}
   </style>
 </head>
-<body class="imo-body imo-body--page">
-  <header class="imo-header">
-    <div class="imo-sitemap-header">
-      <a class="imo-sitemap-brand" href="/">OfficeIMO</a>
+<body>
+  <header class="imo-sitemap-header">
+    <div class="imo-sitemap-header__inner">
+      <a class="imo-sitemap-brand" href="/">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+          <rect width="28" height="28" rx="6" fill="currentColor" opacity="0.1"/>
+          <path d="M7 8h14v2H7zm0 5h14v2H7zm0 5h10v2H7z" fill="currentColor"/>
+        </svg>
+        <span>OfficeIMO</span>
+      </a>
       <nav class="imo-sitemap-nav" aria-label="Main navigation">
-        <ul class="imo-sitemap-links">
-          <li><a href="/">Home</a></li>
-          <li><a href="/products/word/"><span>OfficeIMO.Word</span> <span class="imo-sitemap-link-desc">Create &amp; edit .docx documents</span></a></li>
-          <li><a href="/products/excel/"><span>OfficeIMO.Excel</span> <span class="imo-sitemap-link-desc">Read &amp; write .xlsx workbooks</span></a></li>
-          <li><a href="/products/powerpoint/"><span>OfficeIMO.PowerPoint</span> <span class="imo-sitemap-link-desc">Generate .pptx presentations</span></a></li>
-          <li><a href="/products/markdown/"><span>OfficeIMO.Markdown</span> <span class="imo-sitemap-link-desc">Build, parse &amp; render Markdown</span></a></li>
-          <li><a href="/products/csv/"><span>OfficeIMO.CSV</span> <span class="imo-sitemap-link-desc">Typed CSV workflows</span></a></li>
-          <li><a href="/products/visio/"><span>OfficeIMO.Visio</span> <span class="imo-sitemap-link-desc">Create .vsdx diagrams</span></a></li>
-          <li><a href="/products/reader/"><span>OfficeIMO.Reader</span> <span class="imo-sitemap-link-desc">Unified document extraction</span></a></li>
-          <li><a href="/products/pswriteoffice/"><span>PSWriteOffice</span> <span class="imo-sitemap-link-desc">PowerShell module for Office docs</span></a></li>
-          <li><a href="/docs/">Docs</a></li>
-          <li><a href="/blog/">Blog</a></li>
-          <li><a href="/api/word/">OfficeIMO.Word API</a></li>
-          <li><a href="/api/excel/">OfficeIMO.Excel API</a></li>
-          <li><a href="/api/markdown/">OfficeIMO.Markdown API</a></li>
-          <li><a href="/api/powershell/">PSWriteOffice Cmdlets</a></li>
-          <li><a href="/downloads/">Downloads</a></li>
-          <li><a href="/pricing/">Pricing</a></li>
-        </ul>
+        <a href="/">Home</a>
+        <div class="imo-nav__item">
+          <button type="button" aria-expanded="false" aria-haspopup="true">Products
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="imo-dropdown imo-dropdown--mega">
+            <div class="imo-dropdown__group">
+              <span class="imo-dropdown__title">Core Builders</span>
+              <a href="/products/word/" class="imo-dropdown__link"><span class="imo-dropdown__text">OfficeIMO.Word</span> <span class="imo-dropdown__desc">Create and edit .docx documents</span></a>
+              <a href="/products/excel/" class="imo-dropdown__link"><span class="imo-dropdown__text">OfficeIMO.Excel</span> <span class="imo-dropdown__desc">Read and write .xlsx workbooks</span></a>
+              <a href="/products/powerpoint/" class="imo-dropdown__link"><span class="imo-dropdown__text">OfficeIMO.PowerPoint</span> <span class="imo-dropdown__desc">Generate .pptx decks with slides and charts</span></a>
+              <a href="/products/markdown/" class="imo-dropdown__link"><span class="imo-dropdown__text">OfficeIMO.Markdown</span> <span class="imo-dropdown__desc">Build, parse, and render Markdown</span></a>
+              <a href="/products/csv/" class="imo-dropdown__link"><span class="imo-dropdown__text">OfficeIMO.CSV</span> <span class="imo-dropdown__desc">Typed CSV workflows with schema and streaming</span></a>
+              <a href="/products/visio/" class="imo-dropdown__link"><span class="imo-dropdown__text">OfficeIMO.Visio</span> <span class="imo-dropdown__desc">Create .vsdx diagrams with shapes and connectors</span></a>
+            </div>
+            <div class="imo-dropdown__group">
+              <span class="imo-dropdown__title">Automation and Ingestion</span>
+              <a href="/products/reader/" class="imo-dropdown__link"><span class="imo-dropdown__text">OfficeIMO.Reader</span> <span class="imo-dropdown__desc">Extract, chunk, and normalize documents for search and AI</span></a>
+              <a href="/products/pswriteoffice/" class="imo-dropdown__link"><span class="imo-dropdown__text">PSWriteOffice</span> <span class="imo-dropdown__desc">Automate Office workflows from PowerShell scripts</span></a>
+            </div>
+          </div>
+        </div>
+        <a href="/docs/">Docs</a>
+        <a href="/blog/">Blog</a>
+        <div class="imo-nav__item">
+          <button type="button" aria-expanded="false" aria-haspopup="true">API
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="imo-dropdown imo-dropdown--mega">
+            <div class="imo-dropdown__group">
+              <span class="imo-dropdown__title">API Reference</span>
+              <a href="/api/word/" class="imo-dropdown__link"><span class="imo-dropdown__text">OfficeIMO.Word API</span></a>
+              <a href="/api/excel/" class="imo-dropdown__link"><span class="imo-dropdown__text">OfficeIMO.Excel API</span></a>
+              <a href="/api/markdown/" class="imo-dropdown__link"><span class="imo-dropdown__text">OfficeIMO.Markdown API</span></a>
+              <a href="/api/powershell/" class="imo-dropdown__link"><span class="imo-dropdown__text">PSWriteOffice Cmdlets</span></a>
+            </div>
+          </div>
+        </div>
+        <a href="/downloads/">Downloads</a>
+        <a href="/pricing/">Pricing</a>
       </nav>
     </div>
   </header>
-
   <main class="imo-sitemap">
-    <div class="imo-container">
+    <div class="imo-container" style="max-width:1200px;margin:0 auto;padding:0 1.5rem;">
       <section class="imo-sitemap__panel">
-        <h1>{{ title }}</h1>
-        <p class="imo-sitemap__meta">Generated from the current OfficeIMO route graph. Base URL: <a href="{{ base_url }}">{{ base_url }}</a></p>
+        <header class="imo-sitemap__header">
+          <div>
+            <h1>{{ title }}</h1>
+            <p>Browse the generated route graph for product pages, guides, API references, blog posts, and taxonomy landing pages.</p>
+          </div>
+          <p class="imo-sitemap__meta">Generated from the current OfficeIMO route graph. Base URL: <a href="{{ base_url }}">{{ base_url }}</a></p>
+        </header>
         <div class="imo-sitemap__groups">
           {{ for group in groups }}
           <section class="imo-sitemap__group">
@@ -82,9 +116,5 @@
       </section>
     </div>
   </main>
-
-  <footer class="imo-sitemap-footer">
-    Generated <time datetime="{{ generated }}">{{ generated }}</time> for <a href="{{ base_url }}">{{ base_url }}</a>.
-  </footer>
 </body>
 </html>

@@ -2,8 +2,8 @@
   <div class="imo-container">
     <div class="imo-footer__grid">
       <div class="imo-footer__brand">
-        <strong>OfficeIMO</strong>
-        <p>Open source .NET libraries for Office documents.</p>
+        <strong>{{ data.footer.brand.name ?? "OfficeIMO" }}</strong>
+        <p>{{ data.footer.brand.tagline ?? "Open source .NET libraries for Office documents." }}</p>
       </div>
 
       {{ fp = null; fd = null; fr = null; fc = null }}
@@ -62,8 +62,8 @@
     </div>
 
     <div class="imo-footer__bottom">
-      <p>MIT License. Built with <a href="https://github.com/EvotecIT/PSPublishModule" target="_blank" rel="noopener">PowerForge</a>.</p>
-      <p>Developed by <a href="https://evotec.xyz" target="_blank" rel="noopener">Evotec Services</a></p>
+      <p>MIT License. {{ data.footer.credit.text ?? "Built with" }} <a href="{{ data.footer.credit.link ?? "https://github.com/EvotecIT/PSPublishModule" }}" target="_blank" rel="noopener">{{ data.footer.credit.linkText ?? "PowerForge" }}</a>.</p>
+      <p>{{ data.footer.brand.copyright ?? "Evotec Services sp. z o.o." }}</p>
     </div>
   </div>
 </footer>

@@ -203,21 +203,21 @@
             "Url": "/products/word/",
             "Sections": [
               {
-                "Title": ".NET Libraries",
+                "Title": "Core Builders",
                 "Items": [
-                  { "Title": "OfficeIMO.Word", "Url": "/products/word/", "Description": "Create & edit .docx documents" },
-                  { "Title": "OfficeIMO.Excel", "Url": "/products/excel/", "Description": "Read & write .xlsx workbooks" },
-                  { "Title": "OfficeIMO.PowerPoint", "Url": "/products/powerpoint/", "Description": "Generate .pptx presentations" },
-                  { "Title": "OfficeIMO.Markdown", "Url": "/products/markdown/", "Description": "Build, parse & render Markdown" },
-                  { "Title": "OfficeIMO.CSV", "Url": "/products/csv/", "Description": "Typed CSV workflows" },
-                  { "Title": "OfficeIMO.Visio", "Url": "/products/visio/", "Description": "Create .vsdx diagrams" },
-                  { "Title": "OfficeIMO.Reader", "Url": "/products/reader/", "Description": "Unified document extraction" }
+                  { "Title": "OfficeIMO.Word", "Url": "/products/word/", "Description": "Create and edit .docx documents" },
+                  { "Title": "OfficeIMO.Excel", "Url": "/products/excel/", "Description": "Read and write .xlsx workbooks" },
+                  { "Title": "OfficeIMO.PowerPoint", "Url": "/products/powerpoint/", "Description": "Generate .pptx decks with slides and charts" },
+                  { "Title": "OfficeIMO.Markdown", "Url": "/products/markdown/", "Description": "Build, parse, and render Markdown" },
+                  { "Title": "OfficeIMO.CSV", "Url": "/products/csv/", "Description": "Typed CSV workflows with schema and streaming" },
+                  { "Title": "OfficeIMO.Visio", "Url": "/products/visio/", "Description": "Create .vsdx diagrams with shapes and connectors" }
                 ]
               },
               {
-                "Title": "PowerShell",
+                "Title": "Automation and Ingestion",
                 "Items": [
-                  { "Title": "PSWriteOffice", "Url": "/products/pswriteoffice/", "Description": "PowerShell module for Office docs" }
+                  { "Title": "OfficeIMO.Reader", "Url": "/products/reader/", "Description": "Extract, chunk, and normalize documents for search and AI" },
+                  { "Title": "PSWriteOffice", "Url": "/products/pswriteoffice/", "Description": "Automate Office workflows from PowerShell scripts" }
                 ]
               }
             ]
@@ -262,11 +262,12 @@
           { "Title": "Getting Started", "Url": "/docs/getting-started/" },
           { "Title": "Word Docs", "Url": "/docs/word/" },
           { "Title": "Excel Docs", "Url": "/docs/excel/" },
-          { "Title": "Markdown Docs", "Url": "/docs/markdown/" },
           { "Title": "PowerPoint Docs", "Url": "/docs/powerpoint/" },
-          { "Title": "PSWriteOffice Docs", "Url": "/docs/pswriteoffice/" },
-          { "Title": "API (.NET)", "Url": "/api/" },
-          { "Title": "API (PowerShell)", "Url": "/api/powershell/" }
+          { "Title": "Markdown Docs", "Url": "/docs/markdown/" },
+          { "Title": "CSV Docs", "Url": "/docs/csv/" },
+          { "Title": "Visio Docs", "Url": "/docs/visio/" },
+          { "Title": "Reader Docs", "Url": "/docs/reader/" },
+          { "Title": "PSWriteOffice Docs", "Url": "/docs/pswriteoffice/" }
         ]
       },
       {
