@@ -151,6 +151,33 @@ pre code{background:none;padding:0;color:inherit}
 .imo-prose tr:hover td{background:rgba(255,255,255,0.015)}
 .imo-prose blockquote{border-left:3px solid var(--imo-accent);padding-left:1rem;margin:1.5rem 0;color:var(--imo-text-secondary)}
 
+/* API landing */
+.imo-api-overview{display:grid;gap:2rem;margin:2rem 0 2.5rem}
+.imo-api-overview__panel,.imo-api-overview__group,.imo-api-card{background:var(--imo-glass);backdrop-filter:blur(18px);border:1px solid var(--imo-glass-border);border-radius:var(--imo-radius-xl)}
+.imo-api-overview__panel{display:grid;grid-template-columns:minmax(0,1.8fr) auto;gap:1.5rem;align-items:end;padding:1.5rem 1.6rem;position:relative;overflow:hidden}
+.imo-api-overview__panel::after{content:"";position:absolute;inset:auto -10% -45% auto;width:260px;height:260px;background:radial-gradient(circle,rgba(56,189,248,0.18),transparent 68%);pointer-events:none}
+.imo-api-overview__group{padding:1.4rem}
+.imo-api-overview__group-header{display:flex;justify-content:space-between;gap:1.5rem;align-items:end;margin-bottom:1.2rem}
+.imo-api-overview__group-header h2{font-size:1.35rem;margin:0}
+.imo-api-overview__group-header p{max-width:520px;margin:0;color:var(--imo-text-secondary);font-size:0.95rem;line-height:1.7}
+.imo-api-overview__eyebrow{display:inline-flex;margin-bottom:0.7rem;font-size:0.68rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--imo-accent)}
+.imo-api-overview__title{font-size:1.75rem;margin:0 0 0.65rem}
+.imo-api-overview__copy{max-width:760px;margin:0;color:var(--imo-text-secondary);font-size:1rem;line-height:1.75}
+.imo-api-overview__actions{display:flex;flex-wrap:wrap;gap:0.75rem;align-items:center;justify-content:flex-end}
+.imo-api-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.imo-api-card-grid--single{grid-template-columns:1fr}
+.imo-api-card{padding:1.15rem 1.2rem;border-top:2px solid var(--api-accent);box-shadow:var(--imo-shadow-sm);transition:all var(--imo-duration) var(--imo-ease)}
+.imo-api-card:hover{transform:translateY(-3px);border-color:var(--imo-glass-border-hover);box-shadow:var(--imo-shadow-lg)}
+.imo-api-card__header{display:flex;justify-content:space-between;gap:0.85rem;align-items:flex-start;margin-bottom:0.85rem}
+.imo-api-card__header h3{font-size:1.08rem;margin:0}
+.imo-api-card__desc{margin:0 0 0.8rem;color:var(--imo-text-secondary);font-size:0.93rem;line-height:1.7}
+.imo-api-card__best{margin:0 0 1rem;color:var(--imo-text);font-size:0.87rem;line-height:1.6}
+.imo-api-card__links{display:flex;flex-wrap:wrap;gap:0.9rem;align-items:center}
+.imo-api-card__primary{display:inline-flex;align-items:center;font-weight:700;color:var(--imo-text)}
+.imo-api-card__primary:hover{color:var(--imo-accent)}
+.imo-api-card__secondary{display:inline-flex;align-items:center;font-size:0.88rem;color:var(--imo-text-secondary)}
+.imo-api-card__secondary:hover{color:var(--imo-accent)}
+
 /* Pricing */
 .imo-pricing-comparison{text-align:center;margin-bottom:3.5rem}
 .imo-pricing-comparison-grid{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;margin-top:1.5rem}
@@ -252,6 +279,9 @@ pre code{background:none;padding:0;color:inherit}
   .imo-nav__item.is-open>.imo-dropdown{display:grid;opacity:1;visibility:visible;pointer-events:auto}
   .imo-dropdown--mega{grid-template-columns:1fr;min-width:0}
   .imo-footer__grid{grid-template-columns:1fr 1fr;gap:2rem}
+  .imo-api-overview__panel,.imo-api-overview__group-header{grid-template-columns:1fr;display:grid}
+  .imo-api-overview__actions{justify-content:flex-start}
+  .imo-api-card-grid{grid-template-columns:1fr}
   .imo-pricing-cards{grid-template-columns:1fr}
   .imo-editorial-list{grid-template-columns:1fr}
 }
