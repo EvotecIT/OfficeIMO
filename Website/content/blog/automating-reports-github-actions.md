@@ -146,3 +146,10 @@ Each sheet is just another call to `workbook.AddSheet()` with its own data.
 Runner availability, retention limits, and billing depend on your GitHub plan and repository type. Check the current GitHub Actions pricing and usage docs for the exact limits that apply to your environment.
 
 Automating repeatable reports like this can take manual dashboard work out of the loop. OfficeIMO.Excel and GitHub Actions make a straightforward starting point for that workflow.
+
+## Continue with
+
+- [OfficeIMO.Excel](/products/excel/) for the package overview and reporting-focused capabilities.
+- [Excel documentation](/docs/excel/) for workbook structure, tables, formulas, and formatting patterns.
+- [Building Excel Reports with Parallel Compute](/blog/excel-parallel-reports/) if your scheduled reports are large enough to benefit from parallel writes.
+- [PSWriteOffice](/products/pswriteoffice/) if you want a PowerShell-driven automation path instead of a C# console app.

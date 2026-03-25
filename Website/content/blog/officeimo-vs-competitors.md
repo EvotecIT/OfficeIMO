@@ -62,3 +62,10 @@ If the first four matter more, OfficeIMO is often the right place to start. If t
 Start with the smallest thing that satisfies the job. For many report-generation, document-assembly, Markdown, CSV, and script-driven workflows, OfficeIMO is already enough and keeps the operational model simple. If you later discover that a specific workload needs broader format support, stricter rendering fidelity, or commercial support, you can bring in a proprietary library just for that slice instead of making it the default for everything.
 
 That is usually a healthier architecture decision than picking the heaviest option on day one.
+
+## Continue with
+
+- [Comparison page](/comparison/) for the site-level summary of licensing, deployment, and package-shape tradeoffs.
+- [Documentation hub](/docs/) for the actual package surface and installation guidance.
+- [Platform support](/docs/getting-started/platform-support/) if deployment shape is part of the decision.
+- [Downloads](/downloads/) to see the current package family and release flow in one place.

@@ -96,3 +96,10 @@ Just be sure to call `AddSheet` inside a lock or pre-create the sheets before en
 ## Conclusion
 
 Parallel compute in OfficeIMO.Excel can help when your report generation workload is large enough to benefit from partitioning. Enable it, test it against your real workbook shapes, and keep the sequential path as the baseline for comparison.
+
+## Continue with
+
+- [OfficeIMO.Excel](/products/excel/) for the package overview and supported workflow surface.
+- [Excel documentation](/docs/excel/) for sheets, tables, formulas, and formatting patterns.
+- [Tables and ranges guide](/docs/excel/tables-ranges/) for more structured workbook layouts.
+- [Benchmarks](/benchmarks/) for the current site-wide benchmark summary and caveats.

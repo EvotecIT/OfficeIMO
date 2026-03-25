@@ -57,3 +57,11 @@ Office automation is infrastructure. It sits at the heart of invoicing systems, 
 Over time we expect the documentation to keep growing with deeper package tutorials, more benchmark coverage for selected scenarios, and more real-world workflow guides covering CI/CD report generation, PDF conversion, and AI-oriented document ingestion.
 
 Star the repository on GitHub, open an issue if something is missing, and help shape an open-source approach to Office document automation.
+
+## Continue with
+
+- [Documentation hub](/docs/) for package overviews, installation, and platform guidance.
+- [OfficeIMO.Word](/products/word/) if you want to start with document generation.
+- [OfficeIMO.Excel](/products/excel/) for workbook automation and reporting scenarios.
+- [OfficeIMO.Reader](/products/reader/) for indexing, search, and AI-oriented extraction workflows.
+- [PSWriteOffice](/products/pswriteoffice/) if your entry point is PowerShell rather than C#.

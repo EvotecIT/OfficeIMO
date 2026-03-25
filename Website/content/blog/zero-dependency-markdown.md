@@ -100,3 +100,10 @@ Because OfficeIMO.Markdown keeps its dependency surface small and avoids the hea
 ## When to Use Markdig Instead
 
 If you need full CommonMark compliance, GFM autolinks, or an extensive plugin ecosystem, Markdig is the better choice. OfficeIMO.Markdown targets the practical subset of Markdown used in documentation and reports: headings, paragraphs, lists, tables, code blocks, and inline emphasis. For that scope, it is smaller, faster, and easier to reason about.
+
+## Continue with
+
+- [OfficeIMO.Markdown](/products/markdown/) for the package overview and runtime guidance.
+- [Markdown documentation](/docs/markdown/) for the document model, parser profiles, and renderer surface.
+- [Builder API guide](/docs/markdown/builder/) if you want to generate Markdown fluently.
+- [AOT and trimming guidance](/docs/advanced/aot-trimming/) for deployment notes across the package family.

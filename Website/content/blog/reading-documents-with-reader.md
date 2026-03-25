@@ -177,3 +177,10 @@ Legacy binary formats (`.doc`, `.xls`, `.ppt`) are not supported. Structured ada
 ## Conclusion
 
 OfficeIMO.Reader bridges the gap between unstructured Office files and indexing-friendly text pipelines. Whether you are building RAG for an LLM, a full-text search index, or a compliance scanner, Reader gives you normalized chunks, source identifiers, and citation-friendly locations with one API surface.
+
+## Continue with
+
+- [OfficeIMO.Reader](/products/reader/) for the package overview and ingestion-oriented feature summary.
+- [Reader documentation](/docs/reader/) for the extraction model, chunking options, and pipeline patterns.
+- [AOT and trimming guidance](/docs/advanced/aot-trimming/) if you plan to host extraction in trimmed or containerized deployments.
+- [OfficeIMO.Markdown](/products/markdown/) if you want to pair extraction with Markdown rendering or transformation.

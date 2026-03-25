@@ -85,3 +85,10 @@ dotnet publish -c Release -r linux-x64
 ## Conclusion
 
 OfficeIMO is friendly to modern deployment patterns, but the current state is nuanced. The lightweight packages already fit trimming-oriented workflows well, while the richer Open XML and PDF packages still deserve targeted validation in your own environment. That is a much more useful rule of thumb than pretending the whole family has the same AOT profile.
+
+## Continue with
+
+- [Advanced AOT and trimming docs](/docs/advanced/aot-trimming/) for the longer-form deployment guidance.
+- [OfficeIMO.Markdown](/products/markdown/) if you want the lowest-friction starting point for trimmed utilities.
+- [CSV documentation](/docs/csv/) for another lightweight package in the family.
+- [Platform support](/docs/getting-started/platform-support/) for the broader framework and runtime picture.

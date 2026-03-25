@@ -108,3 +108,10 @@ Schedule it with `schtasks` or `Register-ScheduledTask` and you have hands-free 
 The legacy approach, `New-Object -ComObject Word.Application`, requires Office installed, leaks COM handles, and fails silently in non-interactive sessions. PSWriteOffice avoids all of that by using OfficeIMO's managed document engine. No Office installation, no COM headaches, no leaked `WINWORD.EXE` processes.
 
 If you already automate with PowerShell, PSWriteOffice gives you a straightforward path into the same document workflows without COM automation.
+
+## Continue with
+
+- [PSWriteOffice product page](/products/pswriteoffice/) for the package overview and installation paths.
+- [PSWriteOffice documentation](/docs/pswriteoffice/) for the cmdlet surface and DSL entry points.
+- [Word cmdlets](/docs/pswriteoffice/word/) if your scripts mainly generate DOCX files.
+- [Excel cmdlets](/docs/pswriteoffice/excel/) for workbook-oriented automation from PowerShell.

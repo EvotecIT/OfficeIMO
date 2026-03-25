@@ -122,3 +122,10 @@ Run this with `dotnet run` and inspect the resulting file in Word or another OOX
 ## Next Steps
 
 In future posts we will cover styles, table of contents generation, mail merge, and batch document assembly. If you hit a question, open a GitHub issue and we will help you out.
+
+## Continue with
+
+- [OfficeIMO.Word](/products/word/) for the package overview and supported document features.
+- [Word documentation](/docs/word/) for paragraphs, sections, styles, and layout structure.
+- [Tables guide](/docs/word/tables/) if your next step is richer tabular output.
+- [PSWriteOffice Word cmdlets](/docs/pswriteoffice/word/) if you want to generate similar documents from PowerShell.
