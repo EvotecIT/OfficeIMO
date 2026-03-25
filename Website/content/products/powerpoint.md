@@ -6,7 +6,7 @@ product_color: "#dc2626"
 install: "dotnet add package OfficeIMO.PowerPoint"
 nuget: "OfficeIMO.PowerPoint"
 docs_url: "/docs/powerpoint/"
-api_url: ""
+api_url: "/api/powerpoint/"
 preview_id: "powerpoint"
 ---
 

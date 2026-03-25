@@ -6,7 +6,7 @@ product_color: "#ea580c"
 install: "dotnet add package OfficeIMO.Visio"
 nuget: "OfficeIMO.Visio"
 docs_url: "/docs/visio/"
-api_url: ""
+api_url: "/api/visio/"
 preview_id: "visio"
 ---
 

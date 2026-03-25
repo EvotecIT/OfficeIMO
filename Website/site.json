@@ -233,7 +233,11 @@
                 "Items": [
                   { "Title": "OfficeIMO.Word API", "Url": "/api/word/" },
                   { "Title": "OfficeIMO.Excel API", "Url": "/api/excel/" },
+                  { "Title": "OfficeIMO.PowerPoint API", "Url": "/api/powerpoint/" },
                   { "Title": "OfficeIMO.Markdown API", "Url": "/api/markdown/" },
+                  { "Title": "OfficeIMO.CSV API", "Url": "/api/csv/" },
+                  { "Title": "OfficeIMO.Visio API", "Url": "/api/visio/" },
+                  { "Title": "OfficeIMO.Reader API", "Url": "/api/reader/" },
                   { "Title": "PSWriteOffice Cmdlets", "Url": "/api/powershell/" }
                 ]
               }

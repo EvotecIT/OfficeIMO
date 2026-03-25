@@ -6,7 +6,7 @@ product_color: "#0891b2"
 install: "dotnet add package OfficeIMO.CSV"
 nuget: "OfficeIMO.CSV"
 docs_url: "/docs/csv/"
-api_url: ""
+api_url: "/api/csv/"
 ---
 
 ## Why OfficeIMO.CSV?

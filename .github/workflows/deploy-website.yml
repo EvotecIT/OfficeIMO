@@ -21,6 +21,7 @@ concurrency:
 env:
   POWERFORGE_REPOSITORY: EvotecIT/PSPublishModule
   POWERFORGE_REF: 4751f06a2a52d926fc222a709ea6f0fff3d022c7
+  PSWRITEOFFICE_REPOSITORY: EvotecIT/PSWriteOffice
 
 jobs:
   build:
@@ -41,10 +42,22 @@ jobs:
           ref: ${{ env.POWERFORGE_REF }}
           path: PSPublishModule
 
+      - name: Checkout PSWriteOffice
+        if: ${{ secrets.READ_ALL != '' }}
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: ${{ env.PSWRITEOFFICE_REPOSITORY }}
+          token: ${{ secrets.READ_ALL }}
+          path: PSWriteOffice
+
       - name: Restore and build PowerForge.Web.Cli
         run: |
           dotnet restore PSPublishModule/PowerForge.Web.Cli/PowerForge.Web.Cli.csproj --force-evaluate
           dotnet build PSPublishModule/PowerForge.Web.Cli/PowerForge.Web.Cli.csproj -c Release --no-restore
+
+      - name: Sync PSWriteOffice API docs
+        shell: pwsh
+        run: ./Website/scripts/Sync-PSWriteOfficeApiDocs.ps1 -PSWriteOfficeRoot ./PSWriteOffice
 
       - name: Build website
         working-directory: Website
@@ -61,6 +74,10 @@ jobs:
           test -f Website/_site/docs/index.html
           test -f Website/_site/blog/index.html
           test -f Website/_site/api/index.html
+          test -f Website/_site/api/powerpoint/index.html
+          test -f Website/_site/api/csv/index.html
+          test -f Website/_site/api/visio/index.html
+          test -f Website/_site/api/reader/index.html
           test -f Website/_site/404.html
           grep -Eqi "<link[^>]+rel=[^>]*stylesheet" Website/_site/404.html
 

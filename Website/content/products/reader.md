@@ -6,7 +6,7 @@ product_color: "#4f46e5"
 install: "dotnet add package OfficeIMO.Reader"
 nuget: "OfficeIMO.Reader"
 docs_url: "/docs/reader/"
-api_url: ""
+api_url: "/api/reader/"
 preview_id: "reader"
 ---
 

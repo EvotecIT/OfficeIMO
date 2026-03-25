@@ -17,13 +17,17 @@ The OfficeIMO website ships two API surfaces:
 |------|-------|------|
 | OfficeIMO.Word | Word document creation, editing, formatting, bookmarks, tables, images, charts, and more. | [Open OfficeIMO.Word API](/api/word/) |
 | OfficeIMO.Excel | Workbook generation, worksheets, tables, charts, validation, and extraction helpers. | [Open OfficeIMO.Excel API](/api/excel/) |
+| OfficeIMO.PowerPoint | Slides, layouts, themes, transitions, tables, charts, and shape composition. | [Open OfficeIMO.PowerPoint API](/api/powerpoint/) |
 | OfficeIMO.Markdown | Markdown builder, parser, AST, HTML rendering, and transforms. | [Open OfficeIMO.Markdown API](/api/markdown/) |
+| OfficeIMO.CSV | CSV schema definition, typed mapping, validation, and streaming workflows. | [Open OfficeIMO.CSV API](/api/csv/) |
+| OfficeIMO.Visio | Diagram pages, shapes, connectors, and fluent Visio generation helpers. | [Open OfficeIMO.Visio API](/api/visio/) |
+| OfficeIMO.Reader | Unified extraction, chunking, and ingestion-oriented document processing. | [Open OfficeIMO.Reader API](/api/reader/) |
 
 ## PowerShell
 
 | Area | Focus | Link |
 |------|-------|------|
-| PSWriteOffice | PowerShell cmdlets for Word and Excel automation on top of OfficeIMO. | [Open PSWriteOffice Cmdlets](/api/powershell/) |
+| PSWriteOffice | PowerShell cmdlets for Word, Excel, PowerPoint, Markdown, and CSV workflows on top of OfficeIMO. | [Open PSWriteOffice Cmdlets](/api/powershell/) |
 
 ## How To Use The API Docs
 

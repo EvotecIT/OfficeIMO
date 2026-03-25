@@ -5,7 +5,7 @@
   "install": "dotnet add package OfficeIMO.PowerPoint",
   "color": "#dc2626",
   "docsUrl": "/docs/powerpoint/",
-  "apiUrl": "",
+  "apiUrl": "/api/powerpoint/",
   "targets": [".NET 8.0", ".NET 10.0", ".NET Standard 2.0", ".NET Framework 4.7.2"],
   "dependencies": ["DocumentFormat.OpenXml", "SixLabors.ImageSharp"],
   "features": [

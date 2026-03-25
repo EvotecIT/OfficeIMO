@@ -5,7 +5,7 @@
   "install": "dotnet add package OfficeIMO.Visio",
   "color": "#ea580c",
   "docsUrl": "/docs/visio/",
-  "apiUrl": "",
+  "apiUrl": "/api/visio/",
   "targets": [".NET 8.0", ".NET 10.0", ".NET Standard 2.0", ".NET Framework 4.7.2"],
   "dependencies": [],
   "features": [
