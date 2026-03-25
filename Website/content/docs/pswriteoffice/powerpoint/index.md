@@ -6,32 +6,28 @@ order: 63
 
 # PowerPoint Cmdlets
 
-PSWriteOffice exposes `OfficeIMO.PowerPoint` through both direct cmdlets and lightweight DSL aliases. That gives you two ways to work: build a presentation imperatively with explicit objects, or create one inline with `Ppt*` helpers inside `New-OfficePowerPoint`.
+PSWriteOffice exposes `OfficeIMO.PowerPoint` through both direct cmdlets and lightweight DSL aliases. The examples below favor the direct cmdlets because they map cleanly to the generated help surface.
 
 ## Core workflow
 
 1. Create a presentation with `New-OfficePowerPoint`.
-2. Add slides, titles, text boxes, bullets, images, tables, or charts.
+2. Add slides, text boxes, bullets, images, tables, or charts.
 3. Save the presentation as part of your script or pipeline output.
 
-## DSL-style quick start
+## Quick start
 
 ```powershell
-New-OfficePowerPoint -Path .\status-update.pptx {
-    PptSlide -Layout Title {
-        PptTitle -Text "Weekly Status"
-        PptSubtitle -Text "Engineering Team"
-    }
+$ppt = New-OfficePowerPoint -FilePath .\status_update.pptx
+$slide = Add-OfficePowerPointSlide -Presentation $ppt
 
-    PptSlide -Layout TitleAndContent {
-        PptTitle -Text "Completed This Week"
-        PptContent {
-            PptBullet -Text "Shipped the March release"
-            PptBullet -Text "Closed 14 customer issues"
-            PptBullet -Text "Finished security review follow-up"
-        }
-    }
-}
+Add-OfficePowerPointTextBox -Slide $slide -Text 'Weekly Status' -X 80 -Y 60 -Width 520 -Height 50
+Add-OfficePowerPointBullets -Slide $slide -Bullets @(
+    'Shipped the March release',
+    'Closed 14 customer issues',
+    'Finished security review follow up'
+) -X 80 -Y 140 -Width 520 -Height 220
+
+$ppt | Save-OfficePowerPoint
 ```
 
 ## Cmdlet-style slide composition
@@ -48,6 +44,7 @@ Add-OfficePowerPointBullets -Slide $slide -Bullets @(
 ) -X 80 -Y 150 -Width 520 -Height 220
 
 Add-OfficePowerPointImage -Slide $slide -Path .\logo.png -X 560 -Y 40 -Width 120 -Height 72
+$ppt | Save-OfficePowerPoint
 ```
 
 ## Data-heavy slides
@@ -55,6 +52,7 @@ Add-OfficePowerPointImage -Slide $slide -Path .\logo.png -X 560 -Y 40 -Width 120
 When your source is tabular data, use the table and chart cmdlets instead of manually building text shapes:
 
 ```powershell
+$ppt = New-OfficePowerPoint -FilePath .\quarterly_review.pptx
 $rows = @(
     [pscustomobject]@{ Product = 'Alpha'; Q1 = 12; Q2 = 15; Q3 = 18; Q4 = 20 }
     [pscustomobject]@{ Product = 'Beta';  Q1 =  9; Q2 = 11; Q3 = 13; Q4 = 14 }
@@ -63,6 +61,7 @@ $rows = @(
 
 $slide = Add-OfficePowerPointSlide -Presentation $ppt
 Add-OfficePowerPointTable -Slide $slide -Data $rows -X 60 -Y 140 -Width 420 -Height 200
+$ppt | Save-OfficePowerPoint
 ```
 
 ## Useful commands
@@ -72,6 +71,7 @@ Add-OfficePowerPointTable -Slide $slide -Data $rows -X 60 -Y 140 -Width 420 -Hei
 - `Add-OfficePowerPointTextBox` and `Add-OfficePowerPointBullets` cover most narrative slide content.
 - `Add-OfficePowerPointTable`, `Add-OfficePowerPointChart`, and `Add-OfficePowerPointImage` are the main building blocks for report decks.
 - `Add-OfficePowerPointSection` helps organize larger presentations into named sections.
+- `Save-OfficePowerPoint` persists the generated deck to disk.
 
 ## Related guides
 

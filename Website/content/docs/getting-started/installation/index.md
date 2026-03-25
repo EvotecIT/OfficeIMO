@@ -29,7 +29,7 @@ Install-Package OfficeIMO.Word
 **PackageReference (csproj)**
 
 ```xml
-<PackageReference Include="OfficeIMO.Word" Version="1.0.38" />
+<PackageReference Include="OfficeIMO.Word" Version="1.0.39" />
 ```
 
 ### OfficeIMO.Excel
@@ -51,7 +51,7 @@ Install-Package OfficeIMO.Excel
 **PackageReference**
 
 ```xml
-<PackageReference Include="OfficeIMO.Excel" Version="0.6.18" />
+<PackageReference Include="OfficeIMO.Excel" Version="0.6.19" />
 ```
 
 ### OfficeIMO.Markdown
@@ -73,7 +73,7 @@ Install-Package OfficeIMO.Markdown
 **PackageReference**
 
 ```xml
-<PackageReference Include="OfficeIMO.Markdown" Version="0.6.5" />
+<PackageReference Include="OfficeIMO.Markdown" Version="0.6.6" />
 ```
 
 ### OfficeIMO.CSV
@@ -95,7 +95,7 @@ Install-Package OfficeIMO.CSV
 **PackageReference**
 
 ```xml
-<PackageReference Include="OfficeIMO.CSV" Version="0.1.18" />
+<PackageReference Include="OfficeIMO.CSV" Version="0.1.19" />
 ```
 
 ### OfficeIMO.Word.Html
@@ -111,7 +111,7 @@ dotnet add package OfficeIMO.Word.Html
 **PackageReference**
 
 ```xml
-<PackageReference Include="OfficeIMO.Word.Html" Version="1.0.12" />
+<PackageReference Include="OfficeIMO.Word.Html" Version="1.0.13" />
 ```
 
 ### OfficeIMO.Word.Markdown
@@ -127,7 +127,7 @@ dotnet add package OfficeIMO.Word.Markdown
 **PackageReference**
 
 ```xml
-<PackageReference Include="OfficeIMO.Word.Markdown" Version="1.0.12" />
+<PackageReference Include="OfficeIMO.Word.Markdown" Version="1.0.13" />
 ```
 
 ## PSWriteOffice (PowerShell Module)

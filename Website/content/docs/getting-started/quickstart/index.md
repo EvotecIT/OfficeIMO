@@ -149,21 +149,28 @@ csv.Save("people.csv");
 Import-Module PSWriteOffice
 
 # Create a Word document
-$doc = New-OfficeWord -FilePath "Report.docx"
+$doc = New-OfficeWord -Path "Report.docx" -PassThru
 
-$doc | Add-OfficeWordSection | Add-OfficeWordParagraph -Text "Hello from PowerShell!"
-$doc | Add-OfficeWordParagraph -Text "Created with PSWriteOffice." -Bold
+$doc | Add-OfficeWordSection {
+    Add-OfficeWordParagraph -Text "Hello from PowerShell!" -Style Heading1
+}
+$doc | Add-OfficeWordParagraph {
+    Add-OfficeWordText -Text "Created with PSWriteOffice." -Bold
+}
 
 $doc | Save-OfficeWord
-$doc | Close-OfficeWord
+Close-OfficeWord -Document $doc
 
 # Create an Excel workbook
-$excel = New-OfficeExcel -FilePath "Data.xlsx" -WorkSheetName "Sheet1"
+$excel = New-OfficeExcel -Path "Data.xlsx" -PassThru
 
-$excel | Add-OfficeExcelWorkSheet -Name "Summary"
+$excel | Add-OfficeExcelSheet -Name "Summary" {
+    Set-OfficeExcelCell -Address "A1" -Value "Metric"
+    Set-OfficeExcelCell -Address "B1" -Value "Value"
+}
 
 $excel | Save-OfficeExcel
-$excel | Close-OfficeExcel
+Close-OfficeExcel -Document $excel
 ```
 
 ## Next Steps

@@ -46,10 +46,10 @@ Update-Module -Name PSWriteOffice
 | `Save-OfficeWord` | Save the document to disk |
 | `Close-OfficeWord` | Close and dispose the document |
 | `Add-OfficeWordSection` | Add a new section |
-| `Add-OfficeWordParagraph` | Add a paragraph with text and formatting |
-| `Add-OfficeWordTable` | Add a table |
+| `Add-OfficeWordParagraph` | Add a paragraph |
+| `Add-OfficeWordText` | Add formatted inline text to a paragraph |
+| `Add-OfficeWordTable` | Render object data as a table |
 | `Add-OfficeWordImage` | Add an image |
-| `Add-OfficeWordPageBreak` | Insert a page break |
 | `Add-OfficeWordHeader` | Add header content |
 | `Add-OfficeWordFooter` | Add footer content |
 
@@ -61,7 +61,8 @@ Update-Module -Name PSWriteOffice
 | `Get-OfficeExcel` | Open an existing workbook |
 | `Save-OfficeExcel` | Save the workbook |
 | `Close-OfficeExcel` | Close and dispose the workbook |
-| `Add-OfficeExcelWorkSheet` | Add a worksheet |
+| `Add-OfficeExcelSheet` | Add a worksheet |
+| `Set-OfficeExcelCell` | Write values or formulas to a cell |
 | `Add-OfficeExcelTable` | Add a table to a worksheet |
 
 ### PowerPoint Cmdlets
@@ -76,6 +77,7 @@ Update-Module -Name PSWriteOffice
 | `Add-OfficePowerPointChart` | Add charts from series data |
 | `Add-OfficePowerPointImage` | Place images on a slide |
 | `Add-OfficePowerPointSection` | Group slides into named sections |
+| `Save-OfficePowerPoint` | Persist the generated deck |
 
 ### Markdown Cmdlets
 
@@ -95,34 +97,34 @@ Update-Module -Name PSWriteOffice
 ```powershell
 Import-Module PSWriteOffice
 
-# Create a Word document
-$doc = New-OfficeWord -FilePath "C:\Reports\Monthly.docx"
+$doc = New-OfficeWord -Path "C:\Reports\Monthly.docx" -PassThru
 
-$doc | Add-OfficeWordParagraph -Text "Monthly Status Report" -Bold -FontSize 24
-
+$doc | Add-OfficeWordParagraph -Text "Monthly Status Report" -Style Heading1
 $doc | Add-OfficeWordParagraph -Text "Generated on $(Get-Date -Format 'yyyy-MM-dd')"
-
-$doc | Add-OfficeWordParagraph -Text "All systems operational." -Color "Green"
+$doc | Add-OfficeWordParagraph {
+    Add-OfficeWordText -Text "All systems operational." -Bold
+}
 
 $doc | Save-OfficeWord
-$doc | Close-OfficeWord
+Close-OfficeWord -Document $doc
 ```
 
 ## Pipeline Support
 
-All PSWriteOffice cmdlets support the PowerShell pipeline. The document object flows through the pipeline, allowing you to chain operations:
+The document object flows through the pipeline, which makes simple composition concise:
 
 ```powershell
-$doc = New-OfficeWord -FilePath "pipeline.docx"
+$doc = New-OfficeWord -Path "pipeline.docx" -PassThru
 
 $doc |
-    Add-OfficeWordParagraph -Text "Title" -Bold -FontSize 20 |
-    Add-OfficeWordParagraph -Text "Subtitle" -Italic -FontSize 14 |
-    Add-OfficeWordPageBreak |
+    Add-OfficeWordParagraph -Text "Title" -Style Heading1 |
+    Add-OfficeWordParagraph {
+        Add-OfficeWordText -Text "Subtitle" -Italic
+    } |
     Add-OfficeWordParagraph -Text "Chapter 1 content" |
     Save-OfficeWord
 
-$doc | Close-OfficeWord
+Close-OfficeWord -Document $doc
 ```
 
 ## Discovering Available Commands

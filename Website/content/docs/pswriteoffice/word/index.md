@@ -6,21 +6,21 @@ order: 61
 
 # Word Cmdlets
 
-PSWriteOffice provides a comprehensive set of PowerShell cmdlets for creating, editing, and saving Word documents. These cmdlets wrap the OfficeIMO.Word .NET library and expose its functionality through idiomatic PowerShell parameters.
+PSWriteOffice provides a Word automation surface for creating and editing `.docx` files from scripts. The examples below stay close to the generated help so they reflect the real module surface.
 
 ## Creating a Document
 
 ```powershell
-# Create a new empty document
-$doc = New-OfficeWord -FilePath "C:\Output\report.docx"
+# Create a new document and return the document object
+$doc = New-OfficeWord -Path "C:\Output\report.docx" -PassThru
 ```
 
-The `-FilePath` parameter specifies where the document will be saved. The file is created immediately but not written until `Save-OfficeWord` is called.
+Use `-PassThru` when you want the document object back for further piping. For one-shot DSL usage, you can also call `New-OfficeWord -Path ... { ... }`.
 
 ## Opening an Existing Document
 
 ```powershell
-$doc = Get-OfficeWord -FilePath "C:\Input\existing.docx"
+$doc = Get-OfficeWord -Path "C:\Input\existing.docx"
 ```
 
 ## Adding Paragraphs
@@ -29,111 +29,70 @@ $doc = Get-OfficeWord -FilePath "C:\Input\existing.docx"
 # Simple text
 $doc | Add-OfficeWordParagraph -Text "Hello, World!"
 
-# With formatting
-$doc | Add-OfficeWordParagraph -Text "Bold Title" -Bold -FontSize 20
+# Styled heading
+$doc | Add-OfficeWordParagraph -Text "Report Title" -Style Heading1
 
-$doc | Add-OfficeWordParagraph -Text "Italic subtitle" -Italic -FontSize 14
-
-$doc | Add-OfficeWordParagraph -Text "Colored text" -Color "Blue" -FontFamily "Arial"
-
-# Underline
-$doc | Add-OfficeWordParagraph -Text "Important note" -Underline
+# Paragraph with inline formatting
+$doc | Add-OfficeWordParagraph {
+    Add-OfficeWordText -Text "Important: " -Bold
+    Add-OfficeWordText -Text "review this section." -Italic
+}
 
 # Alignment
 $doc | Add-OfficeWordParagraph -Text "Centered text" -Alignment Center
 ```
 
-### Paragraph Formatting Parameters
+### Common Paragraph Parameters
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `-Text` | String | The paragraph text |
-| `-Bold` | Switch | Bold formatting |
-| `-Italic` | Switch | Italic formatting |
-| `-Underline` | Switch | Underline formatting |
-| `-FontSize` | Int | Font size in half-points |
-| `-FontFamily` | String | Font family name |
-| `-Color` | String | Text color (name or hex) |
 | `-Alignment` | String | Left, Center, Right, or Both |
-| `-Style` | String | Paragraph style (Heading1, Heading2, etc.) |
+| `-Style` | String | Paragraph style such as `Heading1` |
+| `-Content` | ScriptBlock | Nested content via `Add-OfficeWordText` and related commands |
 
 ## Adding Sections
 
-Sections allow you to change page layout within a document:
+Sections are the main container when you want to group body content, headers, or footers:
 
 ```powershell
-$doc | Add-OfficeWordSection
-
-# Add content to the new section
-$doc | Add-OfficeWordParagraph -Text "New section content"
+$doc | Add-OfficeWordSection {
+    Add-OfficeWordParagraph -Text "New section content"
+}
 ```
 
 ## Adding Tables
 
-```powershell
-# Create a table with specified rows and columns
-$doc | Add-OfficeWordTable -Rows 4 -Columns 3 -Style "TableGrid"
-```
-
-### Populating Table Cells
-
-After creating a table, access it through the document object:
-
-```powershell
-$table = $doc.Tables[-1]  # Last table added
-
-$table.Rows[0].Cells[0].Paragraphs[0].Text = "Name"
-$table.Rows[0].Cells[1].Paragraphs[0].Text = "Role"
-$table.Rows[0].Cells[2].Paragraphs[0].Text = "Status"
-
-$table.Rows[1].Cells[0].Paragraphs[0].Text = "Alice"
-$table.Rows[1].Cells[1].Paragraphs[0].Text = "Developer"
-$table.Rows[1].Cells[2].Paragraphs[0].Text = "Active"
-```
-
-### Table from PowerShell Objects
-
-A common pattern is generating tables from PowerShell objects:
+The easiest pattern is to hand the cmdlet object data directly:
 
 ```powershell
 $services = Get-Service | Select-Object -First 10 -Property Name, Status, StartType
-
-# Create the table
-$doc | Add-OfficeWordTable -Rows ($services.Count + 1) -Columns 3 -Style "GridTable4Accent1"
-
-$table = $doc.Tables[-1]
-
-# Header row
-$table.Rows[0].Cells[0].Paragraphs[0].Text = "Service Name"
-$table.Rows[0].Cells[1].Paragraphs[0].Text = "Status"
-$table.Rows[0].Cells[2].Paragraphs[0].Text = "Start Type"
-
-# Data rows
-for ($i = 0; $i -lt $services.Count; $i++) {
-    $table.Rows[$i + 1].Cells[0].Paragraphs[0].Text = $services[$i].Name
-    $table.Rows[$i + 1].Cells[1].Paragraphs[0].Text = $services[$i].Status.ToString()
-    $table.Rows[$i + 1].Cells[2].Paragraphs[0].Text = $services[$i].StartType.ToString()
-}
+$doc | Add-OfficeWordTable -InputObject $services -Style "GridTable4Accent1"
 ```
 
 ## Adding Images
 
-```powershell
-$doc | Add-OfficeWordImage -FilePath "C:\Images\logo.png" -Width 200 -Height 60
-```
-
-## Page Breaks
+Add images inside a paragraph block:
 
 ```powershell
-$doc | Add-OfficeWordPageBreak
+$doc | Add-OfficeWordParagraph {
+    Add-OfficeWordImage -Path "C:\Images\logo.png" -Width 200 -Height 60
+}
 ```
 
 ## Headers and Footers
 
+Headers and footers are typically created inside a section:
+
 ```powershell
-# Enable headers and footers
-$doc | Add-OfficeWordHeader -Text "Company Name - Confidential"
-$doc | Add-OfficeWordFooter -Text "Page Footer"
+$doc | Add-OfficeWordSection {
+    Add-OfficeWordHeader {
+        Add-OfficeWordParagraph -Text "Company Name - Confidential" -Style Heading3
+    }
+    Add-OfficeWordFooter {
+        Add-OfficeWordPageNumber -IncludeTotalPages
+    }
+}
 ```
 
 ## Saving and Closing
@@ -142,19 +101,19 @@ Always save and close the document when finished:
 
 ```powershell
 $doc | Save-OfficeWord
-$doc | Close-OfficeWord
+Close-OfficeWord -Document $doc
 ```
 
 Or use a `try/finally` block for safety:
 
 ```powershell
-$doc = New-OfficeWord -FilePath "safe.docx"
+$doc = New-OfficeWord -Path "safe.docx" -PassThru
 try {
     $doc | Add-OfficeWordParagraph -Text "Content"
     $doc | Save-OfficeWord
 }
 finally {
-    $doc | Close-OfficeWord
+    Close-OfficeWord -Document $doc
 }
 ```
 
@@ -163,40 +122,32 @@ finally {
 ```powershell
 Import-Module PSWriteOffice
 
-$doc = New-OfficeWord -FilePath "C:\Reports\ServerReport.docx"
+$doc = New-OfficeWord -Path "C:\Reports\ServerReport.docx" -PassThru
 
-# Title
-$doc | Add-OfficeWordParagraph -Text "Server Health Report" -Bold -FontSize 28 -Alignment Center
+$doc | Add-OfficeWordParagraph -Text "Server Health Report" -Style Heading1 -Alignment Center
 
-# Subtitle
 $date = Get-Date -Format "MMMM dd, yyyy"
-$doc | Add-OfficeWordParagraph -Text "Generated: $date" -Italic -FontSize 12 -Alignment Center
-
-$doc | Add-OfficeWordPageBreak
-
-# Disk usage section
-$doc | Add-OfficeWordParagraph -Text "Disk Usage" -Bold -FontSize 20 -Style "Heading1"
+$doc | Add-OfficeWordParagraph {
+    Add-OfficeWordText -Text "Generated: $date" -Italic
+}
 
 $disks = Get-CimInstance -ClassName Win32_LogicalDisk -Filter "DriveType=3"
+$diskRows = $disks | ForEach-Object {
+    [pscustomobject]@{
+        Drive      = $_.DeviceID
+        'Size GB'  = [math]::Round($_.Size / 1GB, 1)
+        'Free GB'  = [math]::Round($_.FreeSpace / 1GB, 1)
+        'Pct Free' = [math]::Round(($_.FreeSpace / $_.Size) * 100, 1)
+    }
+}
 
-$doc | Add-OfficeWordTable -Rows ($disks.Count + 1) -Columns 4 -Style "GridTable4Accent1"
-$table = $doc.Tables[-1]
-
-$table.Rows[0].Cells[0].Paragraphs[0].Text = "Drive"
-$table.Rows[0].Cells[1].Paragraphs[0].Text = "Size (GB)"
-$table.Rows[0].Cells[2].Paragraphs[0].Text = "Free (GB)"
-$table.Rows[0].Cells[3].Paragraphs[0].Text = "% Free"
-
-for ($i = 0; $i -lt $disks.Count; $i++) {
-    $disk = $disks[$i]
-    $table.Rows[$i + 1].Cells[0].Paragraphs[0].Text = $disk.DeviceID
-    $table.Rows[$i + 1].Cells[1].Paragraphs[0].Text = [math]::Round($disk.Size / 1GB, 1).ToString()
-    $table.Rows[$i + 1].Cells[2].Paragraphs[0].Text = [math]::Round($disk.FreeSpace / 1GB, 1).ToString()
-    $table.Rows[$i + 1].Cells[3].Paragraphs[0].Text = [math]::Round(($disk.FreeSpace / $disk.Size) * 100, 1).ToString()
+$doc | Add-OfficeWordSection {
+    Add-OfficeWordParagraph -Text "Disk Usage" -Style Heading1
+    Add-OfficeWordTable -InputObject $diskRows -Style "GridTable4Accent1"
 }
 
 $doc | Save-OfficeWord
-$doc | Close-OfficeWord
+Close-OfficeWord -Document $doc
 
 Write-Host "Report saved to C:\Reports\ServerReport.docx"
 ```

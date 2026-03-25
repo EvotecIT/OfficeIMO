@@ -7,7 +7,7 @@ categories: [Tutorial]
 author: "Przemyslaw Klys"
 ---
 
-Converting Word documents to PDF is one of the most requested features in any document automation library. Traditionally it required a Windows machine with Microsoft Office or LibreOffice installed. **OfficeIMO.Word.Pdf** changes that by providing a managed-code conversion path that works on Linux, macOS, and Windows.
+Converting Word documents to PDF is one of the most requested features in any document automation library. Traditionally it required a Windows machine with Microsoft Office or a LibreOffice sidecar. **OfficeIMO.Word.Pdf** provides an in-process conversion path that works on Linux, macOS, and Windows.
 
 ## Installation
 
@@ -15,7 +15,7 @@ Converting Word documents to PDF is one of the most requested features in any do
 dotnet add package OfficeIMO.Word.Pdf
 ```
 
-The package depends on OfficeIMO.Word and a lightweight layout engine. No native binaries to install, no `apt-get` packages to manage.
+The package depends on OfficeIMO.Word together with QuestPDF and SkiaSharp. You still do not need Microsoft Office or LibreOffice, but on Linux containers you should provision fonts so text measurement and output quality stay predictable.
 
 ## Basic Conversion
 
@@ -30,23 +30,32 @@ doc.AddParagraph("Date: 2025-09-10");
 doc.AddParagraph("Amount Due: $1,250.00");
 doc.Save();
 
-// Convert to PDF
-PdfConverter.Convert("Invoice.docx", "Invoice.pdf");
+// Export the document directly to PDF
+doc.SaveAsPdf("Invoice.pdf");
 ```
 
-That is it. Two lines to go from DOCX to PDF.
+That is it. Two lines to go from DOCX to PDF once the document exists.
 
 ## Stream-Based Conversion
 
 For web applications and cloud functions, you often work with streams rather than files:
 
 ```csharp
+using System.IO;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
+
+using var doc = WordDocument.Create("Invoice.docx");
+doc.AddParagraph("Invoice #10042");
+doc.Save();
+
 using var docxStream = new MemoryStream();
 doc.Save(docxStream);
 docxStream.Position = 0;
 
+using var loaded = WordDocument.Load(docxStream);
 using var pdfStream = new MemoryStream();
-PdfConverter.Convert(docxStream, pdfStream);
+loaded.SaveAsPdf(pdfStream);
 
 // Upload pdfStream to blob storage or return as HTTP response
 ```
@@ -78,14 +87,18 @@ The key detail is the font packages. PDF rendering needs real font files to comp
 A minimal API endpoint that accepts a DOCX upload and returns a PDF:
 
 ```csharp
+using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
+
 app.MapPost("/convert", async (IFormFile file) =>
 {
-    using var input = new MemoryStream();
+    await using var input = new MemoryStream();
     await file.CopyToAsync(input);
     input.Position = 0;
 
+    using var document = WordDocument.Load(input);
     var output = new MemoryStream();
-    PdfConverter.Convert(input, output);
+    document.SaveAsPdf(output);
     output.Position = 0;
 
     return Results.File(output, "application/pdf", "converted.pdf");
@@ -96,7 +109,7 @@ Deploy this behind a load balancer and you have a scalable, stateless conversion
 
 ## Font Handling Tips
 
-- **Embed fonts in the DOCX.** If the source document embeds its fonts, OfficeIMO.Word.Pdf uses them directly, producing pixel-identical output regardless of what is installed on the host.
+- **Embed fonts in the DOCX when possible.** That reduces surprises, but host fonts still matter for fallback and for documents that reference fonts that are not embedded.
 - **Fallback fonts.** If a font is missing and not embedded, the converter substitutes the closest available font. Install `ttf-liberation` or `ttf-dejavu` to minimise mismatches.
 - **CJK text.** For Chinese, Japanese, or Korean content, install `font-noto-cjk` on Alpine or `fonts-noto-cjk` on Debian.
 
@@ -104,4 +117,4 @@ Deploy this behind a load balancer and you have a scalable, stateless conversion
 
 The conversion engine handles paragraphs, tables, images, headers, footers, page breaks, and basic styles well. Complex features like SmartArt, embedded OLE objects, and advanced text effects may render with reduced fidelity. For those edge cases, consider Aspose or a LibreOffice sidecar container.
 
-For the vast majority of business documents, invoices, letters, reports, and contracts, OfficeIMO.Word.Pdf produces clean, professional PDFs without any commercial dependency.
+For the vast majority of business documents, invoices, letters, reports, and contracts, OfficeIMO.Word.Pdf produces clean, professional PDFs without a commercial dependency.
