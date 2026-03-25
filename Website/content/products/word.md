@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO.Word"
-description: "Create and edit Word documents without Microsoft Office. Paragraphs, tables, images, charts, watermarks, and more from pure .NET."
+description: "Create and edit Word documents from .NET. Paragraphs, tables, images, charts, watermarks, and more without Office automation."
 layout: product
 product_color: "#2563eb"
 install: "dotnet add package OfficeIMO.Word"
@@ -11,7 +11,7 @@ api_url: "/api/word/"
 
 ## Why OfficeIMO.Word?
 
-OfficeIMO.Word gives you full control over `.docx` files from any .NET application. No COM interop, no Office installation, no license fees. Build reports, contracts, invoices, and any document you can imagine with a clean, discoverable API.
+OfficeIMO.Word helps .NET applications generate and modify `.docx` files without COM interop or Office automation. It is a good fit for reports, contracts, invoices, and other structured document workflows where you want code-first control over content, layout, and packaging.
 
 ## Features
 

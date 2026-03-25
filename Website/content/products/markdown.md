@@ -11,7 +11,7 @@ api_url: "/api/markdown/"
 
 ## Why OfficeIMO.Markdown?
 
-OfficeIMO.Markdown is a purpose-built Markdown engine for .NET. It gives you a strongly typed AST, a fluent builder for document construction, and multiple reader profiles so you can parse CommonMark, GFM, or OfficeIMO-flavored Markdown with one library. Every node carries source span information, making it ideal for tooling, linters, and editor integrations.
+OfficeIMO.Markdown is a purpose-built Markdown engine for .NET. It gives you a strongly typed AST, a fluent builder for document construction, and multiple reader profiles so you can parse CommonMark, GFM, or OfficeIMO-flavored Markdown with one library. Every node carries source span information, which makes it a practical fit for tooling, linters, and editor integrations.
 
 ## Features
 
@@ -74,7 +74,7 @@ foreach (var block in parsed.DescendantsAndSelf())
 | .NET Standard 2.0 | Yes       |
 | .NET Framework 4.7.2 | Yes   |
 
-OfficeIMO.Markdown runs on Windows, Linux, and macOS. It is AOT-compatible and trimming-safe.
+OfficeIMO.Markdown runs on Windows, Linux, and macOS. It is one of the lower-risk packages in the repo for trimming- or AOT-sensitive deployments, but you should still validate your own publish configuration and runtime targets.
 
 ## Related guides
 

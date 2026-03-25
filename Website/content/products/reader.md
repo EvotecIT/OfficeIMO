@@ -91,7 +91,7 @@ Console.WriteLine($"Returned {documents.Sum(d => d.ChunksProduced)} chunks");
 | .NET Standard 2.0 | Yes       |
 | .NET Framework 4.7.2 | Yes   |
 
-OfficeIMO.Reader targets the same cross-platform .NET runtimes as the packages it builds on, and the core extraction flow is a good fit for containers, hosted services, and server-side indexing jobs. As with any mixed-format pipeline, validate your exact deployment shape, input set, and runtime targets before treating it as drop-in for every environment.
+OfficeIMO.Reader targets the same cross-platform .NET runtimes as the packages it builds on, and the core extraction flow is a good fit for containers, hosted services, and server-side indexing jobs. As with any mixed-format pipeline, validate your exact deployment shape, input set, and runtime targets before treating it as broadly portable across every environment.
 
 ## Related guides
 

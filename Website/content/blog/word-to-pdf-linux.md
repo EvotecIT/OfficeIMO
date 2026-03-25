@@ -7,7 +7,7 @@ categories: [Tutorial]
 author: "Przemyslaw Klys"
 ---
 
-Converting Word documents to PDF is one of the most requested features in any document automation library. Traditionally it required a Windows machine with Microsoft Office or a LibreOffice sidecar. **OfficeIMO.Word.Pdf** provides an in-process conversion path that works on Linux, macOS, and Windows.
+Converting Word documents to PDF is one of the most requested features in document automation. Traditionally it often meant a Windows machine with Microsoft Office or a LibreOffice sidecar. **OfficeIMO.Word.Pdf** provides an in-process conversion path that can be hosted on Linux, macOS, and Windows, provided you validate fonts and runtime packaging for your deployment.
 
 ## Installation
 
@@ -117,4 +117,4 @@ Deploy this behind a load balancer and you have a scalable, stateless conversion
 
 The conversion engine handles paragraphs, tables, images, headers, footers, page breaks, and basic styles well. Complex features like SmartArt, embedded OLE objects, and advanced text effects may render with reduced fidelity. For those edge cases, consider Aspose or a LibreOffice sidecar container.
 
-For the vast majority of business documents, invoices, letters, reports, and contracts, OfficeIMO.Word.Pdf produces clean, professional PDFs without a commercial dependency.
+For many business documents, including invoices, letters, reports, and contracts, OfficeIMO.Word.Pdf can produce solid PDF output without Office automation. As always with document rendering, validate the result against the templates and fidelity requirements that matter to your workflow.

@@ -95,7 +95,7 @@ This is the kind of structural manipulation that is awkward with a string-based 
 
 ## AOT and Trimming
 
-Because OfficeIMO.Markdown keeps its dependency surface small and avoids the heavier Open XML document stack, it is one of the strongest candidates in the repo for trimming- or AOT-sensitive deployments. Even so, you should still validate your own publish configuration rather than treating size or startup numbers as universal guarantees.
+Because OfficeIMO.Markdown keeps its dependency surface small and avoids the heavier Open XML document stack, it is one of the lower-risk packages in the repo for trimming- or AOT-sensitive deployments. Even so, you should still validate your own publish configuration rather than treating size or startup numbers as universal guarantees.
 
 ## When to Use Markdig Instead
 
