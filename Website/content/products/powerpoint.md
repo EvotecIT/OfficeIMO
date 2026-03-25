@@ -84,7 +84,7 @@ presentation.Save();
 | .NET Standard 2.0 | Yes       |
 | .NET Framework 4.7.2 | Yes   |
 
-OfficeIMO.PowerPoint runs on Windows, Linux, and macOS. Output files are compatible with Microsoft PowerPoint, LibreOffice Impress, Google Slides, and Keynote.
+OfficeIMO.PowerPoint runs on Windows, Linux, and macOS. It generates standard `.pptx` files intended for PowerPoint and other OOXML-capable presentation tools.
 
 ## Related guides
 

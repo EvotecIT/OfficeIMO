@@ -12,8 +12,8 @@ OfficeIMO packages are designed with modern .NET deployment scenarios in mind, i
 
 | Package | Trimming Ready | AOT Ready | Notes |
 |---------|---------------|-----------|-------|
-| OfficeIMO.Markdown | Yes | Yes | Zero dependencies, fully trimming-safe |
-| OfficeIMO.CSV | Yes | Yes | Zero dependencies, fully trimming-safe |
+| OfficeIMO.Markdown | Yes | Yes | Small dependency surface and the strongest AOT fit in the repo |
+| OfficeIMO.CSV | Yes | Yes | Lightweight package and a strong fit for trimmed deployments |
 | OfficeIMO.Word | Partial | Partial | Depends on Open XML SDK reflection patterns |
 | OfficeIMO.Excel | Partial | Partial | Depends on Open XML SDK reflection patterns |
 | OfficeIMO.Word.Html | Partial | Partial | AngleSharp uses reflection for CSS parsing |
@@ -21,7 +21,7 @@ OfficeIMO packages are designed with modern .NET deployment scenarios in mind, i
 
 ## Trimming Polyfills
 
-All OfficeIMO packages enable trimming polyfills in their project files:
+Some OfficeIMO projects enable trimming polyfills in their project files:
 
 ```xml
 <PropertyGroup>
@@ -29,7 +29,7 @@ All OfficeIMO packages enable trimming polyfills in their project files:
 </PropertyGroup>
 ```
 
-This ensures that polyfill APIs used for .NET Standard 2.0 compatibility are trimming-compatible.
+That helps where those compatibility shims are used, but it should not be read as a blanket guarantee that every package is trimming-safe in every scenario.
 
 ## Configuring Trimmed Publishing
 
@@ -89,17 +89,17 @@ To publish with Native AOT:
 
 ### AOT-Safe Packages
 
-**OfficeIMO.Markdown** and **OfficeIMO.CSV** are fully AOT-compatible because they:
+**OfficeIMO.Markdown** and **OfficeIMO.CSV** are the best starting points for AOT-sensitive workloads because they:
 
 - Have zero external dependencies
 - Use no reflection
 - Use no dynamic code generation
 - Use nullable annotations and latest C# features for analyzer compatibility
 
-Example AOT-published Markdown generator:
+Example Markdown generator for AOT experiments:
 
 ```csharp
-// Program.cs -- this will AOT-compile cleanly
+// Program.cs
 using OfficeIMO.Markdown;
 
 var doc = MarkdownDoc.Create()
@@ -139,11 +139,11 @@ For a single-file deployment without full AOT:
 </PropertyGroup>
 ```
 
-This approach is fully compatible with all OfficeIMO packages and does not trigger any reflection-related issues.
+This approach is often easier than full AOT, but you should still validate the exact package combination and code paths your application uses.
 
 ## Best Practices
 
-1. **Prefer OfficeIMO.Markdown and OfficeIMO.CSV** for AOT scenarios -- they are fully compatible.
+1. **Prefer OfficeIMO.Markdown and OfficeIMO.CSV** for AOT scenarios -- they are the lowest-risk packages in the repo for that style of deployment.
 2. **Test early** -- If you plan to publish with AOT or trimming, test from the start of your project.
 3. **Pin Open XML SDK version** -- OfficeIMO pins to `[3.3.0, 4.0.0)`. Stay within this range for tested compatibility.
 4. **Use `TrimMode=link`** -- This is more aggressive than `copyused` but gives smaller binaries. Test thoroughly.
@@ -152,4 +152,4 @@ This approach is fully compatible with all OfficeIMO packages and does not trigg
 
 ## Future Outlook
 
-As the Open XML SDK improves its AOT annotations (tracking issue: [dotnet/Open-XML-SDK#1424](https://github.com/dotnet/Open-XML-SDK/issues/1424)), OfficeIMO.Word and OfficeIMO.Excel will inherit those improvements automatically. The OfficeIMO team enables all necessary polyfills and annotations on their side to ensure readiness.
+As the Open XML SDK improves its AOT annotations (tracking issue: [dotnet/Open-XML-SDK#1424](https://github.com/dotnet/Open-XML-SDK/issues/1424)), the Open XML-based OfficeIMO packages should benefit as well. Until then, treat trimming and AOT as scenario-driven validation work rather than a blanket promise.

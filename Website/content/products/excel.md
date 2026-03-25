@@ -75,7 +75,7 @@ workbook.Save();
 | .NET Standard 2.0 | Yes       |
 | .NET Framework 4.7.2 | Yes   |
 
-OfficeIMO.Excel runs on Windows, Linux, and macOS. Generated workbooks are fully compatible with Microsoft Excel, LibreOffice Calc, and Google Sheets.
+OfficeIMO.Excel runs on Windows, Linux, and macOS. It generates standard `.xlsx` workbooks intended for Excel and other OOXML-capable spreadsheet tools.
 
 ## Related guides
 

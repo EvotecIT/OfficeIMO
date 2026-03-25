@@ -117,7 +117,7 @@ doc.Save();
 Console.WriteLine("Report.docx created successfully.");
 ```
 
-Run this with `dotnet run` and open the resulting file in Word, LibreOffice, or Google Docs. Every element renders correctly because OfficeIMO produces standards-compliant Open XML.
+Run this with `dotnet run` and inspect the resulting file in Word or another OOXML-capable editor. OfficeIMO writes standard Open XML packages, but visual fidelity still depends on the specific viewer and feature set involved.
 
 ## Next Steps
 

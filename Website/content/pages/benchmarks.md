@@ -1,36 +1,37 @@
 ---
 title: "Performance Benchmarks"
-description: "Measured performance of OfficeIMO operations across all packages."
+description: "Representative performance snapshots for common OfficeIMO workflows."
 layout: page
 ---
 
 # Performance Benchmarks
 
-All benchmarks measured on .NET 8.0, Release configuration, on a modern x64 machine. Times represent median of 100 iterations after warmup.
+The figures below are representative performance snapshots for common OfficeIMO scenarios. Treat them as directional guidance rather than formal cross-machine guarantees.
 
 {{< benchmarks >}}
 
-## Methodology
+## How to Read These Numbers
 
-Benchmarks use [BenchmarkDotNet](https://benchmarkdotnet.org/) with the following configuration:
-- **Runtime:** .NET 8.0, Release configuration
-- **Iterations:** 100 after 10 warmup iterations
-- **Hardware:** AMD Ryzen 9, 32GB RAM, NVMe SSD
-- **OS:** Windows 11
+- The scenarios are intended to show relative shape and typical workflow cost, not certify a universal SLA.
+- Real throughput depends on document size, formatting complexity, runtime version, storage, CPU, and whether your workload is write-only or read/modify.
+- If performance matters for your use case, benchmark your own document patterns rather than relying on generic sample numbers.
 
-All document operations include the full create-to-save cycle, including serialization to the Open XML format.
+## What the Table Is Good For
 
-## Key Takeaways
+- Spotting which packages are lightweight for report-generation style workloads.
+- Understanding that Markdown and CSV are cheaper to process than full Open XML document pipelines.
+- Seeing where parallel Excel operations can help on multi-core machines.
 
-- **Word operations** are consistently fast, with simple documents creating in under 15ms
-- **Excel parallel execution** provides 2-3x speedup for bulk operations on multi-core machines
-- **Markdown** is extremely fast due to zero external dependencies and efficient parsing
-- **CSV** handles 100K rows in ~120ms with full typed mapping, competitive with dedicated CSV libraries
+## Reproducing or Extending Benchmarks
 
-## Running Benchmarks Yourself
+Benchmark projects in this repo are package-specific rather than one universal harness. If you want to validate a workload:
 
-Clone the repository and run:
+1. Start from the relevant package or sample project.
+2. Recreate the document shapes that matter to your application.
+3. Measure on the target runtime, OS, and hardware you plan to ship.
+
+For example, the repo currently includes a dedicated benchmark project for Markdown:
 
 ```bash
-dotnet run -c Release --project OfficeIMO.Benchmarks
+dotnet run -c Release --project OfficeIMO.Markdown.Benchmarks
 ```

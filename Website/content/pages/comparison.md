@@ -1,75 +1,66 @@
 ---
 title: "OfficeIMO vs Commercial Alternatives"
-description: "Detailed feature and pricing comparison of OfficeIMO against Aspose, GemBox, and Syncfusion."
+description: "A practical trade-off overview between OfficeIMO and proprietary Office document libraries."
 layout: page
 ---
 
-OfficeIMO provides a comprehensive, open-source alternative to commercial Office document libraries. Here's how we compare.
+OfficeIMO is an open-source option for Open XML document automation in .NET and PowerShell. Commercial suites can still be the better fit in some environments, but the trade-off is usually about breadth, support, and licensing model rather than whether simple document automation is possible at all.
 
-## Pricing Comparison
+## Licensing Model
 
-| Library | Price | License |
-|---------|-------|---------|
-| **OfficeIMO** | **$0** | MIT (free forever) |
-| Aspose.Total | $999/dev/year | Commercial |
-| GemBox Bundle | $890/developer | Commercial |
-| Syncfusion Essential Studio | ~$995/dev/year | Commercial |
+| Approach | Typical model | What it means |
+|---------|---------------|---------------|
+| **OfficeIMO** | MIT, source available | No per-developer fee, no runtime royalty, and the implementation is inspectable. |
+| Proprietary suites | Commercial license or subscription | Usually broader format coverage and vendor support, but with ongoing licensing cost. |
 
-## Feature Comparison
+Commercial pricing and SKU details change frequently, so verify current terms directly with each vendor before making a purchasing decision.
 
-| Feature | OfficeIMO | Aspose | GemBox | Syncfusion |
-|---------|-----------|--------|--------|------------|
-| Word (.docx) | Yes | Yes | Yes | Yes |
-| Excel (.xlsx) | Yes | Yes | Yes | Yes |
-| PowerPoint (.pptx) | Yes | Yes | Yes | Yes |
-| Visio (.vsdx) | Yes | Yes | No | No |
-| Markdown | Yes | No | No | No |
-| CSV (typed) | Yes | No | No | No |
-| Unified Reader | Yes | No | No | No |
-| PowerShell Module | Yes | No | No | No |
-| Open Source | Yes | No | No | No |
-| NativeAOT Support | Yes | No | No | No |
-| COM-Free | Yes | Yes | Yes | Yes |
-| Cross-Platform | Yes | Yes | Yes | Yes |
-| .NET Standard 2.0 | Yes | Yes | Yes | Yes |
-| .NET 8+ | Yes | Yes | Yes | Yes |
+## Where OfficeIMO Is Strong
 
-## What OfficeIMO Does Differently
+### Open source and inspectable
+OfficeIMO is developed in the open and shipped under the MIT license. If you need to understand how a document is produced, debug a format edge case, or patch behavior locally, the source is available.
 
-### Open Source & Free Forever
-OfficeIMO is MIT-licensed. There are no per-developer fees, runtime royalties, or locked features. You get the full library for free, and you can inspect and modify the source code.
+### First-party PowerShell automation
+PSWriteOffice gives OfficeIMO a native PowerShell surface with generated help, cmdlets, and DSL aliases. If your team automates reports or office documents from scripts, that is a practical differentiator inside this repo.
 
-### PowerShell-First Automation
-No other commercial library offers a dedicated PowerShell module. PSWriteOffice provides 150+ cmdlets and a DSL that lets you create Office documents from PowerShell scripts without touching C#.
+### Focused package model
+OfficeIMO is not one monolithic bundle. The repo includes focused packages such as:
 
-### Markdown & CSV Libraries
-OfficeIMO includes purpose-built Markdown and CSV packages that commercial suites don't offer. The Markdown library features a typed AST, fluent builder, and HTML renderer. The CSV package provides schema validation and typed mapping without reflection.
+- `OfficeIMO.Word` for `.docx` generation and editing.
+- `OfficeIMO.Excel` for `.xlsx` generation and extraction.
+- `OfficeIMO.PowerPoint` for `.pptx` generation.
+- `OfficeIMO.Markdown` and `OfficeIMO.CSV` for repository-friendly document and data workflows.
+- `OfficeIMO.Reader` for normalized extraction across multiple document types.
 
-### NativeAOT Ready
-OfficeIMO's Markdown and CSV packages are fully AOT/trimming-safe, making them ideal for serverless, container, and edge deployment scenarios.
+### Better fit for modern deployment workflows
+The core packages are COM-free and designed for server, CI, container, and automation scenarios. Markdown and CSV are especially lightweight and are the strongest fit for trimmed or AOT-sensitive workloads.
 
-### Unified Document Reader
-The OfficeIMO.Reader package provides a single API to extract content from Word, Excel, PowerPoint, Markdown, and PDF, with heading-aware chunking designed for AI ingestion pipelines.
+## Where Commercial Suites May Still Win
 
-## When to Choose a Commercial Library
+Commercial libraries are often a better choice when you need:
 
-Commercial libraries like Aspose may be the better choice when you need:
-- **PDF generation** from complex layouts (Aspose has a dedicated PDF library)
-- **Email format support** (MSG, EML)
-- **Legacy format support** (DOC, XLS, PPT - binary Office formats)
-- **Dedicated commercial support** with SLA guarantees
-- **Extensive documentation** with hundreds of code examples
+- Broader file-format coverage beyond the Open XML-focused package set in this repo.
+- Legacy binary Office formats such as `.doc`, `.xls`, or `.ppt`.
+- Large vendor-maintained documentation catalogs and formal support channels.
+- Procurement-friendly SLAs, legal review paths, or enterprise purchasing controls.
 
-## Making the Switch
+## Current AOT and Trimming Reality
 
-Already using Aspose or GemBox? OfficeIMO's API is designed to be intuitive and doesn't require a migration guide. The fluent API patterns make most operations self-documenting:
+OfficeIMO does **not** have one uniform AOT story across every package.
 
-```csharp
-// Aspose-style: complex, verbose
-// OfficeIMO: clean, fluent
-using var doc = WordDocument.Create("report.docx");
-doc.AddParagraph("Hello World").SetBold();
-doc.Save();
-```
+- `OfficeIMO.Markdown` and `OfficeIMO.CSV` are the most AOT-friendly packages in the repo.
+- `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Reader` depend on Open XML-based code paths and should be tested with your actual `PublishAot` or trimming scenario.
+- `OfficeIMO.Word.Pdf` also adds QuestPDF/SkiaSharp and should be validated on the target OS with the fonts you plan to ship.
+
+## Reader and Automation Differentiators
+
+Two areas where OfficeIMO is meaningfully different inside this repo are:
+
+- `OfficeIMO.Reader`, which exposes one extraction surface for Word, Excel, PowerPoint, Markdown, PDF, and optional text-like adapters.
+- PSWriteOffice, which gives the same ecosystem a first-party PowerShell workflow.
+
+## Choosing Pragmatically
+
+If you need open-source, COM-free document automation with a friendly .NET and PowerShell story, OfficeIMO is a strong starting point. If you later discover that your workload needs broader format coverage, tighter vendor guarantees, or specialized rendering, a commercial library may still be the right complement.
 
 [Get started with OfficeIMO](/docs/getting-started/) or [view the full API reference](/api/).

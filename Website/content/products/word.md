@@ -73,7 +73,7 @@ document.Save();
 | .NET Standard 2.0 | Yes       |
 | .NET Framework 4.7.2 | Yes   |
 
-OfficeIMO.Word runs on Windows, Linux, and macOS. It produces files that open correctly in Microsoft Word, LibreOffice Writer, Google Docs, and other OOXML-compatible applications.
+OfficeIMO.Word runs on Windows, Linux, and macOS. It produces standard `.docx` files intended for Word and other OOXML-capable editors.
 
 ## Related guides
 
