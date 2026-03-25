@@ -7,11 +7,11 @@ categories: [Announcement]
 author: "Przemyslaw Klys"
 ---
 
-Today I am thrilled to announce **OfficeIMO**, a family of open-source .NET libraries that let you create, read, and manipulate Microsoft Office documents without installing Microsoft Office. Every package ships under the **MIT license**, so you can use it in commercial products, internal tools, and side projects alike without a proprietary runtime fee.
+OfficeIMO is a family of open-source .NET libraries that lets you create, read, and manipulate Microsoft Office documents without installing Microsoft Office. Every package ships under the **MIT license**, so you can use it in commercial products, internal tools, and side projects alike without a proprietary runtime fee.
 
 ## The Problem
 
-Anyone who has tried to automate Office documents on a server knows the pain. Microsoft Office Interop requires a desktop installation, COM automation is fragile under IIS, and commercial SDKs charge per-developer or per-deployment fees that can blow a budget wide open. We needed something better.
+Server-side Office automation has historically been awkward. Microsoft Office Interop requires a desktop installation, COM automation is fragile in unattended environments, and proprietary SDK costs or deployment rules are not always a fit. OfficeIMO grew out of that gap.
 
 ## What OfficeIMO Offers
 
@@ -49,7 +49,7 @@ Office automation is infrastructure. It sits at the heart of invoicing systems, 
 
 - **Full source code** you can audit, fork, and extend.
 - **Community contributions** and issue-driven improvements visible in the open.
-- **AOT and trimming work** that is strongest in some packages and still scenario-dependent in others.
+- **AOT and trimming work** that is lower-risk in some packages and still scenario-dependent in others.
 - **PowerShell integration** through **PSWriteOffice**, bringing the same capabilities to sysadmins who prefer the shell.
 
 ## What Comes Next

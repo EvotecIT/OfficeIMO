@@ -7,11 +7,11 @@ categories: [Tutorial, Deep Dive]
 author: "Przemyslaw Klys"
 ---
 
-When your reporting pipeline needs to fill a workbook with tens of thousands of rows, single-threaded cell writes become the bottleneck. **OfficeIMO.Excel** ships with a parallel compute layer that distributes work across all available cores, cutting report generation time dramatically.
+When your reporting pipeline needs to fill a workbook with tens of thousands of rows, single-threaded cell writes can become a bottleneck. **OfficeIMO.Excel** includes a parallel compute layer that can use multiple cores for bulk-oriented workloads such as row writes and column AutoFit.
 
 ## The Problem with Large Workbooks
 
-A typical financial report might contain 50,000 rows across a dozen sheets. Writing each cell sequentially, formatting it, and then running AutoFit on every column can take 30 seconds or more. On a CI runner with 8 cores, seven of those cores sit idle. That is waste we can eliminate.
+A typical financial report might contain tens of thousands of rows across multiple sheets. Writing each cell sequentially, formatting it, and then running AutoFit on every column does not always make good use of the hardware available on CI runners or application servers. Parallel execution is one way to reduce that bottleneck when the workbook shape is a good fit.
 
 ## Enabling Parallel Mode
 
@@ -66,19 +66,17 @@ Column width calculation requires measuring the rendered width of every cell in 
 sheet.AutoFitColumns(); // uses workbook.ParallelOptions automatically
 ```
 
-On an 8-core machine with 50,000 rows and 5 columns, AutoFit drops from around 4 seconds to under 600 milliseconds.
+The exact benefit depends on the number of rows, the width of the sheet, the host machine, and the fonts involved in width calculation.
 
-## Benchmarks
+## What To Measure
 
-We measured wall-clock time on a GitHub Actions `ubuntu-latest` runner (4 vCPUs):
+The benefit of parallel mode depends on workbook shape, formula density, formatting work, and the number of cores available. In practice, the biggest wins usually show up when you:
 
-| Operation | Sequential | Parallel | Speedup |
-|---|---|---|---|
-| 50K row write | 12.4 s | 3.8 s | 3.3x |
-| AutoFit 5 cols | 4.1 s | 1.2 s | 3.4x |
-| Full pipeline | 16.5 s | 5.0 s | 3.3x |
+- write large rectangular datasets
+- run `AutoFitColumns()` across wide or busy sheets
+- generate several independent sheets in one job
 
-Speedup scales roughly linearly with core count up to about 8 cores, after which memory bandwidth becomes the limiting factor.
+Treat the feature as something to benchmark on your own workload rather than assuming one universal speedup number.
 
 ## Thread Safety Notes
 
@@ -97,4 +95,4 @@ Just be sure to call `AddSheet` inside a lock or pre-create the sheets before en
 
 ## Conclusion
 
-Parallel compute in OfficeIMO.Excel turns your CI runner or application server into a high-throughput report factory. Enable it with two lines of configuration and let the framework handle partitioning, scheduling, and synchronisation for you.
+Parallel compute in OfficeIMO.Excel can help when your report generation workload is large enough to benefit from partitioning. Enable it, test it against your real workbook shapes, and keep the sequential path as the baseline for comparison.

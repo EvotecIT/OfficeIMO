@@ -1,6 +1,6 @@
 ---
 title: "AOT and Trimming: Current State in OfficeIMO"
-description: "A practical look at which OfficeIMO packages are the best fit for NativeAOT and trimming, and where you should still test carefully."
+description: "A practical look at which OfficeIMO packages are lower-risk fits for NativeAOT and trimming, and where you should still test carefully."
 date: 2025-11-01
 tags: [aot, trimming, performance]
 categories: [Deep Dive]
@@ -11,7 +11,7 @@ author: "Przemyslaw Klys"
 
 ## The Short Version
 
-- **Best fit for AOT-sensitive workloads:** `OfficeIMO.Markdown` and `OfficeIMO.CSV`
+- **Lower-risk starting points for AOT-sensitive workloads:** `OfficeIMO.Markdown` and `OfficeIMO.CSV`
 - **Test carefully with your own scenarios:** `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Reader`
 - **Treat separately:** `OfficeIMO.Word.Pdf`, because it adds PDF/layout dependencies and host-font concerns
 

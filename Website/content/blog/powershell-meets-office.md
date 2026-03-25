@@ -7,7 +7,7 @@ categories: [Tutorial]
 author: "Przemyslaw Klys"
 ---
 
-Not every document automation task warrants a full C# project. Sometimes you just need to generate an Excel summary from a CSV or spin up a Word letter from a template, and you want to do it in ten lines of PowerShell. That is exactly what **PSWriteOffice** is built for.
+Not every document automation task warrants a full C# project. Sometimes you just need to generate an Excel summary from a CSV or spin up a Word letter from a template, and you want to do it in a short PowerShell script. **PSWriteOffice** is a good fit for that kind of workflow.
 
 ## Installation
 
@@ -107,4 +107,4 @@ Schedule it with `schtasks` or `Register-ScheduledTask` and you have hands-free 
 
 The legacy approach, `New-Object -ComObject Word.Application`, requires Office installed, leaks COM handles, and fails silently in non-interactive sessions. PSWriteOffice avoids all of that by using OfficeIMO's managed document engine. No Office installation, no COM headaches, no leaked `WINWORD.EXE` processes.
 
-Give it five minutes. You will not go back.
+If you already automate with PowerShell, PSWriteOffice gives you a straightforward path into the same document workflows without COM automation.

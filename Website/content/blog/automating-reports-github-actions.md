@@ -7,7 +7,7 @@ categories: [Workflow]
 author: "Przemyslaw Klys"
 ---
 
-Every Monday morning, your team lead asks for the same report: open issues by label, pull request merge times, and a trend chart. Instead of spending 30 minutes clicking through dashboards, let GitHub Actions build the report automatically and drop it in a Teams channel or email inbox.
+Every Monday morning, your team lead asks for the same report: open issues by label, pull request merge times, and a trend chart. Instead of rebuilding it manually, you can have GitHub Actions generate the workbook on a schedule and publish it as an artifact or pass it on to the next delivery step.
 
 ## Architecture
 
@@ -141,8 +141,8 @@ Once the skeleton is working, you can add more sheets:
 
 Each sheet is just another call to `workbook.AddSheet()` with its own data.
 
-## Cost
+## Operational Note
 
-GitHub Actions provides 2,000 free minutes per month for private repositories and unlimited minutes for public repositories. A single report run takes about 30 seconds, so even daily generation stays well within the free tier.
+Runner availability, retention limits, and billing depend on your GitHub plan and repository type. Check the current GitHub Actions pricing and usage docs for the exact limits that apply to your environment.
 
-Automating the boring reports frees your team to focus on the work that matters. OfficeIMO.Excel and GitHub Actions make it surprisingly simple.
+Automating repeatable reports like this can take manual dashboard work out of the loop. OfficeIMO.Excel and GitHub Actions make a straightforward starting point for that workflow.
