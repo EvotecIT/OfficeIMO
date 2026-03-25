@@ -15,7 +15,7 @@ Large language models and search engines are hungry for text, but the text they 
 dotnet add package OfficeIMO.Reader
 ```
 
-OfficeIMO.Reader has no native dependencies. It works on Windows, Linux, and macOS.
+OfficeIMO.Reader is designed for the same cross-platform .NET environments as the packages it builds on. It fits well in local tools, hosted services, and containerized ingestion jobs, but you should still validate the exact runtime and document mix you plan to ship.
 
 ## Reading a Single Document
 

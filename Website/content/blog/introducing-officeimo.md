@@ -7,7 +7,7 @@ categories: [Announcement]
 author: "Przemyslaw Klys"
 ---
 
-Today I am thrilled to announce **OfficeIMO**, a family of open-source .NET libraries that let you create, read, and manipulate Microsoft Office documents without installing Microsoft Office. Every package ships under the **MIT license**, so you can use it in commercial products, internal tools, and side projects alike, completely free of charge.
+Today I am thrilled to announce **OfficeIMO**, a family of open-source .NET libraries that let you create, read, and manipulate Microsoft Office documents without installing Microsoft Office. Every package ships under the **MIT license**, so you can use it in commercial products, internal tools, and side projects alike without a proprietary runtime fee.
 
 ## The Problem
 
@@ -23,9 +23,9 @@ OfficeIMO is not a single library; it is a coordinated set of packages, each foc
 | **OfficeIMO.Excel** | Build XLSX workbooks with sheets, formulas, charts, and parallel compute for bulk operations |
 | **OfficeIMO.Markdown** | A zero-dependency Markdown parser and builder with a typed AST |
 | **OfficeIMO.Reader** | Extract normalized text chunks and source information from supported document formats for search and AI pipelines |
-| **OfficeIMO.Word.Pdf** | Convert DOCX to PDF on Windows and Linux without Office installed |
+| **OfficeIMO.Word.Pdf** | Convert DOCX to PDF in-process, without Office automation |
 
-All packages target **.NET 6+**, with most also supporting **.NET Framework 4.7.2** for legacy environments.
+Support varies by package, but the repo currently centers on **.NET Standard 2.0**, **.NET 8.0**, and **.NET 10.0** targets, with some projects also multi-targeting **.NET Framework 4.7.2** on Windows.
 
 ## Quick Taste
 
@@ -41,19 +41,19 @@ document.AddParagraph("This document was generated without Microsoft Word.");
 document.Save();
 ```
 
-No COM references. No Office installation. No license fees.
+No COM references. No Office installation. No proprietary SDK license requirement.
 
 ## Why Open Source Matters
 
 Office automation is infrastructure. It sits at the heart of invoicing systems, HR onboarding, regulatory reporting, and thousands of other business processes. Locking that infrastructure behind a proprietary SDK creates vendor risk. With OfficeIMO you get:
 
 - **Full source code** you can audit, fork, and extend.
-- **Community contributions** that fix bugs faster than any vendor support ticket.
-- **NativeAOT and trimming readiness** because modern deployment targets matter.
+- **Community contributions** and issue-driven improvements visible in the open.
+- **AOT and trimming work** that is strongest in some packages and still scenario-dependent in others.
 - **PowerShell integration** through **PSWriteOffice**, bringing the same capabilities to sysadmins who prefer the shell.
 
 ## What Comes Next
 
-Over the coming months we will publish deep-dive tutorials on each package, performance benchmarks against commercial alternatives, and real-world workflow guides covering CI/CD report generation, cross-platform PDF conversion, and AI-powered document ingestion.
+Over time we expect the documentation to keep growing with deeper package tutorials, more benchmark coverage for selected scenarios, and more real-world workflow guides covering CI/CD report generation, PDF conversion, and AI-oriented document ingestion.
 
-Star the repository on GitHub, open an issue if something is missing, and join us in making Office automation free for everyone.
+Star the repository on GitHub, open an issue if something is missing, and help shape an open-source approach to Office document automation.
