@@ -78,3 +78,12 @@ await foreach (var row in CsvDocument.StreamAsync("large-dataset.csv", schema))
 | .NET Framework 4.7.2 | Yes   |
 
 OfficeIMO.CSV runs on Windows, Linux, and macOS. It handles RFC 4180 compliant files as well as common real-world variations (quoted fields, embedded newlines, BOM markers).
+
+## Related guides
+
+| Guide | Description |
+|-------|-------------|
+| [CSV documentation](/docs/csv/) | Start with the package overview and document model. |
+| [AOT and trimming](/docs/advanced/aot-trimming/) | Keep CSV tooling lean for Native AOT and trimmed deployments. |
+| [Reader and extraction](/docs/reader/) | Feed CSV and other document types into one ingestion workflow. |
+| [Getting started](/docs/getting-started/) | Review install and package-selection guidance across the suite. |

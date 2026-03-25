@@ -76,3 +76,12 @@ workbook.Save();
 | .NET Framework 4.7.2 | Yes   |
 
 OfficeIMO.Excel runs on Windows, Linux, and macOS. Generated workbooks are fully compatible with Microsoft Excel, LibreOffice Calc, and Google Sheets.
+
+## Related guides
+
+| Guide | Description |
+|-------|-------------|
+| [Excel documentation](/docs/excel/) | Start with workbook concepts, lifecycle, and execution model. |
+| [Worksheets guide](/docs/excel/worksheets/) | Create sheets, write values, and work with formulas. |
+| [Tables and ranges](/docs/excel/tables-ranges/) | Add structured tables, validation, and conditional formatting. |
+| [PSWriteOffice Excel cmdlets](/docs/pswriteoffice/excel/) | Generate workbooks from PowerShell automation. |

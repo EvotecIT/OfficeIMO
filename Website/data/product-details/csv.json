@@ -5,7 +5,7 @@
   "install": "dotnet add package OfficeIMO.CSV",
   "color": "#0891b2",
   "docsUrl": "/docs/csv/",
-  "apiUrl": "/api/csv/",
+  "apiUrl": "",
   "targets": [".NET 8.0", ".NET 10.0", ".NET Standard 2.0", ".NET Framework 4.7.2"],
   "dependencies": [],
   "features": [

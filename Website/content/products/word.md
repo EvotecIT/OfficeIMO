@@ -75,6 +75,15 @@ document.Save();
 
 OfficeIMO.Word runs on Windows, Linux, and macOS. It produces files that open correctly in Microsoft Word, LibreOffice Writer, Google Docs, and other OOXML-compatible applications.
 
+## Related guides
+
+| Guide | Description |
+|-------|-------------|
+| [Word documentation](/docs/word/) | Start with the package overview and document structure. |
+| [Tables guide](/docs/word/tables/) | Build styled tables, merged cells, and richer layouts. |
+| [Word to HTML](/docs/converters/word-html/) | Convert generated documents to and from HTML. |
+| [PSWriteOffice Word cmdlets](/docs/pswriteoffice/word/) | Automate Word output from PowerShell scripts. |
+
 ## Related packages
 
 | Package | Description |

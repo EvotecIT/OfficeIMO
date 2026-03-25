@@ -80,3 +80,12 @@ foreach (var block in parsed.Blocks)
 | .NET Framework 4.7.2 | Yes   |
 
 OfficeIMO.Markdown runs on Windows, Linux, and macOS. It is AOT-compatible and trimming-safe.
+
+## Related guides
+
+| Guide | Description |
+|-------|-------------|
+| [Markdown documentation](/docs/markdown/) | Start with the package overview and document model. |
+| [Builder API](/docs/markdown/builder/) | Compose documents fluently with headings, tables, and callouts. |
+| [PSWriteOffice Markdown cmdlets](/docs/pswriteoffice/markdown/) | Generate Markdown from PowerShell objects and scripts. |
+| [Word to Markdown](/docs/converters/word-markdown/) | Convert between Word documents and Markdown workflows. |

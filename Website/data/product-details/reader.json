@@ -5,7 +5,7 @@
   "install": "dotnet add package OfficeIMO.Reader",
   "color": "#4f46e5",
   "docsUrl": "/docs/reader/",
-  "apiUrl": "/api/reader/",
+  "apiUrl": "",
   "targets": [".NET 8.0", ".NET 10.0", ".NET Standard 2.0", ".NET Framework 4.7.2"],
   "dependencies": ["OfficeIMO.Word", "OfficeIMO.Excel", "OfficeIMO.PowerPoint", "OfficeIMO.Markdown"],
   "features": [
