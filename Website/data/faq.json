@@ -13,7 +13,7 @@
         },
         {
           "question": "Is OfficeIMO free for commercial use?",
-          "answer": "<p>Yes. OfficeIMO is licensed under the <strong>MIT License</strong>, which permits commercial use, modification, and distribution with no restrictions. There are no per-developer fees, runtime royalties, or feature gating.</p>"
+          "answer": "<p>Yes. The OfficeIMO packages themselves are published under the <strong>MIT License</strong>. However, some optional package families build on third-party dependencies with their own upstream terms, so commercial teams should also review our <a href='/third-party/'>Third-Party Dependencies</a> page during OSS approval.</p>"
         },
         {
           "question": "How does OfficeIMO compare to Aspose or GemBox?",
@@ -42,7 +42,7 @@
       "items": [
         {
           "question": "What are the dependencies?",
-          "answer": "<p>The core Word, Excel, and PowerPoint packages depend on <strong>DocumentFormat.OpenXml</strong> (Microsoft's official Open XML SDK). Image handling uses <strong>SixLabors.ImageSharp</strong>. The Markdown and CSV packages have zero external dependencies.</p>"
+          "answer": "<p>The core Office document packages are built on <strong>DocumentFormat.OpenXml</strong>, while image- and converter-oriented packages also use components such as <strong>SixLabors.ImageSharp</strong>, <strong>AngleSharp</strong>, and <strong>QuestPDF</strong> depending on the feature area. The Markdown and CSV core packages stay dependency-light. See the <a href='/third-party/'>Third-Party Dependencies</a> page for the package-by-package breakdown and upstream license notes.</p>"
         },
         {
           "question": "Can I convert Word documents to PDF?",

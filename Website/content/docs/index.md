@@ -56,7 +56,7 @@ OfficeIMO is an open-source, cross-platform suite of .NET libraries for creating
 
 ## License
 
-OfficeIMO is licensed under the [MIT License](https://github.com/EvotecIT/OfficeIMO/blob/master/LICENSE). Copyright (c) Przemyslaw Klys @ Evotec.
+OfficeIMO is licensed under the [MIT License](https://github.com/EvotecIT/OfficeIMO/blob/master/LICENSE). Copyright (c) Przemyslaw Klys @ Evotec. If you need to review upstream runtime dependencies such as Open XML SDK, ImageSharp, or QuestPDF, see the [Third-Party Dependencies](/third-party/) page.
 
 ## Source Code
 

@@ -278,6 +278,7 @@
         "Name": "footer-resources",
         "Items": [
           { "Title": "FAQ", "Url": "/faq/" },
+          { "Title": "Third-Party Dependencies", "Url": "/third-party/" },
           { "Title": "Downloads", "Url": "/downloads/" },
           { "Title": "Changelog", "Url": "/changelog/" },
           { "Title": "Benchmarks", "Url": "/benchmarks/" },
