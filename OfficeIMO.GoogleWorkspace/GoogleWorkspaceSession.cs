@@ -13,6 +13,17 @@ namespace OfficeIMO.GoogleWorkspace {
         public IGoogleWorkspaceCredentialSource CredentialSource { get; }
         public GoogleWorkspaceSessionOptions Options { get; }
 
+        public GoogleDriveFileLocation ResolveLocationDefaults(GoogleDriveFileLocation? location) {
+            location ??= new GoogleDriveFileLocation();
+
+            return new GoogleDriveFileLocation {
+                DriveId = string.IsNullOrWhiteSpace(location.DriveId) ? Options.DefaultDriveId : location.DriveId,
+                FolderId = string.IsNullOrWhiteSpace(location.FolderId) ? Options.DefaultFolderId : location.FolderId,
+                ExistingFileId = location.ExistingFileId,
+                SharedDriveAware = location.SharedDriveAware,
+            };
+        }
+
         public Task<GoogleWorkspaceAccessToken> AcquireAccessTokenAsync(
             IEnumerable<string> scopes,
             CancellationToken cancellationToken = default) {

@@ -12,6 +12,18 @@ namespace OfficeIMO.GoogleWorkspace {
         public void Add(TranslationSeverity severity, string feature, string message, string path = "") {
             _notices.Add(new TranslationNotice(path, feature, severity, message));
         }
+
+        public void AddUnique(TranslationSeverity severity, string feature, string message, string path = "") {
+            if (_notices.Any(n =>
+                n.Severity == severity
+                && string.Equals(n.Feature, feature, StringComparison.Ordinal)
+                && string.Equals(n.Message, message, StringComparison.Ordinal)
+                && string.Equals(n.Path, path, StringComparison.Ordinal))) {
+                return;
+            }
+
+            _notices.Add(new TranslationNotice(path, feature, severity, message));
+        }
     }
 
     /// <summary>

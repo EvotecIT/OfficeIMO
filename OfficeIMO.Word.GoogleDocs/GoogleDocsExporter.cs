@@ -35,27 +35,56 @@ namespace OfficeIMO.Word.GoogleDocs {
 
             var effectiveOptions = options ?? new GoogleDocsSaveOptions();
             var batch = BuildBatch(document, effectiveOptions);
-            if (string.IsNullOrWhiteSpace(effectiveOptions.Location.FolderId) && !string.IsNullOrWhiteSpace(effectiveOptions.Location.DriveId)) {
-                batch.Report.Add(
+            var effectiveLocation = session.ResolveLocationDefaults(effectiveOptions.Location);
+            if (string.IsNullOrWhiteSpace(effectiveLocation.FolderId) && !string.IsNullOrWhiteSpace(effectiveLocation.DriveId)) {
+                GoogleWorkspaceDiagnosticsDispatcher.Add(
+                    batch.Report,
+                    session.Options,
                     TranslationSeverity.Warning,
                     "DrivePlacement",
                     "Drive placement requires a concrete FolderId. Supplying DriveId without FolderId is still treated as diagnostic-only.");
             }
 
-            var accessToken = await session.AcquireAccessTokenAsync(GoogleWorkspaceScopeCatalog.DocsAuthoring, cancellationToken).ConfigureAwait(false);
+            GoogleWorkspaceAccessToken accessToken;
+            try {
+                accessToken = await session.AcquireAccessTokenAsync(GoogleWorkspaceScopeCatalog.DocsAuthoring, cancellationToken).ConfigureAwait(false);
+            } catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested) {
+                throw GoogleWorkspaceFailureDiagnostics.CreateRequestTimeoutFailure(
+                    "Google Docs export token acquisition",
+                    session.Options,
+                    batch.Report,
+                    ex);
+            } catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested) {
+                throw GoogleWorkspaceFailureDiagnostics.CreateCanceledFailure(
+                    "Google Docs export",
+                    session.Options,
+                    batch.Report,
+                    ex);
+            } catch (Exception ex) when (!(ex is OperationCanceledException)) {
+                throw GoogleWorkspaceFailureDiagnostics.CreateTokenAcquisitionFailure(
+                    "Google Docs export",
+                    GoogleWorkspaceScopeCatalog.DocsAuthoring,
+                    session,
+                    batch.Report,
+                    ex);
+            }
+
+            var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(session.Options);
 
             bool disposeClient = session.Options.HttpClient == null;
             var client = session.Options.HttpClient ?? new HttpClient();
             try {
                 client.Timeout = session.Options.RequestTimeout;
 
-                if (!string.IsNullOrWhiteSpace(effectiveOptions.Location.ExistingFileId)) {
+                if (!string.IsNullOrWhiteSpace(effectiveLocation.ExistingFileId)) {
                     var existingDocument = await SendAsync<GoogleDocsApiDocumentResponse>(
                         client,
                         accessToken.AccessToken,
                         HttpMethod.Get,
-                        $"https://docs.googleapis.com/v1/documents/{effectiveOptions.Location.ExistingFileId}",
+                        $"https://docs.googleapis.com/v1/documents/{effectiveLocation.ExistingFileId}",
                         null,
+                        retryOptions,
+                        batch.Report,
                         cancellationToken).ConfigureAwait(false);
 
                     var resetPayload = GoogleDocsApiPayloadBuilder.BuildResetDocumentPayload(existingDocument);
@@ -64,23 +93,28 @@ namespace OfficeIMO.Word.GoogleDocs {
                             client,
                             accessToken.AccessToken,
                             HttpMethod.Post,
-                            $"https://docs.googleapis.com/v1/documents/{effectiveOptions.Location.ExistingFileId}:batchUpdate",
+                            $"https://docs.googleapis.com/v1/documents/{effectiveLocation.ExistingFileId}:batchUpdate",
                             resetPayload,
+                            retryOptions,
+                            batch.Report,
                             cancellationToken).ConfigureAwait(false);
                     }
 
                     await ApplyDocumentContentAsync(
                         client,
                         accessToken.AccessToken,
-                        effectiveOptions.Location.ExistingFileId!,
+                        effectiveLocation.ExistingFileId!,
                         batch,
+                        retryOptions,
                         cancellationToken).ConfigureAwait(false);
 
                     var updatedDriveMetadata = await ApplyDrivePlacementAsync(
                         client,
                         accessToken.AccessToken,
-                        effectiveOptions.Location.ExistingFileId!,
-                        effectiveOptions.Location,
+                        effectiveLocation.ExistingFileId!,
+                        effectiveLocation,
+                        retryOptions,
+                        batch.Report,
                         cancellationToken).ConfigureAwait(false);
 
                     batch.Report.Add(
@@ -89,12 +123,12 @@ namespace OfficeIMO.Word.GoogleDocs {
                         "Existing Google Docs replacement currently clears the body content before replaying the OfficeIMO batch.");
 
                     return new GoogleDocumentReference {
-                        DocumentId = effectiveOptions.Location.ExistingFileId,
-                        FileId = effectiveOptions.Location.ExistingFileId,
+                        DocumentId = effectiveLocation.ExistingFileId,
+                        FileId = effectiveLocation.ExistingFileId,
                         Name = existingDocument.Title ?? batch.Title,
                         MimeType = "application/vnd.google-apps.document",
-                        WebViewLink = updatedDriveMetadata?.WebViewLink ?? BuildDocumentWebViewLink(effectiveOptions.Location.ExistingFileId),
-                        Location = effectiveOptions.Location,
+                        WebViewLink = updatedDriveMetadata?.WebViewLink ?? BuildDocumentWebViewLink(effectiveLocation.ExistingFileId),
+                        Location = effectiveLocation,
                         Report = batch.Report,
                     };
                 }
@@ -105,6 +139,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                     HttpMethod.Post,
                     "https://docs.googleapis.com/v1/documents",
                     GoogleDocsApiPayloadBuilder.BuildCreateDocumentPayload(batch),
+                    retryOptions,
+                    batch.Report,
                     cancellationToken).ConfigureAwait(false);
 
                 if (string.IsNullOrWhiteSpace(createResponse.DocumentId)) {
@@ -118,13 +154,16 @@ namespace OfficeIMO.Word.GoogleDocs {
                     accessToken.AccessToken,
                     documentId,
                     batch,
+                    retryOptions,
                     cancellationToken).ConfigureAwait(false);
 
                 var createdDriveMetadata = await ApplyDrivePlacementAsync(
                     client,
                     accessToken.AccessToken,
                     documentId,
-                    effectiveOptions.Location,
+                    effectiveLocation,
+                    retryOptions,
+                    batch.Report,
                     cancellationToken).ConfigureAwait(false);
 
                 return new GoogleDocumentReference {
@@ -133,9 +172,31 @@ namespace OfficeIMO.Word.GoogleDocs {
                     Name = createResponse.Title ?? batch.Title,
                     MimeType = "application/vnd.google-apps.document",
                     WebViewLink = createdDriveMetadata?.WebViewLink ?? BuildDocumentWebViewLink(documentId),
-                    Location = effectiveOptions.Location,
+                    Location = effectiveLocation,
                     Report = batch.Report,
                 };
+            } catch (GoogleWorkspaceExportException) {
+                throw;
+            } catch (GoogleWorkspaceExportCanceledException) {
+                throw;
+            } catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested) {
+                throw GoogleWorkspaceFailureDiagnostics.CreateRequestTimeoutFailure(
+                    "Google Docs export",
+                    session.Options,
+                    batch.Report,
+                    ex);
+            } catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested) {
+                throw GoogleWorkspaceFailureDiagnostics.CreateCanceledFailure(
+                    "Google Docs export",
+                    session.Options,
+                    batch.Report,
+                    ex);
+            } catch (Exception ex) when (!(ex is OperationCanceledException)) {
+                throw GoogleWorkspaceFailureDiagnostics.CreateApiFailure(
+                    "Google Docs export",
+                    session.Options,
+                    batch.Report,
+                    ex);
             } finally {
                 if (disposeClient) {
                     client.Dispose();
@@ -148,11 +209,13 @@ namespace OfficeIMO.Word.GoogleDocs {
             string accessToken,
             string documentId,
             GoogleDocsBatch batch,
+            GoogleWorkspaceRetryOptions retryOptions,
             CancellationToken cancellationToken) {
             var imageUris = await UploadInlineImagesAsync(
                 client,
                 accessToken,
                 batch,
+                retryOptions,
                 cancellationToken).ConfigureAwait(false);
 
             var preparedInitialBatch = GoogleDocsApiPayloadBuilder.BuildPreparedInitialBatchUpdate(batch, imageUris);
@@ -165,6 +228,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                     HttpMethod.Post,
                     $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                     initialPayload,
+                    retryOptions,
+                    batch.Report,
                     cancellationToken).ConfigureAwait(false);
             }
 
@@ -177,6 +242,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                     preparedInitialBatch.Footnotes,
                     initialResponse,
                     imageUris,
+                    retryOptions,
                     cancellationToken).ConfigureAwait(false);
             }
 
@@ -196,6 +262,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                 HttpMethod.Get,
                 $"https://docs.googleapis.com/v1/documents/{documentId}",
                 null,
+                retryOptions,
+                batch.Report,
                 cancellationToken).ConfigureAwait(false);
 
             await ApplyHeaderFooterSegmentsAsync(
@@ -205,6 +273,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                 batch,
                 imageUris,
                 documentState,
+                retryOptions,
                 cancellationToken).ConfigureAwait(false);
 
             if (batch.Requests.OfType<GoogleDocsInsertTableRequest>().Any()) {
@@ -218,6 +287,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                         HttpMethod.Post,
                         $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                         tablePayload,
+                        retryOptions,
+                        batch.Report,
                         cancellationToken).ConfigureAwait(false);
                 }
 
@@ -230,6 +301,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                         preparedTableBatch.Footnotes,
                         tableContentResponse,
                         imageUris,
+                        retryOptions,
                         cancellationToken).ConfigureAwait(false);
                 }
 
@@ -241,6 +313,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                         HttpMethod.Post,
                         $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                         mergePayload,
+                        retryOptions,
+                        batch.Report,
                         cancellationToken).ConfigureAwait(false);
                 }
 
@@ -252,6 +326,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                         HttpMethod.Post,
                         $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                         tableStylePayload,
+                        retryOptions,
+                        batch.Report,
                         cancellationToken).ConfigureAwait(false);
                 }
             }
@@ -261,6 +337,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             HttpClient client,
             string accessToken,
             GoogleDocsBatch batch,
+            GoogleWorkspaceRetryOptions retryOptions,
             CancellationToken cancellationToken) {
             var imageUris = new Dictionary<GoogleDocsInlineImage, string>();
             foreach (var image in EnumerateInlineImages(batch)) {
@@ -278,8 +355,10 @@ namespace OfficeIMO.Word.GoogleDocs {
                     uploadName,
                     mimeType,
                     bytes,
+                    retryOptions,
+                    batch.Report,
                     cancellationToken).ConfigureAwait(false);
-                await CreatePublicReadPermissionAsync(client, accessToken, fileId, cancellationToken).ConfigureAwait(false);
+                await CreatePublicReadPermissionAsync(client, accessToken, fileId, retryOptions, batch.Report, cancellationToken).ConfigureAwait(false);
                 imageUris[image] = BuildDrivePublicImageUri(fileId);
             }
 
@@ -291,6 +370,8 @@ namespace OfficeIMO.Word.GoogleDocs {
             string accessToken,
             string? fileId,
             GoogleDriveFileLocation location,
+            GoogleWorkspaceRetryOptions retryOptions,
+            TranslationReport report,
             CancellationToken cancellationToken) {
             if (string.IsNullOrWhiteSpace(fileId) || string.IsNullOrWhiteSpace(location.FolderId)) {
                 return null;
@@ -304,6 +385,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                 HttpMethod.Get,
                 $"https://www.googleapis.com/drive/v3/files/{fileId}?fields=id,parents,webViewLink{supportsAllDrivesQuery}",
                 null,
+                retryOptions,
+                report,
                 cancellationToken).ConfigureAwait(false);
 
             var desiredFolderId = location.FolderId!;
@@ -327,6 +410,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                 new HttpMethod("PATCH"),
                 $"https://www.googleapis.com/drive/v3/files/{fileId}?{string.Join("&", query)}",
                 new { },
+                retryOptions,
+                report,
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -407,6 +492,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             GoogleDocsBatch batch,
             IReadOnlyDictionary<GoogleDocsInlineImage, string> imageUris,
             GoogleDocsApiDocumentResponse documentState,
+            GoogleWorkspaceRetryOptions retryOptions,
             CancellationToken cancellationToken) {
             var executableSegments = batch.Segments
                 .Where(segment =>
@@ -435,9 +521,9 @@ namespace OfficeIMO.Word.GoogleDocs {
 
                 string? segmentId;
                 if (string.Equals(segment.Kind, "header", StringComparison.OrdinalIgnoreCase)) {
-                    segmentId = await CreateHeaderAsync(client, accessToken, documentId, sectionBreakLocation, segment.Variant, cancellationToken).ConfigureAwait(false);
+                    segmentId = await CreateHeaderAsync(client, accessToken, documentId, sectionBreakLocation, segment.Variant, retryOptions, batch.Report, cancellationToken).ConfigureAwait(false);
                 } else {
-                    segmentId = await CreateFooterAsync(client, accessToken, documentId, sectionBreakLocation, segment.Variant, cancellationToken).ConfigureAwait(false);
+                    segmentId = await CreateFooterAsync(client, accessToken, documentId, sectionBreakLocation, segment.Variant, retryOptions, batch.Report, cancellationToken).ConfigureAwait(false);
                 }
 
                 if (string.IsNullOrWhiteSpace(segmentId)) {
@@ -456,6 +542,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                         HttpMethod.Post,
                         $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                         segmentPayload,
+                        retryOptions,
+                        batch.Report,
                         cancellationToken).ConfigureAwait(false);
                 }
 
@@ -469,6 +557,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                     HttpMethod.Get,
                     $"https://docs.googleapis.com/v1/documents/{documentId}",
                     null,
+                    retryOptions,
+                    batch.Report,
                     cancellationToken).ConfigureAwait(false);
 
                 var segmentTablePayload = GoogleDocsApiPayloadBuilder.BuildSegmentTableContentBatchUpdatePayload(
@@ -487,6 +577,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                     HttpMethod.Post,
                     $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                     segmentTablePayload,
+                    retryOptions,
+                    batch.Report,
                     cancellationToken).ConfigureAwait(false);
 
                 var segmentMergePayload = GoogleDocsApiPayloadBuilder.BuildSegmentTableMergeBatchUpdatePayload(
@@ -501,6 +593,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                         HttpMethod.Post,
                         $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                         segmentMergePayload,
+                        retryOptions,
+                        batch.Report,
                         cancellationToken).ConfigureAwait(false);
                 }
 
@@ -519,6 +613,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                     HttpMethod.Post,
                     $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                     segmentTableStylePayload,
+                    retryOptions,
+                    batch.Report,
                     cancellationToken).ConfigureAwait(false);
             }
         }
@@ -531,6 +627,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             IReadOnlyList<GoogleDocsFootnote> footnotes,
             GoogleDocsApiBatchUpdateResponse initialResponse,
             IReadOnlyDictionary<GoogleDocsInlineImage, string> imageUris,
+            GoogleWorkspaceRetryOptions retryOptions,
             CancellationToken cancellationToken) {
             var footnoteReplies = initialResponse.Replies
                 .Where(reply => reply.CreateFootnote?.FootnoteId != null)
@@ -560,6 +657,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                     HttpMethod.Post,
                     $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                     footnotePayload,
+                    retryOptions,
+                    batch.Report,
                     cancellationToken).ConfigureAwait(false);
             }
         }
@@ -583,6 +682,8 @@ namespace OfficeIMO.Word.GoogleDocs {
             string documentId,
             string? sectionBreakLocation,
             string variant,
+            GoogleWorkspaceRetryOptions retryOptions,
+            TranslationReport report,
             CancellationToken cancellationToken) {
             var payload = new GoogleDocsApiBatchUpdatePayload();
             payload.Requests.Add(new GoogleDocsApiRequestPayload {
@@ -600,6 +701,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                 HttpMethod.Post,
                 $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                 payload,
+                retryOptions,
+                report,
                 cancellationToken).ConfigureAwait(false);
 
             return response.Replies.FirstOrDefault()?.CreateHeader?.HeaderId;
@@ -611,6 +714,8 @@ namespace OfficeIMO.Word.GoogleDocs {
             string documentId,
             string? sectionBreakLocation,
             string variant,
+            GoogleWorkspaceRetryOptions retryOptions,
+            TranslationReport report,
             CancellationToken cancellationToken) {
             var payload = new GoogleDocsApiBatchUpdatePayload();
             payload.Requests.Add(new GoogleDocsApiRequestPayload {
@@ -628,6 +733,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                 HttpMethod.Post,
                 $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                 payload,
+                retryOptions,
+                report,
                 cancellationToken).ConfigureAwait(false);
 
             return response.Replies.FirstOrDefault()?.CreateFooter?.FooterId;
@@ -718,41 +825,47 @@ namespace OfficeIMO.Word.GoogleDocs {
             string fileName,
             string mimeType,
             byte[] fileBytes,
+            GoogleWorkspaceRetryOptions retryOptions,
+            TranslationReport report,
             CancellationToken cancellationToken) {
-            var boundary = "officeimo-" + Guid.NewGuid().ToString("N");
-            var metadataJson = JsonSerializer.Serialize(new {
-                name = fileName,
-                mimeType,
-            }, JsonOptions);
+            var response = await SendAsync<GoogleDriveFileMetadataResponse>(
+                client,
+                accessToken,
+                HttpMethod.Post,
+                "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
+                () => {
+                    var boundary = "officeimo-" + Guid.NewGuid().ToString("N");
+                    var metadataJson = JsonSerializer.Serialize(new {
+                        name = fileName,
+                        mimeType,
+                    }, JsonOptions);
 
-            using (var content = new MultipartContent("related", boundary)) {
-                var metadataContent = new StringContent(metadataJson, Encoding.UTF8, "application/json");
-                content.Add(metadataContent);
+                    var content = new MultipartContent("related", boundary);
+                    var metadataContent = new StringContent(metadataJson, Encoding.UTF8, "application/json");
+                    content.Add(metadataContent);
 
-                var fileContent = new ByteArrayContent(fileBytes);
-                fileContent.Headers.ContentType = new MediaTypeHeaderValue(mimeType);
-                content.Add(fileContent);
+                    var fileContent = new ByteArrayContent(fileBytes);
+                    fileContent.Headers.ContentType = new MediaTypeHeaderValue(mimeType);
+                    content.Add(fileContent);
+                    return content;
+                },
+                retryOptions,
+                report,
+                cancellationToken).ConfigureAwait(false);
 
-                var response = await SendAsync<GoogleDriveFileMetadataResponse>(
-                    client,
-                    accessToken,
-                    HttpMethod.Post,
-                    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
-                    content,
-                    cancellationToken).ConfigureAwait(false);
-
-                if (string.IsNullOrWhiteSpace(response.Id)) {
-                    throw new InvalidOperationException("Drive image upload did not return a file id.");
-                }
-
-                return response.Id!;
+            if (string.IsNullOrWhiteSpace(response.Id)) {
+                throw new InvalidOperationException("Drive image upload did not return a file id.");
             }
+
+            return response.Id!;
         }
 
         private static Task<object> CreatePublicReadPermissionAsync(
             HttpClient client,
             string accessToken,
             string fileId,
+            GoogleWorkspaceRetryOptions retryOptions,
+            TranslationReport report,
             CancellationToken cancellationToken) {
             return SendAsync<object>(
                 client,
@@ -763,6 +876,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                     role = "reader",
                     type = "anyone",
                 },
+                retryOptions,
+                report,
                 cancellationToken);
         }
 
@@ -776,36 +891,76 @@ namespace OfficeIMO.Word.GoogleDocs {
             HttpMethod method,
             string uri,
             object? payload,
+            GoogleWorkspaceRetryOptions retryOptions,
+            TranslationReport report,
             CancellationToken cancellationToken) {
-            using (var request = new HttpRequestMessage(method, uri)) {
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-                if (payload != null) {
-                    if (payload is HttpContent httpContent) {
-                        request.Content = httpContent;
-                    } else {
-                        var json = JsonSerializer.Serialize(payload, JsonOptions);
-                        request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+            return await SendAsync<TResponse>(
+                client,
+                accessToken,
+                method,
+                uri,
+                payload == null ? null : (() => payload),
+                retryOptions,
+                report,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        private static async Task<TResponse> SendAsync<TResponse>(
+            HttpClient client,
+            string accessToken,
+            HttpMethod method,
+            string uri,
+            Func<object?>? payloadFactory,
+            GoogleWorkspaceRetryOptions retryOptions,
+            TranslationReport report,
+            CancellationToken cancellationToken) {
+            using (var response = await GoogleWorkspaceRetryPolicy.SendAsync(
+                client,
+                () => {
+                    var request = new HttpRequestMessage(method, uri);
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                    if (payloadFactory != null) {
+                        var payload = payloadFactory();
+                        if (payload is HttpContent httpContent) {
+                            request.Content = httpContent;
+                        } else if (payload != null) {
+                            var json = JsonSerializer.Serialize(payload, JsonOptions);
+                            request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+                        }
                     }
+
+                    return request;
+                },
+                retryOptions,
+                cancellationToken,
+                retryEvent => ReportRetry(report, retryOptions.SessionOptions, "Google Docs API", retryEvent)).ConfigureAwait(false)) {
+                var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode) {
+                    string formattedError = GoogleWorkspaceApiErrorFormatter.Format(body) ?? body;
+                    throw new HttpRequestException($"Google Docs API request to '{uri}' failed with {(int)response.StatusCode}: {formattedError}");
                 }
 
-                using (var response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false)) {
-                    var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    if (!response.IsSuccessStatusCode) {
-                        throw new HttpRequestException($"Google Docs API request to '{uri}' failed with {(int)response.StatusCode}: {body}");
-                    }
-
-                    if (typeof(TResponse) == typeof(object) || string.IsNullOrWhiteSpace(body)) {
-                        return default!;
-                    }
-
-                    var result = JsonSerializer.Deserialize<TResponse>(body, JsonOptions);
-                    if (result == null) {
-                        throw new InvalidOperationException($"Google Docs API response from '{uri}' could not be deserialized.");
-                    }
-
-                    return result;
+                if (typeof(TResponse) == typeof(object) || string.IsNullOrWhiteSpace(body)) {
+                    return default!;
                 }
+
+                var result = JsonSerializer.Deserialize<TResponse>(body, JsonOptions);
+                if (result == null) {
+                    throw new InvalidOperationException($"Google Docs API response from '{uri}' could not be deserialized.");
+                }
+
+                return result;
             }
+        }
+
+        private static void ReportRetry(TranslationReport report, GoogleWorkspaceSessionOptions? sessionOptions, string serviceName, GoogleWorkspaceRetryEvent retryEvent) {
+            GoogleWorkspaceDiagnosticsDispatcher.AddUnique(
+                report,
+                sessionOptions,
+                TranslationSeverity.Info,
+                "ApiRetries",
+                $"{serviceName} retried {retryEvent.Method} {retryEvent.Uri} after transient {retryEvent.Trigger} using {retryEvent.DelayStrategy} ({retryEvent.Delay.TotalMilliseconds:0} ms, retry {retryEvent.RetryAttempt} of {retryEvent.MaxRetryCount}).",
+                $"{retryEvent.Method} {retryEvent.Uri}");
         }
 
         private static string? BuildDocumentWebViewLink(string? documentId) {

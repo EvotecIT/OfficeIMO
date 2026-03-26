@@ -27,6 +27,9 @@ Each package is shipped independently under the MIT license unless noted otherwi
 
 - [OfficeIMO.Word](OfficeIMO.Word/README.md)
 - [OfficeIMO.Excel](OfficeIMO.Excel/README.md)
+- [OfficeIMO.GoogleWorkspace](OfficeIMO.GoogleWorkspace/README.md)
+- [OfficeIMO.Excel.GoogleSheets](OfficeIMO.Excel.GoogleSheets/README.md)
+- [OfficeIMO.Word.GoogleDocs](OfficeIMO.Word.GoogleDocs/README.md)
 - [OfficeIMO.CSV](OfficeIMO.CSV/README.md)
 - [OfficeIMO.PowerPoint](OfficeIMO.PowerPoint/README.md)
 - [OfficeIMO.Visio](OfficeIMO.Visio/README.md)
@@ -55,6 +58,12 @@ Each package is shipped independently under the MIT license unless noted otherwi
 - `OfficeIMO.Word.Html`: HTML conversion helpers
 - `OfficeIMO.Word.Markdown`: Markdown conversion helpers
 - `OfficeIMO.Word.Pdf`: PDF export helpers
+
+### Google Workspace family
+
+- `OfficeIMO.GoogleWorkspace`: shared credential, session, Drive location, retry, and translation-report abstractions
+- `OfficeIMO.Word.GoogleDocs`: Word to Google Docs planning, batch compilation, and export helpers
+- `OfficeIMO.Excel.GoogleSheets`: Excel to Google Sheets planning, batch compilation, and export helpers
 
 ### Markdown family
 
@@ -199,6 +208,9 @@ flowchart TD
 - Hosting IntelligenceX transcript/chat surfaces on top of the generic renderer: add `OfficeIMO.MarkdownRenderer.IntelligenceX`
 - Benchmarking markdown parse/render behavior before release: use `OfficeIMO.Markdown.Benchmarks`
 - Excel read/write and reporting: add `OfficeIMO.Excel`
+- Shared Google Workspace session/auth primitives: add `OfficeIMO.GoogleWorkspace`
+- Word to Google Docs planning or export: add `OfficeIMO.Word` + `OfficeIMO.Word.GoogleDocs`
+- Excel to Google Sheets planning or export: add `OfficeIMO.Excel` + `OfficeIMO.Excel.GoogleSheets`
 - CSV schemas and typed CSV workflows: add `OfficeIMO.CSV`
 - PowerPoint slides: add `OfficeIMO.PowerPoint`
 - Visio diagrams: add `OfficeIMO.Visio`

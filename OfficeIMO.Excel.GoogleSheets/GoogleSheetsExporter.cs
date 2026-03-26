@@ -34,27 +34,56 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
             var effectiveOptions = options ?? new GoogleSheetsSaveOptions();
             var batch = BuildBatch(document, effectiveOptions);
-            if (string.IsNullOrWhiteSpace(effectiveOptions.Location.FolderId) && !string.IsNullOrWhiteSpace(effectiveOptions.Location.DriveId)) {
-                batch.Report.Add(
+            var effectiveLocation = session.ResolveLocationDefaults(effectiveOptions.Location);
+            if (string.IsNullOrWhiteSpace(effectiveLocation.FolderId) && !string.IsNullOrWhiteSpace(effectiveLocation.DriveId)) {
+                GoogleWorkspaceDiagnosticsDispatcher.Add(
+                    batch.Report,
+                    session.Options,
                     TranslationSeverity.Warning,
                     "DrivePlacement",
                     "Drive placement requires a concrete FolderId. Supplying DriveId without FolderId is still treated as diagnostic-only.");
             }
 
-            var accessToken = await session.AcquireAccessTokenAsync(GoogleWorkspaceScopeCatalog.SheetsAuthoring, cancellationToken).ConfigureAwait(false);
+            GoogleWorkspaceAccessToken accessToken;
+            try {
+                accessToken = await session.AcquireAccessTokenAsync(GoogleWorkspaceScopeCatalog.SheetsAuthoring, cancellationToken).ConfigureAwait(false);
+            } catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested) {
+                throw GoogleWorkspaceFailureDiagnostics.CreateRequestTimeoutFailure(
+                    "Google Sheets export token acquisition",
+                    session.Options,
+                    batch.Report,
+                    ex);
+            } catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested) {
+                throw GoogleWorkspaceFailureDiagnostics.CreateCanceledFailure(
+                    "Google Sheets export",
+                    session.Options,
+                    batch.Report,
+                    ex);
+            } catch (Exception ex) when (!(ex is OperationCanceledException)) {
+                throw GoogleWorkspaceFailureDiagnostics.CreateTokenAcquisitionFailure(
+                    "Google Sheets export",
+                    GoogleWorkspaceScopeCatalog.SheetsAuthoring,
+                    session,
+                    batch.Report,
+                    ex);
+            }
+
+            var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(session.Options);
 
             bool disposeClient = session.Options.HttpClient == null;
             var client = session.Options.HttpClient ?? new HttpClient();
             try {
                 client.Timeout = session.Options.RequestTimeout;
 
-                if (!string.IsNullOrWhiteSpace(effectiveOptions.Location.ExistingFileId)) {
+                if (!string.IsNullOrWhiteSpace(effectiveLocation.ExistingFileId)) {
                     var existingResponse = await SendAsync<GoogleSheetsApiSpreadsheetMetadataResponse>(
                         client,
                         accessToken.AccessToken,
                         HttpMethod.Get,
-                        $"https://sheets.googleapis.com/v4/spreadsheets/{effectiveOptions.Location.ExistingFileId}?fields=spreadsheetId,spreadsheetUrl,properties.title,sheets.properties.sheetId",
+                        $"https://sheets.googleapis.com/v4/spreadsheets/{effectiveLocation.ExistingFileId}?fields=spreadsheetId,spreadsheetUrl,properties.title,sheets.properties.sheetId",
                         null,
+                        retryOptions,
+                        batch.Report,
                         cancellationToken).ConfigureAwait(false);
 
                     var existingSheetIds = existingResponse.Sheets
@@ -68,29 +97,35 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         client,
                         accessToken.AccessToken,
                         HttpMethod.Post,
-                        $"https://sheets.googleapis.com/v4/spreadsheets/{effectiveOptions.Location.ExistingFileId}:batchUpdate",
+                        $"https://sheets.googleapis.com/v4/spreadsheets/{effectiveLocation.ExistingFileId}:batchUpdate",
                         replacePayload,
+                        retryOptions,
+                        batch.Report,
                         cancellationToken).ConfigureAwait(false);
 
                     var contentPayload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(
                         batch,
                         sheetIdMap,
-                        existingResponse.SpreadsheetId ?? effectiveOptions.Location.ExistingFileId);
+                        existingResponse.SpreadsheetId ?? effectiveLocation.ExistingFileId);
                     if (contentPayload.Requests.Count > 0) {
                         await SendAsync<object>(
                             client,
                             accessToken.AccessToken,
                             HttpMethod.Post,
-                            $"https://sheets.googleapis.com/v4/spreadsheets/{effectiveOptions.Location.ExistingFileId}:batchUpdate",
+                            $"https://sheets.googleapis.com/v4/spreadsheets/{effectiveLocation.ExistingFileId}:batchUpdate",
                             contentPayload,
+                            retryOptions,
+                            batch.Report,
                             cancellationToken).ConfigureAwait(false);
                     }
 
                     var updatedDriveMetadata = await ApplyDrivePlacementAsync(
                         client,
                         accessToken.AccessToken,
-                        existingResponse.SpreadsheetId ?? effectiveOptions.Location.ExistingFileId!,
-                        effectiveOptions.Location,
+                        existingResponse.SpreadsheetId ?? effectiveLocation.ExistingFileId!,
+                        effectiveLocation,
+                        retryOptions,
+                        batch.Report,
                         cancellationToken).ConfigureAwait(false);
 
                     batch.Report.Add(
@@ -99,15 +134,15 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         "Existing spreadsheet replacement currently recreates workbook sheets before replaying the OfficeIMO batch.");
 
                     return new GoogleSpreadsheetReference {
-                        SpreadsheetId = existingResponse.SpreadsheetId ?? effectiveOptions.Location.ExistingFileId,
-                        FileId = existingResponse.SpreadsheetId ?? effectiveOptions.Location.ExistingFileId,
+                        SpreadsheetId = existingResponse.SpreadsheetId ?? effectiveLocation.ExistingFileId,
+                        FileId = existingResponse.SpreadsheetId ?? effectiveLocation.ExistingFileId,
                         Name = batch.Title,
                         MimeType = "application/vnd.google-apps.spreadsheet",
                         WebViewLink = updatedDriveMetadata?.WebViewLink
                             ?? (!string.IsNullOrWhiteSpace(existingResponse.SpreadsheetUrl)
                                 ? existingResponse.SpreadsheetUrl
-                                : BuildSpreadsheetWebViewLink(existingResponse.SpreadsheetId ?? effectiveOptions.Location.ExistingFileId)),
-                        Location = effectiveOptions.Location,
+                                : BuildSpreadsheetWebViewLink(existingResponse.SpreadsheetId ?? effectiveLocation.ExistingFileId)),
+                        Location = effectiveLocation,
                         Report = batch.Report,
                     };
                 }
@@ -120,6 +155,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     HttpMethod.Post,
                     "https://sheets.googleapis.com/v4/spreadsheets",
                     createPayload,
+                    retryOptions,
+                    batch.Report,
                     cancellationToken).ConfigureAwait(false);
 
                 var updatePayload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(
@@ -134,6 +171,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         HttpMethod.Post,
                         $"https://sheets.googleapis.com/v4/spreadsheets/{createResponse.SpreadsheetId}:batchUpdate",
                         updatePayload,
+                        retryOptions,
+                        batch.Report,
                         cancellationToken).ConfigureAwait(false);
                 }
 
@@ -141,7 +180,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     client,
                     accessToken.AccessToken,
                     createResponse.SpreadsheetId,
-                    effectiveOptions.Location,
+                    effectiveLocation,
+                    retryOptions,
+                    batch.Report,
                     cancellationToken).ConfigureAwait(false);
 
                 return new GoogleSpreadsheetReference {
@@ -153,9 +194,31 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         ?? (!string.IsNullOrWhiteSpace(createResponse.SpreadsheetUrl)
                             ? createResponse.SpreadsheetUrl
                             : BuildSpreadsheetWebViewLink(createResponse.SpreadsheetId)),
-                    Location = effectiveOptions.Location,
+                    Location = effectiveLocation,
                     Report = batch.Report,
                 };
+            } catch (GoogleWorkspaceExportException) {
+                throw;
+            } catch (GoogleWorkspaceExportCanceledException) {
+                throw;
+            } catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested) {
+                throw GoogleWorkspaceFailureDiagnostics.CreateRequestTimeoutFailure(
+                    "Google Sheets export",
+                    session.Options,
+                    batch.Report,
+                    ex);
+            } catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested) {
+                throw GoogleWorkspaceFailureDiagnostics.CreateCanceledFailure(
+                    "Google Sheets export",
+                    session.Options,
+                    batch.Report,
+                    ex);
+            } catch (Exception ex) when (!(ex is OperationCanceledException)) {
+                throw GoogleWorkspaceFailureDiagnostics.CreateApiFailure(
+                    "Google Sheets export",
+                    session.Options,
+                    batch.Report,
+                    ex);
             } finally {
                 if (disposeClient) {
                     client.Dispose();
@@ -168,6 +231,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             string accessToken,
             string? fileId,
             GoogleDriveFileLocation location,
+            GoogleWorkspaceRetryOptions retryOptions,
+            TranslationReport report,
             CancellationToken cancellationToken) {
             if (string.IsNullOrWhiteSpace(fileId) || string.IsNullOrWhiteSpace(location.FolderId)) {
                 return null;
@@ -181,6 +246,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 HttpMethod.Get,
                 $"https://www.googleapis.com/drive/v3/files/{fileId}?fields=id,parents,webViewLink{supportsAllDrivesQuery}",
                 null,
+                retryOptions,
+                report,
                 cancellationToken).ConfigureAwait(false);
 
             var desiredFolderId = location.FolderId!;
@@ -204,6 +271,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 new HttpMethod("PATCH"),
                 $"https://www.googleapis.com/drive/v3/files/{fileId}?{string.Join("&", query)}",
                 new { },
+                retryOptions,
+                report,
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -213,32 +282,51 @@ namespace OfficeIMO.Excel.GoogleSheets {
             HttpMethod method,
             string uri,
             object? payload,
+            GoogleWorkspaceRetryOptions retryOptions,
+            TranslationReport report,
             CancellationToken cancellationToken) {
-            using (var request = new HttpRequestMessage(method, uri)) {
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-                if (payload != null) {
-                    var json = JsonSerializer.Serialize(payload, JsonOptions);
-                    request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+            using (var response = await GoogleWorkspaceRetryPolicy.SendAsync(
+                client,
+                () => {
+                    var request = new HttpRequestMessage(method, uri);
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                    if (payload != null) {
+                        var json = JsonSerializer.Serialize(payload, JsonOptions);
+                        request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+                    }
+
+                    return request;
+                },
+                retryOptions,
+                cancellationToken,
+                retryEvent => ReportRetry(report, retryOptions.SessionOptions, "Google Sheets API", retryEvent)).ConfigureAwait(false)) {
+                var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode) {
+                    string formattedError = GoogleWorkspaceApiErrorFormatter.Format(body) ?? body;
+                    throw new HttpRequestException($"Google Sheets API request to '{uri}' failed with {(int)response.StatusCode}: {formattedError}");
                 }
 
-                using (var response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false)) {
-                    var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    if (!response.IsSuccessStatusCode) {
-                        throw new HttpRequestException($"Google Sheets API request to '{uri}' failed with {(int)response.StatusCode}: {body}");
-                    }
-
-                    if (typeof(TResponse) == typeof(object) || string.IsNullOrWhiteSpace(body)) {
-                        return default!;
-                    }
-
-                    var result = JsonSerializer.Deserialize<TResponse>(body, JsonOptions);
-                    if (result == null) {
-                        throw new InvalidOperationException($"Google Sheets API response from '{uri}' could not be deserialized.");
-                    }
-
-                    return result;
+                if (typeof(TResponse) == typeof(object) || string.IsNullOrWhiteSpace(body)) {
+                    return default!;
                 }
+
+                var result = JsonSerializer.Deserialize<TResponse>(body, JsonOptions);
+                if (result == null) {
+                    throw new InvalidOperationException($"Google Sheets API response from '{uri}' could not be deserialized.");
+                }
+
+                return result;
             }
+        }
+
+        private static void ReportRetry(TranslationReport report, GoogleWorkspaceSessionOptions? sessionOptions, string serviceName, GoogleWorkspaceRetryEvent retryEvent) {
+            GoogleWorkspaceDiagnosticsDispatcher.AddUnique(
+                report,
+                sessionOptions,
+                TranslationSeverity.Info,
+                "ApiRetries",
+                $"{serviceName} retried {retryEvent.Method} {retryEvent.Uri} after transient {retryEvent.Trigger} using {retryEvent.DelayStrategy} ({retryEvent.Delay.TotalMilliseconds:0} ms, retry {retryEvent.RetryAttempt} of {retryEvent.MaxRetryCount}).",
+                $"{retryEvent.Method} {retryEvent.Uri}");
         }
 
         private static string? BuildSpreadsheetWebViewLink(string? spreadsheetId) {
