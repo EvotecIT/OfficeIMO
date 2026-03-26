@@ -1,4 +1,4 @@
-name: Actions Storage Cleanup
+name: GitHub Housekeeping
 
 on:
   schedule:
@@ -15,15 +15,16 @@ permissions:
   contents: read
 
 concurrency:
-  group: actions-storage-cleanup
+  group: github-housekeeping-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
-  cleanup:
-    uses: EvotecIT/PSPublishModule/.github/workflows/reusable-github-housekeeping.yml@2831df4ed857da88f87537a77887b7bc44ffc7c8
+  housekeeping:
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-github-housekeeping.yml@62a72786d9c2acc02f843643b624b0b86a731cba
     with:
       config-path: ./.powerforge/github-housekeeping.json
       apply: ${{ github.event_name == 'workflow_dispatch' && inputs.apply == 'true' || github.event_name != 'workflow_dispatch' }}
-      powerforge-ref: 2831df4ed857da88f87537a77887b7bc44ffc7c8
+      powerforge-ref: 62a72786d9c2acc02f843643b624b0b86a731cba
+      report-artifact-name: github-housekeeping-reports
     secrets:
       github-token: ${{ secrets.GITHUB_TOKEN }}
