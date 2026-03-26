@@ -74,6 +74,9 @@ namespace OfficeIMO.Examples {
             // Excel.DomainDetectiveReportSheets.Example(folderPath, false);
             // // Excel: Classic baseline Sheets demo (explicit/standard techniques)
             // Excel.DomainDetectiveReportSheetsClassic.Example(folderPath, false);
+            // // Google Workspace / Google Sheets
+            // Google.GoogleSheetsExamples.Example_Plan(folderPath);
+            // Google.GoogleSheetsExamples.Example_ExportAsync(folderPath).GetAwaiter().GetResult();
             // // Excel: Anchors and back-to-top demo
             // Excel.AnchorsAndBackToTop.Example(folderPath, false);
             // // Excel: Left-to-right multiple tables on same sheet
@@ -207,6 +210,9 @@ namespace OfficeIMO.Examples {
             // // Word/CitationsExamples
             // Word.CitationsExamples.Example_AdvancedCitations(folderPath, false);
             // Word.CitationsExamples.Example_BasicCitations(folderPath, false);
+            // // Google Workspace / Google Docs
+            // Google.GoogleDocsExamples.Example_Plan(folderPath);
+            // Google.GoogleDocsExamples.Example_ExportAsync(folderPath).GetAwaiter().GetResult();
             // // Word/ComboBoxes
             // Word.ComboBoxes.Example_BasicComboBox(folderPath, false);
             // // Word/Comments

@@ -13,5 +13,8 @@ namespace OfficeIMO.GoogleWorkspace {
         public HttpClient? HttpClient { get; set; }
         public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(100);
         public int MaxRetryCount { get; set; } = 3;
+        public TimeSpan RetryBaseDelay { get; set; } = TimeSpan.FromMilliseconds(200);
+        public TimeSpan RetryMaxDelay { get; set; } = TimeSpan.FromSeconds(5);
+        public Action<GoogleWorkspaceDiagnosticEntry>? DiagnosticSink { get; set; }
     }
 }

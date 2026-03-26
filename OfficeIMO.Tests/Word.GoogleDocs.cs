@@ -2380,6 +2380,290 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_GoogleDocsExporter_CanReplaceExistingDocument() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterReplace.docx");
+
+            try {
+                using var document = BuildGoogleDocsHighlightDocument(filePath);
+                var recordedRequests = new List<(Uri Uri, string Method, string? Body, string? Authorization)>();
+
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
+                    string? body = request.Content == null ? null : await request.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    recordedRequests.Add((request.RequestUri!, request.Method.Method, body, request.Headers.Authorization?.ToString()));
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/existing-doc-123") {
+                        return CreateJsonResponse("{\"documentId\":\"existing-doc-123\",\"title\":\"Old Title\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
+                    }
+
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/existing-doc-123:batchUpdate") {
+                        return CreateJsonResponse("{}");
+                    }
+
+                    return new HttpResponseMessage(HttpStatusCode.NotFound) {
+                        Content = new StringContent("unexpected request", Encoding.UTF8, "text/plain")
+                    };
+                }));
+
+                var session = new GoogleWorkspaceSession(
+                    new FakeGoogleWorkspaceCredentialSource(),
+                    new GoogleWorkspaceSessionOptions {
+                        HttpClient = httpClient,
+                    });
+
+                var result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                    Title = "Replacement Export",
+                    Location = new GoogleDriveFileLocation {
+                        ExistingFileId = "existing-doc-123",
+                    }
+                });
+
+                Assert.Equal("existing-doc-123", result.DocumentId);
+                Assert.Equal("https://docs.google.com/document/d/existing-doc-123/edit", result.WebViewLink);
+                Assert.Equal(3, recordedRequests.Count);
+                Assert.Equal("GET", recordedRequests[0].Method);
+                Assert.Equal("POST", recordedRequests[1].Method);
+                Assert.Equal("POST", recordedRequests[2].Method);
+                Assert.DoesNotContain(recordedRequests, request => request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents");
+                Assert.Contains(result.Report.Notices, n => n.Feature == "ExistingDocument");
+
+                Assert.Contains("\"deleteContentRange\"", recordedRequests[1].Body!);
+                Assert.Contains("\"backgroundColor\"", recordedRequests[2].Body!);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public async Task Test_GoogleDocsExporter_RetriesTransientCreateFailures() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterRetryCreate.docx");
+
+            try {
+                using var document = BuildGoogleDocsHighlightDocument(filePath);
+                int createAttempts = 0;
+
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents") {
+                        createAttempts++;
+                        if (createAttempts == 1) {
+                            return Task.FromResult(new HttpResponseMessage((HttpStatusCode)429) {
+                                Content = new StringContent("retry later", Encoding.UTF8, "text/plain")
+                            });
+                        }
+
+                        return Task.FromResult(CreateJsonResponse("{\"documentId\":\"doc-retry\",\"title\":\"Retry Export\"}"));
+                    }
+
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-retry:batchUpdate") {
+                        return Task.FromResult(CreateJsonResponse("{}"));
+                    }
+
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound) {
+                        Content = new StringContent("unexpected request", Encoding.UTF8, "text/plain")
+                    });
+                }));
+
+                var session = new GoogleWorkspaceSession(
+                    new FakeGoogleWorkspaceCredentialSource(),
+                    new GoogleWorkspaceSessionOptions {
+                        HttpClient = httpClient,
+                        MaxRetryCount = 1,
+                    });
+
+                var result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                    Title = "Retry Export",
+                });
+
+                Assert.Equal("doc-retry", result.DocumentId);
+                Assert.Equal(2, createAttempts);
+                Assert.Contains(result.Report.Notices, n => n.Feature == "ApiRetries" && n.Message.Contains("https://docs.googleapis.com/v1/documents", StringComparison.Ordinal) && n.Message.Contains("exponential backoff", StringComparison.Ordinal));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public async Task Test_GoogleDocsExporter_RetriesTransientExistingDocumentResetFailures() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterRetryReplace.docx");
+
+            try {
+                using var document = BuildGoogleDocsHighlightDocument(filePath);
+                int resetAttempts = 0;
+
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
+                    string? body = request.Content == null ? null : await request.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/existing-doc-retry-123") {
+                        return CreateJsonResponse("{\"documentId\":\"existing-doc-retry-123\",\"title\":\"Old Title\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
+                    }
+
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/existing-doc-retry-123:batchUpdate") {
+                        if (body != null && body.Contains("\"deleteContentRange\"", StringComparison.Ordinal)) {
+                            resetAttempts++;
+                            if (resetAttempts == 1) {
+                                return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable) {
+                                    Content = new StringContent("retry later", Encoding.UTF8, "text/plain")
+                                };
+                            }
+                        }
+
+                        return CreateJsonResponse("{}");
+                    }
+
+                    return new HttpResponseMessage(HttpStatusCode.NotFound) {
+                        Content = new StringContent("unexpected request", Encoding.UTF8, "text/plain")
+                    };
+                }));
+
+                var session = new GoogleWorkspaceSession(
+                    new FakeGoogleWorkspaceCredentialSource(),
+                    new GoogleWorkspaceSessionOptions {
+                        HttpClient = httpClient,
+                        MaxRetryCount = 1,
+                    });
+
+                var result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                    Title = "Retry Replacement Export",
+                    Location = new GoogleDriveFileLocation {
+                        ExistingFileId = "existing-doc-retry-123",
+                    }
+                });
+
+                Assert.Equal("existing-doc-retry-123", result.DocumentId);
+                Assert.Equal(2, resetAttempts);
+                Assert.Contains(result.Report.Notices, n => n.Feature == "ExistingDocument");
+                Assert.Contains(result.Report.Notices, n => n.Feature == "ApiRetries" && n.Message.Contains("https://docs.googleapis.com/v1/documents/existing-doc-retry-123:batchUpdate", StringComparison.Ordinal));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public async Task Test_GoogleDocsExporter_UsesSessionDefaultFolder_WhenSaveOptionsOmitLocation() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterDefaultFolder.docx");
+
+            try {
+                using var document = BuildGoogleDocsHighlightDocument(filePath);
+                var recordedRequests = new List<(Uri Uri, string Method, string? Body, string? Authorization)>();
+
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
+                    string? body = request.Content == null ? null : await request.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    recordedRequests.Add((request.RequestUri!, request.Method.Method, body, request.Headers.Authorization?.ToString()));
+
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents") {
+                        return CreateJsonResponse("{\"documentId\":\"doc-default-folder\",\"title\":\"Default Folder Export\"}");
+                    }
+
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-default-folder:batchUpdate") {
+                        return CreateJsonResponse("{}");
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/doc-default-folder?fields=id,parents,webViewLink&supportsAllDrives=true") {
+                        return CreateJsonResponse("{\"id\":\"doc-default-folder\",\"parents\":[\"oldParent\"],\"webViewLink\":\"https://docs.google.com/document/d/doc-default-folder/edit\"}");
+                    }
+
+                    if (string.Equals(request.Method.Method, "PATCH", StringComparison.Ordinal) && request.RequestUri!.AbsoluteUri.Contains("https://www.googleapis.com/drive/v3/files/doc-default-folder?", StringComparison.Ordinal)) {
+                        return CreateJsonResponse("{\"id\":\"doc-default-folder\",\"parents\":[\"sessionFolder123\"],\"webViewLink\":\"https://docs.google.com/document/d/doc-default-folder/edit\"}");
+                    }
+
+                    return new HttpResponseMessage(HttpStatusCode.NotFound) {
+                        Content = new StringContent("unexpected request", Encoding.UTF8, "text/plain")
+                    };
+                }));
+
+                var session = new GoogleWorkspaceSession(
+                    new FakeGoogleWorkspaceCredentialSource(),
+                    new GoogleWorkspaceSessionOptions {
+                        HttpClient = httpClient,
+                        DefaultFolderId = "sessionFolder123",
+                    });
+
+                var result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                    Title = "Default Folder Export",
+                });
+
+                Assert.Equal("doc-default-folder", result.DocumentId);
+                Assert.Equal(4, recordedRequests.Count);
+                Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
+                var patchRequest = Assert.Single(recordedRequests, request => request.Method == "PATCH");
+                Assert.Contains("addParents=sessionFolder123", patchRequest.Uri.Query);
+                Assert.Equal("sessionFolder123", result.Location?.FolderId);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public async Task Test_GoogleDocsExporter_RetriesTransientDrivePlacementPatchFailures() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterRetryDrivePatch.docx");
+
+            try {
+                using var document = BuildGoogleDocsHighlightDocument(filePath);
+                int drivePatchAttempts = 0;
+
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents") {
+                        return Task.FromResult(CreateJsonResponse("{\"documentId\":\"doc-retry-drive\",\"title\":\"Retry Drive Export\"}"));
+                    }
+
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-retry-drive:batchUpdate") {
+                        return Task.FromResult(CreateJsonResponse("{}"));
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/doc-retry-drive?fields=id,parents,webViewLink&supportsAllDrives=true") {
+                        return Task.FromResult(CreateJsonResponse("{\"id\":\"doc-retry-drive\",\"parents\":[\"oldParent\"],\"webViewLink\":\"https://docs.google.com/document/d/doc-retry-drive/edit\"}"));
+                    }
+
+                    if (string.Equals(request.Method.Method, "PATCH", StringComparison.Ordinal) && request.RequestUri!.AbsoluteUri.Contains("https://www.googleapis.com/drive/v3/files/doc-retry-drive?", StringComparison.Ordinal)) {
+                        drivePatchAttempts++;
+                        if (drivePatchAttempts == 1) {
+                            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable) {
+                                Content = new StringContent("retry later", Encoding.UTF8, "text/plain")
+                            });
+                        }
+
+                        return Task.FromResult(CreateJsonResponse("{\"id\":\"doc-retry-drive\",\"parents\":[\"folder123\"],\"webViewLink\":\"https://docs.google.com/document/d/doc-retry-drive/edit\"}"));
+                    }
+
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound) {
+                        Content = new StringContent("unexpected request", Encoding.UTF8, "text/plain")
+                    });
+                }));
+
+                var session = new GoogleWorkspaceSession(
+                    new FakeGoogleWorkspaceCredentialSource(),
+                    new GoogleWorkspaceSessionOptions {
+                        HttpClient = httpClient,
+                        MaxRetryCount = 1,
+                    });
+
+                var result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                    Title = "Retry Drive Export",
+                    Location = new GoogleDriveFileLocation {
+                        FolderId = "folder123",
+                        SharedDriveAware = true,
+                    }
+                });
+
+                Assert.Equal("doc-retry-drive", result.DocumentId);
+                Assert.Equal(2, drivePatchAttempts);
+                Assert.Equal("folder123", result.Location?.FolderId);
+                Assert.Contains(result.Report.Notices, n => n.Feature == "ApiRetries" && n.Message.Contains("https://www.googleapis.com/drive/v3/files/doc-retry-drive", StringComparison.Ordinal));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public async Task Test_GoogleDocsExporter_CreatesDefaultHeaderAndFooterSegments() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterHeaderFooter.docx");
 
@@ -4000,6 +4284,86 @@ namespace OfficeIMO.Tests {
             return new HttpResponseMessage(HttpStatusCode.OK) {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
             };
+        }
+
+        [Fact]
+        public async Task Test_GoogleDocsExporter_ClassifiesDomainWideDelegationFailures() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterDelegationFailure.docx");
+
+            try {
+                using var document = WordDocument.Create(filePath);
+                document.AddParagraph("Delegation failure");
+
+                var session = new GoogleWorkspaceSession(
+                    new DelegateGoogleWorkspaceCredentialSource((scopes, cancellationToken) =>
+                        Task.FromException<GoogleWorkspaceAccessToken>(new HttpRequestException("unauthorized_client: Domain-wide delegation is not enabled for this service account."))),
+                    new GoogleWorkspaceSessionOptions {
+                        SubjectUser = "admin@example.com",
+                        UseDomainWideDelegation = true,
+                    });
+
+                var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
+                    document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                        Title = "Delegation Failure Export",
+                    }));
+
+                Assert.Equal(GoogleWorkspaceFailureKind.DomainWideDelegation, exception.FailureKind);
+                Assert.IsType<HttpRequestException>(exception.InnerException);
+                Assert.Contains(exception.Report.Notices, n =>
+                    n.Severity == TranslationSeverity.Error
+                    && n.Feature == "DomainWideDelegation"
+                    && n.Message.Contains("admin@example.com", StringComparison.Ordinal)
+                    && n.Message.Contains("domain-wide delegation", StringComparison.OrdinalIgnoreCase));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public async Task Test_GoogleDocsExporter_WrapsApiFailures_WithReportDiagnostics() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterApiFailure.docx");
+
+            try {
+                using var document = WordDocument.Create(filePath);
+                document.AddParagraph("API failure");
+
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents") {
+                        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Forbidden) {
+                            Content = new StringContent("forbidden", Encoding.UTF8, "text/plain")
+                        });
+                    }
+
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound) {
+                        Content = new StringContent("unexpected request", Encoding.UTF8, "text/plain")
+                    });
+                }));
+
+                var session = new GoogleWorkspaceSession(
+                    new FakeGoogleWorkspaceCredentialSource(),
+                    new GoogleWorkspaceSessionOptions {
+                        HttpClient = httpClient,
+                    });
+
+                var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
+                    document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                        Title = "API Failure Export",
+                    }));
+
+                Assert.Equal(GoogleWorkspaceFailureKind.ApiRequest, exception.FailureKind);
+                Assert.IsType<HttpRequestException>(exception.InnerException);
+                Assert.Contains(exception.Report.Notices, n =>
+                    n.Severity == TranslationSeverity.Error
+                    && n.Feature == "ApiFailures"
+                    && n.Message.Contains("https://docs.googleapis.com/v1/documents", StringComparison.Ordinal)
+                    && n.Message.Contains("403", StringComparison.Ordinal));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
         }
 
         private sealed class FakeGoogleWorkspaceCredentialSource : IGoogleWorkspaceCredentialSource {
