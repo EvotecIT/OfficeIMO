@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 
 namespace OfficeIMO.GoogleWorkspace {
     public sealed class GoogleWorkspaceRetryOptions {
@@ -139,8 +140,19 @@ namespace OfficeIMO.GoogleWorkspace {
             }
 
             int boundedAttempt = Math.Min(retryAttempt, 4);
-            var computedDelay = TimeSpan.FromMilliseconds(retryOptions.BaseDelay.TotalMilliseconds * Math.Pow(2, boundedAttempt));
+            double jitter = GetJitterFactor();
+            var computedDelay = TimeSpan.FromMilliseconds(retryOptions.BaseDelay.TotalMilliseconds * Math.Pow(2, boundedAttempt) * jitter);
             return (ClampDelay(computedDelay, retryOptions), "exponential backoff");
+        }
+
+        private static double GetJitterFactor() {
+            byte[] bytes = new byte[4];
+            using (var random = RandomNumberGenerator.Create()) {
+                random.GetBytes(bytes);
+            }
+
+            uint value = BitConverter.ToUInt32(bytes, 0);
+            return 0.9d + ((double)value / uint.MaxValue) * 0.2d;
         }
 
         private static TimeSpan ClampDelay(TimeSpan delay, GoogleWorkspaceRetryOptions retryOptions) {
