@@ -23,7 +23,7 @@ jobs:
     uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-github-housekeeping.yml@350dac23ec8f9ba327501f5c412d1ddcc5803f44
     with:
       config-path: ./.powerforge/github-housekeeping.json
-      apply: ${{ github.event_name == 'workflow_dispatch' && inputs.apply == 'true' || github.event_name != 'workflow_dispatch' && vars.POWERFORGE_GITHUB_HOUSEKEEPING_APPLY == 'true' }}
+      apply: ${{ (github.event_name == 'workflow_dispatch' && inputs.apply == 'true') || (github.event_name != 'workflow_dispatch' && vars.POWERFORGE_GITHUB_HOUSEKEEPING_APPLY == 'true') }}
       powerforge-ref: 350dac23ec8f9ba327501f5c412d1ddcc5803f44
       report-artifact-name: github-housekeeping-reports
     secrets:
