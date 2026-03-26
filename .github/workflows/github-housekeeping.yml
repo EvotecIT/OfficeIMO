@@ -8,7 +8,7 @@ on:
       apply:
         description: 'Apply deletions (true/false)'
         required: false
-        default: 'true'
+        default: 'false'
 
 permissions:
   actions: write
