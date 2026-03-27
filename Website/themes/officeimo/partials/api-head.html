@@ -1,0 +1,110 @@
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<meta name="color-scheme" content="dark light" />
+<script>(function(){var t=localStorage.getItem("imo-theme")||"dark";if(t==="auto"){t=matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);})();</script>
+<style>
+:root {
+  --imo-bg: #0f1419;
+  --imo-surface: #1a1f2e;
+  --imo-ink: #e2e8f0;
+  --imo-muted: #94a3b8;
+  --imo-border: rgba(148, 163, 184, 0.15);
+  --imo-primary: #38bdf8;
+  --imo-primary-light: #60a5fa;
+  --imo-primary-dark: #22a1e0;
+  --imo-secondary: #059669;
+  --imo-secondary-light: #34d399;
+  --imo-tertiary: #d97706;
+  --imo-word: #3b82f6;
+  --imo-excel: #10b981;
+  --imo-powerpoint: #f43f5e;
+  --imo-markdown: #a78bfa;
+  --imo-csv: #22d3ee;
+  --imo-visio: #fb923c;
+  --imo-reader: #4f46e5;
+  --imo-powershell: #d97706;
+  --imo-max-width: 1200px;
+  --imo-max-width-wide: 1400px;
+  --imo-header-height: 64px;
+  --imo-font: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --imo-font-body: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --imo-font-mono: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  --imo-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --imo-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  --imo-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.35);
+  --imo-radius-sm: 8px;
+  --imo-radius: 12px;
+  --imo-radius-lg: 16px;
+  --imo-radius-xl: 24px;
+  --imo-void: #030711;
+  --imo-deep: #060d1f;
+  --imo-dark: #0a1628;
+  --imo-panel: #0f1d35;
+  --imo-glass: rgba(255,255,255,0.03);
+  --imo-glass-strong: rgba(255,255,255,0.06);
+  --imo-glass-border: rgba(255,255,255,0.07);
+  --imo-glass-border-hover: rgba(255,255,255,0.14);
+  --imo-text: #e8edf5;
+  --imo-text-secondary: #7a8ba8;
+  --imo-text-muted: #4a5972;
+  --imo-accent: #38bdf8;
+  --imo-accent-hover: #22a1e0;
+  --imo-accent-glow: rgba(56,189,248,0.15);
+  --imo-accent-glow-strong: rgba(56,189,248,0.25);
+  --imo-accent-gradient: linear-gradient(135deg, #3b82f6, #38bdf8, #2dd4bf);
+  --imo-leading: 1.65;
+  --imo-container-max: 1180px;
+  --imo-section-gap: 5rem;
+  --imo-shadow-xl: 0 24px 60px rgba(0,0,0,0.6);
+  --imo-shadow-glow: 0 0 20px var(--imo-accent-glow), 0 0 60px var(--imo-accent-glow);
+  --imo-shadow-glow-sm: 0 0 12px var(--imo-accent-glow);
+  --imo-radius-2xl: 28px;
+  --imo-ease: cubic-bezier(0.22,1,0.36,1);
+  --imo-duration: 250ms;
+  --imo-bg-alt: var(--imo-deep);
+  --imo-bg-elevated: var(--imo-dark);
+  --imo-border-strong: var(--imo-glass-border-hover);
+  --imo-surface-hover: rgba(255,255,255,0.04);
+  --imo-primary-hover: var(--imo-accent-hover);
+  --imo-primary-glow: var(--imo-accent-glow);
+  --imo-success: #10b981;
+  --imo-header-bg: rgba(15, 20, 25, 0.95);
+}
+
+[data-theme="light"] {
+  --imo-bg: #f8fafc;
+  --imo-surface: #ffffff;
+  --imo-ink: #1e293b;
+  --imo-muted: #64748b;
+  --imo-border: rgba(100, 116, 139, 0.15);
+  --imo-primary: #2563eb;
+  --imo-primary-light: #3b82f6;
+  --imo-primary-dark: #1d4ed8;
+  --imo-secondary-light: #10b981;
+  --imo-void: #f8fafc;
+  --imo-deep: #f1f5f9;
+  --imo-dark: #ffffff;
+  --imo-panel: #ffffff;
+  --imo-glass: rgba(255,255,255,0.7);
+  --imo-glass-strong: rgba(255,255,255,0.85);
+  --imo-glass-border: rgba(0,0,0,0.06);
+  --imo-glass-border-hover: rgba(0,0,0,0.12);
+  --imo-text: #0f172a;
+  --imo-text-secondary: #475569;
+  --imo-text-muted: #94a3b8;
+  --imo-accent: #2563eb;
+  --imo-accent-hover: #1d4ed8;
+  --imo-accent-glow: rgba(37,99,235,0.12);
+  --imo-accent-gradient: linear-gradient(135deg, #2563eb, #3b82f6, #06b6d4);
+  --imo-shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --imo-shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+  --imo-shadow-lg: 0 12px 32px rgba(0,0,0,0.1);
+  --imo-shadow-xl: 0 24px 48px rgba(0,0,0,0.12);
+  --imo-bg-alt: #f1f5f9;
+  --imo-bg-elevated: #ffffff;
+  --imo-border-strong: rgba(0,0,0,0.14);
+  --imo-surface-hover: rgba(0,0,0,0.03);
+  --imo-primary-hover: #1d4ed8;
+  --imo-primary-glow: rgba(37,99,235,0.12);
+  --imo-header-bg: rgba(248, 250, 252, 0.95);
+}
+</style>

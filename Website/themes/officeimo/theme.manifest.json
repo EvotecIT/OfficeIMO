@@ -12,6 +12,7 @@
   "slots": {
     "header": "header",
     "footer": "footer",
+    "api-head": "api-head",
     "api-header": "api-header",
     "api-footer": "api-footer",
     "sidebar": "sidebar",

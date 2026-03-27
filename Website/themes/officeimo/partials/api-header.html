@@ -1,50 +1,29 @@
-<script>(function(){var t=localStorage.getItem('imo-theme')||'dark';if(t==='auto')t=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';document.documentElement.dataset.theme=t;})();</script>
-<style>
-:root {
-  --imo-bg: #fafbfc;
-  --imo-surface: #ffffff;
-  --imo-ink: #1e293b;
-  --imo-muted: #64748b;
-  --imo-border: rgba(100, 116, 139, 0.15);
-  --imo-primary: #2563eb;
-  --imo-primary-hover: #1d4ed8;
-  --imo-font: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --imo-font-mono: 'Fira Code', 'Cascadia Code', Consolas, monospace;
-  --imo-max-width: 1200px;
-  --imo-header-height: 64px;
-  --imo-header-bg: rgba(250, 251, 252, 0.95);
-}
-
-[data-theme="dark"] {
-  --imo-bg: #0f1419;
-  --imo-surface: #1a1f2e;
-  --imo-ink: #e2e8f0;
-  --imo-muted: #94a3b8;
-  --imo-border: rgba(148, 163, 184, 0.15);
-  --imo-header-bg: rgba(15, 20, 25, 0.95);
-}
-
-.imo-nav__link { font-size: 0.9rem; font-weight: 500; color: var(--imo-muted); text-decoration: none; transition: color 0.2s; }
-.imo-nav__link:hover { color: var(--imo-primary); }
-.nav-cta { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.4rem 1rem; font-size: 0.85rem; font-weight: 600; color: #fff; background: var(--imo-primary); border-radius: 8px; text-decoration: none; transition: background 0.2s; }
-.nav-cta:hover { background: var(--imo-primary-hover); }
-.nav-icon { display: inline-flex; color: var(--imo-muted); }
-.nav-icon:hover { color: var(--imo-ink); }
-.nav-icon svg { width: 20px; height: 20px; }
-</style>
-<header class="imo-header" style="position:sticky;top:0;z-index:50;background:var(--imo-header-bg);backdrop-filter:blur(12px);border-bottom:1px solid var(--imo-border);height:var(--imo-header-height);display:flex;align-items:center;">
-  <div style="max-width:var(--imo-max-width);margin:0 auto;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;width:100%;font-family:var(--imo-font);">
-    <a href="/" style="display:flex;align-items:center;gap:0.5rem;text-decoration:none;color:var(--imo-ink);font-weight:700;font-size:1.1rem;">
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="currentColor" opacity="0.1"/><path d="M7 8h14v2H7zm0 5h14v2H7zm0 5h10v2H7z" fill="currentColor"/></svg>
-      OfficeIMO
+<header class="imo-header imo-header--api">
+  <div class="imo-container imo-header__inner">
+    <a class="imo-header__logo" href="/">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+        <rect width="28" height="28" rx="6" fill="currentColor" opacity="0.1"/>
+        <path d="M7 8h14v2H7zm0 5h14v2H7zm0 5h10v2H7z" fill="currentColor"/>
+      </svg>
+      <span>OfficeIMO</span>
     </a>
-    <nav style="display:flex;align-items:center;gap:1.5rem;">
+
+    <button class="imo-hamburger" type="button" aria-label="Toggle navigation">
+      <span class="imo-hamburger__line"></span>
+      <span class="imo-hamburger__line"></span>
+      <span class="imo-hamburger__line"></span>
+    </button>
+
+    <nav class="imo-nav api-nav" aria-label="Main navigation">
       {{NAV_LINKS}}
-      <button class="imo-theme-toggle" type="button" aria-label="Toggle theme" style="background:none;border:none;cursor:pointer;color:var(--imo-muted);padding:4px;">
+    </nav>
+
+    <div class="imo-header__actions api-header__actions">
+      <button class="imo-theme-toggle" type="button" aria-label="Toggle theme">
         <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-        <svg class="icon-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
       </button>
       {{NAV_ACTIONS}}
-    </nav>
+    </div>
   </div>
 </header>
