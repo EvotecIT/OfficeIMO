@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ page.title }} | {{ site.name }}</title>
+  {{ description_meta_html }}
+  {{ canonical_html }}
+  {{ head_html }}
+  <script>(function(){var t=localStorage.getItem('imo-theme')||'dark';if(t==='auto')t=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';document.documentElement.dataset.theme=t;})();</script>
+  {{ assets.preloads_html }}
+  {{ assets.critical_css_html }}
+  {{ include "theme-tokens" }}
+  {{ extra_css_html }}
+  {{ assets.css_html }}
+  {{ opengraph_html }}
+  {{ structured_data_html }}
+</head>
+<body class="imo-body imo-body--page">
+  <a class="imo-skip-link" href="#content">Skip to main content</a>
+
+  {{ include "header" }}
+
+  <main id="content" class="imo-main imo-main--page">
+    <div class="imo-container">
+      <article class="imo-page">
+        <header class="imo-page__header">
+          <h1 class="imo-page__title">{{ page.title }}</h1>
+          {{ if page.description }}
+          <p class="imo-page__description">{{ page.description }}</p>
+          {{ end }}
+        </header>
+        <div class="imo-page__content imo-prose">
+{{ content }}
+        </div>
+        {{ if items && items.size > 0 }}
+        {{ pf.editorial_cards 0 160 true true true false "16/9" "" "featured" "imo-editorial-list imo-editorial-list-blog" "imo-editorial-card imo-editorial-card-blog" }}
+        {{ pf.editorial_pager "Newer posts" "Older posts" "imo-editorial-pager" }}
+        {{ end }}
+      </article>
+    </div>
+  </main>
+
+  {{ include "footer" }}
+
+  {{ assets.js_html }}
+  {{ extra_scripts_html }}
+</body>
+</html>

@@ -1,0 +1,58 @@
+{
+  "sections": [
+    {
+      "title": "General",
+      "items": [
+        {
+          "question": "Does OfficeIMO require Microsoft Office to be installed?",
+          "answer": "<p>No. OfficeIMO works entirely with Open XML standards and does not require Microsoft Office, COM automation, or any Office interop assemblies. It runs on any platform where .NET is available.</p>"
+        },
+        {
+          "question": "What .NET versions are supported?",
+          "answer": "<p>OfficeIMO targets <strong>.NET 8.0</strong>, <strong>.NET 10.0</strong>, <strong>.NET Standard 2.0</strong>, and <strong>.NET Framework 4.7.2</strong>. This means it works with .NET Core, .NET 5+, and legacy .NET Framework projects.</p>"
+        },
+        {
+          "question": "Is OfficeIMO free for commercial use?",
+          "answer": "<p>Yes. The OfficeIMO packages themselves are published under the <strong>MIT License</strong>. However, some optional package families build on third-party dependencies with their own upstream terms, so commercial teams should also review our <a href='/third-party/'>Third-Party Dependencies</a> page during OSS approval.</p>"
+        },
+        {
+          "question": "How does OfficeIMO compare to Aspose or GemBox?",
+          "answer": "<p>OfficeIMO is open source and free (MIT license), while Aspose and GemBox are commercial products costing $890\u2013$999+ per developer per year. OfficeIMO also offers unique features like a PowerShell module, Markdown library, typed CSV workflows, and NativeAOT support. See our <a href='/comparison/'>detailed comparison</a>.</p>"
+        },
+        {
+          "question": "Can I use OfficeIMO in a Docker container or CI/CD pipeline?",
+          "answer": "<p>Absolutely. Since OfficeIMO has no COM dependencies and runs on .NET, it works perfectly in Linux containers, GitHub Actions, Azure DevOps, and any CI/CD environment. No special fonts or display servers needed.</p>"
+        },
+        {
+          "question": "What is PSWriteOffice?",
+          "answer": "<p>PSWriteOffice is a PowerShell module that wraps the OfficeIMO .NET libraries. It provides 150+ cmdlets and DSL aliases for creating Office documents from PowerShell scripts without writing C#. Install it with <code>Install-Module PSWriteOffice</code>.</p>"
+        },
+        {
+          "question": "Does OfficeIMO support reading existing documents?",
+          "answer": "<p>Yes. All core libraries (Word, Excel, PowerPoint) support both creating new documents and loading/editing existing ones. The OfficeIMO.Reader package provides a unified extraction API across all formats for AI ingestion and search indexing.</p>"
+        },
+        {
+          "question": "Is NativeAOT compilation supported?",
+          "answer": "<p>Yes. The CSV and Markdown packages are fully AOT/trimming-safe. The Word, Excel, and PowerPoint packages are AOT-aware and work in trimmed scenarios with appropriate configuration.</p>"
+        }
+      ]
+    },
+    {
+      "title": "Technical",
+      "items": [
+        {
+          "question": "What are the dependencies?",
+          "answer": "<p>The core Office document packages are built on <strong>DocumentFormat.OpenXml</strong>, while image- and converter-oriented packages also use components such as <strong>SixLabors.ImageSharp</strong>, <strong>AngleSharp</strong>, and <strong>QuestPDF</strong> depending on the feature area. The Markdown and CSV core packages stay dependency-light. See the <a href='/third-party/'>Third-Party Dependencies</a> page for the package-by-package breakdown and upstream license notes.</p>"
+        },
+        {
+          "question": "Can I convert Word documents to PDF?",
+          "answer": "<p>Yes. The <strong>OfficeIMO.Word.Pdf</strong> converter package supports Word-to-PDF conversion without Office. There are also converters for Word-to-HTML and Word-to-Markdown.</p>"
+        },
+        {
+          "question": "Is thread safety supported?",
+          "answer": "<p>OfficeIMO.Excel supports parallel execution for bulk operations like AutoFit and bulk writes. Each document instance is independent and can be used on separate threads. Concurrent access to a single document instance is not supported.</p>"
+        }
+      ]
+    }
+  ]
+}

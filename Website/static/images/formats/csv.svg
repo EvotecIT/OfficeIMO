@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <rect x="4" y="2" width="40" height="44" rx="4" fill="#0891b2" opacity="0.1"/>
+  <rect x="4" y="2" width="40" height="44" rx="4" fill="none" stroke="#0891b2" stroke-width="2"/>
+  <text x="24" y="22" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="11" fill="#0891b2">C</text>
+  <text x="24" y="36" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="500" font-size="7" fill="#0891b2">.csv</text>
+</svg>

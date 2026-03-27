@@ -1,0 +1,12 @@
+{
+  "brand": {
+    "name": "OfficeIMO",
+    "tagline": "Open source .NET libraries for document builders, extraction workflows, and PowerShell automation.",
+    "copyright": "Developed by Evotec Services sp. z o.o."
+  },
+  "credit": {
+    "text": "Built with",
+    "link": "https://github.com/EvotecIT/PSPublishModule",
+    "linkText": "PowerForge"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "title": "Multiple Ways to Build Documents",
+  "tabs": [
+    {
+      "id": "word",
+      "label": "Create Word (C#)",
+      "language": "csharp",
+      "code": "using var doc = WordDocument.Create(\"report.docx\");\n\nvar paragraph = doc.AddParagraph(\"Quarterly Sales Report\");\nparagraph.Style = WordParagraphStyle.Heading1;\n\ndoc.AddParagraph(\"Generated automatically with OfficeIMO.Word.\");\n\nvar table = doc.AddTable(4, 3);\ntable.Rows[0].Cells[0].Paragraphs[0].Text = \"Region\";\ntable.Rows[0].Cells[1].Paragraphs[0].Text = \"Revenue\";\ntable.Rows[0].Cells[2].Paragraphs[0].Text = \"Growth\";\ntable.Rows[0].IsHeader = true;\n\ntable.Rows[1].Cells[0].Paragraphs[0].Text = \"North America\";\ntable.Rows[1].Cells[1].Paragraphs[0].Text = \"$1,250,000\";\ntable.Rows[1].Cells[2].Paragraphs[0].Text = \"+12%\";\n\ndoc.Save();"
+    },
+    {
+      "id": "excel",
+      "label": "Read Excel (C#)",
+      "language": "csharp",
+      "code": "using var doc = ExcelDocument.Load(\"sales-data.xlsx\");\nvar sheet = doc.WorkSheets[0];\n\n// Read typed data from rows\nvar rows = sheet.RowsAs<SalesRecord>(r => new SalesRecord {\n    Region = r.String(\"Region\"),\n    Revenue = r.Decimal(\"Revenue\"),\n    Growth = r.Double(\"Growth\")\n});\n\n// Add a summary chart\nvar chart = sheet.AddChart(ExcelChartType.ColumnClustered);\nchart.Title = \"Revenue by Region\";\nchart.AddSeries(\"Revenue\", rows.Select(r => r.Revenue));\n\ndoc.Save(\"sales-report.xlsx\");"
+    },
+    {
+      "id": "markdown",
+      "label": "Build Markdown (C#)",
+      "language": "csharp",
+      "code": "var doc = MarkdownDoc.Create()\n    .H1(\"Release Notes\")\n    .P(\"Version 2.0 brings major improvements.\")\n    .H2(\"New Features\")\n    .BulletList(\n        \"Parallel Excel operations\",\n        \"PowerPoint chart support\",\n        \"AOT-ready CSV module\"\n    )\n    .H2(\"Performance\")\n    .Table(t => t.FromSequence(benchmarks,\n        (\"Scenario\", b => b.Name),\n        (\"Before\", b => b.Before),\n        (\"After\", b => b.After)\n    ));\n\nvar html = doc.ToHtmlFragment();\nFile.WriteAllText(\"release-notes.md\", doc.ToString());"
+    },
+    {
+      "id": "powershell",
+      "label": "PowerShell",
+      "language": "powershell",
+      "code": "New-OfficeWord -FilePath 'Report.docx' {\n    WordSection {\n        WordParagraph -Text 'Monthly Report' -Style Heading1\n        WordParagraph -Text 'Generated with PSWriteOffice'\n\n        WordTable -DataTable $SalesData -Style LightGrid\n    }\n}\n\nNew-OfficeExcel -FilePath 'Data.xlsx' {\n    ExcelSheet -Name 'Sales' {\n        ExcelTable -DataTable $Records -AutoFilter -AutoFit\n    }\n    ExcelSheet -Name 'Charts' {\n        ExcelChart -Type ColumnClustered -Title 'Revenue'\n    }\n}"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{{ if data.faq && data.faq.sections && data.faq.sections.size > 0 }}
+<section class="imo-faq-preview">
+  <div class="imo-container">
+    <h2 class="imo-section__title">Frequently Asked Questions</h2>
+    <div class="imo-faq-preview__list">
+      {{ for item in data.faq.sections[0].items }}
+      {{ if for.index < 5 }}
+      <details class="imo-faq-item">
+        <summary class="imo-faq-item__trigger">
+          <span>{{ item.question }}</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        </summary>
+        <div class="imo-faq-item__body">
+          {{ if item.answer.size > 0 }}
+            {{ for block in item.answer }}
+            <p>{{ block }}</p>
+            {{ end }}
+          {{ else }}
+            {{ item.answer }}
+          {{ end }}
+        </div>
+      </details>
+      {{ end }}
+      {{ end }}
+    </div>
+    <div style="text-align:center;margin-top:2rem;">
+      <a href="/faq/" class="imo-btn imo-btn-ghost">View All FAQs</a>
+    </div>
+  </div>
+</section>
+{{ end }}

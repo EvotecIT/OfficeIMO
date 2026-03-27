@@ -1,0 +1,24 @@
+{
+  "id": "word",
+  "title": "OfficeIMO.Word",
+  "nuget": "OfficeIMO.Word",
+  "install": "dotnet add package OfficeIMO.Word",
+  "color": "#2563eb",
+  "docsUrl": "/docs/word/",
+  "apiUrl": "/api/word/",
+  "targets": [".NET 8.0", ".NET 10.0", ".NET Standard 2.0", ".NET Framework 4.7.2"],
+  "dependencies": ["DocumentFormat.OpenXml", "SixLabors.ImageSharp"],
+  "features": [
+    { "title": "Paragraphs & Styling", "description": "Full text formatting: bold, italic, underline, strikethrough, fonts, colors, alignment, and spacing.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 7V4h16v3M9 20h6M12 4v16'/></svg>" },
+    { "title": "Tables", "description": "Create tables with merge/split, borders, shading, and 105+ built-in styles.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z'/></svg>" },
+    { "title": "Images", "description": "Insert images from files, streams, base64, or URLs with wrapping, cropping, and rotation.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'/></svg>" },
+    { "title": "Charts", "description": "Pie, bar, line, combo, scatter, area, and radar charts with data binding.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'/></svg>" },
+    { "title": "Headers & Footers", "description": "Section-specific headers and footers with page numbers, fields, and different first page.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2'/></svg>" },
+    { "title": "Content Controls", "description": "Checkboxes, dropdowns, date pickers, combo boxes, and rich text controls.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'/></svg>" }
+  ],
+  "relatedPackages": [
+    { "name": "OfficeIMO.Word.Html", "description": "Convert Word documents to HTML", "install": "dotnet add package OfficeIMO.Word.Html" },
+    { "name": "OfficeIMO.Word.Markdown", "description": "Convert Word documents to Markdown", "install": "dotnet add package OfficeIMO.Word.Markdown" },
+    { "name": "OfficeIMO.Word.Pdf", "description": "Convert Word documents to PDF", "install": "dotnet add package OfficeIMO.Word.Pdf" }
+  ]
+}

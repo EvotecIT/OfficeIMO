@@ -1,0 +1,110 @@
+[
+  {
+    "id": "reader",
+    "eyebrow": "AI-ready extraction pipeline",
+    "title": "Mixed documents in, stable chunks out",
+    "description": "A single ingestion surface for Office documents, Markdown, and PDFs. Normalize once, then feed the same output into search, RAG, and review workflows.",
+    "metrics": [
+      { "value": "DOCX/XLSX/PPTX/PDF", "label": "Input families" },
+      { "value": "512 + overlap", "label": "Typical chunk profile" },
+      { "value": "Search + AI", "label": "Downstream targets" }
+    ],
+    "steps": [
+      "Extract text, headings, and metadata from mixed document folders.",
+      "Chunk with deterministic settings so re-runs keep stable citations.",
+      "Ship normalized results into vector stores, indexes, or audit workflows."
+    ],
+    "artifacts": [
+      {
+        "kind": "Extract",
+        "name": "proposal.docx",
+        "summary": "Heading-aware text and metadata",
+        "detail": "Title, author, headings, page count, and normalized body text ready for chunking."
+      },
+      {
+        "kind": "Chunk",
+        "name": "proposal-014.json",
+        "summary": "Citation-safe prompt segment",
+        "detail": "Overlap preserves context while source references stay stable across repeated indexing runs."
+      },
+      {
+        "kind": "Index",
+        "name": "search-batch",
+        "summary": "Vector + keyword ingestion",
+        "detail": "Use the same extracted payload for semantic search, compliance review, or retrieval-augmented generation."
+      }
+    ]
+  },
+  {
+    "id": "powerpoint",
+    "eyebrow": "Generated reporting decks",
+    "title": "Build stakeholder slides from live data",
+    "description": "Turn release metrics, customer summaries, and reporting snapshots into repeatable presentations that stay aligned with your source data.",
+    "metrics": [
+      { "value": "Slides + charts", "label": "Core outputs" },
+      { "value": "Notes included", "label": "Presenter-ready" },
+      { "value": "CI artifacts", "label": "Delivery mode" }
+    ],
+    "steps": [
+      "Start from a stable deck structure instead of hand-editing every presentation.",
+      "Populate titles, bullets, tables, and charts from the same domain data used in reports.",
+      "Export polished .pptx decks for customer reviews, weekly updates, or release briefings."
+    ],
+    "artifacts": [
+      {
+        "kind": "Title slide",
+        "name": "Weekly Status",
+        "summary": "Consistent opener with branding and timeframe",
+        "detail": "Keeps recurring updates recognizable while still being generated from code."
+      },
+      {
+        "kind": "Chart slide",
+        "name": "Revenue by Quarter",
+        "summary": "Series-driven visuals from application data",
+        "detail": "Render the same metrics you use in Excel or dashboards without manual chart editing."
+      },
+      {
+        "kind": "Speaker notes",
+        "name": "Presenter cues",
+        "summary": "Context for demos and QBR narration",
+        "detail": "Ship the talking points with the deck so the generated output is useful beyond screenshots."
+      }
+    ]
+  },
+  {
+    "id": "visio",
+    "eyebrow": "Diagram generation from system data",
+    "title": "From topology metadata to .vsdx artifacts",
+    "description": "Use inventory, workflow, or ownership data to emit diagrams that stay in sync with the systems they describe instead of drifting as hand-drawn files.",
+    "metrics": [
+      { "value": "Shapes + connectors", "label": "Diagram grammar" },
+      { "value": "Pages supported", "label": "Multiple views" },
+      { "value": "Report-friendly", "label": "Companion output" }
+    ],
+    "steps": [
+      "Map systems, services, or workflow steps to stable shapes and color rules.",
+      "Connect entities to show traffic, dependency, or approval flow.",
+      "Ship the diagram alongside Word reports or PowerPoint decks generated from the same source data."
+    ],
+    "artifacts": [
+      {
+        "kind": "Node",
+        "name": "App Server",
+        "summary": "Typed shape with layout and styling",
+        "detail": "Keep labels, colors, and placement consistent so regenerated diagrams are easy to compare."
+      },
+      {
+        "kind": "Connector",
+        "name": "HTTPS / TCP",
+        "summary": "Relationship and traffic flow",
+        "detail": "Use connectors to explain how systems interact without hard-coding every visual edge by hand."
+      },
+      {
+        "kind": "Page",
+        "name": "System Overview",
+        "summary": "One diagram among many views",
+        "detail": "Generate separate topology, deployment, and ownership views in the same VSDX package."
+      }
+    ]
+  }
+]

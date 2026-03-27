@@ -1,0 +1,22 @@
+<div class="imo-install-tabs">
+  <div class="imo-install-tab-buttons" role="tablist">
+    <button class="imo-install-tab-btn active" role="tab" aria-selected="true" data-tab="dotnet">.NET CLI</button>
+    <button class="imo-install-tab-btn" role="tab" aria-selected="false" data-tab="powershell">PowerShell</button>
+  </div>
+  <div class="imo-install-tab-panel active" data-panel="dotnet">
+    <div class="imo-install-command">
+      <code>{{ params.dotnet }}</code>
+      <button class="imo-copy-btn" aria-label="Copy command" data-copy="{{ params.dotnet }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="imo-install-tab-panel" data-panel="powershell">
+    <div class="imo-install-command">
+      <code>{{ params.powershell }}</code>
+      <button class="imo-copy-btn" aria-label="Copy command" data-copy="{{ params.powershell }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      </button>
+    </div>
+  </div>
+</div>

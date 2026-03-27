@@ -1,0 +1,8 @@
+[
+  { "format": ".docx", "label": "Word", "icon": "/images/formats/docx.svg", "package": "OfficeIMO.Word", "url": "/products/word/", "color": "#2563eb" },
+  { "format": ".xlsx", "label": "Excel", "icon": "/images/formats/xlsx.svg", "package": "OfficeIMO.Excel", "url": "/products/excel/", "color": "#059669" },
+  { "format": ".pptx", "label": "PowerPoint", "icon": "/images/formats/pptx.svg", "package": "OfficeIMO.PowerPoint", "url": "/products/powerpoint/", "color": "#dc2626" },
+  { "format": ".md", "label": "Markdown", "icon": "/images/formats/md.svg", "package": "OfficeIMO.Markdown", "url": "/products/markdown/", "color": "#7c3aed" },
+  { "format": ".csv", "label": "CSV", "icon": "/images/formats/csv.svg", "package": "OfficeIMO.CSV", "url": "/products/csv/", "color": "#0891b2" },
+  { "format": ".vsdx", "label": "Visio", "icon": "/images/formats/vsdx.svg", "package": "OfficeIMO.Visio", "url": "/products/visio/", "color": "#ea580c" }
+]

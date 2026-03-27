@@ -1,0 +1,70 @@
+<header class="imo-header">
+  <div class="imo-container imo-header__inner">
+    <a class="imo-header__logo" href="/">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+        <rect width="28" height="28" rx="6" fill="currentColor" opacity="0.1"/>
+        <path d="M7 8h14v2H7zm0 5h14v2H7zm0 5h10v2H7z" fill="currentColor"/>
+      </svg>
+      <span>OfficeIMO</span>
+    </a>
+
+    <button class="imo-hamburger" type="button" aria-label="Toggle navigation">
+      <span class="imo-hamburger__line"></span>
+      <span class="imo-hamburger__line"></span>
+      <span class="imo-hamburger__line"></span>
+    </button>
+
+    <nav class="imo-nav" aria-label="Main navigation">
+      {{ if navigation.menus && navigation.menus.size > 0 }}
+        {{ for menu in navigation.menus }}
+          {{ if menu.name == "main" }}
+            {{ for link in menu.items }}
+              {{ if link.sections && link.sections.size > 0 }}
+              <div class="imo-nav__item">
+                <button class="imo-nav__link" type="button" aria-expanded="false" aria-haspopup="true">
+                  {{ link.title }}
+                  <svg class="imo-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="imo-dropdown imo-dropdown--mega">
+                  {{ for section in link.sections }}
+                  <div class="imo-dropdown__group">
+                    <span class="imo-dropdown__title">{{ section.title }}</span>
+                    {{ for sub in section.items }}
+                    <a href="{{ sub.url }}" class="imo-dropdown__link"{{ if sub.external }} target="_blank" rel="noopener"{{ end }}>
+                      <span class="imo-dropdown__text">{{ sub.title }}</span>
+                      {{ if sub.description }}<span class="imo-dropdown__desc">{{ sub.description }}</span>{{ end }}
+                    </a>
+                    {{ end }}
+                  </div>
+                  {{ end }}
+                </div>
+              </div>
+              {{ else }}
+              <div class="imo-nav__item">
+                <a href="{{ link.url }}" class="imo-nav__link"{{ if link.external }} target="_blank" rel="noopener"{{ end }}>{{ link.title }}</a>
+              </div>
+              {{ end }}
+            {{ end }}
+          {{ end }}
+        {{ end }}
+      {{ end }}
+    </nav>
+
+    <div class="imo-header__actions">
+      <button class="imo-theme-toggle" type="button" aria-label="Toggle theme">
+        <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      </button>
+      {{ if navigation.actions && navigation.actions.size > 0 }}
+        {{ for action in navigation.actions }}
+          {{ if action.url }}
+          <a href="{{ action.url }}"{{ if action.css_class }} class="{{ action.css_class }}"{{ end }}{{ if action.aria_label }} aria-label="{{ action.aria_label }}"{{ else if action.title }} aria-label="{{ action.title }}"{{ end }}{{ if action.external }} target="_blank" rel="noopener"{{ end }}>
+            {{ if action.icon_html && action.icon_html != "" }}{{ action.icon_html }}{{ end }}
+            {{ if action.text && action.text != "" }} {{ action.text }}{{ else if !action.icon_html || action.icon_html == "" }} {{ action.title }}{{ end }}
+          </a>
+          {{ end }}
+        {{ end }}
+      {{ end }}
+    </div>
+  </div>
+</header>

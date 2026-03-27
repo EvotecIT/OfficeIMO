@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ page.title }} | {{ site.name }}</title>
+  {{ description_meta_html }}
+  {{ canonical_html }}
+  {{ head_html }}
+  <script>(function(){var t=localStorage.getItem('imo-theme')||'dark';if(t==='auto')t=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';document.documentElement.dataset.theme=t;})();</script>
+  {{ assets.preloads_html }}
+  {{ assets.critical_css_html }}
+  {{ include "theme-tokens" }}
+  {{ extra_css_html }}
+  {{ assets.css_html }}
+  {{ opengraph_html }}
+  {{ structured_data_html }}
+</head>
+<body class="imo-body imo-body--page">
+  <a class="imo-skip-link" href="#content">Skip to main content</a>
+
+  {{ include "header" }}
+
+  <main id="content" class="imo-main imo-main--page">
+    <div class="imo-container">
+      <article class="imo-page">
+        <header class="imo-page__header">
+          <h1 class="imo-page__title">{{ page.title }}</h1>
+          {{ if page.description }}
+          <p class="imo-page__description">{{ page.description }}</p>
+          {{ end }}
+        </header>
+
+        <section class="imo-blog-overview">
+          <div class="imo-blog-overview__panel">
+            <div>
+              <span class="imo-blog-overview__eyebrow">Reading paths</span>
+              <h2 class="imo-blog-overview__title">Start with the article that matches how you plan to use OfficeIMO</h2>
+              <p class="imo-blog-overview__copy">Some posts are launch or comparison pieces, some are workflow tutorials, and some explain deployment or compatibility tradeoffs. Use this page to jump into the right story first, then browse the full archive below.</p>
+            </div>
+            <div class="imo-blog-overview__actions">
+              <a href="/docs/" class="imo-btn imo-btn-primary">Open Documentation Hub</a>
+              <a href="/comparison/" class="imo-btn imo-btn-ghost">Compare Package Options</a>
+            </div>
+          </div>
+
+          <section class="imo-blog-overview__group" aria-labelledby="blog-group-start">
+            <div class="imo-blog-overview__group-header">
+              <div>
+                <span class="imo-blog-overview__eyebrow">Start here</span>
+                <h2 id="blog-group-start">Use these if you are new to the project</h2>
+              </div>
+              <p>These articles explain what OfficeIMO is, where PSWriteOffice fits, and which package family to explore next.</p>
+            </div>
+            <div class="imo-blog-card-grid">
+              <article class="imo-blog-card" style="--blog-accent: var(--imo-accent);">
+                <div class="imo-blog-card__header">
+                  <h3>Project Introduction</h3>
+                  <span class="imo-badge">Announcement</span>
+                </div>
+                <p class="imo-blog-card__desc">A high-level introduction to the package family, the MIT license, and the main problem OfficeIMO is trying to solve.</p>
+                <p class="imo-blog-card__best">Best for: understanding the suite before you choose a package or language entry point.</p>
+                <div class="imo-blog-card__links">
+                  <a href="/blog/introducing-officeimo/" class="imo-blog-card__primary">Read project introduction</a>
+                  <a href="/docs/" class="imo-blog-card__secondary">Documentation hub</a>
+                </div>
+              </article>
+              <article class="imo-blog-card" style="--blog-accent: #38bdf8;">
+                <div class="imo-blog-card__header">
+                  <h3>PowerShell Quick Start</h3>
+                  <span class="imo-badge">Tutorial</span>
+                </div>
+                <p class="imo-blog-card__desc">A short PSWriteOffice entry point for people who want document automation from scripts rather than a C# project.</p>
+                <p class="imo-blog-card__best">Best for: admins, scheduled jobs, and GitHub Actions-style report generation.</p>
+                <div class="imo-blog-card__links">
+                  <a href="/blog/powershell-meets-office/" class="imo-blog-card__primary">Read PowerShell quick start</a>
+                  <a href="/products/pswriteoffice/" class="imo-blog-card__secondary">PSWriteOffice product page</a>
+                </div>
+              </article>
+              <article class="imo-blog-card" style="--blog-accent: var(--imo-word);">
+                <div class="imo-blog-card__header">
+                  <h3>Word Builder Walkthrough</h3>
+                  <span class="imo-badge">Tutorial</span>
+                </div>
+                <p class="imo-blog-card__desc">A practical `.docx` walkthrough that shows how a typical document-generation workflow looks in C#.</p>
+                <p class="imo-blog-card__best">Best for: developers evaluating the shape of the fluent Word API before diving into the docs.</p>
+                <div class="imo-blog-card__links">
+                  <a href="/blog/creating-word-documents/" class="imo-blog-card__primary">Read Word builder walkthrough</a>
+                  <a href="/products/word/" class="imo-blog-card__secondary">OfficeIMO.Word product page</a>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="imo-blog-overview__group" aria-labelledby="blog-group-workflows">
+            <div class="imo-blog-overview__group-header">
+              <div>
+                <span class="imo-blog-overview__eyebrow">Workflow guides</span>
+                <h2 id="blog-group-workflows">Pick a real-world automation or ingestion scenario</h2>
+              </div>
+              <p>These posts are the best place to start when you already know the problem you want to automate and need a realistic implementation path.</p>
+            </div>
+            <div class="imo-blog-card-grid">
+              <article class="imo-blog-card" style="--blog-accent: var(--imo-excel);">
+                <div class="imo-blog-card__header">
+                  <h3>Parallel Excel Reports</h3>
+                  <span class="imo-badge">Reporting</span>
+                </div>
+                <p class="imo-blog-card__desc">Shows how to generate repeatable Excel outputs for reporting scenarios where throughput matters more than a one-off workbook.</p>
+                <p class="imo-blog-card__best">Best for: operational reports, exports, and workbook generation pipelines.</p>
+                <div class="imo-blog-card__links">
+                  <a href="/blog/excel-parallel-reports/" class="imo-blog-card__primary">Read parallel Excel guide</a>
+                  <a href="/docs/excel/" class="imo-blog-card__secondary">Excel documentation</a>
+                </div>
+              </article>
+              <article class="imo-blog-card" style="--blog-accent: #8b5cf6;">
+                <div class="imo-blog-card__header">
+                  <h3>Reader and Extraction</h3>
+                  <span class="imo-badge">Ingestion</span>
+                </div>
+                <p class="imo-blog-card__desc">Covers the chunk-based Reader workflow for indexing, search pipelines, and AI-oriented preprocessing tasks.</p>
+                <p class="imo-blog-card__best">Best for: extraction, normalization, and downstream search or embedding systems.</p>
+                <div class="imo-blog-card__links">
+                  <a href="/blog/reading-documents-with-reader/" class="imo-blog-card__primary">Read Reader extraction guide</a>
+                  <a href="/products/reader/" class="imo-blog-card__secondary">OfficeIMO.Reader product page</a>
+                </div>
+              </article>
+              <article class="imo-blog-card" style="--blog-accent: #fb923c;">
+                <div class="imo-blog-card__header">
+                  <h3>GitHub Actions Reporting</h3>
+                  <span class="imo-badge">Automation</span>
+                </div>
+                <p class="imo-blog-card__desc">Explains how to combine OfficeIMO or PSWriteOffice with CI automation to produce documents during repository workflows.</p>
+                <p class="imo-blog-card__best">Best for: CI-generated reports, scheduled automation, and repository-native document publishing.</p>
+                <div class="imo-blog-card__links">
+                  <a href="/blog/automating-reports-github-actions/" class="imo-blog-card__primary">Read GitHub Actions guide</a>
+                  <a href="/docs/pswriteoffice/" class="imo-blog-card__secondary">PSWriteOffice documentation</a>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="imo-blog-overview__group" aria-labelledby="blog-group-advanced">
+            <div class="imo-blog-overview__group-header">
+              <div>
+                <span class="imo-blog-overview__eyebrow">Architecture and tradeoffs</span>
+                <h2 id="blog-group-advanced">Use these when you are evaluating deployment or package fit</h2>
+              </div>
+              <p>These posts focus on compatibility, trimming, PDF conversion, markdown rendering, and comparison-style questions that come up before production adoption.</p>
+            </div>
+            <div class="imo-blog-card-grid">
+              <article class="imo-blog-card" style="--blog-accent: #8b5cf6;">
+                <div class="imo-blog-card__header">
+                  <h3>AOT and Trimming</h3>
+                  <span class="imo-badge">Deployment</span>
+                </div>
+                <p class="imo-blog-card__desc">Sets realistic expectations for ahead-of-time compilation and trimming across the package family.</p>
+                <p class="imo-blog-card__best">Best for: deployment reviews, image-size work, and compatibility planning.</p>
+                <div class="imo-blog-card__links">
+                  <a href="/blog/aot-trimming-office/" class="imo-blog-card__primary">Read AOT guidance article</a>
+                  <a href="/docs/advanced/aot-trimming/" class="imo-blog-card__secondary">Advanced AOT docs</a>
+                </div>
+              </article>
+              <article class="imo-blog-card" style="--blog-accent: #f97316;">
+                <div class="imo-blog-card__header">
+                  <h3>Word to PDF on Linux</h3>
+                  <span class="imo-badge">Converter</span>
+                </div>
+                <p class="imo-blog-card__desc">A practical guide to in-process DOCX to PDF generation and the runtime dependencies that matter in Linux deployments.</p>
+                <p class="imo-blog-card__best">Best for: service-side PDF generation, containerized workloads, and publish pipeline planning.</p>
+                <div class="imo-blog-card__links">
+                  <a href="/blog/word-to-pdf-linux/" class="imo-blog-card__primary">Read Word to PDF guide</a>
+                  <a href="/docs/converters/word-html/" class="imo-blog-card__secondary">Converter documentation</a>
+                </div>
+              </article>
+              <article class="imo-blog-card" style="--blog-accent: var(--imo-markdown);">
+                <div class="imo-blog-card__header">
+                  <h3>Markdown Engine Overview</h3>
+                  <span class="imo-badge">Package guide</span>
+                </div>
+                <p class="imo-blog-card__desc">Explains where the markdown builder and parser fit, and why the package is useful even outside Office document generation.</p>
+                <p class="imo-blog-card__best">Best for: evaluating the markdown package before using the builder, parser, or HTML renderer directly.</p>
+                <div class="imo-blog-card__links">
+                  <a href="/blog/zero-dependency-markdown/" class="imo-blog-card__primary">Read markdown engine overview</a>
+                  <a href="/products/markdown/" class="imo-blog-card__secondary">OfficeIMO.Markdown product page</a>
+                </div>
+              </article>
+            </div>
+          </section>
+        </section>
+
+        <div class="imo-page__content imo-prose">
+{{ content }}
+        </div>
+
+        {{ if items && items.size > 0 }}
+        {{ pf.editorial_cards 0 160 true true true false "16/9" "" "featured" "imo-editorial-list imo-editorial-list-blog" "imo-editorial-card imo-editorial-card-blog" }}
+        {{ pf.editorial_pager "Newer posts" "Older posts" "imo-editorial-pager" }}
+        {{ end }}
+      </article>
+    </div>
+  </main>
+
+  {{ include "footer" }}
+
+  {{ assets.js_html }}
+  {{ extra_scripts_html }}
+</body>
+</html>

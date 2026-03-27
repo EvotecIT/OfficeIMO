@@ -1,0 +1,20 @@
+<div class="imo-showcase-grid">
+  {{ for card in data.showcase.cards }}
+  <div class="imo-showcase-card">
+    {{ if card.image }}
+    <div class="imo-showcase-card-image">
+      <img src="{{ card.image }}" alt="{{ card.title }}" loading="lazy">
+    </div>
+    {{ end }}
+    <div class="imo-showcase-card-body">
+      <h3>{{ card.title }}</h3>
+      <p>{{ card.description }}</p>
+      <div class="imo-showcase-card-tags">
+        {{ for tag in card.tags }}
+        <span class="imo-badge">{{ tag }}</span>
+        {{ end }}
+      </div>
+    </div>
+  </div>
+  {{ end }}
+</div>

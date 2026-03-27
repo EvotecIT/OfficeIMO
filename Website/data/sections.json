@@ -1,0 +1,31 @@
+{
+  "features": {
+    "label": "Why OfficeIMO?",
+    "title": "Everything You Need for Office Documents"
+  },
+  "formats": {
+    "label": "Supported Formats",
+    "title": "One Library Family, Every Format"
+  },
+  "showcase": {
+    "label": "Showcase",
+    "title": "What You Can Build"
+  },
+  "code_examples": {
+    "label": "Code Examples",
+    "title": "Multiple Ways to Build Documents"
+  },
+  "comparison": {
+    "label": "Comparison",
+    "title": "How OfficeIMO Compares"
+  },
+  "how_it_works": {
+    "label": "How It Works",
+    "title": "Get Started in Three Steps"
+  },
+  "products": {
+    "label": "Product Family",
+    "title": "A Library for Every Format",
+    "description": "Start with the document builder you need today, then layer in Reader for ingestion and PSWriteOffice for scripting and automation."
+  }
+}

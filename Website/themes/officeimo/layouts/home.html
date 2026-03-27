@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ page.title }}</title>
+  {{ description_meta_html }}
+  {{ canonical_html }}
+  {{ head_html }}
+  <script>(function(){var t=localStorage.getItem('imo-theme')||'dark';if(t==='auto')t=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';document.documentElement.dataset.theme=t;})();</script>
+  {{ assets.preloads_html }}
+  {{ assets.critical_css_html }}
+  {{ include "theme-tokens" }}
+  {{ extra_css_html }}
+  {{ assets.css_html }}
+  {{ opengraph_html }}
+  {{ structured_data_html }}
+</head>
+<body class="imo-body imo-body--home">
+  <a class="imo-skip-link" href="#content">Skip to main content</a>
+
+  {{ include "header" }}
+
+  <main id="content" class="imo-main imo-main--home">
+    {{ include "sections/hero" }}
+    {{ include "sections/trust-banner" }}
+    {{ include "sections/format-ribbon" }}
+    {{ include "sections/stats" }}
+    {{ include "sections/how-it-works" }}
+    {{ include "sections/product-family" }}
+    {{ include "sections/code-examples" }}
+    {{ include "sections/comparison-strip" }}
+    {{ include "sections/showcase-preview" }}
+    {{ include "sections/faq-preview" }}
+    {{ include "sections/cta" }}
+  </main>
+
+  {{ include "footer" }}
+
+  {{ assets.js_html }}
+  {{ extra_scripts_html }}
+</body>
+</html>

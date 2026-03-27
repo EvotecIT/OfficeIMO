@@ -1,0 +1,187 @@
+/* OfficeIMO – Product Page – Liquid Glass Premium */
+
+.imo-product-hero{
+  padding:5rem 0 4rem;text-align:center;position:relative;overflow:hidden;
+  border-bottom:1px solid var(--imo-glass-border);
+}
+.imo-product-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% -10%,rgba(56,189,248,0.12) 0%,transparent 60%),radial-gradient(ellipse 40% 50% at 80% 40%,rgba(139,92,246,0.07) 0%,transparent 55%);pointer-events:none}
+.imo-product-hero::after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(56,189,248,0.03) 1px,transparent 1px);background-size:28px 28px;mask-image:radial-gradient(ellipse 50% 40% at 50% 40%,black 20%,transparent 70%);-webkit-mask-image:radial-gradient(ellipse 50% 40% at 50% 40%,black 20%,transparent 70%);pointer-events:none}
+
+.imo-product-hero h1{font-size:3rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:0.75rem;position:relative;background:linear-gradient(135deg,#fff 0%,#a5b4cf 50%,var(--imo-accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+[data-theme="light"] .imo-product-hero h1{background:linear-gradient(135deg,#0f172a 0%,#334155 50%,#2563eb 100%);-webkit-background-clip:text;background-clip:text}
+.imo-product-hero p{font-size:1.1rem;color:var(--imo-text-secondary);line-height:1.7;max-width:600px;margin:0 auto 2rem;position:relative}
+
+.imo-product-hero .imo-install{max-width:480px;margin:0 auto 2rem;box-shadow:var(--imo-shadow-lg),0 0 40px rgba(56,189,248,0.04);position:relative}
+.imo-product-hero__links{display:flex;justify-content:center;gap:0.75rem;flex-wrap:wrap;position:relative}
+.imo-product-hero__preview{
+  margin:2.75rem auto 0;
+  max-width:980px;
+  display:grid;
+  grid-template-columns:minmax(0,1.15fr) minmax(320px,.95fr);
+  gap:1.25rem;
+  padding:1.25rem;
+  text-align:left;
+  border-radius:28px;
+  background:linear-gradient(180deg,rgba(8,15,32,0.9),rgba(15,23,42,0.82));
+  border:1px solid rgba(148,163,184,0.18);
+  box-shadow:0 24px 64px rgba(2,6,23,0.45),inset 0 1px 0 rgba(255,255,255,0.04);
+  position:relative;
+  overflow:hidden;
+}
+.imo-product-hero__preview::before{
+  content:"";
+  position:absolute;
+  inset:-20% auto auto 50%;
+  width:420px;
+  height:420px;
+  transform:translateX(-50%);
+  background:radial-gradient(circle, color-mix(in srgb, var(--imo-product-color, var(--imo-accent)) 30%, transparent) 0%, transparent 72%);
+  opacity:.6;
+  pointer-events:none;
+}
+.imo-product-hero__preview-copy,.imo-product-hero__preview-surface{position:relative;z-index:1}
+.imo-product-hero__preview-copy{
+  padding:1rem 1rem 1rem 1.1rem;
+  align-self:center;
+}
+.imo-product-hero__preview-eyebrow{
+  margin:0 0 .7rem;
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  font-size:.72rem;
+  font-weight:700;
+  color:color-mix(in srgb, var(--imo-product-color, var(--imo-accent)) 72%, #e2e8f0 28%);
+}
+.imo-product-hero__preview-title{
+  margin:0;
+  font-size:1.7rem;
+  line-height:1.15;
+  color:#f8fafc;
+}
+.imo-product-hero__preview-desc{
+  margin:1rem 0 0;
+  max-width:56ch;
+  color:#cbd5e1;
+  font-size:.98rem;
+}
+.imo-product-hero__preview-metrics{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:.75rem;
+  margin-top:1.35rem;
+}
+.imo-product-hero__preview-metric{
+  padding:.85rem .95rem;
+  border-radius:18px;
+  background:rgba(15,23,42,0.65);
+  border:1px solid rgba(148,163,184,0.15);
+}
+.imo-product-hero__preview-metric-value{
+  display:block;
+  font-weight:800;
+  color:#f8fafc;
+  font-size:.95rem;
+}
+.imo-product-hero__preview-metric-label{
+  display:block;
+  margin-top:.25rem;
+  color:#94a3b8;
+  font-size:.78rem;
+}
+.imo-product-hero__preview-steps{
+  margin:1.35rem 0 0;
+  padding-left:1.2rem;
+  color:#cbd5e1;
+  display:grid;
+  gap:.55rem;
+}
+.imo-product-hero__preview-steps li{padding-left:.1rem}
+.imo-product-hero__preview-surface{
+  display:grid;
+  gap:.9rem;
+  align-content:center;
+  padding:.35rem;
+}
+.imo-product-hero__artifact{
+  padding:1rem 1rem 1rem 1.05rem;
+  border-radius:20px;
+  background:rgba(15,23,42,0.74);
+  border:1px solid rgba(148,163,184,0.14);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.03);
+}
+.imo-product-hero__artifact-topline{
+  display:flex;
+  align-items:center;
+  gap:.65rem;
+  flex-wrap:wrap;
+}
+.imo-product-hero__artifact-kind{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:72px;
+  padding:.25rem .55rem;
+  border-radius:999px;
+  font-size:.72rem;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:#f8fafc;
+  background:color-mix(in srgb, var(--imo-product-color, var(--imo-accent)) 42%, rgba(15,23,42,0.92));
+  border:1px solid color-mix(in srgb, var(--imo-product-color, var(--imo-accent)) 35%, rgba(255,255,255,0.08));
+}
+.imo-product-hero__artifact-name{
+  font-weight:700;
+  color:#f8fafc;
+}
+.imo-product-hero__artifact-summary{
+  margin:.75rem 0 .25rem;
+  color:#e2e8f0;
+  font-weight:600;
+}
+.imo-product-hero__artifact-detail{
+  margin:0;
+  color:#94a3b8;
+  font-size:.9rem;
+  line-height:1.55;
+}
+
+.imo-product__content{padding:4rem 0;max-width:860px;margin:0 auto}
+
+/* Section headings within product pages */
+.imo-product__content .imo-prose h2{font-size:1.75rem;margin-top:3.5rem;padding-top:2rem;border-top:1px solid var(--imo-glass-border);color:var(--imo-text)}
+.imo-product__content .imo-prose h2:first-child{border-top:none;margin-top:0;padding-top:0}
+.imo-product__content .imo-prose h3{font-size:1.25rem;color:var(--imo-text);margin-top:2.5rem}
+
+/* Feature list styling within product prose */
+.imo-product__content .imo-prose ul{margin:1.5rem 0;list-style:none;padding:0}
+.imo-product__content .imo-prose li{padding:0.65rem 0.85rem;margin-bottom:0.5rem;background:var(--imo-glass);backdrop-filter:blur(8px);border:1px solid var(--imo-glass-border);border-radius:var(--imo-radius);transition:all 200ms}
+.imo-product__content .imo-prose li:hover{border-color:var(--imo-glass-border-hover);box-shadow:var(--imo-shadow-sm)}
+.imo-product__content .imo-prose li strong{color:var(--imo-accent)}
+.imo-product__content .imo-prose li::marker{display:none}
+
+/* Code blocks within product pages */
+.imo-product__content .imo-prose pre{box-shadow:var(--imo-shadow-lg),inset 0 1px 0 rgba(255,255,255,0.03);border:1px solid var(--imo-glass-border-hover);margin:1.5rem 0}
+
+/* Compatibility table */
+.imo-product__content .imo-prose table{background:var(--imo-glass);backdrop-filter:blur(12px);border:1px solid var(--imo-glass-border);border-radius:var(--imo-radius-lg);overflow:hidden;border-collapse:separate;border-spacing:0;width:100%}
+.imo-product__content .imo-prose th{background:rgba(56,189,248,0.04);border-bottom:1px solid var(--imo-glass-border-hover);padding:0.8rem 1.25rem;font-size:0.85rem;font-weight:700;text-align:left}
+.imo-product__content .imo-prose td{padding:0.7rem 1.25rem;border-bottom:1px solid var(--imo-glass-border)}
+
+/* Feature cards (if using feature grid) */
+.imo-product-features{padding:3rem 0}
+.imo-product-features__grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem}
+.imo-feature-card{background:var(--imo-glass);backdrop-filter:blur(16px);border:1px solid var(--imo-glass-border);border-radius:var(--imo-radius-xl);padding:1.75rem;transition:all 300ms var(--imo-ease)}
+.imo-feature-card:hover{border-color:var(--imo-glass-border-hover);box-shadow:var(--imo-shadow-lg);transform:translateY(-3px)}
+.imo-feature-card__icon{width:40px;height:40px;border-radius:10px;background:rgba(56,189,248,0.08);color:var(--imo-accent);border:1px solid rgba(56,189,248,0.12);display:flex;align-items:center;justify-content:center;margin-bottom:1rem}
+.imo-feature-card__icon svg{width:20px;height:20px}
+.imo-feature-card__title{font-size:1.05rem;font-weight:700;margin-bottom:0.4rem}
+.imo-feature-card__desc{font-size:0.875rem;color:var(--imo-text-secondary);line-height:1.6}
+
+@media(max-width:767px){
+  .imo-product-hero h1{font-size:2.25rem}
+  .imo-product-hero__preview{grid-template-columns:1fr;padding:1rem}
+  .imo-product-hero__preview-copy{padding:.6rem .6rem .3rem}
+  .imo-product-hero__preview-metrics{grid-template-columns:1fr}
+  .imo-product-features__grid{grid-template-columns:1fr}
+}

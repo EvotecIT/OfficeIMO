@@ -1,0 +1,97 @@
+<!-- Product Hero Section -->
+<section class="imo-product-hero" aria-labelledby="imo-product-hero-title"
+  {{ if page.product_color }}style="--imo-product-color: {{ page.product_color }}"{{ end }}>
+  <div class="imo-product-hero__bg"></div>
+  <div class="imo-container imo-product-hero__inner">
+
+    <h1 id="imo-product-hero-title" class="imo-product-hero__title">{{ page.title }}</h1>
+
+    {{ if page.description }}
+    <p class="imo-product-hero__desc">{{ page.description }}</p>
+    {{ end }}
+
+    {{ install_cmd = page.install ?? page.meta.install ?? "" }}
+    {{ nuget_pkg = page.nuget ?? page.meta.nuget ?? "" }}
+    {{ docs_link = page.docs_url ?? page.meta.docs_url ?? "/docs/" }}
+    {{ api_link = page.api_url ?? page.meta.api_url ?? "" }}
+    {{ preview_id = page.preview_id ?? page.meta.preview_id ?? "" }}
+    {{ preview = null }}
+    {{ if preview_id != "" && data.product_previews }}
+      {{ for item in data.product_previews }}
+        {{ if item.id == preview_id }}
+          {{ preview = item }}
+        {{ end }}
+      {{ end }}
+    {{ end }}
+
+    {{ if install_cmd != "" }}
+    <div class="imo-install" style="max-width:480px;margin:0 auto 2rem;box-shadow:0 12px 40px rgba(0,0,0,0.5),0 0 40px rgba(56,189,248,0.04);">
+      <code class="imo-install__code">{{ install_cmd }}</code>
+      <button class="imo-install__copy" type="button" aria-label="Copy install command" data-copy="{{ install_cmd }}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      </button>
+    </div>
+    {{ end }}
+
+    <div class="imo-product-hero__links">
+      {{ if nuget_pkg != "" }}
+      <a href="https://www.nuget.org/packages/{{ nuget_pkg }}" class="imo-btn imo-btn-ghost" target="_blank" rel="noopener">
+        NuGet Package
+      </a>
+      {{ end }}
+      <a href="{{ docs_link }}" class="imo-btn imo-btn-primary">
+        Documentation
+      </a>
+      {{ if api_link != "" }}
+      <a href="{{ api_link }}" class="imo-btn imo-btn-ghost">
+        API Reference
+      </a>
+      {{ end }}
+    </div>
+
+    {{ if preview }}
+    <section class="imo-product-hero__preview" aria-label="{{ preview.title }}">
+      <div class="imo-product-hero__preview-copy">
+        {{ if preview.eyebrow }}<p class="imo-product-hero__preview-eyebrow">{{ preview.eyebrow }}</p>{{ end }}
+        <h2 class="imo-product-hero__preview-title">{{ preview.title }}</h2>
+        {{ if preview.description }}<p class="imo-product-hero__preview-desc">{{ preview.description }}</p>{{ end }}
+
+        {{ if preview.metrics && preview.metrics.size > 0 }}
+        <div class="imo-product-hero__preview-metrics">
+          {{ for metric in preview.metrics }}
+          <div class="imo-product-hero__preview-metric">
+            <span class="imo-product-hero__preview-metric-value">{{ metric.value }}</span>
+            <span class="imo-product-hero__preview-metric-label">{{ metric.label }}</span>
+          </div>
+          {{ end }}
+        </div>
+        {{ end }}
+
+        {{ if preview.steps && preview.steps.size > 0 }}
+        <ol class="imo-product-hero__preview-steps">
+          {{ for step in preview.steps }}
+          <li>{{ step }}</li>
+          {{ end }}
+        </ol>
+        {{ end }}
+      </div>
+
+      {{ if preview.artifacts && preview.artifacts.size > 0 }}
+      <div class="imo-product-hero__preview-surface" aria-hidden="true">
+        {{ for artifact in preview.artifacts }}
+        <article class="imo-product-hero__artifact">
+          <div class="imo-product-hero__artifact-topline">
+            <span class="imo-product-hero__artifact-kind">{{ artifact.kind }}</span>
+            <span class="imo-product-hero__artifact-name">{{ artifact.name }}</span>
+          </div>
+          {{ if artifact.summary }}<p class="imo-product-hero__artifact-summary">{{ artifact.summary }}</p>{{ end }}
+          {{ if artifact.detail }}<p class="imo-product-hero__artifact-detail">{{ artifact.detail }}</p>{{ end }}
+        </article>
+        {{ end }}
+      </div>
+      {{ end }}
+    </section>
+    {{ end }}
+
+  </div>
+</section>

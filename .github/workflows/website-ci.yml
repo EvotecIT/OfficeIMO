@@ -1,0 +1,95 @@
+name: Website Build (PR)
+
+on:
+  pull_request:
+    paths:
+      - 'Website/**'
+      - '.github/workflows/website-ci.yml'
+      - '.github/workflows/deploy-website.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: website-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  POWERFORGE_REPOSITORY: EvotecIT/PSPublishModule
+  POWERFORGE_REF: 4751f06a2a52d926fc222a709ea6f0fff3d022c7
+  PSWRITEOFFICE_REPOSITORY: EvotecIT/PSWriteOffice
+
+jobs:
+  website-build:
+    runs-on: ${{ fromJSON((github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]') }}
+    timeout-minutes: 25
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.cache/ms-playwright
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Checkout PSPublishModule
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: ${{ env.POWERFORGE_REPOSITORY }}
+          ref: ${{ env.POWERFORGE_REF }}
+          path: PSPublishModule
+
+      - name: Checkout PSWriteOffice
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: ${{ env.PSWRITEOFFICE_REPOSITORY }}
+          token: ${{ secrets.READ_ALL || github.token }}
+          path: PSWriteOffice
+
+      - name: Restore and build PowerForge.Web.Cli
+        run: |
+          dotnet restore PSPublishModule/PowerForge.Web.Cli/PowerForge.Web.Cli.csproj --force-evaluate
+          dotnet build PSPublishModule/PowerForge.Web.Cli/PowerForge.Web.Cli.csproj -c Release --no-restore
+
+      - name: Sync PSWriteOffice API docs
+        shell: pwsh
+        run: ./Website/scripts/Sync-PSWriteOfficeApiDocs.ps1 -PSWriteOfficeRoot ./PSWriteOffice
+
+      - name: Initialize Playwright cache directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${PLAYWRIGHT_BROWSERS_PATH}"
+
+      - name: Build website
+        working-directory: Website
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
+        run: dotnet ../PSPublishModule/PowerForge.Web.Cli/bin/Release/net10.0/PowerForge.Web.Cli.dll pipeline --config pipeline.json --mode ci
+
+      - name: Verify website output
+        run: |
+          test -f Website/_site/.nojekyll
+          test -f Website/_site/CNAME
+          test -f Website/_site/index.html
+          test -f Website/_site/docs/index.html
+          test -f Website/_site/blog/index.html
+          test -f Website/_site/api/index.html
+          test -f Website/_site/api/powerpoint/index.html
+          test -f Website/_site/api/csv/index.html
+          test -f Website/_site/api/visio/index.html
+          test -f Website/_site/api/reader/index.html
+          test -f Website/_site/404.html
+          grep -Eqi "<link[^>]+rel=[^>]*stylesheet" Website/_site/404.html
+
+      - name: Cleanup Playwright cache
+        if: always()
+        shell: bash
+        run: |
+          if [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ] && [ -d "${PLAYWRIGHT_BROWSERS_PATH}" ]; then
+            rm -rf "${PLAYWRIGHT_BROWSERS_PATH}"
+          fi

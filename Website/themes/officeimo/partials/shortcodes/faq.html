@@ -1,0 +1,15 @@
+<div class="imo-faq-shortcode">
+  {{ for section in data.faq.sections }}
+  <div class="imo-faq-section">
+    <h2>{{ section.title }}</h2>
+    <div class="imo-faq-list">
+      {{ for item in section.items }}
+      <details class="imo-faq-item">
+        <summary class="imo-faq-question">{{ item.question }}</summary>
+        <div class="imo-faq-answer">{{ item.answer }}</div>
+      </details>
+      {{ end }}
+    </div>
+  </div>
+  {{ end }}
+</div>

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ page.title }} | {{ site.name }}</title>
+  {{ description_meta_html }}
+  {{ canonical_html }}
+  {{ head_html }}
+  <script>(function(){var t=localStorage.getItem('imo-theme')||'dark';if(t==='auto')t=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';document.documentElement.dataset.theme=t;})();</script>
+  {{ assets.preloads_html }}
+  {{ assets.critical_css_html }}
+  {{ include "theme-tokens" }}
+  {{ extra_css_html }}
+  {{ assets.css_html }}
+  {{ opengraph_html }}
+  {{ structured_data_html }}
+</head>
+<body class="imo-body imo-body--product">
+  <a class="imo-skip-link" href="#content">Skip to main content</a>
+
+  {{ include "header" }}
+
+  <main id="content" class="imo-main imo-main--product">
+    {{ include "sections/product-hero" }}
+
+    <div class="imo-container">
+      <div class="imo-product__content imo-prose">
+{{ content }}
+      </div>
+    </div>
+  </main>
+
+  {{ include "footer" }}
+
+  {{ assets.js_html }}
+  {{ extra_scripts_html }}
+</body>
+</html>

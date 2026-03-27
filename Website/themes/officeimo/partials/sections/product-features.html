@@ -1,0 +1,20 @@
+<!-- Product Features Section -->
+<section class="imo-product-features" aria-labelledby="imo-product-features-heading">
+  <div class="imo-container">
+    <h2 id="imo-product-features-heading" class="imo-section__title">Features</h2>
+
+    {{ if page.features }}
+    <div class="imo-product-features__grid" role="list">
+      {{ for feature in page.features }}
+      <div class="imo-feature-card" role="listitem">
+        {{ if feature.icon_svg }}
+        <div class="imo-feature-card__icon" aria-hidden="true">{{ feature.icon_svg }}</div>
+        {{ end }}
+        <h3 class="imo-feature-card__title">{{ feature.title }}</h3>
+        <p class="imo-feature-card__desc">{{ feature.description }}</p>
+      </div>
+      {{ end }}
+    </div>
+    {{ end }}
+  </div>
+</section>

@@ -1,0 +1,90 @@
+{
+  "downloads": {
+    "latest_word": {
+      "product": "officeimo.word",
+      "channel": "stable",
+      "label": "Download OfficeIMO.Word",
+      "class": "imo-btn imo-btn-primary"
+    },
+    "latest_excel": {
+      "product": "officeimo.excel",
+      "channel": "stable",
+      "label": "Download OfficeIMO.Excel",
+      "class": "imo-btn imo-btn-ghost"
+    },
+    "latest_powerpoint": {
+      "product": "officeimo.powerpoint",
+      "channel": "stable",
+      "label": "Download OfficeIMO.PowerPoint",
+      "class": "imo-btn imo-btn-ghost"
+    },
+    "latest_markdown": {
+      "product": "officeimo.markdown",
+      "channel": "stable",
+      "label": "Download OfficeIMO.Markdown",
+      "class": "imo-btn imo-btn-ghost"
+    },
+    "latest_word_html": {
+      "product": "officeimo.word.html",
+      "channel": "stable",
+      "label": "Download OfficeIMO.Word.Html",
+      "class": "imo-btn imo-btn-ghost"
+    },
+    "latest_word_markdown": {
+      "product": "officeimo.word.markdown",
+      "channel": "stable",
+      "label": "Download OfficeIMO.Word.Markdown",
+      "class": "imo-btn imo-btn-ghost"
+    },
+    "latest_word_pdf": {
+      "product": "officeimo.word.pdf",
+      "channel": "stable",
+      "label": "Download OfficeIMO.Word.Pdf",
+      "class": "imo-btn imo-btn-ghost"
+    },
+    "latest_markdown_html": {
+      "product": "officeimo.markdown.html",
+      "channel": "stable",
+      "label": "Download OfficeIMO.Markdown.Html",
+      "class": "imo-btn imo-btn-ghost"
+    },
+    "latest_pdf": {
+      "product": "officeimo.pdf",
+      "channel": "stable",
+      "label": "Download OfficeIMO.Pdf",
+      "class": "imo-btn imo-btn-ghost"
+    },
+    "latest_renderer": {
+      "product": "officeimo.markdownrenderer",
+      "channel": "stable",
+      "label": "Download OfficeIMO.MarkdownRenderer",
+      "class": "imo-btn imo-btn-ghost"
+    },
+    "latest_renderer_wpf": {
+      "product": "officeimo.markdownrenderer.wpf",
+      "channel": "stable",
+      "label": "Download OfficeIMO.MarkdownRenderer.Wpf",
+      "class": "imo-btn imo-btn-ghost"
+    },
+    "current_release": {
+      "product": "*",
+      "channel": "stable",
+      "limit": 16,
+      "class": "pf-release-buttons--catalog"
+    }
+  },
+  "changelog": {
+    "latest_release_assets": {
+      "product": "*",
+      "channel": "stable",
+      "limit": 12,
+      "class": "pf-release-buttons--compact"
+    },
+    "timeline": {
+      "product": "*",
+      "limit": 30,
+      "includePreview": true,
+      "class": "pf-release-changelog--timeline"
+    }
+  }
+}

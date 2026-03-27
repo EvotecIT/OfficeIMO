@@ -1,0 +1,100 @@
+{{ if data.products }}
+<section id="product-family" class="imo-product-grid">
+  <div class="imo-container">
+    <h2 class="imo-section__title">{{ data.sections.products.title ?? "A Library for Every Format" }}</h2>
+    {{ if data.sections.products.description }}
+    <p class="imo-section__subtitle">{{ data.sections.products.description }}</p>
+    {{ end }}
+
+    <div class="imo-product-grid__groups">
+      <div class="imo-product-grid__group">
+        <div class="imo-product-grid__group-header">
+          <h3 class="imo-product-grid__group-title">Core Builders</h3>
+          <p class="imo-product-grid__group-desc">Generate Word, Excel, PowerPoint, Markdown, CSV, and Visio output directly from .NET.</p>
+        </div>
+        <div class="imo-product-grid__grid">
+      {{ for product in data.products }}
+      {{ if product.family == "core" }}
+      <article class="imo-product-card" style="--product-color: {{ product.color }};">
+        <div class="imo-product-card__header">
+          <div class="imo-product-card__icon">{{ product.icon_svg }}</div>
+          <div>
+            <span class="imo-product-card__name">{{ product.title }}</span>
+            {{ if product.tag }}<span class="imo-badge">{{ product.tag }}</span>{{ end }}
+          </div>
+        </div>
+        <p class="imo-product-card__desc">{{ product.tagline }}</p>
+        {{ if product.highlights && product.highlights.size > 0 }}
+        <div class="imo-product-card__formats">
+          {{ for item in product.highlights }}
+          <span class="imo-product-card__format">{{ item }}</span>
+          {{ end }}
+        </div>
+        {{ end }}
+        {{ if product.install }}
+        <div class="imo-install" style="margin:1rem 0 0;">
+          <code class="imo-install__code">{{ product.install }}</code>
+          <button class="imo-install__copy" type="button" data-copy="{{ product.install }}" aria-label="Copy">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          </button>
+        </div>
+        {{ end }}
+        <div class="imo-product-card__actions">
+          <a href="{{ product.url }}" class="imo-product-card__primary">Explore {{ product.title }} &rarr;</a>
+          {{ if product.secondary_url && product.secondary_label }}
+          <a href="{{ product.secondary_url }}" class="imo-product-card__secondary">{{ product.secondary_label }}</a>
+          {{ end }}
+        </div>
+      </article>
+      {{ end }}
+      {{ end }}
+        </div>
+      </div>
+
+      <div class="imo-product-grid__group">
+        <div class="imo-product-grid__group-header">
+          <h3 class="imo-product-grid__group-title">Automation and Ingestion</h3>
+          <p class="imo-product-grid__group-desc">Use Reader for extraction and chunking, then PSWriteOffice when your workflow needs PowerShell-first automation.</p>
+        </div>
+        <div class="imo-product-grid__grid imo-product-grid__grid--compact">
+      {{ for product in data.products }}
+      {{ if product.family != "core" }}
+      <article class="imo-product-card" style="--product-color: {{ product.color }};">
+        <div class="imo-product-card__header">
+          <div class="imo-product-card__icon">{{ product.icon_svg }}</div>
+          <div>
+            <span class="imo-product-card__name">{{ product.title }}</span>
+            {{ if product.tag }}<span class="imo-badge">{{ product.tag }}</span>{{ end }}
+          </div>
+        </div>
+        <p class="imo-product-card__desc">{{ product.tagline }}</p>
+        {{ if product.highlights && product.highlights.size > 0 }}
+        <div class="imo-product-card__formats">
+          {{ for item in product.highlights }}
+          <span class="imo-product-card__format">{{ item }}</span>
+          {{ end }}
+        </div>
+        {{ end }}
+        {{ if product.install }}
+        <div class="imo-install" style="margin:1rem 0 0;">
+          <code class="imo-install__code">{{ product.install }}</code>
+          <button class="imo-install__copy" type="button" data-copy="{{ product.install }}" aria-label="Copy">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          </button>
+        </div>
+        {{ end }}
+        <div class="imo-product-card__actions">
+          <a href="{{ product.url }}" class="imo-product-card__primary">Explore {{ product.title }} &rarr;</a>
+          {{ if product.secondary_url && product.secondary_label }}
+          <a href="{{ product.secondary_url }}" class="imo-product-card__secondary">{{ product.secondary_label }}</a>
+          {{ end }}
+        </div>
+      </article>
+      {{ end }}
+      {{ end }}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{{ end }}

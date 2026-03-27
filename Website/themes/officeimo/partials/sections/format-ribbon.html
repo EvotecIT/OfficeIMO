@@ -1,0 +1,17 @@
+{{ if data.format_ribbon }}
+<section class="imo-format-ribbon">
+  <div class="imo-container">
+    <div class="imo-format-ribbon__track">
+      {{ for fmt in data.format_ribbon }}
+      <a href="{{ fmt.url }}" class="imo-format-ribbon__item">
+        {{ if fmt.icon }}
+        <img class="imo-format-ribbon__icon" src="{{ fmt.icon }}" alt="" loading="lazy" decoding="async" width="48" height="48" />
+        {{ end }}
+        <span class="imo-format-ribbon__label">{{ fmt.label }}</span>
+        <span class="imo-format-ribbon__format">{{ fmt.format }}</span>
+      </a>
+      {{ end }}
+    </div>
+  </div>
+</section>
+{{ end }}

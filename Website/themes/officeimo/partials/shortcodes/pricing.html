@@ -1,0 +1,45 @@
+<div class="imo-pricing-shortcode">
+  {{ if data.pricing.comparison }}
+  <div class="imo-pricing-comparison">
+    <h2>{{ data.pricing.comparison.title }}</h2>
+    <p>{{ data.pricing.comparison.description }}</p>
+    <div class="imo-pricing-comparison-grid">
+      {{ for item in data.pricing.comparison.items }}
+      <div class="imo-pricing-comparison-item{{ if item.highlight }} imo-pricing-comparison-highlight{{ end }}">
+        <span class="imo-pricing-comparison-name">{{ item.name }}</span>
+        <span class="imo-pricing-comparison-price">{{ item.price }}</span>
+        <span class="imo-pricing-comparison-period">{{ item.period }}</span>
+      </div>
+      {{ end }}
+    </div>
+  </div>
+  {{ end }}
+
+  <div class="imo-pricing-cards">
+    {{ for card in data.pricing.cards }}
+    <div class="{{ card.class }}">
+      {{ if card.badge }}<span class="pricing-badge">{{ card.badge }}</span>{{ end }}
+      <div class="pricing-icon">{{ card.icon_svg }}</div>
+      <h3 class="pricing-title">{{ card.title }}</h3>
+      <span class="pricing-tag">{{ card.tag }}</span>
+      <div class="pricing-amount">{{ card.amount }}</div>
+      <p class="pricing-description">{{ card.description }}</p>
+      <ul class="pricing-features">
+        {{ for feature in card.features }}
+        <li>{{ feature }}</li>
+        {{ end }}
+      </ul>
+      <a href="{{ card.cta.href }}" class="{{ card.cta.class }}"{{ if card.cta.target }} target="{{ card.cta.target }}"{{ end }}{{ if card.cta.rel }} rel="{{ card.cta.rel }}"{{ end }}>{{ card.cta.label }}</a>
+    </div>
+    {{ end }}
+  </div>
+
+  {{ if data.pricing.note }}
+  <div class="imo-pricing-note">
+    <h3>{{ data.pricing.note.title }}</h3>
+    {{ for p in data.pricing.note.paragraphs }}
+    {{ p }}
+    {{ end }}
+  </div>
+  {{ end }}
+</div>
