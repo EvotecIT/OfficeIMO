@@ -43,11 +43,10 @@ jobs:
           path: PSPublishModule
 
       - name: Checkout PSWriteOffice
-        if: ${{ secrets.READ_ALL != '' }}
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: ${{ env.PSWRITEOFFICE_REPOSITORY }}
-          token: ${{ secrets.READ_ALL }}
+          token: ${{ secrets.READ_ALL || github.token }}
           path: PSWriteOffice
 
       - name: Restore and build PowerForge.Web.Cli
