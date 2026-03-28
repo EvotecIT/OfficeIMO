@@ -57,14 +57,19 @@ h1{font-size:2.75rem;font-weight:800} h2{font-size:2rem;font-weight:800} h3{font
 /* Header */
 .imo-header{position:sticky;top:0;z-index:1000;background:rgba(3,7,17,0.65);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid var(--imo-glass-border)}
 [data-theme="light"] .imo-header{background:rgba(248,250,252,0.8);border-bottom-color:rgba(0,0,0,0.06)}
-[data-theme="light"] .imo-footer{background:#0f172a;color:#94a3b8}
+[data-theme="light"] .imo-footer{background:#f8fafc;color:#64748b;border-top-color:rgba(15,23,42,0.08)}
+[data-theme="light"] .imo-footer__brand strong,
+[data-theme="light"] .imo-footer__heading{color:#0f172a}
+[data-theme="light"] .imo-footer__brand p,
+[data-theme="light"] .imo-footer__links a,
+[data-theme="light"] .imo-footer__bottom{color:#475569}
 [data-theme="light"] .pf-editorial-card{background:rgba(255,255,255,0.8);border-color:rgba(0,0,0,0.06)}
 [data-theme="light"] .pf-editorial-card:hover{background:white;box-shadow:0 12px 32px rgba(0,0,0,0.08)}
 [data-theme="light"] .pf-chip{background:rgba(37,99,235,0.08);color:#2563eb;border-color:rgba(37,99,235,0.12)}
-[data-theme="light"] .imo-install{background:rgba(15,23,42,0.95);border-color:rgba(255,255,255,0.08)}
-[data-theme="light"] .imo-install__code{color:#38bdf8}
-[data-theme="light"] .imo-install__label{color:#64748b;background:rgba(255,255,255,0.05)}
-[data-theme="light"] pre{background:#1e293b;color:#e2e8f0;border-color:rgba(255,255,255,0.06)}
+[data-theme="light"] .imo-install{background:rgba(255,255,255,0.92);border-color:rgba(15,23,42,0.08);box-shadow:var(--imo-shadow-sm)}
+[data-theme="light"] .imo-install__code{color:#0f172a}
+[data-theme="light"] .imo-install__label{color:#475569;background:rgba(15,23,42,0.04);border-right-color:rgba(15,23,42,0.08)}
+[data-theme="light"] pre{background:#f8fafc;color:#0f172a;border-color:rgba(15,23,42,0.08)}
 .imo-header__inner{display:flex;align-items:center;justify-content:space-between;height:64px}
 .imo-header__logo{display:flex;align-items:center;gap:0.6rem;font-weight:800;font-size:1.2rem;color:var(--imo-text)}
 .imo-header__logo:hover{color:var(--imo-text)} .imo-header__logo svg{color:var(--imo-accent)}

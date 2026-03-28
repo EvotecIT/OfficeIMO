@@ -9,6 +9,9 @@
 .pf-api-docs a { color: var(--imo-accent); }
 .pf-api-docs a:hover { color: var(--imo-primary-hover); }
 
+.imo-footer--api { margin-top: 3rem; }
+.imo-footer__grid--api { grid-template-columns: 1.6fr repeat(3, 1fr); }
+
 .pf-api-docs .imo-header {
   z-index: 1300;
 }
@@ -162,6 +165,10 @@
   [data-theme="light"] .pf-api-docs .api-nav .nav-dropdown-menu {
     background: rgba(0, 0, 0, 0.02);
   }
+}
+
+@media (max-width: 700px) {
+  .imo-footer__grid--api { grid-template-columns: 1fr; }
 }
 
 .example-origin {
