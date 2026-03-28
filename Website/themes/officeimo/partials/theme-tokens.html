@@ -1,19 +1,39 @@
 <style>
 :root {
-  /* Core palette */
-  --imo-bg: #fafbfc;
-  --imo-surface: #ffffff;
-  --imo-ink: #1e293b;
-  --imo-muted: #64748b;
-  --imo-border: rgba(100, 116, 139, 0.15);
-  --imo-primary: #2563eb;
-  --imo-primary-light: #3b82f6;
-  --imo-primary-dark: #1d4ed8;
+  --imo-void: #030711;
+  --imo-deep: #060d1f;
+  --imo-dark: #0a1628;
+  --imo-panel: #0f1d35;
+  --imo-glass: rgba(255, 255, 255, 0.03);
+  --imo-glass-strong: rgba(255, 255, 255, 0.06);
+  --imo-glass-border: rgba(255, 255, 255, 0.07);
+  --imo-glass-border-hover: rgba(255, 255, 255, 0.14);
+  --imo-text: #e8edf5;
+  --imo-text-secondary: #7a8ba8;
+  --imo-text-muted: #4a5972;
+  --imo-accent: #38bdf8;
+  --imo-accent-hover: #22a1e0;
+  --imo-accent-glow: rgba(56, 189, 248, 0.15);
+  --imo-accent-gradient: linear-gradient(135deg, #3b82f6, #38bdf8, #2dd4bf);
+  --imo-bg: var(--imo-void);
+  --imo-bg-alt: var(--imo-deep);
+  --imo-bg-elevated: var(--imo-dark);
+  --imo-surface: var(--imo-glass);
+  --imo-surface-hover: rgba(255, 255, 255, 0.04);
+  --imo-border: var(--imo-glass-border);
+  --imo-border-strong: var(--imo-glass-border-hover);
+  --imo-primary: var(--imo-accent);
+  --imo-primary-hover: var(--imo-accent-hover);
+  --imo-primary-light: rgba(56, 189, 248, 0.08);
   --imo-secondary: #059669;
   --imo-secondary-light: #10b981;
   --imo-tertiary: #d97706;
-
-  /* Product colors */
+  --imo-success: #10b981;
+  --imo-warning: #f59e0b;
+  --imo-danger: #ef4444;
+  --imo-info: #38bdf8;
+  --imo-ink: var(--imo-text);
+  --imo-muted: var(--imo-text-secondary);
   --imo-word: #2563eb;
   --imo-excel: #059669;
   --imo-powerpoint: #dc2626;
@@ -22,13 +42,9 @@
   --imo-visio: #ea580c;
   --imo-reader: #4f46e5;
   --imo-powershell: #d97706;
-
-  /* Layout */
   --imo-max-width: 1200px;
   --imo-max-width-wide: 1400px;
   --imo-header-height: 64px;
-
-  /* Typography */
   --imo-font-body: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --imo-font-mono: 'Fira Code', 'Cascadia Code', Consolas, monospace;
   --imo-font-size-xs: 0.75rem;
@@ -40,34 +56,45 @@
   --imo-font-size-3xl: 1.875rem;
   --imo-font-size-4xl: 2.25rem;
   --imo-font-size-5xl: 3rem;
-
-  /* Shadows */
   --imo-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --imo-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
   --imo-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
   --imo-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
-
-  /* Radius */
   --imo-radius-sm: 8px;
   --imo-radius: 12px;
   --imo-radius-lg: 16px;
   --imo-radius-xl: 24px;
-
-  /* Header */
-  --imo-header-bg: rgba(250, 251, 252, 0.95);
+  --imo-header-bg: rgba(3, 7, 17, 0.65);
 }
 
-[data-theme="dark"] {
-  --imo-bg: #0f1419;
-  --imo-surface: #1a1f2e;
-  --imo-ink: #e2e8f0;
-  --imo-muted: #94a3b8;
-  --imo-border: rgba(148, 163, 184, 0.15);
-  --imo-primary-light: #60a5fa;
-  --imo-secondary-light: #34d399;
-  --imo-header-bg: rgba(15, 20, 25, 0.95);
-  --imo-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
-  --imo-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-  --imo-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.35);
+[data-theme="light"] {
+  --imo-bg: #f8fafc;
+  --imo-bg-alt: #f1f5f9;
+  --imo-bg-elevated: #ffffff;
+  --imo-surface: rgba(255, 255, 255, 0.8);
+  --imo-surface-hover: rgba(15, 23, 42, 0.03);
+  --imo-border: rgba(15, 23, 42, 0.08);
+  --imo-border-strong: rgba(15, 23, 42, 0.14);
+  --imo-glass: rgba(255, 255, 255, 0.7);
+  --imo-glass-strong: rgba(255, 255, 255, 0.85);
+  --imo-glass-border: rgba(15, 23, 42, 0.08);
+  --imo-glass-border-hover: rgba(15, 23, 42, 0.14);
+  --imo-text: #0f172a;
+  --imo-text-secondary: #475569;
+  --imo-text-muted: #64748b;
+  --imo-accent: #2563eb;
+  --imo-accent-hover: #1d4ed8;
+  --imo-accent-glow: rgba(37, 99, 235, 0.12);
+  --imo-accent-gradient: linear-gradient(135deg, #2563eb, #3b82f6, #06b6d4);
+  --imo-primary: #2563eb;
+  --imo-primary-hover: #1d4ed8;
+  --imo-primary-light: rgba(37, 99, 235, 0.1);
+  --imo-ink: var(--imo-text);
+  --imo-muted: var(--imo-text-secondary);
+  --imo-header-bg: rgba(248, 250, 252, 0.8);
+  --imo-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --imo-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --imo-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.1);
+  --imo-shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.12);
 }
 </style>

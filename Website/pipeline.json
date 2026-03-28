@@ -371,6 +371,7 @@
       "optimizeImages": true,
       "hashAssets": true,
       "hashExtensions": [".css", ".js"],
+      "hashExclude": ["**/assets/prism/components/**", "**/css/prism-theme.css"],
       "cacheHeaders": true,
       "cacheHeadersOut": "_headers"
     },
