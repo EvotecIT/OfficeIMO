@@ -119,6 +119,8 @@
         navigator.clipboard.writeText(text).then(function () {
           btn.classList.add("is-copied");
           setTimeout(function () { btn.classList.remove("is-copied"); }, 2000);
+        }).catch(function () {
+          btn.classList.remove("is-copied");
         });
       }
     });
@@ -250,7 +252,7 @@
       if (typeof Prism === "undefined") return false;
       Prism.manual = true;
       Prism.plugins = Prism.plugins || {};
-      if (Prism.plugins.autoloader) {
+      if (Prism.plugins.autoloader && Prism.plugins.autoloader.languages_path !== PRISM_LANGUAGES_PATH) {
         Prism.plugins.autoloader.languages_path = PRISM_LANGUAGES_PATH;
       }
       return typeof Prism.highlightAll === "function" || typeof Prism.highlightAllUnder === "function";
