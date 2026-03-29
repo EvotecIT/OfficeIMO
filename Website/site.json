@@ -7,8 +7,16 @@
   "Features": ["docs", "apiDocs", "blog", "search", "notFound"],
   "TrailingSlash": "always",
   "ContentRoot": "content",
+  "ProjectsRoot": "projects",
   "ThemesRoot": "themes",
   "DataRoot": "data",
+  "Sources": [
+    {
+      "Repo": "EvotecIT/PSWriteOffice",
+      "Slug": "pswriteoffice",
+      "Destination": "./projects/pswriteoffice"
+    }
+  ],
   "StaticAssets": [
     { "Source": "static" }
   ],

@@ -1,0 +1,24 @@
+name: Website Maintenance
+
+on:
+  schedule:
+    - cron: "0 3 * * 0"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: website-maintenance-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  website-maintenance:
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-maintenance.yml@e03dfef1b91cc7f58dfb87f3b4dc6b3dac32744a
+    with:
+      website_root: Website
+      pipeline_config: Website/pipeline.maintenance.json
+      runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
+      powerforge_web_tag: PowerForgeWeb-v1.0.0-preview-20260328151156
+      report_artifact_name: powerforge-website-maintenance-reports
