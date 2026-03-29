@@ -4,8 +4,8 @@ on:
   push:
     branches: [master]
     paths:
-      - 'Website/**'
-      - '.github/workflows/deploy-website.yml'
+      - "Website/**"
+      - ".github/workflows/deploy-website.yml"
   workflow_dispatch:
 
 permissions:
@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   website-deploy:
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-deploy.yml@e03dfef1b91cc7f58dfb87f3b4dc6b3dac32744a
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-deploy.yml@9cdc20a49acb8492c6f81cd6863c393837b1a477
     with:
       website_root: Website
       pipeline_config: Website/pipeline.json
