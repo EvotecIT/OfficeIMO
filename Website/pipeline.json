@@ -6,6 +6,14 @@
   "profilePath": "./_temp/pipeline-profile.json",
   "steps": [
     {
+      "task": "sources-sync",
+      "id": "sync-sources",
+      "config": "./site.json",
+      "lockMode": "verify",
+      "lockPath": "./.powerforge/git-sync-lock.json",
+      "writeManifest": true
+    },
+    {
       "task": "dotnet-build",
       "id": "build-word",
       "project": "../OfficeIMO.Word/OfficeIMO.Word.csproj",
@@ -112,7 +120,7 @@
     {
       "task": "build",
       "id": "build-site",
-      "dependsOn": ["build-word", "build-excel", "build-powerpoint", "build-markdown", "build-csv", "build-visio", "build-reader", "build-release-hub"],
+      "dependsOn": ["sync-sources", "build-word", "build-excel", "build-powerpoint", "build-markdown", "build-csv", "build-visio", "build-reader", "build-release-hub"],
       "config": "./site.json",
       "out": "./_site",
       "clean": true
@@ -277,7 +285,7 @@
       "config": "./site.json",
       "type": "PowerShell",
       "helpPath": "./data/apidocs/powershell/PSWriteOffice-Help.xml",
-      "psExamplesPath": "./data/apidocs/powershell/examples",
+      "psExamplesPath": "./projects/pswriteoffice/Examples",
       "out": "./_site/api/powershell",
       "title": "PSWriteOffice Cmdlet Reference",
       "baseUrl": "/api/powershell",

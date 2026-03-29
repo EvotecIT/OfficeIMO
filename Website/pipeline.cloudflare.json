@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/powerforge.web.pipelinespec.schema.json",
+  "steps": [
+    {
+      "task": "cloudflare",
+      "id": "purge-cache",
+      "operation": "purge",
+      "siteConfig": "./site.json",
+      "zoneIdEnv": "CLOUDFLARE_ZONE_ID",
+      "tokenEnv": "CLOUDFLARE_API_TOKEN"
+    },
+    {
+      "task": "cloudflare",
+      "id": "verify-cache",
+      "dependsOn": "purge-cache",
+      "operation": "verify",
+      "siteConfig": "./site.json",
+      "warmupRequests": 1,
+      "allowStatuses": "HIT,REVALIDATED,EXPIRED,STALE,DYNAMIC",
+      "reportPath": "./_reports/cloudflare-cache.json",
+      "summaryPath": "./_reports/cloudflare-cache.md"
+    }
+  ]
+}
