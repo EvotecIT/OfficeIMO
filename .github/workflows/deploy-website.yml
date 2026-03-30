@@ -23,6 +23,7 @@ jobs:
       site_output_path: Website/_site
       post_deploy_pipeline_config: Website/pipeline.cloudflare.json
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
+      powerforge_ref: 15192638c1c7d2f6907cd6c8b586017a0f4ec4a8
       powerforge_web_tag: PowerForgeWeb-v1.0.0-preview-202603301051
     secrets:
       indexnow_key: ${{ secrets.INDEXNOW_KEY }}
