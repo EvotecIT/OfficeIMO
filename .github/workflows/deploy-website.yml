@@ -15,13 +15,32 @@ permissions:
   id-token: write
 
 jobs:
+  resolve-post-deploy:
+    runs-on: ubuntu-latest
+    outputs:
+      post_deploy_pipeline_config: ${{ steps.cloudflare.outputs.post_deploy_pipeline_config }}
+    steps:
+      - name: Resolve optional post-deploy pipeline
+        id: cloudflare
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ZONE_ID_OFFICEIMO: ${{ secrets.CLOUDFLARE_ZONE_ID_OFFICEIMO }}
+        run: |
+          if [ -n "${CLOUDFLARE_API_TOKEN:-}" ] && [ -n "${CLOUDFLARE_ZONE_ID_OFFICEIMO:-}" ]; then
+            echo "post_deploy_pipeline_config=Website/pipeline.cloudflare.json" >> "$GITHUB_OUTPUT"
+          else
+            echo "post_deploy_pipeline_config=" >> "$GITHUB_OUTPUT"
+          fi
+
   website-deploy:
+    needs: resolve-post-deploy
     uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-deploy.yml@15192638c1c7d2f6907cd6c8b586017a0f4ec4a8
     with:
       website_root: Website
       pipeline_config: Website/pipeline.json
       site_output_path: Website/_site
-      post_deploy_pipeline_config: ${{ (secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ZONE_ID_OFFICEIMO != '') && 'Website/pipeline.cloudflare.json' || '' }}
+      post_deploy_pipeline_config: ${{ needs.resolve-post-deploy.outputs.post_deploy_pipeline_config }}
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
       powerforge_ref: 15192638c1c7d2f6907cd6c8b586017a0f4ec4a8
       powerforge_web_tag: PowerForgeWeb-v1.0.0-preview-202603301051
