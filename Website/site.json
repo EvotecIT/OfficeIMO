@@ -17,9 +17,7 @@
       "Destination": "./projects/pswriteoffice"
     }
   ],
-  "StaticAssets": [
-    { "Source": "static" }
-  ],
+  "StaticAssets": [{ "Source": "static" }],
   "Collections": [
     {
       "Name": "pages",
@@ -130,10 +128,42 @@
   "AssetRegistry": {
     "CssStrategy": "standard",
     "Bundles": [
-      { "Name": "global", "Css": ["/css/app.css", "/css/prism-theme.css"], "Js": ["/js/site.js", "/assets/prism/prism-core.min.js", "/assets/prism/prism-autoloader.min.js"] },
-      { "Name": "home", "Css": ["/css/app.css", "/css/home.css", "/css/prism-theme.css"], "Js": ["/js/site.js", "/assets/prism/prism-core.min.js", "/assets/prism/prism-autoloader.min.js"] },
-      { "Name": "product", "Css": ["/css/app.css", "/css/product.css", "/css/prism-theme.css"], "Js": ["/js/site.js", "/assets/prism/prism-core.min.js", "/assets/prism/prism-autoloader.min.js"] },
-      { "Name": "docs", "Css": ["/css/app.css", "/css/docs.css", "/css/prism-theme.css"], "Js": ["/js/site.js", "/assets/prism/prism-core.min.js", "/assets/prism/prism-autoloader.min.js"] }
+      {
+        "Name": "global",
+        "Css": ["/css/app.css", "/css/prism-theme.css"],
+        "Js": [
+          "/js/site.js",
+          "/assets/prism/prism-core.min.js",
+          "/assets/prism/prism-autoloader.min.js"
+        ]
+      },
+      {
+        "Name": "home",
+        "Css": ["/css/app.css", "/css/home.css", "/css/prism-theme.css"],
+        "Js": [
+          "/js/site.js",
+          "/assets/prism/prism-core.min.js",
+          "/assets/prism/prism-autoloader.min.js"
+        ]
+      },
+      {
+        "Name": "product",
+        "Css": ["/css/app.css", "/css/product.css", "/css/prism-theme.css"],
+        "Js": [
+          "/js/site.js",
+          "/assets/prism/prism-core.min.js",
+          "/assets/prism/prism-autoloader.min.js"
+        ]
+      },
+      {
+        "Name": "docs",
+        "Css": ["/css/app.css", "/css/docs.css", "/css/prism-theme.css"],
+        "Js": [
+          "/js/site.js",
+          "/assets/prism/prism-core.min.js",
+          "/assets/prism/prism-autoloader.min.js"
+        ]
+      }
     ],
     "RouteBundles": [
       { "Match": "/", "Bundles": ["global", "home"] },
@@ -193,14 +223,31 @@
       { "Name": "main", "Path": "/", "PrimaryMenu": "main" },
       { "Name": "products", "Path": "/products/", "PrimaryMenu": "main" },
       { "Name": "showcase", "Path": "/showcase/", "PrimaryMenu": "main" },
-      { "Name": "blog", "Path": "/blog/", "Collection": "blog", "Layout": "page", "PrimaryMenu": "main" },
-      { "Name": "docs", "Path": "/docs/", "Collection": "docs", "Layout": "docs", "PrimaryMenu": "main", "SidebarMenu": "docs" },
-      { "Name": "apidocs", "Path": "/api/", "Layout": "apiDocs", "PrimaryMenu": "main", "SidebarMenu": "docs" },
+      {
+        "Name": "blog",
+        "Path": "/blog/",
+        "Collection": "blog",
+        "Layout": "page",
+        "PrimaryMenu": "main"
+      },
+      {
+        "Name": "docs",
+        "Path": "/docs/",
+        "Collection": "docs",
+        "Layout": "docs",
+        "PrimaryMenu": "main",
+        "SidebarMenu": "docs"
+      },
+      {
+        "Name": "apidocs",
+        "Path": "/api/",
+        "Layout": "apiDocs",
+        "PrimaryMenu": "main",
+        "SidebarMenu": "docs"
+      },
       { "Name": "notFound", "Path": "/404/", "PrimaryMenu": "main" }
     ],
-    "Auto": [
-      { "Collection": "docs", "Menu": "docs", "Sort": "order,title" }
-    ],
+    "Auto": [{ "Collection": "docs", "Menu": "docs", "Sort": "order,title" }],
     "Menus": [
       {
         "Name": "main",
@@ -213,19 +260,51 @@
               {
                 "Title": "Core Builders",
                 "Items": [
-                  { "Title": "OfficeIMO.Word", "Url": "/products/word/", "Description": "Create and edit .docx documents" },
-                  { "Title": "OfficeIMO.Excel", "Url": "/products/excel/", "Description": "Read and write .xlsx workbooks" },
-                  { "Title": "OfficeIMO.PowerPoint", "Url": "/products/powerpoint/", "Description": "Generate .pptx decks with slides and charts" },
-                  { "Title": "OfficeIMO.Markdown", "Url": "/products/markdown/", "Description": "Build, parse, and render Markdown" },
-                  { "Title": "OfficeIMO.CSV", "Url": "/products/csv/", "Description": "Typed CSV workflows with schema and streaming" },
-                  { "Title": "OfficeIMO.Visio", "Url": "/products/visio/", "Description": "Create .vsdx diagrams with shapes and connectors" }
+                  {
+                    "Title": "OfficeIMO.Word",
+                    "Url": "/products/word/",
+                    "Description": "Create and edit .docx documents"
+                  },
+                  {
+                    "Title": "OfficeIMO.Excel",
+                    "Url": "/products/excel/",
+                    "Description": "Read and write .xlsx workbooks"
+                  },
+                  {
+                    "Title": "OfficeIMO.PowerPoint",
+                    "Url": "/products/powerpoint/",
+                    "Description": "Generate .pptx decks with slides and charts"
+                  },
+                  {
+                    "Title": "OfficeIMO.Markdown",
+                    "Url": "/products/markdown/",
+                    "Description": "Build, parse, and render Markdown"
+                  },
+                  {
+                    "Title": "OfficeIMO.CSV",
+                    "Url": "/products/csv/",
+                    "Description": "Typed CSV workflows with schema and streaming"
+                  },
+                  {
+                    "Title": "OfficeIMO.Visio",
+                    "Url": "/products/visio/",
+                    "Description": "Create .vsdx diagrams with shapes and connectors"
+                  }
                 ]
               },
               {
                 "Title": "Automation and Ingestion",
                 "Items": [
-                  { "Title": "OfficeIMO.Reader", "Url": "/products/reader/", "Description": "Extract, chunk, and normalize documents for search and AI" },
-                  { "Title": "PSWriteOffice", "Url": "/products/pswriteoffice/", "Description": "Automate Office workflows from PowerShell scripts" }
+                  {
+                    "Title": "OfficeIMO.Reader",
+                    "Url": "/products/reader/",
+                    "Description": "Extract, chunk, and normalize documents for search and AI"
+                  },
+                  {
+                    "Title": "PSWriteOffice",
+                    "Url": "/products/pswriteoffice/",
+                    "Description": "Automate Office workflows from PowerShell scripts"
+                  }
                 ]
               }
             ]
@@ -241,12 +320,21 @@
                 "Items": [
                   { "Title": "OfficeIMO.Word API", "Url": "/api/word/" },
                   { "Title": "OfficeIMO.Excel API", "Url": "/api/excel/" },
-                  { "Title": "OfficeIMO.PowerPoint API", "Url": "/api/powerpoint/" },
-                  { "Title": "OfficeIMO.Markdown API", "Url": "/api/markdown/" },
+                  {
+                    "Title": "OfficeIMO.PowerPoint API",
+                    "Url": "/api/powerpoint/"
+                  },
+                  {
+                    "Title": "OfficeIMO.Markdown API",
+                    "Url": "/api/markdown/"
+                  },
                   { "Title": "OfficeIMO.CSV API", "Url": "/api/csv/" },
                   { "Title": "OfficeIMO.Visio API", "Url": "/api/visio/" },
                   { "Title": "OfficeIMO.Reader API", "Url": "/api/reader/" },
-                  { "Title": "PSWriteOffice Cmdlets", "Url": "/api/powershell/" }
+                  {
+                    "Title": "PSWriteOffice Cmdlets",
+                    "Url": "/api/powershell/"
+                  }
                 ]
               }
             ]
@@ -299,12 +387,36 @@
       {
         "Name": "footer-community",
         "Items": [
-          { "Title": "GitHub (OfficeIMO)", "Url": "https://github.com/EvotecIT/OfficeIMO", "External": true },
-          { "Title": "GitHub (PSWriteOffice)", "Url": "https://github.com/EvotecIT/PSWriteOffice", "External": true },
-          { "Title": "NuGet", "Url": "https://www.nuget.org/packages?q=OfficeIMO", "External": true },
-          { "Title": "PowerShell Gallery", "Url": "https://www.powershellgallery.com/packages/PSWriteOffice", "External": true },
-          { "Title": "Discord", "Url": "https://evo.yt/discord", "External": true },
-          { "Title": "Report Issue", "Url": "https://github.com/EvotecIT/OfficeIMO/issues", "External": true }
+          {
+            "Title": "GitHub (OfficeIMO)",
+            "Url": "https://github.com/EvotecIT/OfficeIMO",
+            "External": true
+          },
+          {
+            "Title": "GitHub (PSWriteOffice)",
+            "Url": "https://github.com/EvotecIT/PSWriteOffice",
+            "External": true
+          },
+          {
+            "Title": "NuGet",
+            "Url": "https://www.nuget.org/packages?q=OfficeIMO",
+            "External": true
+          },
+          {
+            "Title": "PowerShell Gallery",
+            "Url": "https://www.powershellgallery.com/packages/PSWriteOffice",
+            "External": true
+          },
+          {
+            "Title": "Discord",
+            "Url": "https://evo.yt/discord",
+            "External": true
+          },
+          {
+            "Title": "Report Issue",
+            "Url": "https://github.com/EvotecIT/OfficeIMO/issues",
+            "External": true
+          }
         ]
       }
     ],
