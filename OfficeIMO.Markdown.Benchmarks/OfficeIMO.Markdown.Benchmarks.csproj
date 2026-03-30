@@ -11,7 +11,7 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
-    <PackageReference Include="Markdig" Version="1.1.1" />
+    <PackageReference Include="Markdig" Version="1.1.2" />
   </ItemGroup>
 
   <ItemGroup>
