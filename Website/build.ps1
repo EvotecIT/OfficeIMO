@@ -36,9 +36,6 @@
 .PARAMETER PowerForgeRoot
     Root folder of PSPublishModule (overrides $env:POWERFORGE_ROOT).
 
-.PARAMETER PSWriteOfficeRoot
-    Root folder of PSWriteOffice (overrides $env:PSWRITEOFFICE_ROOT). When found, refreshes the PowerShell API snapshot before the site build.
-
 .PARAMETER CI
     Force pipeline CI mode locally (equivalent to setting CI=true).
 
@@ -61,8 +58,7 @@ param(
     [string[]]$Skip = @(),
     [switch]$CI,
     [switch]$SkipBuildTool,
-    [string]$PowerForgeRoot = $env:POWERFORGE_ROOT,
-    [string]$PSWriteOfficeRoot = $env:PSWRITEOFFICE_ROOT
+    [string]$PowerForgeRoot = $env:POWERFORGE_ROOT
 )
 
 $ErrorActionPreference = 'Stop'
@@ -163,11 +159,6 @@ if (-not $PowerForge) {
 }
 
 Write-Host "Using: $PowerForge $($PowerForgeArgs -join ' ')" -ForegroundColor DarkGray
-
-$psWriteOfficeSyncScript = Join-Path $PSScriptRoot 'scripts\Sync-PSWriteOfficeApiDocs.ps1'
-if (Test-Path -LiteralPath $psWriteOfficeSyncScript -PathType Leaf) {
-    & $psWriteOfficeSyncScript -PSWriteOfficeRoot $PSWriteOfficeRoot
-}
 
 function Assert-SiteOutput {
     param(

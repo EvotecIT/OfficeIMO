@@ -6,6 +6,14 @@
   "profilePath": "./_temp/pipeline-profile.json",
   "steps": [
     {
+      "task": "sources-sync",
+      "id": "sync-sources",
+      "config": "./site.json",
+      "lockMode": "verify",
+      "lockPath": "./.powerforge/git-sync-lock.json",
+      "writeManifest": true
+    },
+    {
       "task": "dotnet-build",
       "id": "build-word",
       "project": "../OfficeIMO.Word/OfficeIMO.Word.csproj",
@@ -77,42 +85,159 @@
       "products": [
         { "id": "officeimo.word", "name": "OfficeIMO.Word", "order": 10 },
         { "id": "officeimo.excel", "name": "OfficeIMO.Excel", "order": 20 },
-        { "id": "officeimo.powerpoint", "name": "OfficeIMO.PowerPoint", "order": 30 },
-        { "id": "officeimo.markdown", "name": "OfficeIMO.Markdown", "order": 40 },
+        {
+          "id": "officeimo.powerpoint",
+          "name": "OfficeIMO.PowerPoint",
+          "order": 30
+        },
+        {
+          "id": "officeimo.markdown",
+          "name": "OfficeIMO.Markdown",
+          "order": 40
+        },
         { "id": "officeimo.csv", "name": "OfficeIMO.CSV", "order": 50 },
         { "id": "officeimo.visio", "name": "OfficeIMO.Visio", "order": 60 },
         { "id": "officeimo.reader", "name": "OfficeIMO.Reader", "order": 70 },
         { "id": "pswriteoffice", "name": "PSWriteOffice", "order": 80 },
-        { "id": "officeimo.word.html", "name": "OfficeIMO.Word.Html", "order": 90 },
-        { "id": "officeimo.word.markdown", "name": "OfficeIMO.Word.Markdown", "order": 100 },
-        { "id": "officeimo.word.pdf", "name": "OfficeIMO.Word.Pdf", "order": 110 },
-        { "id": "officeimo.markdown.html", "name": "OfficeIMO.Markdown.Html", "order": 120 },
-        { "id": "officeimo.markdownrenderer", "name": "OfficeIMO.MarkdownRenderer", "order": 130 },
-        { "id": "officeimo.markdownrenderer.wpf", "name": "OfficeIMO.MarkdownRenderer.Wpf", "order": 140 },
+        {
+          "id": "officeimo.word.html",
+          "name": "OfficeIMO.Word.Html",
+          "order": 90
+        },
+        {
+          "id": "officeimo.word.markdown",
+          "name": "OfficeIMO.Word.Markdown",
+          "order": 100
+        },
+        {
+          "id": "officeimo.word.pdf",
+          "name": "OfficeIMO.Word.Pdf",
+          "order": 110
+        },
+        {
+          "id": "officeimo.markdown.html",
+          "name": "OfficeIMO.Markdown.Html",
+          "order": 120
+        },
+        {
+          "id": "officeimo.markdownrenderer",
+          "name": "OfficeIMO.MarkdownRenderer",
+          "order": 130
+        },
+        {
+          "id": "officeimo.markdownrenderer.wpf",
+          "name": "OfficeIMO.MarkdownRenderer.Wpf",
+          "order": 140
+        },
         { "id": "officeimo.pdf", "name": "OfficeIMO.Pdf", "order": 150 }
       ],
       "assetRules": [
-        { "product": "officeimo.word.html", "label": "OfficeIMO.Word.Html", "match": ["*OfficeIMO.Word.Html*.zip", "*OfficeIMO.Word.Html*.nupkg"] },
-        { "product": "officeimo.word.markdown", "label": "OfficeIMO.Word.Markdown", "match": ["*OfficeIMO.Word.Markdown*.zip", "*OfficeIMO.Word.Markdown*.nupkg"] },
-        { "product": "officeimo.word.pdf", "label": "OfficeIMO.Word.Pdf", "match": ["*OfficeIMO.Word.Pdf*.zip", "*OfficeIMO.Word.Pdf*.nupkg"] },
-        { "product": "officeimo.markdownrenderer.wpf", "label": "OfficeIMO.MarkdownRenderer.Wpf", "match": ["*OfficeIMO.MarkdownRenderer.Wpf*.zip", "*OfficeIMO.MarkdownRenderer.Wpf*.nupkg"] },
-        { "product": "officeimo.markdownrenderer", "label": "OfficeIMO.MarkdownRenderer", "match": ["*OfficeIMO.MarkdownRenderer*.zip", "*OfficeIMO.MarkdownRenderer*.nupkg"] },
-        { "product": "officeimo.markdown.html", "label": "OfficeIMO.Markdown.Html", "match": ["*OfficeIMO.Markdown.Html*.zip", "*OfficeIMO.Markdown.Html*.nupkg"] },
-        { "product": "officeimo.pdf", "label": "OfficeIMO.Pdf", "match": ["*OfficeIMO.Pdf*.zip", "*OfficeIMO.Pdf*.nupkg"] },
-        { "product": "officeimo.word", "label": "OfficeIMO.Word", "match": ["*OfficeIMO.Word*.zip", "*OfficeIMO.Word*.nupkg"] },
-        { "product": "officeimo.excel", "label": "OfficeIMO.Excel", "match": ["*OfficeIMO.Excel*.zip", "*OfficeIMO.Excel*.nupkg"] },
-        { "product": "officeimo.powerpoint", "label": "OfficeIMO.PowerPoint", "match": ["*OfficeIMO.PowerPoint*.zip", "*OfficeIMO.PowerPoint*.nupkg"] },
-        { "product": "officeimo.markdown", "label": "OfficeIMO.Markdown", "match": ["*OfficeIMO.Markdown*.zip", "*OfficeIMO.Markdown*.nupkg"] },
-        { "product": "officeimo.csv", "label": "OfficeIMO.CSV", "match": ["*OfficeIMO.CSV*.zip", "*OfficeIMO.CSV*.nupkg"] },
-        { "product": "officeimo.visio", "label": "OfficeIMO.Visio", "match": ["*OfficeIMO.Visio*.zip", "*OfficeIMO.Visio*.nupkg"] },
-        { "product": "officeimo.reader", "label": "OfficeIMO.Reader", "match": ["*OfficeIMO.Reader*.zip", "*OfficeIMO.Reader*.nupkg"] },
-        { "product": "pswriteoffice", "label": "PSWriteOffice", "match": ["*PSWriteOffice*.zip", "*PSWriteOffice*.nupkg"] }
+        {
+          "product": "officeimo.word.html",
+          "label": "OfficeIMO.Word.Html",
+          "match": ["*OfficeIMO.Word.Html*.zip", "*OfficeIMO.Word.Html*.nupkg"]
+        },
+        {
+          "product": "officeimo.word.markdown",
+          "label": "OfficeIMO.Word.Markdown",
+          "match": [
+            "*OfficeIMO.Word.Markdown*.zip",
+            "*OfficeIMO.Word.Markdown*.nupkg"
+          ]
+        },
+        {
+          "product": "officeimo.word.pdf",
+          "label": "OfficeIMO.Word.Pdf",
+          "match": ["*OfficeIMO.Word.Pdf*.zip", "*OfficeIMO.Word.Pdf*.nupkg"]
+        },
+        {
+          "product": "officeimo.markdownrenderer.wpf",
+          "label": "OfficeIMO.MarkdownRenderer.Wpf",
+          "match": [
+            "*OfficeIMO.MarkdownRenderer.Wpf*.zip",
+            "*OfficeIMO.MarkdownRenderer.Wpf*.nupkg"
+          ]
+        },
+        {
+          "product": "officeimo.markdownrenderer",
+          "label": "OfficeIMO.MarkdownRenderer",
+          "match": [
+            "*OfficeIMO.MarkdownRenderer*.zip",
+            "*OfficeIMO.MarkdownRenderer*.nupkg"
+          ]
+        },
+        {
+          "product": "officeimo.markdown.html",
+          "label": "OfficeIMO.Markdown.Html",
+          "match": [
+            "*OfficeIMO.Markdown.Html*.zip",
+            "*OfficeIMO.Markdown.Html*.nupkg"
+          ]
+        },
+        {
+          "product": "officeimo.pdf",
+          "label": "OfficeIMO.Pdf",
+          "match": ["*OfficeIMO.Pdf*.zip", "*OfficeIMO.Pdf*.nupkg"]
+        },
+        {
+          "product": "officeimo.word",
+          "label": "OfficeIMO.Word",
+          "match": ["*OfficeIMO.Word*.zip", "*OfficeIMO.Word*.nupkg"]
+        },
+        {
+          "product": "officeimo.excel",
+          "label": "OfficeIMO.Excel",
+          "match": ["*OfficeIMO.Excel*.zip", "*OfficeIMO.Excel*.nupkg"]
+        },
+        {
+          "product": "officeimo.powerpoint",
+          "label": "OfficeIMO.PowerPoint",
+          "match": [
+            "*OfficeIMO.PowerPoint*.zip",
+            "*OfficeIMO.PowerPoint*.nupkg"
+          ]
+        },
+        {
+          "product": "officeimo.markdown",
+          "label": "OfficeIMO.Markdown",
+          "match": ["*OfficeIMO.Markdown*.zip", "*OfficeIMO.Markdown*.nupkg"]
+        },
+        {
+          "product": "officeimo.csv",
+          "label": "OfficeIMO.CSV",
+          "match": ["*OfficeIMO.CSV*.zip", "*OfficeIMO.CSV*.nupkg"]
+        },
+        {
+          "product": "officeimo.visio",
+          "label": "OfficeIMO.Visio",
+          "match": ["*OfficeIMO.Visio*.zip", "*OfficeIMO.Visio*.nupkg"]
+        },
+        {
+          "product": "officeimo.reader",
+          "label": "OfficeIMO.Reader",
+          "match": ["*OfficeIMO.Reader*.zip", "*OfficeIMO.Reader*.nupkg"]
+        },
+        {
+          "product": "pswriteoffice",
+          "label": "PSWriteOffice",
+          "match": ["*PSWriteOffice*.zip", "*PSWriteOffice*.nupkg"]
+        }
       ]
     },
     {
       "task": "build",
       "id": "build-site",
-      "dependsOn": ["build-word", "build-excel", "build-powerpoint", "build-markdown", "build-csv", "build-visio", "build-reader", "build-release-hub"],
+      "dependsOn": [
+        "sync-sources",
+        "build-word",
+        "build-excel",
+        "build-powerpoint",
+        "build-markdown",
+        "build-csv",
+        "build-visio",
+        "build-reader",
+        "build-release-hub"
+      ],
       "config": "./site.json",
       "out": "./_site",
       "clean": true
@@ -277,7 +402,7 @@
       "config": "./site.json",
       "type": "PowerShell",
       "helpPath": "./data/apidocs/powershell/PSWriteOffice-Help.xml",
-      "psExamplesPath": "./data/apidocs/powershell/examples",
+      "psExamplesPath": "./projects/pswriteoffice/Examples",
       "out": "./_site/api/powershell",
       "title": "PSWriteOffice Cmdlet Reference",
       "baseUrl": "/api/powershell",
@@ -293,7 +418,16 @@
     {
       "task": "xref-merge",
       "id": "merge-xref",
-      "dependsOn": ["build-apidocs-word", "build-apidocs-excel", "build-apidocs-markdown", "build-apidocs-powerpoint", "build-apidocs-csv", "build-apidocs-visio", "build-apidocs-reader", "build-apidocs-powershell"],
+      "dependsOn": [
+        "build-apidocs-word",
+        "build-apidocs-excel",
+        "build-apidocs-markdown",
+        "build-apidocs-powerpoint",
+        "build-apidocs-csv",
+        "build-apidocs-visio",
+        "build-apidocs-reader",
+        "build-apidocs-powershell"
+      ],
       "out": "./data/xrefmap.json",
       "mapFiles": [
         "./_site/api/word/xrefmap.json",
@@ -348,7 +482,11 @@
       "apiSitemap": "./_site/api/word/sitemap.xml",
       "includeNoIndexHtml": false,
       "noDefaultExclude": false,
-      "excludePatterns": ["**/api-fragments/**", "**/*.scripts.html", "**/*.head.html"],
+      "excludePatterns": [
+        "**/api-fragments/**",
+        "**/*.scripts.html",
+        "**/*.head.html"
+      ],
       "includeGeneratedHtmlRouteInXml": false,
       "json": true,
       "jsonOut": "./_site/sitemap/index.json",
@@ -371,7 +509,10 @@
       "optimizeImages": true,
       "hashAssets": true,
       "hashExtensions": [".css", ".js"],
-      "hashExclude": ["**/assets/prism/components/**", "**/css/prism-theme.css"],
+      "hashExclude": [
+        "**/assets/prism/components/**",
+        "**/css/prism-theme.css"
+      ],
       "cacheHeaders": true,
       "cacheHeadersOut": "_headers"
     },

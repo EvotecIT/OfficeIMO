@@ -2,13 +2,13 @@ name: GitHub Housekeeping
 
 on:
   schedule:
-    - cron: '17 */6 * * *'
+    - cron: "17 */6 * * *"
   workflow_dispatch:
     inputs:
       apply:
-        description: 'Apply deletions (true/false)'
+        description: "Apply deletions (true/false)"
         required: false
-        default: 'false'
+        default: "false"
 
 permissions:
   actions: write
@@ -20,11 +20,11 @@ concurrency:
 
 jobs:
   housekeeping:
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-github-housekeeping.yml@97b0d38217ab995e611a12d162ae41505b7bfed1
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-github-housekeeping.yml@15192638c1c7d2f6907cd6c8b586017a0f4ec4a8
     with:
-      config-path: ./.powerforge/github-housekeeping.json
+      config_path: ./.powerforge/github-housekeeping.json
       apply: ${{ (github.event_name == 'workflow_dispatch' && inputs.apply == 'true') || (github.event_name != 'workflow_dispatch' && vars.POWERFORGE_GITHUB_HOUSEKEEPING_APPLY == 'true') }}
-      powerforge-ref: 97b0d38217ab995e611a12d162ae41505b7bfed1
-      report-artifact-name: github-housekeeping-reports
+      powerforge_ref: 15192638c1c7d2f6907cd6c8b586017a0f4ec4a8
+      report_artifact_name: github-housekeeping-reports
     secrets:
       github-token: ${{ secrets.GITHUB_TOKEN }}

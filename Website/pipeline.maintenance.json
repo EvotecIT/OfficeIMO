@@ -1,0 +1,18 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/powerforge.web.pipelinespec.schema.json",
+  "steps": [
+    {
+      "task": "github-artifacts-prune",
+      "id": "github-artifacts-maintenance",
+      "tokenEnv": "GITHUB_TOKEN",
+      "optional": true,
+      "apply": true,
+      "continueOnError": true,
+      "keep": 7,
+      "maxAgeDays": 14,
+      "maxDelete": 100,
+      "reportPath": "./_reports/github-artifacts-maintenance.json",
+      "summaryPath": "./_reports/github-artifacts-maintenance.md"
+    }
+  ]
+}
