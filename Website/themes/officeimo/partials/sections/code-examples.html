@@ -1,7 +1,13 @@
 {{ if data.code_examples && data.code_examples.tabs }}
 <section class="imo-code-examples">
   <div class="imo-container">
+    {{ if data.sections && data.sections.code_examples && data.sections.code_examples.label }}
+    <div class="imo-section__eyebrow">{{ data.sections.code_examples.label }}</div>
+    {{ end }}
     <h2 class="imo-section__title">{{ data.code_examples.title ?? "Code Examples" }}</h2>
+    {{ if data.code_examples.description }}
+    <p class="imo-section__subtitle">{{ data.code_examples.description }}</p>
+    {{ end }}
     <div class="imo-code-examples__panel">
       <div class="imo-code-examples__tabs" role="tablist">
         {{ for tab in data.code_examples.tabs }}

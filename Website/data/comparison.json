@@ -1,21 +1,71 @@
 {
-  "title": "How OfficeIMO Compares",
-  "description": "See how OfficeIMO stacks up against commercial alternatives.",
-  "columns": ["Feature", "OfficeIMO", "Aspose", "GemBox", "Syncfusion"],
+  "title": "Choose the Right Fit",
+  "description": "Compare OfficeIMO against the typical trade-offs of commercial document suites without freezing the page around vendor snapshots that drift over time.",
+  "columns": ["Decision point", "OfficeIMO", "Typical commercial suite", "What to validate"],
   "rows": [
-    { "feature": "License", "values": ["MIT (Free)", "$999/dev/yr", "$890/dev", "~$995/dev"] },
-    { "feature": "Open Source", "values": [true, false, false, false] },
-    { "feature": "COM-Free", "values": [true, true, true, true] },
-    { "feature": "Cross-Platform", "values": [true, true, true, true] },
-    { "feature": "NativeAOT Ready", "values": [true, false, false, false] },
-    { "feature": ".NET Standard 2.0", "values": [true, true, true, true] },
-    { "feature": "PowerShell Module", "values": [true, false, false, false] },
-    { "feature": "Word (.docx)", "values": [true, true, true, true] },
-    { "feature": "Excel (.xlsx)", "values": [true, true, true, true] },
-    { "feature": "PowerPoint (.pptx)", "values": [true, true, true, true] },
-    { "feature": "Markdown", "values": [true, false, false, false] },
-    { "feature": "CSV (typed)", "values": [true, false, false, false] },
-    { "feature": "Visio (.vsdx)", "values": [true, true, false, false] },
-    { "feature": "Document Reader", "values": [true, false, false, false] }
+    {
+      "feature": "Licensing and source access",
+      "values": [
+        "MIT license with source available",
+        "Paid license or subscription with closed-source implementation",
+        "Procurement rules, redistribution terms, and whether source inspection matters to your team"
+      ]
+    },
+    {
+      "feature": "Primary workflow",
+      "values": [
+        ".NET packages plus first-party PowerShell automation through PSWriteOffice",
+        "Usually strong .NET APIs, with PowerShell often handled through custom wrappers",
+        "Whether the team needs native scripting, CI automation, or admin-friendly document jobs"
+      ]
+    },
+    {
+      "feature": "Format and workload focus",
+      "values": [
+        "Strongest around Open XML packages, Markdown, CSV, and document-reader workflows in this repo",
+        "Often broader across rendering, conversion, and additional file-format families",
+        "The exact formats, conversions, and rendering scenarios your product must support"
+      ]
+    },
+    {
+      "feature": "Deployment model",
+      "values": [
+        "COM-free and friendly to server, container, and automation environments",
+        "Often server-safe as well, but packaging and runtime dependencies still vary",
+        "Target OS, hosting model, native dependencies, and whether your builds need to stay lightweight"
+      ]
+    },
+    {
+      "feature": "AOT and trimming reality",
+      "values": [
+        "Package-specific, with the cleanest story today in lighter packages such as Markdown and CSV",
+        "Varies by vendor, package, and feature set",
+        "Real publish profiles, linker settings, and the exact package mix you plan to ship"
+      ]
+    },
+    {
+      "feature": "Support model",
+      "values": [
+        "GitHub issues, source inspection, and community-driven troubleshooting",
+        "Vendor-maintained docs, support channels, and commercial escalation paths",
+        "Response expectations, SLA requirements, and who owns production support"
+      ]
+    },
+    {
+      "feature": "Debugging and customization",
+      "values": [
+        "You can inspect behavior directly, patch locally, and understand how documents are produced",
+        "You usually depend on vendor fixes, support guidance, and extension points",
+        "How often you need deep debugging, custom behavior, or internal platform ownership"
+      ]
+    },
+    {
+      "feature": "Total cost profile",
+      "values": [
+        "No license fee, but your team still owns evaluation, testing, and operational confidence",
+        "License cost in exchange for support, broader coverage, and procurement-friendly packaging",
+        "Whether engineering time or commercial support is the scarcer resource for your organization"
+      ]
+    }
   ]
 }

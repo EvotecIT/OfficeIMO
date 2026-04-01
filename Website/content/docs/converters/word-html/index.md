@@ -1,10 +1,10 @@
 ---
 title: Word to HTML
-description: Bidirectional conversion between Word documents and HTML using OfficeIMO.Word.Html.
+description: HTML and Word conversion helpers in OfficeIMO.Word.Html for common structures and round-trip workflows.
 order: 70
 ---
 
-The `OfficeIMO.Word.Html` package provides bidirectional conversion between Word documents and HTML. It uses [AngleSharp](https://anglesharp.github.io/) for HTML parsing and DOM manipulation, and supports both synchronous and asynchronous workflows.
+The `OfficeIMO.Word.Html` package provides HTML and Word conversion helpers for common structures and round-trip workflows. It uses [AngleSharp](https://anglesharp.github.io/) for HTML parsing and DOM manipulation, supports both synchronous and asynchronous workflows, and is best treated as a conversion layer you should validate against your own fidelity requirements for complex layouts.
 
 ## Installation
 

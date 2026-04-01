@@ -1,23 +1,30 @@
 /* Critical above-the-fold CSS for OfficeIMO */
+:root { color-scheme: dark; }
+[data-theme="light"] { color-scheme: light; }
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html {
+  -webkit-text-size-adjust: 100%;
+  background: var(--imo-bg, #030711);
+}
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: var(--imo-font, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  font-family: var(--imo-font-body, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
   line-height: 1.6;
   color: var(--imo-text, #e8edf5);
-  background: var(--imo-bg, #0f1419);
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.1), transparent 28%),
+    radial-gradient(circle at top right, rgba(167, 139, 250, 0.08), transparent 24%),
+    linear-gradient(180deg, var(--imo-bg, #030711) 0%, var(--imo-bg-alt, #060d1f) 100%);
 }
 a { color: var(--imo-primary, #38bdf8); text-decoration: none; }
-a:hover { text-decoration: underline; }
 .skip-link,
 .imo-skip-link { position: absolute; top: -40px; left: 0; padding: 8px; z-index: 100; }
 .skip-link:focus,
 .imo-skip-link:focus { top: 0; }
 .imo-container {
   width: 100%;
-  max-width: var(--imo-container-max, 1180px);
+  max-width: var(--imo-max-width, 1200px);
   margin: 0 auto;
   padding: 0 2rem;
 }
@@ -76,6 +83,11 @@ a:hover { text-decoration: underline; }
   display: flex;
   align-items: center;
   gap: 0.125rem;
+}
+.imo-main,
+.imo-docs,
+.pf-api-docs {
+  min-height: calc(100vh - var(--imo-header-height, 64px));
 }
 .imo-hamburger { display: none; }
 

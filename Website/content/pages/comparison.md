@@ -1,10 +1,12 @@
 ---
-title: "OfficeIMO vs Commercial Alternatives"
-description: "A practical trade-off overview between OfficeIMO and proprietary Office document libraries."
+title: "Evaluate OfficeIMO Pragmatically"
+description: "A decision-oriented comparison between OfficeIMO and commercial document suites."
 layout: page
 ---
 
-OfficeIMO is an open-source option for Open XML document automation in .NET and PowerShell. Commercial suites can still be the better fit in some environments, but the trade-off is usually about breadth, support, and licensing model rather than whether simple document automation is possible at all.
+OfficeIMO is an open-source option for document automation in .NET and PowerShell, but the right choice is still contextual. In practice, the decision is usually less about whether document generation is possible and more about source access, workflow fit, support expectations, and how broad your format requirements really are.
+
+The comparison matrix on this page intentionally uses typical trade-offs instead of vendor-by-vendor feature claims. Commercial suites change packaging, licensing, documentation, and support offers over time, so this page is meant to help frame the evaluation rather than act as a frozen purchasing spreadsheet.
 
 ## Licensing Model
 
@@ -13,7 +15,7 @@ OfficeIMO is an open-source option for Open XML document automation in .NET and 
 | **OfficeIMO** | MIT, source available | No per-developer fee, no runtime royalty, and the implementation is inspectable. |
 | Proprietary suites | Commercial license or subscription | Usually broader format coverage and vendor support, but with ongoing licensing cost. |
 
-Commercial pricing and SKU details change frequently, so verify current terms directly with each vendor before making a purchasing decision.
+Commercial pricing, licensing tiers, and supported workloads change frequently, so always verify current terms and technical capabilities directly with the vendor you are evaluating.
 
 ## Where OfficeIMO Is Strong
 
@@ -33,7 +35,7 @@ OfficeIMO is not one monolithic bundle. The repo includes focused packages such 
 - `OfficeIMO.Reader` for normalized extraction across multiple document types.
 
 ### Better fit for modern deployment workflows
-The core packages are COM-free and designed for server, CI, container, and automation scenarios. Markdown and CSV are especially lightweight and are the strongest fit for trimmed or AOT-sensitive workloads.
+The core packages are COM-free and designed for server, CI, container, and automation scenarios. Markdown and CSV are especially lightweight and are the clearest fit today for trimmed or AOT-sensitive workloads.
 
 ## Where Commercial Suites May Still Win
 
@@ -58,6 +60,16 @@ Two areas where OfficeIMO is meaningfully different inside this repo are:
 
 - `OfficeIMO.Reader`, which exposes one extraction surface for Word, Excel, PowerPoint, Markdown, PDF, and optional text-like adapters.
 - PSWriteOffice, which gives the same ecosystem a first-party PowerShell workflow.
+
+## Questions Worth Answering During Evaluation
+
+Before standardizing on any library stack, it helps to answer a few concrete questions:
+
+- Which packages and file types will actually ship in your product, not just in a prototype?
+- Do you need native PowerShell automation or only a .NET API?
+- Is source inspection and local patching a meaningful advantage for your team?
+- Are you optimizing for lower licensing cost, faster vendor support, or the broadest format coverage?
+- Does your deployment target include trimming, `PublishAot`, containers, or restrictive hosting environments?
 
 ## Choosing Pragmatically
 

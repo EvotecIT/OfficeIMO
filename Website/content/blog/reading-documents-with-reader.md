@@ -1,13 +1,13 @@
 ---
-title: "Reading Any Office Document with OfficeIMO.Reader"
-description: "Learn how to use OfficeIMO.Reader to extract normalized chunks from Office documents for AI ingestion, search indexing, and batch processing."
+title: "Reading Documents with OfficeIMO.Reader"
+description: "Learn how to use OfficeIMO.Reader to extract normalized chunks from the built-in formats in the repo for AI ingestion, search indexing, and batch processing."
 date: 2026-03-01
 tags: [reader, ingestion, ai]
 categories: [Tutorial]
 author: "Przemyslaw Klys"
 ---
 
-Large language models and search engines are hungry for text, but the text they need is locked inside DOCX, XLSX, PPTX, Markdown, and PDF files scattered across file shares and SharePoint libraries. **OfficeIMO.Reader** provides a unified API to crack open supported formats and emit normalized chunks, ready for embedding, indexing, or summarisation.
+Large language models and search engines are hungry for text, but the text they need is locked inside DOCX, XLSX, PPTX, Markdown, PDF, and text-like files scattered across file shares and SharePoint libraries. **OfficeIMO.Reader** provides a unified API to crack open the built-in formats currently wired into the repo and emit normalized chunks, ready for embedding, indexing, or summarisation.
 
 ## Installation
 
@@ -176,7 +176,7 @@ Legacy binary formats (`.doc`, `.xls`, `.ppt`) are not supported. Structured ada
 
 ## Conclusion
 
-OfficeIMO.Reader bridges the gap between unstructured Office files and indexing-friendly text pipelines. Whether you are building RAG for an LLM, a full-text search index, or a compliance scanner, Reader gives you normalized chunks, source identifiers, and citation-friendly locations with one API surface.
+OfficeIMO.Reader gives you one extraction surface for the formats the repo currently handles directly, plus optional adapters for more specialized inputs. Whether you are building RAG for an LLM, a full-text search index, or a compliance scanner, the important thing is that you can start from chunked output, source identifiers, and citation-friendly locations instead of hand-rolling a parser per format.
 
 ## Continue with
 

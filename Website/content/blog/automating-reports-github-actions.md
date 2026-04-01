@@ -1,13 +1,13 @@
 ---
 title: "Automating Weekly Reports with OfficeIMO.Excel and GitHub Actions"
-description: "A real-world guide to building automated Excel reports in CI/CD using OfficeIMO.Excel and GitHub Actions, complete with YAML workflow and C# code."
+description: "A practical sample showing one way to build automated Excel reports in CI/CD with OfficeIMO.Excel and GitHub Actions."
 date: 2026-01-15
 tags: [excel, ci-cd, automation]
 categories: [Workflow]
 author: "Przemyslaw Klys"
 ---
 
-Every Monday morning, your team lead asks for the same report: open issues by label, pull request merge times, and a trend chart. Instead of rebuilding it manually, you can have GitHub Actions generate the workbook on a schedule and publish it as an artifact or pass it on to the next delivery step.
+This walkthrough uses GitHub issues as a concrete sample input, but the same pattern works for any repeatable report source your team already has: API responses, database exports, CSV snapshots, or repository metadata. The goal is not a special OfficeIMO-only workflow; it is a simple CI job that turns structured data into an `.xlsx` artifact on a schedule.
 
 ## Architecture
 
@@ -28,7 +28,7 @@ dotnet add package OfficeIMO.Excel
 dotnet add package System.Text.Json
 ```
 
-The generator reads a JSON file produced by the workflow and writes an Excel workbook:
+The generator reads a JSON file produced by the workflow and writes an Excel workbook. The `Issue` record below matches the shape selected by the sample `gh issue list --json ...` call, so adjust it if you fetch different fields:
 
 ```csharp
 using System.Text.Json;
@@ -110,11 +110,11 @@ jobs:
           retention-days: 30
 ```
 
-After each run, the Excel file is available as a downloadable artifact on the workflow run page.
+After each run, the Excel file is available as a downloadable artifact on the workflow run page. If you already have a downstream delivery step, you can hand the workbook off there instead of storing it as a long-lived artifact.
 
 ## Sending the Report via Email
 
-Add a step using a mail action:
+If you need email delivery, add a mail action as a separate step:
 
 ```yaml
       - name: Send report
@@ -139,13 +139,13 @@ Once the skeleton is working, you can add more sheets:
 - **Label Distribution**: pivot issues by label into a summary table.
 - **Trend Sheet**: append a row to a persistent CSV in the repo and chart it over time.
 
-Each sheet is just another call to `workbook.AddSheet()` with its own data.
+Each sheet is just another call to `workbook.AddSheet()` with its own data. In a real pipeline you will usually move the report-building code into its own project, keep the schema classes under source control, and version the workbook layout like any other deliverable.
 
 ## Operational Note
 
 Runner availability, retention limits, and billing depend on your GitHub plan and repository type. Check the current GitHub Actions pricing and usage docs for the exact limits that apply to your environment.
 
-Automating repeatable reports like this can take manual dashboard work out of the loop. OfficeIMO.Excel and GitHub Actions make a straightforward starting point for that workflow.
+Automating repeatable reports like this takes the manual export step out of the loop while keeping the output in a format teams already know how to consume. OfficeIMO.Excel and GitHub Actions are one straightforward way to build that pipeline with ordinary .NET code.
 
 ## Continue with
 

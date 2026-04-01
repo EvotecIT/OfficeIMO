@@ -7,7 +7,7 @@ categories: [Announcement]
 author: "Przemyslaw Klys"
 ---
 
-OfficeIMO is a family of open-source .NET libraries that lets you create, read, and manipulate Microsoft Office documents without installing Microsoft Office. Every package ships under the **MIT license**, so you can use it in commercial products, internal tools, and side projects alike without a proprietary runtime fee.
+OfficeIMO is a family of open-source .NET libraries for creating, reading, and transforming Office-oriented document formats without installing Microsoft Office. The main packages ship under the **MIT license**, so you can use them in commercial products, internal tooling, and automation workflows without a proprietary runtime fee.
 
 ## The Problem
 
@@ -15,17 +15,20 @@ Server-side Office automation has historically been awkward. Microsoft Office In
 
 ## What OfficeIMO Offers
 
-OfficeIMO is not a single library; it is a coordinated set of packages, each focused on one document family:
+OfficeIMO is not a single library; it is a coordinated repo of packages, each focused on one document family or workflow:
 
 | Package | Purpose |
 |---|---|
-| **OfficeIMO.Word** | Create and read DOCX files with paragraphs, tables, images, headers, footers, and styles |
-| **OfficeIMO.Excel** | Build XLSX workbooks with sheets, formulas, charts, and parallel compute for bulk operations |
-| **OfficeIMO.Markdown** | A zero-dependency Markdown parser and builder with a typed AST |
-| **OfficeIMO.Reader** | Extract normalized text chunks and source information from supported document formats for search and AI pipelines |
-| **OfficeIMO.Word.Pdf** | Convert DOCX to PDF in-process, without Office automation |
+| **OfficeIMO.Word** | Create and edit DOCX files with paragraphs, tables, images, headers, footers, fields, and styles |
+| **OfficeIMO.Excel** | Build and update XLSX workbooks with worksheets, formulas, tables, and charts |
+| **OfficeIMO.PowerPoint** | Generate PPTX presentations with slides, shapes, text boxes, pictures, and charts |
+| **OfficeIMO.Markdown** | Parse, build, and render Markdown with a typed object model |
+| **OfficeIMO.CSV** | Read and write CSV data with a stronger document model than raw string splitting |
+| **OfficeIMO.Reader** | Normalize supported formats into extraction chunks for indexing, search, and downstream processing |
+| **OfficeIMO.Word.Pdf / Html / Markdown** | Word-focused conversion packages layered on top of the main Word library |
+| **PSWriteOffice** | PowerShell wrapper over the OfficeIMO document surface for scripting and automation |
 
-Support varies by package, but the repo currently centers on **.NET Standard 2.0**, **.NET 8.0**, and **.NET 10.0** targets, with some projects also multi-targeting **.NET Framework 4.7.2** on Windows.
+Support varies by package, and target frameworks differ between older compatibility-focused libraries and newer feature work. For exact TFMs and dependencies, check the package feed, project file, or the repo directly rather than relying on one broad version claim across the whole solution.
 
 ## Quick Taste
 
@@ -54,7 +57,7 @@ Office automation is infrastructure. It sits at the heart of invoicing systems, 
 
 ## What Comes Next
 
-Over time we expect the documentation to keep growing with deeper package tutorials, more benchmark coverage for selected scenarios, and more real-world workflow guides covering CI/CD report generation, PDF conversion, and AI-oriented document ingestion.
+The documentation on this site is intentionally strongest around the core packages already linked from the docs hub. The wider repo includes additional converters, reader extensions, renderers, and integration projects that are still better represented by their README files, examples, and tests than by long-form website guides.
 
 Star the repository on GitHub, open an issue if something is missing, and help shape an open-source approach to Office document automation.
 

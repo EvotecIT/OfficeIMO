@@ -1,5 +1,6 @@
 {
   "title": "Multiple Ways to Build Documents",
+  "description": "The same site should support hand-written .NET code, higher-level builders, and PowerShell automation without looking like separate products.",
   "tabs": [
     {
       "id": "word",

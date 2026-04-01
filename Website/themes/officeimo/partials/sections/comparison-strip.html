@@ -1,6 +1,9 @@
 {{ if data.comparison }}
 <section class="imo-comparison-strip">
   <div class="imo-container">
+    {{ if data.sections && data.sections.comparison && data.sections.comparison.label }}
+    <div class="imo-section__eyebrow">{{ data.sections.comparison.label }}</div>
+    {{ end }}
     <h2 class="imo-section__title">{{ data.comparison.title }}</h2>
     {{ if data.comparison.description }}
     <p class="imo-section__subtitle">{{ data.comparison.description }}</p>

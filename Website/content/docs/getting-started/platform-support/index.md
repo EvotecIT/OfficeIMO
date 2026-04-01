@@ -6,7 +6,7 @@ order: 3
 
 # Platform Support
 
-OfficeIMO is designed for COM-free document automation and does **not** require Microsoft Office to be installed for the workflows covered by this repo. Most packages are pure managed code; one important exception is `OfficeIMO.Word.Pdf`, which adds QuestPDF/SkiaSharp and should be tested on the target OS with the fonts you plan to ship.
+OfficeIMO is designed for COM-free document automation and does **not** require Microsoft Office to be installed for the workflows covered by this repo. Most packages are pure managed code; one important exception is `OfficeIMO.Word.Pdf`, which adds QuestPDF/SkiaSharp and should be tested on the target OS with the fonts you plan to ship. The framework matrix below is taken from the current project files in this repo rather than from package-marketing copy.
 
 ## Target Frameworks
 
@@ -29,9 +29,9 @@ The `.NET Framework 4.7.2` target is included for some packages only when buildi
 
 | OS / Environment | Status | Notes |
 |----|--------|-------|
-| **Windows** | Strong support | Full package set, including Windows-only build targets such as `net472`. |
-| **Linux** | Strong support | Core packages run cross-platform; PDF conversion should be tested with your font setup. |
-| **macOS** | Strong support | Core packages run cross-platform; PDF conversion should be tested with your font setup. |
+| **Windows** | Supported | Full package set, including Windows-only build targets such as `net472`. |
+| **Linux** | Supported | Core packages run cross-platform; PDF conversion should be tested with your font setup. |
+| **macOS** | Supported | Core packages run cross-platform; PDF conversion should be tested with your font setup. |
 | **Docker / CI** | Supported | Well-suited for COM-free document generation; PDF workloads benefit from explicit font provisioning. |
 
 ## Native Dependencies
@@ -71,4 +71,4 @@ If your workload uses Open XML-heavy paths, expect to validate trimming warnings
 
 ## Architecture Support
 
-Most OfficeIMO packages are architecture-neutral from the application perspective and run on x64, x86, and ARM64. As always, test the exact runtime/OS combination you intend to ship, especially for PDF workloads and trimmed deployments.
+Most OfficeIMO packages are architecture-neutral from the application perspective, but the repo does not publish one exhaustive architecture-validation matrix for every package/OS combination. Test the exact runtime/OS combination you intend to ship, especially for PDF workloads and trimmed deployments.

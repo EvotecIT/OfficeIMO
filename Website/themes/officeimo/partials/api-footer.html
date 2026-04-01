@@ -2,8 +2,8 @@
   <div class="imo-container">
     <div class="imo-footer__grid imo-footer__grid--api">
       <div class="imo-footer__brand">
-        <strong>OfficeIMO</strong>
-        <p>Open source .NET libraries for creating, reading, and editing Office documents without Microsoft Office.</p>
+        <strong>{{ data.footer.brand.name ?? "OfficeIMO" }}</strong>
+        <p>{{ data.footer.brand.tagline ?? "Open source .NET libraries for document builders, extraction workflows, and PowerShell automation." }}</p>
       </div>
 
       <div>
@@ -17,31 +17,52 @@
         </ul>
       </div>
 
+      {{ fd = null; fr = null; fc = null }}
+      {{ if navigation.menus }}
+        {{ for menu in navigation.menus }}
+          {{ if menu.name == "footer-docs" }}{{ fd = menu }}{{ end }}
+          {{ if menu.name == "footer-resources" }}{{ fr = menu }}{{ end }}
+          {{ if menu.name == "footer-community" }}{{ fc = menu }}{{ end }}
+        {{ end }}
+      {{ end }}
+
+      {{ if fd && fd.items && fd.items.size > 0 }}
       <div>
-        <p class="imo-footer__heading">Guides</p>
+        <p class="imo-footer__heading">Documentation</p>
         <ul class="imo-footer__links">
-          <li><a href="/docs/getting-started/">Getting Started</a></li>
-          <li><a href="/docs/word/">Word Docs</a></li>
-          <li><a href="/docs/excel/">Excel Docs</a></li>
-          <li><a href="/docs/markdown/">Markdown Docs</a></li>
-          <li><a href="/docs/pswriteoffice/">PSWriteOffice Docs</a></li>
+          {{ for link in fd.items }}
+          <li><a href="{{ link.url }}"{{ if link.external }} target="_blank" rel="noopener"{{ end }}>{{ link.title }}</a></li>
+          {{ end }}
         </ul>
       </div>
+      {{ end }}
 
+      {{ if fr && fr.items && fr.items.size > 0 }}
+      <div>
+        <p class="imo-footer__heading">Resources</p>
+        <ul class="imo-footer__links">
+          {{ for link in fr.items }}
+          <li><a href="{{ link.url }}"{{ if link.external }} target="_blank" rel="noopener"{{ end }}>{{ link.title }}</a></li>
+          {{ end }}
+        </ul>
+      </div>
+      {{ end }}
+
+      {{ if fc && fc.items && fc.items.size > 0 }}
       <div>
         <p class="imo-footer__heading">Community</p>
         <ul class="imo-footer__links">
-          <li><a href="https://github.com/EvotecIT/OfficeIMO" target="_blank" rel="noopener">GitHub (OfficeIMO)</a></li>
-          <li><a href="https://github.com/EvotecIT/PSWriteOffice" target="_blank" rel="noopener">GitHub (PSWriteOffice)</a></li>
-          <li><a href="https://evo.yt/discord" target="_blank" rel="noopener">Discord</a></li>
-          <li><a href="https://github.com/EvotecIT/OfficeIMO/issues" target="_blank" rel="noopener">Report Issue</a></li>
+          {{ for link in fc.items }}
+          <li><a href="{{ link.url }}"{{ if link.external }} target="_blank" rel="noopener"{{ end }}>{{ link.title }}</a></li>
+          {{ end }}
         </ul>
       </div>
+      {{ end }}
     </div>
 
     <div class="imo-footer__bottom">
-      <p>MIT License. Built with <a href="https://github.com/EvotecIT/PSPublishModule" target="_blank" rel="noopener">PowerForge</a>.</p>
-      <p>Developed by <a href="https://evotec.xyz" target="_blank" rel="noopener">Evotec Services</a>.</p>
+      <p>MIT License. {{ data.footer.credit.text ?? "Built with" }} <a href="{{ data.footer.credit.link ?? "https://github.com/EvotecIT/PSPublishModule" }}" target="_blank" rel="noopener">{{ data.footer.credit.linkText ?? "PowerForge" }}</a>.</p>
+      <p>{{ data.footer.brand.copyright ?? "Developed by Evotec Services sp. z o.o." }}</p>
     </div>
   </div>
 </footer>

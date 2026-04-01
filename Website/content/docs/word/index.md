@@ -6,7 +6,7 @@ order: 10
 
 # Word Documents
 
-The `OfficeIMO.Word` package provides a comprehensive API for creating, reading, and modifying Microsoft Word documents (.docx) without requiring Microsoft Office. It wraps the Open XML SDK with a developer-friendly object model.
+The `OfficeIMO.Word` package provides a higher-level API for creating, reading, and modifying Microsoft Word documents (`.docx`) without requiring Microsoft Office. It wraps the Open XML SDK with a more approachable object model, while the deeper examples and tests in the repo cover a broader surface than this page alone.
 
 ## Key Classes
 

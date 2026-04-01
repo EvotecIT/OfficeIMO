@@ -6,7 +6,7 @@
       {{ for item in section.items }}
       <details class="imo-faq-item">
         <summary class="imo-faq-question">{{ item.question }}</summary>
-        <div class="imo-faq-answer">{{ item.answer }}</div>
+        <div class="imo-faq-answer">{{ for block in item.answer }}{{ block }}{{ end }}</div>
       </details>
       {{ end }}
     </div>
