@@ -190,21 +190,21 @@
                 </div>
 
                 <div class="imo-download-card__actions">
-                  <a class="imo-btn imo-btn-primary" href="{{ package.registry_url }}" target="_blank" rel="noopener">Open {{ package.registry_label }}</a>
+                  <a class="imo-btn imo-btn-primary" href="{{ package.registry_url }}" target="_blank" rel="noopener">Open {{ package.registry_label }} for {{ package.title }}</a>
                   {{ if archive_asset }}
-                  <a class="imo-btn imo-btn-ghost" href="{{ archive_asset.downloadUrl }}" target="_blank" rel="noopener">Stable archive</a>
+                  <a class="imo-btn imo-btn-ghost" href="{{ archive_asset.downloadUrl }}" target="_blank" rel="noopener">Stable archive for {{ package.title }}</a>
                   {{ end }}
                 </div>
 
                 <div class="imo-download-card__links">
                   {{ if package.product_url }}
-                  <a href="{{ package.product_url }}">Product page</a>
+                  <a href="{{ package.product_url }}">{{ package.title }} product page</a>
                   {{ end }}
                   {{ if package.docs_url }}
-                  <a href="{{ package.docs_url }}">Documentation</a>
+                  <a href="{{ package.docs_url }}">{{ package.title }} documentation</a>
                   {{ end }}
                   {{ if package.api_url }}
-                  <a href="{{ package.api_url }}">API reference</a>
+                  <a href="{{ package.api_url }}">{{ package.title }} API reference</a>
                   {{ end }}
                 </div>
               </article>
