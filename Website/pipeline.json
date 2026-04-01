@@ -437,7 +437,7 @@
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
-      "docsHome": "/docs/pswriteoffice/",
+      "docsHome": "/products/pswriteoffice/",
       "nav": "./site.json",
       "navContextPath": "/",
       "css": "/css/app.css,/css/api.css",
