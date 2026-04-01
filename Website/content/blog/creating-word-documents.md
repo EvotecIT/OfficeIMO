@@ -7,7 +7,7 @@ categories: [Tutorial]
 author: "Przemyslaw Klys"
 ---
 
-One of the most common questions we hear is: "Can I really generate Word documents on a server without installing Office?" The answer is yes, and with **OfficeIMO.Word** it takes fewer lines of code than you might expect.
+One of the first practical questions teams ask is whether they can generate Word documents on a server without installing Office. With **OfficeIMO.Word**, the answer is yes for standard Open XML `.docx` workflows, and the basic document assembly path is quite small.
 
 ## Installation
 
@@ -41,7 +41,7 @@ The `WordDocument.Create` call initialises an in-memory DOCX package. Nothing is
 
 ## Adding a Table
 
-Tables are first-class citizens in OfficeIMO. You define them with a simple row-and-column API:
+Tables are built directly in the document model. A small row-and-column example looks like this:
 
 ```csharp
 var table = doc.AddTable(4, 3);
@@ -65,7 +65,7 @@ for (int r = 0; r < data.Length; r++)
 
 ## Inserting an Image
 
-Adding a logo or chart image is straightforward:
+Adding a logo or chart image is similarly direct:
 
 ```csharp
 var paragraph = doc.AddParagraph();
@@ -76,7 +76,7 @@ OfficeIMO embeds the image directly inside the DOCX archive, so the file is full
 
 ## Headers and Footers
 
-Professional documents need headers and footers. OfficeIMO handles odd/even and first-page variants:
+If your document needs repeated chrome, you can add headers and footers and then populate the default sections:
 
 ```csharp
 doc.AddHeadersAndFooters();
@@ -117,11 +117,11 @@ doc.Save();
 Console.WriteLine("Report.docx created successfully.");
 ```
 
-Run this with `dotnet run` and inspect the resulting file in Word or another OOXML-capable editor. OfficeIMO writes standard Open XML packages, but visual fidelity still depends on the specific viewer and feature set involved.
+Run this with `dotnet run` and inspect the resulting file in Word or another OOXML-capable editor. OfficeIMO writes standard Open XML packages, but exact visual fidelity still depends on the viewer, installed fonts, and the specific feature set used in the document.
 
 ## Next Steps
 
-In future posts we will cover styles, table of contents generation, mail merge, and batch document assembly. If you hit a question, open a GitHub issue and we will help you out.
+From here, the next useful steps are usually styles, richer table formatting, images, section/page setup, or batch document assembly. If a workflow detail is unclear, the docs, API reference, examples, and tests are the best current references.
 
 ## Continue with
 

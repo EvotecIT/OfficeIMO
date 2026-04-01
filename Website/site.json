@@ -137,38 +137,15 @@
           "/assets/prism/prism-autoloader.min.js"
         ]
       },
-      {
-        "Name": "home",
-        "Css": ["/css/app.css", "/css/home.css", "/css/prism-theme.css"],
-        "Js": [
-          "/js/site.js",
-          "/assets/prism/prism-core.min.js",
-          "/assets/prism/prism-autoloader.min.js"
-        ]
-      },
-      {
-        "Name": "product",
-        "Css": ["/css/app.css", "/css/product.css", "/css/prism-theme.css"],
-        "Js": [
-          "/js/site.js",
-          "/assets/prism/prism-core.min.js",
-          "/assets/prism/prism-autoloader.min.js"
-        ]
-      },
-      {
-        "Name": "docs",
-        "Css": ["/css/app.css", "/css/docs.css", "/css/prism-theme.css"],
-        "Js": [
-          "/js/site.js",
-          "/assets/prism/prism-core.min.js",
-          "/assets/prism/prism-autoloader.min.js"
-        ]
-      }
+      { "Name": "home", "Css": ["/css/home.css"] },
+      { "Name": "product", "Css": ["/css/product.css"] },
+      { "Name": "docs", "Css": ["/css/docs.css"] }
     ],
     "RouteBundles": [
       { "Match": "/", "Bundles": ["global", "home"] },
       { "Match": "/products/**", "Bundles": ["global", "product"] },
       { "Match": "/showcase/", "Bundles": ["global", "docs"] },
+      { "Match": "/faq/", "Bundles": ["global", "docs"] },
       { "Match": "/docs/**", "Bundles": ["global", "docs"] },
       { "Match": "/**", "Bundles": ["global"] }
     ],

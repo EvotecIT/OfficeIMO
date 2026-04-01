@@ -1,6 +1,6 @@
 ---
 title: "PowerShell Meets Office: PSWriteOffice in 5 Minutes"
-description: "Get started with PSWriteOffice, the PowerShell module that wraps OfficeIMO for quick Word and Excel document generation from the command line."
+description: "Get started with PSWriteOffice, the PowerShell module that exposes OfficeIMO document workflows for scripts and automation."
 date: 2025-06-15
 tags: [powershell, pswriteoffice, automation]
 categories: [Tutorial]
@@ -101,7 +101,7 @@ Schedule it with `schtasks` or `Register-ScheduledTask` and you have hands-free 
 - **Tables and structured data.** Use `Add-OfficeWordTable -InputObject` or `Add-OfficePowerPointTable -Data` when your source is already object-based.
 - **Inline text formatting.** Use `Add-OfficeWordText` inside `Add-OfficeWordParagraph` blocks when you need bold, italic, or underlined runs.
 - **Multiple documents.** Call `New-OfficeWord` and `New-OfficeExcel` in the same script to produce a matched pair of files from one data source.
-- **Cross-platform.** PSWriteOffice runs on PowerShell 7+ on Windows, macOS, and Linux.
+- **Cross-platform-friendly.** PSWriteOffice is intended for PowerShell 7+ automation workflows on Windows, macOS, and Linux, but you should still validate the module and document path you plan to use on your target shell/runtime.
 
 ## Why PSWriteOffice Over COM?
 

@@ -6,7 +6,7 @@ order: 55
 
 # Reader and Extraction
 
-`OfficeIMO.Reader` provides a single extraction surface for Office and adjacent document formats. Instead of maintaining separate parsing pipelines for `.docx`, `.xlsx`, `.pptx`, Markdown, PDF, or text-like files, you can normalize them into one chunk model and then feed that output into indexing, search, and AI workflows.
+`OfficeIMO.Reader` provides a single extraction surface for the built-in formats currently handled in the repo, plus optional adapters for adjacent document types. Instead of maintaining separate parsing pipelines for `.docx`, `.xlsx`, `.pptx`, Markdown, PDF, or text-like files, you can normalize them into one chunk model and then feed that output into indexing, search, and AI workflows.
 
 ## Best fit scenarios
 

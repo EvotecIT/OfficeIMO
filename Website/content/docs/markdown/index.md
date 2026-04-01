@@ -6,7 +6,7 @@ order: 40
 
 # Markdown
 
-The `OfficeIMO.Markdown` package provides a complete Markdown toolkit for .NET with three main capabilities:
+The `OfficeIMO.Markdown` package provides a focused Markdown toolkit for .NET with three main capabilities:
 
 1. **Fluent Builder** -- Compose Markdown documents programmatically with a chainable API.
 2. **Reader / AST** -- Parse Markdown text into a typed Abstract Syntax Tree (AST) for analysis and transformation.

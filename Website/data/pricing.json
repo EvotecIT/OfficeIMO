@@ -6,12 +6,12 @@
   },
   "comparison": {
     "title": "Why Open Source?",
-    "description": "See what you save compared to commercial alternatives.",
+    "description": "OfficeIMO is free to adopt. Commercial alternatives vary by edition, support tier, and purchase model, so treat them as category examples rather than fixed quotes.",
     "items": [
       { "name": "OfficeIMO", "price": "$0", "period": "forever", "highlight": true },
-      { "name": "Aspose.Total", "price": "$999", "period": "per dev/year", "highlight": false },
-      { "name": "GemBox Bundle", "price": "$890", "period": "per developer", "highlight": false },
-      { "name": "Syncfusion", "price": "~$995", "period": "per dev/year", "highlight": false }
+      { "name": "Commercial suites", "price": "Varies", "period": "by vendor and edition", "highlight": false },
+      { "name": "Enterprise support contracts", "price": "Varies", "period": "by scope and SLA", "highlight": false },
+      { "name": "Custom consulting", "price": "Varies", "period": "by engagement", "highlight": false }
     ]
   },
   "cards": [

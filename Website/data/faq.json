@@ -17,11 +17,11 @@
         },
         {
           "question": "How does OfficeIMO compare to Aspose or GemBox?",
-          "answer": "<p>OfficeIMO is open source and free (MIT license), while Aspose and GemBox are commercial products costing $890\u2013$999+ per developer per year. OfficeIMO also offers unique features like a PowerShell module, Markdown library, typed CSV workflows, and NativeAOT support. See our <a href='/comparison/'>detailed comparison</a>.</p>"
+          "answer": "<p>OfficeIMO is an open-source MIT-licensed option focused on COM-free Open XML workflows, while products like Aspose or GemBox are commercial suites with broader vendor support and different format coverage. Pricing, editions, and support terms change over time, so verify current details with each vendor directly. Our <a href='/comparison/'>comparison page</a> focuses on trade-offs rather than fixed price claims.</p>"
         },
         {
           "question": "Can I use OfficeIMO in a Docker container or CI/CD pipeline?",
-          "answer": "<p>Absolutely. Since OfficeIMO has no COM dependencies and runs on .NET, it works perfectly in Linux containers, GitHub Actions, Azure DevOps, and any CI/CD environment. No special fonts or display servers needed.</p>"
+          "answer": "<p>Yes. Because OfficeIMO is COM-free and runs on .NET, it fits well in Linux containers, GitHub Actions, Azure DevOps, and other CI/CD environments. For rendering-heavy scenarios such as PDF output, validate the fonts and native dependencies you plan to ship with your container image.</p>"
         },
         {
           "question": "What is PSWriteOffice?",
@@ -33,7 +33,7 @@
         },
         {
           "question": "Is NativeAOT compilation supported?",
-          "answer": "<p>Yes. The CSV and Markdown packages are fully AOT/trimming-safe. The Word, Excel, and PowerPoint packages are AOT-aware and work in trimmed scenarios with appropriate configuration.</p>"
+          "answer": "<p>It depends on the package. <strong>OfficeIMO.CSV</strong> and <strong>OfficeIMO.Markdown</strong> are the strongest current fits for AOT- and trimming-sensitive workloads. The Open XML-based packages should be tested against your exact publish profile and deployment target before you rely on NativeAOT in production.</p>"
         }
       ]
     },

@@ -8,9 +8,14 @@
   window.Prism = window.Prism || {};
   window.Prism.manual = true;
 
+  function getPreferredTheme() {
+    return matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  }
+
   function applyTheme(mode) {
-    var resolved = mode === "auto" ? (matchMedia("(prefers-color-scheme:dark)").matches ? "dark" : "light") : mode;
+    var resolved = mode === "light" || mode === "dark" ? mode : getPreferredTheme();
     document.documentElement.setAttribute("data-theme", resolved);
+    document.documentElement.style.colorScheme = resolved;
     document.querySelectorAll(".imo-theme-toggle").forEach(function (btn) {
       var sun = btn.querySelector(".icon-sun");
       var moon = btn.querySelector(".icon-moon");
@@ -20,15 +25,106 @@
   }
 
   function initTheme() {
-    var stored = localStorage.getItem(THEME_KEY) || "dark";
+    var stored = localStorage.getItem(THEME_KEY);
+    if (stored !== "light" && stored !== "dark") {
+      stored = getPreferredTheme();
+    }
     applyTheme(stored);
     document.querySelectorAll(".imo-theme-toggle").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        var cur = localStorage.getItem(THEME_KEY) || "dark";
-        var next = cur === "dark" ? "light" : cur === "light" ? "auto" : "dark";
+        var cur = document.documentElement.getAttribute("data-theme") || getPreferredTheme();
+        var next = cur === "dark" ? "light" : "dark";
         localStorage.setItem(THEME_KEY, next);
         applyTheme(next);
       });
+    });
+  }
+
+  function initHeaderLinks() {
+    function normalizePath(pathname) {
+      return pathname.replace(/\/+$/, "") || "/";
+    }
+
+    function getLocalTarget(link) {
+      var href = link.getAttribute("href");
+      if (!href || href.charAt(0) === "#") return null;
+
+      try {
+        var target = new URL(href, window.location.origin);
+        if (target.origin !== window.location.origin) return null;
+        return target;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    var current = normalizePath(window.location.pathname);
+    var navItems = document.querySelectorAll(".imo-header .imo-nav__item");
+
+    navItems.forEach(function (item) {
+      var topLink = item.querySelector(":scope > a.imo-nav__link");
+      var topButton = item.querySelector(":scope > button.imo-nav__link");
+      var dropdownLinks = item.querySelectorAll(".imo-dropdown a[href]");
+      var isActive = false;
+
+      if (topLink) {
+        var topTarget = getLocalTarget(topLink);
+        if (topTarget) {
+          var topPath = normalizePath(topTarget.pathname);
+          if (topPath === "/") {
+            isActive = current === "/";
+          } else {
+            isActive = current === topPath || current.indexOf(topPath + "/") === 0;
+          }
+
+          topLink.addEventListener("click", function (event) {
+            var samePath = topPath === current;
+            var sameSearch = topTarget.search === window.location.search;
+            var noHash = !topTarget.hash;
+            if (samePath && sameSearch && noHash) {
+              event.preventDefault();
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          });
+        }
+      }
+
+      if (!isActive && dropdownLinks.length) {
+        dropdownLinks.forEach(function (link) {
+          var target = getLocalTarget(link);
+          if (!target) return;
+
+          var path = normalizePath(target.pathname);
+          if (current === path || current.indexOf(path + "/") === 0) {
+            isActive = true;
+            link.classList.add("is-active");
+            if (!link.hasAttribute("aria-current")) {
+              link.setAttribute("aria-current", "page");
+            }
+          }
+
+          link.addEventListener("click", function (event) {
+            var samePath = path === current;
+            var sameSearch = target.search === window.location.search;
+            var noHash = !target.hash;
+            if (samePath && sameSearch && noHash) {
+              event.preventDefault();
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          });
+        });
+      }
+
+      if (isActive) {
+        item.classList.add("is-current");
+        if (topLink) {
+          topLink.classList.add("is-active");
+          topLink.setAttribute("aria-current", "page");
+        }
+        if (topButton) {
+          topButton.classList.add("is-active");
+        }
+      }
     });
   }
 
@@ -281,6 +377,7 @@
     initTheme();
     initMobileNav();
     initDropdowns();
+    initHeaderLinks();
     initCodeCopy();
     initTabs();
     initHeaderScroll();

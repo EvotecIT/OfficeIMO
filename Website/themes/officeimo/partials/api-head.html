@@ -1,6 +1,6 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <meta name="color-scheme" content="dark light" />
-<script>(function(){var t=localStorage.getItem("imo-theme")||"dark";if(t==="auto"){t=matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);})();</script>
+<script>(function(){var t=localStorage.getItem("imo-theme");if(t!=="light"&&t!=="dark"){t=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";}document.documentElement.setAttribute("data-theme",t);document.documentElement.style.colorScheme=t;})();</script>
 <style>
 :root {
   --imo-bg: #0f1419;
