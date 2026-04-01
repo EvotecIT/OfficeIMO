@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ page.title }} | {{ site.name }}</title>
+  {{ description_meta_html }}
+  {{ canonical_html }}
+  {{ head_html }}
+  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
+  {{ include "theme-tokens" }}
+  {{ assets.critical_css_html }}
+  {{ assets.preloads_html }}
+  {{ extra_css_html }}
+  {{ assets.css_html }}
+  {{ opengraph_html }}
+  {{ structured_data_html }}
+</head>
+<body class="imo-body imo-body--downloads">
+  <a class="imo-skip-link" href="#content">Skip to main content</a>
+
+  {{ include "header" }}
+
+  {{ downloads = data.downloads_catalog }}
+  {{ release_hub = data.release_hub }}
+  {{ stats_doc = null }}
+  {{ if data.ecosystem }}
+    {{ stats_doc = data.ecosystem.stats }}
+  {{ end }}
+  {{ latest_release = null }}
+  {{ latest_tag = "" }}
+  {{ tracked_package_count = 0 }}
+  {{ tracked_nuget_count = 0 }}
+  {{ tracked_downloads = 0 }}
+
+  {{ if release_hub && release_hub.latest }}
+    {{ latest_tag = release_hub.latest.stableTag ?? "" }}
+  {{ end }}
+  {{ if latest_tag != "" && release_hub && release_hub.releases }}
+    {{ for release in release_hub.releases }}
+      {{ if release.tag == latest_tag }}
+        {{ latest_release = release }}
+      {{ end }}
+    {{ end }}
+  {{ end }}
+
+  {{ if downloads && downloads.sections }}
+    {{ for section in downloads.sections }}
+      {{ for package in section.packages }}
+        {{ tracked_package_count = tracked_package_count + 1 }}
+        {{ if package.registry == "nuget" }}
+          {{ tracked_nuget_count = tracked_nuget_count + 1 }}
+          {{ if stats_doc && stats_doc.nuget && stats_doc.nuget.packages }}
+            {{ for stat_package in stats_doc.nuget.packages }}
+              {{ if stat_package.id == package.registry_package }}
+                {{ tracked_downloads = tracked_downloads + stat_package.totalDownloads }}
+              {{ end }}
+            {{ end }}
+          {{ end }}
+        {{ end }}
+      {{ end }}
+    {{ end }}
+  {{ end }}
+
+  <main id="content" class="imo-main imo-main--downloads">
+    <div class="imo-container">
+      <div class="imo-downloads">
+        <section class="imo-downloads__hero">
+          <div class="imo-downloads__hero-shell">
+            <div class="imo-downloads__hero-copy">
+              <div class="imo-section__eyebrow">{{ downloads.hero.eyebrow ?? "Downloads hub" }}</div>
+              <h1 class="imo-downloads__title">{{ downloads.hero.title ?? page.title }}</h1>
+              <p class="imo-downloads__copy">{{ downloads.hero.description ?? page.description }}</p>
+              <div class="imo-downloads__hero-actions">
+                <a href="#downloads-packages" class="imo-btn imo-btn-primary">Browse packages</a>
+                {{ if latest_release }}
+                <a href="{{ latest_release.url }}" class="imo-btn imo-btn-ghost" target="_blank" rel="noopener">Latest stable release</a>
+                {{ end }}
+              </div>
+            </div>
+
+            <aside class="imo-downloads__hero-panel" aria-label="Download telemetry">
+              <div class="imo-downloads__stat-grid">
+                <article class="imo-downloads__stat">
+                  <span class="imo-downloads__stat-value">{{ tracked_package_count }}</span>
+                  <span class="imo-downloads__stat-label">tracked packages and modules</span>
+                </article>
+                <article class="imo-downloads__stat">
+                  <span class="imo-downloads__stat-value">{{ tracked_downloads }}</span>
+                  <span class="imo-downloads__stat-label">NuGet downloads across tracked OfficeIMO packages</span>
+                </article>
+                <article class="imo-downloads__stat">
+                  <span class="imo-downloads__stat-value">{{ tracked_nuget_count }}</span>
+                  <span class="imo-downloads__stat-label">NuGet packages surfaced on this page</span>
+                </article>
+                <article class="imo-downloads__stat">
+                  <span class="imo-downloads__stat-value">{{ latest_release.title ?? latest_tag }}</span>
+                  <span class="imo-downloads__stat-label">latest stable release used for archive links</span>
+                </article>
+              </div>
+              <p class="imo-downloads__panel-note">NuGet telemetry is generated from PowerForge ecosystem stats for the <code>Evotec</code> owner and filtered to the OfficeIMO family on this page. PSWriteOffice links directly to the PowerShell Gallery because its public feed is currently unreliable for automated totals.</p>
+            </aside>
+          </div>
+        </section>
+
+        <section class="imo-downloads__section">
+          <div class="imo-downloads__section-header">
+            <div>
+              <div class="imo-downloads__eyebrow">Choose the path</div>
+              <h2>Pick the distribution surface that matches how you work</h2>
+            </div>
+            <p>Most teams should install from a package manager and use release archives only when they need an exact artifact from a specific stable release.</p>
+          </div>
+          <div class="imo-downloads__path-grid">
+            {{ for path in downloads.paths }}
+            <article class="imo-downloads__path-card">
+              <span class="imo-badge">{{ path.badge }}</span>
+              <h3>{{ path.title }}</h3>
+              <p>{{ path.description }}</p>
+              <a class="imo-btn imo-btn-ghost" href="{{ path.href }}" target="_blank" rel="noopener">{{ path.label }}</a>
+            </article>
+            {{ end }}
+          </div>
+        </section>
+
+        <section id="downloads-packages" class="imo-downloads__section">
+          {{ for section in downloads.sections }}
+          <div class="imo-downloads__group">
+            <div class="imo-downloads__section-header">
+              <div>
+                <div class="imo-downloads__eyebrow">{{ section.eyebrow }}</div>
+                <h2>{{ section.title }}</h2>
+              </div>
+              <p>{{ section.description }}</p>
+            </div>
+
+            <div class="imo-downloads__grid">
+              {{ for package in section.packages }}
+                {{ package_stats = null }}
+                {{ if package.registry == "nuget" && stats_doc && stats_doc.nuget && stats_doc.nuget.packages }}
+                  {{ for stat_package in stats_doc.nuget.packages }}
+                    {{ if stat_package.id == package.registry_package }}
+                      {{ package_stats = stat_package }}
+                    {{ end }}
+                  {{ end }}
+                {{ end }}
+
+                {{ archive_asset = null }}
+                {{ if latest_release && latest_release.assets }}
+                  {{ for asset in latest_release.assets }}
+                    {{ if asset.product == package.release_product }}
+                      {{ archive_asset = asset }}
+                    {{ end }}
+                  {{ end }}
+                {{ end }}
+
+              <article class="imo-download-card" style="--downloads-accent: {{ package.accent }}">
+                <div class="imo-download-card__top">
+                  <div>
+                    <div class="imo-download-card__eyebrow">{{ package.registry_label }}</div>
+                    <h3>{{ package.title }}</h3>
+                  </div>
+                  {{ if package_stats }}
+                  <div class="imo-download-card__metric">
+                    <strong>{{ package_stats.totalDownloads }}</strong>
+                    <span>downloads</span>
+                  </div>
+                  {{ end }}
+                </div>
+
+                <p class="imo-download-card__desc">{{ package.summary }}</p>
+                <p class="imo-download-card__best">Best for: {{ package.best_for }}</p>
+
+                <div class="imo-install imo-download-card__install">
+                  <span class="imo-install__label">{{ package.registry_label }}</span>
+                  <code class="imo-install__code">{{ package.install }}</code>
+                  <button class="imo-install__copy" type="button" aria-label="Copy install command for {{ package.title }}" data-copy="{{ package.install }}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                  </button>
+                </div>
+
+                <div class="imo-download-card__meta">
+                  <span class="imo-badge">{{ package.registry_label }}</span>
+                  {{ if package_stats && package_stats.version }}
+                  <span class="imo-badge">Latest NuGet {{ package_stats.version }}</span>
+                  {{ end }}
+                  {{ if archive_asset }}
+                  <span class="imo-badge">Archive {{ archive_asset.name }}</span>
+                  {{ end }}
+                </div>
+
+                <div class="imo-download-card__actions">
+                  <a class="imo-btn imo-btn-primary" href="{{ package.registry_url }}" target="_blank" rel="noopener">Open {{ package.registry_label }} for {{ package.title }}</a>
+                  {{ if archive_asset }}
+                  <a class="imo-btn imo-btn-ghost" href="{{ archive_asset.downloadUrl }}" target="_blank" rel="noopener">Stable archive for {{ package.title }}</a>
+                  {{ end }}
+                </div>
+
+                <div class="imo-download-card__links">
+                  {{ if package.product_url }}
+                  <a href="{{ package.product_url }}">{{ package.title }} product page</a>
+                  {{ end }}
+                  {{ if package.docs_url }}
+                  <a href="{{ package.docs_url }}">{{ package.title }} documentation</a>
+                  {{ end }}
+                  {{ if package.api_url }}
+                  <a href="{{ package.api_url }}">{{ package.title }} API reference</a>
+                  {{ end }}
+                </div>
+              </article>
+              {{ end }}
+            </div>
+          </div>
+          {{ end }}
+        </section>
+
+        <section class="imo-downloads__section">
+          <div class="imo-downloads__release-panel">
+            <div>
+              <div class="imo-downloads__eyebrow">Release handoff</div>
+              <h2>Need the exact packaged artifact instead of a package-manager install?</h2>
+              <p>The stable release links above point straight at the matching archive from the current latest stable release. Use them when you need a zip artifact, a pinned package payload, or a release page for changelog context.</p>
+            </div>
+            <div class="imo-downloads__release-actions">
+              {{ if latest_release }}
+              <a class="imo-btn imo-btn-primary" href="{{ latest_release.url }}" target="_blank" rel="noopener">Open {{ latest_release.tag }}</a>
+              {{ end }}
+              <a class="imo-btn imo-btn-ghost" href="https://github.com/EvotecIT/OfficeIMO/releases" target="_blank" rel="noopener">All GitHub releases</a>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  {{ include "footer" }}
+
+  {{ assets.js_html }}
+  {{ extra_scripts_html }}
+</body>
+</html>

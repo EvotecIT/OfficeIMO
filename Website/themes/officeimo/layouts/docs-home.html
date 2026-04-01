@@ -9,6 +9,7 @@
   {{ head_html }}
   <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
   {{ include "theme-tokens" }}
+  {{ assets.critical_css_html }}
   {{ assets.preloads_html }}
   {{ extra_css_html }}
   {{ assets.css_html }}
