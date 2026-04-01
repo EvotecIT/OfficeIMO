@@ -41,7 +41,7 @@ The merged cross-reference map is committed at [`Website/data/xrefmap.json`](../
 
 ### PSWriteOffice PowerShell API
 
-Generated from checked-in website inputs under:
+Generated from a synced `PSWriteOffice` repo snapshot when available, with checked-in website fallback inputs under:
 
 - [`Website/data/apidocs/powershell/PSWriteOffice-Help.xml`](../Website/data/apidocs/powershell/PSWriteOffice-Help.xml)
 - [`Website/data/apidocs/powershell/examples/`](../Website/data/apidocs/powershell/examples/)
@@ -50,12 +50,11 @@ Those inputs are refreshed by [`Website/scripts/Sync-PSWriteOfficeApiDocs.ps1`](
 
 The sync script:
 
-- looks for a local `PSWriteOffice` repo
-- copies the built `PSWriteOffice-help.xml`
-- copies the repo `Examples/` folder
-- preserves the checked-in `.gitkeep` placeholder so clean checkouts still satisfy `psExamplesPath`
-
-The examples folder is intentionally ignored except for `.gitkeep`, so local syncs do not dirty the repo with copied sample content.
+- looks for a synced or local `PSWriteOffice` repo
+- prefers `Docs/Generated/PSWriteOffice-help.xml` from that repo
+- falls back to `Artefacts/Unpacked/Modules/PSWriteOffice/en-US/PSWriteOffice-help.xml`
+- mirrors the repo `Examples/` folder into the website fallback folder
+- preserves clean-checkout behavior when the source repo is unavailable
 
 ## CI / GitHub Pages
 
@@ -67,12 +66,12 @@ Website automation lives in:
 Both workflows:
 
 - check out `PSPublishModule`
-- optionally check out `EvotecIT/PSWriteOffice` using the `READ_ALL` secret
+- run `sources-sync`, which pulls `EvotecIT/PSWriteOffice` into `Website/projects/pswriteoffice`
 - run the PowerShell API sync script
 - build the website in CI mode
 - verify required output routes before upload/deploy
 
-If `READ_ALL` is unavailable, the build falls back to the checked-in PowerShell API inputs instead of failing.
+If the synced repo does not contain the generated help snapshot, the build falls back to the checked-in PowerShell API inputs instead of failing.
 
 ## Editing guidance
 

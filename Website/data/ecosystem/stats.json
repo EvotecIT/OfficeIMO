@@ -1,0 +1,301 @@
+﻿{
+  "title": "OfficeIMO Package Telemetry",
+  "generatedAtUtc": "2026-04-01T17:11:44.7470986Z",
+  "summary": {
+    "repositoryCount": 0,
+    "nuGetPackageCount": 36,
+    "powerShellGalleryModuleCount": 0,
+    "gitHubStars": 0,
+    "gitHubForks": 0,
+    "nuGetDownloads": 609898,
+    "powerShellGalleryDownloads": 0,
+    "totalDownloads": 609898
+  },
+  "nuget": {
+    "owner": "Evotec",
+    "packageCount": 36,
+    "totalDownloads": 609898,
+    "packages": [
+      {
+        "id": "OfficeIMO.Word",
+        "version": "1.0.40",
+        "totalDownloads": 457552,
+        "projectUrl": "https://github.com/EvotecIT/OfficeIMO",
+        "description": "An Open Source cross-platform .NET library providing an easy way to create\n            Microsoft Word (DocX) documents.",
+        "verified": true
+      },
+      {
+        "id": "DnsClientX",
+        "version": "1.0.7",
+        "totalDownloads": 43933,
+        "projectUrl": "https://github.com/EvotecIT/DnsClientX",
+        "description": "DnsClientX is an async C# library for DNS over UDP, TCP, HTTPS (DoH), and TLS\n            (DoT). It also has a PowerShell module that can be used to query DNS records. It\n            provides a simple way to query DNS records using multiple DNS providers. It supports\n            multiple DNS record types and parallel queries. It\u0027s available for .NET 8, .NET 9,\n            .NET Standard 2.0, and .NET Framework 4.7.2.",
+        "verified": true
+      },
+      {
+        "id": "HtmlForgeX",
+        "version": "0.37.0",
+        "totalDownloads": 17790,
+        "projectUrl": "https://github.com/EvotecIT/HtmlForgeX",
+        "description": "HtmlForgeX is a C# library to create advanced HTML reports/pages without\n            knowing any of HTML/CSS or JavaScript.",
+        "verified": false
+      },
+      {
+        "id": "OfficeIMO.Excel",
+        "version": "0.6.20",
+        "totalDownloads": 15080,
+        "projectUrl": "https://github.com/EvotecIT/OfficeIMO",
+        "description": "An Open Source cross-platform .NET library providing an easy way to create\n            Excel documents.",
+        "verified": true
+      },
+      {
+        "id": "OfficeIMO.Markdown",
+        "version": "0.6.7",
+        "totalDownloads": 13874,
+        "projectUrl": "https://github.com/EvotecIT/OfficeIMO",
+        "description": "Markdown builder, typed reader/AST, and HTML renderer for .NET with GitHub-like output and an optional portable reader profile. No external dependencies.",
+        "verified": true
+      },
+      {
+        "id": "LocalSecurityEditor",
+        "version": "1.0.0",
+        "totalDownloads": 7076,
+        "projectUrl": "https://github.com/evotecit/LocalSecurityEditor",
+        "description": ".NET library for managing User Rights Assignment on Windows systems. It replicates the functionality of secedit.exe",
+        "verified": false
+      },
+      {
+        "id": "Mailozaurr",
+        "version": "2.0.7",
+        "totalDownloads": 7021,
+        "description": "Package Description",
+        "verified": false
+      },
+      {
+        "id": "DBAClientX.Core",
+        "version": "0.4.0",
+        "totalDownloads": 6925,
+        "projectUrl": "https://github.com/EvotecIT/DBAClientX",
+        "description": "DbaClientX Core library",
+        "verified": false
+      },
+      {
+        "id": "DBAClientX.SQLite",
+        "version": "0.3.0",
+        "totalDownloads": 5610,
+        "projectUrl": "https://github.com/EvotecIT/DbaClientX",
+        "description": "DbaClientX SQLite provider",
+        "verified": false
+      },
+      {
+        "id": "EventViewerX",
+        "version": "3.3.3",
+        "totalDownloads": 4708,
+        "description": "Library to work with Event Logs",
+        "verified": false
+      },
+      {
+        "id": "HtmlForgeX.Email",
+        "version": "1.2.0",
+        "totalDownloads": 3668,
+        "projectUrl": "https://github.com/EvotecIT/HtmlForgeX",
+        "description": "HtmlForgeX.Email is a C# library to create HTML emails without knowing any of\n            HTML/CSS or JavaScript.",
+        "verified": false
+      },
+      {
+        "id": "OfficeIMO.Word.Markdown",
+        "version": "1.0.14",
+        "totalDownloads": 3250,
+        "projectUrl": "https://github.com/EvotecIT/OfficeIMO",
+        "description": "Markdown converter for OfficeIMO.Word - Convert Word documents to/from Markdown using OfficeIMO.Markdown",
+        "verified": true
+      },
+      {
+        "id": "OfficeIMO.PowerPoint",
+        "version": "1.0.15",
+        "totalDownloads": 3062,
+        "projectUrl": "https://github.com/EvotecIT/OfficeIMO",
+        "description": "An Open Source cross-platform .NET library providing an easy way to create\n            Microsoft PowerPoint (PPTX) presentations.",
+        "verified": true
+      },
+      {
+        "id": "OfficeIMO.Pdf",
+        "version": "0.1.15",
+        "totalDownloads": 2878,
+        "projectUrl": "https://github.com/EvotecIT/OfficeIMO",
+        "description": "Zero\u2011dependency PDF builder for .NET with a fluent API inspired by OfficeIMO.Markdown. Generates basic PDF files using standard 14 fonts (no external libraries).",
+        "verified": true
+      },
+      {
+        "id": "OfficeIMO.CSV",
+        "version": "0.1.20",
+        "totalDownloads": 2399,
+        "projectUrl": "https://github.com/EvotecIT/OfficeIMO",
+        "description": "A fluent, strongly-typed CSV document model for OfficeIMO.",
+        "verified": true
+      },
+      {
+        "id": "OfficeIMO.Reader",
+        "version": "0.1.15",
+        "totalDownloads": 2291,
+        "projectUrl": "https://github.com/EvotecIT/OfficeIMO",
+        "description": "Unified, read-only document extraction facade for OfficeIMO (Word/Excel/PowerPoint/Markdown/PDF) intended for AI ingestion.",
+        "verified": true
+      },
+      {
+        "id": "OfficeIMO.MarkdownRenderer",
+        "version": "0.2.7",
+        "totalDownloads": 1976,
+        "projectUrl": "https://github.com/EvotecIT/OfficeIMO",
+        "description": "WebView-friendly Markdown rendering helpers (shell \u002B incremental updates) built on OfficeIMO.Markdown.",
+        "verified": true
+      },
+      {
+        "id": "OfficeIMO.Markdown.Html",
+        "version": "0.1.7",
+        "totalDownloads": 1829,
+        "projectUrl": "https://github.com/EvotecIT/OfficeIMO",
+        "description": "HTML converter for OfficeIMO.Markdown - Convert HTML fragments or documents into OfficeIMO.Markdown documents and Markdown text.",
+        "verified": true
+      },
+      {
+        "id": "FileInspectorX",
+        "version": "1.0.9",
+        "totalDownloads": 1654,
+        "projectUrl": "https://github.com/EvotecIT/FileInspectorX",
+        "description": "FileInspectorX: dependency-free content type detection (magic bytes \u002B heuristics)",
+        "verified": false
+      },
+      {
+        "id": "OfficeIMO.Word.Pdf",
+        "version": "1.0.14",
+        "totalDownloads": 1270,
+        "description": "PDF converter for OfficeIMO.Word - Export Word documents to PDF using QuestPDF",
+        "verified": true
+      },
+      {
+        "id": "CodeGlyphX",
+        "version": "1.3.0",
+        "totalDownloads": 810,
+        "projectUrl": "https://github.com/EvotecIT/CodeGlyphX",
+        "description": "No-deps QR \u002B barcode toolkit for .NET (encode/decode, payload helpers, and renderers: SVG/HTML/PNG/JPEG/BMP/PPM/PBM/PGM/PAM/XBM/XPM/TGA/ICO/PDF/EPS/SVGZ/ASCII).",
+        "verified": false
+      },
+      {
+        "id": "DesktopManager",
+        "version": "3.6.0",
+        "totalDownloads": 770,
+        "projectUrl": "https://github.com/EvotecIT/DesktopManager",
+        "description": "Package Description",
+        "verified": false
+      },
+      {
+        "id": "SectigoCertificateManager",
+        "version": "0.1.0",
+        "totalDownloads": 699,
+        "projectUrl": "https://github.com/EvotecIT/SectigoCertificateManager",
+        "description": "Multi-targeted client library for the Sectigo Certificate Manager legacy and Admin Operations\n      APIs with OAuth2 support, fluent configuration, and shared routing used by the CLI and\n      PowerShell module. Targets .NET 8/9, .NET Standard 2.0, and .NET Framework 4.7.2.",
+        "verified": false
+      },
+      {
+        "id": "Mailozaurr.Msg",
+        "version": "2.0.7",
+        "totalDownloads": 503,
+        "description": "Package Description",
+        "verified": false
+      },
+      {
+        "id": "HtmlForgeX.Markdown",
+        "version": "0.20.5",
+        "totalDownloads": 430,
+        "description": "Advanced Markdown integration for HtmlForgeX powered by OfficeIMO.Markdown. Maps Markdown blocks to HtmlForgeX elements and registers libraries via HtmlForgeX.",
+        "verified": false
+      },
+      {
+        "id": "Globalping",
+        "version": "1.0.1",
+        "totalDownloads": 421,
+        "description": "Package Description",
+        "verified": false
+      },
+      {
+        "id": "WizCloud",
+        "version": "1.0.0",
+        "totalDownloads": 342,
+        "projectUrl": "https://github.com/EvotecIT/WizCloud",
+        "description": "Modern asynchronous Wiz.io client for .NET, providing strongly typed access to\n            the Wiz GraphQL API.",
+        "verified": false
+      },
+      {
+        "id": "DBAClientX.Oracle",
+        "version": "0.3.0",
+        "totalDownloads": 306,
+        "projectUrl": "https://github.com/EvotecIT/DBAClientX",
+        "description": "DbaClientX Oracle provider",
+        "verified": false
+      },
+      {
+        "id": "IISParser",
+        "version": "1.0.2",
+        "totalDownloads": 304,
+        "projectUrl": "https://github.com/EvotecIT/IISParser",
+        "description": "IISParser is a library for parsing IIS log files.",
+        "verified": false
+      },
+      {
+        "id": "ImagePlayground",
+        "version": "1.0.0",
+        "totalDownloads": 273,
+        "description": "Package Description",
+        "verified": false
+      },
+      {
+        "id": "DBAClientX.SqlServer",
+        "version": "0.3.0",
+        "totalDownloads": 268,
+        "projectUrl": "https://github.com/EvotecIT/DBAClientX",
+        "description": "DbaClientX SQL Server provider",
+        "verified": false
+      },
+      {
+        "id": "DBAClientX.PostgreSql",
+        "version": "0.3.0",
+        "totalDownloads": 267,
+        "projectUrl": "https://github.com/EvotecIT/DBAClientX",
+        "description": "DbaClientX PostgreSql provider",
+        "verified": false
+      },
+      {
+        "id": "DBAClientX.MySql",
+        "version": "0.3.0",
+        "totalDownloads": 247,
+        "projectUrl": "https://github.com/EvotecIT/DBAClientX",
+        "description": "DbaClientX MySql provider",
+        "verified": false
+      },
+      {
+        "id": "OfficeIMO.MarkdownRenderer.Wpf",
+        "version": "0.1.2",
+        "totalDownloads": 173,
+        "projectUrl": "https://github.com/EvotecIT/OfficeIMO",
+        "description": "Reusable WPF/WebView2 host control for OfficeIMO.MarkdownRenderer.",
+        "verified": true
+      },
+      {
+        "id": "PowerForge",
+        "version": "1.0.0",
+        "totalDownloads": 126,
+        "description": "PowerForge core library: reusable engine for building, formatting, packaging and publishing PowerShell modules.",
+        "verified": false
+      },
+      {
+        "id": "PowerForge.Blazor",
+        "version": "1.0.0",
+        "totalDownloads": 113,
+        "description": "Blazor components for displaying API documentation. Supports C# XML docs, PowerShell help, and custom markdown pages. Part of the PowerForge ecosystem.",
+        "verified": false
+      }
+    ]
+  },
+  "warnings": []
+}

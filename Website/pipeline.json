@@ -225,6 +225,18 @@
       ]
     },
     {
+      "task": "ecosystem-stats",
+      "id": "build-ecosystem-stats",
+      "skipModes": ["dev"],
+      "out": "./data/ecosystem/stats.json",
+      "publishPath": "./static/data/ecosystem/stats.json",
+      "summaryPath": "./Build/sync-ecosystem-stats-last-run.json",
+      "title": "OfficeIMO Package Telemetry",
+      "nugetOwner": "Evotec",
+      "timeoutSeconds": 60,
+      "preserveOnWarnings": true
+    },
+    {
       "task": "build",
       "id": "build-site",
       "dependsOn": [
@@ -236,11 +248,27 @@
         "build-csv",
         "build-visio",
         "build-reader",
-        "build-release-hub"
+        "build-release-hub",
+        "build-ecosystem-stats"
       ],
       "config": "./site.json",
       "out": "./_site",
       "clean": true
+    },
+    {
+      "task": "exec",
+      "id": "sync-pswriteoffice-apidocs",
+      "dependsOn": ["sync-sources"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Sync-PSWriteOfficeApiDocs.ps1",
+        "-SiteRoot",
+        "."
+      ],
+      "workingDirectory": "."
     },
     {
       "task": "verify",
@@ -398,11 +426,11 @@
     {
       "task": "apidocs",
       "id": "build-apidocs-powershell",
-      "dependsOn": "build-site",
+      "dependsOn": ["build-site", "sync-pswriteoffice-apidocs"],
       "config": "./site.json",
       "type": "PowerShell",
       "helpPath": "./data/apidocs/powershell/PSWriteOffice-Help.xml",
-      "psExamplesPath": "./projects/pswriteoffice/Examples",
+      "psExamplesPath": "./data/apidocs/powershell/examples",
       "out": "./_site/api/powershell",
       "title": "PSWriteOffice Cmdlet Reference",
       "baseUrl": "/api/powershell",

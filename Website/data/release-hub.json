@@ -1,10 +1,10 @@
 ﻿{
   "title": "OfficeIMO Releases",
-  "generatedAtUtc": "2026-03-25T08:29:42.2643535Z",
+  "generatedAtUtc": "2026-04-01T17:11:43.8677290Z",
   "source": "github",
   "repo": "EvotecIT/OfficeIMO",
   "latest": {
-    "stableTag": "OfficeIMO-v20260323175610"
+    "stableTag": "OfficeIMO-v20260401121024"
   },
   "products": [
     {
@@ -85,6 +85,177 @@
   ],
   "releases": [
     {
+      "id": "officeimo-v20260401121024",
+      "tag": "OfficeIMO-v20260401121024",
+      "title": "OfficeIMO 2026.04.01-12.10.24",
+      "url": "https://github.com/EvotecIT/OfficeIMO/releases/tag/OfficeIMO-v20260401121024",
+      "publishedAt": "2026-04-01T12:10:25+00:00",
+      "createdAt": "2026-04-01T12:08:37+00:00",
+      "isPrerelease": false,
+      "isDraft": false,
+      "isLatestStable": true,
+      "isLatestPrerelease": false,
+      "body_md": "## What\u0027s Changed\n* Bump coverlet.collector from 8.0.0 to 8.0.1 by @dependabot[bot] in https://github.com/EvotecIT/OfficeIMO/pull/1729\n* Upgrade DocumentFormat.OpenXml to 3.5.1 by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1731\n* Update PowerForge GitHub housekeeping pin by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1733\n* Add Google Workspace resilience and diagnostics support by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1734\n* Add OfficeIMO website and GitHub Pages pipeline by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1732\n* Add OfficeIMO website and API polish by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1735\n* Fix OfficeIMO website asset loading and mobile docs shell by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1736\n* Unify OfficeIMO PowerForge website workflows by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1737\n* Refresh PowerForge workflow pins by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1738\n* Gate website cloudflare post-deploy on available secrets by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1739\n* Thin OfficeIMO website workflows by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1740\n* Gate OfficeIMO website post-deploy on Cloudflare config by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1741\n* Bump Markdig from 1.1.1 to 1.1.2 by @dependabot[bot] in https://github.com/EvotecIT/OfficeIMO/pull/1743\n* Bump AngleSharp.Css from 1.0.0-beta.157 to 1.0.0-beta.213 by @dependabot[bot] in https://github.com/EvotecIT/OfficeIMO/pull/1742\n* [codex] stabilize OfficeIMO website experience by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1744\n\n\n**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/OfficeIMO-v20260323175610...OfficeIMO-v20260401121024",
+      "assets": [
+        {
+          "id": "officeimo-csv-0-1-20-zip",
+          "name": "OfficeIMO.CSV.0.1.20.zip",
+          "downloadUrl": "https://github.com/EvotecIT/OfficeIMO/releases/download/OfficeIMO-v20260401121024/OfficeIMO.CSV.0.1.20.zip",
+          "size": 640698,
+          "contentType": "application/octet-stream",
+          "product": "officeimo.csv",
+          "channel": "stable",
+          "platform": "any",
+          "arch": "any",
+          "kind": "zip"
+        },
+        {
+          "id": "officeimo-excel-0-6-20-zip",
+          "name": "OfficeIMO.Excel.0.6.20.zip",
+          "downloadUrl": "https://github.com/EvotecIT/OfficeIMO/releases/download/OfficeIMO-v20260401121024/OfficeIMO.Excel.0.6.20.zip",
+          "size": 19359969,
+          "contentType": "application/octet-stream",
+          "product": "officeimo.excel",
+          "channel": "stable",
+          "platform": "any",
+          "arch": "any",
+          "kind": "zip"
+        },
+        {
+          "id": "officeimo-markdown-0-6-7-zip",
+          "name": "OfficeIMO.Markdown.0.6.7.zip",
+          "downloadUrl": "https://github.com/EvotecIT/OfficeIMO/releases/download/OfficeIMO-v20260401121024/OfficeIMO.Markdown.0.6.7.zip",
+          "size": 3220146,
+          "contentType": "application/octet-stream",
+          "product": "officeimo.markdown",
+          "channel": "stable",
+          "platform": "any",
+          "arch": "any",
+          "kind": "zip"
+        },
+        {
+          "id": "officeimo-markdown-html-0-1-7-zip",
+          "name": "OfficeIMO.Markdown.Html.0.1.7.zip",
+          "downloadUrl": "https://github.com/EvotecIT/OfficeIMO/releases/download/OfficeIMO-v20260401121024/OfficeIMO.Markdown.Html.0.1.7.zip",
+          "size": 2639025,
+          "contentType": "application/octet-stream",
+          "product": "officeimo.markdown.html",
+          "channel": "stable",
+          "platform": "any",
+          "arch": "any",
+          "kind": "zip"
+        },
+        {
+          "id": "officeimo-markdownrenderer-0-2-7-zip",
+          "name": "OfficeIMO.MarkdownRenderer.0.2.7.zip",
+          "downloadUrl": "https://github.com/EvotecIT/OfficeIMO/releases/download/OfficeIMO-v20260401121024/OfficeIMO.MarkdownRenderer.0.2.7.zip",
+          "size": 3277274,
+          "contentType": "application/octet-stream",
+          "product": "officeimo.markdownrenderer",
+          "channel": "stable",
+          "platform": "any",
+          "arch": "any",
+          "kind": "zip"
+        },
+        {
+          "id": "officeimo-markdownrenderer-wpf-0-1-2-zip",
+          "name": "OfficeIMO.MarkdownRenderer.Wpf.0.1.2.zip",
+          "downloadUrl": "https://github.com/EvotecIT/OfficeIMO/releases/download/OfficeIMO-v20260401121024/OfficeIMO.MarkdownRenderer.Wpf.0.1.2.zip",
+          "size": 5408475,
+          "contentType": "application/octet-stream",
+          "product": "officeimo.markdownrenderer.wpf",
+          "channel": "stable",
+          "platform": "any",
+          "arch": "any",
+          "kind": "zip"
+        },
+        {
+          "id": "officeimo-pdf-0-1-15-zip",
+          "name": "OfficeIMO.Pdf.0.1.15.zip",
+          "downloadUrl": "https://github.com/EvotecIT/OfficeIMO/releases/download/OfficeIMO-v20260401121024/OfficeIMO.Pdf.0.1.15.zip",
+          "size": 549575,
+          "contentType": "application/octet-stream",
+          "product": "officeimo.pdf",
+          "channel": "stable",
+          "platform": "any",
+          "arch": "any",
+          "kind": "zip"
+        },
+        {
+          "id": "officeimo-powerpoint-1-0-15-zip",
+          "name": "OfficeIMO.PowerPoint.1.0.15.zip",
+          "downloadUrl": "https://github.com/EvotecIT/OfficeIMO/releases/download/OfficeIMO-v20260401121024/OfficeIMO.PowerPoint.1.0.15.zip",
+          "size": 3318269,
+          "contentType": "application/octet-stream",
+          "product": "officeimo.powerpoint",
+          "channel": "stable",
+          "platform": "any",
+          "arch": "any",
+          "kind": "zip"
+        },
+        {
+          "id": "officeimo-reader-0-1-15-zip",
+          "name": "OfficeIMO.Reader.0.1.15.zip",
+          "downloadUrl": "https://github.com/EvotecIT/OfficeIMO/releases/download/OfficeIMO-v20260401121024/OfficeIMO.Reader.0.1.15.zip",
+          "size": 13569679,
+          "contentType": "application/octet-stream",
+          "product": "officeimo.reader",
+          "channel": "stable",
+          "platform": "any",
+          "arch": "any",
+          "kind": "zip"
+        },
+        {
+          "id": "officeimo-word-1-0-40-zip",
+          "name": "OfficeIMO.Word.1.0.40.zip",
+          "downloadUrl": "https://github.com/EvotecIT/OfficeIMO/releases/download/OfficeIMO-v20260401121024/OfficeIMO.Word.1.0.40.zip",
+          "size": 26039261,
+          "contentType": "application/octet-stream",
+          "product": "officeimo.word",
+          "channel": "stable",
+          "platform": "any",
+          "arch": "any",
+          "kind": "zip"
+        },
+        {
+          "id": "officeimo-word-html-1-0-14-zip",
+          "name": "OfficeIMO.Word.Html.1.0.14.zip",
+          "downloadUrl": "https://github.com/EvotecIT/OfficeIMO/releases/download/OfficeIMO-v20260401121024/OfficeIMO.Word.Html.1.0.14.zip",
+          "size": 7744465,
+          "contentType": "application/octet-stream",
+          "product": "officeimo.word.html",
+          "channel": "stable",
+          "platform": "any",
+          "arch": "any",
+          "kind": "zip"
+        },
+        {
+          "id": "officeimo-word-markdown-1-0-14-zip",
+          "name": "OfficeIMO.Word.Markdown.1.0.14.zip",
+          "downloadUrl": "https://github.com/EvotecIT/OfficeIMO/releases/download/OfficeIMO-v20260401121024/OfficeIMO.Word.Markdown.1.0.14.zip",
+          "size": 9624671,
+          "contentType": "application/octet-stream",
+          "product": "officeimo.word.markdown",
+          "channel": "stable",
+          "platform": "any",
+          "arch": "any",
+          "kind": "zip"
+        },
+        {
+          "id": "officeimo-word-pdf-1-0-14-zip",
+          "name": "OfficeIMO.Word.Pdf.1.0.14.zip",
+          "downloadUrl": "https://github.com/EvotecIT/OfficeIMO/releases/download/OfficeIMO-v20260401121024/OfficeIMO.Word.Pdf.1.0.14.zip",
+          "size": 78146207,
+          "contentType": "application/octet-stream",
+          "product": "officeimo.word.pdf",
+          "channel": "stable",
+          "platform": "any",
+          "arch": "any",
+          "kind": "zip"
+        }
+      ]
+    },
+    {
       "id": "officeimo-v20260323175610",
       "tag": "OfficeIMO-v20260323175610",
       "title": "OfficeIMO 2026.03.23-17.56.10",
@@ -93,7 +264,7 @@
       "createdAt": "2026-03-23T16:59:17+00:00",
       "isPrerelease": false,
       "isDraft": false,
-      "isLatestStable": true,
+      "isLatestStable": false,
       "isLatestPrerelease": false,
       "body_md": "## What\u0027s Changed\n* Improve OfficeIMO.Markdown AST and Word round-tripping by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1722\n* Fix Excel OpenXML repair risks and add validation coverage by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1723\n* Strengthen OfficeIMO.Markdown AST and extension APIs by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1724\n* Improve markdown syntax ownership and provenance by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1725\n* Docs: add AppendDocument example by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1728\n* Improve markdown transcript contracts and shared visual corpus by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1727\n\n\n**Full Changelog**: https://github.com/EvotecIT/OfficeIMO/compare/OfficeIMO-v20260319132410...OfficeIMO-v20260323175610",
       "assets": [

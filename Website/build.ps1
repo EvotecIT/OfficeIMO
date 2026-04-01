@@ -39,6 +39,9 @@
 .PARAMETER CI
     Force pipeline CI mode locally (equivalent to setting CI=true).
 
+.PARAMETER PSWriteOfficeRoot
+    Optional PSWriteOffice repo root used to refresh the checked-in PowerShell API snapshot before building.
+
 .EXAMPLE
     ./build.ps1
     ./build.ps1 -CI
@@ -58,7 +61,8 @@ param(
     [string[]]$Skip = @(),
     [switch]$CI,
     [switch]$SkipBuildTool,
-    [string]$PowerForgeRoot = $env:POWERFORGE_ROOT
+    [string]$PowerForgeRoot = $env:POWERFORGE_ROOT,
+    [string]$PSWriteOfficeRoot = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -173,6 +177,17 @@ function Assert-SiteOutput {
 }
 
 try {
+    if (-not [string]::IsNullOrWhiteSpace($PSWriteOfficeRoot)) {
+        $syncScript = Join-Path $PSScriptRoot 'scripts\Sync-PSWriteOfficeApiDocs.ps1'
+        if (-not (Test-Path -LiteralPath $syncScript -PathType Leaf)) {
+            throw "PSWriteOffice API sync script not found: $syncScript"
+        }
+
+        Write-Host 'Refreshing PSWriteOffice API snapshot...' -ForegroundColor Cyan
+        & $syncScript -SiteRoot $PSScriptRoot -PSWriteOfficeRoot $PSWriteOfficeRoot
+        if (-not $?) { throw 'PSWriteOffice API sync failed.' }
+    }
+
     $UseDev = ($Dev -or ($Serve -and -not $NoDev))
     $UseFast = ($Fast -or ($Serve -and -not $NoFast))
     $IsCI = $CI -or

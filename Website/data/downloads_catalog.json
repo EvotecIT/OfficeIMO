@@ -1,0 +1,261 @@
+{
+  "hero": {
+    "eyebrow": "Downloads hub",
+    "title": "Choose the right OfficeIMO package, then install it the fast way.",
+    "description": "Use NuGet for application dependencies, PowerShell Gallery for PSWriteOffice, and GitHub release archives when you need the exact packaged artifact from the latest stable release."
+  },
+  "paths": [
+    {
+      "title": "NuGet packages",
+      "description": "Best for .NET applications, services, workers, and libraries that want package-manager installs and version pinning in source control.",
+      "badge": "Recommended for app builds",
+      "href": "https://www.nuget.org/packages?q=OfficeIMO",
+      "label": "Browse on NuGet"
+    },
+    {
+      "title": "PowerShell Gallery",
+      "description": "Best for admins and automation teams using PSWriteOffice from scripts, scheduled jobs, or CI/CD orchestration.",
+      "badge": "PowerShell automation",
+      "href": "https://www.powershellgallery.com/packages/PSWriteOffice",
+      "label": "Open PSWriteOffice"
+    },
+    {
+      "title": "GitHub release archives",
+      "description": "Best when you need the exact archive produced for a stable release, without browsing the GitHub releases page manually.",
+      "badge": "Pinned release artifacts",
+      "href": "https://github.com/EvotecIT/OfficeIMO/releases",
+      "label": "Open Releases"
+    }
+  ],
+  "sections": [
+    {
+      "id": "core-builders",
+      "eyebrow": "Core builders",
+      "title": "Primary document libraries",
+      "description": "Start here when you are building or editing Office documents directly from .NET code.",
+      "packages": [
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Word",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Word",
+          "release_product": "officeimo.word",
+          "title": "OfficeIMO.Word",
+          "summary": "Create and edit .docx files with paragraphs, tables, images, headers, footers, and fields.",
+          "best_for": "document generation, reporting, mail merge, and Word automation",
+          "install": "dotnet add package OfficeIMO.Word",
+          "product_url": "/products/word/",
+          "docs_url": "/docs/word/",
+          "api_url": "/api/word/",
+          "accent": "#3b82f6"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Excel",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Excel",
+          "release_product": "officeimo.excel",
+          "title": "OfficeIMO.Excel",
+          "summary": "Generate and edit .xlsx workbooks with worksheets, tables, formatting, and formulas.",
+          "best_for": "exports, operational reporting, and workbook generation from app data",
+          "install": "dotnet add package OfficeIMO.Excel",
+          "product_url": "/products/excel/",
+          "docs_url": "/docs/excel/",
+          "api_url": "/api/excel/",
+          "accent": "#10b981"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.PowerPoint",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.PowerPoint",
+          "release_product": "officeimo.powerpoint",
+          "title": "OfficeIMO.PowerPoint",
+          "summary": "Build .pptx presentations with slides, charts, text, media, and layout control.",
+          "best_for": "deck generation, executive reports, and presentation automation",
+          "install": "dotnet add package OfficeIMO.PowerPoint",
+          "product_url": "/products/powerpoint/",
+          "docs_url": "/docs/powerpoint/",
+          "api_url": "/api/powerpoint/",
+          "accent": "#f43f5e"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Markdown",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Markdown",
+          "release_product": "officeimo.markdown",
+          "title": "OfficeIMO.Markdown",
+          "summary": "Typed Markdown builder, reader, AST, and renderer for documentation and content pipelines.",
+          "best_for": "docs generation, markdown transforms, and round-tripping structured content",
+          "install": "dotnet add package OfficeIMO.Markdown",
+          "product_url": "/products/markdown/",
+          "docs_url": "/docs/markdown/",
+          "api_url": "/api/markdown/",
+          "accent": "#8b5cf6"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.CSV",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.CSV",
+          "release_product": "officeimo.csv",
+          "title": "OfficeIMO.CSV",
+          "summary": "Fluent CSV document model for read/write workflows that want stronger structure than raw strings.",
+          "best_for": "flat-file exports, CSV pipelines, and schema-aware data exchange",
+          "install": "dotnet add package OfficeIMO.CSV",
+          "product_url": "/products/csv/",
+          "docs_url": "/docs/csv/",
+          "api_url": "/api/csv/",
+          "accent": "#22d3ee"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Visio",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Visio",
+          "release_product": "officeimo.visio",
+          "title": "OfficeIMO.Visio",
+          "summary": "Generate and manipulate .vsdx diagrams without desktop Visio dependencies.",
+          "best_for": "diagram generation, topology exports, and Visio-based workflows",
+          "install": "dotnet add package OfficeIMO.Visio",
+          "product_url": "/products/visio/",
+          "docs_url": "/docs/visio/",
+          "api_url": "/api/visio/",
+          "accent": "#fb923c"
+        }
+      ]
+    },
+    {
+      "id": "automation-ingestion",
+      "eyebrow": "Automation and ingestion",
+      "title": "Entry points for admins, scripts, and AI-ready extraction",
+      "description": "Use these when the right starting point is PowerShell automation or read-only document extraction.",
+      "packages": [
+        {
+          "registry": "powershell",
+          "registry_label": "PowerShell Gallery",
+          "registry_package": "PSWriteOffice",
+          "registry_url": "https://www.powershellgallery.com/packages/PSWriteOffice",
+          "release_product": "pswriteoffice",
+          "title": "PSWriteOffice",
+          "summary": "PowerShell module that brings OfficeIMO document generation into scripts and admin automation.",
+          "best_for": "scheduled reporting, admin tooling, CI jobs, and script-first automation",
+          "install": "Install-Module PSWriteOffice",
+          "product_url": "/products/pswriteoffice/",
+          "docs_url": "/docs/pswriteoffice/",
+          "accent": "#38bdf8"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Reader",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Reader",
+          "release_product": "officeimo.reader",
+          "title": "OfficeIMO.Reader",
+          "summary": "Unified read-only extraction layer for Word, Excel, PowerPoint, Markdown, PDF, and more.",
+          "best_for": "search indexing, RAG ingestion, content extraction, and normalization pipelines",
+          "install": "dotnet add package OfficeIMO.Reader",
+          "product_url": "/products/reader/",
+          "docs_url": "/docs/reader/",
+          "api_url": "/api/reader/",
+          "accent": "#6366f1"
+        }
+      ]
+    },
+    {
+      "id": "converters-renderers",
+      "eyebrow": "Converters and renderers",
+      "title": "Specialized companion packages",
+      "description": "Use these when you already know the source format and want to convert or render it into another surface.",
+      "packages": [
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Word.Html",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Word.Html",
+          "release_product": "officeimo.word.html",
+          "title": "OfficeIMO.Word.Html",
+          "summary": "Convert Word documents into HTML for web output and browser delivery.",
+          "best_for": "publishing Word content to the web or embedding it into HTML-first experiences",
+          "install": "dotnet add package OfficeIMO.Word.Html",
+          "docs_url": "/docs/converters/word-html/",
+          "accent": "#60a5fa"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Word.Markdown",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Word.Markdown",
+          "release_product": "officeimo.word.markdown",
+          "title": "OfficeIMO.Word.Markdown",
+          "summary": "Bridge Word documents and Markdown using the OfficeIMO.Word and OfficeIMO.Markdown stack.",
+          "best_for": "docx-to-markdown pipelines, docs migration, and round-tripping editorial content",
+          "install": "dotnet add package OfficeIMO.Word.Markdown",
+          "docs_url": "/docs/converters/word-markdown/",
+          "accent": "#a78bfa"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Word.Pdf",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Word.Pdf",
+          "release_product": "officeimo.word.pdf",
+          "title": "OfficeIMO.Word.Pdf",
+          "summary": "Export Word documents to PDF using the OfficeIMO Word model as the authoring source.",
+          "best_for": "Word-first reporting flows that need PDF delivery without desktop Office",
+          "install": "dotnet add package OfficeIMO.Word.Pdf",
+          "accent": "#f97316"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Markdown.Html",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Markdown.Html",
+          "release_product": "officeimo.markdown.html",
+          "title": "OfficeIMO.Markdown.Html",
+          "summary": "Convert HTML into OfficeIMO.Markdown documents and markdown text.",
+          "best_for": "HTML ingestion, cleanup, and markdown-first publishing workflows",
+          "install": "dotnet add package OfficeIMO.Markdown.Html",
+          "accent": "#22c55e"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Pdf",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Pdf",
+          "release_product": "officeimo.pdf",
+          "title": "OfficeIMO.Pdf",
+          "summary": "Fluent zero-dependency PDF builder for producing printable output directly.",
+          "best_for": "basic PDF generation, printable reports, and low-dependency server output",
+          "install": "dotnet add package OfficeIMO.Pdf",
+          "accent": "#ef4444"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.MarkdownRenderer",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer",
+          "release_product": "officeimo.markdownrenderer",
+          "title": "OfficeIMO.MarkdownRenderer",
+          "summary": "WebView-friendly markdown rendering helpers built on the OfficeIMO.Markdown model.",
+          "best_for": "desktop/webview surfaces that need rendered markdown with incremental updates",
+          "install": "dotnet add package OfficeIMO.MarkdownRenderer",
+          "accent": "#06b6d4"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.MarkdownRenderer.Wpf",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer.Wpf",
+          "release_product": "officeimo.markdownrenderer.wpf",
+          "title": "OfficeIMO.MarkdownRenderer.Wpf",
+          "summary": "WPF-specific markdown renderer wrapper for desktop applications.",
+          "best_for": "Windows desktop apps that want a WPF-friendly markdown presentation layer",
+          "install": "dotnet add package OfficeIMO.MarkdownRenderer.Wpf",
+          "accent": "#0ea5e9"
+        }
+      ]
+    }
+  ]
+}
