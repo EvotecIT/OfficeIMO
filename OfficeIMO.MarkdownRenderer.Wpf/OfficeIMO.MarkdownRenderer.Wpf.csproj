@@ -4,7 +4,7 @@
     <Description>Reusable WPF/WebView2 host control for OfficeIMO.MarkdownRenderer.</Description>
     <AssemblyName>OfficeIMO.MarkdownRenderer.Wpf</AssemblyName>
     <AssemblyTitle>OfficeIMO.MarkdownRenderer.Wpf</AssemblyTitle>
-    <VersionPrefix>0.1.1</VersionPrefix>
+    <VersionPrefix>0.1.2</VersionPrefix>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>
