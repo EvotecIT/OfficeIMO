@@ -21,5 +21,6 @@ jobs:
       pipeline_config: Website/pipeline.maintenance.json
       engine_mode: source
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
+      powerforge_repository: EvotecIT/PSPublishModule
       powerforge_ref: e9d5e2dc35a5a73d66c03458542469a96ac6afcf
       report_artifact_name: powerforge-website-maintenance-reports

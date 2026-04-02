@@ -43,6 +43,7 @@ jobs:
       post_deploy_pipeline_config: ${{ needs.resolve-post-deploy.outputs.post_deploy_pipeline_config }}
       engine_mode: source
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
+      powerforge_repository: EvotecIT/PSPublishModule
       powerforge_ref: e9d5e2dc35a5a73d66c03458542469a96ac6afcf
     secrets:
       indexnow_key: ${{ secrets.INDEXNOW_KEY }}
