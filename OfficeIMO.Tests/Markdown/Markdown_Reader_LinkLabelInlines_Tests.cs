@@ -27,5 +27,30 @@ public class Markdown_Reader_LinkLabelInlines_Tests {
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         Assert.Contains("<a href=\"https://example.com\"><em>x</em></a>", html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Strong_Can_Wrap_Inline_Link() {
+        const string md = "**[Installation](/docs/installation/)**";
+        var doc = MarkdownReader.Parse(md);
+
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        Assert.Contains("<strong><a href=\"/docs/installation/\">Installation</a></strong>", html, StringComparison.Ordinal);
+
+        var round = doc.ToMarkdown().Trim();
+        Assert.Equal(md, round);
+    }
+
+    [Fact]
+    public void Strong_Can_Wrap_Reference_Link() {
+        const string md = """
+**[Installation][install]**
+
+[install]: /docs/installation/
+""";
+        var doc = MarkdownReader.Parse(md);
+
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        Assert.Contains("<strong><a href=\"/docs/installation/\">Installation</a></strong>", html, StringComparison.Ordinal);
+    }
 }
 
