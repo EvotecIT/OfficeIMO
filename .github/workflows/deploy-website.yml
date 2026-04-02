@@ -35,7 +35,7 @@ jobs:
 
   website-deploy:
     needs: resolve-post-deploy
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-deploy.yml@8e300aa1c8b6c9ad3505aec0ab19172382263925
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-deploy.yml@52a6c2f37b3bd01cf9393dc569c5d0284bd57229
     with:
       website_root: Website
       pipeline_config: Website/pipeline.json
@@ -44,7 +44,7 @@ jobs:
       engine_mode: source
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: 8e300aa1c8b6c9ad3505aec0ab19172382263925
+      powerforge_ref: 52a6c2f37b3bd01cf9393dc569c5d0284bd57229
     secrets:
       indexnow_key: ${{ secrets.INDEXNOW_KEY }}
       cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
