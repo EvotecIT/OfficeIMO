@@ -20,11 +20,11 @@ concurrency:
 
 jobs:
   housekeeping:
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-github-housekeeping.yml@15192638c1c7d2f6907cd6c8b586017a0f4ec4a8
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-github-housekeeping.yml@4a8c9b3a69e505dab381db94b602cd3d70406cae
     with:
       config_path: ./.powerforge/github-housekeeping.json
       apply: ${{ (github.event_name == 'workflow_dispatch' && inputs.apply == 'true') || (github.event_name != 'workflow_dispatch' && vars.POWERFORGE_GITHUB_HOUSEKEEPING_APPLY == 'true') }}
-      powerforge_ref: 15192638c1c7d2f6907cd6c8b586017a0f4ec4a8
+      powerforge_ref: 4a8c9b3a69e505dab381db94b602cd3d70406cae
       report_artifact_name: github-housekeeping-reports
     secrets:
       github-token: ${{ secrets.GITHUB_TOKEN }}
