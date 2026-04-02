@@ -85,6 +85,8 @@ $resolvedSiteRoot = (Resolve-Path -LiteralPath $SiteRoot).Path
 $resolvedRepoRoot = Resolve-RepoRoot -SiteRootPath $resolvedSiteRoot -RequestedRoot $PSWriteOfficeRoot
 $targetRoot = Join-Path $resolvedSiteRoot 'data\apidocs\powershell'
 $targetHelpPath = Join-Path $targetRoot 'PSWriteOffice-Help.xml'
+$targetManifestPath = Join-Path $targetRoot 'PSWriteOffice.psd1'
+$targetCommandMetadataPath = Join-Path $targetRoot 'command-metadata.json'
 $targetExamplesPath = Join-Path $targetRoot 'examples'
 
 New-Item -ItemType Directory -Path $targetRoot -Force | Out-Null
@@ -95,6 +97,10 @@ $summary = [ordered]@{
     repoRoot = $resolvedRepoRoot
     helpSource = $null
     helpUpdated = $false
+    manifestSource = $null
+    manifestUpdated = $false
+    commandMetadataSource = $null
+    commandMetadataUpdated = $false
     examplesSource = $null
     examplesUpdated = $false
     fallbackUsed = $true
@@ -107,6 +113,7 @@ if (-not $resolvedRepoRoot) {
 }
 
 $helpCandidates = @(
+    (Join-Path $resolvedRepoRoot 'WebsiteArtifacts\apidocs\powershell\PSWriteOffice-help.xml'),
     (Join-Path $resolvedRepoRoot 'Docs\Generated\PSWriteOffice-help.xml'),
     (Join-Path $resolvedRepoRoot 'Artefacts\Unpacked\Modules\PSWriteOffice\en-US\PSWriteOffice-help.xml')
 ) | Select-Object -Unique
@@ -122,6 +129,42 @@ if ($resolvedHelpPath) {
     $summary.fallbackUsed = $false
 } else {
     Write-Host 'PSWriteOffice help XML not found in synced repo. Keeping checked-in fallback help snapshot.' -ForegroundColor Yellow
+}
+
+$manifestCandidates = @(
+    (Join-Path $resolvedRepoRoot 'WebsiteArtifacts\apidocs\powershell\PSWriteOffice.psd1'),
+    (Join-Path $resolvedRepoRoot 'Artefacts\Unpacked\Modules\PSWriteOffice\PSWriteOffice.psd1'),
+    (Join-Path $resolvedRepoRoot 'PSWriteOffice.psd1')
+) | Select-Object -Unique
+
+$resolvedManifestPath = $manifestCandidates |
+    Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+    Select-Object -First 1
+
+if ($resolvedManifestPath) {
+    Copy-Item -LiteralPath $resolvedManifestPath -Destination $targetManifestPath -Force
+    $summary.manifestSource = $resolvedManifestPath
+    $summary.manifestUpdated = $true
+    $summary.fallbackUsed = $false
+} else {
+    Write-Host 'PSWriteOffice module manifest not found in synced repo. Keeping checked-in fallback manifest snapshot.' -ForegroundColor Yellow
+}
+
+$commandMetadataCandidates = @(
+    (Join-Path $resolvedRepoRoot 'WebsiteArtifacts\apidocs\powershell\command-metadata.json')
+) | Select-Object -Unique
+
+$resolvedCommandMetadataPath = $commandMetadataCandidates |
+    Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+    Select-Object -First 1
+
+if ($resolvedCommandMetadataPath) {
+    Copy-Item -LiteralPath $resolvedCommandMetadataPath -Destination $targetCommandMetadataPath -Force
+    $summary.commandMetadataSource = $resolvedCommandMetadataPath
+    $summary.commandMetadataUpdated = $true
+    $summary.fallbackUsed = $false
+} else {
+    Write-Host 'PSWriteOffice command metadata not found in synced repo. Keeping checked-in fallback command metadata snapshot.' -ForegroundColor Yellow
 }
 
 if (-not $SkipExamples) {

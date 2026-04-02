@@ -373,6 +373,11 @@
   border-bottom: 1px solid var(--imo-border);
 }
 
+.sidebar-filters {
+  display: grid;
+  gap: 0.55rem;
+}
+
 .sidebar-project-indicator {
   padding-top: 0.82rem;
 }
@@ -449,6 +454,11 @@
   cursor: pointer;
 }
 
+.filter-row {
+  display: grid;
+  gap: 0.4rem;
+}
+
 .filter-label,
 .sidebar-count,
 .type-count,
@@ -460,6 +470,16 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--imo-text-muted);
+}
+
+.filter-label,
+.sidebar-count {
+  display: block;
+  margin: 0;
+}
+
+.sidebar-count {
+  line-height: 1.45;
 }
 
 .filter-buttons,
@@ -1202,57 +1222,304 @@
   background: var(--imo-surface-hover);
 }
 
-.type-detail--powershell-command .type-meta {
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  align-items: stretch;
+.pf-api-docs--powershell .type-detail .type-meta {
+  grid-template-columns: 1fr;
+  align-items: start;
+  margin: 0 0 1.4rem;
+  gap: 0.42rem;
 }
 
-.type-detail--powershell-command .type-meta > .type-meta-row:first-child {
-  grid-column: span 3;
+.pf-api-docs--powershell .type-detail .type-header {
+  display: block;
+  margin-bottom: 1.55rem;
+  padding-bottom: 1.2rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--imo-border) 78%, transparent);
 }
 
-.type-detail--powershell-command .type-meta-inputs {
-  grid-column: span 5;
+.pf-api-docs--powershell .type-detail .type-title-row {
+  display: grid;
+  justify-items: start;
+  align-items: start;
+  gap: 0.18rem;
 }
 
-.type-detail--powershell-command .type-meta-outputs {
-  grid-column: span 4;
+.pf-api-docs--powershell .type-detail .type-title-row h1 {
+  max-width: none;
+  font-size: clamp(2rem, 1.8vw + 1.3rem, 2.75rem);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
 }
 
-.type-detail--powershell-command .type-detail-shell {
+.pf-api-docs--powershell .type-detail .type-actions {
+  justify-self: start;
+  align-self: start;
+  margin-top: 0.82rem;
+}
+
+.pf-api-docs--powershell .type-detail .type-meta > .type-meta-row:first-child {
+  grid-column: auto;
+}
+
+.pf-api-docs--powershell .type-detail .type-detail-shell {
   grid-template-columns: minmax(0, 1fr) minmax(216px, 236px);
   gap: 1.15rem;
 }
 
-.type-detail--powershell-command .type-detail-main {
+.pf-api-docs--powershell .type-detail .type-detail-main {
+  display: grid;
+  min-width: 0;
+  gap: 0.95rem;
+}
+
+.pf-api-docs--powershell .type-detail .type-meta-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.9rem;
+  row-gap: 0.3rem;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.pf-api-docs--powershell .type-detail .type-meta-label {
+  min-width: 0;
+  margin: 0;
+  font-size: 0.66rem;
+}
+
+.pf-api-docs--powershell .type-detail .type-meta-row > :not(.type-meta-label) {
+  grid-column: 2;
+}
+
+.pf-api-docs--powershell .type-detail .type-meta-row > code,
+.pf-api-docs--powershell .type-detail .type-meta-row > a,
+.pf-api-docs--powershell .type-detail .type-meta-row > span:not(.type-meta-label) {
+  justify-self: start;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.pf-api-docs--powershell .type-detail .type-meta-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
   min-width: 0;
 }
 
-.type-detail--powershell-command .type-examples pre,
-.type-detail--powershell-command .member-header pre.member-signature {
+.pf-api-docs--powershell .type-detail .type-meta-row code,
+.pf-api-docs--powershell .type-detail .type-meta-row a {
+  font-size: 0.84rem;
+}
+
+.pf-api-docs--powershell .type-detail .type-meta-source {
+  align-items: center;
+}
+
+.pf-api-docs--powershell .type-detail .type-meta-source-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.pf-api-docs--powershell .type-detail .type-meta-row code {
+  padding: 0.12rem 0.44rem;
+  border-radius: 7px;
+}
+
+.pf-api-docs--powershell .type-detail .type-meta-source a:not(.type-source-action) {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.pf-api-docs--powershell .type-detail .type-summary {
+  margin-top: -0.2rem;
+}
+
+.pf-api-docs--powershell .type-detail .type-summary,
+.pf-api-docs--powershell .type-detail .remarks p,
+.pf-api-docs--powershell .type-detail .type-common-parameters p,
+.pf-api-docs--powershell .type-detail .type-examples > p {
+  max-width: 72ch;
+}
+
+.pf-api-docs--powershell .type-detail .remarks,
+.pf-api-docs--powershell .type-detail .type-examples,
+.pf-api-docs--powershell .type-detail .type-common-parameters {
+  display: grid;
+  gap: 0.68rem;
+}
+
+.pf-api-docs--powershell .type-detail .example-title {
+  margin: 0.18rem 0 0.08rem;
+}
+
+.pf-api-docs--powershell .type-detail .type-examples pre,
+.pf-api-docs--powershell .type-detail .member-header pre.member-signature {
+  margin: 0.18rem 0 0;
+  padding: 1.02rem 1.08rem;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  line-height: 1.58;
   max-width: 100%;
+}
+
+.pf-api-docs--powershell .type-detail .type-examples pre {
+  max-width: 100%;
+  white-space: pre;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.pf-api-docs--powershell .type-detail .member-header pre.member-signature {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
 
-.type-detail--powershell-command .type-examples pre {
-  overflow-x: auto;
+.pf-api-docs--powershell .type-detail .type-examples pre code,
+.pf-api-docs--powershell .type-detail .member-header pre.member-signature code {
+  display: block;
+  line-height: inherit;
 }
 
-.type-detail--powershell-command .param-list dt {
-  align-items: flex-start;
+.pf-api-docs--powershell .type-detail .type-examples pre.example-code-block--has-prompt {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
 }
 
-.type-detail--powershell-command .param-type,
-.type-detail--powershell-command .param-default,
-.type-detail--powershell-command .param-meta {
+.pf-api-docs--powershell .type-detail .type-examples .example-code__prompt {
+  flex: 0 0 auto;
+  color: var(--imo-text-muted);
+  opacity: 0.9;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: pre;
+}
+
+.pf-api-docs--powershell .type-detail .type-examples .example-code__body {
+  min-width: max-content;
+  margin: 0;
+  display: block;
+  line-height: inherit;
+  white-space: pre;
+}
+
+.pf-api-docs--powershell .type-detail .param-list dt {
+  align-items: center;
+  gap: 0.38rem 0.55rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.pf-api-docs--powershell .type-detail .param-type,
+.pf-api-docs--powershell .type-detail .param-default,
+.pf-api-docs--powershell .type-detail .param-meta {
   margin-left: 0;
 }
 
-.type-detail--powershell-command .param-meta {
+.pf-api-docs--powershell .type-detail .param-name {
+  font-size: 0.84rem;
+}
+
+.pf-api-docs--powershell .type-detail .param-type,
+.pf-api-docs--powershell .type-detail .param-default {
   display: inline-flex;
-  row-gap: 0.32rem;
+  align-items: center;
+}
+
+.pf-api-docs--powershell .type-detail .param-meta {
+  display: inline-flex;
+  row-gap: 0.28rem;
+}
+
+.pf-api-docs--powershell .type-detail .member-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin: 0.95rem 0 0.78rem;
+  padding: 0.76rem 0.9rem;
+  gap: 0.7rem;
+}
+
+.pf-api-docs--powershell .sidebar-project-indicator,
+.pf-api-docs--powershell .sidebar-header,
+.pf-api-docs--powershell .sidebar-filters,
+.pf-api-docs--powershell .sidebar-tools,
+.pf-api-docs--powershell .sidebar-count {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.pf-api-docs--powershell .sidebar-filters {
+  gap: 0.72rem;
+}
+
+.pf-api-docs--powershell .filter-row {
+  gap: 0.32rem;
+}
+
+.pf-api-docs--powershell .sidebar-search {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.pf-api-docs--powershell .sidebar-search input,
+.pf-api-docs--powershell .namespace-select,
+.pf-api-docs--powershell .member-filter input,
+.pf-api-docs--powershell .pf-combobox-trigger {
+  min-height: 2.05rem;
+  font-size: 0.78rem;
+}
+
+.pf-api-docs--powershell .filter-button,
+.pf-api-docs--powershell .sidebar-reset,
+.pf-api-docs--powershell .sidebar-expand-all,
+.pf-api-docs--powershell .sidebar-collapse-all,
+.pf-api-docs--powershell .member-kind,
+.pf-api-docs--powershell .member-expand-all,
+.pf-api-docs--powershell .member-collapse-all,
+.pf-api-docs--powershell .member-reset,
+.pf-api-docs--powershell .type-source-action,
+.pf-api-docs--powershell .param-meta-chip {
+  min-height: 1.65rem;
+  padding: 0.28rem 0.6rem;
+  font-size: 0.7rem;
+}
+
+.pf-api-docs--powershell .type-detail .type-badge.cmdlet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: auto;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--imo-accent);
+  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  line-height: 1;
+  margin: 0 0 0.12rem;
+}
+
+.pf-api-docs--powershell .type-detail .type-actions {
+  display: none;
+  margin-top: 0.72rem;
+}
+
+.pf-api-docs--powershell .type-detail .type-meta-source .type-source-action {
+  border-radius: 999px;
 }
 
 .member-actions,
@@ -1447,6 +1714,12 @@
 [data-theme="light"] .pf-api-docs .type-inheritance,
 [data-theme="light"] .pf-api-docs .type-toc {
   background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(241,245,249,0.94));
+}
+
+[data-theme="light"] .pf-api-docs--powershell .type-detail .type-meta-row {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
 }
 
 [data-theme="light"] .pf-api-docs .member-card[data-inherited="false"] {
