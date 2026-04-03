@@ -5,15 +5,21 @@ namespace OfficeIMO.Word {
     /// Provides enumerators for traversing document content.
     /// </summary>
     public partial class WordDocument {
-        internal IEnumerable<WordParagraph> EnumerateAllParagraphs() {
+        internal IEnumerable<WordParagraph> EnumerateBodyParagraphs() {
             foreach (var paragraph in this.Paragraphs) {
                 yield return paragraph;
             }
 
-            foreach (var table in this.Tables) {
+            foreach (var table in this.TablesIncludingNestedTables) {
                 foreach (var paragraph in table.Paragraphs) {
                     yield return paragraph;
                 }
+            }
+        }
+
+        internal IEnumerable<WordParagraph> EnumerateAllParagraphs() {
+            foreach (var paragraph in EnumerateBodyParagraphs()) {
+                yield return paragraph;
             }
 
             // Iterate headers/footers per section to avoid multi-section header warnings

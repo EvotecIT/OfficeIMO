@@ -401,6 +401,10 @@ namespace OfficeIMO.Tests {
             document.Save(false);
 
             Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
+
+            using var reloaded = WordDocument.Load(filePath);
+            Assert.Equal(2, reloaded.Images.Count);
+            Assert.Equal(2, reloaded.ParagraphsImages.Count);
         }
 
         [Fact]
