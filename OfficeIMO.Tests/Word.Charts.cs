@@ -272,6 +272,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ChartsInTableCells_AppearInDocumentAggregatesAfterReload() {
+            var filePath = Path.Combine(_directoryWithFiles, "ChartsInTableCells.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var table = document.AddTable(2, 2);
+                var paragraph = table.Rows[0].Cells[1].AddParagraph();
+                var chart = paragraph.AddChart("Revenue");
+                chart.AddPie("North America", 125000);
+                chart.AddPie("EMEA", 98000);
+                chart.AddPie("APAC", 143000);
+
+                Assert.Single(document.ParagraphsCharts);
+                Assert.Single(document.Charts);
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Single(document.ParagraphsCharts);
+                Assert.Single(document.Charts);
+                Assert.Contains(document.Tables[0].Rows[0].Cells[1].Paragraphs, p => p.IsChart);
+            }
+        }
+
+        [Fact]
         public void Test_AreaChartWithLegend() {
             var filePath = Path.Combine(_directoryWithFiles, "AreaChartWithLegend.docx");
 

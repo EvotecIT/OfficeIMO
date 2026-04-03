@@ -278,12 +278,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsCharts {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsCharts);
-                }
-
-                return list;
+                return EnumerateBodyParagraphs().Where(p => p.IsChart).ToList();
             }
         }
 
@@ -652,12 +647,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordParagraph> ParagraphsImages {
             get {
-                List<WordParagraph> list = new List<WordParagraph>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.ParagraphsImages);
-                }
-
-                return list;
+                return EnumerateBodyParagraphs().Where(p => p.IsImage).ToList();
             }
         }
 
@@ -666,12 +656,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordImage> Images {
             get {
-                List<WordImage> list = new List<WordImage>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.Images);
-                }
-
-                return list;
+                return ParagraphsImages
+                    .Select(p => p.Image)
+                    .Where(image => image != null)
+                    .Cast<WordImage>()
+                    .ToList();
             }
         }
 
@@ -707,11 +696,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordChart> Charts {
             get {
-                List<WordChart> list = new List<WordChart>();
-                foreach (var section in this.Sections) {
-                    list.AddRange(section.Charts);
-                }
-                return list;
+                return ParagraphsCharts
+                    .Select(p => p.Chart)
+                    .Where(chart => chart != null)
+                    .Cast<WordChart>()
+                    .ToList();
             }
         }
 
