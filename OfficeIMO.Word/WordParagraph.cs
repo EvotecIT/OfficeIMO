@@ -389,23 +389,24 @@ namespace OfficeIMO.Word {
             set {
                 var run = VerifyRun();
 
-                var preservedBreaks = new List<(int TextIndex, Break Break)>();
-                int textNodesEncountered = 0;
+                var preservedBreaks = new List<(int ContentIndex, Break Break)>();
+                int contentNodesEncountered = 0;
 
                 foreach (var child in run.ChildElements.ToList()) {
                     switch (child) {
                         case Text textNode:
                             textNode.Remove();
-                            textNodesEncountered++;
+                            contentNodesEncountered++;
                             break;
                         case TabChar tabChar:
                             tabChar.Remove();
+                            contentNodesEncountered++;
                             break;
                         case Break breakNode:
                             if (IsTextWrappingBreak(breakNode)) {
                                 breakNode.Remove();
                             } else {
-                                preservedBreaks.Add((textNodesEncountered, breakNode));
+                                preservedBreaks.Add((contentNodesEncountered, breakNode));
                                 breakNode.Remove();
                             }
                             break;
@@ -438,35 +439,41 @@ namespace OfficeIMO.Word {
                 }
 
                 var segments = BuildSegments(normalized);
-                int emittedTextCount = 0;
+                int emittedContentCount = 0;
                 int preservedIndex = 0;
 
-                void AppendPreservedBreaksForTextIndex(int textIndex) {
-                    while (preservedIndex < preservedBreaks.Count && preservedBreaks[preservedIndex].TextIndex == textIndex) {
+                void AppendPreservedBreaksForContentIndex(int contentIndex) {
+                    while (preservedIndex < preservedBreaks.Count && preservedBreaks[preservedIndex].ContentIndex == contentIndex) {
                         run.Append(preservedBreaks[preservedIndex].Break);
                         preservedIndex++;
                     }
                 }
 
-                AppendPreservedBreaksForTextIndex(0);
-
-                static void AppendTextWithTabs(Run targetRun, string segment) {
+                void AppendTextWithTabs(string segment) {
                     if (segment.Length == 0) {
-                        targetRun.Append(new Text(string.Empty) { Space = SpaceProcessingModeValues.Preserve });
+                        run.Append(new Text(string.Empty) { Space = SpaceProcessingModeValues.Preserve });
+                        emittedContentCount++;
+                        AppendPreservedBreaksForContentIndex(emittedContentCount);
                         return;
                     }
 
                     var parts = segment.Split('\t');
                     for (int partIndex = 0; partIndex < parts.Length; partIndex++) {
                         if (parts[partIndex].Length > 0) {
-                            targetRun.Append(new Text(parts[partIndex]) { Space = SpaceProcessingModeValues.Preserve });
+                            run.Append(new Text(parts[partIndex]) { Space = SpaceProcessingModeValues.Preserve });
+                            emittedContentCount++;
+                            AppendPreservedBreaksForContentIndex(emittedContentCount);
                         }
 
                         if (partIndex < parts.Length - 1) {
-                            targetRun.Append(new TabChar());
+                            run.Append(new TabChar());
+                            emittedContentCount++;
+                            AppendPreservedBreaksForContentIndex(emittedContentCount);
                         }
                     }
                 }
+
+                AppendPreservedBreaksForContentIndex(0);
 
                 for (int i = 0; i < segments.Count; i++) {
                     var (segment, endsWithTextWrappingBreak) = segments[i];
@@ -474,9 +481,7 @@ namespace OfficeIMO.Word {
                     bool shouldAddText = ShouldEmitTextNode(segment, segments.Count, isLast);
 
                     if (shouldAddText) {
-                        AppendTextWithTabs(run, segment);
-                        emittedTextCount++;
-                        AppendPreservedBreaksForTextIndex(emittedTextCount);
+                        AppendTextWithTabs(segment);
                     }
 
                     if (endsWithTextWrappingBreak) {

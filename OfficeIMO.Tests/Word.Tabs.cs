@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml;
 using OfficeIMO.Word;
 using System;
 using System.IO;
@@ -81,6 +82,63 @@ namespace OfficeIMO.Tests {
 
                 using (WordDocument document = WordDocument.Load(filePath)) {
                     Assert.True(document.Paragraphs.Count > 0);
+                }
+            } finally {
+                File.Delete(filePath);
+            }
+        }
+
+        [Fact]
+        public void Test_UnderlinedTextWithTabs_PreservesPageBreakPositionAcrossTextReset() {
+            string filePath = Path.Combine(_directoryWithFiles, "UnderlineTabsPageBreak.docx");
+
+            try {
+                using (WordDocument document = WordDocument.Create(filePath)) {
+                    var paragraph = document.AddParagraph();
+                    paragraph.AddFormattedText("placeholder", underline: UnderlineValues.Single);
+                    document.Save(false);
+                }
+
+                using (var package = WordprocessingDocument.Open(filePath, true)) {
+                    var underlinedRun = package.MainDocumentPart!.Document.Body!
+                        .Descendants<Run>()
+                        .Single(run => run.RunProperties?.Underline?.Val?.Value == UnderlineValues.Single);
+
+                    underlinedRun.RemoveAllChildren();
+                    underlinedRun.Append(
+                        new Text("A") { Space = SpaceProcessingModeValues.Preserve },
+                        new TabChar(),
+                        new Text("B") { Space = SpaceProcessingModeValues.Preserve },
+                        new Break() { Type = BreakValues.Page },
+                        new Text("C") { Space = SpaceProcessingModeValues.Preserve });
+
+                    package.MainDocumentPart.Document.Save();
+                }
+
+                using (WordDocument document = WordDocument.Load(filePath)) {
+                    var underlined = document.Paragraphs[0].GetRuns()
+                        .Single();
+
+                    underlined.Text = underlined.Text;
+                    document.Save(false);
+                }
+
+                using (var package = WordprocessingDocument.Open(filePath, false)) {
+                    var underlinedRun = package.MainDocumentPart!.Document.Body!
+                        .Descendants<Run>()
+                        .Single(run => run.Elements<TabChar>().Any() && run.Elements<Break>().Any());
+
+                    var elementOrder = underlinedRun.ChildElements
+                        .Select(element => element.GetType().Name)
+                        .ToList();
+
+                    Assert.Equal(
+                        new[] { nameof(Text), nameof(TabChar), nameof(Text), nameof(Break), nameof(Text) },
+                        elementOrder);
+
+                    var texts = underlinedRun.Elements<Text>().Select(text => text.Text).ToList();
+                    Assert.Equal(new[] { "A", "B", "C" }, texts);
+                    Assert.Equal(BreakValues.Page, underlinedRun.Elements<Break>().Single().Type?.Value);
                 }
             } finally {
                 File.Delete(filePath);
