@@ -1,7 +1,9 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using System;
 using System.IO;
+using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -49,6 +51,39 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithTabs.docx"))) {
 
 
+            }
+        }
+
+        [Fact]
+        public void Test_UnderlinedTextWithTabs_UsesTabCharactersAndPreservesDocument() {
+            string filePath = Path.Combine(_directoryWithFiles, "UnderlineTabs.docx");
+
+            try {
+                using (WordDocument document = WordDocument.Create(filePath)) {
+                    var paragraph = document.AddParagraph();
+                    paragraph.AddFormattedText("We are ");
+                    var underlined = paragraph.AddFormattedText("\t\tJohn Doe and Jane Doe\t\t", underline: UnderlineValues.Single);
+
+                    Assert.Equal("\t\tJohn Doe and Jane Doe\t\t", underlined.Text);
+                    Assert.Equal(UnderlineValues.Single, underlined.Underline);
+
+                    document.Save(false);
+                }
+
+                using (var package = WordprocessingDocument.Open(filePath, false)) {
+                    var runs = package.MainDocumentPart!.Document.Body!.Descendants<Run>().ToList();
+                    var underlinedRun = runs.Single(run =>
+                        run.RunProperties?.Underline?.Val?.Value == UnderlineValues.Single);
+
+                    Assert.Equal(4, underlinedRun.Descendants<TabChar>().Count());
+                    Assert.Contains("John Doe and Jane Doe", underlinedRun.InnerText, StringComparison.Ordinal);
+                }
+
+                using (WordDocument document = WordDocument.Load(filePath)) {
+                    Assert.True(document.Paragraphs.Count > 0);
+                }
+            } finally {
+                File.Delete(filePath);
             }
         }
     }

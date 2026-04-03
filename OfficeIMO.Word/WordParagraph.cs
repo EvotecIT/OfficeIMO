@@ -368,6 +368,9 @@ namespace OfficeIMO.Word {
                             case Text text:
                                 builder.Append(text.Text);
                                 break;
+                            case TabChar:
+                                builder.Append('\t');
+                                break;
                             case Break breakNode:
                                 if (IsTextWrappingBreak(breakNode)) {
                                     builder.Append(NormalizedLineFeed);
@@ -394,6 +397,9 @@ namespace OfficeIMO.Word {
                         case Text textNode:
                             textNode.Remove();
                             textNodesEncountered++;
+                            break;
+                        case TabChar tabChar:
+                            tabChar.Remove();
                             break;
                         case Break breakNode:
                             if (IsTextWrappingBreak(breakNode)) {
@@ -444,14 +450,31 @@ namespace OfficeIMO.Word {
 
                 AppendPreservedBreaksForTextIndex(0);
 
+                static void AppendTextWithTabs(Run targetRun, string segment) {
+                    if (segment.Length == 0) {
+                        targetRun.Append(new Text(string.Empty) { Space = SpaceProcessingModeValues.Preserve });
+                        return;
+                    }
+
+                    var parts = segment.Split('\t');
+                    for (int partIndex = 0; partIndex < parts.Length; partIndex++) {
+                        if (parts[partIndex].Length > 0) {
+                            targetRun.Append(new Text(parts[partIndex]) { Space = SpaceProcessingModeValues.Preserve });
+                        }
+
+                        if (partIndex < parts.Length - 1) {
+                            targetRun.Append(new TabChar());
+                        }
+                    }
+                }
+
                 for (int i = 0; i < segments.Count; i++) {
                     var (segment, endsWithTextWrappingBreak) = segments[i];
                     bool isLast = i == segments.Count - 1;
                     bool shouldAddText = ShouldEmitTextNode(segment, segments.Count, isLast);
 
                     if (shouldAddText) {
-                        var textNode = new Text(segment) { Space = SpaceProcessingModeValues.Preserve };
-                        run.Append(textNode);
+                        AppendTextWithTabs(run, segment);
                         emittedTextCount++;
                         AppendPreservedBreaksForTextIndex(emittedTextCount);
                     }
