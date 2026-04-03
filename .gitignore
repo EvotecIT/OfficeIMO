@@ -380,3 +380,7 @@ Website/_temp/
 Website/_reports/
 Website/data/apidocs/powershell/examples/*
 !Website/data/apidocs/powershell/examples/.gitkeep
+Website/.powerforge/git-sync-manifest.json
+Website/Build/
+Website/projects/
+Website/static/data/
