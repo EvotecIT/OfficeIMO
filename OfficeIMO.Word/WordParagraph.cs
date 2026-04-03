@@ -392,11 +392,32 @@ namespace OfficeIMO.Word {
                 var preservedBreaks = new List<(int ContentIndex, Break Break)>();
                 int contentNodesEncountered = 0;
 
+                static int CountContentUnits(string? text) {
+                    var segment = text ?? string.Empty;
+                    if (segment.Length == 0) {
+                        return 1;
+                    }
+
+                    int units = 0;
+                    var parts = segment.Split('\t');
+                    for (int partIndex = 0; partIndex < parts.Length; partIndex++) {
+                        if (parts[partIndex].Length > 0) {
+                            units++;
+                        }
+
+                        if (partIndex < parts.Length - 1) {
+                            units++;
+                        }
+                    }
+
+                    return units;
+                }
+
                 foreach (var child in run.ChildElements.ToList()) {
                     switch (child) {
                         case Text textNode:
                             textNode.Remove();
-                            contentNodesEncountered++;
+                            contentNodesEncountered += CountContentUnits(textNode.Text);
                             break;
                         case TabChar tabChar:
                             tabChar.Remove();
