@@ -59,6 +59,8 @@ public sealed class MarkdownReaderOptions {
             DefinitionLists = false,
             TocPlaceholders = false,
             Footnotes = false,
+            StandaloneImageBlocks = false,
+            StrictListIndentation = true,
             AutolinkUrls = false,
             AutolinkWwwUrls = false,
             AutolinkEmails = false
@@ -78,8 +80,12 @@ public sealed class MarkdownReaderOptions {
             DefinitionLists = false,
             TocPlaceholders = false,
             Footnotes = true,
+            StandaloneImageBlocks = false,
+            StrictListIndentation = true,
+            SingleTildeStrikethrough = true,
             AutolinkUrls = true,
             AutolinkWwwUrls = true,
+            AutolinkWwwScheme = "http://",
             AutolinkEmails = true
         };
 
@@ -99,6 +105,8 @@ public sealed class MarkdownReaderOptions {
             TaskLists = false,
             TocPlaceholders = false,
             Footnotes = false,
+            StandaloneImageBlocks = false,
+            StrictListIndentation = true,
             AutolinkUrls = false,
             AutolinkWwwUrls = false,
             AutolinkEmails = false
@@ -117,12 +125,23 @@ public sealed class MarkdownReaderOptions {
     public bool IndentedCodeBlocks { get; set; } = true;
     /// <summary>Enable images (standalone lines) with optional caption on the next _italic_ line.</summary>
     public bool Images { get; set; } = true;
+    /// <summary>
+    /// When <c>true</c>, a line containing only markdown image syntax (optionally with a following caption line)
+    /// is promoted into a typed <see cref="ImageBlock"/> instead of remaining a paragraph with inline image content.
+    /// Default: <c>true</c> for OfficeIMO-oriented parsing.
+    /// </summary>
+    public bool StandaloneImageBlocks { get; set; } = true;
     /// <summary>Enable unordered lists and task lists.</summary>
     public bool UnorderedLists { get; set; } = true;
     /// <summary>Enable task list checkbox parsing inside unordered and ordered list items.</summary>
     public bool TaskLists { get; set; } = true;
     /// <summary>Enable ordered (numbered) lists.</summary>
     public bool OrderedLists { get; set; } = true;
+    /// <summary>
+    /// When <c>true</c>, nested list levels are derived from continuation-indent rules instead of the library's
+    /// more permissive legacy indentation heuristic. Enabled by stricter compatibility profiles.
+    /// </summary>
+    public bool StrictListIndentation { get; set; } = false;
     /// <summary>Enable pipe tables with optional header + alignment row.</summary>
     public bool Tables { get; set; } = true;
     /// <summary>Enable definition lists (Term: Definition lines).</summary>
@@ -131,6 +150,11 @@ public sealed class MarkdownReaderOptions {
     public bool TocPlaceholders { get; set; } = true;
     /// <summary>Enable footnote references and footnote definition blocks.</summary>
     public bool Footnotes { get; set; } = true;
+    /// <summary>
+    /// When <c>true</c>, GitHub Flavored Markdown-style single-tilde strikethrough (<c>~text~</c>) is enabled.
+    /// Default: <c>false</c>.
+    /// </summary>
+    public bool SingleTildeStrikethrough { get; set; } = false;
     /// <summary>
     /// When <c>true</c>, isolated single-line <c>Term: Definition</c> patterns stay as narrative paragraphs.
     /// Consecutive definition-like lines still parse as a definition list.

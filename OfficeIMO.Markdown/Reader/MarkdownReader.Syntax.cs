@@ -50,7 +50,7 @@ public static partial class MarkdownReader {
         IReadOnlyList<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null) {
         var blockSpans = BuildTopLevelBlockSourceSpans(document, originalSyntaxTree, transformDiagnostics);
         var frontMatterSpan = GetFrontMatterSpan(document, originalSyntaxTree);
-        return BuildSyntaxTree(document, blockSpans, frontMatterSpan);
+        return NormalizeFinalSyntaxTreeSpans(BuildSyntaxTree(document, blockSpans, frontMatterSpan));
     }
 
     private static void CaptureSyntaxNodes(MarkdownDoc doc, int previousBlockCount, int startLine, int endExclusiveLine, List<MarkdownSyntaxNode> nodes, MarkdownReaderState? state = null) {
@@ -147,5 +147,49 @@ public static partial class MarkdownReader {
         }
 
         return updated;
+    }
+
+    private static MarkdownSyntaxNode NormalizeFinalSyntaxTreeSpans(MarkdownSyntaxNode node) {
+        if (node == null) {
+            throw new ArgumentNullException(nameof(node));
+        }
+
+        IReadOnlyList<MarkdownSyntaxNode> children = node.Children;
+        if (node.Children.Count > 0) {
+            var normalizedChildren = new List<MarkdownSyntaxNode>(node.Children.Count);
+            for (var i = 0; i < node.Children.Count; i++) {
+                normalizedChildren.Add(NormalizeFinalSyntaxTreeChild(node.SourceSpan, node.Children[i]));
+            }
+
+            children = normalizedChildren;
+        }
+
+        return new MarkdownSyntaxNode(node.Kind, node.SourceSpan, node.Literal, children, node.AssociatedObject, node.CustomKind);
+    }
+
+    private static MarkdownSyntaxNode NormalizeFinalSyntaxTreeChild(MarkdownSourceSpan? parentSpan, MarkdownSyntaxNode child) {
+        if (child == null) {
+            throw new ArgumentNullException(nameof(child));
+        }
+
+        IReadOnlyList<MarkdownSyntaxNode> children = child.Children;
+        if (child.Children.Count > 0) {
+            var normalizedChildren = new List<MarkdownSyntaxNode>(child.Children.Count);
+            for (var i = 0; i < child.Children.Count; i++) {
+                normalizedChildren.Add(NormalizeFinalSyntaxTreeChild(child.SourceSpan, child.Children[i]));
+            }
+
+            children = normalizedChildren;
+        }
+
+        var normalizedSpan = child.SourceSpan;
+        if (parentSpan.HasValue && normalizedSpan.HasValue && !parentSpan.Value.Contains(normalizedSpan.Value)) {
+            var aggregateChildSpan = MarkdownBlockSyntaxBuilder.GetAggregateSpan(children);
+            normalizedSpan = aggregateChildSpan.HasValue && parentSpan.Value.Contains(aggregateChildSpan.Value)
+                ? aggregateChildSpan
+                : null;
+        }
+
+        return new MarkdownSyntaxNode(child.Kind, normalizedSpan, child.Literal, children, child.AssociatedObject, child.CustomKind);
     }
 }

@@ -206,9 +206,10 @@ public static partial class MarkdownReader {
                     var hrefResolved = ResolveUrl(href2, options);
                     if (imgResolved is null || hrefResolved is null) {
                         // Unsafe URLs: keep content as plain text instead of a clickable linked image.
-                        AddTextNode(string.IsNullOrEmpty(alt2) ? "image" : alt2, pos, consumed);
+                        AddTextNode(string.IsNullOrEmpty(alt2) ? "image" : ExtractImageAltPlainText(alt2, options, state), pos, consumed);
                     } else {
-                        var imageLink = new ImageLinkInline(alt2, imgResolved!, hrefResolved!, imgTitle2, hrefTitle2);
+                        var plainAlt2 = ExtractImageAltPlainText(alt2, options, state);
+                        var imageLink = new ImageLinkInline(alt2, imgResolved!, hrefResolved!, imgTitle2, hrefTitle2, plainAlt2);
                         AddRawNode(imageLink, pos, consumed);
                         MarkdownInlineMetadataSourceSpans.SetImageLinkParts(
                             imageLink,
@@ -228,6 +229,15 @@ public static partial class MarkdownReader {
 
             if (text[pos] == '!') {
                 if (allowImages) {
+                    if (options.Footnotes
+                        && pos + 3 < text.Length
+                        && text[pos + 1] == '['
+                        && text[pos + 2] == '^') {
+                        AddTextNode("!", pos, 1);
+                        pos++;
+                        continue;
+                    }
+
                     // Reference-style image: ![alt][label], ![alt][], or shortcut ![label]
                     if (state != null && TryParseReferenceImage(
                         text,
@@ -241,9 +251,10 @@ public static partial class MarkdownReader {
                         if (state.LinkRefs.TryGetValue(key, out var defImg)) {
                             var resolved = ResolveUrl(defImg.Url, options);
                             if (resolved is null) {
-                                AddTextNode(string.IsNullOrEmpty(altRef) ? "image" : altRef, pos, consumedRefImg);
+                                AddTextNode(string.IsNullOrEmpty(altRef) ? "image" : ExtractImageAltPlainText(altRef, options, state), pos, consumedRefImg);
                             } else {
-                                var image = new ImageInline(altRef, resolved!, defImg.Title);
+                                var plainAltRef = ExtractImageAltPlainText(altRef, options, state);
+                                var image = new ImageInline(altRef, resolved!, defImg.Title, plainAltRef);
                                 AddRawNode(image, pos, consumedRefImg);
                                 MarkdownInlineMetadataSourceSpans.SetImageParts(
                                     image,
@@ -274,9 +285,10 @@ public static partial class MarkdownReader {
                         out int? titleLengthImg)) {
                         var srcResolved = ResolveUrl(srcImg, options);
                         if (srcResolved is null) {
-                            AddTextNode(string.IsNullOrEmpty(altImg) ? "image" : altImg, pos, consumedImg);
+                            AddTextNode(string.IsNullOrEmpty(altImg) ? "image" : ExtractImageAltPlainText(altImg, options, state), pos, consumedImg);
                         } else {
-                            var image = new ImageInline(altImg, srcResolved!, titleImg);
+                            var plainAltImg = ExtractImageAltPlainText(altImg, options, state);
+                            var image = new ImageInline(altImg, srcResolved!, titleImg, plainAltImg);
                             AddRawNode(image, pos, consumedImg);
                             MarkdownInlineMetadataSourceSpans.SetImageParts(
                                 image,
@@ -294,6 +306,12 @@ public static partial class MarkdownReader {
                         pos += literalImageLength; continue;
                     }
                 }
+
+                // If image parsing does not match, keep the punctuation literal and let the next
+                // iteration re-evaluate the following '[' token as a link or footnote reference.
+                AddTextNode("!", pos, 1);
+                pos++;
+                continue;
             }
 
             // Angle-bracket autolinks: <https://example.com>, <mailto:user@example.com>, <tel:+123>, <user@example.com>
@@ -314,57 +332,6 @@ public static partial class MarkdownReader {
             }
             if (text[pos] == '[') {
                 if (allowLinks) {
-                    if (state != null && TryParseCollapsedRef(text, pos, out int consumedC, out var lbl2)) {
-                        var key = NormalizeReferenceLabel(lbl2);
-                        var labelSeq = ParseInlinesInternal(lbl2, options, state, allowLinks: false, allowImages: false, SliceMap(pos + 1, lbl2.Length));
-                        if (state.LinkRefs.TryGetValue(key, out var def2)) {
-                            var resolved = ResolveUrl(def2.Url, options);
-                            if (resolved is null) {
-                                foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
-                            } else {
-                                var link = new LinkInline(labelSeq, resolved!, def2.Title);
-                                AddRawNode(link, pos, consumedC);
-                                MarkdownInlineMetadataSourceSpans.SetLinkParts(link, def2.UrlSourceSpan, def2.TitleSourceSpan);
-                            }
-                        } else {
-                            AddTextNode(text.Substring(pos, consumedC), pos, consumedC);
-                        }
-                        pos += consumedC; continue;
-                    }
-                    if (state != null && TryParseRefLink(text, pos, out int consumedR, out var lbl, out var refLabel)) {
-                        var key = NormalizeReferenceLabel(refLabel);
-                        var labelSeq = ParseInlinesInternal(lbl, options, state, allowLinks: false, allowImages: false, SliceMap(pos + 1, lbl.Length));
-                        if (state.LinkRefs.TryGetValue(key, out var def)) {
-                            var resolved = ResolveUrl(def.Url, options);
-                            if (resolved is null) {
-                                foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
-                            } else {
-                                var link = new LinkInline(labelSeq, resolved!, def.Title);
-                                AddRawNode(link, pos, consumedR);
-                                MarkdownInlineMetadataSourceSpans.SetLinkParts(link, def.UrlSourceSpan, def.TitleSourceSpan);
-                            }
-                        } else {
-                            AddTextNode(text.Substring(pos, consumedR), pos, consumedR);
-                        }
-                        pos += consumedR; continue;
-                    }
-                    if (state != null && TryParseShortcutRef(text, pos, out int consumedS, out var lbl3)) {
-                        var key = NormalizeReferenceLabel(lbl3);
-                        var labelSeq = ParseInlinesInternal(lbl3, options, state, allowLinks: false, allowImages: false, SliceMap(pos + 1, lbl3.Length));
-                        if (state.LinkRefs.TryGetValue(key, out var def3)) {
-                            var resolved = ResolveUrl(def3.Url, options);
-                            if (resolved is null) {
-                                foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
-                            } else {
-                                var link = new LinkInline(labelSeq, resolved!, def3.Title);
-                                AddRawNode(link, pos, consumedS);
-                                MarkdownInlineMetadataSourceSpans.SetLinkParts(link, def3.UrlSourceSpan, def3.TitleSourceSpan);
-                            }
-                        } else {
-                            AddTextNode(text.Substring(pos, consumedS), pos, consumedS);
-                        }
-                        pos += consumedS; continue;
-                    }
                     if (TryParseLink(text, pos, out int consumed2, out var label2, out var href3, out var title2, out int hrefStart2, out int hrefLength2, out int? titleStart2, out int? titleLength2)) {
                         var labelSeq = ParseInlinesInternal(label2, options, state, allowLinks: false, allowImages: false, SliceMap(pos + 1, label2.Length));
 
@@ -393,9 +360,56 @@ public static partial class MarkdownReader {
                         pos += consumed2; continue;
                     }
 
-                    if (TryConsumeLiteralInlineLink(text, pos, out int literalLinkLength)) {
-                        AddTextNode(text.Substring(pos, literalLinkLength), pos, literalLinkLength);
-                        pos += literalLinkLength; continue;
+                    if (state != null && TryParseCollapsedRef(text, pos, out int consumedC, out var lbl2)) {
+                        var key = NormalizeReferenceLabel(lbl2);
+                        var labelSeq = ParseInlinesInternal(lbl2, options, state, allowLinks: false, allowImages: false, SliceMap(pos + 1, lbl2.Length));
+                        if (state.LinkRefs.TryGetValue(key, out var def2)) {
+                            var resolved = ResolveUrl(def2.Url, options);
+                            if (resolved is null) {
+                                foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
+                            } else {
+                                var link = new LinkInline(labelSeq, resolved!, def2.Title);
+                                AddRawNode(link, pos, consumedC);
+                                MarkdownInlineMetadataSourceSpans.SetLinkParts(link, def2.UrlSourceSpan, def2.TitleSourceSpan);
+                            }
+                            pos += consumedC; continue;
+                        }
+
+                        AddTextNode(text.Substring(pos, consumedC), pos, consumedC);
+                        pos += consumedC; continue;
+                    }
+                    if (state != null && TryParseRefLink(text, pos, out int consumedR, out var lbl, out var refLabel)) {
+                        var key = NormalizeReferenceLabel(refLabel);
+                        var labelSeq = ParseInlinesInternal(lbl, options, state, allowLinks: false, allowImages: false, SliceMap(pos + 1, lbl.Length));
+                        if (state.LinkRefs.TryGetValue(key, out var def)) {
+                            var resolved = ResolveUrl(def.Url, options);
+                            if (resolved is null) {
+                                foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
+                            } else {
+                                var link = new LinkInline(labelSeq, resolved!, def.Title);
+                                AddRawNode(link, pos, consumedR);
+                                MarkdownInlineMetadataSourceSpans.SetLinkParts(link, def.UrlSourceSpan, def.TitleSourceSpan);
+                            }
+                            pos += consumedR; continue;
+                        }
+                    }
+                    if (state != null && TryParseShortcutRef(text, pos, out int consumedS, out var lbl3)) {
+                        var key = NormalizeReferenceLabel(lbl3);
+                        var labelSeq = ParseInlinesInternal(lbl3, options, state, allowLinks: false, allowImages: false, SliceMap(pos + 1, lbl3.Length));
+                        if (state.LinkRefs.TryGetValue(key, out var def3)) {
+                            var resolved = ResolveUrl(def3.Url, options);
+                            if (resolved is null) {
+                                foreach (var n in labelSeq.Nodes) Current().AddRaw(n);
+                            } else {
+                                var link = new LinkInline(labelSeq, resolved!, def3.Title);
+                                AddRawNode(link, pos, consumedS);
+                                MarkdownInlineMetadataSourceSpans.SetLinkParts(link, def3.UrlSourceSpan, def3.TitleSourceSpan);
+                            }
+                            pos += consumedS; continue;
+                        }
+
+                        AddTextNode(text.Substring(pos, consumedS), pos, consumedS);
+                        pos += consumedS; continue;
                     }
                 }
             }
@@ -420,8 +434,14 @@ public static partial class MarkdownReader {
                     continue;
                 }
 
-                // Only "~~" and "==" open/close paired formatting.
-                if ((marker == '~' || marker == '=') && runLen < 2) {
+                // "==" always requires a double delimiter. "~" can opt into cmark-gfm style single-tilde strike.
+                if (marker == '=' && runLen < 2) {
+                    AddTextNode(marker.ToString(), pos, 1);
+                    pos++;
+                    continue;
+                }
+
+                if (marker == '~' && runLen < (options.SingleTildeStrikethrough ? 1 : 2)) {
                     AddTextNode(marker.ToString(), pos, 1);
                     pos++;
                     continue;
@@ -482,9 +502,10 @@ public static partial class MarkdownReader {
 
                     while (remaining > 0) {
                         if (marker == '~') {
-                            if (remaining >= 2) {
-                                stack.Push(new InlineFrame(FrameKind.Strike, marker, 2, new InlineSequence { AutoSpacing = false }, pos + (runLen - remaining)));
-                                remaining -= 2;
+                            int strikeDelimiterLength = options.SingleTildeStrikethrough ? 1 : 2;
+                            if (remaining >= strikeDelimiterLength) {
+                                stack.Push(new InlineFrame(FrameKind.Strike, marker, strikeDelimiterLength, new InlineSequence { AutoSpacing = false }, pos + (runLen - remaining)));
+                                remaining -= strikeDelimiterLength;
                                 continue;
                             }
                             break;
@@ -571,6 +592,20 @@ public static partial class MarkdownReader {
         return root;
     }
 
+    private static string ExtractImageAltPlainText(string altMarkdown, MarkdownReaderOptions options, MarkdownReaderState? state) {
+        if (string.IsNullOrEmpty(altMarkdown)) {
+            return string.Empty;
+        }
+
+        var altSequence = ParseInlinesInternal(
+            altMarkdown,
+            options,
+            state,
+            allowLinks: true,
+            allowImages: true);
+        return InlinePlainText.Extract(altSequence);
+    }
+
     private enum FrameKind {
         Root,
         Italic,
@@ -616,11 +651,11 @@ public static partial class MarkdownReader {
             consumed = 2;
             return true;
         }
-        if (top.Kind == FrameKind.Strike && remaining >= 2) {
+        if (top.Kind == FrameKind.Strike && remaining >= top.OpenLen) {
             stack.Pop();
             var node = new StrikethroughSequenceInline(top.Seq);
             stack.Peek().Seq.AddRaw(node);
-            consumed = 2;
+            consumed = top.OpenLen;
             return true;
         }
         if (top.Kind == FrameKind.Highlight && remaining >= 2) {
@@ -1148,21 +1183,9 @@ public static partial class MarkdownReader {
         consumed = 0; label = string.Empty;
         if (start >= text.Length || text[start] != '[') return false;
         int rb = FindMatchingBracket(text, start); if (rb < 0) return false;
-        if (rb + 1 < text.Length && (text[rb + 1] == '(' || text[rb + 1] == '[')) return false;
+        if (rb + 1 < text.Length && text[rb + 1] == '[') return false;
         label = text.Substring(start + 1, rb - (start + 1));
         consumed = rb + 1 - start;
-        return true;
-    }
-
-    private static bool TryConsumeLiteralInlineLink(string text, int start, out int consumed) {
-        consumed = 0;
-        if (start >= text.Length || text[start] != '[') return false;
-        int labelEnd = FindMatchingBracket(text, start);
-        if (labelEnd < 0) return false;
-        if (labelEnd + 1 >= text.Length || text[labelEnd + 1] != '(') return false;
-        int parenClose = FindMatchingParen(text, labelEnd + 1);
-        if (parenClose < 0) return false;
-        consumed = parenClose - start + 1;
         return true;
     }
 

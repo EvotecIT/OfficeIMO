@@ -125,6 +125,13 @@ public sealed class MarkdownSyntaxNode {
         if (SourceSpan.HasValue && !SourceSpan.Value.Contains(span)) return null;
 
         for (int i = 0; i < Children.Count; i++) {
+            if (!HasExactSpan(Children[i], span)) continue;
+
+            var exactMatch = Children[i].FindDeepestNodeContainingSpan(span);
+            if (exactMatch != null) return exactMatch;
+        }
+
+        for (int i = 0; i < Children.Count; i++) {
             var match = Children[i].FindDeepestNodeContainingSpan(span);
             if (match != null) return match;
         }
@@ -143,6 +150,13 @@ public sealed class MarkdownSyntaxNode {
     public MarkdownSyntaxNode? FindDeepestNodeOverlappingSpan(MarkdownSourceSpan span) {
         if (!SourceSpan.HasValue && Children.Count == 0) return null;
         if (SourceSpan.HasValue && !SourceSpan.Value.Overlaps(span)) return null;
+
+        for (int i = 0; i < Children.Count; i++) {
+            if (!HasExactSpan(Children[i], span)) continue;
+
+            var exactMatch = Children[i].FindDeepestNodeOverlappingSpan(span);
+            if (exactMatch != null) return exactMatch;
+        }
 
         for (int i = 0; i < Children.Count; i++) {
             var match = Children[i].FindDeepestNodeOverlappingSpan(span);
@@ -201,6 +215,11 @@ public sealed class MarkdownSyntaxNode {
 
         path.Add(this);
         for (int i = 0; i < Children.Count; i++) {
+            if (!HasExactSpan(Children[i], span)) continue;
+            if (Children[i].TryBuildNodePathContainingSpan(span, path)) return true;
+        }
+
+        for (int i = 0; i < Children.Count; i++) {
             if (Children[i].TryBuildNodePathContainingSpan(span, path)) return true;
         }
 
@@ -213,11 +232,19 @@ public sealed class MarkdownSyntaxNode {
 
         path.Add(this);
         for (int i = 0; i < Children.Count; i++) {
+            if (!HasExactSpan(Children[i], span)) continue;
+            if (Children[i].TryBuildNodePathOverlappingSpan(span, path)) return true;
+        }
+
+        for (int i = 0; i < Children.Count; i++) {
             if (Children[i].TryBuildNodePathOverlappingSpan(span, path)) return true;
         }
 
         return SourceSpan.HasValue;
     }
+
+    private static bool HasExactSpan(MarkdownSyntaxNode node, MarkdownSourceSpan span) =>
+        node.SourceSpan.HasValue && node.SourceSpan.Value.Equals(span);
 
     private static MarkdownSyntaxNode? FindNearestBlock(IReadOnlyList<MarkdownSyntaxNode> path) {
         for (int i = path.Count - 1; i >= 0; i--) {
@@ -241,6 +268,7 @@ public sealed class MarkdownSyntaxNode {
             case MarkdownSyntaxKind.Table:
             case MarkdownSyntaxKind.TableHeader:
             case MarkdownSyntaxKind.TableRow:
+            case MarkdownSyntaxKind.TableCell:
             case MarkdownSyntaxKind.HorizontalRule:
             case MarkdownSyntaxKind.Image:
             case MarkdownSyntaxKind.Callout:

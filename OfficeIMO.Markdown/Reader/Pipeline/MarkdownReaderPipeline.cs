@@ -21,7 +21,7 @@ public sealed class MarkdownReaderPipeline {
         AddExtensions(p, options, MarkdownBlockParserPlacement.AfterFrontMatter);
         p.Add(new MarkdownReader.QuoteParser());
         if (options.FencedCode) p.Add(new MarkdownReader.FencedCodeParser());
-        if (options.Images) p.Add(new MarkdownReader.ImageParser());
+        if (options.Images && options.StandaloneImageBlocks) p.Add(new MarkdownReader.ImageParser());
         p.Add(new MarkdownReader.HrParser());
         if (options.HtmlBlocks) p.Add(new MarkdownReader.HtmlBlockParser());
         AddExtensions(p, options, MarkdownBlockParserPlacement.AfterHtmlBlocks);
