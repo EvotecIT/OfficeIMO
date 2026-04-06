@@ -362,85 +362,69 @@ public static partial class MarkdownReader {
         titleSpan = null;
 
         if (index < 0 || index >= lines.Length) return false;
-        var line = lines[index];
-        if (string.IsNullOrWhiteSpace(line)) return false;
-
-        int leading = 0;
-        while (leading < line.Length && line[leading] == ' ') leading++;
-        if (leading >= 4) return false;
-        if (leading < line.Length && line[leading] == '\t') return false;
-
-        var trimmed = line.Substring(leading).TrimEnd();
-        if (trimmed.Length < 5 || trimmed[0] != '[') return false;
-        if (trimmed.Length > 1 && trimmed[1] == '^') return false;
-
-        int rb = FindReferenceLabelEnd(trimmed, 0);
-        if (rb <= 1) return false;
-        if (rb + 1 >= trimmed.Length || trimmed[rb + 1] != ':') return false;
-
-        label = NormalizeReferenceLabel(trimmed.Substring(1, rb - 1));
-        labelSpan = CreateSpan(
+        if (!TryParseReferenceDefinitionLabel(
+            lines,
+            index,
             state,
-            state?.SourceLineOffset + index + 1 ?? index + 1,
-            leading + 2,
-            state?.SourceLineOffset + index + 1 ?? index + 1,
-            leading + rb);
-        int restStart = rb + 2;
-        while (restStart < trimmed.Length && char.IsWhiteSpace(trimmed[restStart])) {
-            restStart++;
+            out label,
+            out var rest,
+            out var labelConsumedLines,
+            out labelSpan,
+            out var restLineIndex,
+            out var restStartColumnZeroBased)) {
+            return false;
         }
 
-        string rest = trimmed.Substring(restStart);
-        if (string.IsNullOrEmpty(rest)) return false;
-
-        if (TrySplitUrlAndOptionalTitle(
-            rest,
-            out url,
-            out title,
-            out int urlInnerStart,
-            out int urlInnerLength,
-            out int? titleInnerStart,
-            out int? titleInnerLength)) {
-            consumedLines = 1;
-            urlSpan = CreateSpan(
-                state,
-                state?.SourceLineOffset + index + 1 ?? index + 1,
-                leading + restStart + urlInnerStart + 1,
-                state?.SourceLineOffset + index + 1 ?? index + 1,
-                leading + restStart + urlInnerStart + urlInnerLength);
-            if (titleInnerStart.HasValue && titleInnerLength.HasValue) {
-                titleSpan = CreateSpan(
-                    state,
-                    state?.SourceLineOffset + index + 1 ?? index + 1,
-                    leading + restStart + titleInnerStart.Value + 1,
-                    state?.SourceLineOffset + index + 1 ?? index + 1,
-                    leading + restStart + titleInnerStart.Value + titleInnerLength.Value);
+        if (string.IsNullOrEmpty(rest)) {
+            if (!TryParseReferenceDestinationContinuation(
+                lines,
+                restLineIndex + 1,
+                out rest,
+                out var continuationOffset,
+                out var continuationLeading)) {
+                return false;
             }
 
-            if (title == null && TryParseReferenceTitleContinuation(lines, index + 1, state, out var continuedTitle, out var continuedTitleSpan)) {
+            int destinationIndex = restLineIndex + continuationOffset;
+            if (!TryParseReferenceDestinationAndTitle(
+                rest,
+                state,
+                destinationIndex,
+                continuationLeading,
+                out url,
+                out title,
+                out urlSpan,
+                out titleSpan)) {
+                return false;
+            }
+
+            consumedLines = destinationIndex - index + 1;
+            if (title == null && TryParseReferenceTitleContinuation(lines, destinationIndex + 1, state, out var continuedTitle, out var continuedTitleSpan)) {
                 title = continuedTitle;
                 titleSpan = continuedTitleSpan;
-                consumedLines = 2;
+                consumedLines++;
             }
+
             return !string.IsNullOrEmpty(label);
         }
 
-        if (IndexOfWhitespace(rest) >= 0) return false;
-
-        url = UnescapeMarkdownBackslashEscapes(rest);
-        title = null;
-        consumedLines = 1;
-        urlSpan = CreateSpan(
+        if (!TryParseReferenceDestinationAndTitle(
+            rest,
             state,
-            state?.SourceLineOffset + index + 1 ?? index + 1,
-            leading + restStart + 1,
-            state?.SourceLineOffset + index + 1 ?? index + 1,
-            leading + restStart + rest.Length);
+            restLineIndex,
+            restStartColumnZeroBased,
+            out url,
+            out title,
+            out urlSpan,
+            out titleSpan)) {
+            return false;
+        }
 
-        if (TryParseReferenceTitleContinuation(lines, index + 1, state, out var continuationTitle, out var continuationTitleSpan)) {
+        consumedLines = restLineIndex - index + 1;
+        if (title == null && TryParseReferenceTitleContinuation(lines, restLineIndex + 1, state, out var continuationTitle, out var continuationTitleSpan)) {
             title = continuationTitle;
             titleSpan = continuationTitleSpan;
-            consumedLines = 2;
+            consumedLines++;
         }
 
         return !string.IsNullOrEmpty(label);
@@ -466,9 +450,8 @@ public static partial class MarkdownReader {
         if (string.IsNullOrWhiteSpace(line)) return false;
 
         int leading = 0;
-        while (leading < line.Length && line[leading] == ' ') leading++;
-        if (leading >= 4) return false;
-        if (leading < line.Length && line[leading] == '\t') return false;
+        while (leading < line.Length && char.IsWhiteSpace(line[leading])) leading++;
+        if (leading >= line.Length) return false;
 
         var trimmed = line.Substring(leading).TrimEnd();
         if (!TryParseOptionalTitleToken(trimmed, 0, trimmed.Length, out title, out int titleStart, out int titleLength) || title == null) {
@@ -505,12 +488,280 @@ public static partial class MarkdownReader {
             if (char.IsWhiteSpace(c)) {
                 if (!prevSpace) sb.Append(' ');
                 prevSpace = true;
-            } else {
-                sb.Append(c);
-                prevSpace = false;
+                continue;
             }
+
+            if (char.IsHighSurrogate(c) && i + 1 < t.Length && char.IsLowSurrogate(t[i + 1])) {
+                AppendUnicodeCaseFold(sb, t.Substring(i, 2));
+                i++;
+                prevSpace = false;
+                continue;
+            }
+
+            AppendUnicodeCaseFold(sb, c.ToString());
+            prevSpace = false;
         }
         return sb.ToString();
+    }
+
+    private static void AppendUnicodeCaseFold(System.Text.StringBuilder builder, string scalar) {
+        switch (scalar) {
+            case "ß":
+            case "ẞ":
+                builder.Append("ss");
+                return;
+            case "ς":
+                builder.Append("σ");
+                return;
+            default:
+                builder.Append(scalar.ToLowerInvariant());
+                return;
+        }
+    }
+
+    private static bool TryParseReferenceDefinitionLabel(
+        string[] lines,
+        int index,
+        MarkdownReaderState? state,
+        out string label,
+        out string rest,
+        out int consumedLines,
+        out MarkdownSourceSpan? labelSpan,
+        out int restLineIndex,
+        out int restStartColumnZeroBased) {
+        label = string.Empty;
+        rest = string.Empty;
+        consumedLines = 0;
+        labelSpan = null;
+        restLineIndex = index;
+        restStartColumnZeroBased = 0;
+
+        if (index < 0 || index >= lines.Length) {
+            return false;
+        }
+
+        var line = lines[index];
+        if (string.IsNullOrWhiteSpace(line)) {
+            return false;
+        }
+
+        int leading = 0;
+        while (leading < line.Length && line[leading] == ' ') {
+            leading++;
+        }
+
+        if (leading >= 4) {
+            return false;
+        }
+
+        if (leading < line.Length && line[leading] == '\t') {
+            return false;
+        }
+
+        var trimmed = line.Substring(leading).TrimEnd();
+        if (trimmed.Length < 2 || trimmed[0] != '[') {
+            return false;
+        }
+
+        if (trimmed.Length > 1 && trimmed[1] == '^') {
+            return false;
+        }
+
+        int rb = FindReferenceLabelEnd(trimmed, 0);
+        if (rb > 1 && rb + 1 < trimmed.Length && trimmed[rb + 1] == ':') {
+            label = NormalizeReferenceLabel(trimmed.Substring(1, rb - 1));
+            labelSpan = CreateSpan(
+                state,
+                state?.SourceLineOffset + index + 1 ?? index + 1,
+                leading + 2,
+                state?.SourceLineOffset + index + 1 ?? index + 1,
+                leading + rb);
+
+            int restStart = rb + 2;
+            while (restStart < trimmed.Length && char.IsWhiteSpace(trimmed[restStart])) {
+                restStart++;
+            }
+
+            rest = trimmed.Substring(restStart);
+            consumedLines = 1;
+            restLineIndex = index;
+            restStartColumnZeroBased = leading + restStart;
+            return !string.IsNullOrEmpty(label);
+        }
+
+        if (rb >= 0) {
+            return false;
+        }
+
+        var labelBuilder = new System.Text.StringBuilder(trimmed.Substring(1));
+        for (int lineOffset = 1; index + lineOffset < lines.Length; lineOffset++) {
+            var continuationLine = lines[index + lineOffset];
+            if (string.IsNullOrWhiteSpace(continuationLine)) {
+                return false;
+            }
+
+            var trimmedContinuation = continuationLine.TrimEnd();
+            int closingBracket = FindReferenceLabelClosureOnContinuation(trimmedContinuation);
+            if (closingBracket == -2) {
+                return false;
+            }
+
+            if (closingBracket >= 0) {
+                if (closingBracket + 1 >= trimmedContinuation.Length || trimmedContinuation[closingBracket + 1] != ':') {
+                    return false;
+                }
+
+                labelBuilder.Append('\n');
+                labelBuilder.Append(trimmedContinuation.Substring(0, closingBracket));
+                label = NormalizeReferenceLabel(labelBuilder.ToString());
+                labelSpan = CreateSpan(
+                    state,
+                    state?.SourceLineOffset + index + 1 ?? index + 1,
+                    leading + 2,
+                    state?.SourceLineOffset + index + lineOffset + 1 ?? index + lineOffset + 1,
+                    closingBracket);
+
+                int restStart = closingBracket + 2;
+                while (restStart < trimmedContinuation.Length && char.IsWhiteSpace(trimmedContinuation[restStart])) {
+                    restStart++;
+                }
+
+                rest = trimmedContinuation.Substring(restStart);
+                consumedLines = lineOffset + 1;
+                restLineIndex = index + lineOffset;
+                restStartColumnZeroBased = restStart;
+                return !string.IsNullOrEmpty(label);
+            }
+
+            labelBuilder.Append('\n');
+            labelBuilder.Append(trimmedContinuation);
+        }
+
+        return false;
+    }
+
+    private static int FindReferenceLabelClosureOnContinuation(string text) {
+        if (string.IsNullOrEmpty(text)) {
+            return -1;
+        }
+
+        bool escaped = false;
+        for (int i = 0; i < text.Length; i++) {
+            char c = text[i];
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (c == '[') {
+                return -2;
+            }
+
+            if (c == ']') {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private static bool TryParseReferenceDestinationContinuation(
+        string[] lines,
+        int index,
+        out string destinationLine,
+        out int lineOffset,
+        out int leadingWhitespace) {
+        destinationLine = string.Empty;
+        lineOffset = 0;
+        leadingWhitespace = 0;
+        if (lines == null || index < 0 || index >= lines.Length) {
+            return false;
+        }
+
+        var line = lines[index];
+        if (string.IsNullOrWhiteSpace(line)) {
+            return false;
+        }
+
+        while (leadingWhitespace < line.Length && char.IsWhiteSpace(line[leadingWhitespace])) {
+            leadingWhitespace++;
+        }
+
+        if (leadingWhitespace >= line.Length) {
+            return false;
+        }
+
+        destinationLine = line.Substring(leadingWhitespace).TrimEnd();
+        if (destinationLine.Length == 0) {
+            return false;
+        }
+
+        lineOffset = 1;
+        return true;
+    }
+
+    private static bool TryParseReferenceDestinationAndTitle(
+        string rest,
+        MarkdownReaderState? state,
+        int lineIndex,
+        int contentStartColumnZeroBased,
+        out string url,
+        out string? title,
+        out MarkdownSourceSpan? urlSpan,
+        out MarkdownSourceSpan? titleSpan) {
+        url = string.Empty;
+        title = null;
+        urlSpan = null;
+        titleSpan = null;
+
+        if (string.IsNullOrEmpty(rest)) {
+            return false;
+        }
+
+        if (TrySplitUrlAndOptionalTitle(
+            rest,
+            out url,
+            out title,
+            out int urlInnerStart,
+            out int urlInnerLength,
+            out int? titleInnerStart,
+            out int? titleInnerLength)) {
+            urlSpan = CreateSpan(
+                state,
+                state?.SourceLineOffset + lineIndex + 1 ?? lineIndex + 1,
+                contentStartColumnZeroBased + urlInnerStart + 1,
+                state?.SourceLineOffset + lineIndex + 1 ?? lineIndex + 1,
+                contentStartColumnZeroBased + urlInnerStart + urlInnerLength);
+            if (titleInnerStart.HasValue && titleInnerLength.HasValue) {
+                titleSpan = CreateSpan(
+                    state,
+                    state?.SourceLineOffset + lineIndex + 1 ?? lineIndex + 1,
+                    contentStartColumnZeroBased + titleInnerStart.Value + 1,
+                    state?.SourceLineOffset + lineIndex + 1 ?? lineIndex + 1,
+                    contentStartColumnZeroBased + titleInnerStart.Value + titleInnerLength.Value);
+            }
+
+            return true;
+        }
+
+        if (IndexOfWhitespace(rest) >= 0) {
+            return false;
+        }
+
+        url = UnescapeMarkdownBackslashEscapes(rest);
+        title = null;
+        urlSpan = CreateSpan(
+            state,
+            state?.SourceLineOffset + lineIndex + 1 ?? lineIndex + 1,
+            contentStartColumnZeroBased + 1,
+            state?.SourceLineOffset + lineIndex + 1 ?? lineIndex + 1,
+            contentStartColumnZeroBased + rest.Length);
+        return true;
     }
 
     private static MarkdownReaderOptions CloneOptionsWithoutFrontMatter(MarkdownReaderOptions source) {
@@ -916,6 +1167,7 @@ public static partial class MarkdownReader {
         var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, out _, syntaxChildren, lineOffset: 0, applyDocumentTransforms: false);
         var remappedSyntaxChildren = RemapNestedSyntaxNodes(sourceLines, syntaxChildren);
         var remappedSyntaxTree = BuildDocumentSyntaxTree(remappedSyntaxChildren, nestedDoc);
+        SynchronizeOwnedSyntaxCaches(remappedSyntaxTree);
         MarkdownObjectTreeBinder.BindDocument(nestedDoc, remappedSyntaxTree);
         return (nestedDoc.Blocks, remappedSyntaxChildren);
     }
@@ -950,6 +1202,69 @@ public static partial class MarkdownReader {
         }
 
         return new MarkdownSyntaxNode(node.Kind, span, node.Literal, children, node.AssociatedObject, node.CustomKind);
+    }
+
+    private static void SynchronizeOwnedSyntaxCaches(MarkdownSyntaxNode node) {
+        if (node == null) {
+            throw new ArgumentNullException(nameof(node));
+        }
+
+        switch (node.AssociatedObject) {
+            case DefinitionListBlock definitionList:
+                definitionList.SyntaxItems.Clear();
+                for (int i = 0; i < node.Children.Count; i++) {
+                    definitionList.SyntaxItems.Add(node.Children[i]);
+                }
+                break;
+
+            case ListItem listItem:
+                SynchronizeListItemSyntaxChildren(listItem, node.Children);
+                break;
+
+            case QuoteBlock quoteBlock:
+                quoteBlock.SyntaxChildren = node.Children.Count > 0 ? node.Children : null;
+                break;
+
+            case DetailsBlock detailsBlock:
+                detailsBlock.SyntaxChildren = GetDetailsBodySyntaxChildren(detailsBlock, node);
+                break;
+
+            case TableCell tableCell:
+                tableCell.SyntaxChildren = node.Children.Count > 0 ? node.Children : null;
+                break;
+        }
+
+        for (int i = 0; i < node.Children.Count; i++) {
+            SynchronizeOwnedSyntaxCaches(node.Children[i]);
+        }
+    }
+
+    private static void SynchronizeListItemSyntaxChildren(ListItem listItem, IReadOnlyList<MarkdownSyntaxNode> syntaxChildren) {
+        listItem.SyntaxChildren.Clear();
+
+        var blockChildrenCount = listItem.BlockChildren.Count;
+        var ownedChildCount = Math.Min(blockChildrenCount, syntaxChildren.Count);
+        for (int i = 0; i < ownedChildCount; i++) {
+            listItem.SyntaxChildren.Add(syntaxChildren[i]);
+        }
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode>? GetDetailsBodySyntaxChildren(DetailsBlock detailsBlock, MarkdownSyntaxNode node) {
+        if (node.Children.Count == 0) {
+            return null;
+        }
+
+        var bodyStartIndex = detailsBlock.Summary != null && node.Children.Count > 0 ? 1 : 0;
+        if (bodyStartIndex >= node.Children.Count) {
+            return null;
+        }
+
+        var bodyChildren = new MarkdownSyntaxNode[node.Children.Count - bodyStartIndex];
+        for (int i = bodyStartIndex; i < node.Children.Count; i++) {
+            bodyChildren[i - bodyStartIndex] = node.Children[i];
+        }
+
+        return bodyChildren;
     }
 
     private static MarkdownSourceSpan? RemapNestedSourceSpan(

@@ -62,7 +62,7 @@ public static class MarkdownDocumentTransformPipeline {
             MarkdownSourceSpan? affectedSourceSpan = MarkdownTransformSourceSpanHelper.AggregateSpans(blockSpans, change.StartBefore, change.CountBefore);
             blockSpans = MarkdownTransformSourceSpanHelper.UpdateBlockSpans(blockSpans, current.Blocks.Count, change, affectedSourceSpan);
 
-            context.Diagnostics.Add(new MarkdownDocumentTransformDiagnostic {
+            var diagnostic = new MarkdownDocumentTransformDiagnostic {
                 Source = context.Source,
                 TransformName = transform.GetType().FullName ?? transform.GetType().Name,
                 BlockCountBefore = beforeCount,
@@ -73,7 +73,9 @@ public static class MarkdownDocumentTransformPipeline {
                 ChangedBlockStartAfter = change.StartAfter,
                 ChangedBlockCountAfter = change.CountAfter,
                 AffectedSourceSpan = affectedSourceSpan
-            });
+            };
+            MarkdownTransformDiagnosticSyntaxHelper.PopulateOriginalBlockAnchor(diagnostic, context.SyntaxTree);
+            context.Diagnostics.Add(diagnostic);
         }
 
         return current;

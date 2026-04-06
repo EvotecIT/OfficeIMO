@@ -8,11 +8,13 @@ public static partial class MarkdownReader {
             if (IsAtxHeading(lines[i], out _, out _) ||
                 IsCodeFenceOpen(lines[i], out _, out _, out _) ||
                 StartsTable(lines, i) ||
-                IsUnorderedListLine(lines[i], out _, out _, out _) ||
+                IsParagraphInterruptingUnorderedListLine(lines[i]) ||
                 IsOrderedListLine(lines[i], out _, out _) ||
                 (options.Callouts && IsCalloutHeader(lines[i], out _, out _)) ||
                 IsQuoteStarter(lines[i]) ||
-                IsImageLine(lines[i])) return false;
+                IsReferenceLinkDefinitionStarter(lines, i, options) ||
+                IsFootnoteDefinitionStarter(lines[i], options) ||
+                (options.StandaloneImageBlocks && IsImageLine(lines[i]))) return false;
 
             var sb = new StringBuilder();
             int j = i;
@@ -21,11 +23,13 @@ public static partial class MarkdownReader {
                    !IsAtxHeading(lines[j], out _, out _) &&
                    !IsCodeFenceOpen(lines[j], out _, out _, out _) &&
                    !StartsTable(lines, j) &&
-                   !IsUnorderedListLine(lines[j], out _, out _, out _) &&
+                   !IsParagraphInterruptingUnorderedListLine(lines[j]) &&
                    !IsParagraphInterruptingOrderedListLine(lines[j]) &&
                    (!options.Callouts || !IsCalloutHeader(lines[j], out _, out _)) &&
                    !IsQuoteStarter(lines[j]) &&
-                   !IsImageLine(lines[j])) {
+                   !IsReferenceLinkDefinitionStarter(lines, j, options) &&
+                   !IsFootnoteDefinitionStarter(lines[j], options) &&
+                   !(options.StandaloneImageBlocks && IsImageLine(lines[j]))) {
                 var raw = lines[j];
                 bool hard = EndsWithTwoSpaces(raw);
                 var trimmed = raw.TrimEnd();
@@ -45,6 +49,35 @@ public static partial class MarkdownReader {
             var (text, sourceMap) = JoinParagraphLinesWithSourceMap(paragraphLines, state.SourceLineOffset + i, options, state);
             doc.Add(new ParagraphBlock(ParseInlines(text, options, state, sourceMap)));
             i = j; return true;
+        }
+
+        private static bool IsFootnoteDefinitionStarter(string line, MarkdownReaderOptions options) {
+            if (options?.Footnotes != true || string.IsNullOrWhiteSpace(line)) {
+                return false;
+            }
+
+            int leading = 0;
+            while (leading < line.Length && line[leading] == ' ') {
+                leading++;
+            }
+
+            if (leading >= 4 || (leading < line.Length && line[leading] == '\t')) {
+                return false;
+            }
+
+            var trimmed = line.TrimStart();
+            if (!(trimmed.Length > 4 && trimmed[0] == '[' && trimmed[1] == '^')) {
+                return false;
+            }
+
+            int rb = trimmed.IndexOf(']');
+            return rb >= 2
+                   && rb + 1 < trimmed.Length
+                   && trimmed[rb + 1] == ':';
+        }
+
+        private static bool IsReferenceLinkDefinitionStarter(string[] lines, int index, MarkdownReaderOptions options) {
+            return TryParseReferenceLinkDefinition(lines, index, options, out _, out _, out _, out _);
         }
 
         private static bool EndsWithTwoSpaces(string s) {

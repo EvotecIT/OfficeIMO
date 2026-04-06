@@ -1,0 +1,1210 @@
+[
+  {
+    "example": 62,
+    "section": "ATX headings",
+    "topLevelKinds": ["Heading", "Heading", "Heading", "Heading", "Heading", "Heading"],
+    "markdown": "# foo\n## foo\n### foo\n#### foo\n##### foo\n###### foo\n",
+    "html": "<h1>foo</h1>\n<h2>foo</h2>\n<h3>foo</h3>\n<h4>foo</h4>\n<h5>foo</h5>\n<h6>foo</h6>\n",
+    "syntaxAssertions": [
+      {
+        "description": "heading text resolves through heading text and inline text nodes",
+        "line": 1,
+        "column": 3,
+        "expectedPathKinds": ["Document", "Heading", "HeadingText", "InlineText"],
+        "expectedDeepestLiteral": "foo",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 3, "endLine": 1, "endColumn": 5 },
+        "expectedNearestBlockKind": "Heading",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 5 }
+      }
+    ]
+  },
+  {
+    "example": 66,
+    "section": "ATX headings",
+    "topLevelKinds": ["Heading"],
+    "markdown": "# foo *bar* \\*baz\\*\n",
+    "html": "<h1>foo <em>bar</em> *baz*</h1>\n",
+    "syntaxAssertions": [
+      {
+        "description": "emphasis inside heading text keeps a nested inline emphasis path",
+        "line": 1,
+        "column": 8,
+        "expectedPathKinds": ["Document", "Heading", "HeadingText", "InlineEmphasis", "InlineText"],
+        "expectedDeepestLiteral": "bar",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 8, "endLine": 1, "endColumn": 10 },
+        "expectedNearestBlockKind": "Heading"
+      }
+    ]
+  },
+  {
+    "example": 80,
+    "section": "Setext headings",
+    "topLevelKinds": ["Heading", "Heading"],
+    "markdown": "Foo *bar*\n=========\n\nFoo *bar*\n---------\n",
+    "html": "<h1>Foo <em>bar</em></h1>\n<h2>Foo <em>bar</em></h2>\n"
+  },
+  {
+    "example": 107,
+    "section": "Indented code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "    a simple\n      indented code block\n",
+    "html": "<pre><code>a simple\n  indented code block\n</code></pre>\n"
+  },
+  {
+    "example": 119,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "```\n<\n >\n```\n",
+    "html": "<pre><code>&lt;\n &gt;\n</code></pre>\n"
+  },
+  {
+    "example": 122,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "```\naaa\n~~~\n```\n",
+    "html": "<pre><code>aaa\n~~~\n</code></pre>\n"
+  },
+  {
+    "example": 193,
+    "section": "Link reference definitions",
+    "topLevelKinds": ["ReferenceLinkDefinition", "Paragraph"],
+    "markdown": "   [foo]: \n      /url  \n           'the title'  \n\n[foo]\n",
+    "html": "<p><a href=\"/url\" title=\"the title\">foo</a></p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "multiline reference definitions keep the continued destination span",
+        "line": 2,
+        "column": 8,
+        "expectedPathKinds": ["Document", "ReferenceLinkDefinition", "ReferenceLinkUrl"],
+        "expectedDeepestLiteral": "/url",
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 7, "endLine": 2, "endColumn": 10 },
+        "expectedNearestBlockKind": "ReferenceLinkDefinition",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 3, "endColumn": 24 }
+      },
+      {
+        "description": "resolved shortcut references still produce inline link content after the definition",
+        "line": 5,
+        "column": 3,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineLink", "InlineText"],
+        "expectedDeepestLiteral": "foo",
+        "expectedDeepestSpan": { "startLine": 5, "startColumn": 2, "endLine": 5, "endColumn": 4 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 5, "startColumn": 1, "endLine": 5, "endColumn": 5 }
+      }
+    ]
+  },
+  {
+    "example": 195,
+    "section": "Link reference definitions",
+    "topLevelKinds": ["ReferenceLinkDefinition", "Paragraph"],
+    "markdown": "[Foo bar]:\n<my url>\n'title'\n\n[Foo bar]\n",
+    "html": "<p><a href=\"my%20url\" title=\"title\">Foo bar</a></p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "angle-wrapped multiline destinations preserve the url syntax node on the continuation line",
+        "line": 2,
+        "column": 4,
+        "expectedPathKinds": ["Document", "ReferenceLinkDefinition", "ReferenceLinkUrl"],
+        "expectedDeepestLiteral": "my url",
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 2, "endLine": 2, "endColumn": 7 },
+        "expectedNearestBlockKind": "ReferenceLinkDefinition",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 3, "endColumn": 7 }
+      }
+    ]
+  },
+  {
+    "example": 205,
+    "section": "Link reference definitions",
+    "topLevelKinds": ["ReferenceLinkDefinition", "Paragraph"],
+    "markdown": "[FOO]: /url\n\n[Foo]\n",
+    "html": "<p><a href=\"/url\">Foo</a></p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "reference labels resolve case-insensitively for shortcut links",
+        "line": 3,
+        "column": 3,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineLink", "InlineText"],
+        "expectedDeepestLiteral": "Foo",
+        "expectedDeepestSpan": { "startLine": 3, "startColumn": 2, "endLine": 3, "endColumn": 4 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 3, "startColumn": 1, "endLine": 3, "endColumn": 5 }
+      }
+    ]
+  },
+  {
+    "example": 206,
+    "section": "Link reference definitions",
+    "topLevelKinds": ["ReferenceLinkDefinition", "Paragraph"],
+    "markdown": "[foo]: /φου\n\n[foo]\n",
+    "html": "<p><a href=\"/%CF%86%CE%BF%CF%85\">foo</a></p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "non-ASCII reference destinations stay attached to the original definition syntax span",
+        "line": 1,
+        "column": 9,
+        "expectedPathKinds": ["Document", "ReferenceLinkDefinition", "ReferenceLinkUrl"],
+        "expectedDeepestLiteral": "/φου",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 8, "endLine": 1, "endColumn": 11 },
+        "expectedNearestBlockKind": "ReferenceLinkDefinition",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 11 }
+      }
+    ]
+  },
+  {
+    "example": 217,
+    "section": "Link reference definitions",
+    "topLevelKinds": ["ReferenceLinkDefinition", "ReferenceLinkDefinition", "ReferenceLinkDefinition", "Paragraph"],
+    "markdown": "[foo]: /foo-url \"foo\"\n[bar]: /bar-url\n  \"bar\"\n[baz]: /baz-url\n\n[foo],\n[bar],\n[baz]\n",
+    "html": "<p><a href=\"/foo-url\" title=\"foo\">foo</a>,\n<a href=\"/bar-url\" title=\"bar\">bar</a>,\n<a href=\"/baz-url\">baz</a></p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "later definitions can still carry multiline titles in the original syntax tree",
+        "line": 2,
+        "column": 4,
+        "expectedPathKinds": ["Document", "ReferenceLinkDefinition", "ReferenceLinkLabel"],
+        "expectedDeepestLiteral": "bar",
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 2, "endLine": 2, "endColumn": 4 },
+        "expectedNearestBlockKind": "ReferenceLinkDefinition",
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 1, "endLine": 3, "endColumn": 7 }
+      },
+      {
+        "description": "resolved references from multiple definitions stay merged in one paragraph",
+        "line": 8,
+        "column": 2,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineLink", "InlineText"],
+        "expectedDeepestLiteral": "baz",
+        "expectedDeepestSpan": { "startLine": 8, "startColumn": 2, "endLine": 8, "endColumn": 4 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 6, "startColumn": 1, "endLine": 8, "endColumn": 5 }
+      }
+    ]
+  },
+  {
+    "example": 541,
+    "section": "Full reference links",
+    "topLevelKinds": ["ReferenceLinkDefinition", "Paragraph"],
+    "markdown": "[Foo\n  bar]: /url\n\n[Baz][Foo bar]\n",
+    "html": "<p><a href=\"/url\">Baz</a></p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "multiline reference labels keep a cross-line label span in the original syntax tree",
+        "line": 2,
+        "column": 4,
+        "expectedPathKinds": ["Document", "ReferenceLinkDefinition", "ReferenceLinkLabel"],
+        "expectedDeepestLiteral": "foo bar",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 2, "endLine": 2, "endColumn": 5 },
+        "expectedNearestBlockKind": "ReferenceLinkDefinition",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 2, "endColumn": 12 }
+      },
+      {
+        "description": "resolved full reference links still map their text inside the later paragraph",
+        "line": 4,
+        "column": 4,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineLink", "InlineText"],
+        "expectedDeepestLiteral": "Baz",
+        "expectedDeepestSpan": { "startLine": 4, "startColumn": 2, "endLine": 4, "endColumn": 4 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 4, "startColumn": 1, "endLine": 4, "endColumn": 14 }
+      }
+    ]
+  },
+  {
+    "example": 540,
+    "section": "Full reference links",
+    "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
+    "markdown": "[ẞ]\n[SS]: /url\n",
+    "html": "<p><a href=\"/url\">ẞ</a></p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "unicode case folding resolves shortcut reference text to the later definition",
+        "line": 1,
+        "column": 2,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineLink", "InlineText"],
+        "expectedDeepestLiteral": "ẞ",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 2, "endLine": 1, "endColumn": 2 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 3 }
+      },
+      {
+        "description": "the original definition label span still points at the unfolded label text",
+        "line": 2,
+        "column": 2,
+        "expectedPathKinds": ["Document", "ReferenceLinkDefinition", "ReferenceLinkLabel"],
+        "expectedDeepestLiteral": "ss",
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 2, "endLine": 2, "endColumn": 3 },
+        "expectedNearestBlockKind": "ReferenceLinkDefinition",
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 1, "endLine": 2, "endColumn": 10 }
+      }
+    ]
+  },
+  {
+    "example": 553,
+    "section": "Collapsed reference links",
+    "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
+    "markdown": "[foo][]\n\n[foo]: /url \"title\"\n",
+    "html": "<p><a href=\"/url\" title=\"title\">foo</a></p>\n"
+  },
+  {
+    "example": 556,
+    "section": "Collapsed reference links",
+    "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
+    "markdown": "[foo]\n[]\n\n[foo]: /url \"title\"\n",
+    "html": "<p><a href=\"/url\" title=\"title\">foo</a>\n[]</p>\n"
+  },
+  {
+    "example": 568,
+    "section": "Shortcut reference links",
+    "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
+    "markdown": "[foo](not a link)\n\n[foo]: /url1\n",
+    "html": "<p><a href=\"/url1\">foo</a>(not a link)</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "invalid inline link syntax still falls back to a shortcut reference link for the leading label",
+        "line": 1,
+        "column": 3,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineLink", "InlineText"],
+        "expectedDeepestLiteral": "foo",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 2, "endLine": 1, "endColumn": 4 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 17 }
+      },
+      {
+        "description": "the trailing parenthesized text remains literal paragraph text after the shortcut reference",
+        "line": 1,
+        "column": 8,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "(not a link)",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 6, "endLine": 1, "endColumn": 17 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 17 }
+      }
+    ]
+  },
+  {
+    "example": 569,
+    "section": "Shortcut reference links",
+    "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
+    "markdown": "[foo][bar][baz]\n\n[baz]: /url\n",
+    "html": "<p>[foo]<a href=\"/url\">bar</a></p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "unmatched reference-like syntax leaves the leading label literal instead of consuming the later matching reference",
+        "line": 1,
+        "column": 3,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "[foo]",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 5 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 15 }
+      },
+      {
+        "description": "the later matching full reference still resolves from the second bracket pair",
+        "line": 1,
+        "column": 8,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineLink", "InlineText"],
+        "expectedDeepestLiteral": "bar",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 7, "endLine": 1, "endColumn": 9 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 15 }
+      }
+    ]
+  },
+  {
+    "example": 572,
+    "section": "Images",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "![foo](/url \"title\")\n",
+    "html": "<p><img src=\"/url\" alt=\"foo\" title=\"title\" /></p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "standalone image lines stay inside paragraphs for the CommonMark profile",
+        "line": 1,
+        "column": 9,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineImage", "ImageSource"],
+        "expectedDeepestLiteral": "/url",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 8, "endLine": 1, "endColumn": 11 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 20 }
+      }
+    ]
+  },
+  {
+    "example": 573,
+    "section": "Images",
+    "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
+    "markdown": "![foo *bar*]\n\n[foo *bar*]: train.jpg \"train & tracks\"\n",
+    "html": "<p><img src=\"train.jpg\" alt=\"foo bar\" title=\"train &amp; tracks\" /></p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "image alt syntax keeps the raw markdown label in the syntax tree even when html alt text is flattened",
+        "line": 1,
+        "column": 8,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineImage", "ImageAlt"],
+        "expectedDeepestLiteral": "foo *bar*",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 3, "endLine": 1, "endColumn": 11 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 12 }
+      }
+    ]
+  },
+  {
+    "example": 228,
+    "section": "Block quotes",
+    "topLevelKinds": ["Quote"],
+    "markdown": "> # Foo\n> bar\n> baz\n",
+    "html": "<blockquote>\n<h1>Foo</h1>\n<p>bar\nbaz</p>\n</blockquote>\n",
+    "syntaxAssertions": [
+      {
+        "description": "blockquote heading content keeps nested quote heading path",
+        "line": 1,
+        "column": 5,
+        "expectedPathKinds": ["Document", "Quote", "Heading", "HeadingText", "InlineText"],
+        "expectedDeepestLiteral": "Foo",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 5, "endLine": 1, "endColumn": 7 },
+        "expectedNearestBlockKind": "Heading",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 3, "endLine": 1, "endColumn": 7 }
+      },
+      {
+        "description": "blockquote paragraph content stays merged across lazy lines",
+        "line": 2,
+        "column": 4,
+        "expectedPathKinds": ["Document", "Quote", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "bar baz",
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 3, "endLine": 3, "endColumn": 5 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 3, "endColumn": 5 }
+      }
+    ]
+  },
+  {
+    "example": 254,
+    "section": "List items",
+    "topLevelKinds": ["OrderedList"],
+    "markdown": "1.  A paragraph\n    with two lines.\n\n        indented code\n\n    > A block quote.\n",
+    "html": "<ol>\n<li>\n<p>A paragraph\nwith two lines.</p>\n<pre><code>indented code\n</code></pre>\n<blockquote>\n<p>A block quote.</p>\n</blockquote>\n</li>\n</ol>\n",
+    "syntaxAssertions": [
+      {
+        "description": "list paragraph content is nested under ordered list item",
+        "line": 1,
+        "column": 6,
+        "expectedPathKinds": ["Document", "OrderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "A paragraph with two lines.",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 5, "endLine": 2, "endColumn": 19 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 5, "endLine": 2, "endColumn": 19 }
+      },
+      {
+        "description": "indented code remains a nested code block inside the list item",
+        "line": 4,
+        "column": 2,
+        "expectedPathKinds": ["Document", "OrderedList", "ListItem", "CodeBlock", "CodeContent"],
+        "expectedDeepestLiteral": "indented code",
+        "expectedDeepestSpan": { "startLine": 4, "startColumn": 1, "endLine": 4, "endColumn": 21 },
+        "expectedNearestBlockKind": "CodeBlock",
+        "expectedNearestBlockSpan": { "startLine": 4, "startColumn": 1, "endLine": 4, "endColumn": 21 }
+      },
+      {
+        "description": "nested block quote content stays under the same list item",
+        "line": 6,
+        "column": 5,
+        "expectedPathKinds": ["Document", "OrderedList", "ListItem", "Quote", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "A block quote.",
+        "expectedDeepestSpan": { "startLine": 6, "startColumn": 3, "endLine": 6, "endColumn": 16 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 6, "startColumn": 3, "endLine": 6, "endColumn": 16 }
+      }
+    ]
+  },
+  {
+    "example": 256,
+    "section": "List items",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- one\n\n  two\n",
+    "html": "<ul>\n<li>\n<p>one</p>\n<p>two</p>\n</li>\n</ul>\n"
+  },
+  {
+    "example": 257,
+    "section": "List items",
+    "topLevelKinds": ["UnorderedList", "CodeBlock"],
+    "markdown": " -    one\n\n     two\n",
+    "html": "<ul>\n<li>one</li>\n</ul>\n<pre><code> two\n</code></pre>\n"
+  },
+  {
+    "example": 258,
+    "section": "List items",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": " -    one\n\n      two\n",
+    "html": "<ul>\n<li>\n<p>one</p>\n<p>two</p>\n</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "wide post-marker padding keeps a deep enough continuation line inside the list item paragraph",
+        "line": 3,
+        "column": 8,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "two",
+        "expectedDeepestSpan": { "startLine": 3, "startColumn": 7, "endLine": 3, "endColumn": 9 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 3, "startColumn": 7, "endLine": 3, "endColumn": 9 }
+      }
+    ]
+  },
+  {
+    "example": 273,
+    "section": "List items",
+    "topLevelKinds": ["OrderedList"],
+    "markdown": "1.     indented code\n   paragraph\n\n       more code\n",
+    "html": "<ol>\n<li>\n<pre><code>indented code\n</code></pre>\n<p>paragraph</p>\n<pre><code>more code\n</code></pre>\n</li>\n</ol>\n"
+  },
+  {
+    "example": 274,
+    "section": "List items",
+    "topLevelKinds": ["OrderedList"],
+    "markdown": "1.      indented code\n   paragraph\n\n       more code\n",
+    "html": "<ol>\n<li>\n<pre><code> indented code\n</code></pre>\n<p>paragraph</p>\n<pre><code>more code\n</code></pre>\n</li>\n</ol>\n"
+  },
+  {
+    "example": 276,
+    "section": "List items",
+    "topLevelKinds": ["UnorderedList", "Paragraph"],
+    "markdown": "-    foo\n\n  bar\n",
+    "html": "<ul>\n<li>foo</li>\n</ul>\n<p>bar</p>\n"
+  },
+  {
+    "example": 277,
+    "section": "List items",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "-  foo\n\n   bar\n",
+    "html": "<ul>\n<li>\n<p>foo</p>\n<p>bar</p>\n</li>\n</ul>\n"
+  },
+  {
+    "example": 278,
+    "section": "List items",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "-\n  foo\n-\n  ```\n  bar\n  ```\n-\n      baz\n",
+    "html": "<ul>\n<li>foo</li>\n<li>\n<pre><code>bar\n</code></pre>\n</li>\n<li>\n<pre><code>baz\n</code></pre>\n</li>\n</ul>\n"
+  },
+  {
+    "example": 279,
+    "section": "List items",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "-\n  foo\n",
+    "html": "<ul>\n<li>foo</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "blank-start list items still map paragraph content under the same list item",
+        "line": 2,
+        "column": 4,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "foo",
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 5 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 5 }
+      }
+    ]
+  },
+  {
+    "example": 280,
+    "section": "List items",
+    "topLevelKinds": ["UnorderedList", "Paragraph"],
+    "markdown": "-\n\n  foo\n",
+    "html": "<ul>\n<li></li>\n</ul>\n<p>foo</p>\n"
+  },
+  {
+    "example": 281,
+    "section": "List items",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- foo\n-\n- bar\n",
+    "html": "<ul>\n<li>foo</li>\n<li></li>\n<li>bar</li>\n</ul>\n"
+  },
+  {
+    "example": 282,
+    "section": "List items",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- foo\n-\t\n- bar\n",
+    "html": "<ul>\n<li>foo</li>\n<li></li>\n<li>bar</li>\n</ul>\n"
+  },
+  {
+    "example": 283,
+    "section": "List items",
+    "topLevelKinds": ["OrderedList"],
+    "markdown": "1. foo\n2.\n3. bar\n",
+    "html": "<ol>\n<li>foo</li>\n<li></li>\n<li>bar</li>\n</ol>\n"
+  },
+  {
+    "example": 284,
+    "section": "List items",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "*\n",
+    "html": "<ul>\n<li></li>\n</ul>\n"
+  },
+  {
+    "example": 285,
+    "section": "List items",
+    "topLevelKinds": ["Paragraph", "Paragraph"],
+    "markdown": "foo\n*\n\nfoo\n1.\n",
+    "html": "<p>foo\n*</p>\n<p>foo\n1.</p>\n"
+  },
+  {
+    "example": 286,
+    "section": "List items",
+    "topLevelKinds": ["OrderedList"],
+    "markdown": " 1.  A paragraph\n     with two lines.\n\n         indented code\n     > A block quote.\n",
+    "html": "<ol>\n<li>\n<p>A paragraph\nwith two lines.</p>\n<pre><code>indented code\n</code></pre>\n<blockquote>\n<p>A block quote.</p>\n</blockquote>\n</li>\n</ol>\n"
+  },
+  {
+    "example": 287,
+    "section": "List items",
+    "topLevelKinds": ["OrderedList"],
+    "markdown": "  1.  A paragraph\n      with two lines.\n\n          indented code\n\n      > A block quote.\n",
+    "html": "<ol>\n<li>\n<p>A paragraph\nwith two lines.</p>\n<pre><code>indented code\n</code></pre>\n<blockquote>\n<p>A block quote.</p>\n</blockquote>\n</li>\n</ol>\n"
+  },
+  {
+    "example": 288,
+    "section": "List items",
+    "topLevelKinds": ["OrderedList"],
+    "markdown": "   1.  A paragraph\n       with two lines.\n\n           indented code\n\n       > A block quote.\n",
+    "html": "<ol>\n<li>\n<p>A paragraph\nwith two lines.</p>\n<pre><code>indented code\n</code></pre>\n<blockquote>\n<p>A block quote.</p>\n</blockquote>\n</li>\n</ol>\n"
+  },
+  {
+    "example": 290,
+    "section": "List items",
+    "topLevelKinds": ["OrderedList"],
+    "markdown": "  1.  A paragraph\nwith two lines.\n\n          indented code\n\n      > A block quote.\n",
+    "html": "<ol>\n<li>\n<p>A paragraph\nwith two lines.</p>\n<pre><code>indented code\n</code></pre>\n<blockquote>\n<p>A block quote.</p>\n</blockquote>\n</li>\n</ol>\n"
+  },
+  {
+    "example": 291,
+    "section": "List items",
+    "topLevelKinds": ["OrderedList"],
+    "markdown": "  1.  A paragraph\n    with two lines.\n",
+    "html": "<ol>\n<li>A paragraph\nwith two lines.</li>\n</ol>\n"
+  },
+  {
+    "example": 294,
+    "section": "List items",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- foo\n  - bar\n    - baz\n      - boo\n",
+    "html": "<ul>\n<li>foo\n<ul>\n<li>bar\n<ul>\n<li>baz\n<ul>\n<li>boo</li>\n</ul>\n</li>\n</ul>\n</li>\n</ul>\n</li>\n</ul>\n"
+  },
+  {
+    "example": 295,
+    "section": "List items",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- foo\n - bar\n  - baz\n   - boo\n",
+    "html": "<ul>\n<li>foo</li>\n<li>bar</li>\n<li>baz</li>\n<li>boo</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "shallow marker indentation keeps sibling list items at the same level",
+        "line": 3,
+        "column": 5,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "baz",
+        "expectedDeepestSpan": { "startLine": 3, "startColumn": 5, "endLine": 3, "endColumn": 7 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 3, "startColumn": 5, "endLine": 3, "endColumn": 7 }
+      }
+    ]
+  },
+  {
+    "example": 296,
+    "section": "List items",
+    "topLevelKinds": ["OrderedList"],
+    "markdown": "10) foo\n    - bar\n",
+    "html": "<ol start=\"10\">\n<li>foo\n<ul>\n<li>bar</li>\n</ul>\n</li>\n</ol>\n"
+  },
+  {
+    "example": 297,
+    "section": "List items",
+    "topLevelKinds": ["OrderedList", "UnorderedList"],
+    "markdown": "10) foo\n   - bar\n",
+    "html": "<ol start=\"10\">\n<li>foo</li>\n</ol>\n<ul>\n<li>bar</li>\n</ul>\n"
+  },
+  {
+    "example": 298,
+    "section": "List items",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- - foo\n",
+    "html": "<ul>\n<li>\n<ul>\n<li>foo</li>\n</ul>\n</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "a nested list can be the first block inside a list item",
+        "line": 1,
+        "column": 5,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "foo",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 5, "endLine": 1, "endColumn": 7 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 5, "endLine": 1, "endColumn": 7 }
+      }
+    ]
+  },
+  {
+    "example": 299,
+    "section": "List items",
+    "topLevelKinds": ["OrderedList"],
+    "markdown": "1. - 2. foo\n",
+    "html": "<ol>\n<li>\n<ul>\n<li>\n<ol start=\"2\">\n<li>foo</li>\n</ol>\n</li>\n</ul>\n</li>\n</ol>\n",
+    "syntaxAssertions": [
+      {
+        "description": "a nested ordered list can be the first block inside a nested unordered list item",
+        "line": 1,
+        "column": 9,
+        "expectedPathKinds": ["Document", "OrderedList", "ListItem", "UnorderedList", "ListItem", "OrderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "foo",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 9, "endLine": 1, "endColumn": 11 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 9, "endLine": 1, "endColumn": 11 }
+      }
+    ],
+    "finalSyntaxAssertions": [
+      {
+        "description": "the final syntax tree keeps nested list-first item paths searchable",
+        "line": 1,
+        "column": 9,
+        "expectedPathKinds": ["Document", "OrderedList", "ListItem", "UnorderedList", "ListItem", "OrderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "foo",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 9, "endLine": 1, "endColumn": 11 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 9, "endLine": 1, "endColumn": 11 }
+      }
+    ]
+  },
+  {
+    "example": 300,
+    "section": "List items",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- # Foo\n- Bar\n  ---\n  baz\n",
+    "html": "<ul>\n<li>\n<h1>Foo</h1>\n</li>\n<li>\n<h2>Bar</h2>\nbaz</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "an atx heading can be the first block inside a list item",
+        "line": 1,
+        "column": 5,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Heading", "HeadingText", "InlineText"],
+        "expectedDeepestLiteral": "Foo",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 5, "endLine": 1, "endColumn": 7 },
+        "expectedNearestBlockKind": "Heading",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 3, "endLine": 1, "endColumn": 7 }
+      }
+    ]
+  },
+  {
+    "example": 301,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList", "UnorderedList"],
+    "markdown": "- foo\n- bar\n+ baz\n",
+    "html": "<ul>\n<li>foo</li>\n<li>bar</li>\n</ul>\n<ul>\n<li>baz</li>\n</ul>\n"
+  },
+  {
+    "example": 302,
+    "section": "Lists",
+    "topLevelKinds": ["OrderedList", "OrderedList"],
+    "markdown": "1. foo\n2. bar\n3) baz\n",
+    "html": "<ol>\n<li>foo</li>\n<li>bar</li>\n</ol>\n<ol start=\"3\">\n<li>baz</li>\n</ol>\n"
+  },
+  {
+    "example": 303,
+    "section": "Lists",
+    "topLevelKinds": ["Paragraph", "UnorderedList"],
+    "markdown": "Foo\n- bar\n- baz\n",
+    "html": "<p>Foo</p>\n<ul>\n<li>bar</li>\n<li>baz</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "a bullet list can interrupt a paragraph without a blank line",
+        "line": 2,
+        "column": 3,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "bar",
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 5 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 5 }
+      }
+    ],
+    "finalSyntaxAssertions": [
+      {
+        "description": "the final syntax tree keeps paragraph-interrupting bullet list items searchable",
+        "line": 2,
+        "column": 3,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "bar",
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 5 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 5 }
+      }
+    ]
+  },
+  {
+    "example": 304,
+    "section": "Lists",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "The number of windows in my house is\n14.  The number of doors is 6.\n",
+    "html": "<p>The number of windows in my house is\n14.  The number of doors is 6.</p>\n"
+  },
+  {
+    "example": 305,
+    "section": "Lists",
+    "topLevelKinds": ["Paragraph", "OrderedList"],
+    "markdown": "The number of windows in my house is\n1.  The number of doors is 6.\n",
+    "html": "<p>The number of windows in my house is</p>\n<ol>\n<li>The number of doors is 6.</li>\n</ol>\n",
+    "syntaxAssertions": [
+      {
+        "description": "only ordered lists starting with 1 interrupt paragraphs",
+        "line": 2,
+        "column": 5,
+        "expectedPathKinds": ["Document", "OrderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "The number of doors is 6.",
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 5, "endLine": 2, "endColumn": 29 }
+      }
+    ]
+  },
+  {
+    "example": 306,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- foo\n\n- bar\n\n- baz\n",
+    "html": "<ul>\n<li>\n<p>foo</p>\n</li>\n<li>\n<p>bar</p>\n</li>\n<li>\n<p>baz</p>\n</li>\n</ul>\n"
+  },
+  {
+    "example": 307,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- foo\n  - bar\n    - baz\n\n      bim\n",
+    "html": "<ul>\n<li>foo\n<ul>\n<li>bar\n<ul>\n<li>\n<p>baz</p>\n<p>bim</p>\n</li>\n</ul>\n</li>\n</ul>\n</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "nested loose sublists keep the second paragraph inside the deepest list item",
+        "line": 5,
+        "column": 7,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "bim",
+        "expectedDeepestSpan": { "startLine": 5, "startColumn": 7, "endLine": 5, "endColumn": 9 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 5, "startColumn": 7, "endLine": 5, "endColumn": 9 }
+      }
+    ],
+    "finalSyntaxAssertions": [
+      {
+        "description": "the final syntax tree preserves deep loose-list paragraph paths",
+        "line": 5,
+        "column": 7,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "bim",
+        "expectedDeepestSpan": { "startLine": 5, "startColumn": 7, "endLine": 5, "endColumn": 9 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 5, "startColumn": 7, "endLine": 5, "endColumn": 9 }
+      }
+    ]
+  },
+  {
+    "example": 314,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- a\n- b\n\n- c\n",
+    "html": "<ul>\n<li>\n<p>a</p>\n</li>\n<li>\n<p>b</p>\n</li>\n<li>\n<p>c</p>\n</li>\n</ul>\n"
+  },
+  {
+    "example": 315,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "* a\n*\n\n* c\n",
+    "html": "<ul>\n<li>\n<p>a</p>\n</li>\n<li></li>\n<li>\n<p>c</p>\n</li>\n</ul>\n"
+  },
+  {
+    "example": 316,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- a\n- b\n\n  c\n- d\n",
+    "html": "<ul>\n<li>\n<p>a</p>\n</li>\n<li>\n<p>b</p>\n<p>c</p>\n</li>\n<li>\n<p>d</p>\n</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "a blank line between block elements keeps the second paragraph inside the same loose list item",
+        "line": 4,
+        "column": 3,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "c",
+        "expectedDeepestSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 3 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 3 }
+      }
+    ]
+  },
+  {
+    "example": 317,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- a\n- b\n\n  [ref]: /url\n- d\n",
+    "html": "<ul>\n<li>\n<p>a</p>\n</li>\n<li>\n<p>b</p>\n</li>\n<li>\n<p>d</p>\n</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "the visible paragraph text stays under the same list item that owns the hidden definition",
+        "line": 2,
+        "column": 3,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "b",
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 }
+      },
+      {
+        "description": "reference definitions inside list items remain addressable as hidden block children in the original tree",
+        "line": 4,
+        "column": 3,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "ReferenceLinkDefinition"],
+        "expectedDeepestLiteral": "[ref]: /url",
+        "expectedDeepestSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 13 },
+        "expectedNearestBlockKind": "ReferenceLinkDefinition",
+        "expectedNearestBlockSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 13 }
+      }
+    ],
+    "finalSyntaxAssertions": [
+      {
+        "description": "the visible paragraph text stays under the same list item after the final syntax tree rebuild",
+        "line": 2,
+        "column": 3,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "b",
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 }
+      },
+      {
+        "description": "reference definitions inside list items remain addressable as hidden block children after the final tree rebuild",
+        "line": 4,
+        "column": 3,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "ReferenceLinkDefinition"],
+        "expectedDeepestLiteral": "[ref]: /url",
+        "expectedDeepestSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 13 },
+        "expectedNearestBlockKind": "ReferenceLinkDefinition",
+        "expectedNearestBlockSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 13 }
+      }
+    ]
+  },
+  {
+    "example": 318,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- a\n- ```\n  b\n\n  ```\n- c\n",
+    "html": "<ul>\n<li>a</li>\n<li>\n<pre><code>b\n\n</code></pre>\n</li>\n<li>c</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "a block-first fenced code list item exposes code content directly under the same list item",
+        "line": 3,
+        "column": 3,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "CodeBlock", "CodeContent"],
+        "expectedDeepestLiteral": "b\n",
+        "expectedNearestBlockKind": "CodeBlock",
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 5, "endColumn": 5 }
+      }
+    ],
+    "finalSyntaxAssertions": [
+      {
+        "description": "the rebuilt tree keeps fenced code content under the block-first list item",
+        "line": 3,
+        "column": 3,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "CodeBlock", "CodeContent"],
+        "expectedDeepestLiteral": "b\n",
+        "expectedNearestBlockKind": "CodeBlock",
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 5, "endColumn": 5 }
+      }
+    ]
+  },
+  {
+    "example": 319,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- a\n  - b\n\n    c\n- d\n",
+    "html": "<ul>\n<li>a\n<ul>\n<li>\n<p>b</p>\n<p>c</p>\n</li>\n</ul>\n</li>\n<li>d</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "a loose sublist does not force the outer list item to become paragraph-wrapped",
+        "line": 4,
+        "column": 5,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "c",
+        "expectedDeepestSpan": { "startLine": 4, "startColumn": 5, "endLine": 4, "endColumn": 5 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 4, "startColumn": 5, "endLine": 4, "endColumn": 5 }
+      }
+    ],
+    "finalSyntaxAssertions": [
+      {
+        "description": "the final syntax tree keeps the loose sublist paragraph under the nested list item",
+        "line": 4,
+        "column": 5,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "c",
+        "expectedDeepestSpan": { "startLine": 4, "startColumn": 5, "endLine": 4, "endColumn": 5 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 4, "startColumn": 5, "endLine": 4, "endColumn": 5 }
+      }
+    ]
+  },
+  {
+    "example": 320,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "* a\n  > b\n  >\n* c\n",
+    "html": "<ul>\n<li>a\n<blockquote>\n<p>b</p>\n</blockquote>\n</li>\n<li>c</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "blockquote content inside a tight list item remains reachable through the quote and paragraph path",
+        "line": 2,
+        "column": 3,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Quote", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "b",
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 }
+      }
+    ],
+    "finalSyntaxAssertions": [
+      {
+        "description": "the rebuilt syntax tree keeps quoted paragraph content under the same list item",
+        "line": 2,
+        "column": 3,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Quote", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "b",
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 }
+      }
+    ]
+  },
+  {
+    "example": 321,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- a\n  > b\n  ```\n  c\n  ```\n- d\n",
+    "html": "<ul>\n<li>a\n<blockquote>\n<p>b</p>\n</blockquote>\n<pre><code>c\n</code></pre>\n</li>\n<li>d</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "mixed quote-plus-code list items expose the quoted paragraph path in the original syntax tree",
+        "line": 2,
+        "column": 3,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Quote", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "b",
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 }
+      }
+    ],
+    "finalSyntaxAssertions": [
+      {
+        "description": "the rebuilt syntax tree keeps the code content under the sibling code block after a quote",
+        "line": 4,
+        "column": 3,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "CodeBlock", "CodeContent"],
+        "expectedDeepestLiteral": "c",
+        "expectedNearestBlockKind": "CodeBlock"
+      }
+    ]
+  },
+  {
+    "example": 324,
+    "section": "Lists",
+    "topLevelKinds": ["OrderedList"],
+    "markdown": "1. ```\n   foo\n   ```\n\n   bar\n",
+    "html": "<ol>\n<li>\n<pre><code>foo\n</code></pre>\n<p>bar</p>\n</li>\n</ol>\n",
+    "syntaxAssertions": [
+      {
+        "description": "the block-leading fenced code item keeps its code content path in the original tree",
+        "line": 2,
+        "column": 4,
+        "expectedPathKinds": ["Document", "OrderedList", "ListItem", "CodeBlock", "CodeContent"],
+        "expectedDeepestLiteral": "foo",
+        "expectedNearestBlockKind": "CodeBlock",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 4, "endLine": 3, "endColumn": 6 }
+      },
+      {
+        "description": "the paragraph after a block-leading fenced code block stays under the same list item",
+        "line": 5,
+        "column": 4,
+        "expectedPathKinds": ["Document", "OrderedList", "ListItem", "Paragraph"],
+        "expectedDeepestLiteral": "bar",
+        "expectedDeepestSpan": { "startLine": 5, "startColumn": 4, "endLine": 5, "endColumn": 6 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 5, "startColumn": 4, "endLine": 5, "endColumn": 6 }
+      }
+    ],
+    "finalSyntaxAssertions": [
+      {
+        "description": "the rebuilt tree keeps the block-leading fenced code content under the same list item",
+        "line": 2,
+        "column": 4,
+        "expectedPathKinds": ["Document", "OrderedList", "ListItem", "CodeBlock", "CodeContent"],
+        "expectedDeepestLiteral": "foo",
+        "expectedNearestBlockKind": "CodeBlock",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 4, "endLine": 3, "endColumn": 6 }
+      },
+      {
+        "description": "the rebuilt syntax tree keeps the post-fence paragraph attached to the same list item",
+        "line": 5,
+        "column": 4,
+        "expectedPathKinds": ["Document", "OrderedList", "ListItem", "Paragraph"],
+        "expectedDeepestLiteral": "bar",
+        "expectedDeepestSpan": { "startLine": 5, "startColumn": 4, "endLine": 5, "endColumn": 6 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 5, "startColumn": 4, "endLine": 5, "endColumn": 6 }
+      }
+    ]
+  },
+  {
+    "example": 325,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "* foo\n  * bar\n\n  baz\n",
+    "html": "<ul>\n<li>\n<p>foo</p>\n<ul>\n<li>bar</li>\n</ul>\n<p>baz</p>\n</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "a loose outer item keeps its nested sublist reachable without losing the inner tight item path",
+        "line": 2,
+        "column": 5,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "bar",
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 5, "endLine": 2, "endColumn": 7 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 5, "endLine": 2, "endColumn": 7 }
+      },
+      {
+        "description": "the trailing paragraph stays attached to the same outer loose list item",
+        "line": 4,
+        "column": 3,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "baz",
+        "expectedDeepestSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 5 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 5 }
+      }
+    ],
+    "finalSyntaxAssertions": [
+      {
+        "description": "the rebuilt tree keeps the inner tight sublist item under the loose outer item",
+        "line": 2,
+        "column": 5,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "bar",
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 5, "endLine": 2, "endColumn": 7 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 5, "endLine": 2, "endColumn": 7 }
+      },
+      {
+        "description": "the rebuilt tree keeps the trailing paragraph on the outer loose item",
+        "line": 4,
+        "column": 3,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "baz",
+        "expectedDeepestSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 5 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 5 }
+      }
+    ]
+  },
+  {
+    "example": 326,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- a\n  - b\n  - c\n\n- d\n  - e\n  - f\n",
+    "html": "<ul>\n<li>\n<p>a</p>\n<ul>\n<li>b</li>\n<li>c</li>\n</ul>\n</li>\n<li>\n<p>d</p>\n<ul>\n<li>e</li>\n<li>f</li>\n</ul>\n</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "a loose outer list can still keep its nested sublists tight",
+        "line": 6,
+        "column": 5,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "e",
+        "expectedDeepestSpan": { "startLine": 6, "startColumn": 5, "endLine": 6, "endColumn": 5 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 6, "startColumn": 5, "endLine": 6, "endColumn": 5 }
+      }
+    ],
+    "finalSyntaxAssertions": [
+      {
+        "description": "a loose outer list still keeps the first nested sublist item tight in the rebuilt tree",
+        "line": 2,
+        "column": 5,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "b",
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 5, "endLine": 2, "endColumn": 5 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 5, "endLine": 2, "endColumn": 5 }
+      },
+      {
+        "description": "the rebuilt tree preserves the second outer list item and its nested tight sublist",
+        "line": 6,
+        "column": 5,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "e",
+        "expectedDeepestSpan": { "startLine": 6, "startColumn": 5, "endLine": 6, "endColumn": 5 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 6, "startColumn": 5, "endLine": 6, "endColumn": 5 }
+      }
+    ]
+  },
+  {
+    "example": 328,
+    "section": "Code spans",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "`foo`\n",
+    "html": "<p><code>foo</code></p>\n"
+  },
+  {
+    "example": 350,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "*foo bar*\n",
+    "html": "<p><em>foo bar</em></p>\n"
+  },
+  {
+    "example": 355,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo*bar*\n",
+    "html": "<p>foo<em>bar</em></p>\n"
+  },
+  {
+    "example": 482,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[link](/uri \"title\")\n",
+    "html": "<p><a href=\"/uri\" title=\"title\">link</a></p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "inline links retain label, target, and title syntax children",
+        "line": 1,
+        "column": 9,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineLink", "InlineLinkTarget"],
+        "expectedDeepestLiteral": "/uri",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 8, "endLine": 1, "endColumn": 11 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 20 }
+      }
+    ]
+  },
+  {
+    "example": 594,
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<http://foo.bar.baz>\n",
+    "html": "<p><a href=\"http://foo.bar.baz\">http://foo.bar.baz</a></p>\n"
+  },
+  {
+    "example": 595,
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<https://foo.bar.baz/test?q=hello&id=22&boolean>\n",
+    "html": "<p><a href=\"https://foo.bar.baz/test?q=hello&amp;id=22&amp;boolean\">https://foo.bar.baz/test?q=hello&amp;id=22&amp;boolean</a></p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "angle autolinks produce an inline link target path",
+        "line": 1,
+        "column": 10,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineLink", "InlineLinkTarget"],
+        "expectedDeepestLiteral": "https://foo.bar.baz/test?q=hello&id=22&boolean",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 2, "endLine": 1, "endColumn": 47 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 48 }
+      }
+    ]
+  }
+]

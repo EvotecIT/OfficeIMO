@@ -30,25 +30,33 @@ internal static class MarkdownInvariantAssert {
     }
 
     public static void MappedAssociatedObjectsAreConsistent(MarkdownParseResult result) {
+        var liveObjects = result.Document.Descendants().Prepend(result.Document).ToList();
         var mappedNodes = result.FinalSyntaxTree
             .DescendantsAndSelf()
             .Where(node => node.AssociatedObject is MarkdownObject markdownObject && ReferenceEquals(markdownObject.Document, result.Document))
             .ToList();
-
         Assert.NotEmpty(mappedNodes);
 
         foreach (var syntaxNode in mappedNodes) {
             var markdownObject = Assert.IsAssignableFrom<MarkdownObject>(syntaxNode.AssociatedObject);
             Assert.Same(result.Document, markdownObject.Document);
+            Assert.Contains(liveObjects, candidate => ReferenceEquals(candidate, markdownObject));
             Assert.Equal(syntaxNode.SourceSpan, markdownObject.SourceSpan);
+
+            var semanticAncestors = markdownObject.AncestorsAndSelf().ToList();
+            var mappedSyntaxAncestors = syntaxNode.Ancestors()
+                .Select(node => node.AssociatedObject)
+                .OfType<MarkdownObject>()
+                .Where(markdownAncestor => ReferenceEquals(markdownAncestor.Document, result.Document))
+                .ToList();
+
+            foreach (var mappedSyntaxAncestor in mappedSyntaxAncestors) {
+                Assert.Contains(semanticAncestors, candidate => ReferenceEquals(candidate, mappedSyntaxAncestor));
+            }
 
             if (!syntaxNode.SourceSpan.HasValue) {
                 continue;
             }
-
-            var path = result.FindFinalNodePathContainingSpan(syntaxNode.SourceSpan.Value);
-            Assert.NotEmpty(path);
-            Assert.Contains(syntaxNode, path);
 
             var overlapping = result.FindDeepestFinalNodeOverlappingSpan(syntaxNode.SourceSpan.Value);
             Assert.NotNull(overlapping);

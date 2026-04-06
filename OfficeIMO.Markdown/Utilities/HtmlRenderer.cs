@@ -26,8 +26,11 @@ internal static class HtmlRenderer {
     }
 
     internal static HtmlRenderParts RenderParts(MarkdownDoc doc, HtmlOptions options) {
-        using var _ctx = HtmlRenderContext.Push(options);
         var (realizedBlocks, headingCatalog) = doc.GetBlocksAndHeadingSlugs();
+        var footnoteState = options.GitHubFootnoteHtml
+            ? HtmlFootnoteRenderState.Create(realizedBlocks)
+            : null;
+        using var _ctx = HtmlRenderContext.Push(options, footnoteState);
         var css = BuildCss(options, out string? cssLinkTag, out string? cssToWrite, out string? extraHeadLinks);
         options._externalCssContentToWrite = cssToWrite; // pass back for SaveHtml
 
@@ -122,15 +125,15 @@ internal static class HtmlRenderer {
             for (int i = 0; i < plan.RenderBlocks.Count; i++) {
                 content.Append(RenderBodyBlock(plan.RenderBlocks[i], context));
             }
-        if (footnotes.Count > 0) content.Append(BuildFootnotesSectionHtml(footnotes, options));
-        return sidebar.WrapSidebarLayoutHtml(navHtml, content.ToString());
-    }
+            if (footnotes.Count > 0) content.Append(BuildFootnotesSectionHtml(footnotes, context));
+            return sidebar.WrapSidebarLayoutHtml(navHtml, content.ToString());
+        }
 
         var sb = new StringBuilder();
         for (int i = 0; i < plan.RenderBlocks.Count; i++) {
             sb.Append(RenderBodyBlock(plan.RenderBlocks[i], context));
         }
-        if (footnotes.Count > 0) sb.Append(BuildFootnotesSectionHtml(footnotes, options));
+        if (footnotes.Count > 0) sb.Append(BuildFootnotesSectionHtml(footnotes, context));
         return sb.ToString();
     }
 
@@ -168,13 +171,18 @@ internal static class HtmlRenderer {
         return null;
     }
 
-    private static string BuildFootnotesSectionHtml(IReadOnlyList<IFootnoteSectionMarkdownBlock> footnotes, HtmlOptions options) {
+    private static string BuildFootnotesSectionHtml(IReadOnlyList<IFootnoteSectionMarkdownBlock> footnotes, MarkdownBodyRenderContext context) {
+        var options = context.Options;
         if (footnotes == null || footnotes.Count == 0) return string.Empty;
 
         var typedFootnotes = footnotes.OfType<FootnoteDefinitionBlock>().ToList();
         var overridden = options.FootnoteSectionHtmlRenderer?.Invoke(typedFootnotes, options);
         if (overridden != null) {
             return overridden;
+        }
+
+        if (options.GitHubFootnoteHtml && HtmlRenderContext.Footnotes != null) {
+            return BuildGitHubFootnotesSectionHtml(typedFootnotes, context, HtmlRenderContext.Footnotes);
         }
 
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -192,6 +200,139 @@ internal static class HtmlRenderer {
         }
 
         sb.Append("</ol></section>");
+        return sb.ToString();
+    }
+
+    private static string BuildGitHubFootnotesSectionHtml(
+        IReadOnlyList<FootnoteDefinitionBlock> footnotes,
+        MarkdownBodyRenderContext context,
+        HtmlFootnoteRenderState state) {
+        if (footnotes == null || footnotes.Count == 0 || state.OrderedReferencedLabels.Count == 0) {
+            return string.Empty;
+        }
+
+        var sb = new StringBuilder();
+        sb.Append("<section class=\"footnotes\" data-footnotes><ol>");
+
+        for (int i = 0; i < state.OrderedReferencedLabels.Count; i++) {
+            var footnote = state.FindDefinition(state.OrderedReferencedLabels[i]);
+            if (footnote == null) {
+                continue;
+            }
+
+            sb.Append(RenderGitHubFootnoteItemHtml(footnote, context, state));
+        }
+
+        sb.Append("</ol></section>");
+        return sb.ToString();
+    }
+
+    private static string RenderGitHubFootnoteItemHtml(
+        FootnoteDefinitionBlock footnote,
+        MarkdownBodyRenderContext context,
+        HtmlFootnoteRenderState state) {
+        var info = state.GetDefinitionInfo(footnote.Label);
+        if (info == null) {
+            return string.Empty;
+        }
+
+        var blocks = GetFootnoteBlocksForRender(footnote);
+        var sb = new StringBuilder();
+        sb.Append("<li id=\"fn-")
+            .Append(System.Net.WebUtility.HtmlEncode(info.Value.EscapedLabel))
+            .Append("\">");
+
+        if (blocks.Count == 0) {
+            var fallback = new ParagraphBlock(new InlineSequence().Text(footnote.Text));
+            sb.Append(AppendBackrefsToParagraphHtml(RenderBodyBlock(fallback, context), info.Value));
+        } else {
+            int lastParagraphIndex = -1;
+            for (int i = blocks.Count - 1; i >= 0; i--) {
+                if (blocks[i] is ParagraphBlock) {
+                    lastParagraphIndex = i;
+                    break;
+                }
+            }
+
+            for (int i = 0; i < blocks.Count; i++) {
+                var rendered = RenderBodyBlock(blocks[i], context);
+                if (i == lastParagraphIndex) {
+                    rendered = AppendBackrefsToParagraphHtml(rendered, info.Value);
+                }
+                sb.Append(rendered);
+            }
+
+            if (lastParagraphIndex < 0) {
+                sb.Append(BuildGitHubBackrefsHtml(info.Value));
+            }
+        }
+
+        sb.Append("</li>");
+        return sb.ToString();
+    }
+
+    private static IReadOnlyList<IMarkdownBlock> GetFootnoteBlocksForRender(FootnoteDefinitionBlock footnote) {
+        if (footnote.Blocks.Count > 0) {
+            return footnote.Blocks;
+        }
+
+        if (footnote.ParagraphBlocks.Count > 0) {
+            return footnote.ParagraphBlocks;
+        }
+
+        if (footnote.Paragraphs.Count > 0) {
+            var paragraphs = new List<IMarkdownBlock>(footnote.Paragraphs.Count);
+            for (int i = 0; i < footnote.Paragraphs.Count; i++) {
+                paragraphs.Add(new ParagraphBlock(footnote.Paragraphs[i]));
+            }
+            return paragraphs;
+        }
+
+        if (!string.IsNullOrEmpty(footnote.Text)) {
+            return new IMarkdownBlock[] { new ParagraphBlock(new InlineSequence().Text(footnote.Text)) };
+        }
+
+        return Array.Empty<IMarkdownBlock>();
+    }
+
+    private static string AppendBackrefsToParagraphHtml(string paragraphHtml, HtmlFootnoteDefinitionInfo info) {
+        if (string.IsNullOrEmpty(paragraphHtml)) {
+            return "<p>" + BuildGitHubBackrefsHtml(info) + "</p>";
+        }
+
+        const string closing = "</p>";
+        if (paragraphHtml.EndsWith(closing, StringComparison.Ordinal)) {
+            return paragraphHtml.Substring(0, paragraphHtml.Length - closing.Length)
+                   + " "
+                   + BuildGitHubBackrefsHtml(info)
+                   + closing;
+        }
+
+        return paragraphHtml + "<p>" + BuildGitHubBackrefsHtml(info) + "</p>";
+    }
+
+    private static string BuildGitHubBackrefsHtml(HtmlFootnoteDefinitionInfo info) {
+        var sb = new StringBuilder();
+        for (int i = 0; i < info.ReferenceIds.Count; i++) {
+            if (i > 0) {
+                sb.Append(' ');
+            }
+
+            string backrefIndex = i == 0
+                ? info.Number.ToString()
+                : info.Number.ToString() + "-" + (i + 1).ToString();
+
+            sb.Append("<a href=\"#")
+                .Append(System.Net.WebUtility.HtmlEncode(info.ReferenceIds[i]))
+                .Append("\" class=\"footnote-backref\" data-footnote-backref data-footnote-backref-idx=\"")
+                .Append(System.Net.WebUtility.HtmlEncode(backrefIndex))
+                .Append("\" aria-label=\"Back to reference ")
+                .Append(System.Net.WebUtility.HtmlEncode(backrefIndex))
+                .Append("\">")
+                .Append(i == 0 ? "↩" : "↩<sup>" + (i + 1).ToString() + "</sup>")
+                .Append("</a>");
+        }
+
         return sb.ToString();
     }
 

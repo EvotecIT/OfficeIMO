@@ -16,6 +16,8 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
     public string? LinkRel { get; set; }
     /// <summary>Alternative text.</summary>
     public string? Alt { get; }
+    /// <summary>Plain-text alternate text used for HTML rendering and text extraction.</summary>
+    public string? PlainAlt { get; }
     /// <summary>Optional title attribute.</summary>
     public string? Title { get; }
     /// <summary>Optional width hint (points/pixels as provided).</summary>
@@ -36,13 +38,14 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
 
     /// <summary>Create an image block.</summary>
     public ImageBlock(string path, string? alt, string? title)
-        : this(path, alt, title, null, null, null, null, null, null) {
+        : this(path, alt, title, null, null, null, null, null, null, null) {
     }
 
     /// <summary>Create an image block with optional size hints.</summary>
-    public ImageBlock(string path, string? alt = null, string? title = null, double? width = null, double? height = null, string? linkUrl = null, string? linkTitle = null, string? linkTarget = null, string? linkRel = null) {
+    public ImageBlock(string path, string? alt = null, string? title = null, double? width = null, double? height = null, string? linkUrl = null, string? linkTitle = null, string? linkTarget = null, string? linkRel = null, string? plainAlt = null) {
         Path = path;
         Alt = alt;
+        PlainAlt = plainAlt ?? alt;
         Title = title;
         Width = width;
         Height = height;
@@ -81,7 +84,7 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() {
-        string alt = System.Net.WebUtility.HtmlEncode(Alt ?? string.Empty);
+        string alt = System.Net.WebUtility.HtmlEncode(PlainAlt ?? string.Empty);
         string title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title!)}\"";
         string size = string.Empty;
         if (Width != null) size += $" width=\"{Width.Value}\"";
@@ -89,7 +92,7 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
         var o = HtmlRenderContext.Options;
         if (!UrlOriginPolicy.IsAllowedHttpImage(o, Path)) {
             string captionBlocked = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{System.Net.WebUtility.HtmlEncode(Caption!)}</div>";
-            return ImageHtmlAttributes.BuildBlockedPlaceholder(Alt) + captionBlocked;
+            return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt) + captionBlocked;
         }
         var extra = ImageHtmlAttributes.BuildImageAttributes(o, Path);
         string img = $"<img src=\"{HtmlAttributeUrlEncoder.Encode(GetRenderedFallbackImagePath(o))}\" alt=\"{alt}\"{title}{size}{extra} />";

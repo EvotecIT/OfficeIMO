@@ -51,6 +51,7 @@ internal static class MarkdownListRendering {
         }
 
         void AppendOpenList(int startIndex, int level, bool isTopLevel) {
+            var options = HtmlRenderContext.Options;
             sb.Append('<').Append(listTag);
             if (isTopLevel) {
                 var attrs = topLevelAttributesFactory(startIndex);
@@ -58,7 +59,7 @@ internal static class MarkdownListRendering {
                     sb.Append(attrs);
                 }
             }
-            if (ContainsTasksInScope(startIndex, level)) {
+            if (ContainsTasksInScope(startIndex, level) && options?.GitHubTaskListHtml != true) {
                 sb.Append(" class=\"contains-task-list\"");
             }
             sb.Append('>');
@@ -89,7 +90,9 @@ internal static class MarkdownListRendering {
 
             int scopeStart = scopeStartByLevel[level];
             bool renderLoose = IsLooseInScope(scopeStart, level);
-            sb.Append(item.IsTask ? "<li class=\"task-list-item\">" : "<li>").Append(item.RenderHtml(renderLoose));
+            bool useGitHubTaskListHtml = HtmlRenderContext.Options?.GitHubTaskListHtml == true;
+            sb.Append(item.IsTask && !useGitHubTaskListHtml ? "<li class=\"task-list-item\">" : "<li>")
+                .Append(item.RenderHtml(renderLoose));
             liOpen = true;
         }
 

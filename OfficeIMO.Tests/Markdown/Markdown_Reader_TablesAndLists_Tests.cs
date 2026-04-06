@@ -455,6 +455,34 @@ continuation
         }
 
         [Fact]
+        public void List_Item_PostMarker_Padding_Can_Push_Shallow_Continuation_Out_Of_The_List() {
+            const string md = """
+ -    one
+
+     two
+""";
+
+            var html = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile())
+                .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+            Assert.Equal("<ul><li>one</li></ul><pre><code> two\n</code></pre>", html);
+        }
+
+        [Fact]
+        public void List_Item_PostMarker_Padding_Keeps_Deep_Enough_Continuation_Inside_The_List() {
+            const string md = """
+ -    one
+
+      two
+""";
+
+            var html = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile())
+                .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+            Assert.Equal("<ul><li><p>one</p><p>two</p></li></ul>", html);
+        }
+
+        [Fact]
         public void Unordered_List_Item_Second_Paragraph_Allows_Lazy_Continuation() {
             const string md = """
 - item
