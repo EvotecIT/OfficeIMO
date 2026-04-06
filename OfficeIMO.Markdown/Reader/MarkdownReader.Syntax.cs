@@ -50,7 +50,9 @@ public static partial class MarkdownReader {
         IReadOnlyList<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null) {
         var blockSpans = BuildTopLevelBlockSourceSpans(document, originalSyntaxTree, transformDiagnostics);
         var frontMatterSpan = GetFrontMatterSpan(document, originalSyntaxTree);
-        return NormalizeFinalSyntaxTreeSpans(BuildSyntaxTree(document, blockSpans, frontMatterSpan));
+        var finalSyntaxTree = NormalizeFinalSyntaxTreeSpans(BuildSyntaxTree(document, blockSpans, frontMatterSpan));
+        MarkdownTransformDiagnosticSyntaxHelper.PopulateFinalBlockAnchors(transformDiagnostics, finalSyntaxTree);
+        return finalSyntaxTree;
     }
 
     private static void CaptureSyntaxNodes(MarkdownDoc doc, int previousBlockCount, int startLine, int endExclusiveLine, List<MarkdownSyntaxNode> nodes, MarkdownReaderState? state = null) {

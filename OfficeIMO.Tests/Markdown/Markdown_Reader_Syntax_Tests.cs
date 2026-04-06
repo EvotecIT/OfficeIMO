@@ -78,6 +78,10 @@ Paragraph text
         Assert.Equal(0, diagnostic.ChangedBlockStartAfter);
         Assert.Equal(2, diagnostic.ChangedBlockCountAfter);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), diagnostic.AffectedSourceSpan);
+        Assert.Equal("Document > Paragraph", diagnostic.AffectedOriginalBlockPath);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), diagnostic.AffectedOriginalBlockSpan);
+        Assert.Equal("Document > Paragraph", diagnostic.AffectedFinalBlockPath);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), diagnostic.AffectedFinalBlockSpan);
         Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(2, result.FinalSyntaxTree.Children.Count);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), result.FinalSyntaxTree.Children[0].SourceSpan);
@@ -2421,6 +2425,12 @@ Lead[^1]
         Assert.Equal("merged", finalParagraph.Literal);
         Assert.Equal("merged", finalText.Literal);
         Assert.Null(finalText.SourceSpan);
+
+        var diagnostic = Assert.Single(result.TransformDiagnostics);
+        Assert.Equal("Document > Quote", diagnostic.AffectedOriginalBlockPath);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 6), diagnostic.AffectedOriginalBlockSpan);
+        Assert.Equal("Document > Quote", diagnostic.AffectedFinalBlockPath);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 6), diagnostic.AffectedFinalBlockSpan);
     }
 
     [Fact]

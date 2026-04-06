@@ -18,6 +18,8 @@ public sealed class MarkdownSyntaxNode {
     public MarkdownSyntaxNode? Parent { get; private set; }
     /// <summary>Child syntax nodes.</summary>
     public IReadOnlyList<MarkdownSyntaxNode> Children { get; }
+    /// <summary>Whether this node behaves like a block/container boundary for navigation.</summary>
+    public bool IsBlockLike => IsBlockLikeKind(Kind);
     /// <summary>Zero-based child index within <see cref="Parent"/> when available.</summary>
     public int IndexInParent => Parent == null ? -1 : Parent.IndexOfChild(this);
     /// <summary>Nearest previous sibling node when present.</summary>
