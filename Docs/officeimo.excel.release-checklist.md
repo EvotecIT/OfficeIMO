@@ -39,7 +39,7 @@ Recommended additional validation:
 - regenerate the write-stage profile if the report export path changed materially
 - check the snapshot/profile medians and raw samples before publishing performance claims from a single machine
 - recheck `OfficeIMO.Excel\README.md` and `OfficeIMO.Excel\COMPATIBILITY.md`
-- recheck [Docs/reviews/officeimo.excel-epplus-review-2026-04-04.md](reviews/officeimo.excel-epplus-review-2026-04-04.md) for any still-open competitive gaps
+- recheck the "Highest-Priority Gaps" section in `OfficeIMO.Excel\COMPATIBILITY.md`
 - verify package description/README metadata render correctly in the `.csproj`
 - run `dotnet pack` and confirm the expected `.nupkg` artifact is produced
 

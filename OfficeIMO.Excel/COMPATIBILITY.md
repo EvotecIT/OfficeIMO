@@ -53,7 +53,6 @@ It is intentionally honest. "Partial" means usable, not "done".
 - Benchmark harness: [`OfficeIMO.Excel.Benchmarks`](../OfficeIMO.Excel.Benchmarks/)
 - Benchmark artifacts: [`../Docs/benchmarks/README.md`](../Docs/benchmarks/README.md)
 - Compatibility corpus tests: [`../OfficeIMO.Tests/Excel.CompatibilityCorpus.cs`](../OfficeIMO.Tests/Excel.CompatibilityCorpus.cs)
-- EPPlus-focused review: [`Docs/reviews/officeimo.excel-epplus-review-2026-04-04.md`](../Docs/reviews/officeimo.excel-epplus-review-2026-04-04.md)
 - Excel package README: [`README.md`](README.md)
 
 ## Suggested Release-Prep Checks
