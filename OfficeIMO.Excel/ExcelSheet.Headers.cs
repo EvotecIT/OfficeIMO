@@ -34,15 +34,12 @@ namespace OfficeIMO.Excel {
                 int cols = values.GetLength(1);
                 var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
                 var (_, c1, _, _) = A1.ParseRange(a1Used);
-                var headers = new string?[cols];
                 bool anyHeader = false;
                 for (int c = 0; c < cols; c++) {
-                    var hdr = values[0, c]?.ToString();
-                    if (opt.NormalizeHeaders)
-                        hdr = System.Text.RegularExpressions.Regex.Replace(hdr ?? string.Empty, "\\s+", " ").Trim();
-                    headers[c] = hdr;
-                    if (!string.IsNullOrEmpty(hdr))
+                    if (!string.IsNullOrEmpty(ExcelHeaderNameHelper.NormalizeHeader(values[0, c]?.ToString(), opt.NormalizeHeaders))) {
                         anyHeader = true;
+                        break;
+                    }
                 }
 
                 if (!anyHeader) {
@@ -52,10 +49,10 @@ namespace OfficeIMO.Excel {
                     return new Dictionary<string, int>(_headerMapCache, StringComparer.OrdinalIgnoreCase);
                 }
 
+                var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => values[0, c]?.ToString(), opt.NormalizeHeaders);
+
                 for (int c = 0; c < cols; c++) {
-                    var raw = headers[c];
-                    string key = string.IsNullOrEmpty(raw) ? $"Column{c + 1}" : raw!;
-                    map[key] = c1 + c;
+                    map[headers[c]] = c1 + c;
                 }
                 _headerMapCache = map;
                 _headerMapSourceA1 = a1Used;

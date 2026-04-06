@@ -1,5 +1,9 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml;
+using OfficeIMO.Excel.Utilities;
+using System.IO;
+using System.Xml;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -24,8 +28,28 @@ namespace OfficeIMO.Excel {
         /// Opens an Excel file for read-only access.
         /// </summary>
         public static ExcelDocumentReader Open(string path, ExcelReadOptions? options = null) {
-            var doc = SpreadsheetDocument.Open(path, false);
-            return new ExcelDocumentReader(doc, options ?? new ExcelReadOptions(), owns: true);
+            if (path == null) throw new ArgumentNullException(nameof(path));
+            if (!File.Exists(path)) {
+                throw new FileNotFoundException($"File '{path}' doesn't exist.", path);
+            }
+
+            return OpenFromBytes(
+                File.ReadAllBytes(path),
+                options,
+                $"Failed to open '{path}' after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.");
+        }
+
+        /// <summary>
+        /// Opens an Excel workbook from the provided stream for read-only access.
+        /// </summary>
+        public static ExcelDocumentReader Open(Stream stream, ExcelReadOptions? options = null) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+
+            return OpenFromBytes(
+                ReadAllBytes(stream),
+                options,
+                "Failed to open workbook stream after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.");
         }
 
         /// <summary>
@@ -62,6 +86,37 @@ namespace OfficeIMO.Excel {
         public void Dispose() {
             if (_owns)
                 _doc.Dispose();
+        }
+
+        private static ExcelDocumentReader OpenFromBytes(byte[] bytes, ExcelReadOptions? options, string contextMessage) {
+            MemoryStream? normalizedStream = null;
+            try {
+                normalizedStream = new MemoryStream(bytes.Length + 4096);
+                normalizedStream.Write(bytes, 0, bytes.Length);
+                normalizedStream.Position = 0;
+
+                ExcelPackageUtilities.NormalizeContentTypes(normalizedStream, leaveOpen: true);
+                normalizedStream.Position = 0;
+
+                var doc = SpreadsheetDocument.Open(normalizedStream, false);
+                return new ExcelDocumentReader(doc, options ?? new ExcelReadOptions(), owns: true);
+            } catch (Exception ex) when (ex is InvalidDataException || ex is OpenXmlPackageException || ex is XmlException) {
+                normalizedStream?.Dispose();
+                throw new IOException($"{contextMessage} See inner exception for details.", ex);
+            } catch {
+                normalizedStream?.Dispose();
+                throw;
+            }
+        }
+
+        private static byte[] ReadAllBytes(Stream stream) {
+            if (stream.CanSeek) {
+                stream.Seek(0, SeekOrigin.Begin);
+            }
+
+            using var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+            return buffer.ToArray();
         }
     }
 }

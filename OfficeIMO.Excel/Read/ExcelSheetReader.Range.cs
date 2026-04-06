@@ -65,10 +65,9 @@ namespace OfficeIMO.Excel {
 
             // Columns
             if (headersInFirstRow && rows > 0) {
+                var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => values[0, c]?.ToString(), _opt.NormalizeHeaders);
                 for (int c = 0; c < cols; c++) {
-                    var hdr = values[0, c]?.ToString() ?? $"Column{c + 1}";
-                    if (_opt.NormalizeHeaders) hdr = RegexNormalize(hdr);
-                    dt.Columns.Add(hdr, typeof(object));
+                    dt.Columns.Add(headers[c], typeof(object));
                 }
             } else {
                 for (int c = 0; c < cols; c++) dt.Columns.Add($"Column{c + 1}", typeof(object));
@@ -93,21 +92,13 @@ namespace OfficeIMO.Excel {
             int cols = values.GetLength(1);
             if (rows == 0 || cols == 0) yield break;
 
-            var headers = new string[cols];
-            for (int c = 0; c < cols; c++) {
-                var hdr = values[0, c]?.ToString() ?? $"Column{c + 1}";
-                headers[c] = _opt.NormalizeHeaders ? RegexNormalize(hdr) : hdr;
-            }
+            var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => values[0, c]?.ToString(), _opt.NormalizeHeaders);
 
             for (int r = 1; r < rows; r++) {
                 var dict = new Dictionary<string, object?>(cols, System.StringComparer.OrdinalIgnoreCase);
                 for (int c = 0; c < cols; c++) dict[headers[c]] = values[r, c];
                 yield return dict;
             }
-        }
-
-        private static string RegexNormalize(string text) {
-            return System.Text.RegularExpressions.Regex.Replace(text ?? string.Empty, "\\s+", " ").Trim();
         }
 
         private void SnapshotCellsInto(List<CellRaw> buffer, int r1, int c1, int r2, int c2) {

@@ -85,6 +85,12 @@ sheet.InsertObjects(people,
     ("Status", p => p.Status));
 ```
 
+### Proof And Compatibility
+
+- benchmark harness lives in `OfficeIMO.Excel.Benchmarks`
+- current competitive coverage matrix lives in `COMPATIBILITY.md`
+- release steps live in `../Docs/officeimo.excel.release-checklist.md`
+
 
 ## Quick Read Patterns
 
@@ -109,6 +115,9 @@ foreach (var row in s1.Rows()) {
 // Read a specific range and map to POCOs
 var people = s1.RowsAs<Person>("A1:C10").ToList();
 
+// Friendly headers and explicit aliases are supported too
+var summaries = s1.RowsAs<StatusSummary>("E1:G10").ToList();
+
 // Editable rows: read → edit → save (first row = headers)
 foreach (var row in s1.RowsObjects()) {
     if (row.Get<int>("Value") == 10) {
@@ -121,6 +130,17 @@ public sealed class Person {
     public string Name { get; set; }
     public int    Value { get; set; }
     public string Status { get; set; }
+}
+
+public sealed class StatusSummary {
+    [DisplayName("First Name")]
+    public string GivenName { get; set; }
+
+    [DataMember(Name = "Status Code")]
+    public string Status { get; set; }
+
+    [ExcelColumn("Total %", "Total Percent")]
+    public int CompletionPercent { get; set; }
 }
 ```
 

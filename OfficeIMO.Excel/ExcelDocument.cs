@@ -1686,33 +1686,46 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (this._spreadSheetDocument != null) {
-                try {
-                    if (this._spreadSheetDocument.AutoSave && this._spreadSheetDocument.FileOpenAccess != FileAccess.Read) {
-                        WorkbookRoot.Save();
+            Exception? persistenceFailure = null;
+
+            try {
+                if (this._spreadSheetDocument != null) {
+                    try {
+                        if (this._spreadSheetDocument.AutoSave && this._spreadSheetDocument.FileOpenAccess != FileAccess.Read) {
+                            WorkbookRoot.Save();
+                        }
+
+                        await Task.Run(() => this._spreadSheetDocument.Dispose()).ConfigureAwait(false);
+                    } catch (Exception ex) {
+                        persistenceFailure = ex;
+                    } finally {
+                        this._spreadSheetDocument = null!;
                     }
-
-                    await Task.Run(() => this._spreadSheetDocument.Dispose()).ConfigureAwait(false);
-                } catch {
-                    // ignored
                 }
-                this._spreadSheetDocument = null!;
-            }
 
-            if (_ownedOpenStream != null) {
                 try {
-                    _ownedOpenStream.Dispose();
-                } catch {
-                    // ignored
+                    PersistPackageToSourceIfNeeded();
+                } catch (Exception ex) {
+                    persistenceFailure ??= ex;
                 }
-                _ownedOpenStream = null;
+            } finally {
+                if (_ownedOpenStream != null) {
+                    try {
+                        _ownedOpenStream.Dispose();
+                    } catch {
+                        // ignored
+                    }
+                    _ownedOpenStream = null;
+                }
+
+                _lock?.Dispose();
+                _disposed = true;
+                GC.SuppressFinalize(this);
             }
 
-            PersistPackageToSourceIfNeeded();
-
-            _lock?.Dispose();
-            _disposed = true;
-            GC.SuppressFinalize(this);
+            if (persistenceFailure != null) {
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(persistenceFailure).Throw();
+            }
         }
 
         private void PersistPackageToSourceIfNeeded() {
@@ -1726,8 +1739,6 @@ namespace OfficeIMO.Excel {
                 } else if (_copyPackageToFilePathOnDispose && !string.IsNullOrEmpty(FilePath)) {
                     PersistPackageToFilePath();
                 }
-            } catch {
-                // ignored
             } finally {
                 DisposeStream(_packageStream);
 

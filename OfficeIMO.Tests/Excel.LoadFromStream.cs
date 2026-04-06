@@ -11,6 +11,48 @@ namespace OfficeIMO.Tests
 {
     public partial class Excel
     {
+        private sealed class ThrowOnPersistMemoryStream : MemoryStream
+        {
+            private bool _initialized;
+
+            public ThrowOnPersistMemoryStream(byte[] bytes)
+            {
+                Write(bytes, 0, bytes.Length);
+                Position = 0;
+                _initialized = true;
+            }
+
+            public override void SetLength(long value)
+            {
+                if (_initialized)
+                {
+                    throw new IOException("Simulated stream persistence failure.");
+                }
+
+                base.SetLength(value);
+            }
+
+            public override void Write(byte[] buffer, int offset, int count)
+            {
+                if (_initialized)
+                {
+                    throw new IOException("Simulated stream persistence failure.");
+                }
+
+                base.Write(buffer, offset, count);
+            }
+
+            public override void Flush()
+            {
+                if (_initialized)
+                {
+                    throw new IOException("Simulated stream persistence failure.");
+                }
+
+                base.Flush();
+            }
+        }
+
         [Fact]
         public void Load_FromMemoryStream_PreservesSharedStringsAndProperties()
         {
@@ -396,6 +438,40 @@ namespace OfficeIMO.Tests
             using var reloaded = ExcelDocument.Load(source);
             Assert.True(reloaded.Sheets[0].TryGetCellText(1, 1, out var value));
             Assert.Equal("Saved Async", value);
+        }
+
+        [Fact]
+        public void Load_FromMemoryStream_WithAutoSave_ThrowsWhenPersistingBackFails()
+        {
+            string filePath = Path.Combine(_directoryWithFiles, "LoadFromStreamAutoSaveFailure.xlsx");
+
+            try
+            {
+                using (var document = ExcelDocument.Create(filePath))
+                {
+                    var sheet = document.AddWorkSheet("AutoSave");
+                    sheet.CellValue(1, 1, "Original");
+                    document.Save();
+                }
+
+                var bytes = File.ReadAllBytes(filePath);
+                using var memory = new ThrowOnPersistMemoryStream(bytes);
+
+                var ex = Assert.Throws<IOException>(() =>
+                {
+                    using var document = ExcelDocument.Load(memory, readOnly: false, autoSave: true);
+                    document.Sheets[0].CellValue(1, 1, "Updated");
+                });
+
+                Assert.Contains("Simulated stream persistence failure.", ex.Message);
+            }
+            finally
+            {
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                }
+            }
         }
     }
 }

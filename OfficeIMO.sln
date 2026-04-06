@@ -188,6 +188,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.MarkdownRenderer.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.MarkdownRenderer.Wpf.Tests", "OfficeIMO.MarkdownRenderer.Wpf.Tests\OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj", "{2B96E113-6E42-4C00-8AFA-DF9E7AFD60C4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Excel.Benchmarks", "OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj", "{6460DF40-BA2A-4999-814A-9AAB95279F48}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -606,6 +608,18 @@ Global
 		{2B96E113-6E42-4C00-8AFA-DF9E7AFD60C4}.Release|x64.Build.0 = Release|Any CPU
 		{2B96E113-6E42-4C00-8AFA-DF9E7AFD60C4}.Release|x86.ActiveCfg = Release|Any CPU
 		{2B96E113-6E42-4C00-8AFA-DF9E7AFD60C4}.Release|x86.Build.0 = Release|Any CPU
+		{6460DF40-BA2A-4999-814A-9AAB95279F48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6460DF40-BA2A-4999-814A-9AAB95279F48}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6460DF40-BA2A-4999-814A-9AAB95279F48}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{6460DF40-BA2A-4999-814A-9AAB95279F48}.Debug|x64.Build.0 = Debug|Any CPU
+		{6460DF40-BA2A-4999-814A-9AAB95279F48}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6460DF40-BA2A-4999-814A-9AAB95279F48}.Debug|x86.Build.0 = Debug|Any CPU
+		{6460DF40-BA2A-4999-814A-9AAB95279F48}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6460DF40-BA2A-4999-814A-9AAB95279F48}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6460DF40-BA2A-4999-814A-9AAB95279F48}.Release|x64.ActiveCfg = Release|Any CPU
+		{6460DF40-BA2A-4999-814A-9AAB95279F48}.Release|x64.Build.0 = Release|Any CPU
+		{6460DF40-BA2A-4999-814A-9AAB95279F48}.Release|x86.ActiveCfg = Release|Any CPU
+		{6460DF40-BA2A-4999-814A-9AAB95279F48}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

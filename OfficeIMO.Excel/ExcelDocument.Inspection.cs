@@ -680,7 +680,7 @@ namespace OfficeIMO.Excel {
 
             internal bool IsDateLike(uint numberFormatId) {
                 return IsBuiltInDate(numberFormatId)
-                    || (_numberFormats.TryGetValue(numberFormatId, out var code) && LooksLikeDateFormat(code));
+                    || (_numberFormats.TryGetValue(numberFormatId, out var code) && ExcelNumberFormatClassifier.LooksLikeDateFormat(code));
             }
 
             private static bool IsBuiltInDate(uint id) {
@@ -688,14 +688,6 @@ namespace OfficeIMO.Excel {
                     or 27 or 30 or 36 or 45 or 46 or 47;
             }
 
-            private static bool LooksLikeDateFormat(string code) {
-                var lower = code.ToLowerInvariant();
-                if (lower.IndexOf('d') >= 0 || lower.IndexOf('y') >= 0 || lower.IndexOf('h') >= 0 || lower.IndexOf('s') >= 0) {
-                    return true;
-                }
-
-                return lower.Contains('m') && (lower.Contains('d') || lower.Contains('y') || lower.Contains('h'));
-            }
         }
     }
 }

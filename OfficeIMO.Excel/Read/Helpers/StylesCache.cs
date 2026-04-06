@@ -30,7 +30,7 @@ namespace OfficeIMO.Excel {
                 uint idx = 0;
                 foreach (var cf in xfs.Elements<CellFormat>()) {
                     var nId = (uint)(cf.NumberFormatId?.Value ?? 0);
-                    bool dateLike = IsBuiltInDate(nId) || (nf.TryGetValue(nId, out var code) && LooksLikeDateFormat(code));
+                    bool dateLike = IsBuiltInDate(nId) || (nf.TryGetValue(nId, out var code) && ExcelNumberFormatClassifier.LooksLikeDateFormat(code));
                     if (dateLike) cache._dateStyleIdx.Add(idx);
                     idx++;
                 }
@@ -40,15 +40,6 @@ namespace OfficeIMO.Excel {
         }
 
         public bool IsDateLike(uint styleIndex) => _dateStyleIdx.Contains(styleIndex);
-
-        private static bool LooksLikeDateFormat(string code) {
-            var lower = code.ToLowerInvariant();
-            if (lower.IndexOf('d') >= 0 || lower.IndexOf('y') >= 0 || lower.IndexOf('h') >= 0 || lower.IndexOf('s') >= 0)
-                return true;
-            if (lower.Contains('m') && (lower.Contains('d') || lower.Contains('y') || lower.Contains('h')))
-                return true;
-            return false;
-        }
     }
 }
 
