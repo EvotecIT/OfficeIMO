@@ -14,9 +14,9 @@ The figures below are representative performance snapshots for common OfficeIMO 
 
 The committed Excel snapshots in this repo are intentionally honest:
 
-- `OfficeIMO.Excel` has improved materially on correctness and ergonomics, and the latest Excel pass now puts the sampled 2,500-row report-style write path slightly ahead of `ClosedXML` on this machine.
-- The current write-stage profile no longer shows `AutoFitColumns()` as the runaway hot spot. `InsertObjects()` is now the largest staged cost, while `AutoFitColumns()` has dropped sharply after repeated-value and numeric/date-like measurement shortcuts.
-- The committed Excel JSON artifacts now include raw samples and medians, so outliers are visible instead of being flattened into a single friendly-looking average.
+- `OfficeIMO.Excel` writes the sampled 2,500-row report scenario slightly faster than `ClosedXML` on the measured machine in the current committed snapshot.
+- The current write-stage profile shows `InsertObjects()` as the largest staged cost, with `AutoFitColumns()` reduced to a smaller share of the write path.
+- The committed Excel JSON artifacts include raw samples and medians, so outliers remain visible instead of being flattened into a single average.
 
 ## How to Read These Numbers
 

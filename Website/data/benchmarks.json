@@ -21,43 +21,43 @@
       "name": "Excel: Write report (2,500 rows)",
       "library": "OfficeIMO.Excel",
       "result": "258.0 ms avg",
-      "notes": "2026-04-05 refreshed 5-sample snapshot after repeated-value auto-fit deduplication, a conservative numeric/date-like auto-fit fast path, and array-backed InsertObjects buffers. Median 244.9 ms. Insert objects, table, and AutoFit on a single worksheet."
+      "notes": "5-sample snapshot dated 2026-04-05. Median 244.9 ms. Insert objects, table, and AutoFit on a single worksheet."
     },
     {
       "name": "Excel: Write report (2,500 rows)",
       "library": "ClosedXML",
       "result": "273.3 ms avg",
-      "notes": "2026-04-05 refreshed 5-sample snapshot. Median 323.4 ms. Insert table and adjust columns on a single worksheet."
+      "notes": "5-sample snapshot dated 2026-04-05. Median 323.4 ms. Insert table and adjust columns on a single worksheet."
     },
     {
       "name": "Excel: Read objects (2,500 rows)",
       "library": "OfficeIMO.Excel",
       "result": "118.3 ms avg",
-      "notes": "2026-04-05 refreshed 5-sample snapshot. Median 120.6 ms. Reader path materializing dictionary-style rows."
+      "notes": "5-sample snapshot dated 2026-04-05. Median 120.6 ms. Reader path materializing dictionary-style rows."
     },
     {
       "name": "Excel: Read DataTable (2,500 rows)",
       "library": "OfficeIMO.Excel",
       "result": "139.1 ms avg",
-      "notes": "2026-04-05 refreshed 5-sample snapshot. Median 140.2 ms. Reader path materializing a DataTable from the same workbook."
+      "notes": "5-sample snapshot dated 2026-04-05. Median 140.2 ms. Reader path materializing a DataTable from the same workbook."
     },
     {
       "name": "Excel: Read rows (2,500 rows)",
       "library": "ClosedXML",
       "result": "99.9 ms avg",
-      "notes": "2026-04-05 refreshed 5-sample snapshot. Median 104.8 ms. Worksheet row iteration over the same workbook payload."
+      "notes": "5-sample snapshot dated 2026-04-05. Median 104.8 ms. Worksheet row iteration over the same workbook payload."
     },
     {
       "name": "Excel: Load/edit/save (2,500 rows)",
       "library": "OfficeIMO.Excel",
       "result": "123.6 ms avg",
-      "notes": "2026-04-05 refreshed 5-sample snapshot. Median 123.4 ms. Load workbook, add review column, save to memory."
+      "notes": "5-sample snapshot dated 2026-04-05. Median 123.4 ms. Load workbook, add review column, save to memory."
     },
     {
       "name": "Excel: Load/edit/save (2,500 rows)",
       "library": "ClosedXML",
       "result": "149.9 ms avg",
-      "notes": "2026-04-05 refreshed 5-sample snapshot. Median 135.5 ms. Load workbook, add review column, save to memory."
+      "notes": "5-sample snapshot dated 2026-04-05. Median 135.5 ms. Load workbook, add review column, save to memory."
     },
     {
       "name": "Markdown: Build 500 blocks",
