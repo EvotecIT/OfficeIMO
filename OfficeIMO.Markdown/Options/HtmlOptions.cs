@@ -83,6 +83,16 @@ public sealed class HtmlOptions {
     /// </summary>
     public MarkdownFootnoteSectionHtmlRenderer? FootnoteSectionHtmlRenderer { get; set; }
     /// <summary>
+    /// When <c>true</c>, task lists render using GitHub/cmark-gfm style HTML without OfficeIMO task-list CSS classes.
+    /// Default: <c>false</c>.
+    /// </summary>
+    public bool GitHubTaskListHtml { get; set; } = false;
+    /// <summary>
+    /// When <c>true</c>, footnote references and sections render using GitHub/cmark-gfm style ids, data attributes,
+    /// numbering by reference order, and omission of undefined/unused footnotes. Default: <c>false</c>.
+    /// </summary>
+    public bool GitHubFootnoteHtml { get; set; } = false;
+    /// <summary>
     /// Optional block render extensions that can override HTML emitted for specific block types.
     /// Later registrations win when block types overlap.
     /// </summary>

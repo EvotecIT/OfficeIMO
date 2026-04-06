@@ -86,9 +86,16 @@ public sealed class ListItem : MarkdownObject {
 
     internal string RenderHtml(bool forceLoose) {
         bool renderLoose = forceLoose || ForceLoose;
-        string checkbox = IsTask ? "<input class=\"task-list-item-checkbox\" type=\"checkbox\" disabled" + (Checked ? " checked" : string.Empty) + "> " : string.Empty;
+        string checkbox = BuildCheckboxHtml();
         if (!renderLoose && AdditionalParagraphs.Count == 0 && Children.Count == 0) {
             return checkbox + Content.RenderHtml();
+        }
+
+        if (renderLoose
+            && Content.Nodes.Count == 0
+            && AdditionalParagraphs.Count == 0
+            && Children.Count == 0) {
+            return checkbox;
         }
 
         // Tight list behavior: when there is exactly one paragraph, keep it inline even if child blocks exist.
@@ -120,6 +127,22 @@ public sealed class ListItem : MarkdownObject {
             sb.Append(ChildBlocks[i].RenderHtml());
         }
         return sb.ToString();
+    }
+
+    private string BuildCheckboxHtml() {
+        if (!IsTask) {
+            return string.Empty;
+        }
+
+        if (HtmlRenderContext.Options?.GitHubTaskListHtml == true) {
+            return Checked
+                ? "<input type=\"checkbox\" checked=\"\" disabled=\"\" /> "
+                : "<input type=\"checkbox\" disabled=\"\" /> ";
+        }
+
+        return "<input class=\"task-list-item-checkbox\" type=\"checkbox\" disabled"
+               + (Checked ? " checked" : string.Empty)
+               + "> ";
     }
 
     internal bool TryAbsorbTrailingParagraphBlocks(IReadOnlyList<IMarkdownBlock> trailingBlocks) {
@@ -173,7 +196,7 @@ public sealed class ListItem : MarkdownObject {
 
                     if (blockChildren[i] is IMarkdownBlock block
                         && SyntaxChildren[i].AssociatedObject is MarkdownObject markdownObject
-                        && markdownObject.Document == null) {
+                        && (!ReferenceEquals(markdownObject, block) || markdownObject.Document == null)) {
                         children.Add(MarkdownBlockSyntaxBuilder.BuildBlock(block, SyntaxChildren[i].SourceSpan));
                         continue;
                     }

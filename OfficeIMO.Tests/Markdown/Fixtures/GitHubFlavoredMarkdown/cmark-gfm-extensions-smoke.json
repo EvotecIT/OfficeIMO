@@ -1,0 +1,113 @@
+[
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Tables",
+    "topLevelKinds": ["Table"],
+    "markdown": "| abc | def |\n| --- | --- |\n| ghi | jkl |\n| mno | pqr |\n",
+    "html": "<table>\n<thead>\n<tr>\n<th>abc</th>\n<th>def</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>ghi</td>\n<td>jkl</td>\n</tr>\n<tr>\n<td>mno</td>\n<td>pqr</td>\n</tr>\n</tbody>\n</table>\n",
+    "syntaxAssertions": [
+      {
+        "description": "table body content resolves through row and cell nodes",
+        "line": 3,
+        "column": 4,
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "ghi",
+        "expectedDeepestSpan": { "startLine": 3, "startColumn": 3, "endLine": 3, "endColumn": 5 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 3, "startColumn": 3, "endLine": 3, "endColumn": 5 }
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Strikethroughs",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "A proper ~strikethrough~.\n",
+    "html": "<p>A proper <del>strikethrough</del>.</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "single-tilde GFM strikethrough produces an inline strikethrough node",
+        "line": 1,
+        "column": 11,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineStrikethrough", "InlineText"],
+        "expectedDeepestLiteral": "strikethrough",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 11, "endLine": 1, "endColumn": 23 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 25 }
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": ": http://google.com https://google.com\n",
+    "html": "<p>: <a href=\"http://google.com\">http://google.com</a> <a href=\"https://google.com\">https://google.com</a></p>\n"
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Task lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- [ ] foo\n- [x] bar\n",
+    "html": "<ul>\n<li><input type=\"checkbox\" disabled=\"\" /> foo</li>\n<li><input type=\"checkbox\" checked=\"\" disabled=\"\" /> bar</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "task list text stays nested under list item paragraph nodes",
+        "line": 2,
+        "column": 8,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "bar",
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 7, "endLine": 2, "endColumn": 9 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 7, "endLine": 2, "endColumn": 9 }
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Footnotes",
+    "topLevelKinds": ["Paragraph", "Paragraph", "Paragraph", "Paragraph", "FootnoteDefinition", "FootnoteDefinition", "FootnoteDefinition", "Paragraph", "FootnoteDefinition", "FootnoteDefinition"],
+    "markdown": "This is some text![^1].\nOther text.[^footnote].\n\nHere's a thing[^other-note].\n\nAnd another thing[^codeblock-note].\n\nThis doesn't have a referent[^nope].\n\n[^other-note]: no code block here (spaces are stripped away)\n[^codeblock-note]:\n        this is now a code block (8 spaces indentation)\n[^1]: Some *bolded* footnote definition.\nHi!\n[^footnote]:\n    > Blockquotes can be in a footnote.\n\n        as well as code blocks\n\n    or, naturally, simple paragraphs.\n[^unused]: This is unused.\n",
+    "html": "<p>This is some text!<sup class=\"footnote-ref\"><a href=\"#fn-1\" id=\"fnref-1\" data-footnote-ref>1</a></sup>.\nOther text.<sup class=\"footnote-ref\"><a href=\"#fn-footnote\" id=\"fnref-footnote\" data-footnote-ref>2</a></sup>.</p>\n<p>Here's a thing<sup class=\"footnote-ref\"><a href=\"#fn-other-note\" id=\"fnref-other-note\" data-footnote-ref>3</a></sup>.</p>\n<p>And another thing<sup class=\"footnote-ref\"><a href=\"#fn-codeblock-note\" id=\"fnref-codeblock-note\" data-footnote-ref>4</a></sup>.</p>\n<p>This doesn't have a referent[^nope].</p>\n<p>Hi!</p>\n<section class=\"footnotes\" data-footnotes><ol><li id=\"fn-1\"><p>Some <em>bolded</em> footnote definition. <a href=\"#fnref-1\" class=\"footnote-backref\" data-footnote-backref data-footnote-backref-idx=\"1\" aria-label=\"Back to reference 1\">↩</a></p></li><li id=\"fn-footnote\"><blockquote><p>Blockquotes can be in a footnote.</p></blockquote><pre><code>as well as code blocks\n</code></pre><p>or, naturally, simple paragraphs. <a href=\"#fnref-footnote\" class=\"footnote-backref\" data-footnote-backref data-footnote-backref-idx=\"2\" aria-label=\"Back to reference 2\">↩</a></p></li><li id=\"fn-other-note\"><p>no code block here (spaces are stripped away) <a href=\"#fnref-other-note\" class=\"footnote-backref\" data-footnote-backref data-footnote-backref-idx=\"3\" aria-label=\"Back to reference 3\">↩</a></p></li><li id=\"fn-codeblock-note\"><pre><code>this is now a code block (8 spaces indentation)\n</code></pre><a href=\"#fnref-codeblock-note\" class=\"footnote-backref\" data-footnote-backref data-footnote-backref-idx=\"4\" aria-label=\"Back to reference 4\">↩</a></li></ol></section>",
+    "syntaxAssertions": [
+      {
+        "description": "defined footnote references render as inline footnote refs in the paragraph path",
+        "line": 1,
+        "column": 20,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineFootnoteRef"],
+        "expectedDeepestKind": "InlineFootnoteRef",
+        "expectedDeepestLiteral": "1",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "source": "github/cmark-gfm test/extensions.txt",
+    "section": "Interop",
+    "topLevelKinds": ["Table"],
+    "markdown": "| a | b |\n| --- | --- |\n| https://github.com www.github.com | http://pokemon.com |\n",
+    "html": "<table>\n<thead>\n<tr>\n<th>a</th>\n<th>b</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td><a href=\"https://github.com\">https://github.com</a> <a href=\"http://www.github.com\">www.github.com</a></td>\n<td><a href=\"http://pokemon.com\">http://pokemon.com</a></td>\n</tr>\n</tbody>\n</table>\n",
+    "syntaxAssertions": [
+      {
+        "description": "autolinks inside table cells keep inline link nodes inside the cell paragraph",
+        "line": 3,
+        "column": 25,
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineLink"],
+        "expectedDeepestKind": "InlineLink",
+        "expectedDeepestLiteral": "http://www.github.com",
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 3, "startColumn": 3, "endLine": 3, "endColumn": 35 }
+      },
+      {
+        "description": "independent table cells keep their own link structure",
+        "line": 3,
+        "column": 44,
+        "expectedPathKinds": ["Document", "Table", "TableRow", "TableCell", "Paragraph", "InlineLink"],
+        "expectedDeepestKind": "InlineLink",
+        "expectedDeepestLiteral": "http://pokemon.com",
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 3, "startColumn": 39, "endLine": 3, "endColumn": 56 }
+      }
+    ]
+  }
+]

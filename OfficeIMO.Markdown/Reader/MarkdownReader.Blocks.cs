@@ -136,6 +136,22 @@ public static partial class MarkdownReader {
         return null;
     }
 
+    private static string RemoveSingleTrailingLineEnding(string text) {
+        if (string.IsNullOrEmpty(text)) {
+            return string.Empty;
+        }
+
+        if (text.EndsWith("\r\n", StringComparison.Ordinal)) {
+            return text.Substring(0, text.Length - 2);
+        }
+
+        if (text[text.Length - 1] == '\n' || text[text.Length - 1] == '\r') {
+            return text.Substring(0, text.Length - 1);
+        }
+
+        return text;
+    }
+
     private static bool FencedBlockExtensionHandlesLanguage(MarkdownFencedBlockExtension extension, string language) {
         var languages = extension.Languages;
         if (languages == null || languages.Count == 0) {
@@ -183,11 +199,22 @@ public static partial class MarkdownReader {
         public int? LinkTitleLength { get; } = linkTitleLength;
     }
 
-    private static bool IsImageLine(string line) => TryParseImage(line, out _, out _, out _);
+    private static bool IsImageLine(string line) {
+        ImageBlock image;
+        string? sizeSpec;
+        MarkdownImageSyntaxRanges ranges;
+        return TryParseImage(line, out image, out sizeSpec, out ranges);
+    }
     private static bool TryParseImage(string line, out ImageBlock image, out string? sizeSpec) =>
-        TryParseImage(line, out image, out sizeSpec, out _);
+        TryParseImage(line, new MarkdownReaderOptions(), new MarkdownReaderState(), out image, out sizeSpec, out _);
 
-    private static bool TryParseImage(string line, out ImageBlock image, out string? sizeSpec, out MarkdownImageSyntaxRanges ranges) {
+    private static bool TryParseImage(string line, out ImageBlock image, out string? sizeSpec, out MarkdownImageSyntaxRanges ranges) =>
+        TryParseImage(line, new MarkdownReaderOptions(), new MarkdownReaderState(), out image, out sizeSpec, out ranges);
+
+    private static bool TryParseImage(string line, MarkdownReaderOptions options, MarkdownReaderState state, out ImageBlock image, out string? sizeSpec) =>
+        TryParseImage(line, options, state, out image, out sizeSpec, out _);
+
+    private static bool TryParseImage(string line, MarkdownReaderOptions options, MarkdownReaderState state, out ImageBlock image, out string? sizeSpec, out MarkdownImageSyntaxRanges ranges) {
         image = null!;
         sizeSpec = null;
         ranges = default;
@@ -220,7 +247,8 @@ public static partial class MarkdownReader {
             titleStart = null;
             titleLength = null;
         }
-        image = new ImageBlock(src, alt, title);
+        string plainAlt = ExtractImageAltPlainText(alt, options, state);
+        image = new ImageBlock(src, alt, title, plainAlt: plainAlt);
         ranges = new MarkdownImageSyntaxRanges(
             altStart: 2,
             altLength: altEnd - 2,
@@ -258,9 +286,15 @@ public static partial class MarkdownReader {
     }
 
     private static bool TryParseLinkedImageBlock(string line, out ImageBlock image, out string? sizeSpec) =>
-        TryParseLinkedImageBlock(line, out image, out sizeSpec, out _);
+        TryParseLinkedImageBlock(line, new MarkdownReaderOptions(), new MarkdownReaderState(), out image, out sizeSpec, out _);
 
-    private static bool TryParseLinkedImageBlock(string line, out ImageBlock image, out string? sizeSpec, out MarkdownImageSyntaxRanges ranges) {
+    private static bool TryParseLinkedImageBlock(string line, out ImageBlock image, out string? sizeSpec, out MarkdownImageSyntaxRanges ranges) =>
+        TryParseLinkedImageBlock(line, new MarkdownReaderOptions(), new MarkdownReaderState(), out image, out sizeSpec, out ranges);
+
+    private static bool TryParseLinkedImageBlock(string line, MarkdownReaderOptions options, MarkdownReaderState state, out ImageBlock image, out string? sizeSpec) =>
+        TryParseLinkedImageBlock(line, options, state, out image, out sizeSpec, out _);
+
+    private static bool TryParseLinkedImageBlock(string line, MarkdownReaderOptions options, MarkdownReaderState state, out ImageBlock image, out string? sizeSpec, out MarkdownImageSyntaxRanges ranges) {
         image = null!;
         sizeSpec = null;
         ranges = default;
@@ -291,7 +325,8 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        image = new ImageBlock(src, alt, title) {
+        string plainAlt = ExtractImageAltPlainText(alt, options, state);
+        image = new ImageBlock(src, alt, title, plainAlt: plainAlt) {
             LinkUrl = href,
             LinkTitle = hrefTitle
         };
@@ -934,8 +969,13 @@ public static partial class MarkdownReader {
     }
 
     private static bool IsParagraphInterruptingOrderedListLine(string line) {
-        if (!IsOrderedListLine(line, out _, out int number, out _)) return false;
-        return number == 1;
+        if (!IsOrderedListLine(line, out _, out int number, out string content)) return false;
+        return number == 1 && !string.IsNullOrWhiteSpace(content);
+    }
+
+    private static bool IsParagraphInterruptingUnorderedListLine(string line) {
+        return IsUnorderedListLine(line, out _, out _, out string content)
+               && !string.IsNullOrWhiteSpace(content);
     }
 
     private static bool LastCollectedLinePreservesIndentedContinuation(List<string> collected) {
@@ -977,6 +1017,28 @@ public static partial class MarkdownReader {
 
         while (k < lines.Length) {
             var line = lines[k] ?? string.Empty;
+            bool collectingLeadFencedCode = TryGetOpenLeadFencedCode(collected, out _, out _, out _);
+
+            if (collectingLeadFencedCode) {
+                if (string.IsNullOrWhiteSpace(line)) {
+                    collected.Add(string.Empty);
+                    sourceLines?.Add(new MarkdownSourceLineSlice(string.Empty, absoluteLineOffset + k + 1, 1));
+                    k++;
+                    continue;
+                }
+
+                int fencedIndentColumns = CountLeadingIndentColumns(line);
+                if (fencedIndentColumns < continuationIndent) {
+                    break;
+                }
+
+                string fencedContent = StripLeadingIndentColumns(line, continuationIndent);
+                int fencedStartColumn = continuationIndent + 1;
+                sourceLines?.Add(new MarkdownSourceLineSlice(fencedContent, absoluteLineOffset + k + 1, fencedStartColumn));
+                collected.Add(fencedContent);
+                k++;
+                continue;
+            }
 
             // Stop before the next list item (including nested items).
             if (IsUnorderedListLine(line, out _, out _, out _, out _) ||
@@ -1016,6 +1078,10 @@ public static partial class MarkdownReader {
             }
 
             if (string.IsNullOrWhiteSpace(line)) {
+                if (collected.Count == 1 && string.IsNullOrWhiteSpace(collected[0])) {
+                    break;
+                }
+
                 // Keep blank lines only if followed by an indented continuation line; otherwise end item.
                 int peek = k + 1;
                 if (peek >= lines.Length) break;
@@ -1062,6 +1128,32 @@ public static partial class MarkdownReader {
         return collected;
     }
 
+    private static bool TryGetOpenLeadFencedCode(
+        IReadOnlyList<string>? collected,
+        out string language,
+        out char fenceChar,
+        out int fenceLength) {
+        language = string.Empty;
+        fenceChar = '\0';
+        fenceLength = 0;
+
+        if (collected == null || collected.Count == 0) {
+            return false;
+        }
+
+        if (!IsCodeFenceOpen(collected[0] ?? string.Empty, out language, out fenceChar, out fenceLength)) {
+            return false;
+        }
+
+        for (int i = 1; i < collected.Count; i++) {
+            if (IsCodeFenceClose(collected[i] ?? string.Empty, fenceChar, fenceLength)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private static bool TryNormalizeListLazyContinuationLine(IReadOnlyList<string>? lines, int index, MarkdownReaderOptions options, bool breakOnAnyOrderedListLine, out string normalized) {
         var source = lines != null && index >= 0 && index < lines.Count ? (lines[index] ?? string.Empty) : string.Empty;
         normalized = source;
@@ -1097,7 +1189,11 @@ public static partial class MarkdownReader {
         if (indent < continuationIndent) return false;
 
         string first = StripLeadingIndentColumns(line, continuationIndent);
-        if (!IsCodeFenceOpen(first, out string language, out char fenceChar, out int fenceLen)) return false;
+        int openingFenceIndent = CountLeadingIndentColumns(first);
+        if (openingFenceIndent > 3) return false;
+
+        string openingFence = StripLeadingIndentColumns(first, openingFenceIndent);
+        if (!IsCodeFenceOpen(openingFence, out string language, out char fenceChar, out int fenceLen)) return false;
 
         int j = index + 1;
         var code = new StringBuilder();
@@ -1106,11 +1202,15 @@ public static partial class MarkdownReader {
             int ind = CountLeadingIndentColumns(raw);
             string sliced = ind >= continuationIndent ? StripLeadingIndentColumns(raw, continuationIndent) : raw.TrimStart();
             if (IsCodeFenceClose(sliced, fenceChar, fenceLen)) { j++; break; }
+            int contentIndentToStrip = Math.Min(openingFenceIndent, CountLeadingIndentColumns(sliced));
+            if (contentIndentToStrip > 0) {
+                sliced = StripLeadingIndentColumns(sliced, contentIndentToStrip);
+            }
             code.AppendLine(sliced);
             j++;
         }
 
-        var content = code.ToString().TrimEnd('\r', '\n');
+        var content = RemoveSingleTrailingLineEnding(code.ToString());
         string? caption = null;
         // Optional caption line (indented like other nested content)
         if (j < lines.Length) {
@@ -1158,7 +1258,7 @@ public static partial class MarkdownReader {
             j++;
         }
 
-        block = new CodeBlock(string.Empty, sb.ToString().TrimEnd('\r', '\n'), isFenced: false);
+        block = new CodeBlock(string.Empty, RemoveSingleTrailingLineEnding(sb.ToString()), isFenced: false);
         index = j;
         return true;
     }
@@ -1512,7 +1612,15 @@ public static partial class MarkdownReader {
 
     private static void AddListItemLeadSyntaxNodes(ListItem item, List<string> lines, int lineOffset, MarkdownReaderOptions options, MarkdownReaderState? state, List<MarkdownSourceLineSlice>? sourceLines = null) {
         if (item == null || lines == null || lines.Count == 0) return;
+        if (item.SyntaxChildren.Count > 0) return;
         int absoluteLineOffset = (state?.SourceLineOffset ?? 0) + lineOffset;
+
+        if (TryParseListItemLeadBlockSyntaxNodes(lines, lineOffset, options, state, sourceLines, out var leadBlockSyntax)) {
+            for (int i = 0; i < leadBlockSyntax.Count; i++) {
+                item.SyntaxChildren.Add(leadBlockSyntax[i]);
+            }
+            return;
+        }
 
         if (TryParseSetextHeadingParagraphLines(lines, options, out int level, out string headingText)) {
             item.SyntaxChildren.Add(new MarkdownSyntaxNode(
@@ -1667,6 +1775,10 @@ public static partial class MarkdownReader {
     }
 
     private static ListItem CreateListItemFromLeadLines(List<string> lines, bool isTask, bool done, MarkdownReaderOptions options, MarkdownReaderState? state, List<MarkdownSourceLineSlice>? sourceLines = null) {
+        if (TryCreateListItemFromLeadBlocks(lines, isTask, done, options, state, sourceLines, out var blockLeadItem)) {
+            return blockLeadItem;
+        }
+
         if (TryParseListItemLeadSetextBlocks(lines, options, state, out var leadBlocks)) {
             var headingItem = isTask ? ListItem.TaskInlines(new InlineSequence(), done) : new ListItem(new InlineSequence());
             for (int i = 0; i < leadBlocks.Count; i++) {
@@ -1726,6 +1838,176 @@ public static partial class MarkdownReader {
         }
         mixedItem.ForceLoose = true;
         return mixedItem;
+    }
+
+    private static bool TryCreateListItemFromLeadBlocks(
+        List<string> lines,
+        bool isTask,
+        bool done,
+        MarkdownReaderOptions options,
+        MarkdownReaderState? state,
+        List<MarkdownSourceLineSlice>? sourceLines,
+        out ListItem item) {
+        item = null!;
+        IReadOnlyList<IMarkdownBlock> leadBlocks;
+        IReadOnlyList<MarkdownSyntaxNode> leadSyntax = Array.Empty<MarkdownSyntaxNode>();
+
+        if (lines == null || lines.Count == 0 || !StartsListItemLeadWithStandaloneBlock(lines, options)) {
+            return false;
+        }
+
+        if (sourceLines != null && sourceLines.Count == lines.Count) {
+            var (blocksFromSource, syntaxFromSource) = ParseNestedMarkdownBlocks(sourceLines, options, state ?? new MarkdownReaderState());
+            if (blocksFromSource.Count == 0 || blocksFromSource.All(block => block is ParagraphBlock)) {
+                return false;
+            }
+
+            leadBlocks = blocksFromSource;
+            leadSyntax = syntaxFromSource;
+        } else if (!TryParseListItemLeadBlocks(lines, options, state, sourceLines, out leadBlocks)) {
+            return false;
+        }
+
+        var blockLeadItem = isTask ? ListItem.TaskInlines(new InlineSequence(), done) : new ListItem(new InlineSequence());
+        for (int i = 0; i < leadBlocks.Count; i++) {
+            blockLeadItem.Children.Add(leadBlocks[i]);
+        }
+        for (int i = 0; i < leadSyntax.Count; i++) {
+            blockLeadItem.SyntaxChildren.Add(leadSyntax[i]);
+        }
+        if (leadBlocks.Count > 1 && lines.Exists(string.IsNullOrWhiteSpace)) {
+            blockLeadItem.ForceLoose = true;
+        }
+
+        item = blockLeadItem;
+        return true;
+    }
+
+    private static bool TryParseListItemLeadBlocks(
+        List<string> lines,
+        MarkdownReaderOptions options,
+        MarkdownReaderState? state,
+        List<MarkdownSourceLineSlice>? sourceLines,
+        out IReadOnlyList<IMarkdownBlock> blocks) {
+        blocks = Array.Empty<IMarkdownBlock>();
+        if (lines == null || lines.Count == 0) {
+            return false;
+        }
+
+        if (!StartsListItemLeadWithStandaloneBlock(lines, options)) {
+            return false;
+        }
+
+        IReadOnlyList<IMarkdownBlock> parsedBlocks;
+        if (sourceLines != null && sourceLines.Count == lines.Count) {
+            var (blocksFromSource, _) = ParseNestedMarkdownBlocks(sourceLines, options, state ?? new MarkdownReaderState());
+            parsedBlocks = blocksFromSource;
+        } else {
+            parsedBlocks = ParseBlocksFromLines(lines.ToArray(), options, state ?? new MarkdownReaderState());
+        }
+
+        if (parsedBlocks.Count == 0 || parsedBlocks.All(block => block is ParagraphBlock)) {
+            return false;
+        }
+
+        blocks = parsedBlocks;
+        return true;
+    }
+
+    private static bool TryParseListItemLeadBlockSyntaxNodes(
+        List<string> lines,
+        int lineOffset,
+        MarkdownReaderOptions options,
+        MarkdownReaderState? state,
+        List<MarkdownSourceLineSlice>? sourceLines,
+        out IReadOnlyList<MarkdownSyntaxNode> syntaxNodes) {
+        syntaxNodes = Array.Empty<MarkdownSyntaxNode>();
+        if (lines == null || lines.Count == 0) {
+            return false;
+        }
+
+        if (!StartsListItemLeadWithStandaloneBlock(lines, options)) {
+            return false;
+        }
+
+        IReadOnlyList<MarkdownSyntaxNode> parsedSyntax;
+        if (sourceLines != null && sourceLines.Count == lines.Count) {
+            parsedSyntax = ParseBlockSyntaxNodesFromSourceLines(sourceLines, options, state);
+        } else {
+            var leadSyntax = new List<MarkdownSyntaxNode>();
+            _ = ParseBlocksFromLines(lines.ToArray(), options, state ?? new MarkdownReaderState(), leadSyntax, lineOffset);
+            parsedSyntax = leadSyntax;
+        }
+
+        if (parsedSyntax.Count == 0 || parsedSyntax.All(node => node.Kind == MarkdownSyntaxKind.Paragraph)) {
+            return false;
+        }
+
+        syntaxNodes = parsedSyntax;
+        return true;
+    }
+
+    private static bool StartsListItemLeadWithIndentedCode(List<string> lines, MarkdownReaderOptions options) {
+        if (lines == null || lines.Count == 0 || options?.IndentedCodeBlocks != true) {
+            return false;
+        }
+
+        int firstNonBlank = lines.FindIndex(line => !string.IsNullOrWhiteSpace(line));
+        if (firstNonBlank < 0) {
+            return false;
+        }
+
+        return CountLeadingIndentColumns(lines[firstNonBlank] ?? string.Empty) >= 4;
+    }
+
+    private static bool StartsListItemLeadWithStandaloneBlock(List<string> lines, MarkdownReaderOptions options) {
+        if (lines == null || lines.Count == 0 || options == null) {
+            return false;
+        }
+
+        if (StartsListItemLeadWithIndentedCode(lines, options)) {
+            return true;
+        }
+
+        int firstNonBlank = lines.FindIndex(line => !string.IsNullOrWhiteSpace(line));
+        if (firstNonBlank < 0) {
+            return false;
+        }
+
+        var firstLine = lines[firstNonBlank] ?? string.Empty;
+        var trimmed = firstLine.TrimStart();
+        if (trimmed.Length == 0) {
+            return false;
+        }
+
+        if (options.Headings && trimmed[0] == '#') {
+            int markerLength = 0;
+            while (markerLength < trimmed.Length && trimmed[markerLength] == '#') {
+                markerLength++;
+            }
+
+            if (markerLength > 0 && markerLength <= 6 && (markerLength == trimmed.Length || char.IsWhiteSpace(trimmed[markerLength]))) {
+                return true;
+            }
+        }
+
+        if (trimmed[0] == '>') {
+            return true;
+        }
+
+        if (options.FencedCode && IsCodeFenceOpen(trimmed, out _, out _, out _)) {
+            return true;
+        }
+
+        if (options.UnorderedLists && IsUnorderedListLine(trimmed, out _, out _, out _)) {
+            return true;
+        }
+
+        if (options.OrderedLists && IsOrderedListLine(trimmed, out _, out _)) {
+            return true;
+        }
+
+        return false;
     }
 
     private static bool TryParseListItemLeadSetextBlocks(List<string> lines, MarkdownReaderOptions options, MarkdownReaderState? state, out List<IMarkdownBlock> blocks) {
@@ -1937,6 +2219,10 @@ public static partial class MarkdownReader {
         if (lines == null || item == null) return;
 
         while (index < lines.Length) {
+            if (IsStructurallyBlankListItem(item) && string.IsNullOrWhiteSpace(lines[index])) {
+                return;
+            }
+
             int k = index;
             bool sawBlankLine = false;
 
@@ -2012,7 +2298,11 @@ public static partial class MarkdownReader {
             }
 
             // Nested ordered list
-            if (allowNestedOrdered && options.OrderedLists && IsOrderedListLine(lines[k], out int lvlAbsO2, out _, out _) && lvlAbsO2 >= itemLevelAbs + 1) {
+            if (allowNestedOrdered
+                && options.OrderedLists
+                && CountLeadingIndentColumns(lines[k] ?? string.Empty) >= continuationIndent
+                && IsOrderedListLine(lines[k], out int lvlAbsO2, out _, out _)
+                && lvlAbsO2 >= itemLevelAbs + 1) {
                 if (TryParseNestedListBlock(lines, k, options, state, new OrderedListParser(), out var orderedList, out var orderedEndIndex)) {
                     item.Children.Add(orderedList);
                     AddListItemChildSyntaxNode(item, orderedList, k, orderedEndIndex, state);
@@ -2023,7 +2313,11 @@ public static partial class MarkdownReader {
             }
 
             // Nested unordered list
-            if (allowNestedUnordered && options.UnorderedLists && IsUnorderedListLine(lines[k], out int lvlAbsU2, out _, out _, out _) && lvlAbsU2 >= itemLevelAbs + 1) {
+            if (allowNestedUnordered
+                && options.UnorderedLists
+                && CountLeadingIndentColumns(lines[k] ?? string.Empty) >= continuationIndent
+                && IsUnorderedListLine(lines[k], out int lvlAbsU2, out _, out _, out _)
+                && lvlAbsU2 >= itemLevelAbs + 1) {
                 if (TryParseNestedListBlock(lines, k, options, state, new UnorderedListParser(), out var unorderedList, out var unorderedEndIndex)) {
                     item.Children.Add(unorderedList);
                     AddListItemChildSyntaxNode(item, unorderedList, k, unorderedEndIndex, state);
@@ -2050,6 +2344,12 @@ public static partial class MarkdownReader {
             index = k;
             return;
         }
+    }
+
+    private static bool IsStructurallyBlankListItem(ListItem item) {
+        return item.Content.Nodes.Count == 0
+               && item.AdditionalParagraphs.Count == 0
+               && item.Children.Count == 0;
     }
 
     private static bool TryParseNestedListBlock(
@@ -2292,75 +2592,81 @@ public static partial class MarkdownReader {
     }
 
     private static bool IsOrderedListLine(string line, out int number, out string content) {
-        number = 0; content = string.Empty;
-        if (string.IsNullOrEmpty(line)) return false;
-        // Allow indentation; compute after leading spaces
-        int spaces = 0; while (spaces < line.Length && line[spaces] == ' ') spaces++;
-        int i = spaces; while (i < line.Length && char.IsDigit(line[i])) i++;
-        if (i == spaces) return false;
-        if (i < line.Length && (line[i] == '.' || line[i] == ')') && i + 1 < line.Length && line[i + 1] == ' ') {
-            if (!int.TryParse(line.Substring(spaces, i - spaces), NumberStyles.Integer, CultureInfo.InvariantCulture, out number)) number = 1;
-            content = line.Substring(i + 2);
-            return true;
-        }
-        return false;
+        number = 0;
+        content = string.Empty;
+        if (!TryGetOrderedListMarkerInfo(line, out _, out number, out int contentStartIndex)) return false;
+        content = line.Substring(contentStartIndex);
+        return true;
     }
 
     private static bool IsOrderedListLine(string line, out int level, out int number, out string content) {
-        level = 0; number = 0; content = string.Empty;
-        if (string.IsNullOrEmpty(line)) return false;
-        int spaces = 0; while (spaces < line.Length && line[spaces] == ' ') spaces++;
-        int i = spaces; while (i < line.Length && char.IsDigit(line[i])) i++;
-        if (i == spaces) return false;
-        if (i < line.Length && (line[i] == '.' || line[i] == ')') && i + 1 < line.Length && line[i + 1] == ' ') {
-            if (!int.TryParse(line.Substring(spaces, i - spaces), NumberStyles.Integer, CultureInfo.InvariantCulture, out number)) number = 1;
-            content = line.Substring(i + 2);
-            level = spaces / 2;
-            return true;
-        }
-        return false;
+        level = 0;
+        number = 0;
+        content = string.Empty;
+        if (!TryGetOrderedListMarkerInfo(line, out int spaces, out number, out int contentStartIndex)) return false;
+        content = line.Substring(contentStartIndex);
+        level = spaces / 2;
+        return true;
     }
 
     private static bool IsUnorderedListLine(string line, out bool isTask, out bool done, out string content) {
-        isTask = false; done = false; content = string.Empty;
-        if (string.IsNullOrEmpty(line)) return false;
-        var t = line.TrimStart();
-        if (t.StartsWith("- ") || t.StartsWith("* ") || t.StartsWith("+ ")) {
-            var c = t.Substring(2);
-            if (c.StartsWith("[ ]")) { isTask = true; done = false; content = c.Length > 3 && c[2] == ']' && c.Length > 4 && c[3] == ' ' ? c.Substring(4) : c; return true; }
-            if (c.StartsWith("[x]", StringComparison.OrdinalIgnoreCase)) { isTask = true; done = true; content = c.Length > 4 && c[3] == ' ' ? c.Substring(4) : c; return true; }
-            content = c; return true;
+        isTask = false;
+        done = false;
+        content = string.Empty;
+        if (!TryGetUnorderedListMarkerInfo(line, out _, out int contentStartIndex)) return false;
+
+        var c = line.Substring(contentStartIndex);
+        if (c.StartsWith("[ ]", StringComparison.Ordinal)) {
+            isTask = true;
+            done = false;
+            content = c.Length > 3 && c[2] == ']' && c.Length > 4 && c[3] == ' ' ? c.Substring(4) : c;
+            return true;
         }
-        return false;
+
+        if (c.StartsWith("[x]", StringComparison.OrdinalIgnoreCase)) {
+            isTask = true;
+            done = true;
+            content = c.Length > 4 && c[3] == ' ' ? c.Substring(4) : c;
+            return true;
+        }
+
+        content = c;
+        return true;
     }
 
     private static bool IsUnorderedListLine(string line, out int level, out bool isTask, out bool done, out string content) {
-        level = 0; isTask = false; done = false; content = string.Empty;
-        if (string.IsNullOrEmpty(line)) return false;
-        int spaces = 0; while (spaces < line.Length && line[spaces] == ' ') spaces++;
-        if (spaces >= line.Length) return false;
-        char ch = line[spaces];
-        if ((ch == '-' || ch == '*' || ch == '+') && spaces + 1 < line.Length && line[spaces + 1] == ' ') {
-            string c = line.Substring(spaces + 2);
-            if (c.StartsWith("[ ]")) { isTask = true; done = false; content = c.Length > 3 && c[2] == ']' && c.Length > 4 && c[3] == ' ' ? c.Substring(4) : c; level = spaces / 2; return true; }
-            if (c.StartsWith("[x]", StringComparison.OrdinalIgnoreCase)) { isTask = true; done = true; content = c.Length > 4 && c[3] == ' ' ? c.Substring(4) : c; level = spaces / 2; return true; }
-            content = c; level = spaces / 2; return true;
+        level = 0;
+        isTask = false;
+        done = false;
+        content = string.Empty;
+        if (!TryGetUnorderedListMarkerInfo(line, out int spaces, out int contentStartIndex)) return false;
+
+        string c = line.Substring(contentStartIndex);
+        if (c.StartsWith("[ ]", StringComparison.Ordinal)) {
+            isTask = true;
+            done = false;
+            content = c.Length > 3 && c[2] == ']' && c.Length > 4 && c[3] == ' ' ? c.Substring(4) : c;
+            level = spaces / 2;
+            return true;
         }
-        return false;
+
+        if (c.StartsWith("[x]", StringComparison.OrdinalIgnoreCase)) {
+            isTask = true;
+            done = true;
+            content = c.Length > 4 && c[3] == ' ' ? c.Substring(4) : c;
+            level = spaces / 2;
+            return true;
+        }
+
+        content = c;
+        level = spaces / 2;
+        return true;
     }
 
     private static string GetUnorderedListItemContent(string line) {
-        if (string.IsNullOrEmpty(line)) return string.Empty;
-        int spaces = 0;
-        while (spaces < line.Length && line[spaces] == ' ') spaces++;
-        if (spaces >= line.Length) return string.Empty;
-
-        char ch = line[spaces];
-        if ((ch == '-' || ch == '*' || ch == '+') && spaces + 1 < line.Length && line[spaces + 1] == ' ') {
-            return line.Substring(spaces + 2);
-        }
-
-        return string.Empty;
+        return TryGetUnorderedListMarkerInfo(line, out _, out int contentStartIndex)
+            ? line.Substring(contentStartIndex)
+            : string.Empty;
     }
 
     private static bool IsCalloutHeader(string line, out string kind, out string title) {
@@ -2382,22 +2688,57 @@ public static partial class MarkdownReader {
 
     private static int GetListContinuationIndent(string line) {
         if (string.IsNullOrEmpty(line)) return 0;
+        if (TryGetOrderedListMarkerInfo(line, out int orderedLeadingSpaces, out _, out int orderedContentStartIndex)) {
+            if (string.IsNullOrWhiteSpace(line.Substring(orderedContentStartIndex))
+                && TryGetOrderedListMarkerWidth(line, orderedLeadingSpaces, out int orderedMarkerWidth)) {
+                return orderedLeadingSpaces + orderedMarkerWidth + 1;
+            }
 
-        int spaces = CountLeadingSpaces(line);
-        int i = spaces;
-        while (i < line.Length && char.IsDigit(line[i])) i++;
-        if (i > spaces && i + 1 < line.Length && (line[i] == '.' || line[i] == ')') && line[i + 1] == ' ') {
-            return i + 2;
+            return orderedContentStartIndex;
         }
 
-        if (spaces + 1 < line.Length) {
-            char marker = line[spaces];
-            if ((marker == '-' || marker == '*' || marker == '+') && line[spaces + 1] == ' ') {
-                return spaces + 2;
+        if (TryGetUnorderedListMarkerInfo(line, out int unorderedLeadingSpaces, out int unorderedContentStartIndex)) {
+            if (string.IsNullOrWhiteSpace(line.Substring(unorderedContentStartIndex))) {
+                return unorderedLeadingSpaces + 2;
+            }
+
+            return unorderedContentStartIndex;
+        }
+
+        int spaces = CountLeadingSpaces(line);
+        return spaces + 2;
+    }
+
+    private static int GetRelativeListItemLevel(List<int>? continuationIndentsByLevel, string line) {
+        if (continuationIndentsByLevel == null || continuationIndentsByLevel.Count == 0 || string.IsNullOrEmpty(line)) {
+            return 0;
+        }
+
+        int indentColumns = CountLeadingIndentColumns(line);
+        for (int level = continuationIndentsByLevel.Count - 1; level >= 0; level--) {
+            if (indentColumns >= continuationIndentsByLevel[level]) {
+                return level + 1;
             }
         }
 
-        return spaces + 2;
+        return 0;
+    }
+
+    private static void TrackListItemContinuationIndent(List<int> continuationIndentsByLevel, int level, int continuationIndent) {
+        if (continuationIndentsByLevel == null) {
+            return;
+        }
+
+        while (continuationIndentsByLevel.Count > level) {
+            continuationIndentsByLevel.RemoveAt(continuationIndentsByLevel.Count - 1);
+        }
+
+        if (continuationIndentsByLevel.Count == level) {
+            continuationIndentsByLevel.Add(continuationIndent);
+            return;
+        }
+
+        continuationIndentsByLevel[level] = continuationIndent;
     }
 
     private static int GetTaskMarkerConsumedColumns(string content) {
@@ -2416,24 +2757,151 @@ public static partial class MarkdownReader {
     private static bool TryGetRawListItemContentAfterMarker(string line, out string content) {
         content = string.Empty;
         if (string.IsNullOrEmpty(line)) return false;
-
-        int spaces = CountLeadingSpaces(line);
-        int i = spaces;
-        while (i < line.Length && char.IsDigit(line[i])) i++;
-        if (i > spaces && i + 1 < line.Length && (line[i] == '.' || line[i] == ')') && line[i + 1] == ' ') {
-            content = line.Substring(i + 2);
+        if (TryGetOrderedListMarkerInfo(line, out _, out _, out int orderedContentStartIndex)) {
+            content = line.Substring(orderedContentStartIndex);
             return true;
         }
 
-        if (spaces + 1 < line.Length) {
-            char marker = line[spaces];
-            if ((marker == '-' || marker == '*' || marker == '+') && line[spaces + 1] == ' ') {
-                content = line.Substring(spaces + 2);
-                return true;
-            }
+        if (TryGetUnorderedListMarkerInfo(line, out _, out int unorderedContentStartIndex)) {
+            content = line.Substring(unorderedContentStartIndex);
+            return true;
         }
 
         return false;
+    }
+
+    private static bool TryGetOrderedListMarkerInfo(string line, out int leadingSpaces, out int number, out int contentStartIndex) {
+        return TryGetOrderedListMarkerInfo(line, out leadingSpaces, out number, out contentStartIndex, out _);
+    }
+
+    private static bool TryGetOrderedListMarkerInfo(string line, out int leadingSpaces, out int number, out int contentStartIndex, out char delimiter) {
+        leadingSpaces = 0;
+        number = 0;
+        contentStartIndex = 0;
+        delimiter = '\0';
+        if (string.IsNullOrEmpty(line)) return false;
+
+        while (leadingSpaces < line.Length && line[leadingSpaces] == ' ') leadingSpaces++;
+
+        int digitsStart = leadingSpaces;
+        int digitsEnd = digitsStart;
+        while (digitsEnd < line.Length && char.IsDigit(line[digitsEnd])) digitsEnd++;
+        if (digitsEnd == digitsStart) return false;
+        if (digitsEnd - digitsStart > 9) return false;
+        if (digitsEnd >= line.Length || (line[digitsEnd] != '.' && line[digitsEnd] != ')')) return false;
+        delimiter = line[digitsEnd];
+        if (!TryGetListContentStartIndex(line, digitsEnd, out contentStartIndex)) return false;
+        if (!int.TryParse(line.Substring(digitsStart, digitsEnd - digitsStart), NumberStyles.Integer, CultureInfo.InvariantCulture, out number)) number = 1;
+        return true;
+    }
+
+    private static bool TryGetUnorderedListMarkerInfo(string line, out int leadingSpaces, out int contentStartIndex) {
+        return TryGetUnorderedListMarkerInfo(line, out leadingSpaces, out contentStartIndex, out _);
+    }
+
+    private static bool TryGetUnorderedListMarkerInfo(string line, out int leadingSpaces, out int contentStartIndex, out char marker) {
+        leadingSpaces = 0;
+        contentStartIndex = 0;
+        marker = '\0';
+        if (string.IsNullOrEmpty(line)) return false;
+
+        while (leadingSpaces < line.Length && line[leadingSpaces] == ' ') leadingSpaces++;
+        if (leadingSpaces >= line.Length) return false;
+
+        marker = line[leadingSpaces];
+        if (marker != '-' && marker != '*' && marker != '+') return false;
+        return TryGetListContentStartIndex(line, leadingSpaces, out contentStartIndex);
+    }
+
+    private static bool TryGetListContentStartIndex(string line, int markerIndex, out int contentStartIndex) {
+        contentStartIndex = 0;
+        int paddingStart = markerIndex + 1;
+        if (paddingStart >= line.Length) {
+            contentStartIndex = line.Length;
+            return true;
+        }
+
+        int paddingColumns = 0;
+        int cursor = paddingStart;
+        while (cursor < line.Length) {
+            char ch = line[cursor];
+            if (ch == ' ' && paddingColumns < 4) {
+                paddingColumns++;
+                cursor++;
+                continue;
+            }
+
+            if (ch == '\t' && paddingColumns == 0) {
+                contentStartIndex = cursor + 1;
+                return true;
+            }
+
+            break;
+        }
+
+        if (cursor >= line.Length) {
+            contentStartIndex = line.Length;
+            return true;
+        }
+
+        if (paddingColumns == 0) return false;
+        contentStartIndex = cursor;
+        return true;
+    }
+
+    private static bool TryGetIndentedCodeListLead(string line, out int continuationIndent, out string content, out int startColumn) {
+        continuationIndent = 0;
+        content = string.Empty;
+        startColumn = 1;
+        if (string.IsNullOrEmpty(line)) return false;
+
+        int leadingSpaces = 0;
+        while (leadingSpaces < line.Length && line[leadingSpaces] == ' ') leadingSpaces++;
+        if (leadingSpaces >= line.Length) return false;
+
+        int markerWidth;
+        if (TryGetOrderedListMarkerWidth(line, leadingSpaces, out markerWidth)) {
+            if (!HasIndentedCodePaddingAfterMarker(line, leadingSpaces + markerWidth - 1)) return false;
+        } else {
+            char marker = line[leadingSpaces];
+            if (marker != '-' && marker != '*' && marker != '+') return false;
+            markerWidth = 1;
+            if (!HasIndentedCodePaddingAfterMarker(line, leadingSpaces)) return false;
+        }
+
+        continuationIndent = leadingSpaces + markerWidth + 1;
+        if (continuationIndent >= line.Length) return false;
+
+        content = line.Substring(continuationIndent);
+        startColumn = continuationIndent + 1;
+        return CountLeadingIndentColumns(content) >= 4;
+    }
+
+    private static bool TryGetOrderedListMarkerWidth(string line, int leadingSpaces, out int markerWidth) {
+        markerWidth = 0;
+        if (string.IsNullOrEmpty(line) || leadingSpaces >= line.Length) return false;
+
+        int digitsEnd = leadingSpaces;
+        while (digitsEnd < line.Length && char.IsDigit(line[digitsEnd])) digitsEnd++;
+        if (digitsEnd == leadingSpaces || digitsEnd - leadingSpaces > 9) return false;
+        if (digitsEnd >= line.Length || (line[digitsEnd] != '.' && line[digitsEnd] != ')')) return false;
+
+        markerWidth = digitsEnd - leadingSpaces + 1;
+        return true;
+    }
+
+    private static bool HasIndentedCodePaddingAfterMarker(string line, int markerEndIndex) {
+        int paddingStart = markerEndIndex + 1;
+        if (paddingStart >= line.Length || line[paddingStart] != ' ') return false;
+
+        int spaces = 0;
+        int cursor = paddingStart;
+        while (cursor < line.Length && line[cursor] == ' ') {
+            spaces++;
+            cursor++;
+        }
+
+        return spaces >= 5;
     }
 
     private static int GetListLeadContentStartColumn(string line, bool stripTaskMarker = false) {

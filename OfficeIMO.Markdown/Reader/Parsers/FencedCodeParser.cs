@@ -11,7 +11,7 @@ public static partial class MarkdownReader {
             if (j < lines.Length && IsCodeFenceClose(lines[j], fenceChar, fenceLength)) j++;
             string? caption = null;
             if (j < lines.Length && TryParseCaption(lines[j], out var cap)) { caption = cap; j++; }
-            var block = CreateParsedFencedBlock(language, code.ToString().TrimEnd('\r', '\n'), isFenced: true, caption, options);
+            var block = CreateParsedFencedBlock(language, RemoveSingleTrailingLineEnding(code.ToString()), isFenced: true, caption, options);
             doc.Add(block);
             i = j; return true;
         }

@@ -5,14 +5,14 @@ public static partial class MarkdownReader {
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
             if (!options.Images) return false;
             var line = lines[i] ?? string.Empty;
-            bool parsed = TryParseImage(line, out var img, out var sizeSpec, out var ranges);
+            bool parsed = TryParseImage(line, options, state, out var img, out var sizeSpec, out var ranges);
             if (!parsed) {
                 int captionIndex = i + 1;
                 if (captionIndex >= lines.Length || !TryParseCaption(lines[captionIndex], out _)) {
                     return false;
                 }
 
-                if (!TryParseLinkedImageBlock(line, out img, out sizeSpec, out ranges)) {
+                if (!TryParseLinkedImageBlock(line, options, state, out img, out sizeSpec, out ranges)) {
                     return false;
                 }
             }
@@ -59,7 +59,7 @@ public static partial class MarkdownReader {
                     .Select(source => new ImagePictureSource(source.Path, source.Media, source.Type, source.Sizes, source.SrcSet))
                     .ToList();
                 string? pictureFallbackPath = img.PictureFallbackPath;
-                img = new ImageBlock(resolvedPath!, img.Alt, img.Title, img.Width, img.Height, resolvedLink, img.LinkTitle, img.LinkTarget, img.LinkRel) {
+                img = new ImageBlock(resolvedPath!, img.Alt, img.Title, img.Width, img.Height, resolvedLink, img.LinkTitle, img.LinkTarget, img.LinkRel, img.PlainAlt) {
                     Caption = img.Caption,
                     PictureFallbackPath = pictureFallbackPath
                 };

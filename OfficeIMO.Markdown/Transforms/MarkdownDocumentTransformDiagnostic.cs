@@ -53,4 +53,24 @@ public sealed class MarkdownDocumentTransformDiagnostic {
     /// Aggregate source span of the affected input blocks when original syntax spans are available.
     /// </summary>
     public MarkdownSourceSpan? AffectedSourceSpan { get; set; }
+
+    /// <summary>
+    /// Deepest original block-like syntax path overlapping the affected source span when available.
+    /// </summary>
+    public string? AffectedOriginalBlockPath { get; set; }
+
+    /// <summary>
+    /// Source span of the original block-like syntax node identified by <see cref="AffectedOriginalBlockPath"/>.
+    /// </summary>
+    public MarkdownSourceSpan? AffectedOriginalBlockSpan { get; set; }
+
+    /// <summary>
+    /// Deepest final block-like syntax path overlapping the affected source span when available.
+    /// </summary>
+    public string? AffectedFinalBlockPath { get; set; }
+
+    /// <summary>
+    /// Source span of the final block-like syntax node identified by <see cref="AffectedFinalBlockPath"/>.
+    /// </summary>
+    public MarkdownSourceSpan? AffectedFinalBlockSpan { get; set; }
 }
