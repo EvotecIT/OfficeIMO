@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            var flattenedItems = new List<Dictionary<string, object?>>();
+            var flattenedItems = new List<Dictionary<string, object?>>(list.Count);
             List<string> headers = new List<string>();
             HashSet<string> headerSet = new HashSet<string>();
 
@@ -42,11 +42,14 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            List<(int Row, int Column, object Value)> cells = new List<(int Row, int Column, object Value)>();
+            int headerRows = includeHeaders ? 1 : 0;
+            int totalCellCount = checked((list.Count + headerRows) * Math.Max(1, headers.Count));
+            var cells = new (int Row, int Column, object Value)[totalCellCount];
+            int cellIndex = 0;
             int row = startRow;
             if (includeHeaders) {
                 for (int c = 0; c < headers.Count; c++) {
-                    cells.Add((row, c + 1, headers[c]));
+                    cells[cellIndex++] = (row, c + 1, headers[c]);
                 }
                 row++;
             }
@@ -54,7 +57,7 @@ namespace OfficeIMO.Excel {
             foreach (var dict in flattenedItems) {
                 for (int c = 0; c < headers.Count; c++) {
                     object value = dict.TryGetValue(headers[c], out var entry) ? entry ?? string.Empty : string.Empty;
-                    cells.Add((row, c + 1, value));
+                    cells[cellIndex++] = (row, c + 1, value);
                 }
                 row++;
             }
@@ -89,21 +92,32 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("At least one column selector is required.", nameof(columns));
             }
 
-            var cells = new List<(int Row, int Column, object Value)>();
+            var rows = items as IList<T> ?? items.ToList();
+            if (rows.Count == 0) {
+                return;
+            }
+
+            var normalizedColumns = new (string Header, Func<T, object?> Selector)[columns.Length];
+            for (int c = 0; c < columns.Length; c++) {
+                normalizedColumns[c] = (columns[c].Header ?? $"Column{c + 1}", columns[c].Selector ?? (_ => null));
+            }
+
+            int headerRows = includeHeaders ? 1 : 0;
+            int totalCellCount = checked((rows.Count + headerRows) * normalizedColumns.Length);
+            var cells = new (int Row, int Column, object Value)[totalCellCount];
+            int cellIndex = 0;
             int row = startRow;
             if (includeHeaders) {
-                for (int c = 0; c < columns.Length; c++) {
-                    var header = columns[c].Header ?? $"Column{c + 1}";
-                    cells.Add((row, c + 1, header));
+                for (int c = 0; c < normalizedColumns.Length; c++) {
+                    cells[cellIndex++] = (row, c + 1, normalizedColumns[c].Header);
                 }
                 row++;
             }
 
-            foreach (var item in items) {
-                for (int c = 0; c < columns.Length; c++) {
-                    var selector = columns[c].Selector ?? (_ => null);
-                    object value = selector(item) ?? string.Empty;
-                    cells.Add((row, c + 1, value));
+            foreach (var item in rows) {
+                for (int c = 0; c < normalizedColumns.Length; c++) {
+                    object value = normalizedColumns[c].Selector(item) ?? string.Empty;
+                    cells[cellIndex++] = (row, c + 1, value);
                 }
                 row++;
             }

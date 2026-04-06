@@ -1,0 +1,57 @@
+{
+  "GeneratedAtUtc": "2026-04-04T10:04:16.5357065Z",
+  "Framework": ".NET 8.0.25",
+  "MachineName": "EVOMAGIC",
+  "RowCount": 2500,
+  "Scenarios": [
+    {
+      "Name": "Excel: Write report (2,500 rows)",
+      "Library": "OfficeIMO.Excel",
+      "Result": "1878.9 ms avg",
+      "Notes": "Insert objects, table, and AutoFit on a single worksheet.",
+      "OutputMetric": 116347
+    },
+    {
+      "Name": "Excel: Write report (2,500 rows)",
+      "Library": "ClosedXML",
+      "Result": "332.1 ms avg",
+      "Notes": "Insert table and adjust columns on a single worksheet.",
+      "OutputMetric": 123939
+    },
+    {
+      "Name": "Excel: Read objects (2,500 rows)",
+      "Library": "OfficeIMO.Excel",
+      "Result": "110.7 ms avg",
+      "Notes": "Reader path materializing dictionary-style rows.",
+      "OutputMetric": 2500
+    },
+    {
+      "Name": "Excel: Read DataTable (2,500 rows)",
+      "Library": "OfficeIMO.Excel",
+      "Result": "128.0 ms avg",
+      "Notes": "Reader path materializing a DataTable from the same workbook.",
+      "OutputMetric": 2500
+    },
+    {
+      "Name": "Excel: Read rows (2,500 rows)",
+      "Library": "ClosedXML",
+      "Result": "96.7 ms avg",
+      "Notes": "Worksheet row iteration over the same workbook payload.",
+      "OutputMetric": 2500
+    },
+    {
+      "Name": "Excel: Load/edit/save (2,500 rows)",
+      "Library": "OfficeIMO.Excel",
+      "Result": "262.2 ms avg",
+      "Notes": "Load workbook, add review column, save to memory.",
+      "OutputMetric": 117993
+    },
+    {
+      "Name": "Excel: Load/edit/save (2,500 rows)",
+      "Library": "ClosedXML",
+      "Result": "230.3 ms avg",
+      "Notes": "Load workbook, add review column, save to memory.",
+      "OutputMetric": 124460
+    }
+  ]
+}

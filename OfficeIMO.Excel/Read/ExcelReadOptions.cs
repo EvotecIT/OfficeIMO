@@ -42,6 +42,12 @@ namespace OfficeIMO.Excel {
         public bool NumericAsDecimal { get; set; } = false;
 
         /// <summary>
+        /// When true, typed object readers throw if selected headers cannot be mapped
+        /// deterministically to writable properties.
+        /// </summary>
+        public bool StrictTypedMapping { get; set; } = false;
+
+        /// <summary>
         /// Optional cell-level converter hook. If provided and it returns a handled value,
         /// the built-in conversion pipeline is skipped and the returned value is used.
         /// </summary>

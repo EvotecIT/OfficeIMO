@@ -114,6 +114,8 @@ namespace OfficeIMO.Excel {
                             cell.StyleIndex = idx;
                         }
                     }
+
+                    ClearHeaderCache();
                 },
                 ct: ct
             );

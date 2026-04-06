@@ -70,11 +70,7 @@ namespace OfficeIMO.Excel {
             int cols = values.GetLength(1);
             if (rows == 0 || cols == 0) yield break;
 
-            var headers = new string[cols];
-            for (int c = 0; c < cols; c++) {
-                var hdr = values[0, c]?.ToString() ?? $"Column{c + 1}";
-                headers[c] = opt.NormalizeHeaders ? RegexNormalize(hdr) : hdr;
-            }
+            var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => values[0, c]?.ToString(), opt.NormalizeHeaders);
 
             var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             for (int c = 0; c < cols; c++) map[headers[c]] = c;
@@ -89,10 +85,6 @@ namespace OfficeIMO.Excel {
                 }
                 yield return new RowEdit(this, sheetRowIndex, headers, map, cellEdits);
             }
-        }
-
-        private static string RegexNormalize(string text) {
-            return System.Text.RegularExpressions.Regex.Replace(text ?? string.Empty, "\\s+", " ").Trim();
         }
     }
 }

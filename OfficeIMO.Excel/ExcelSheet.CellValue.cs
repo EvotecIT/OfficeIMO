@@ -14,6 +14,7 @@ namespace OfficeIMO.Excel {
             cell.CellValue = cellValue;
             cell.DataType = dataType;
             ApplyAutomaticCellFormatting(cell, value, dataType);
+            ClearHeaderCache();
         }
 
         // Core coercion logic shared between sequential and parallel operations
@@ -106,6 +107,7 @@ namespace OfficeIMO.Excel {
                 // Excel formulas in XML should not start with '=' and must not include illegal control characters
                 var safe = Utilities.ExcelSanitizer.SanitizeFormula(formula);
                 cell.CellFormula = new CellFormula(safe);
+                ClearHeaderCache();
             });
         }
 

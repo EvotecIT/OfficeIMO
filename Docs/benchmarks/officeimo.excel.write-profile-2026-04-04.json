@@ -1,0 +1,60 @@
+{
+  "GeneratedAtUtc": "2026-04-05T07:41:58.4038338Z",
+  "Framework": ".NET 8.0.25",
+  "MachineName": "EVOMAGIC",
+  "RowCount": 2500,
+  "Libraries": [
+    {
+      "Library": "OfficeIMO.Excel",
+      "OutputBytes": 116350,
+      "Stages": [
+        {
+          "Name": "InsertObjects",
+          "AverageMilliseconds": 433.9432
+        },
+        {
+          "Name": "AddTable",
+          "AverageMilliseconds": 11.784166666666666
+        },
+        {
+          "Name": "AutoFitColumns",
+          "AverageMilliseconds": 433.0371666666667
+        },
+        {
+          "Name": "DisposeAndSave",
+          "AverageMilliseconds": 14.879866666666667
+        },
+        {
+          "Name": "Total",
+          "AverageMilliseconds": 894.1077333333333
+        }
+      ]
+    },
+    {
+      "Library": "ClosedXML",
+      "OutputBytes": 123939,
+      "Stages": [
+        {
+          "Name": "InsertTable",
+          "AverageMilliseconds": 14.8637
+        },
+        {
+          "Name": "StyleTable",
+          "AverageMilliseconds": 0.00023333333333333333
+        },
+        {
+          "Name": "AutoFitColumns",
+          "AverageMilliseconds": 117.47323333333334
+        },
+        {
+          "Name": "SaveAs",
+          "AverageMilliseconds": 94.12183333333333
+        },
+        {
+          "Name": "Total",
+          "AverageMilliseconds": 226.47776666666664
+        }
+      ]
+    }
+  ]
+}

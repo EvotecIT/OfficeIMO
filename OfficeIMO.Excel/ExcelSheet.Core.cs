@@ -234,6 +234,29 @@ namespace OfficeIMO.Excel {
             return cell;
         }
 
+        private SheetData GetOrCreateSheetData() {
+            return WorksheetRoot.GetFirstChild<SheetData>() ?? WorksheetRoot.AppendChild(new SheetData());
+        }
+
+        private Row GetOrCreateRowElement(SheetData sheetData, int rowIndex) {
+            foreach (Row row in sheetData.Elements<Row>()) {
+                if (row.RowIndex != null) {
+                    if (row.RowIndex.Value == (uint)rowIndex) {
+                        return row;
+                    }
+                    if (row.RowIndex.Value > (uint)rowIndex) {
+                        var inserted = new Row { RowIndex = (uint)rowIndex };
+                        sheetData.InsertBefore(inserted, row);
+                        return inserted;
+                    }
+                }
+            }
+
+            var appended = new Row { RowIndex = (uint)rowIndex };
+            sheetData.Append(appended);
+            return appended;
+        }
+
         private static string GetColumnName(int columnIndex) {
             int dividend = columnIndex;
             StringBuilder columnName = new StringBuilder();

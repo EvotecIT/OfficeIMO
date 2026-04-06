@@ -296,6 +296,68 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AutoFit_NumericLikeTextWithCustomFont() {
+            string filePath = Path.Combine(_directoryWithFiles, "AutoFit.NumericLikeText.xlsx");
+
+            static uint AddFontStyle(SpreadsheetDocument doc, string name, double size) {
+                var stylesPart = doc.WorkbookPart!.WorkbookStylesPart ?? doc.WorkbookPart!.AddNewPart<WorkbookStylesPart>();
+                if (stylesPart.Stylesheet == null) {
+                    stylesPart.Stylesheet = new Stylesheet(new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font()), new Fills(new Fill()), new Borders(new Border()), new CellFormats(new CellFormat()));
+                    stylesPart.Stylesheet.Fonts!.Count = 1;
+                    stylesPart.Stylesheet.Fills!.Count = 1;
+                    stylesPart.Stylesheet.Borders!.Count = 1;
+                    stylesPart.Stylesheet.CellFormats!.Count = 1;
+                }
+
+                var ss = stylesPart.Stylesheet!;
+                ss.Fonts!.Append(new DocumentFormat.OpenXml.Spreadsheet.Font(new FontName { Val = name }, new FontSize { Val = size }));
+                ss.Fonts.Count = (uint)ss.Fonts.ChildElements.Count;
+                ss.CellFormats!.Append(new CellFormat { FontId = ss.Fonts.Count - 1, ApplyFont = true });
+                ss.CellFormats.Count = (uint)ss.CellFormats.ChildElements.Count;
+                stylesPart.Stylesheet!.Save();
+                return ss.CellFormats.Count - 1;
+            }
+
+            static void SetCellStyle(SpreadsheetDocument doc, string cellRef, uint styleIndex) {
+                var wsPart = doc.WorkbookPart!.WorksheetParts.First();
+                var cell = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == cellRef);
+                cell.StyleIndex = styleIndex;
+                wsPart.Worksheet.Save();
+            }
+
+            var families = SystemFonts.Collection.Families.ToList();
+            string fontName = families.Count > 1 ? families[1].Name : families[0].Name;
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "1234567890.12345");
+                sheet.CellValue(1, 2, "12");
+
+                uint style = AddFontStyle(document._spreadSheetDocument, fontName, 20);
+                SetCellStyle(document._spreadSheetDocument, "A1", style);
+                SetCellStyle(document._spreadSheetDocument, "B1", style);
+
+                sheet.AutoFitColumns();
+                document.Save();
+            }
+
+            var font = SystemFonts.CreateFont(fontName, 20);
+            var options = new TextOptions(font);
+            float zero = TextMeasurer.MeasureSize("0", options).Width;
+            double expectedWidth = TextMeasurer.MeasureSize("1234567890.12345", options).Width / zero + 1;
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var columns = wsPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>().ToList();
+                var column1 = columns.First(c => c.Min != null && c.Max != null && c.Min.Value == 1 && c.Max.Value == 1);
+                var column2 = columns.First(c => c.Min != null && c.Max != null && c.Min.Value == 2 && c.Max.Value == 2);
+
+                Assert.True(column1.Width!.Value >= expectedWidth - 1);
+                Assert.True(column1.Width!.Value > column2.Width!.Value);
+            }
+        }
+
+        [Fact]
         public void Test_AutoFitOperations_RunSequentially() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.ConcurrentOperations.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {

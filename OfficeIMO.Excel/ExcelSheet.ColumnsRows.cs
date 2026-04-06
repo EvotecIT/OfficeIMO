@@ -49,19 +49,19 @@ namespace OfficeIMO.Excel {
         private void AutoFitColumnsInternal(IReadOnlyList<int> columnsList, ExecutionMode? mode, CancellationToken ct) {
             if (columnsList.Count == 0) return;
             double[] computed = new double[columnsList.Count];
+            var measurementPlan = BuildAutoFitMeasurementPlan(columnsList, ct);
+            int workload = Math.Max(columnsList.Count, measurementPlan.Measurements.Count);
 
             ExecuteWithPolicy(
                 opName: "AutoFitColumns",
-                itemCount: columnsList.Count,
+                itemCount: workload,
                 overrideMode: mode,
                 sequentialCore: () => {
                     var worksheet = WorksheetRoot;
                     var sheetData = worksheet.GetFirstChild<SheetData>();
                     if (sheetData == null) return;
 
-                    for (int i = 0; i < columnsList.Count; i++) {
-                        computed[i] = CalculateColumnWidth(columnsList[i]);
-                    }
+                    computed = CalculateColumnWidths(measurementPlan, ct, parallel: false);
 
                     for (int i = 0; i < columnsList.Count; i++) {
                         SetColumnWidthCore(columnsList[i], computed[i]);
@@ -70,24 +70,7 @@ namespace OfficeIMO.Excel {
                     worksheet.Save();
                 },
                 computeParallel: () => {
-                    var failures = new ConcurrentBag<int>();
-                    Parallel.For(0, columnsList.Count, new ParallelOptions {
-                        CancellationToken = ct,
-                        MaxDegreeOfParallelism = EffectiveExecution.MaxDegreeOfParallelism ?? -1
-                    }, i => {
-                        try {
-                            computed[i] = CalculateColumnWidth(columnsList[i]);
-                        } catch (OperationCanceledException) {
-                            throw;
-                        } catch {
-                            failures.Add(i);
-                        }
-                    });
-                    if (!failures.IsEmpty) {
-                        foreach (var idx in failures) {
-                            try { computed[idx] = CalculateColumnWidth(columnsList[idx]); } catch { computed[idx] = 0; }
-                        }
-                    }
+                    computed = CalculateColumnWidths(measurementPlan, ct, parallel: true);
                 },
                 applySequential: () => {
                     var worksheet = WorksheetRoot;
@@ -129,92 +112,221 @@ namespace OfficeIMO.Excel {
             return columnIndexes;
         }
 
-        private double CalculateColumnWidth(int columnIndex) {
+        private AutoFitMeasurementPlan BuildAutoFitMeasurementPlan(IReadOnlyList<int> columnsList, CancellationToken ct) {
             var worksheet = WorksheetRoot;
             SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
-            if (sheetData == null) return 0;
+            if (sheetData == null || columnsList.Count == 0) {
+                return new AutoFitMeasurementPlan(columnsList, new List<AutoFitMeasurement>());
+            }
 
-            double maxWidth = 0;
+            var targetColumns = new Dictionary<int, int>(columnsList.Count);
+            for (int i = 0; i < columnsList.Count; i++) {
+                targetColumns[columnsList[i]] = i;
+            }
 
-            // Get the default font for MDW fallback calculation
+            var measurements = new List<AutoFitMeasurement>();
+            var uniqueMeasurements = new HashSet<AutoFitMeasurementKey>();
+            var sharedStrings = _excelDocument.SharedStringTablePart?.SharedStringTable?.Elements<SharedStringItem>().ToList();
+            var sharedStringTextCache = new Dictionary<int, string>();
+
+            string GetCellTextFast(Cell cell) {
+                if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) {
+                    var raw = cell.CellValue?.InnerText;
+                    if (!string.IsNullOrEmpty(raw)
+                        && int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int id)
+                        && sharedStrings != null
+                        && id >= 0
+                        && id < sharedStrings.Count) {
+                        if (sharedStringTextCache.TryGetValue(id, out var cached) && cached != null) {
+                            return cached;
+                        }
+
+                        string resolved = GetSharedStringText(sharedStrings[id]);
+                        sharedStringTextCache[id] = resolved;
+                        return resolved;
+                    }
+
+                    return string.Empty;
+                }
+
+                if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
+                    return GetInlineStringText(cell.InlineString);
+                }
+
+                return cell.CellValue?.InnerText ?? string.Empty;
+            }
+
+            foreach (var row in sheetData.Elements<Row>()) {
+                ct.ThrowIfCancellationRequested();
+
+                foreach (var cell in row.Elements<Cell>()) {
+                    string? reference = cell.CellReference?.Value;
+                    if (string.IsNullOrEmpty(reference)) {
+                        continue;
+                    }
+
+                    int columnIndex = GetColumnIndex(reference!);
+                    if (!targetColumns.TryGetValue(columnIndex, out int targetIndex)) {
+                        continue;
+                    }
+
+                    string text = GetCellTextFast(cell);
+                    if (string.IsNullOrWhiteSpace(text)) {
+                        continue;
+                    }
+
+                    uint styleIndex = cell.StyleIndex?.Value ?? 0U;
+                    if (uniqueMeasurements.Add(new AutoFitMeasurementKey(targetIndex, styleIndex, text))) {
+                        measurements.Add(new AutoFitMeasurement(targetIndex, styleIndex, text));
+                    }
+                }
+            }
+
+            return new AutoFitMeasurementPlan(columnsList, measurements);
+        }
+
+        private double[] CalculateColumnWidths(IReadOnlyList<int> columnsList, CancellationToken ct) {
+            var plan = BuildAutoFitMeasurementPlan(columnsList, ct);
+            return CalculateColumnWidths(plan, ct, parallel: false);
+        }
+
+        private double[] CalculateColumnWidths(AutoFitMeasurementPlan plan, CancellationToken ct, bool parallel) {
+            double[] widths = new double[plan.Columns.Count];
+            if (plan.Measurements.Count == 0 || plan.Columns.Count == 0) {
+                return widths;
+            }
+
             var defaultFont = GetDefaultFont();
             var defaultOptions = new TextOptions(defaultFont);
-            float defaultMdw = TextMeasurer.MeasureSize("0", defaultOptions).Width;
-            if (defaultMdw <= 0.0001f) return 0;
+            float defaultMdw = MeasureWidthOrDefault("0", defaultOptions, fallback: 0);
+            if (defaultMdw <= 0.0001f) {
+                return widths;
+            }
 
-            var mdwCache = new Dictionary<(string name, float size, bool bold, bool italic), float>();
+            var workbookPart = WorkbookPartRoot;
+            var stylesheet = workbookPart?.WorkbookStylesPart?.Stylesheet;
+            var cellFormats = stylesheet?.CellFormats?.Elements<CellFormat>().ToList();
+            var fonts = stylesheet?.Fonts?.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ToList();
 
-            float GetMdw(SixLabors.Fonts.Font font, TextOptions options) {
-                var key = (font.Name, font.Size, font.IsBold, font.IsItalic);
-                if (mdwCache.TryGetValue(key, out var cached)) {
+            AutoFitStyleInfo ResolveStyleInfo(uint styleIndex, Dictionary<uint, AutoFitStyleInfo> styleCache) {
+                if (styleCache.TryGetValue(styleIndex, out var cached)) {
                     return cached;
                 }
 
-                float mdw;
-                try {
-                    mdw = TextMeasurer.MeasureSize("0", options).Width;
-                } catch {
-                    mdw = 0;
-                }
-
-                if (mdw <= 0.0001f) {
-                    mdw = defaultMdw;
-                }
-
-                mdwCache[key] = mdw;
-                return mdw;
-            }
-
-            // Pixel Padding (PP) - extra pixels at left and right border (ClosedXML uses 2)
-            const double pixelPadding = 2.0;
-
-            foreach (var row in sheetData.Elements<Row>()) {
-                var cell = row.Elements<Cell>()
-                    .FirstOrDefault(c => {
-                        string? reference = c.CellReference?.Value;
-                        return reference != null && GetColumnIndex(reference) == columnIndex;
-                    });
-                if (cell == null) continue;
-
-                string text = GetCellText(cell);
-                if (string.IsNullOrWhiteSpace(text)) continue;
-
-                // Check if cell has wrap text enabled
-                bool hasWrapText = HasWrapText(cell);
-
-                var font = GetCellFont(cell);
-                var options = new TextOptions(font);
-                float mdw = GetMdw(font, options);
-
-                float textWidthPx;
-                if (text.Contains('\n') || text.Contains('\r')) {
-                    // For text with newlines, measure the longest line (regardless of wrap setting)
-                    string[] lines = text.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
-                    textWidthPx = 0;
-                    foreach (var line in lines) {
-                        if (!string.IsNullOrEmpty(line)) {
-                            float lineWidth = TextMeasurer.MeasureSize(line, options).Width;
-                            if (lineWidth > textWidthPx) textWidthPx = lineWidth;
+                SixLabors.Fonts.Font font = defaultFont;
+                if (cellFormats != null && fonts != null) {
+                    var cellFormat = styleIndex < cellFormats.Count ? cellFormats[(int)styleIndex] : null;
+                    if (cellFormat?.FontId != null) {
+                        uint fontId = cellFormat.FontId.Value;
+                        if (fontId < fonts.Count) {
+                            font = CreateFontFromOpenXml(fonts[(int)fontId], defaultFont);
                         }
                     }
-                } else {
-                    // Measure full text as single line
-                    textWidthPx = TextMeasurer.MeasureSize(text, options).Width;
                 }
 
-                // ClosedXML formula: Add 2 * padding + 1 pixel for cell border
-                double cellWidthPx = textWidthPx + (2 * pixelPadding) + 1;
-
-                // Convert pixels to Excel column width using ClosedXML's formula
-                // width = Truncate(pixels / MDW * 256) / 256
-                double columnWidth = Math.Truncate(cellWidthPx / mdw * 256.0) / 256.0;
-
-                if (columnWidth > maxWidth) {
-                    maxWidth = columnWidth;
-                }
+                var options = new TextOptions(font);
+                float mdw = MeasureWidthOrDefault("0", options, defaultMdw);
+                var info = new AutoFitStyleInfo(font, options, mdw);
+                styleCache[styleIndex] = info;
+                return info;
             }
 
-            return maxWidth;
+            float MeasureTextWidth(
+                string text,
+                uint styleIndex,
+                AutoFitStyleInfo styleInfo,
+                Dictionary<(uint styleIndex, string text), float> textWidthCache,
+                Dictionary<uint, Dictionary<char, float>> charWidthCache) {
+                if (textWidthCache.TryGetValue((styleIndex, text), out float cached)) {
+                    return cached;
+                }
+
+                float measured;
+                if (text.Contains('\n') || text.Contains('\r')) {
+                    measured = 0;
+                    string[] lines = text.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
+                    foreach (string line in lines) {
+                        if (string.IsNullOrEmpty(line)) {
+                            continue;
+                        }
+
+                        float lineWidth = MeasureWidthOrDefault(line, styleInfo.Options, 0);
+                        if (lineWidth > measured) {
+                            measured = lineWidth;
+                        }
+                    }
+                } else if (TryMeasureSimpleAutoFitTextWidth(text, styleIndex, styleInfo, charWidthCache, out float fastMeasured)) {
+                    measured = fastMeasured;
+                } else {
+                    measured = MeasureWidthOrDefault(text, styleInfo.Options, 0);
+                }
+
+                textWidthCache[(styleIndex, text)] = measured;
+                return measured;
+            }
+
+            const double pixelPadding = 2.0;
+
+            void ApplyMeasurement(
+                AutoFitMeasurement measurement,
+                double[] localWidths,
+                Dictionary<uint, AutoFitStyleInfo> styleCache,
+                Dictionary<(uint styleIndex, string text), float> textWidthCache,
+                Dictionary<uint, Dictionary<char, float>> charWidthCache) {
+                    var styleInfo = ResolveStyleInfo(measurement.StyleIndex, styleCache);
+                    float textWidthPx = MeasureTextWidth(measurement.Text, measurement.StyleIndex, styleInfo, textWidthCache, charWidthCache);
+                    double cellWidthPx = textWidthPx + (2 * pixelPadding) + 1;
+                    double columnWidth = Math.Truncate(cellWidthPx / styleInfo.MaximumDigitWidth * 256.0) / 256.0;
+
+                    if (columnWidth > localWidths[measurement.TargetIndex]) {
+                        localWidths[measurement.TargetIndex] = columnWidth;
+                    }
+                }
+
+            if (!parallel || plan.Measurements.Count < 2) {
+                var styleCache = new Dictionary<uint, AutoFitStyleInfo>();
+                var textWidthCache = new Dictionary<(uint styleIndex, string text), float>();
+                var charWidthCache = new Dictionary<uint, Dictionary<char, float>>();
+
+                for (int i = 0; i < plan.Measurements.Count; i++) {
+                    ct.ThrowIfCancellationRequested();
+                    ApplyMeasurement(plan.Measurements[i], widths, styleCache, textWidthCache, charWidthCache);
+                }
+
+                return widths;
+            }
+
+            object mergeLock = new object();
+            var options = new ParallelOptions {
+                CancellationToken = ct,
+                MaxDegreeOfParallelism = EffectiveExecution.MaxDegreeOfParallelism ?? -1
+            };
+
+            Parallel.ForEach(Partitioner.Create(0, plan.Measurements.Count), options,
+                () => new AutoFitParallelState(plan.Columns.Count),
+                (range, _, localState) => {
+                    for (int i = range.Item1; i < range.Item2; i++) {
+                        ct.ThrowIfCancellationRequested();
+                        ApplyMeasurement(plan.Measurements[i], localState.Widths, localState.StyleCache, localState.TextWidthCache, localState.CharWidthCache);
+                    }
+
+                    return localState;
+                },
+                localState => {
+                    lock (mergeLock) {
+                        for (int i = 0; i < widths.Length; i++) {
+                            if (localState.Widths[i] > widths[i]) {
+                                widths[i] = localState.Widths[i];
+                            }
+                        }
+                    }
+                });
+
+            return widths;
+        }
+
+        private double CalculateColumnWidth(int columnIndex) {
+            return CalculateColumnWidths([columnIndex], CancellationToken.None)[0];
         }
 
         private const double MaxExcelColumnWidth = 255.0;
@@ -608,10 +720,205 @@ namespace OfficeIMO.Excel {
         /// <param name="columnIndex">1-based column index.</param>
         public void AutoFitColumn(int columnIndex) {
             WriteLockConditional(() => {
-                var width = CalculateColumnWidth(columnIndex);
+                var width = CalculateColumnWidths([columnIndex], CancellationToken.None)[0];
                 SetColumnWidthCore(columnIndex, width);
                 WorksheetRoot.Save();
             });
+        }
+
+        private static float MeasureWidthOrDefault(string text, TextOptions options, float fallback) {
+            try {
+                float measured = TextMeasurer.MeasureSize(text, options).Width;
+                return measured > 0.0001f ? measured : fallback;
+            } catch {
+                return fallback;
+            }
+        }
+
+        private static bool TryMeasureSimpleAutoFitTextWidth(
+            string text,
+            uint styleIndex,
+            AutoFitStyleInfo styleInfo,
+            Dictionary<uint, Dictionary<char, float>> charWidthCache,
+            out float measured) {
+            measured = 0;
+            if (string.IsNullOrEmpty(text)) {
+                return false;
+            }
+
+            for (int i = 0; i < text.Length; i++) {
+                if (!IsSimpleAutoFitCharacter(text[i])) {
+                    return false;
+                }
+            }
+
+            if (!charWidthCache.TryGetValue(styleIndex, out var perCharWidths)) {
+                perCharWidths = new Dictionary<char, float>();
+                charWidthCache[styleIndex] = perCharWidths;
+            }
+
+            float total = 0;
+            for (int i = 0; i < text.Length; i++) {
+                char current = text[i];
+                if (!perCharWidths.TryGetValue(current, out float width)) {
+                    width = MeasureWidthOrDefault(current.ToString(), styleInfo.Options, styleInfo.MaximumDigitWidth);
+                    perCharWidths[current] = width;
+                }
+
+                total += width;
+            }
+
+            // Single-glyph summation can undercount string-level layout slightly on some fonts,
+            // so bias upward by roughly one digit width to stay safely on the generous side.
+            measured = total + styleInfo.MaximumDigitWidth;
+            return true;
+        }
+
+        private static bool IsSimpleAutoFitCharacter(char value)
+            => (value >= '0' && value <= '9')
+            || value == '.'
+            || value == ','
+            || value == '-'
+            || value == '+'
+            || value == '/'
+            || value == ':'
+            || value == ' '
+            || value == '%';
+
+        private static string GetSharedStringText(SharedStringItem item) {
+            if (item.Text != null) {
+                return item.Text.Text ?? string.Empty;
+            }
+
+            var sb = new StringBuilder();
+            foreach (var text in item.Descendants<Text>()) {
+                sb.Append(text.Text);
+            }
+
+            return sb.ToString();
+        }
+
+        private static string GetInlineStringText(InlineString? inlineString) {
+            if (inlineString == null) {
+                return string.Empty;
+            }
+
+            if (inlineString.Text != null) {
+                return inlineString.Text.Text ?? string.Empty;
+            }
+
+            var sb = new StringBuilder();
+            foreach (var run in inlineString.Elements<Run>()) {
+                if (run.Text != null) {
+                    sb.Append(run.Text.Text);
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private static SixLabors.Fonts.Font CreateFontFromOpenXml(DocumentFormat.OpenXml.Spreadsheet.Font fontElement, SixLabors.Fonts.Font fallbackFont) {
+            var fontName = fontElement.GetFirstChild<FontName>()?.Val?.Value;
+            var fontSize = fontElement.GetFirstChild<FontSize>()?.Val?.Value ?? fallbackFont.Size;
+            bool bold = fontElement.GetFirstChild<Bold>() != null;
+            bool italic = fontElement.GetFirstChild<Italic>() != null;
+
+            try {
+                var style = bold && italic ? FontStyle.BoldItalic : bold ? FontStyle.Bold : italic ? FontStyle.Italic : FontStyle.Regular;
+                if (!string.IsNullOrEmpty(fontName)) {
+                    return SystemFonts.CreateFont(fontName!, (float)fontSize, style);
+                }
+
+                return fallbackFont.Family.CreateFont((float)fontSize, style);
+            } catch (FontFamilyNotFoundException) {
+                var fallbackStyle = bold && italic ? FontStyle.BoldItalic : bold ? FontStyle.Bold : italic ? FontStyle.Italic : FontStyle.Regular;
+                return fallbackFont.Family.CreateFont((float)fontSize, fallbackStyle);
+            }
+        }
+
+        private readonly struct AutoFitStyleInfo {
+            internal AutoFitStyleInfo(SixLabors.Fonts.Font font, TextOptions options, float maximumDigitWidth) {
+                _font = font;
+                _options = options;
+                _maximumDigitWidth = maximumDigitWidth;
+            }
+
+            private readonly SixLabors.Fonts.Font _font;
+            private readonly TextOptions _options;
+            private readonly float _maximumDigitWidth;
+
+            internal SixLabors.Fonts.Font Font => _font;
+            internal TextOptions Options => _options;
+            internal float MaximumDigitWidth => _maximumDigitWidth;
+        }
+
+        private readonly struct AutoFitMeasurement {
+            internal AutoFitMeasurement(int targetIndex, uint styleIndex, string text) {
+                _targetIndex = targetIndex;
+                _styleIndex = styleIndex;
+                _text = text;
+            }
+
+            private readonly int _targetIndex;
+            private readonly uint _styleIndex;
+            private readonly string _text;
+
+            internal int TargetIndex => _targetIndex;
+            internal uint StyleIndex => _styleIndex;
+            internal string Text => _text;
+        }
+
+        private readonly struct AutoFitMeasurementKey : IEquatable<AutoFitMeasurementKey> {
+            internal AutoFitMeasurementKey(int targetIndex, uint styleIndex, string text) {
+                _targetIndex = targetIndex;
+                _styleIndex = styleIndex;
+                _text = text;
+            }
+
+            private readonly int _targetIndex;
+            private readonly uint _styleIndex;
+            private readonly string _text;
+
+            public bool Equals(AutoFitMeasurementKey other)
+                => _targetIndex == other._targetIndex
+                && _styleIndex == other._styleIndex
+                && string.Equals(_text, other._text, StringComparison.Ordinal);
+
+            public override bool Equals(object? obj)
+                => obj is AutoFitMeasurementKey other && Equals(other);
+
+            public override int GetHashCode() {
+                unchecked {
+                    int hash = _targetIndex;
+                    hash = (hash * 397) ^ (int)_styleIndex;
+                    hash = (hash * 397) ^ StringComparer.Ordinal.GetHashCode(_text);
+                    return hash;
+                }
+            }
+        }
+
+        private sealed class AutoFitMeasurementPlan {
+            internal AutoFitMeasurementPlan(IReadOnlyList<int> columns, List<AutoFitMeasurement> measurements) {
+                Columns = columns;
+                Measurements = measurements;
+            }
+
+            internal IReadOnlyList<int> Columns { get; }
+            internal List<AutoFitMeasurement> Measurements { get; }
+        }
+
+        private sealed class AutoFitParallelState {
+            internal AutoFitParallelState(int columnCount) {
+                Widths = new double[columnCount];
+                StyleCache = new Dictionary<uint, AutoFitStyleInfo>();
+                TextWidthCache = new Dictionary<(uint styleIndex, string text), float>();
+                CharWidthCache = new Dictionary<uint, Dictionary<char, float>>();
+            }
+
+            internal double[] Widths { get; }
+            internal Dictionary<uint, AutoFitStyleInfo> StyleCache { get; }
+            internal Dictionary<(uint styleIndex, string text), float> TextWidthCache { get; }
+            internal Dictionary<uint, Dictionary<char, float>> CharWidthCache { get; }
         }
 
         private static Column SplitColumn(Columns columns, Column column, uint index) {

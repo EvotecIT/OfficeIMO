@@ -229,14 +229,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                // Ensure all cells in the table range exist (but don't set empty values)
-                for (int row = startRowIndex; row <= endRowIndex; row++) {
-                    for (int column = startColumnIndex; column <= endColumnIndex; column++) {
-                        var cell = GetCell(row, column);
-                        // Just ensure the cell exists, don't set a value if it's empty
-                        // Excel will handle empty cells in tables correctly
-                    }
-                }
+                EnsureRangeCellsExist(startRowIndex, endRowIndex, startColumnIndex, endColumnIndex);
 
                 // Generate unique table ID atomically (must be unique across the entire workbook)
                 uint tableId;
@@ -453,6 +446,35 @@ namespace OfficeIMO.Excel {
                 string candidate = trimmedBase + suffix;
                 if (!used.Contains(candidate)) return candidate;
                 i++;
+            }
+        }
+
+        private void EnsureRangeCellsExist(int startRowIndex, int endRowIndex, int startColumnIndex, int endColumnIndex) {
+            var sheetData = GetOrCreateSheetData();
+
+            var rows = sheetData.Elements<Row>()
+                .Where(r => r.RowIndex != null)
+                .ToDictionary(r => (int)r.RowIndex!.Value);
+
+            for (int rowIndex = startRowIndex; rowIndex <= endRowIndex; rowIndex++) {
+                if (!rows.TryGetValue(rowIndex, out Row? row)) {
+                    row = GetOrCreateRowElement(sheetData, rowIndex);
+                    rows[rowIndex] = row;
+                }
+
+                var existingColumns = new HashSet<int>();
+                foreach (var cell in row.Elements<Cell>()) {
+                    var cellReference = cell.CellReference?.Value;
+                    if (!string.IsNullOrEmpty(cellReference)) {
+                        existingColumns.Add(GetColumnIndex(cellReference!));
+                    }
+                }
+
+                for (int columnIndex = startColumnIndex; columnIndex <= endColumnIndex; columnIndex++) {
+                    if (!existingColumns.Contains(columnIndex)) {
+                        GetCell(rowIndex, columnIndex);
+                    }
+                }
             }
         }
 

@@ -47,8 +47,10 @@ Each package is shipped independently under the MIT license unless noted otherwi
 - Reader
   - `OfficeIMO.Reader`
 - Benchmarks
+  - `OfficeIMO.Excel.Benchmarks`
   - `OfficeIMO.Markdown.Benchmarks`
 - Release prep
+  - [Docs/officeimo.excel.release-checklist.md](Docs/officeimo.excel.release-checklist.md)
   - [Docs/officeimo.markdown.release-checklist.md](Docs/officeimo.markdown.release-checklist.md)
 
 ## Website
