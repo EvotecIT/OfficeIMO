@@ -246,24 +246,20 @@ namespace OfficeIMO.Word.Pdf {
             return container;
 
             string? ResolveRegisteredFamily(string? name) {
-                try {
-                    if (!string.IsNullOrWhiteSpace(name)) {
-                        if (options?.FontFilePaths != null && options.FontFilePaths.TryGetValue(name!, out var path) && File.Exists(path)) {
-                            using var tf = SKTypeface.FromFile(path);
-                            return tf?.FamilyName ?? name;
-                        }
-                        if (options?.FontStreams != null && options.FontStreams.TryGetValue(name!, out var s) && s != null) {
-                            Stream src = s;
-                            if (src.CanSeek) src.Position = 0;
-                            using MemoryStream ms = new();
-                            src.CopyTo(ms);
-                            ms.Position = 0;
-                            using var tf = SKTypeface.FromStream(new SKManagedStream(ms));
-                            if (src.CanSeek) src.Position = 0;
-                            return tf?.FamilyName ?? name;
-                        }
+                if (!string.IsNullOrWhiteSpace(name)) {
+                    if (options?.FontFilePaths != null &&
+                        options.FontFilePaths.TryGetValue(name!, out var path) &&
+                        !string.IsNullOrWhiteSpace(path)) {
+                        return name;
                     }
-                } catch { }
+
+                    if (options?.FontStreams != null &&
+                        options.FontStreams.TryGetValue(name!, out var stream) &&
+                        stream != null) {
+                        return name;
+                    }
+                }
+
                 return name;
             }
 

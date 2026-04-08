@@ -248,6 +248,16 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfReadDocument_Metadata_ReadsLiteralStringsContainingStreamSubstrings() {
+        byte[] bytes = BuildPdfWithLiteralMetadata("(mainstream title)", "(upstream author)");
+
+        var document = PdfReadDocument.Load(bytes);
+
+        Assert.Equal("mainstream title", document.Metadata.Title);
+        Assert.Equal("upstream author", document.Metadata.Author);
+    }
+
+    [Fact]
     public void PdfTextExtractor_ExtractAllText_ReadsFlateCompressedContentStreams() {
         byte[] bytes = BuildPdfWithFlateCompressedStream("BT\n/F1 12 Tf\n72 720 Td\n(Hello flate) Tj\nET\n");
 

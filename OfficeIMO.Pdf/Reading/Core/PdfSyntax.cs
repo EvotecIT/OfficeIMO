@@ -482,9 +482,35 @@ internal static class PdfSyntax {
     }
 
     private static int IndexOfKeyword(string text, string keyword, int start, int limit) {
-        if (start < 0) start = 0; if (limit > text.Length) limit = text.Length;
-        int idx = text.IndexOf(keyword, start, StringComparison.Ordinal);
-        return (idx >= 0 && idx < limit) ? idx : -1;
+        if (start < 0) start = 0;
+        if (limit > text.Length) limit = text.Length;
+
+        int searchFrom = start;
+        while (searchFrom < limit) {
+            int idx = text.IndexOf(keyword, searchFrom, StringComparison.Ordinal);
+            if (idx < 0 || idx >= limit) {
+                return -1;
+            }
+
+            int end = idx + keyword.Length;
+            if (HasKeywordBoundary(text, idx - 1, start, limit) &&
+                HasKeywordBoundary(text, end, start, limit)) {
+                return idx;
+            }
+
+            searchFrom = idx + 1;
+        }
+
+        return -1;
+    }
+
+    private static bool HasKeywordBoundary(string text, int idx, int start, int limit) {
+        if (idx < start || idx >= limit) {
+            return true;
+        }
+
+        char c = text[idx];
+        return char.IsWhiteSpace(c) || c is '/' or '<' or '>' or '[' or ']' or '(' or ')' or '%';
     }
 
     private static int SkipEOL(string text, int idx, int limit) {
