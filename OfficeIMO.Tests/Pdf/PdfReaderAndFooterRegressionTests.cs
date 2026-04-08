@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -172,6 +173,31 @@ public class PdfReaderAndFooterRegressionTests {
         string text = PdfTextExtractor.ExtractAllText(bytes);
 
         Assert.Contains("Hello cyclic kids", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_IgnoresDirectFormCycles() {
+        var page = CreatePdfReadPageWithDirectFormCycle();
+
+        var spans = page.GetTextSpans();
+
+        Assert.Empty(spans);
+    }
+
+    [Fact]
+    public void PdfTextExtractor_InternalExtractor_IgnoresDirectFormCycles() {
+        var state = BuildDirectFormCycleState();
+        var method = typeof(PdfTextExtractor).GetMethod("ExtractTextFromContentStream", BindingFlags.NonPublic | BindingFlags.Static);
+
+        string text = Assert.IsType<string>(method!.Invoke(null, new object?[] {
+            "/Fx Do",
+            state.Resources,
+            state.Objects,
+            new Dictionary<int, string>(),
+            new HashSet<PdfStream>()
+        }));
+
+        Assert.Equal(string.Empty, text);
     }
 
     [Fact]
@@ -1790,6 +1816,40 @@ public class PdfReaderAndFooterRegressionTests {
         }) + "\n";
 
         return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static PdfReadPage CreatePdfReadPageWithDirectFormCycle() {
+        var state = BuildDirectFormCycleState();
+        var pageDict = new PdfDictionary();
+        pageDict.Items["Type"] = new PdfName("Page");
+        pageDict.Items["Resources"] = state.Resources;
+
+        var contents = new PdfArray();
+        contents.Items.Add(new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("/Fx Do")));
+        pageDict.Items["Contents"] = contents;
+
+        var ctor = typeof(PdfReadPage).GetConstructor(
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null,
+            new[] { typeof(int), typeof(PdfDictionary), typeof(Dictionary<int, PdfIndirectObject>) },
+            modifiers: null);
+
+        return Assert.IsType<PdfReadPage>(ctor!.Invoke(new object[] { 1, pageDict, state.Objects }));
+    }
+
+    private static (PdfDictionary Resources, Dictionary<int, PdfIndirectObject> Objects) BuildDirectFormCycleState() {
+        var xObjects = new PdfDictionary();
+        var resources = new PdfDictionary();
+        resources.Items["XObject"] = xObjects;
+
+        var formDict = new PdfDictionary();
+        formDict.Items["Subtype"] = new PdfName("Form");
+        formDict.Items["Resources"] = resources;
+
+        var formStream = new PdfStream(formDict, Encoding.ASCII.GetBytes("/Fx Do"));
+        xObjects.Items["Fx"] = formStream;
+
+        return (resources, new Dictionary<int, PdfIndirectObject>());
     }
 
     private static string EncodeUtf16BeHex(string value) {

@@ -43,7 +43,7 @@ public sealed class PdfReadPage {
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var pageDecoders = ResourceResolver.GetFontDecoders(_pageDict, _objects);
         var pageWidthProviders = ResourceResolver.GetFontWidthProviders(_pageDict, _objects);
-        var activeForms = new HashSet<int>();
+        var activeForms = new HashSet<PdfStream>();
 
         foreach (var stream in GetContentStreams()) {
             CollectTextAndForms(
@@ -64,7 +64,7 @@ public sealed class PdfReadPage {
         Dictionary<string, Func<byte[], string>> decoders,
         Dictionary<string, Func<byte[], double>> widthProviders,
         List<PdfTextSpan> spans,
-        HashSet<int> activeForms) {
+        HashSet<PdfStream> activeForms) {
         string DecodeWithFont(string fontRes, byte[] bytes) =>
             decoders.TryGetValue(fontRes, out var dec) ? dec(bytes) : PdfWinAnsiEncoding.Decode(bytes);
         double SumWidth1000(string fontRes, byte[] bytes) =>
@@ -73,12 +73,11 @@ public sealed class PdfReadPage {
         spans.AddRange(TextContentParser.Parse(content, DecodeWithFont, SumWidth1000));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(content)) {
-            if (!TryGetFormStream(resources, invocation.Name, out var formStream, out int formObjectNumber)) {
+            if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
                 continue;
             }
 
-            bool trackRecursion = formObjectNumber > 0;
-            if (trackRecursion && !activeForms.Add(formObjectNumber)) {
+            if (!activeForms.Add(formStream)) {
                 continue;
             }
 
@@ -92,24 +91,20 @@ public sealed class PdfReadPage {
 
                 CollectTextAndForms(formContent, formResources, formDecoders, formWidths, spans, activeForms);
             } finally {
-                if (trackRecursion) {
-                    activeForms.Remove(formObjectNumber);
-                }
+                activeForms.Remove(formStream);
             }
         }
     }
 
-    private bool TryGetFormStream(PdfDictionary? resources, string name, out PdfStream formStream, out int objectNumber) {
+    private bool TryGetFormStream(PdfDictionary? resources, string name, out PdfStream formStream) {
         if (resources is null || !resources.Items.TryGetValue("XObject", out var xoObj)) {
             formStream = null!;
-            objectNumber = 0;
             return false;
         }
 
         var xoDict = ResolveDictionary(xoObj);
         if (xoDict is null || !xoDict.Items.TryGetValue(name, out var formObj)) {
             formStream = null!;
-            objectNumber = 0;
             return false;
         }
 
@@ -118,19 +113,16 @@ public sealed class PdfReadPage {
             indirectForm.Value is PdfStream stream &&
             string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) {
             formStream = stream;
-            objectNumber = formRef.ObjectNumber;
             return true;
         }
 
         if (formObj is PdfStream directStream &&
             string.Equals(directStream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) {
             formStream = directStream;
-            objectNumber = 0;
             return true;
         }
 
         formStream = null!;
-        objectNumber = 0;
         return false;
     }
 

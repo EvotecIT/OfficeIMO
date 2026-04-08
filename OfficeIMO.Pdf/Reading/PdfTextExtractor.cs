@@ -91,7 +91,7 @@ public static class PdfTextExtractor {
     private static string ExtractTextFromPage(PdfDictionary page, Dictionary<int, PdfIndirectObject> parsedObjects, Dictionary<int, string> rawObjects) {
         var pageText = new StringBuilder();
         var resources = ResolveDict(GetInheritedValue(page, "Resources", parsedObjects), parsedObjects);
-        var activeForms = new HashSet<int>();
+        var activeForms = new HashSet<PdfStream>();
 
         foreach (int contentId in GetContentIds(page, parsedObjects)) {
             if (TryGetContentStreamContent(parsedObjects, rawObjects, contentId, out string content)) {
@@ -190,7 +190,7 @@ public static class PdfTextExtractor {
         PdfDictionary? resources = null,
         Dictionary<int, PdfIndirectObject>? parsedObjects = null,
         Dictionary<int, string>? rawObjects = null,
-        HashSet<int>? activeForms = null) {
+        HashSet<PdfStream>? activeForms = null) {
         var sb = new StringBuilder();
         bool inText = false;
         bool pendingSpace = false;
@@ -294,7 +294,7 @@ public static class PdfTextExtractor {
                     break;
                 case "Do":
                     if (resources is not null && parsedObjects is not null && rawObjects is not null && args.Count >= 1) {
-                        string formText = ExtractInvokedFormText(ToName(args[args.Count - 1]), resources, parsedObjects, rawObjects, activeForms ?? new HashSet<int>());
+                        string formText = ExtractInvokedFormText(ToName(args[args.Count - 1]), resources, parsedObjects, rawObjects, activeForms ?? new HashSet<PdfStream>());
                         if (!string.IsNullOrEmpty(formText)) {
                             AppendTextRun(formText);
                         }
@@ -493,13 +493,12 @@ public static class PdfTextExtractor {
         PdfDictionary resources,
         Dictionary<int, PdfIndirectObject> parsedObjects,
         Dictionary<int, string> rawObjects,
-        HashSet<int> activeForms) {
-        if (!TryGetFormStream(resources, formName, parsedObjects, out var formStream, out int formObjectNumber)) {
+        HashSet<PdfStream> activeForms) {
+        if (!TryGetFormStream(resources, formName, parsedObjects, out var formStream)) {
             return string.Empty;
         }
 
-        bool trackRecursion = formObjectNumber > 0;
-        if (trackRecursion && !activeForms.Add(formObjectNumber)) {
+        if (!activeForms.Add(formStream)) {
             return string.Empty;
         }
 
@@ -508,9 +507,7 @@ public static class PdfTextExtractor {
             var formResources = ResolveDict(formStream.Dictionary.Items.TryGetValue("Resources", out var resObj) ? resObj : null, parsedObjects) ?? resources;
             return ExtractTextFromContentStream(content, formResources, parsedObjects, rawObjects, activeForms);
         } finally {
-            if (trackRecursion) {
-                activeForms.Remove(formObjectNumber);
-            }
+            activeForms.Remove(formStream);
         }
     }
 
@@ -518,10 +515,8 @@ public static class PdfTextExtractor {
         PdfDictionary resources,
         string name,
         Dictionary<int, PdfIndirectObject> parsedObjects,
-        out PdfStream formStream,
-        out int objectNumber) {
+        out PdfStream formStream) {
         formStream = null!;
-        objectNumber = 0;
 
         if (!resources.Items.TryGetValue("XObject", out var xObjectObj)) {
             return false;
@@ -537,7 +532,6 @@ public static class PdfTextExtractor {
             indirectForm.Value is PdfStream referencedStream &&
             string.Equals(referencedStream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) {
             formStream = referencedStream;
-            objectNumber = formRef.ObjectNumber;
             return true;
         }
 
