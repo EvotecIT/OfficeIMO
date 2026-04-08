@@ -29,7 +29,13 @@ public static class DocumentReaderEpubExtensions {
         if (!epubStream.CanRead) throw new ArgumentException("EPUB stream must be readable.", nameof(epubStream));
 
         var options = readerOptions ?? new ReaderOptions();
-        var logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "document.epub" : sourceName.Trim();
+        var logicalSourceName = "document.epub";
+        if (sourceName != null) {
+            var trimmedSourceName = sourceName.Trim();
+            if (trimmedSourceName.Length > 0) {
+                logicalSourceName = trimmedSourceName;
+            }
+        }
         var parseStream = ReaderInputLimits.EnsureSeekableReadStream(epubStream, options.MaxInputBytes, cancellationToken, out var ownsParseStream);
         var source = BuildSourceMetadataFromStream(parseStream, logicalSourceName, options.ComputeHashes);
         EpubDocument document;
@@ -189,8 +195,8 @@ public static class DocumentReaderEpubExtensions {
         if (string.IsNullOrWhiteSpace(value)) return false;
         if (Path.IsPathRooted(value)) return false;
 
-        var normalized = value.Replace('\\', '/');
-        return normalized.Contains('/', StringComparison.Ordinal) || Path.GetExtension(normalized).Length > 0;
+        var normalized = value!.Replace('\\', '/');
+        return normalized.IndexOf('/') >= 0 || Path.GetExtension(normalized).Length > 0;
     }
 
     private static ReaderChunk EnrichChunk(ReaderChunk chunk, SourceMetadata source, bool computeHashes) {
@@ -215,8 +221,9 @@ public static class DocumentReaderEpubExtensions {
         if (chunk == null) throw new ArgumentNullException(nameof(chunk));
         if (string.IsNullOrWhiteSpace(virtualPath)) return;
 
-        chunk.Location.Path = virtualPath;
-        chunk.SourceId = BuildSourceId(virtualPath);
+        var effectiveVirtualPath = virtualPath!;
+        chunk.Location.Path = effectiveVirtualPath;
+        chunk.SourceId = BuildSourceId(effectiveVirtualPath);
 
         if (computeHashes) {
             chunk.ChunkHash = ComputeChunkHash(chunk);

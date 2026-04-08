@@ -214,7 +214,9 @@ public static class DocumentReaderCsvExtensions {
                 ? "Column" + (i + 1).ToString(CultureInfo.InvariantCulture)
                 : headers[i];
 
-            if (!seen.TryAdd(original, 1)) {
+            if (!seen.ContainsKey(original)) {
+                seen[original] = 1;
+            } else {
                 var suffix = seen[original] + 1;
                 string candidate;
                 do {
@@ -289,8 +291,11 @@ public static class DocumentReaderCsvExtensions {
     }
 
     private static string BuildLogicalSourcePath(string? sourceName, string defaultName) {
-        if (!string.IsNullOrWhiteSpace(sourceName)) {
-            return sourceName.Trim();
+        if (sourceName != null) {
+            var trimmedSourceName = sourceName.Trim();
+            if (trimmedSourceName.Length > 0) {
+                return trimmedSourceName;
+            }
         }
 
         return defaultName;

@@ -32,7 +32,13 @@ public static class DocumentReaderHtmlExtensions {
         if (!htmlStream.CanRead) throw new ArgumentException("HTML stream must be readable.", nameof(htmlStream));
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
-        var logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "document.html" : sourceName.Trim();
+        var logicalSourceName = "document.html";
+        if (sourceName != null) {
+            var trimmedSourceName = sourceName.Trim();
+            if (trimmedSourceName.Length > 0) {
+                logicalSourceName = trimmedSourceName;
+            }
+        }
         var source = new SourceMetadata {
             Path = logicalSourceName,
             SourceId = BuildSourceId(logicalSourceName)

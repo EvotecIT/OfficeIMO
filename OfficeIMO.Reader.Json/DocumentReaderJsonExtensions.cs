@@ -251,8 +251,11 @@ public static class DocumentReaderJsonExtensions {
     }
 
     private static string BuildLogicalSourcePath(string? sourceName, string defaultName) {
-        if (!string.IsNullOrWhiteSpace(sourceName)) {
-            return sourceName.Trim();
+        if (sourceName != null) {
+            var trimmedSourceName = sourceName.Trim();
+            if (trimmedSourceName.Length > 0) {
+                return trimmedSourceName;
+            }
         }
 
         return defaultName;

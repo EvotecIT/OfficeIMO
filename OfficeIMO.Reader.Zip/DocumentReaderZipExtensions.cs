@@ -84,7 +84,13 @@ public static class DocumentReaderZipExtensions {
         var effectiveZipOptions = zipOptions ?? new ZipTraversalOptions();
         var effectiveReaderZipOptions = Normalize(readerZipOptions);
         var warningCounter = new WarningCounter();
-        var logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "archive.zip" : sourceName.Trim();
+        var logicalSourceName = "archive.zip";
+        if (sourceName != null) {
+            var trimmedSourceName = sourceName.Trim();
+            if (trimmedSourceName.Length > 0) {
+                logicalSourceName = trimmedSourceName;
+            }
+        }
 
         var archiveStream = ReaderInputLimits.EnsureSeekableReadStream(zipStream, effectiveReaderOptions.MaxInputBytes, cancellationToken, out var ownsArchiveStream);
         try {
