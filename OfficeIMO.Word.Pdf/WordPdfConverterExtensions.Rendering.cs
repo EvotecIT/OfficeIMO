@@ -257,8 +257,12 @@ namespace OfficeIMO.Word.Pdf {
                     options.FontFilePaths.TryGetValue(fontName, out string? path) &&
                     !string.IsNullOrWhiteSpace(path) &&
                     File.Exists(path)) {
-                    using SKTypeface? typeface = SKTypeface.FromFile(path);
-                    string? familyName = typeface?.FamilyName;
+                    string? familyName = null;
+                    try {
+                        familyName = TryReadFontFamily(path, File.ReadAllBytes(path));
+                    } catch {
+                    }
+
                     if (!string.IsNullOrWhiteSpace(familyName)) {
                         return familyName;
                     }
