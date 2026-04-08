@@ -681,10 +681,23 @@ namespace OfficeIMO.Word.Pdf {
                 using MemoryStream ms = new(bytes, writable: false);
                 using SKManagedStream skStream = new(ms);
                 using SKTypeface? typeface = SKTypeface.FromStream(skStream);
-                return typeface?.FamilyName;
+                string? streamFamilyName = typeface?.FamilyName;
+                if (!string.IsNullOrWhiteSpace(streamFamilyName)) {
+                    return streamFamilyName;
+                }
             } catch {
+            }
+
+            return DeriveFontFamilyFromPath(sourcePath);
+        }
+
+        private static string? DeriveFontFamilyFromPath(string? sourcePath) {
+            if (string.IsNullOrWhiteSpace(sourcePath)) {
                 return null;
             }
+
+            string familyName = Path.GetFileNameWithoutExtension(sourcePath);
+            return string.IsNullOrWhiteSpace(familyName) ? null : familyName;
         }
 
     }
