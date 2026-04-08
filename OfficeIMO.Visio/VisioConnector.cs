@@ -9,6 +9,20 @@ namespace OfficeIMO.Visio {
     /// Connects two shapes together.
     /// </summary>
     public class VisioConnector {
+        internal sealed class PreservedShapeChildEntry {
+            public PreservedShapeChildEntry(XElement rawElement) {
+                RawElement = new XElement(rawElement);
+            }
+
+            public PreservedShapeChildEntry(string token) {
+                Token = token;
+            }
+
+            public XElement? RawElement { get; }
+
+            public string? Token { get; }
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="VisioConnector"/> class connecting two shapes.
         /// </summary>
@@ -101,6 +115,8 @@ namespace OfficeIMO.Visio {
         internal IList<XElement> PreservedCellElements { get; } = new List<XElement>();
 
         internal IList<XElement> PreservedNonGeometrySections { get; } = new List<XElement>();
+
+        internal IList<PreservedShapeChildEntry> PreservedShapeChildren { get; } = new List<PreservedShapeChildEntry>();
 
         internal string? PreservedFromConnectionCell { get; set; }
 

@@ -495,6 +495,7 @@ namespace OfficeIMO.Visio {
                     connector.Label = connectorTextElement?.Value;
                     connector.PreservedTextElement = connectorTextElement != null ? new XElement(connectorTextElement) : null;
                     connector.PreservedTextValue = connectorTextElement?.Value;
+                    CaptureConnectorShapeChildOrder(connector, connectorElement);
                     page.Connectors.Add(connector);
                     loadedConnectorsByPersistedId[persistedId] = connector;
                     loadedConnectorsByElement[connectorElement] = connector;
@@ -1138,6 +1139,64 @@ namespace OfficeIMO.Visio {
             foreach (XName attributeName in source) {
                 destination.Add(attributeName);
             }
+        }
+
+        private static void CaptureConnectorShapeChildOrder(VisioConnector connector, XElement connectorElement) {
+            connector.PreservedShapeChildren.Clear();
+            foreach (XElement child in connectorElement.Elements()) {
+                string localName = child.Name.LocalName;
+                if (string.Equals(localName, "XForm1D", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(localName, "XForm", StringComparison.OrdinalIgnoreCase)) {
+                    connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry("XForm1D"));
+                    continue;
+                }
+
+                if (string.Equals(localName, "Cell", StringComparison.OrdinalIgnoreCase)) {
+                    string? cellName = child.Attribute("N")?.Value;
+                    if (IsModeledConnectorCell(cellName)) {
+                        connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry($"Cell:{cellName}"));
+                    } else {
+                        connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry(child));
+                    }
+
+                    continue;
+                }
+
+                if (string.Equals(localName, "Section", StringComparison.OrdinalIgnoreCase)) {
+                    string? sectionName = child.Attribute("N")?.Value;
+                    if (string.Equals(sectionName, "Geometry", StringComparison.OrdinalIgnoreCase)) {
+                        connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry("Section:Geometry"));
+                    } else if (string.Equals(sectionName, "Prop", StringComparison.OrdinalIgnoreCase)) {
+                        connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry("Section:Prop"));
+                    } else {
+                        connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry(child));
+                    }
+
+                    continue;
+                }
+
+                if (string.Equals(localName, "Text", StringComparison.OrdinalIgnoreCase)) {
+                    connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry("Text"));
+                    continue;
+                }
+
+                connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry(child));
+            }
+        }
+
+        private static bool IsModeledConnectorCell(string? cellName) {
+            return string.Equals(cellName, "BeginX", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "BeginY", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "EndX", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "EndY", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "LineWeight", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "LinePattern", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "LineColor", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "FillPattern", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "FillForegnd", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "OneD", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "BeginArrow", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "EndArrow", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool ShouldPreserveConnectorCell(string? cellName) {

@@ -634,8 +634,43 @@ namespace OfficeIMO.Visio {
                 writer.WriteAttributeString("Master", GetPackageMasterId(packageMasters, m));
             }
 
-            double startX;
-            double startY;
+            WriteConnectorShapeBody(writer, ns, connector, persistedIds);
+            writer.WriteEndElement();
+        }
+
+        private void WriteConnectorShapeBody(XmlWriter writer, string ns, VisioConnector connector, IReadOnlyDictionary<string, string> persistedIds) {
+            ComputeConnectorEndpoints(connector, out double startX, out double startY, out double endX, out double endY);
+            KeyValuePair<string, string>? connectorOriginalId = GetOriginalIdEntry(persistedIds, connector.Id);
+
+            if (connector.PreservedShapeChildren.Count > 0) {
+                HashSet<string> emittedTokens = new(StringComparer.OrdinalIgnoreCase);
+                foreach (VisioConnector.PreservedShapeChildEntry entry in connector.PreservedShapeChildren) {
+                    if (entry.RawElement != null) {
+                        entry.RawElement.WriteTo(writer);
+                        continue;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(entry.Token) &&
+                        emittedTokens.Add(entry.Token) &&
+                        TryWriteConnectorShapeChildToken(writer, ns, connector, connectorOriginalId, entry.Token, startX, startY, endX, endY)) {
+                        continue;
+                    }
+                }
+
+                WriteRemainingConnectorShapeChildren(writer, ns, connector, connectorOriginalId, emittedTokens, startX, startY, endX, endY);
+                return;
+            }
+
+            WriteXForm1D(writer, ns, startX, startY, endX, endY);
+            WriteModeledConnectorCells(writer, ns, connector, startX, startY, endX, endY);
+            WritePreservedConnectorCells(writer, connector.PreservedCellElements);
+            WritePreservedConnectorSections(writer, connector.PreservedNonGeometrySections);
+            WriteConnectorGeometry(writer, ns, connector, startX, startY, endX, endY);
+            WriteDataSection(writer, ns, new Dictionary<string, string>(), null, connectorOriginalId);
+            WriteTextElement(writer, ns, connector.Label, connector.PreservedTextElement, connector.PreservedTextValue);
+        }
+
+        private static void ComputeConnectorEndpoints(VisioConnector connector, out double startX, out double startY, out double endX, out double endY) {
             if (connector.FromConnectionPoint != null) {
                 (startX, startY) = connector.From.GetAbsolutePoint(connector.FromConnectionPoint.X, connector.FromConnectionPoint.Y);
             } else {
@@ -648,8 +683,6 @@ namespace OfficeIMO.Visio {
                 startY = (fB + fT) / 2.0;
             }
 
-            double endX;
-            double endY;
             if (connector.ToConnectionPoint != null) {
                 (endX, endY) = connector.To.GetAbsolutePoint(connector.ToConnectionPoint.X, connector.ToConnectionPoint.Y);
             } else {
@@ -661,29 +694,134 @@ namespace OfficeIMO.Visio {
                 endX = fromIsLeft ? tL : tR;
                 endY = (tB + tT) / 2.0;
             }
+        }
 
-            WriteXForm1D(writer, ns, startX, startY, endX, endY);
-            WriteCell(writer, ns, "LineWeight", connector.LineWeight);
-            WriteCell(writer, ns, "LinePattern", connector.LinePattern);
-            WriteCellValue(writer, ns, "LineColor", connector.LineColor.ToVisioHex());
-            WriteCell(writer, ns, "FillPattern", 0);
-            WriteCellValue(writer, ns, "FillForegnd", Color.Transparent.ToVisioHex());
-            WriteCell(writer, ns, "OneD", 1);
-            if (connector.BeginArrow.HasValue) {
-                WriteCell(writer, ns, "BeginArrow", (int)connector.BeginArrow.Value);
+        private static bool TryWriteConnectorShapeChildToken(
+            XmlWriter writer,
+            string ns,
+            VisioConnector connector,
+            KeyValuePair<string, string>? connectorOriginalId,
+            string token,
+            double startX,
+            double startY,
+            double endX,
+            double endY) {
+            if (string.Equals(token, "XForm1D", StringComparison.OrdinalIgnoreCase)) {
+                WriteXForm1D(writer, ns, startX, startY, endX, endY);
+                return true;
             }
-            if (connector.EndArrow.HasValue) {
-                WriteCell(writer, ns, "EndArrow", (int)connector.EndArrow.Value);
+
+            if (string.Equals(token, "Section:Geometry", StringComparison.OrdinalIgnoreCase)) {
+                WriteConnectorGeometry(writer, ns, connector, startX, startY, endX, endY);
+                return true;
             }
 
-            WritePreservedConnectorCells(writer, connector.PreservedCellElements);
-            WritePreservedConnectorSections(writer, connector.PreservedNonGeometrySections);
-            WriteConnectorGeometry(writer, ns, connector, startX, startY, endX, endY);
+            if (string.Equals(token, "Section:Prop", StringComparison.OrdinalIgnoreCase)) {
+                WriteDataSection(writer, ns, new Dictionary<string, string>(), null, connectorOriginalId);
+                return true;
+            }
 
-            KeyValuePair<string, string>? connectorOriginalId = GetOriginalIdEntry(persistedIds, connector.Id);
-            WriteDataSection(writer, ns, new Dictionary<string, string>(), null, connectorOriginalId);
-            WriteTextElement(writer, ns, connector.Label, connector.PreservedTextElement, connector.PreservedTextValue);
-            writer.WriteEndElement();
+            if (string.Equals(token, "Text", StringComparison.OrdinalIgnoreCase)) {
+                WriteTextElement(writer, ns, connector.Label, connector.PreservedTextElement, connector.PreservedTextValue);
+                return true;
+            }
+
+            if (token.StartsWith("Cell:", StringComparison.OrdinalIgnoreCase)) {
+                return TryWriteModeledConnectorCell(writer, ns, connector, token.Substring("Cell:".Length), startX, startY, endX, endY);
+            }
+
+            return false;
+        }
+
+        private static void WriteRemainingConnectorShapeChildren(
+            XmlWriter writer,
+            string ns,
+            VisioConnector connector,
+            KeyValuePair<string, string>? connectorOriginalId,
+            ISet<string> emittedTokens,
+            double startX,
+            double startY,
+            double endX,
+            double endY) {
+            if (emittedTokens.Add("XForm1D")) {
+                WriteXForm1D(writer, ns, startX, startY, endX, endY);
+            }
+
+            WriteRemainingModeledConnectorCells(writer, ns, connector, emittedTokens, startX, startY, endX, endY);
+
+            if (emittedTokens.Add("Section:Geometry")) {
+                WriteConnectorGeometry(writer, ns, connector, startX, startY, endX, endY);
+            }
+
+            if (emittedTokens.Add("Section:Prop")) {
+                WriteDataSection(writer, ns, new Dictionary<string, string>(), null, connectorOriginalId);
+            }
+
+            if (emittedTokens.Add("Text")) {
+                WriteTextElement(writer, ns, connector.Label, connector.PreservedTextElement, connector.PreservedTextValue);
+            }
+        }
+
+        private static void WriteModeledConnectorCells(XmlWriter writer, string ns, VisioConnector connector, double startX, double startY, double endX, double endY) {
+            foreach (string cellName in ConnectorModeledCellOrder) {
+                TryWriteModeledConnectorCell(writer, ns, connector, cellName, startX, startY, endX, endY);
+            }
+        }
+
+        private static void WriteRemainingModeledConnectorCells(XmlWriter writer, string ns, VisioConnector connector, ISet<string> emittedTokens, double startX, double startY, double endX, double endY) {
+            foreach (string cellName in ConnectorModeledCellOrder) {
+                string token = $"Cell:{cellName}";
+                if (emittedTokens.Add(token)) {
+                    TryWriteModeledConnectorCell(writer, ns, connector, cellName, startX, startY, endX, endY);
+                }
+            }
+        }
+
+        private static bool TryWriteModeledConnectorCell(XmlWriter writer, string ns, VisioConnector connector, string cellName, double startX, double startY, double endX, double endY) {
+            switch (cellName) {
+                case "BeginX":
+                    WriteCell(writer, ns, "BeginX", startX);
+                    return true;
+                case "BeginY":
+                    WriteCell(writer, ns, "BeginY", startY);
+                    return true;
+                case "EndX":
+                    WriteCell(writer, ns, "EndX", endX);
+                    return true;
+                case "EndY":
+                    WriteCell(writer, ns, "EndY", endY);
+                    return true;
+                case "LineWeight":
+                    WriteCell(writer, ns, "LineWeight", connector.LineWeight);
+                    return true;
+                case "LinePattern":
+                    WriteCell(writer, ns, "LinePattern", connector.LinePattern);
+                    return true;
+                case "LineColor":
+                    WriteCellValue(writer, ns, "LineColor", connector.LineColor.ToVisioHex());
+                    return true;
+                case "FillPattern":
+                    WriteCell(writer, ns, "FillPattern", 0);
+                    return true;
+                case "FillForegnd":
+                    WriteCellValue(writer, ns, "FillForegnd", Color.Transparent.ToVisioHex());
+                    return true;
+                case "OneD":
+                    WriteCell(writer, ns, "OneD", 1);
+                    return true;
+                case "BeginArrow":
+                    if (connector.BeginArrow.HasValue) {
+                        WriteCell(writer, ns, "BeginArrow", (int)connector.BeginArrow.Value);
+                    }
+                    return true;
+                case "EndArrow":
+                    if (connector.EndArrow.HasValue) {
+                        WriteCell(writer, ns, "EndArrow", (int)connector.EndArrow.Value);
+                    }
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private void WriteMasterBackedShapeBody(XmlWriter writer, string ns, VisioShape shape, VisioMaster master, KeyValuePair<string, string>? originalIdEntry) {
@@ -787,6 +925,21 @@ namespace OfficeIMO.Visio {
             WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry);
             WriteTextElement(writer, ns, shape.Text, shape.PreservedTextElement, shape.PreservedTextValue);
         }
+
+        private static readonly string[] ConnectorModeledCellOrder = {
+            "BeginX",
+            "BeginY",
+            "EndX",
+            "EndY",
+            "LineWeight",
+            "LinePattern",
+            "LineColor",
+            "FillPattern",
+            "FillForegnd",
+            "OneD",
+            "BeginArrow",
+            "EndArrow"
+        };
 
         private static Dictionary<string, string> BuildPersistedIdMap(VisioPage page) {
             Dictionary<string, string> map = new(StringComparer.Ordinal);

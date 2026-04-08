@@ -315,6 +315,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ConnectorShapeChildOrderIsPreservedOnRoundTrip() {
+            string filePath = CreateConnectorDocument(ConnectorKind.Straight);
+
+            RewritePage(filePath, pageDoc => {
+                XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+                XElement connectorShape = GetConnectorShape(pageDoc, ns);
+                XElement xForm = connectorShape.Element(ns + "XForm1D")!;
+                XElement lineWeight = connectorShape.Elements(ns + "Cell")
+                    .First(cell => (string?)cell.Attribute("N") == "LineWeight");
+                XElement geometry = connectorShape.Elements(ns + "Section")
+                    .First(section => (string?)section.Attribute("N") == "Geometry");
+                XElement sidecarElement = new(ns + "ShapeMeta",
+                    new XAttribute("KeepOrder", "1"));
+
+                XElement[] remainingChildren = connectorShape.Elements()
+                    .Where(element => element != xForm && element != lineWeight && element != geometry)
+                    .ToArray();
+
+                connectorShape.RemoveNodes();
+                connectorShape.Add(lineWeight, sidecarElement, geometry, xForm);
+                foreach (XElement remainingChild in remainingChildren) {
+                    connectorShape.Add(remainingChild);
+                }
+            });
+
+            string originalOrder = ReadConnectorShapeChildOrder(filePath);
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            string savedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            loaded.Save(savedPath);
+
+            Assert.Equal(originalOrder, ReadConnectorShapeChildOrder(savedPath));
+        }
+
+        [Fact]
         public void AdditionalConnectRowsArePreservedOnRoundTrip() {
             string filePath = CreateConnectorDocument(ConnectorKind.Straight);
 
@@ -1417,6 +1452,22 @@ namespace OfficeIMO.Tests {
                     .Select(element => string.Equals(element.Name.LocalName, "Shape", StringComparison.OrdinalIgnoreCase)
                         ? $"Shape:{(string?)element.Attribute("NameU")}"
                         : $"{element.Name.LocalName}:{(string?)element.Attribute("KeepOrder") ?? string.Empty}"));
+        }
+
+        private static string ReadConnectorShapeChildOrder(string vsdxPath) {
+            using ZipArchive archive = ZipFile.OpenRead(vsdxPath);
+            using Stream stream = archive.GetEntry("visio/pages/page1.xml")!.Open();
+            XDocument pageDoc = XDocument.Load(stream);
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XElement connectorShape = GetConnectorShape(pageDoc, ns);
+
+            return string.Join("|",
+                connectorShape.Elements()
+                    .Select(element => element.Name.LocalName switch {
+                        "Cell" => $"Cell:{(string?)element.Attribute("N")}",
+                        "Section" => $"Section:{(string?)element.Attribute("N")}",
+                        _ => $"{element.Name.LocalName}:{(string?)element.Attribute("KeepOrder") ?? string.Empty}"
+                    }));
         }
 
         private static string ReadAdditionalConnectRows(string vsdxPath) {
