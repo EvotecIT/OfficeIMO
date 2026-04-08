@@ -8,6 +8,7 @@ namespace OfficeIMO.Visio {
     public partial class VisioDocument {
         /// <summary>Saves the document to the path specified when created.</summary>
         public void Save() {
+            ThrowIfInvalidForSave();
             if (string.IsNullOrEmpty(_filePath)) {
                 if (_sourceStream == null) {
                     throw new InvalidOperationException("File path is not set.");
@@ -21,6 +22,7 @@ namespace OfficeIMO.Visio {
         /// <summary>Saves the document to a specified file path.</summary>
         public void Save(string filePath) {
             _filePath = filePath;
+            ThrowIfInvalidForSave();
             SaveInternal(filePath);
         }
 
@@ -28,6 +30,7 @@ namespace OfficeIMO.Visio {
         public void Save(Stream stream) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
+            ThrowIfInvalidForSave();
             SaveInternal(stream);
         }
 

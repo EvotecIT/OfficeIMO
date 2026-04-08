@@ -169,8 +169,7 @@ namespace OfficeIMO.Visio.Fluent {
         public VisioFluentPage Connect(string fromId, string toId, Action<VisioFluentConnector>? configure = null) {
             if (!_byId.TryGetValue(fromId, out var from)) throw new ArgumentException($"Unknown shape id '{fromId}'", nameof(fromId));
             if (!_byId.TryGetValue(toId, out var to)) throw new ArgumentException($"Unknown shape id '{toId}'", nameof(toId));
-            var conn = new VisioConnector(from, to);
-            _page.Connectors.Add(conn);
+            var conn = _page.AddConnector(from, to);
             configure?.Invoke(new VisioFluentConnector(conn));
             return this;
         }
@@ -179,9 +178,8 @@ namespace OfficeIMO.Visio.Fluent {
         public VisioFluentPage Connect(string fromId, string toId, VisioSide fromSide, VisioSide toSide, Action<VisioFluentConnector>? configure = null) {
             if (!_byId.TryGetValue(fromId, out var from)) throw new ArgumentException($"Unknown shape id '{fromId}'", nameof(fromId));
             if (!_byId.TryGetValue(toId, out var to)) throw new ArgumentException($"Unknown shape id '{toId}'", nameof(toId));
-            var conn = new VisioConnector(from, to);
-            _page.Connectors.Add(conn);
-            var builder = new VisioFluentConnector(conn).Sides(fromSide, toSide);
+            var conn = _page.AddConnector(from, to, ConnectorKind.Dynamic, fromSide, toSide);
+            var builder = new VisioFluentConnector(conn);
             configure?.Invoke(builder);
             return this;
         }

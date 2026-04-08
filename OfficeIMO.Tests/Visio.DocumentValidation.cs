@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using OfficeIMO.Visio;
 using Xunit;
 
@@ -63,6 +64,61 @@ namespace OfficeIMO.Tests {
             Assert.Contains(issues, issue => issue.Contains("cannot have a negative width"));
             Assert.Contains(issues, issue => issue.Contains("cannot have a negative height"));
             Assert.Contains(issues, issue => issue.Contains("source connection point"));
+        }
+
+        [Fact]
+        public void SaveRejectsInvalidDocumentsWithValidationSummary() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage first = document.AddPage("Page-1", id: 0);
+            VisioPage second = document.AddPage("Page-2", id: 0);
+
+            VisioShape shared = new("dup", 1, 1, 1, 1, "Shared");
+            first.Shapes.Add(shared);
+            second.Shapes.Add(new VisioShape("outside", 2, 2, 1, 1, "Outside"));
+            first.Connectors.Add(new VisioConnector("dup", shared, second.Shapes[0]));
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => document.Save());
+
+            Assert.Contains("validation failed", exception.Message);
+            Assert.Contains("Duplicate page id '0'", exception.Message);
+            Assert.Contains("references a target shape that is not part of the page", exception.Message);
+        }
+
+        [Fact]
+        public void ValidateReportsNegativePageIds() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = new("Detached") { Id = -1 };
+
+            object? rawPages = typeof(VisioDocument)
+                .GetField("_pages", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(document);
+            var pagesList = Assert.IsType<System.Collections.Generic.List<VisioPage>>(rawPages);
+            pagesList.Add(page);
+
+            string[] issues = document.Validate().ToArray();
+
+            Assert.Contains(issues, issue => issue.Contains("must have a non-negative id"));
+        }
+
+        [Fact]
+        public void ValidateReportsCyclicShapeHierarchyWithoutRecursingForever() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Page-1");
+            VisioShape group = new("1") { Type = "Group" };
+            VisioShape child = new("2", 1, 1, 1, 1, "Child");
+            group.Children.Add(child);
+            page.Shapes.Add(group);
+
+            List<VisioShape> rawChildren = Assert.IsType<List<VisioShape>>(typeof(VisioShape)
+                .GetField("_children", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .GetValue(child));
+            rawChildren.Add(group);
+
+            string[] issues = document.Validate().ToArray();
+
+            Assert.Contains(issues, issue => issue.Contains("cyclic parent/child hierarchy"));
+            Assert.Contains(issues, issue => issue.Contains("inconsistent parent reference"));
         }
     }
 }

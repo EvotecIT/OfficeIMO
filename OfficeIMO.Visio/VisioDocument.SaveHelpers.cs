@@ -491,11 +491,42 @@ namespace OfficeIMO.Visio {
             writer.WriteEndElement();
         }
 
-        private static void WriteDataSection(XmlWriter writer, string ns, IDictionary<string, string> data, KeyValuePair<string, string>? additionalEntry = null) {
+        private static void WriteDataSection(XmlWriter writer, string ns, IDictionary<string, string> data, IEnumerable<XElement>? preservedRows = null, KeyValuePair<string, string>? additionalEntry = null) {
             if (data.Count == 0 && additionalEntry == null) return;
             writer.WriteStartElement("Section", ns);
             writer.WriteAttributeString("N", "Prop");
+
+            HashSet<string> emittedKeys = new(StringComparer.Ordinal);
+            if (preservedRows != null) {
+                foreach (XElement preservedRow in preservedRows) {
+                    string? key = preservedRow.Attribute("N")?.Value;
+                    if (string.IsNullOrEmpty(key) ||
+                        string.Equals(key, OriginalIdPropName, StringComparison.Ordinal) ||
+                        !data.TryGetValue(key, out string? value)) {
+                        continue;
+                    }
+
+                    XElement clone = new(preservedRow);
+                    XElement? valueCell = clone.Elements(XName.Get("Cell", clone.Name.NamespaceName))
+                        .FirstOrDefault(cell => string.Equals(cell.Attribute("N")?.Value, "Value", StringComparison.Ordinal));
+                    if (valueCell == null) {
+                        valueCell = new XElement(XName.Get("Cell", clone.Name.NamespaceName),
+                            new XAttribute("N", "Value"));
+                        clone.Add(valueCell);
+                    }
+                    valueCell.SetAttributeValue("V", value);
+
+                    using var reader = clone.CreateReader();
+                    writer.WriteNode(reader, false);
+                    emittedKeys.Add(key);
+                }
+            }
+
             foreach (var kv in data) {
+                if (emittedKeys.Contains(kv.Key)) {
+                    continue;
+                }
+
                 writer.WriteStartElement("Row", ns);
                 writer.WriteAttributeString("N", kv.Key);
                 writer.WriteStartElement("Cell", ns);
@@ -526,16 +557,29 @@ namespace OfficeIMO.Visio {
             writer.WriteEndElement();
         }
 
-        private static void WriteTextElement(XmlWriter writer, string ns, string? text) {
-            if (!string.IsNullOrEmpty(text)) writer.WriteElementString("Text", ns, text);
+        private static void WriteTextElement(XmlWriter writer, string ns, string? text, XElement? preservedTextElement = null, string? preservedTextValue = null) {
+            if (preservedTextElement != null &&
+                string.Equals(text ?? string.Empty, preservedTextValue ?? string.Empty, StringComparison.Ordinal)) {
+                XElement clone = new(preservedTextElement);
+                using var reader = clone.CreateReader();
+                writer.WriteNode(reader, false);
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(text)) {
+                writer.WriteElementString("Text", ns, text);
+            }
         }
 
-        private static string GetConnectionCell(VisioShape shape, VisioConnectionPoint? point) {
-            if (point == null) return "PinX";
+        private static string GetConnectionCell(VisioShape shape, VisioConnectionPoint? point, string? preservedCell = null) {
+            if (point == null) {
+                return string.IsNullOrWhiteSpace(preservedCell) ? "PinX" : preservedCell!;
+            }
+
             Dictionary<VisioConnectionPoint, int> pointIndices = BuildConnectionPointIndices(shape.ConnectionPoints);
             return pointIndices.TryGetValue(point, out int index)
                 ? $"Connections.X{index + 1}"
-                : "PinX";
+                : string.IsNullOrWhiteSpace(preservedCell) ? "PinX" : preservedCell!;
         }
 
         private static Dictionary<VisioConnectionPoint, int> BuildConnectionPointIndices(IList<VisioConnectionPoint> points) {
@@ -566,7 +610,20 @@ namespace OfficeIMO.Visio {
             return indices;
         }
 
-        private static XDocument CreateVisioDocumentXml(bool requestRecalcOnOpen) {
+        private static XDocument CreateVisioDocumentXml(
+            bool requestRecalcOnOpen,
+            IEnumerable<XAttribute>? preservedDocumentAttributes = null,
+            IEnumerable<XElement>? preservedDocumentElements = null,
+            IEnumerable<XAttribute>? preservedDocumentSettingsAttributes = null,
+            IEnumerable<XElement>? preservedDocumentSettingsElements = null,
+            IEnumerable<XAttribute>? preservedColorsAttributes = null,
+            IEnumerable<XElement>? preservedColorsElements = null,
+            IEnumerable<XAttribute>? preservedFaceNamesAttributes = null,
+            IEnumerable<XElement>? preservedFaceNamesElements = null,
+            IEnumerable<XAttribute>? preservedStyleSheetsAttributes = null,
+            IEnumerable<XElement>? preservedStyleSheetsElements = null,
+            IDictionary<string, PreservedStyleSheetData>? preservedGeneratedStyleSheets = null,
+            IEnumerable<XElement>? preservedAdditionalStyleSheets = null) {
             XNamespace ns = VisioNamespace;
             XElement settings = new(ns + "DocumentSettings",
                 new XAttribute("TopPage", 0),
@@ -583,9 +640,59 @@ namespace OfficeIMO.Visio {
                 new XElement(ns + "ProtectShapes", 0),
                 new XElement(ns + "ProtectMasters", 0),
                 new XElement(ns + "ProtectBkgnds", 0));
+            foreach (XAttribute attribute in preservedDocumentSettingsAttributes ?? Enumerable.Empty<XAttribute>()) {
+                settings.Add(new XAttribute(attribute));
+            }
             if (requestRecalcOnOpen) settings.Add(new XElement(ns + "RelayoutAndRerouteUponOpen", 1));
-            XElement styleSheets = new(ns + "StyleSheets",
-                new XElement(ns + "StyleSheet",
+            foreach (XElement element in preservedDocumentSettingsElements ?? Enumerable.Empty<XElement>()) {
+                settings.Add(new XElement(element));
+            }
+            XElement colors = new(ns + "Colors");
+            foreach (XAttribute attribute in preservedColorsAttributes ?? Enumerable.Empty<XAttribute>()) {
+                colors.Add(new XAttribute(attribute));
+            }
+            foreach (XElement element in preservedColorsElements ?? Enumerable.Empty<XElement>()) {
+                colors.Add(new XElement(element));
+            }
+            XElement faceNames = new(ns + "FaceNames");
+            foreach (XAttribute attribute in preservedFaceNamesAttributes ?? Enumerable.Empty<XAttribute>()) {
+                faceNames.Add(new XAttribute(attribute));
+            }
+            foreach (XElement element in preservedFaceNamesElements ?? Enumerable.Empty<XElement>()) {
+                faceNames.Add(new XElement(element));
+            }
+            XElement styleSheets = new(ns + "StyleSheets");
+            foreach (XAttribute attribute in preservedStyleSheetsAttributes ?? Enumerable.Empty<XAttribute>()) {
+                styleSheets.Add(new XAttribute(attribute));
+            }
+            foreach (XElement element in preservedStyleSheetsElements ?? Enumerable.Empty<XElement>()) {
+                styleSheets.Add(new XElement(element));
+            }
+            styleSheets.Add(CreateGeneratedStyleSheet(ns, "0", preservedGeneratedStyleSheets));
+            styleSheets.Add(CreateGeneratedStyleSheet(ns, "1", preservedGeneratedStyleSheets));
+            styleSheets.Add(CreateGeneratedStyleSheet(ns, "2", preservedGeneratedStyleSheets));
+            foreach (XElement styleSheet in preservedAdditionalStyleSheets ?? Enumerable.Empty<XElement>()) {
+                styleSheets.Add(new XElement(styleSheet));
+            }
+
+            XElement root = new(ns + "VisioDocument");
+            foreach (XAttribute attribute in preservedDocumentAttributes ?? Enumerable.Empty<XAttribute>()) {
+                root.Add(new XAttribute(attribute));
+            }
+            foreach (XElement element in preservedDocumentElements ?? Enumerable.Empty<XElement>()) {
+                root.Add(new XElement(element));
+            }
+            root.Add(settings);
+            root.Add(colors);
+            root.Add(faceNames);
+            root.Add(styleSheets);
+
+            return new XDocument(root);
+        }
+
+        private static XElement CreateGeneratedStyleSheet(XNamespace ns, string styleSheetId, IDictionary<string, PreservedStyleSheetData>? preservedGeneratedStyleSheets) {
+            XElement styleSheet = styleSheetId switch {
+                "0" => new XElement(ns + "StyleSheet",
                     new XAttribute("ID", 0),
                     new XAttribute("Name", "No Style"),
                     new XAttribute("NameU", "No Style"),
@@ -597,7 +704,7 @@ namespace OfficeIMO.Visio {
                     new XElement(ns + "Cell", new XAttribute("N", "LinePattern"), new XAttribute("V", "1")),
                     new XElement(ns + "Cell", new XAttribute("N", "FillForegnd"), new XAttribute("V", "1")),
                     new XElement(ns + "Cell", new XAttribute("N", "FillPattern"), new XAttribute("V", "1"))),
-                new XElement(ns + "StyleSheet",
+                "1" => new XElement(ns + "StyleSheet",
                     new XAttribute("ID", 1),
                     new XAttribute("Name", "Normal"),
                     new XAttribute("NameU", "Normal"),
@@ -609,7 +716,7 @@ namespace OfficeIMO.Visio {
                     new XElement(ns + "Cell", new XAttribute("N", "LineColor"), new XAttribute("V", "#000000")),
                     new XElement(ns + "Cell", new XAttribute("N", "FillPattern"), new XAttribute("V", 1)),
                     new XElement(ns + "Cell", new XAttribute("N", "FillForegnd"), new XAttribute("V", "#FFFFFF"))),
-                new XElement(ns + "StyleSheet",
+                "2" => new XElement(ns + "StyleSheet",
                     new XAttribute("ID", 2),
                     new XAttribute("Name", "Connector"),
                     new XAttribute("NameU", "Connector"),
@@ -617,14 +724,22 @@ namespace OfficeIMO.Visio {
                     new XAttribute("LineStyle", 0),
                     new XAttribute("FillStyle", 0),
                     new XAttribute("TextStyle", 0),
-                    new XElement(ns + "Cell", new XAttribute("N", "EndArrow"), new XAttribute("V", 0))));
+                    new XElement(ns + "Cell", new XAttribute("N", "EndArrow"), new XAttribute("V", 0))),
+                _ => throw new InvalidOperationException($"Unsupported generated style sheet id '{styleSheetId}'.")
+            };
 
-            return new XDocument(
-                new XElement(ns + "VisioDocument",
-                    settings,
-                    new XElement(ns + "Colors"),
-                    new XElement(ns + "FaceNames"),
-                    styleSheets));
+            if (preservedGeneratedStyleSheets != null &&
+                preservedGeneratedStyleSheets.TryGetValue(styleSheetId, out PreservedStyleSheetData? preserved)) {
+                foreach (XAttribute attribute in preserved.Attributes) {
+                    styleSheet.Add(new XAttribute(attribute));
+                }
+
+                foreach (XElement element in preserved.ChildElements) {
+                    styleSheet.Add(new XElement(element));
+                }
+            }
+
+            return styleSheet;
         }
 
         private static void FixContentTypes(string filePath, int masterCount, bool includeTheme, IEnumerable<string> pagePartNames) {

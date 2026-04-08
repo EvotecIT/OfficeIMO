@@ -83,6 +83,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DirectConnectorCollectionAddUsesPageScopedIdsAcrossDocuments() {
+            VisioDocument firstDocument = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage firstPage = firstDocument.AddPage("Page-1");
+            VisioShape firstStart = new("1", 1, 1, 1, 1, "Start");
+            VisioShape firstEnd = new("2", 4, 1, 1, 1, "End");
+            firstPage.Shapes.Add(firstStart);
+            firstPage.Shapes.Add(firstEnd);
+            VisioConnector firstConnector = new(firstStart, firstEnd);
+            firstPage.Connectors.Add(firstConnector);
+
+            VisioDocument secondDocument = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage secondPage = secondDocument.AddPage("Page-1");
+            VisioShape secondStart = new("1", 1, 1, 1, 1, "Start");
+            VisioShape secondEnd = new("2", 4, 1, 1, 1, "End");
+            secondPage.Shapes.Add(secondStart);
+            secondPage.Shapes.Add(secondEnd);
+            VisioConnector secondConnector = new(secondStart, secondEnd);
+            secondPage.Connectors.Add(secondConnector);
+
+            Assert.Equal("3", firstConnector.Id);
+            Assert.Equal("3", secondConnector.Id);
+        }
+
+        [Fact]
+        public void DirectConnectorCollectionAddReassignsAutomaticIdsToNextFreePageSlot() {
+            VisioPage page = new("Page-1");
+            VisioShape start = new("1", 1, 1, 1, 1, "Start");
+            VisioShape end = new("2", 4, 1, 1, 1, "End");
+            page.Shapes.Add(start);
+            page.Shapes.Add(end);
+            page.Connectors.Add(new VisioConnector("3", start, end));
+
+            VisioConnector autoConnector = new(start, end);
+            page.Connectors.Add(autoConnector);
+
+            Assert.Equal("4", autoConnector.Id);
+        }
+
+        [Fact]
         public void LoadPreservesExplicitZeroGeometryOnMasterBackedShapes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 

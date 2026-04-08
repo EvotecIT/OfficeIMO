@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Xml.Linq;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -67,11 +68,29 @@ namespace OfficeIMO.Visio {
             public string UniqueId { get; set; } = string.Empty;
         }
 
+        internal sealed class PreservedStyleSheetData {
+            public IList<XAttribute> Attributes { get; } = new List<XAttribute>();
+
+            public IList<XElement> ChildElements { get; } = new List<XElement>();
+        }
+
         private readonly List<VisioPage> _pages = new();
         private bool _requestRecalcOnOpen;
         private string? _filePath;
         private Stream? _sourceStream;
         private readonly Dictionary<string, VisioMaster> _builtinMasters = new(StringComparer.OrdinalIgnoreCase);
+        internal IList<XAttribute> PreservedDocumentAttributes { get; } = new List<XAttribute>();
+        internal IList<XElement> PreservedDocumentElements { get; } = new List<XElement>();
+        internal IList<XAttribute> PreservedDocumentSettingsAttributes { get; } = new List<XAttribute>();
+        internal IList<XElement> PreservedDocumentSettingsElements { get; } = new List<XElement>();
+        internal IList<XAttribute> PreservedColorsAttributes { get; } = new List<XAttribute>();
+        internal IList<XElement> PreservedColorsElements { get; } = new List<XElement>();
+        internal IList<XAttribute> PreservedFaceNamesAttributes { get; } = new List<XAttribute>();
+        internal IList<XElement> PreservedFaceNamesElements { get; } = new List<XElement>();
+        internal IList<XAttribute> PreservedStyleSheetsAttributes { get; } = new List<XAttribute>();
+        internal IList<XElement> PreservedStyleSheetsElements { get; } = new List<XElement>();
+        internal IDictionary<string, PreservedStyleSheetData> PreservedGeneratedStyleSheets { get; } = new Dictionary<string, PreservedStyleSheetData>(StringComparer.Ordinal);
+        internal IList<XElement> PreservedAdditionalStyleSheets { get; } = new List<XElement>();
         private static readonly IReadOnlyDictionary<string, BuiltinMasterDefinition> BuiltinMasterDefinitions = CreateBuiltinMasterDefinitions();
 
         private const string DocumentRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/document";
@@ -174,14 +193,34 @@ namespace OfficeIMO.Visio {
         /// <param name="unit">Measurement unit for width and height.</param>
         /// <param name="id">Optional page identifier. If not specified, uses zero-based index.</param>
         public VisioPage AddPage(string name, double width = 8.26771653543307, double height = 11.69291338582677, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, int? id = null) {
+            if (id.HasValue && id.Value < 0) {
+                throw new ArgumentOutOfRangeException(nameof(id), "Page id must be zero or greater.");
+            }
+
             double widthInches = width.ToInches(unit);
             double heightInches = height.ToInches(unit);
-            VisioPage page = new(name, widthInches, heightInches) { Id = id ?? _pages.Count };
+            VisioPage page = new(name, widthInches, heightInches) { Id = id ?? GetNextPageId() };
             page.OwnerDocument = this;
             page.DefaultUnit = unit; // remember authoring unit for this page
             page.ScaleMeasurementUnit = unit;
             _pages.Add(page);
             return page;
+        }
+
+        private int GetNextPageId() {
+            HashSet<int> usedIds = new();
+            foreach (VisioPage page in _pages) {
+                if (page.Id >= 0) {
+                    usedIds.Add(page.Id);
+                }
+            }
+
+            int nextId = 0;
+            while (usedIds.Contains(nextId)) {
+                nextId++;
+            }
+
+            return nextId;
         }
 
         /// <summary>

@@ -75,6 +75,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FluentConnectUsesPageScopedConnectorIdsAcrossDocuments() {
+            static VisioDocument CreateDocument(string filePath) {
+                VisioDocument document = VisioDocument.Create(filePath);
+                document.AsFluent()
+                    .Page("Page1", p => p
+                        .Rect("1", 1, 1, 2, 1, "Left")
+                        .Rect("2", 5, 1, 2, 1, "Right")
+                        .Connect("1", "2"))
+                    .End();
+                return document;
+            }
+
+            VisioDocument first = CreateDocument(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioDocument second = CreateDocument(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            Assert.Equal("3", Assert.Single(first.Pages[0].Connectors).Id);
+            Assert.Equal("3", Assert.Single(second.Pages[0].Connectors).Id);
+        }
+
+        [Fact]
         public void SideSelectionUsesNamedSidePointEvenWhenCustomPointsExist() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);

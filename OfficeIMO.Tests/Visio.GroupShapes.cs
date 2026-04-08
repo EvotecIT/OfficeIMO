@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Xml.Linq;
@@ -53,6 +54,306 @@ namespace OfficeIMO.Tests {
 
             Assert.NotNull(groupShape);
             Assert.NotEmpty(groupShape!.Children);
+        }
+
+        [Fact]
+        public void DirectGroupedShapeAuthoringAssignsParentLinksAutomatically() {
+            VisioShape group = new("1") {
+                Type = "Group",
+                PinX = 2,
+                PinY = 2,
+                Width = 4,
+                Height = 3,
+                LocPinX = 2,
+                LocPinY = 1.5
+            };
+            VisioShape child = new("2", 1, 1, 1, 1, "Child");
+            VisioShape grandChild = new("3", 0.5, 0.5, 0.5, 0.5, "Grandchild");
+
+            child.Children.Add(grandChild);
+            group.Children.Add(child);
+
+            Assert.Same(group, child.Parent);
+            Assert.Same(child, grandChild.Parent);
+        }
+
+        [Fact]
+        public void PageShapeCollectionNormalizesGroupedHierarchyForValidation() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Page-1");
+            VisioShape group = new("1") {
+                Type = "Group",
+                PinX = 2,
+                PinY = 2,
+                Width = 4,
+                Height = 3,
+                LocPinX = 2,
+                LocPinY = 1.5
+            };
+            VisioShape child = new("2", 1, 1, 1, 1, "Child");
+            VisioShape grandChild = new("3", 0.5, 0.5, 0.5, 0.5, "Grandchild");
+            child.Children.Add(grandChild);
+            group.Children.Add(child);
+
+            page.Shapes.Add(group);
+
+            Assert.Empty(document.Validate());
+            Assert.Same(group, child.Parent);
+            Assert.Same(child, grandChild.Parent);
+        }
+
+        [Fact]
+        public void AddingAncestorAsChildThrowsHelpfulError() {
+            VisioShape group = new("1") { Type = "Group" };
+            VisioShape child = new("2", 1, 1, 1, 1, "Child");
+            group.Children.Add(child);
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => child.Children.Add(group));
+
+            Assert.Contains("cycle", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void AddingShapeToAnotherParentThrowsHelpfulError() {
+            VisioShape firstGroup = new("1") { Type = "Group" };
+            VisioShape secondGroup = new("2") { Type = "Group" };
+            VisioShape child = new("3", 1, 1, 1, 1, "Child");
+            firstGroup.Children.Add(child);
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => secondGroup.Children.Add(child));
+
+            Assert.Contains("another parent", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void AddingChildShapeDirectlyToPageThrowsHelpfulError() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Page-1");
+            VisioShape group = new("1") { Type = "Group" };
+            VisioShape child = new("2", 1, 1, 1, 1, "Child");
+            group.Children.Add(child);
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => page.Shapes.Add(child));
+
+            Assert.Contains("removed from its parent", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void ReparentShapeMovesTopLevelShapeIntoGroup() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Page-1");
+            VisioShape group = new("1") { Type = "Group" };
+            VisioShape child = new("2", 1, 1, 1, 1, "Child");
+            page.Shapes.Add(group);
+            page.Shapes.Add(child);
+
+            page.ReparentShape(child, group);
+
+            Assert.DoesNotContain(child, page.Shapes);
+            Assert.Single(group.Children);
+            Assert.Same(group, child.Parent);
+        }
+
+        [Fact]
+        public void ReparentShapeMovesChildBetweenGroupsAndPreservesRequestedIndex() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Page-1");
+            VisioShape firstGroup = new("1") { Type = "Group" };
+            VisioShape secondGroup = new("2") { Type = "Group" };
+            VisioShape existingChild = new("3", 1, 1, 1, 1, "Existing");
+            VisioShape movedChild = new("4", 2, 1, 1, 1, "Moved");
+            page.Shapes.Add(firstGroup);
+            page.Shapes.Add(secondGroup);
+            firstGroup.Children.Add(movedChild);
+            secondGroup.Children.Add(existingChild);
+
+            page.ReparentShape(movedChild, secondGroup, childIndex: 0);
+
+            Assert.Empty(firstGroup.Children);
+            Assert.Equal(new[] { movedChild, existingChild }, secondGroup.Children.ToArray());
+            Assert.Same(secondGroup, movedChild.Parent);
+        }
+
+        [Fact]
+        public void UngroupShapePromotesChildrenIntoFormerParentSlot() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Page-1");
+            VisioShape before = new("1", 1, 1, 1, 1, "Before");
+            VisioShape group = new("2") { Type = "Group" };
+            VisioShape childOne = new("3", 2, 1, 1, 1, "Child-1");
+            VisioShape childTwo = new("4", 3, 1, 1, 1, "Child-2");
+            VisioShape after = new("5", 4, 1, 1, 1, "After");
+            group.Children.Add(childOne);
+            group.Children.Add(childTwo);
+            page.Shapes.Add(before);
+            page.Shapes.Add(group);
+            page.Shapes.Add(after);
+
+            IReadOnlyList<VisioShape> promoted = page.UngroupShape(group);
+
+            Assert.Equal(new[] { childOne, childTwo }, promoted.ToArray());
+            Assert.Equal(new[] { before, childOne, childTwo, after }, page.Shapes.ToArray());
+            Assert.Empty(group.Children);
+            Assert.Null(childOne.Parent);
+            Assert.Null(childTwo.Parent);
+        }
+
+        [Fact]
+        public void UngroupShapeWorksForNestedGroups() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Page-1");
+            VisioShape outerGroup = new("1") { Type = "Group" };
+            VisioShape innerGroup = new("2") { Type = "Group" };
+            VisioShape child = new("3", 1, 1, 1, 1, "Child");
+            innerGroup.Children.Add(child);
+            outerGroup.Children.Add(innerGroup);
+            page.Shapes.Add(outerGroup);
+
+            page.UngroupShape(innerGroup);
+
+            Assert.Equal(new[] { child }, outerGroup.Children.ToArray());
+            Assert.Same(outerGroup, child.Parent);
+            Assert.Empty(innerGroup.Children);
+        }
+
+        [Fact]
+        public void ReconnectConnectorStartCanRetargetPromotedChildAfterUngroup() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Page-1");
+            VisioShape group = new("1") { Type = "Group", Width = 2, Height = 2, LocPinX = 1, LocPinY = 1 };
+            VisioShape promotedChild = new("2", 2, 2, 2, 2, "Promoted");
+            VisioShape target = new("3", 6, 2, 2, 2, "Target");
+            group.Children.Add(promotedChild);
+            page.Shapes.Add(group);
+            page.Shapes.Add(target);
+            VisioConnector connector = page.AddConnector(group, target, ConnectorKind.Straight);
+
+            page.UngroupShape(group);
+            page.ReconnectConnectorStart(connector, promotedChild, VisioSide.Right);
+
+            Assert.Same(promotedChild, connector.From);
+            Assert.Equal(promotedChild.Width, connector.FromConnectionPoint!.X, 5);
+            Assert.Empty(document.Validate());
+
+            document.Save();
+
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XDocument pageXml = ReadPageXml(filePath);
+            XElement beginConnect = pageXml.Root!
+                .Element(ns + "Connects")!
+                .Elements(ns + "Connect")
+                .First(connect => (string?)connect.Attribute("FromSheet") == connector.Id && (string?)connect.Attribute("FromCell") == "BeginX");
+            Assert.Equal(promotedChild.Id, (string?)beginConnect.Attribute("ToSheet"));
+        }
+
+        [Fact]
+        public void ReconnectConnectorCanUpdateBothEndpointsAndSideGlue() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Page-1");
+            VisioShape left = new("1", 1, 1, 2, 2, "Left");
+            VisioShape middle = new("2", 4, 1, 2, 2, "Middle");
+            VisioShape right = new("3", 7, 1, 2, 2, "Right");
+            page.Shapes.Add(left);
+            page.Shapes.Add(middle);
+            page.Shapes.Add(right);
+            VisioConnector connector = page.AddConnector(left, middle, ConnectorKind.Straight);
+
+            page.ReconnectConnector(connector, middle, right, VisioSide.Right, VisioSide.Left);
+
+            Assert.Same(middle, connector.From);
+            Assert.Same(right, connector.To);
+            Assert.Equal(middle.Width, connector.FromConnectionPoint!.X, 5);
+            Assert.Equal(0, connector.ToConnectionPoint!.X, 5);
+        }
+
+        [Fact]
+        public void ReconnectConnectorRejectsShapesOutsideThePage() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Page-1");
+            VisioShape start = new("1", 1, 1, 2, 2, "Start");
+            VisioShape end = new("2", 4, 1, 2, 2, "End");
+            VisioShape external = new("3", 7, 1, 2, 2, "External");
+            page.Shapes.Add(start);
+            page.Shapes.Add(end);
+            VisioConnector connector = page.AddConnector(start, end, ConnectorKind.Straight);
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                page.ReconnectConnectorEnd(connector, external, VisioSide.Left));
+
+            Assert.Contains("not part of this page", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void RetargetConnectorsCanMigrateGroupEdgesToPromotedChild() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Page-1");
+            VisioShape source = new("1", 1, 1, 2, 2, "Source");
+            VisioShape group = new("2") { Type = "Group", Width = 2, Height = 2, LocPinX = 1, LocPinY = 1 };
+            VisioShape promotedChild = new("3", 4, 1, 2, 2, "Promoted");
+            VisioShape target = new("4", 7, 1, 2, 2, "Target");
+            group.Children.Add(promotedChild);
+            page.Shapes.Add(source);
+            page.Shapes.Add(group);
+            page.Shapes.Add(target);
+            VisioConnector incoming = page.AddConnector(source, group, ConnectorKind.Straight);
+            VisioConnector outgoing = page.AddConnector(group, target, ConnectorKind.Straight);
+            VisioConnector unaffected = page.AddConnector(source, target, ConnectorKind.Straight);
+
+            page.UngroupShape(group);
+            IReadOnlyList<VisioConnector> updated = page.RetargetConnectors(group, promotedChild, fromSide: VisioSide.Right, toSide: VisioSide.Left);
+
+            Assert.Equal(new[] { incoming, outgoing }, updated.ToArray());
+            Assert.Same(promotedChild, incoming.To);
+            Assert.Same(promotedChild, outgoing.From);
+            Assert.Equal(0, incoming.ToConnectionPoint!.X, 5);
+            Assert.Equal(promotedChild.Width, outgoing.FromConnectionPoint!.X, 5);
+            Assert.Same(source, unaffected.From);
+            Assert.Same(target, unaffected.To);
+            Assert.Empty(document.Validate());
+        }
+
+        [Fact]
+        public void RetargetConnectorsCanLimitUpdatesToStartEndpoints() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Page-1");
+            VisioShape oldShape = new("1", 1, 1, 2, 2, "Old");
+            VisioShape replacement = new("2", 4, 1, 2, 2, "Replacement");
+            VisioShape target = new("3", 7, 1, 2, 2, "Target");
+            page.Shapes.Add(oldShape);
+            page.Shapes.Add(replacement);
+            page.Shapes.Add(target);
+            VisioConnector startMatch = page.AddConnector(oldShape, target, ConnectorKind.Straight);
+            VisioConnector endMatch = page.AddConnector(target, oldShape, ConnectorKind.Straight);
+
+            IReadOnlyList<VisioConnector> updated = page.RetargetConnectors(oldShape, replacement, VisioConnectorEndpointScope.Start, fromSide: VisioSide.Bottom);
+
+            Assert.Equal(new[] { startMatch }, updated.ToArray());
+            Assert.Same(replacement, startMatch.From);
+            Assert.Equal(0, startMatch.FromConnectionPoint!.Y, 5);
+            Assert.Same(oldShape, endMatch.To);
+            Assert.Null(endMatch.ToConnectionPoint);
+        }
+
+        [Fact]
+        public void RetargetConnectorsReturnsEmptyWhenNoConnectorsReferenceShape() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Page-1");
+            VisioShape original = new("1", 1, 1, 2, 2, "Original");
+            VisioShape replacement = new("2", 4, 1, 2, 2, "Replacement");
+            VisioShape source = new("3", 7, 1, 2, 2, "Source");
+            VisioShape target = new("4", 10, 1, 2, 2, "Target");
+            page.Shapes.Add(original);
+            page.Shapes.Add(replacement);
+            page.Shapes.Add(source);
+            page.Shapes.Add(target);
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight);
+
+            IReadOnlyList<VisioConnector> updated = page.RetargetConnectors(original, replacement);
+
+            Assert.Empty(updated);
+            Assert.Same(source, connector.From);
+            Assert.Same(target, connector.To);
         }
 
         [Fact]
@@ -171,6 +472,13 @@ namespace OfficeIMO.Tests {
             }
 
             return element;
+        }
+
+        private static XDocument ReadPageXml(string vsdxPath) {
+            using FileStream stream = File.Open(vsdxPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using ZipArchive archive = new(stream, ZipArchiveMode.Read);
+            using Stream pageStream = archive.GetEntry("visio/pages/page1.xml")!.Open();
+            return XDocument.Load(pageStream);
         }
     }
 }

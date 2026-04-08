@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Xml.Linq;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -8,6 +9,8 @@ namespace OfficeIMO.Visio {
     public class VisioPage {
         private readonly List<VisioShape> _shapes = new();
         private readonly List<VisioConnector> _connectors = new();
+        private readonly IList<VisioShape> _shapeCollection;
+        private readonly IList<VisioConnector> _connectorCollection;
         private double _width = 8.26771653543307; // A4 width in inches
         private double _height = 11.69291338582677; // A4 height in inches
         private bool _gridVisible;
@@ -38,6 +41,8 @@ namespace OfficeIMO.Visio {
             _height = heightInches;
             ViewCenterX = widthInches / 2;
             ViewCenterY = heightInches / 2;
+            _shapeCollection = new ShapeCollection(this);
+            _connectorCollection = new ConnectorCollection(this);
         }
 
         /// <summary>
@@ -244,17 +249,35 @@ namespace OfficeIMO.Visio {
             set => _snap = value;
         }
 
+        internal IList<XElement> PreservedPageSheetCells { get; } = new List<XElement>();
+
+        internal IList<XElement> PreservedPageSheetSections { get; } = new List<XElement>();
+
+        internal IList<XAttribute> PreservedPageAttributes { get; } = new List<XAttribute>();
+
+        internal IList<XAttribute> PreservedPageContentAttributes { get; } = new List<XAttribute>();
+
+        internal IList<XElement> PreservedPageContentElements { get; } = new List<XElement>();
+
+        internal IList<XAttribute> PreservedShapesContainerAttributes { get; } = new List<XAttribute>();
+
+        internal IList<XElement> PreservedShapesContainerElements { get; } = new List<XElement>();
+
+        internal IList<XAttribute> PreservedConnectsAttributes { get; } = new List<XAttribute>();
+
+        internal IList<XElement> PreservedConnectsElements { get; } = new List<XElement>();
+
         /// <summary>
         /// Shapes placed on the page.
         /// </summary>
-        public IList<VisioShape> Shapes => _shapes;
+        public IList<VisioShape> Shapes => _shapeCollection;
 
         /// <summary>
         /// Connectors placed on the page.
         /// </summary>
-        public IList<VisioConnector> Connectors => _connectors;
+        public IList<VisioConnector> Connectors => _connectorCollection;
 
-        private string NextId() {
+        private string NextId(VisioConnector? ignoredConnector = null) {
             HashSet<int> usedIds = new();
 
             void Reserve(string? id) {
@@ -275,6 +298,10 @@ namespace OfficeIMO.Visio {
             }
 
             foreach (VisioConnector connector in _connectors) {
+                if (ReferenceEquals(connector, ignoredConnector)) {
+                    continue;
+                }
+
                 Reserve(connector.Id);
             }
 
@@ -284,6 +311,33 @@ namespace OfficeIMO.Visio {
             }
 
             return nextId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private void PrepareConnectorForPage(VisioConnector connector, VisioConnector? ignoredConnector = null) {
+            if (connector == null) {
+                throw new ArgumentNullException(nameof(connector));
+            }
+
+            if (connector.HasAutomaticId) {
+                connector.Id = NextId(ignoredConnector);
+            }
+        }
+
+        private void PrepareShapeForPage(VisioShape shape) {
+            if (shape == null) {
+                throw new ArgumentNullException(nameof(shape));
+            }
+
+             if (_shapes.Contains(shape)) {
+                throw new InvalidOperationException("The shape is already part of this page.");
+            }
+
+            if (shape.Parent != null) {
+                throw new InvalidOperationException("A child shape must be removed from its parent before being added to a page.");
+            }
+
+            shape.Parent = null;
+            shape.NormalizeDescendantParentLinks();
         }
 
         private static void ApplyUnits(ref double x, ref double y, ref double w, ref double h, VisioMeasurementUnit unit) {
@@ -303,7 +357,7 @@ namespace OfficeIMO.Visio {
         public VisioShape AddRectangle(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
             var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Rectangle" };
-            _shapes.Add(s);
+            Shapes.Add(s);
             return s;
         }
 
@@ -381,7 +435,7 @@ namespace OfficeIMO.Visio {
             double w = diameter, h = diameter;
             ApplyUnits(ref x, ref y, ref w, ref h, unit);
             var s = new VisioShape(NextId(), x, y, w, h, text ?? string.Empty) { NameU = "Circle" };
-            _shapes.Add(s);
+            Shapes.Add(s);
             return s;
         }
 
@@ -409,7 +463,7 @@ namespace OfficeIMO.Visio {
         public VisioShape AddEllipse(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
             var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Ellipse" };
-            _shapes.Add(s);
+            Shapes.Add(s);
             return s;
         }
 
@@ -438,7 +492,7 @@ namespace OfficeIMO.Visio {
         public VisioShape AddDiamond(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
             var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Diamond" };
-            _shapes.Add(s);
+            Shapes.Add(s);
             return s;
         }
 
@@ -489,7 +543,7 @@ namespace OfficeIMO.Visio {
         public VisioShape AddData(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
             var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Data" };
-            _shapes.Add(s);
+            Shapes.Add(s);
             return s;
         }
 
@@ -512,7 +566,7 @@ namespace OfficeIMO.Visio {
         public VisioShape AddPreparation(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
             var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Preparation" };
-            _shapes.Add(s);
+            Shapes.Add(s);
             return s;
         }
 
@@ -535,7 +589,7 @@ namespace OfficeIMO.Visio {
         public VisioShape AddParallelogram(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
             var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Parallelogram" };
-            _shapes.Add(s);
+            Shapes.Add(s);
             return s;
         }
 
@@ -558,7 +612,7 @@ namespace OfficeIMO.Visio {
         public VisioShape AddHexagon(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
             var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Hexagon" };
-            _shapes.Add(s);
+            Shapes.Add(s);
             return s;
         }
 
@@ -581,7 +635,7 @@ namespace OfficeIMO.Visio {
         public VisioShape AddTrapezoid(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
             var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Trapezoid" };
-            _shapes.Add(s);
+            Shapes.Add(s);
             return s;
         }
 
@@ -604,7 +658,7 @@ namespace OfficeIMO.Visio {
         public VisioShape AddPentagon(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
             var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Pentagon" };
-            _shapes.Add(s);
+            Shapes.Add(s);
             return s;
         }
 
@@ -627,7 +681,7 @@ namespace OfficeIMO.Visio {
         public VisioShape AddManualOperation(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
             var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Manual operation" };
-            _shapes.Add(s);
+            Shapes.Add(s);
             return s;
         }
 
@@ -650,7 +704,7 @@ namespace OfficeIMO.Visio {
         public VisioShape AddOffPageReference(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
             var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Off-page reference" };
-            _shapes.Add(s);
+            Shapes.Add(s);
             return s;
         }
 
@@ -673,7 +727,7 @@ namespace OfficeIMO.Visio {
         public VisioShape AddTriangle(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             ApplyUnits(ref x, ref y, ref width, ref height, unit);
             var s = new VisioShape(NextId(), x, y, width, height, text ?? string.Empty) { NameU = "Triangle" };
-            _shapes.Add(s);
+            Shapes.Add(s);
             return s;
         }
 
@@ -702,7 +756,7 @@ namespace OfficeIMO.Visio {
             var conn = new VisioConnector(NextId(), from, to) { Kind = kind };
             if (fromSide != VisioSide.Auto) conn.FromConnectionPoint = from.EnsureSideConnectionPoint(fromSide);
             if (toSide != VisioSide.Auto) conn.ToConnectionPoint = to.EnsureSideConnectionPoint(toSide);
-            _connectors.Add(conn);
+            Connectors.Add(conn);
             return conn;
         }
 
@@ -757,7 +811,7 @@ namespace OfficeIMO.Visio {
                 Master = master,
                 NameU = master.NameU
             };
-            _shapes.Add(shape);
+            Shapes.Add(shape);
             return shape;
         }
 
@@ -788,7 +842,7 @@ namespace OfficeIMO.Visio {
                 Master = master,
                 NameU = master.NameU
             };
-            _shapes.Add(shape);
+            Shapes.Add(shape);
             return shape;
         }
 
@@ -797,6 +851,321 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public VisioShape AddShape(string id, string masterNameU, double x, double y, double w, double h, string? text = null) =>
             AddShape(id, masterNameU, x, y, w, h, text, DefaultUnit);
+
+        /// <summary>
+        /// Moves a shape from its current location in the page hierarchy into the provided group shape.
+        /// </summary>
+        /// <param name="shape">The shape to move.</param>
+        /// <param name="newParent">The group that should own the shape after the move.</param>
+        /// <param name="childIndex">
+        /// Optional insertion index within the target group's children.
+        /// Use <c>-1</c> to append.
+        /// </param>
+        public void ReparentShape(VisioShape shape, VisioShape newParent, int childIndex = -1) {
+            if (shape == null) {
+                throw new ArgumentNullException(nameof(shape));
+            }
+
+            if (newParent == null) {
+                throw new ArgumentNullException(nameof(newParent));
+            }
+
+            if (childIndex < -1) {
+                throw new ArgumentOutOfRangeException(nameof(childIndex), "Child index must be -1 or greater.");
+            }
+
+            if (ReferenceEquals(shape, newParent)) {
+                throw new InvalidOperationException("A shape cannot be reparented into itself.");
+            }
+
+            if (!TryFindShapeCollection(shape, out IList<VisioShape>? currentCollection, out int currentIndex)) {
+                throw new InvalidOperationException("The shape is not part of this page.");
+            }
+
+            if (!TryFindShapeCollection(newParent, out _, out _)) {
+                throw new InvalidOperationException("The target parent shape is not part of this page.");
+            }
+
+            if (ReferenceEquals(currentCollection, newParent.Children)) {
+                if (childIndex < 0 || childIndex == currentIndex) {
+                    return;
+                }
+
+                if (childIndex > currentCollection.Count) {
+                    throw new ArgumentOutOfRangeException(nameof(childIndex), "Child index cannot exceed the number of children in the target group.");
+                }
+
+                currentCollection.RemoveAt(currentIndex);
+                if (childIndex > currentIndex) {
+                    childIndex--;
+                }
+
+                currentCollection.Insert(childIndex, shape);
+                return;
+            }
+
+            if (childIndex > newParent.Children.Count) {
+                throw new ArgumentOutOfRangeException(nameof(childIndex), "Child index cannot exceed the number of children in the target group.");
+            }
+
+            IList<VisioShape> currentOwnerCollection = currentCollection!;
+            currentOwnerCollection.RemoveAt(currentIndex);
+            try {
+                if (childIndex < 0) {
+                    newParent.Children.Add(shape);
+                } else {
+                    newParent.Children.Insert(childIndex, shape);
+                }
+            } catch {
+                currentOwnerCollection.Insert(currentIndex, shape);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Removes a group shape and promotes its children into the group's former position.
+        /// </summary>
+        /// <param name="group">The group to ungroup.</param>
+        /// <returns>The children that were promoted.</returns>
+        public IReadOnlyList<VisioShape> UngroupShape(VisioShape group) {
+            if (group == null) {
+                throw new ArgumentNullException(nameof(group));
+            }
+
+            if (!TryFindShapeCollection(group, out IList<VisioShape>? ownerCollection, out int index)) {
+                throw new InvalidOperationException("The group shape is not part of this page.");
+            }
+
+            IList<VisioShape> resolvedOwnerCollection = ownerCollection!;
+
+            if (group.Children.Count == 0) {
+                resolvedOwnerCollection.RemoveAt(index);
+                return Array.Empty<VisioShape>();
+            }
+
+            List<VisioShape> promotedChildren = new(group.Children);
+            resolvedOwnerCollection.RemoveAt(index);
+            group.Children.Clear();
+
+            for (int i = 0; i < promotedChildren.Count; i++) {
+                resolvedOwnerCollection.Insert(index + i, promotedChildren[i]);
+            }
+
+            return promotedChildren;
+        }
+
+        /// <summary>
+        /// Reconnects the start of an existing connector to a different shape.
+        /// </summary>
+        public void ReconnectConnectorStart(VisioConnector connector, VisioShape newFrom, VisioSide side = VisioSide.Auto) {
+            if (connector == null) {
+                throw new ArgumentNullException(nameof(connector));
+            }
+
+            if (newFrom == null) {
+                throw new ArgumentNullException(nameof(newFrom));
+            }
+
+            EnsureConnectorBelongsToPage(connector);
+            EnsureShapeBelongsToPage(newFrom, "The source shape is not part of this page.");
+
+            connector.From = newFrom;
+            connector.FromConnectionPoint = ResolveConnectionPoint(newFrom, side);
+            connector.PreservedFromConnectionCell = null;
+            connector.PreservedBeginConnectAttributes.Clear();
+        }
+
+        /// <summary>
+        /// Reconnects the end of an existing connector to a different shape.
+        /// </summary>
+        public void ReconnectConnectorEnd(VisioConnector connector, VisioShape newTo, VisioSide side = VisioSide.Auto) {
+            if (connector == null) {
+                throw new ArgumentNullException(nameof(connector));
+            }
+
+            if (newTo == null) {
+                throw new ArgumentNullException(nameof(newTo));
+            }
+
+            EnsureConnectorBelongsToPage(connector);
+            EnsureShapeBelongsToPage(newTo, "The target shape is not part of this page.");
+
+            connector.To = newTo;
+            connector.ToConnectionPoint = ResolveConnectionPoint(newTo, side);
+            connector.PreservedToConnectionCell = null;
+            connector.PreservedEndConnectAttributes.Clear();
+        }
+
+        /// <summary>
+        /// Reconnects both ends of an existing connector.
+        /// </summary>
+        public void ReconnectConnector(VisioConnector connector, VisioShape newFrom, VisioShape newTo, VisioSide fromSide = VisioSide.Auto, VisioSide toSide = VisioSide.Auto) {
+            if (connector == null) {
+                throw new ArgumentNullException(nameof(connector));
+            }
+
+            if (newFrom == null) {
+                throw new ArgumentNullException(nameof(newFrom));
+            }
+
+            if (newTo == null) {
+                throw new ArgumentNullException(nameof(newTo));
+            }
+
+            EnsureConnectorBelongsToPage(connector);
+            EnsureShapeBelongsToPage(newFrom, "The source shape is not part of this page.");
+            EnsureShapeBelongsToPage(newTo, "The target shape is not part of this page.");
+
+            connector.From = newFrom;
+            connector.To = newTo;
+            connector.FromConnectionPoint = ResolveConnectionPoint(newFrom, fromSide);
+            connector.ToConnectionPoint = ResolveConnectionPoint(newTo, toSide);
+            connector.PreservedFromConnectionCell = null;
+            connector.PreservedToConnectionCell = null;
+            connector.PreservedBeginConnectAttributes.Clear();
+            connector.PreservedEndConnectAttributes.Clear();
+        }
+
+        /// <summary>
+        /// Retargets all connector endpoints on this page that currently reference one shape to another.
+        /// </summary>
+        /// <param name="oldShape">The existing shape referenced by matching connectors.</param>
+        /// <param name="newShape">The replacement shape that matching connectors should reference.</param>
+        /// <param name="endpointScope">Controls whether start points, end points, or both are updated.</param>
+        /// <param name="fromSide">The side to glue to when a start point is updated.</param>
+        /// <param name="toSide">The side to glue to when an end point is updated.</param>
+        /// <returns>The connectors that were updated.</returns>
+        public IReadOnlyList<VisioConnector> RetargetConnectors(VisioShape oldShape, VisioShape newShape, VisioConnectorEndpointScope endpointScope = VisioConnectorEndpointScope.Both, VisioSide fromSide = VisioSide.Auto, VisioSide toSide = VisioSide.Auto) {
+            if (oldShape == null) {
+                throw new ArgumentNullException(nameof(oldShape));
+            }
+
+            if (newShape == null) {
+                throw new ArgumentNullException(nameof(newShape));
+            }
+
+            EnsureShapeBelongsToPage(newShape, "The replacement shape is not part of this page.");
+
+            if (ReferenceEquals(oldShape, newShape)) {
+                return Array.Empty<VisioConnector>();
+            }
+
+            List<VisioConnector> updatedConnectors = new();
+            for (int i = 0; i < _connectors.Count; i++) {
+                VisioConnector connector = _connectors[i];
+                bool updateStart = endpointScope != VisioConnectorEndpointScope.End && ReferenceEquals(connector.From, oldShape);
+                bool updateEnd = endpointScope != VisioConnectorEndpointScope.Start && ReferenceEquals(connector.To, oldShape);
+
+                if (!updateStart && !updateEnd) {
+                    continue;
+                }
+
+                if (updateStart && updateEnd) {
+                    ReconnectConnector(connector, newShape, newShape, fromSide, toSide);
+                } else if (updateStart) {
+                    ReconnectConnectorStart(connector, newShape, fromSide);
+                } else {
+                    ReconnectConnectorEnd(connector, newShape, toSide);
+                }
+
+                updatedConnectors.Add(connector);
+            }
+
+            if (updatedConnectors.Count == 0 && !TryFindShapeCollection(oldShape, out _, out _)) {
+                throw new InvalidOperationException("The original shape is not part of this page or referenced by any connector on this page.");
+            }
+
+            return updatedConnectors;
+        }
+
+        private void EnsureConnectorBelongsToPage(VisioConnector connector) {
+            if (!_connectors.Contains(connector)) {
+                throw new InvalidOperationException("The connector is not part of this page.");
+            }
+        }
+
+        private void EnsureShapeBelongsToPage(VisioShape shape, string message) {
+            if (!TryFindShapeCollection(shape, out _, out _)) {
+                throw new InvalidOperationException(message);
+            }
+        }
+
+        private static VisioConnectionPoint? ResolveConnectionPoint(VisioShape shape, VisioSide side) {
+            return side == VisioSide.Auto ? null : shape.EnsureSideConnectionPoint(side);
+        }
+
+        private bool TryFindShapeCollection(VisioShape target, out IList<VisioShape>? ownerCollection, out int index) {
+            return TryFindShapeCollection(_shapeCollection, target, out ownerCollection, out index);
+        }
+
+        private static bool TryFindShapeCollection(IList<VisioShape> collection, VisioShape target, out IList<VisioShape>? ownerCollection, out int index) {
+            for (int i = 0; i < collection.Count; i++) {
+                VisioShape shape = collection[i];
+                if (ReferenceEquals(shape, target)) {
+                    ownerCollection = collection;
+                    index = i;
+                    return true;
+                }
+
+                if (TryFindShapeCollection(shape.Children, target, out ownerCollection, out index)) {
+                    return true;
+                }
+            }
+
+            ownerCollection = null;
+            index = -1;
+            return false;
+        }
+
+        private sealed class ShapeCollection : IList<VisioShape> {
+            private readonly VisioPage _page;
+
+            public ShapeCollection(VisioPage page) {
+                _page = page;
+            }
+
+            public VisioShape this[int index] {
+                get => _page._shapes[index];
+                set {
+                    if (ReferenceEquals(_page._shapes[index], value)) {
+                        return;
+                    }
+
+                    _page.PrepareShapeForPage(value);
+                    _page._shapes[index] = value;
+                }
+            }
+
+            public int Count => _page._shapes.Count;
+
+            public bool IsReadOnly => false;
+
+            public void Add(VisioShape item) {
+                _page.PrepareShapeForPage(item);
+                _page._shapes.Add(item);
+            }
+
+            public void Clear() => _page._shapes.Clear();
+
+            public bool Contains(VisioShape item) => _page._shapes.Contains(item);
+
+            public void CopyTo(VisioShape[] array, int arrayIndex) => _page._shapes.CopyTo(array, arrayIndex);
+
+            public IEnumerator<VisioShape> GetEnumerator() => _page._shapes.GetEnumerator();
+
+            public int IndexOf(VisioShape item) => _page._shapes.IndexOf(item);
+
+            public void Insert(int index, VisioShape item) {
+                _page.PrepareShapeForPage(item);
+                _page._shapes.Insert(index, item);
+            }
+
+            public bool Remove(VisioShape item) => _page._shapes.Remove(item);
+
+            public void RemoveAt(int index) => _page._shapes.RemoveAt(index);
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        }
 
         /// <summary>
         /// Adds a connector between two shapes.
@@ -808,8 +1177,54 @@ namespace OfficeIMO.Visio {
         /// <returns>The created connector.</returns>
         public VisioConnector AddConnector(string id, VisioShape from, VisioShape to, ConnectorKind kind) {
             VisioConnector connector = new VisioConnector(id, from, to) { Kind = kind };
-            _connectors.Add(connector);
+            Connectors.Add(connector);
             return connector;
+        }
+
+        private sealed class ConnectorCollection : IList<VisioConnector> {
+            private readonly VisioPage _page;
+
+            public ConnectorCollection(VisioPage page) {
+                _page = page;
+            }
+
+            public VisioConnector this[int index] {
+                get => _page._connectors[index];
+                set {
+                    _page.PrepareConnectorForPage(value, _page._connectors[index]);
+                    _page._connectors[index] = value;
+                }
+            }
+
+            public int Count => _page._connectors.Count;
+
+            public bool IsReadOnly => false;
+
+            public void Add(VisioConnector item) {
+                _page.PrepareConnectorForPage(item);
+                _page._connectors.Add(item);
+            }
+
+            public void Clear() => _page._connectors.Clear();
+
+            public bool Contains(VisioConnector item) => _page._connectors.Contains(item);
+
+            public void CopyTo(VisioConnector[] array, int arrayIndex) => _page._connectors.CopyTo(array, arrayIndex);
+
+            public IEnumerator<VisioConnector> GetEnumerator() => _page._connectors.GetEnumerator();
+
+            public int IndexOf(VisioConnector item) => _page._connectors.IndexOf(item);
+
+            public void Insert(int index, VisioConnector item) {
+                _page.PrepareConnectorForPage(item);
+                _page._connectors.Insert(index, item);
+            }
+
+            public bool Remove(VisioConnector item) => _page._connectors.Remove(item);
+
+            public void RemoveAt(int index) => _page._connectors.RemoveAt(index);
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
         }
     }
 }
