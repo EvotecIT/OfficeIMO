@@ -110,6 +110,10 @@ namespace OfficeIMO.Visio {
 
         internal IList<XAttribute> PreservedEndConnectAttributes { get; } = new List<XAttribute>();
 
+        internal IList<XName> PreservedBeginConnectAttributeOrder { get; } = new List<XName>();
+
+        internal IList<XName> PreservedEndConnectAttributeOrder { get; } = new List<XName>();
+
         internal XElement? PreservedTextElement { get; set; }
 
         internal string? PreservedTextValue { get; set; }

@@ -848,20 +848,81 @@ namespace OfficeIMO.Visio {
             IReadOnlyDictionary<string, string> persistedIds,
             VisioConnector connector,
             VisioConnectorEndpointScope endpointScope) {
+            IEnumerable<XAttribute> preservedAttributes = endpointScope == VisioConnectorEndpointScope.Start
+                ? connector.PreservedBeginConnectAttributes
+                : connector.PreservedEndConnectAttributes;
+            IEnumerable<XName> attributeOrder = endpointScope == VisioConnectorEndpointScope.Start
+                ? connector.PreservedBeginConnectAttributeOrder
+                : connector.PreservedEndConnectAttributeOrder;
+
             writer.WriteStartElement("Connect", ns);
-            writer.WriteAttributeString("FromSheet", GetPersistedId(persistedIds, connector.Id));
-            if (endpointScope == VisioConnectorEndpointScope.Start) {
-                writer.WriteAttributeString("FromCell", "BeginX");
-                writer.WriteAttributeString("ToSheet", GetPersistedId(persistedIds, connector.From.Id));
-                writer.WriteAttributeString("ToCell", GetConnectionCell(connector.From, connector.FromConnectionPoint, connector.PreservedFromConnectionCell));
-                WritePreservedConnectAttributes(writer, connector.PreservedBeginConnectAttributes);
-            } else {
-                writer.WriteAttributeString("FromCell", "EndX");
-                writer.WriteAttributeString("ToSheet", GetPersistedId(persistedIds, connector.To.Id));
-                writer.WriteAttributeString("ToCell", GetConnectionCell(connector.To, connector.ToConnectionPoint, connector.PreservedToConnectionCell));
-                WritePreservedConnectAttributes(writer, connector.PreservedEndConnectAttributes);
-            }
+            WriteOrderedConnectAttributes(writer, persistedIds, connector, endpointScope, preservedAttributes, attributeOrder);
             writer.WriteEndElement();
+        }
+
+        private static void WriteOrderedConnectAttributes(
+            XmlWriter writer,
+            IReadOnlyDictionary<string, string> persistedIds,
+            VisioConnector connector,
+            VisioConnectorEndpointScope endpointScope,
+            IEnumerable<XAttribute> preservedAttributes,
+            IEnumerable<XName> attributeOrder) {
+            XName fromSheetName = XName.Get("FromSheet");
+            XName fromCellName = XName.Get("FromCell");
+            XName toSheetName = XName.Get("ToSheet");
+            XName toCellName = XName.Get("ToCell");
+
+            List<(XName Name, string Value)> standardAttributeList = new() {
+                (fromSheetName, GetPersistedId(persistedIds, connector.Id)),
+                (fromCellName, endpointScope == VisioConnectorEndpointScope.Start ? "BeginX" : "EndX"),
+                (toSheetName, endpointScope == VisioConnectorEndpointScope.Start
+                    ? GetPersistedId(persistedIds, connector.From.Id)
+                    : GetPersistedId(persistedIds, connector.To.Id)),
+                (toCellName, endpointScope == VisioConnectorEndpointScope.Start
+                    ? GetConnectionCell(connector.From, connector.FromConnectionPoint, connector.PreservedFromConnectionCell)
+                    : GetConnectionCell(connector.To, connector.ToConnectionPoint, connector.PreservedToConnectionCell))
+            };
+            Dictionary<XName, string> standardAttributes = standardAttributeList.ToDictionary(attribute => attribute.Name, attribute => attribute.Value);
+
+            List<XAttribute> preservedAttributeList = preservedAttributes.ToList();
+            Dictionary<XName, XAttribute> preservedByName = preservedAttributeList.ToDictionary(attribute => attribute.Name, attribute => attribute);
+            HashSet<XName> writtenNames = new();
+
+            foreach (XName attributeName in attributeOrder) {
+                if (attributeName == null) {
+                    continue;
+                }
+
+                if (standardAttributes.TryGetValue(attributeName, out string? standardValue)) {
+                    WriteAttribute(writer, attributeName, standardValue);
+                    writtenNames.Add(attributeName);
+                    continue;
+                }
+
+                if (preservedByName.TryGetValue(attributeName, out XAttribute? preservedAttribute)) {
+                    WriteAttribute(writer, preservedAttribute.Name, preservedAttribute.Value);
+                    writtenNames.Add(attributeName);
+                }
+            }
+
+            foreach ((XName Name, string Value) standardAttribute in standardAttributeList) {
+                if (writtenNames.Add(standardAttribute.Name)) {
+                    WriteAttribute(writer, standardAttribute.Name, standardAttribute.Value);
+                }
+            }
+
+            foreach (XAttribute preservedAttribute in preservedAttributeList) {
+                if (writtenNames.Add(preservedAttribute.Name)) {
+                    WriteAttribute(writer, preservedAttribute.Name, preservedAttribute.Value);
+                }
+            }
+        }
+
+        private static void WriteAttribute(XmlWriter writer, XName attributeName, string value) {
+            writer.WriteAttributeString(
+                attributeName.LocalName,
+                attributeName.NamespaceName.Length == 0 ? null : attributeName.NamespaceName,
+                value);
         }
 
         private static void WritePreservedConnectorCells(XmlWriter writer, IEnumerable<XElement> preservedCells) => WritePreservedElements(writer, preservedCells);

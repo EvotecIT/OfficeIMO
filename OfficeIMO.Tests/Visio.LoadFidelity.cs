@@ -367,6 +367,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ConnectAttributeOrderIsPreservedOnRoundTrip() {
+            string filePath = CreateConnectorDocument(ConnectorKind.Straight);
+
+            RewritePage(filePath, pageDoc => {
+                XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+                XNamespace cx = "urn:officeimo:connect-meta";
+                XElement beginConnect = pageDoc.Root!
+                    .Element(ns + "Connects")!
+                    .Elements(ns + "Connect")
+                    .First(connect => (string?)connect.Attribute("FromCell") == "BeginX");
+
+                XAttribute fromSheet = beginConnect.Attribute("FromSheet")!;
+                XAttribute fromCell = beginConnect.Attribute("FromCell")!;
+                XAttribute toSheet = beginConnect.Attribute("ToSheet")!;
+                XAttribute toCell = beginConnect.Attribute("ToCell")!;
+                beginConnect.RemoveAttributes();
+                beginConnect.Add(
+                    new XAttribute(cx + "tag", "Order"),
+                    toCell,
+                    fromSheet,
+                    toSheet,
+                    fromCell);
+            });
+
+            string originalOrder = ReadConnectAttributeOrder(filePath);
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            string savedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            loaded.Save(savedPath);
+
+            Assert.Equal(originalOrder, ReadConnectAttributeOrder(savedPath));
+        }
+
+        [Fact]
         public void StyleSheetsFragmentsArePreservedOnRoundTrip() {
             string filePath = CreateShapeDocument();
 
@@ -1357,6 +1391,22 @@ namespace OfficeIMO.Tests {
                 beginConnect.Attributes()
                     .Where(attribute => attribute.Name.NamespaceName == "urn:officeimo:connect-meta")
                     .Select(attribute => $"{{{attribute.Name.NamespaceName}}}{attribute.Name.LocalName}={attribute.Value}"));
+        }
+
+        private static string ReadConnectAttributeOrder(string vsdxPath) {
+            using ZipArchive archive = ZipFile.OpenRead(vsdxPath);
+            using Stream stream = archive.GetEntry("visio/pages/page1.xml")!.Open();
+            XDocument pageDoc = XDocument.Load(stream);
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XElement beginConnect = pageDoc.Root!
+                .Element(ns + "Connects")!
+                .Elements(ns + "Connect")
+                .First(connect => (string?)connect.Attribute("FromCell") == "BeginX");
+
+            return string.Join("|",
+                beginConnect.Attributes()
+                    .Where(attribute => !attribute.IsNamespaceDeclaration)
+                    .Select(attribute => $"{{{attribute.Name.NamespaceName}}}{attribute.Name.LocalName}"));
         }
 
         private static string ReadFirstPageAttributes(string vsdxPath) {

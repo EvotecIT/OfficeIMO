@@ -385,7 +385,7 @@ namespace OfficeIMO.Visio {
                 }
 
                 List<XElement> orderedConnectElements = connectsRoot?.Elements(vNs + "Connect").ToList() ?? new List<XElement>();
-                Dictionary<string, (string? fromId, string? fromCell, string? toId, string? toCell, List<XAttribute> beginAttributes, List<XAttribute> endAttributes, XElement? beginElement, XElement? endElement)> connectionMap = new();
+                Dictionary<string, (string? fromId, string? fromCell, string? toId, string? toCell, List<XAttribute> beginAttributes, List<XName> beginOrder, List<XAttribute> endAttributes, List<XName> endOrder, XElement? beginElement, XElement? endElement)> connectionMap = new();
                 foreach (XElement connectElement in orderedConnectElements) {
                     string? connectorId = connectElement.Attribute("FromSheet")?.Value;
                     string? fromCell = connectElement.Attribute("FromCell")?.Value;
@@ -396,14 +396,14 @@ namespace OfficeIMO.Visio {
                     }
                     var info = connectionMap.TryGetValue(connectorId, out var existing)
                         ? existing
-                        : (null, null, null, null, new List<XAttribute>(), new List<XAttribute>(), null, null);
+                        : (null, null, null, null, new List<XAttribute>(), new List<XName>(), new List<XAttribute>(), new List<XName>(), null, null);
                     if (fromCell == "BeginX") {
                         if (info.beginElement != null) {
                             continue;
                         }
                         info.fromId = toSheet;
                         info.fromCell = toCell;
-                        CaptureConnectAttributes(connectElement, info.beginAttributes);
+                        CaptureConnectAttributes(connectElement, info.beginAttributes, info.beginOrder);
                         info.beginElement = connectElement;
                     } else if (fromCell == "EndX") {
                         if (info.endElement != null) {
@@ -411,7 +411,7 @@ namespace OfficeIMO.Visio {
                         }
                         info.toId = toSheet;
                         info.toCell = toCell;
-                        CaptureConnectAttributes(connectElement, info.endAttributes);
+                        CaptureConnectAttributes(connectElement, info.endAttributes, info.endOrder);
                         info.endElement = connectElement;
                     } else {
                         continue;
@@ -485,7 +485,9 @@ namespace OfficeIMO.Visio {
                     connector.PreservedFromConnectionCell = ids.fromCell;
                     connector.PreservedToConnectionCell = ids.toCell;
                     CopyPreservedAttributes(ids.beginAttributes, connector.PreservedBeginConnectAttributes);
+                    CopyPreservedAttributeOrder(ids.beginOrder, connector.PreservedBeginConnectAttributeOrder);
                     CopyPreservedAttributes(ids.endAttributes, connector.PreservedEndConnectAttributes);
+                    CopyPreservedAttributeOrder(ids.endOrder, connector.PreservedEndConnectAttributeOrder);
                     XElement? connectorTextElement = connectorElement.Element(vNs + "Text");
                     connector.Label = connectorTextElement?.Value;
                     connector.PreservedTextElement = connectorTextElement != null ? new XElement(connectorTextElement) : null;
@@ -1072,12 +1074,15 @@ namespace OfficeIMO.Visio {
             return sectionIndex >= 0 && sectionIndex < shape.ConnectionPoints.Count ? shape.ConnectionPoints[sectionIndex] : null;
         }
 
-        private static void CaptureConnectAttributes(XElement connectElement, IList<XAttribute> preservedAttributes) {
+        private static void CaptureConnectAttributes(XElement connectElement, IList<XAttribute> preservedAttributes, IList<XName> attributeOrder) {
             preservedAttributes.Clear();
+            attributeOrder.Clear();
             foreach (XAttribute attribute in connectElement.Attributes()) {
                 if (attribute.IsNamespaceDeclaration) {
                     continue;
                 }
+
+                attributeOrder.Add(attribute.Name);
 
                 if (string.Equals(attribute.Name.LocalName, "FromSheet", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(attribute.Name.LocalName, "FromCell", StringComparison.OrdinalIgnoreCase) ||
@@ -1094,6 +1099,13 @@ namespace OfficeIMO.Visio {
             destination.Clear();
             foreach (XAttribute attribute in source) {
                 destination.Add(new XAttribute(attribute));
+            }
+        }
+
+        private static void CopyPreservedAttributeOrder(IEnumerable<XName> source, IList<XName> destination) {
+            destination.Clear();
+            foreach (XName attributeName in source) {
+                destination.Add(attributeName);
             }
         }
 

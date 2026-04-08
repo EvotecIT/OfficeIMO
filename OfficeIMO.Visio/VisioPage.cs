@@ -992,6 +992,7 @@ namespace OfficeIMO.Visio {
             connector.FromConnectionPoint = ResolveConnectionPoint(newFrom, side);
             connector.PreservedFromConnectionCell = null;
             connector.PreservedBeginConnectAttributes.Clear();
+            connector.PreservedBeginConnectAttributeOrder.Clear();
         }
 
         /// <summary>
@@ -1013,6 +1014,7 @@ namespace OfficeIMO.Visio {
             connector.ToConnectionPoint = ResolveConnectionPoint(newTo, side);
             connector.PreservedToConnectionCell = null;
             connector.PreservedEndConnectAttributes.Clear();
+            connector.PreservedEndConnectAttributeOrder.Clear();
         }
 
         /// <summary>
@@ -1043,6 +1045,8 @@ namespace OfficeIMO.Visio {
             connector.PreservedToConnectionCell = null;
             connector.PreservedBeginConnectAttributes.Clear();
             connector.PreservedEndConnectAttributes.Clear();
+            connector.PreservedBeginConnectAttributeOrder.Clear();
+            connector.PreservedEndConnectAttributeOrder.Clear();
         }
 
         /// <summary>
