@@ -351,6 +351,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void RuntimeShapeOrderOverridesPreservedShapesOrderOnSave() {
+            string filePath = CreateConnectorDocument(ConnectorKind.Straight);
+
+            RewritePage(filePath, pageDoc => {
+                XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+                XElement shapes = pageDoc.Root!.Element(ns + "Shapes")!;
+                XElement[] originalShapes = shapes.Elements(ns + "Shape").ToArray();
+                XElement firstShape = originalShapes[0];
+                XElement secondShape = originalShapes[1];
+                XElement connectorShape = originalShapes[2];
+
+                shapes.RemoveNodes();
+                shapes.Add(connectorShape, secondShape, firstShape);
+            });
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioPage page = loaded.Pages[0];
+            VisioShape start = page.Shapes[0];
+
+            page.Shapes.RemoveAt(0);
+            page.Shapes.Add(start);
+
+            string expectedOrder = "Shape:Connector|" + string.Join("|", page.Shapes.Select(shape => $"Shape:{shape.NameU}"));
+            string savedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            loaded.Save(savedPath);
+
+            Assert.Equal(expectedOrder, ReadShapesChildOrder(savedPath));
+        }
+
+        [Fact]
         public void ConnectorShapeChildOrderIsPreservedOnRoundTrip() {
             string filePath = CreateConnectorDocument(ConnectorKind.Straight);
 
@@ -582,6 +612,63 @@ namespace OfficeIMO.Tests {
             loaded.Save(savedPath);
 
             Assert.Equal(originalFragments, ReadStyleSheetsFragments(savedPath));
+        }
+
+        [Fact]
+        public void GeneratedStyleSheetZeroDoesNotDuplicateBaseStyleAttributesOnRoundTrip() {
+            string filePath = CreateShapeDocument();
+
+            RewriteEntry(filePath, "visio/document.xml", """
+                <?xml version="1.0" encoding="utf-8"?>
+                <VisioDocument xmlns="http://schemas.microsoft.com/office/visio/2012/main">
+                  <DocumentSettings TopPage="0" DefaultTextStyle="0" DefaultLineStyle="0" DefaultFillStyle="0" DefaultGuideStyle="4">
+                    <GlueSettings>9</GlueSettings>
+                    <SnapSettings>295</SnapSettings>
+                    <SnapExtensions>34</SnapExtensions>
+                    <SnapAngles />
+                    <DynamicGridEnabled>1</DynamicGridEnabled>
+                    <ProtectStyles>0</ProtectStyles>
+                    <ProtectShapes>0</ProtectShapes>
+                    <ProtectMasters>0</ProtectMasters>
+                    <ProtectBkgnds>0</ProtectBkgnds>
+                  </DocumentSettings>
+                  <Colors />
+                  <FaceNames />
+                  <StyleSheets>
+                    <StyleSheet ID="0" Name="No Style" NameU="No Style" BasedOn="0" LineStyle="0" FillStyle="0" TextStyle="0" CustomAttr0="Keep0">
+                      <Cell N="EnableLineProps" V="1" />
+                      <Cell N="EnableFillProps" V="1" />
+                      <Cell N="EnableTextProps" V="1" />
+                      <Cell N="LineWeight" V="0.01041666666666667" />
+                      <Cell N="LineColor" V="0" />
+                      <Cell N="LinePattern" V="1" />
+                      <Cell N="FillForegnd" V="1" />
+                      <Cell N="FillPattern" V="1" />
+                    </StyleSheet>
+                  </StyleSheets>
+                </VisioDocument>
+                """);
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            string savedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            loaded.Save(savedPath);
+
+            using ZipArchive archive = ZipFile.OpenRead(savedPath);
+            using Stream stream = archive.GetEntry("visio/document.xml")!.Open();
+            XDocument documentXml = XDocument.Load(stream);
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XElement styleSheet = documentXml.Root!
+                .Element(ns + "StyleSheets")!
+                .Elements(ns + "StyleSheet")
+                .First(style => (string?)style.Attribute("ID") == "0");
+
+            Assert.Null(styleSheet.Attribute("BasedOn"));
+            Assert.Null(styleSheet.Attribute("LineStyle"));
+            Assert.Null(styleSheet.Attribute("FillStyle"));
+            Assert.Null(styleSheet.Attribute("TextStyle"));
+            Assert.Equal("Keep0", (string?)styleSheet.Attribute("CustomAttr0"));
+            Assert.Single(styleSheet.Attributes(), attribute =>
+                string.Equals(attribute.Name.LocalName, "CustomAttr0", StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]

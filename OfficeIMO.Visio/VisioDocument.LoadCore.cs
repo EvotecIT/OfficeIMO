@@ -1572,7 +1572,9 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            if ((string.Equals(styleSheetId, "1", StringComparison.Ordinal) || string.Equals(styleSheetId, "2", StringComparison.Ordinal)) &&
+            if ((string.Equals(styleSheetId, "0", StringComparison.Ordinal) ||
+                 string.Equals(styleSheetId, "1", StringComparison.Ordinal) ||
+                 string.Equals(styleSheetId, "2", StringComparison.Ordinal)) &&
                 (string.Equals(localName, "BasedOn", StringComparison.OrdinalIgnoreCase) ||
                  string.Equals(localName, "LineStyle", StringComparison.OrdinalIgnoreCase) ||
                  string.Equals(localName, "FillStyle", StringComparison.OrdinalIgnoreCase) ||

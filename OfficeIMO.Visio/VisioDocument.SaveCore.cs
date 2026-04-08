@@ -475,6 +475,10 @@ namespace OfficeIMO.Visio {
                             WritePreservedAttributes(writer, page.PreservedShapesContainerAttributes);
                             HashSet<VisioShape> emittedShapes = new();
                             HashSet<VisioConnector> emittedConnectors = new();
+                            List<VisioShape> currentShapes = page.Shapes.ToList();
+                            List<VisioConnector> currentConnectors = page.Connectors.ToList();
+                            int nextShapeIndex = 0;
+                            int nextConnectorIndex = 0;
                             if (page.PreservedShapesChildren.Count > 0) {
                                 foreach (VisioPage.PreservedShapeChildEntry entry in page.PreservedShapesChildren) {
                                     if (entry.RawElement != null) {
@@ -482,15 +486,19 @@ namespace OfficeIMO.Visio {
                                         continue;
                                     }
 
-                                    if (entry.Shape != null && page.Shapes.Contains(entry.Shape)) {
-                                        WriteShapeElement(writer, ns, entry.Shape, persistedIds, pageMasters, masters);
-                                        emittedShapes.Add(entry.Shape);
+                                    if (entry.Shape != null &&
+                                        TryGetNextUnemittedShape(currentShapes, emittedShapes, ref nextShapeIndex, out VisioShape? shapeToEmit) &&
+                                        shapeToEmit != null) {
+                                        WriteShapeElement(writer, ns, shapeToEmit, persistedIds, pageMasters, masters);
+                                        emittedShapes.Add(shapeToEmit);
                                         continue;
                                     }
 
-                                    if (entry.Connector != null && page.Connectors.Contains(entry.Connector)) {
-                                        WriteConnectorShapeElement(writer, ns, entry.Connector, persistedIds, masters);
-                                        emittedConnectors.Add(entry.Connector);
+                                    if (entry.Connector != null &&
+                                        TryGetNextUnemittedConnector(currentConnectors, emittedConnectors, ref nextConnectorIndex, out VisioConnector? connectorToEmit) &&
+                                        connectorToEmit != null) {
+                                        WriteConnectorShapeElement(writer, ns, connectorToEmit, persistedIds, masters);
+                                        emittedConnectors.Add(connectorToEmit);
                                     }
                                 }
                             } else {
@@ -1256,6 +1264,44 @@ namespace OfficeIMO.Visio {
             return string.Equals(persistedId, originalId, StringComparison.Ordinal)
                 ? null
                 : new KeyValuePair<string, string>(OriginalIdPropName, originalId);
+        }
+
+        private static bool TryGetNextUnemittedShape(
+            IReadOnlyList<VisioShape> shapes,
+            ISet<VisioShape> emittedShapes,
+            ref int nextShapeIndex,
+            out VisioShape? shape) {
+            while (nextShapeIndex < shapes.Count) {
+                VisioShape candidate = shapes[nextShapeIndex++];
+                if (emittedShapes.Contains(candidate)) {
+                    continue;
+                }
+
+                shape = candidate;
+                return true;
+            }
+
+            shape = null;
+            return false;
+        }
+
+        private static bool TryGetNextUnemittedConnector(
+            IReadOnlyList<VisioConnector> connectors,
+            ISet<VisioConnector> emittedConnectors,
+            ref int nextConnectorIndex,
+            out VisioConnector? connector) {
+            while (nextConnectorIndex < connectors.Count) {
+                VisioConnector candidate = connectors[nextConnectorIndex++];
+                if (emittedConnectors.Contains(candidate)) {
+                    continue;
+                }
+
+                connector = candidate;
+                return true;
+            }
+
+            connector = null;
+            return false;
         }
 
         private static void WriteConnectorGeometry(XmlWriter writer, string ns, VisioConnector connector, double startX, double startY, double endX, double endY) {
