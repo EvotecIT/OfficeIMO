@@ -561,7 +561,8 @@ public static class DocumentReader {
             }
             if (statWarning != null) {
                 state.FilesSkipped++;
-                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, statWarning, fileChunkCount: null);
+                state.ChunksProduced++;
+                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, statWarning, fileChunkCount: 1);
                 yield return EnrichChunk(BuildFolderWarningChunk(file, warningIndex++, statWarning), source, opt.ComputeHashes);
                 continue;
             }
@@ -571,7 +572,8 @@ public static class DocumentReader {
                 if ((total + lengthValue) > fo.MaxTotalBytes.Value) {
                     state.FilesSkipped++;
                     var limitWarning = $"Stopped folder ingestion after reaching MaxTotalBytes ({fo.MaxTotalBytes.Value.ToString(CultureInfo.InvariantCulture)}).";
-                    NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, limitWarning, fileChunkCount: null);
+                    state.ChunksProduced++;
+                    NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, limitWarning, fileChunkCount: 1);
                     yield return EnrichChunk(
                         BuildFolderWarningChunk(
                         file,
@@ -579,6 +581,7 @@ public static class DocumentReader {
                         limitWarning),
                         source,
                         opt.ComputeHashes);
+                    NotifyProgress(onProgress, ReaderProgressEventKind.Completed, state, source: null, message: null, fileChunkCount: null);
                     yield break;
                 }
             }
@@ -588,7 +591,8 @@ public static class DocumentReader {
                 // Skip too-large files rather than failing the whole folder.
                 state.FilesSkipped++;
                 var warning = $"Skipped file because it exceeds MaxInputBytes ({lengthValue.ToString(CultureInfo.InvariantCulture)} > {opt.MaxInputBytes.Value.ToString(CultureInfo.InvariantCulture)}).";
-                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, warning, fileChunkCount: null);
+                state.ChunksProduced++;
+                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, warning, fileChunkCount: 1);
                 yield return EnrichChunk(
                     BuildFolderWarningChunk(
                     file,
@@ -613,7 +617,8 @@ public static class DocumentReader {
             }
             if (readWarning != null) {
                 state.FilesSkipped++;
-                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, readWarning, fileChunkCount: null);
+                state.ChunksProduced++;
+                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, readWarning, fileChunkCount: 1);
                 yield return EnrichChunk(BuildFolderWarningChunk(file, warningIndex++, readWarning), source, opt.ComputeHashes);
                 continue;
             }
@@ -672,7 +677,7 @@ public static class DocumentReader {
             if (!length.HasValue) {
                 var warning = "Skipped file because metadata could not be read.";
                 state.FilesSkipped++;
-                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, warning, fileChunkCount: null);
+                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, warning, fileChunkCount: 0);
                 yield return BuildSourceDocument(source, parsed: false, chunks: null, sourceWarnings: new[] { warning });
                 continue;
             }
@@ -681,8 +686,9 @@ public static class DocumentReader {
             if (fo.MaxTotalBytes.HasValue && (total + lengthValue) > fo.MaxTotalBytes.Value) {
                 var limitWarning = $"Stopped folder ingestion after reaching MaxTotalBytes ({fo.MaxTotalBytes.Value.ToString(CultureInfo.InvariantCulture)}).";
                 state.FilesSkipped++;
-                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, limitWarning, fileChunkCount: null);
+                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, limitWarning, fileChunkCount: 0);
                 yield return BuildSourceDocument(source, parsed: false, chunks: null, sourceWarnings: new[] { limitWarning });
+                NotifyProgress(onProgress, ReaderProgressEventKind.Completed, state, source: null, message: null, fileChunkCount: null);
                 yield break;
             }
             total += lengthValue;
@@ -690,7 +696,7 @@ public static class DocumentReader {
             if (opt.MaxInputBytes.HasValue && lengthValue > opt.MaxInputBytes.Value) {
                 var warning = $"Skipped file because it exceeds MaxInputBytes ({lengthValue.ToString(CultureInfo.InvariantCulture)} > {opt.MaxInputBytes.Value.ToString(CultureInfo.InvariantCulture)}).";
                 state.FilesSkipped++;
-                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, warning, fileChunkCount: null);
+                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, warning, fileChunkCount: 0);
                 yield return BuildSourceDocument(source, parsed: false, chunks: null, sourceWarnings: new[] { warning });
                 continue;
             }
@@ -710,7 +716,7 @@ public static class DocumentReader {
 
             if (readWarning != null) {
                 state.FilesSkipped++;
-                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, readWarning, fileChunkCount: null);
+                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, readWarning, fileChunkCount: 0);
                 yield return BuildSourceDocument(source, parsed: false, chunks: null, sourceWarnings: new[] { readWarning });
                 continue;
             }
@@ -746,6 +752,17 @@ public static class DocumentReader {
         var files = new Dictionary<string, ReaderIngestFileResult>(IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         var warnings = new List<string>();
         ReaderProgress? completed = null;
+        string? currentFilePath = null;
+
+        static void AddWarningToFile(ReaderIngestFileResult file, string? warning) {
+            if (string.IsNullOrWhiteSpace(warning)) {
+                return;
+            }
+
+            var list = file.Warnings?.ToList() ?? new List<string>();
+            AddWarning(list, warning);
+            file.Warnings = list.Count > 0 ? list : null;
+        }
 
         void HandleProgress(ReaderProgress progress) {
             onProgress?.Invoke(progress);
@@ -769,17 +786,18 @@ public static class DocumentReader {
             file.SourceLengthBytes = progress.CurrentFileBytes ?? file.SourceLengthBytes;
             file.SourceLastWriteUtc = progress.CurrentFileLastWriteUtc ?? file.SourceLastWriteUtc;
 
-            if (progress.Kind == ReaderProgressEventKind.FileCompleted) {
+            if (progress.Kind == ReaderProgressEventKind.FileStarted) {
+                currentFilePath = filePath;
+            } else if (progress.Kind == ReaderProgressEventKind.FileCompleted) {
                 file.Parsed = true;
                 file.ChunksProduced = progress.CurrentFileChunks ?? file.ChunksProduced;
+                currentFilePath = null;
             } else if (progress.Kind == ReaderProgressEventKind.FileSkipped) {
                 file.Parsed = false;
-                if (!string.IsNullOrWhiteSpace(progress.Message)) {
-                    var list = file.Warnings?.ToList() ?? new List<string>();
-                    list.Add(progress.Message!);
-                    file.Warnings = list;
-                    warnings.Add(progress.Message!);
-                }
+                file.ChunksProduced = progress.CurrentFileChunks ?? Math.Max(file.ChunksProduced, 1);
+                AddWarningToFile(file, progress.Message);
+                AddWarning(warnings, progress.Message);
+                currentFilePath = null;
             }
         }
 
@@ -789,7 +807,15 @@ public static class DocumentReader {
                 chunks!.Add(chunk);
             }
             if (chunk.Warnings != null && chunk.Warnings.Count > 0) {
-                warnings.AddRange(chunk.Warnings);
+                if (!string.IsNullOrWhiteSpace(currentFilePath) && files.TryGetValue(currentFilePath!, out var file)) {
+                    for (int i = 0; i < chunk.Warnings.Count; i++) {
+                        AddWarningToFile(file, chunk.Warnings[i]);
+                    }
+                }
+
+                for (int i = 0; i < chunk.Warnings.Count; i++) {
+                    AddWarning(warnings, chunk.Warnings[i]);
+                }
             }
         }
 
@@ -925,21 +951,22 @@ public static class DocumentReader {
 
         var opt = NormalizeOptions(options);
         EnforceStreamSize(stream, opt.MaxInputBytes);
-        var source = BuildSourceInfoFromStream(stream, sourceName, opt.ComputeHashes);
+        var logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? null : sourceName.Trim();
+        var source = BuildSourceInfoFromStream(stream, logicalSourceName, opt.ComputeHashes);
 
         IEnumerable<ReaderChunk> raw;
-        if (TryResolveCustomHandlerBySourceName(sourceName, out var customStreamHandler) && customStreamHandler.ReadStream != null) {
-            raw = customStreamHandler.ReadStream(stream, sourceName, opt, cancellationToken);
+        if (TryResolveCustomHandlerBySourceName(logicalSourceName, out var customStreamHandler) && customStreamHandler.ReadStream != null) {
+            raw = customStreamHandler.ReadStream(stream, logicalSourceName, opt, cancellationToken);
         } else {
-            var kind = string.IsNullOrWhiteSpace(sourceName) ? ReaderInputKind.Unknown : DetectKind(sourceName!);
+            var kind = string.IsNullOrWhiteSpace(logicalSourceName) ? ReaderInputKind.Unknown : DetectKind(logicalSourceName!);
             raw = kind switch {
-                ReaderInputKind.Word => ReadWord(stream, sourceName, opt, cancellationToken),
-                ReaderInputKind.Excel => ReadExcel(stream, sourceName, opt, cancellationToken),
-                ReaderInputKind.PowerPoint => ReadPowerPoint(stream, sourceName, opt, cancellationToken),
-                ReaderInputKind.Markdown => ReadMarkdown(stream, sourceName, opt, cancellationToken),
-                ReaderInputKind.Pdf => ReadPdf(stream, sourceName, opt, cancellationToken),
-                ReaderInputKind.Text => ReadText(stream, sourceName, opt, cancellationToken),
-                _ => ReadUnknown(stream, sourceName, opt, cancellationToken)
+                ReaderInputKind.Word => ReadWord(stream, logicalSourceName, opt, cancellationToken),
+                ReaderInputKind.Excel => ReadExcel(stream, logicalSourceName, opt, cancellationToken),
+                ReaderInputKind.PowerPoint => ReadPowerPoint(stream, logicalSourceName, opt, cancellationToken),
+                ReaderInputKind.Markdown => ReadMarkdown(stream, logicalSourceName, opt, cancellationToken),
+                ReaderInputKind.Pdf => ReadPdf(stream, logicalSourceName, opt, cancellationToken),
+                ReaderInputKind.Text => ReadText(stream, logicalSourceName, opt, cancellationToken),
+                _ => ReadUnknown(stream, logicalSourceName, opt, cancellationToken)
             };
         }
 
@@ -1818,9 +1845,7 @@ public static class DocumentReader {
         var warnings = new List<string>();
         if (sourceWarnings != null) {
             for (int i = 0; i < sourceWarnings.Count; i++) {
-                if (!string.IsNullOrWhiteSpace(sourceWarnings[i])) {
-                    warnings.Add(sourceWarnings[i]!);
-                }
+                AddWarning(warnings, sourceWarnings[i]);
             }
         }
 
@@ -1831,10 +1856,7 @@ public static class DocumentReader {
 
             if (chunk.Warnings == null) continue;
             for (int j = 0; j < chunk.Warnings.Count; j++) {
-                var warning = chunk.Warnings[j];
-                if (!string.IsNullOrWhiteSpace(warning)) {
-                    warnings.Add(warning!);
-                }
+                AddWarning(warnings, chunk.Warnings[j]);
             }
         }
 

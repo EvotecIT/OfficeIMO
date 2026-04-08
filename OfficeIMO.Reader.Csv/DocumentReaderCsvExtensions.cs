@@ -16,6 +16,7 @@ public static class DocumentReaderCsvExtensions {
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         ReaderInputLimits.EnforceFileSize(path, effectiveReaderOptions.MaxInputBytes);
 
+        var source = BuildSourceMetadataFromPath(path, effectiveReaderOptions.ComputeHashes);
         var options = Normalize(csvOptions);
         var extension = GetNormalizedExtension(path);
         var delimiter = extension == ".tsv" ? '\t' : ',';
@@ -26,7 +27,7 @@ public static class DocumentReaderCsvExtensions {
             Mode = CsvLoadMode.Stream
         });
 
-        foreach (var chunk in ReadCsvDocument(csv, path, options, cancellationToken)) {
+        foreach (var chunk in ReadCsvDocument(csv, source, options, effectiveReaderOptions.ComputeHashes, cancellationToken)) {
             yield return chunk;
         }
     }
@@ -51,13 +52,14 @@ public static class DocumentReaderCsvExtensions {
         try {
             var delimiter = extension == ".tsv" ? '\t' : ',';
             var sourcePath = BuildLogicalSourcePath(sourceName, extension == ".tsv" ? "document.tsv" : "document.csv");
+            var source = BuildSourceMetadataFromStream(parseStream, sourcePath, effectiveReaderOptions.ComputeHashes);
             var csv = CsvDocument.Load(parseStream, new CsvLoadOptions {
                 Delimiter = delimiter,
                 HasHeaderRow = options.HeadersInFirstRow,
                 Mode = CsvLoadMode.Stream
             }, leaveOpen: true);
 
-            foreach (var chunk in ReadCsvDocument(csv, sourcePath, options, cancellationToken)) {
+            foreach (var chunk in ReadCsvDocument(csv, source, options, effectiveReaderOptions.ComputeHashes, cancellationToken)) {
                 yield return chunk;
             }
         } finally {
@@ -67,7 +69,8 @@ public static class DocumentReaderCsvExtensions {
         }
     }
 
-    private static IEnumerable<ReaderChunk> ReadCsvDocument(CsvDocument csv, string sourcePath, CsvReadOptions options, CancellationToken cancellationToken) {
+    private static IEnumerable<ReaderChunk> ReadCsvDocument(CsvDocument csv, SourceMetadata source, CsvReadOptions options, bool computeHashes, CancellationToken cancellationToken) {
+        var sourcePath = source.Path;
         var headers = csv.Header.Count > 0
             ? csv.Header.ToArray()
             : new[] { "Column1" };
@@ -90,14 +93,14 @@ public static class DocumentReaderCsvExtensions {
             rowIndex++;
 
             if (rows.Count >= options.ChunkRows) {
-                yield return BuildCsvChunk(sourcePath, headers, rows, chunkIndex, rowIndex - rows.Count, options.IncludeMarkdown);
+                yield return EnrichChunk(BuildCsvChunk(sourcePath, headers, rows, chunkIndex, rowIndex - rows.Count, options.IncludeMarkdown), source, computeHashes);
                 rows = new List<IReadOnlyList<string>>(capacity: options.ChunkRows);
                 chunkIndex++;
             }
         }
 
         if (rows.Count > 0) {
-            yield return BuildCsvChunk(sourcePath, headers, rows, chunkIndex, rowIndex - rows.Count, options.IncludeMarkdown);
+            yield return EnrichChunk(BuildCsvChunk(sourcePath, headers, rows, chunkIndex, rowIndex - rows.Count, options.IncludeMarkdown), source, computeHashes);
         }
     }
 
@@ -108,11 +111,13 @@ public static class DocumentReaderCsvExtensions {
         int chunkIndex,
         int sourceRowStart,
         bool includeMarkdown) {
+        var effectiveHeaders = ExpandHeaders(headers, rows);
+        var normalizedRows = NormalizeRows(rows, effectiveHeaders.Length);
         var table = new ReaderTable {
             Title = Path.GetFileName(path),
-            Columns = headers.ToArray(),
-            Rows = rows.Select(static r => (IReadOnlyList<string>)r.ToArray()).ToArray(),
-            TotalRowCount = rows.Count,
+            Columns = effectiveHeaders,
+            Rows = normalizedRows,
+            TotalRowCount = normalizedRows.Count,
             Truncated = false
         };
 
@@ -124,10 +129,76 @@ public static class DocumentReaderCsvExtensions {
                 BlockIndex = chunkIndex,
                 SourceBlockIndex = sourceRowStart
             },
-            Text = BuildPlain(headers, rows),
-            Markdown = includeMarkdown ? BuildMarkdown(headers, rows) : null,
+            Text = BuildPlain(effectiveHeaders, normalizedRows),
+            Markdown = includeMarkdown ? BuildMarkdown(effectiveHeaders, normalizedRows) : null,
             Tables = new[] { table }
         };
+    }
+
+    private static string[] ExpandHeaders(IReadOnlyList<string> headers, IReadOnlyList<IReadOnlyList<string>> rows) {
+        int maxColumns = headers.Count;
+        foreach (var row in rows) {
+            if (row.Count > maxColumns) {
+                maxColumns = row.Count;
+            }
+        }
+
+        var expanded = new string[maxColumns];
+        for (int i = 0; i < maxColumns; i++) {
+            if (i < headers.Count && !string.IsNullOrWhiteSpace(headers[i])) {
+                expanded[i] = headers[i].Trim();
+            } else {
+                expanded[i] = "Column" + (i + 1).ToString(CultureInfo.InvariantCulture);
+            }
+        }
+
+        EnsureUniqueHeaders(expanded);
+        return expanded;
+    }
+
+    private static IReadOnlyList<IReadOnlyList<string>> NormalizeRows(IReadOnlyList<IReadOnlyList<string>> rows, int columnCount) {
+        var normalized = new IReadOnlyList<string>[rows.Count];
+        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+            var row = rows[rowIndex];
+            if (row.Count == columnCount) {
+                normalized[rowIndex] = row.ToArray();
+                continue;
+            }
+
+            var values = new string[columnCount];
+            for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+                values[columnIndex] = columnIndex < row.Count ? row[columnIndex] ?? string.Empty : string.Empty;
+            }
+
+            normalized[rowIndex] = values;
+        }
+
+        return normalized;
+    }
+
+    private static void EnsureUniqueHeaders(string[] headers) {
+        var seen = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < headers.Length; i++) {
+            var original = string.IsNullOrWhiteSpace(headers[i])
+                ? "Column" + (i + 1).ToString(CultureInfo.InvariantCulture)
+                : headers[i];
+
+            if (!seen.TryAdd(original, 1)) {
+                var suffix = seen[original] + 1;
+                string candidate;
+                do {
+                    candidate = original + "_" + suffix.ToString(CultureInfo.InvariantCulture);
+                    suffix++;
+                } while (seen.ContainsKey(candidate));
+
+                seen[original] = suffix - 1;
+                headers[i] = candidate;
+                seen[candidate] = 1;
+                continue;
+            }
+
+            headers[i] = original;
+        }
     }
 
     private static string BuildPlain(IReadOnlyList<string> headers, IReadOnlyList<IReadOnlyList<string>> rows) {
@@ -182,15 +253,205 @@ public static class DocumentReaderCsvExtensions {
     }
 
     private static string GetNormalizedExtension(string? sourceName) {
-        var ext = Path.GetExtension(sourceName ?? string.Empty);
+        var ext = Path.GetExtension((sourceName ?? string.Empty).Trim());
         return ext.ToLowerInvariant();
     }
 
     private static string BuildLogicalSourcePath(string? sourceName, string defaultName) {
         if (!string.IsNullOrWhiteSpace(sourceName)) {
-            return sourceName!;
+            return sourceName.Trim();
         }
 
         return defaultName;
+    }
+
+    private static ReaderChunk EnrichChunk(ReaderChunk chunk, SourceMetadata source, bool computeHashes) {
+        if (chunk == null) throw new ArgumentNullException(nameof(chunk));
+        if (source == null) throw new ArgumentNullException(nameof(source));
+
+        chunk.SourceId ??= source.SourceId;
+        chunk.SourceHash ??= source.SourceHash;
+        chunk.SourceLastWriteUtc ??= source.LastWriteUtc;
+        chunk.SourceLengthBytes ??= source.LengthBytes;
+        if (!chunk.TokenEstimate.HasValue) {
+            chunk.TokenEstimate = EstimateTokenCount(chunk.Markdown ?? chunk.Text);
+        }
+        if (computeHashes && string.IsNullOrWhiteSpace(chunk.ChunkHash)) {
+            chunk.ChunkHash = ComputeChunkHash(chunk);
+        }
+
+        return chunk;
+    }
+
+    private static int EstimateTokenCount(string? text) {
+        var safeText = text ?? string.Empty;
+        if (safeText.Length == 0) return 0;
+        return Math.Max(1, (safeText.Length + 3) / 4);
+    }
+
+    private static string ComputeChunkHash(ReaderChunk chunk) {
+        var data = string.Join("|",
+            chunk.Kind.ToString(),
+            chunk.SourceId ?? string.Empty,
+            chunk.Location.Path ?? string.Empty,
+            chunk.Location.HeadingPath ?? string.Empty,
+            chunk.Location.HeadingSlug ?? string.Empty,
+            chunk.Location.SourceBlockKind ?? string.Empty,
+            chunk.Location.BlockAnchor ?? string.Empty,
+            chunk.Location.Sheet ?? string.Empty,
+            chunk.Location.A1Range ?? string.Empty,
+            chunk.Location.Page?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.Slide?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.StartLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.NormalizedStartLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.NormalizedEndLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Text ?? string.Empty,
+            chunk.Markdown ?? string.Empty);
+
+        return ComputeSha256Hex(data);
+    }
+
+    private static SourceMetadata BuildSourceMetadataFromPath(string path, bool computeHash) {
+        var normalizedPath = NormalizePathForId(path);
+        var sourceId = BuildSourceId(normalizedPath);
+
+        DateTime? lastWriteUtc = null;
+        long? lengthBytes = null;
+        try {
+            var fileInfo = new FileInfo(path);
+            if (fileInfo.Exists) {
+                lastWriteUtc = fileInfo.LastWriteTimeUtc;
+                lengthBytes = fileInfo.Length;
+            }
+        } catch {
+            // Best-effort metadata.
+        }
+
+        string? sourceHash = null;
+        if (computeHash) {
+            sourceHash = TryComputeFileSha256(path);
+        }
+
+        return new SourceMetadata {
+            Path = path,
+            SourceId = sourceId,
+            SourceHash = sourceHash,
+            LastWriteUtc = lastWriteUtc,
+            LengthBytes = lengthBytes
+        };
+    }
+
+    private static SourceMetadata BuildSourceMetadataFromStream(Stream stream, string sourceName, bool computeHash) {
+        var logicalName = string.IsNullOrWhiteSpace(sourceName) ? "document.csv" : sourceName.Trim();
+        var sourceId = BuildSourceId(logicalName);
+
+        long? lengthBytes = null;
+        try {
+            if (stream.CanSeek) {
+                lengthBytes = stream.Length;
+            }
+        } catch {
+            // Best-effort metadata.
+        }
+
+        string? sourceHash = null;
+        if (computeHash) {
+            sourceHash = TryComputeStreamSha256(stream);
+        }
+
+        return new SourceMetadata {
+            Path = logicalName,
+            SourceId = sourceId,
+            SourceHash = sourceHash,
+            LastWriteUtc = null,
+            LengthBytes = lengthBytes
+        };
+    }
+
+    private static string? TryComputeFileSha256(string path) {
+        try {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            return ComputeSha256Hex(fs);
+        } catch {
+            return null;
+        }
+    }
+
+    private static string? TryComputeStreamSha256(Stream stream) {
+        if (stream == null || !stream.CanSeek) return null;
+
+        long position;
+        try {
+            position = stream.Position;
+        } catch {
+            return null;
+        }
+
+        try {
+            stream.Position = 0;
+            var hash = ComputeSha256Hex(stream);
+            stream.Position = position;
+            return hash;
+        } catch {
+            try {
+                stream.Position = position;
+            } catch {
+                // ignore
+            }
+
+            return null;
+        }
+    }
+
+    private static string ComputeSha256Hex(string value) {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var bytes = Encoding.UTF8.GetBytes(value ?? string.Empty);
+        var hash = sha.ComputeHash(bytes);
+        return ConvertToHexLower(hash);
+    }
+
+    private static string ComputeSha256Hex(Stream stream) {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var hash = sha.ComputeHash(stream);
+        return ConvertToHexLower(hash);
+    }
+
+    private static string ConvertToHexLower(byte[] bytes) {
+        var sb = new StringBuilder(bytes.Length * 2);
+        for (int i = 0; i < bytes.Length; i++) {
+            sb.Append(bytes[i].ToString("x2", CultureInfo.InvariantCulture));
+        }
+
+        return sb.ToString();
+    }
+
+    private static string BuildSourceId(string sourceKey) {
+        var normalized = sourceKey ?? string.Empty;
+        if (Path.DirectorySeparatorChar == '\\') {
+            normalized = normalized.ToLowerInvariant();
+        }
+
+        return "src:" + ComputeSha256Hex(normalized);
+    }
+
+    private static string NormalizePathForId(string path) {
+        if (string.IsNullOrWhiteSpace(path)) return string.Empty;
+
+        string fullPath;
+        try {
+            fullPath = Path.GetFullPath(path);
+        } catch {
+            fullPath = path;
+        }
+
+        return fullPath.Replace('\\', '/');
+    }
+
+    private sealed class SourceMetadata {
+        public string Path { get; set; } = string.Empty;
+        public string SourceId { get; set; } = string.Empty;
+        public string? SourceHash { get; set; }
+        public DateTime? LastWriteUtc { get; set; }
+        public long? LengthBytes { get; set; }
     }
 }

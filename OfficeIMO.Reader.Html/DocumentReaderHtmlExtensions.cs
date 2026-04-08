@@ -14,8 +14,12 @@ public static class DocumentReaderHtmlExtensions {
         if (htmlPath.Length == 0) throw new ArgumentException("HTML path cannot be empty.", nameof(htmlPath));
         if (!File.Exists(htmlPath)) throw new FileNotFoundException($"HTML file '{htmlPath}' doesn't exist.", htmlPath);
 
+        var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
+        ReaderInputLimits.EnforceFileSize(htmlPath, effectiveReaderOptions.MaxInputBytes);
+        var source = BuildSourceMetadataFromPath(htmlPath, effectiveReaderOptions.ComputeHashes);
+
         using var fs = new FileStream(htmlPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        foreach (var chunk in ReadHtml(fs, htmlPath, readerOptions, htmlOptions, cancellationToken)) {
+        foreach (var chunk in ReadHtml(fs, source, effectiveReaderOptions, htmlOptions, cancellationToken)) {
             yield return chunk;
         }
     }
@@ -28,11 +32,22 @@ public static class DocumentReaderHtmlExtensions {
         if (!htmlStream.CanRead) throw new ArgumentException("HTML stream must be readable.", nameof(htmlStream));
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
+        var logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "document.html" : sourceName.Trim();
+        var source = new SourceMetadata {
+            Path = logicalSourceName,
+            SourceId = BuildSourceId(logicalSourceName)
+        };
+        foreach (var chunk in ReadHtml(htmlStream, source, effectiveReaderOptions, htmlOptions, cancellationToken)) {
+            yield return chunk;
+        }
+    }
+
+    private static IEnumerable<ReaderChunk> ReadHtml(Stream htmlStream, SourceMetadata source, ReaderOptions effectiveReaderOptions, ReaderHtmlOptions? htmlOptions, CancellationToken cancellationToken) {
         var parseStream = ReaderInputLimits.EnsureSeekableReadStream(htmlStream, effectiveReaderOptions.MaxInputBytes, cancellationToken, out var ownsParseStream);
         try {
+            UpdateSourceMetadataFromSeekableStream(source, parseStream, effectiveReaderOptions.ComputeHashes);
             var html = ReadAllText(parseStream, cancellationToken);
-            var logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "document.html" : sourceName!;
-            foreach (var chunk in ReadHtmlString(html, logicalSourceName, effectiveReaderOptions, htmlOptions, cancellationToken)) {
+            foreach (var chunk in ReadHtmlString(html, source, effectiveReaderOptions, htmlOptions, cancellationToken)) {
                 yield return chunk;
             }
         } finally {
@@ -50,14 +65,24 @@ public static class DocumentReaderHtmlExtensions {
         if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
 
         var effective = readerOptions ?? new ReaderOptions();
+        var trimmedSourceName = sourceName.Trim();
+        var logicalSourceName = trimmedSourceName.Length == 0 ? "document.html" : trimmedSourceName;
+        var source = BuildSourceMetadataFromHtmlString(logicalSourceName, html, effective.ComputeHashes);
+
+        foreach (var chunk in ReadHtmlString(html, source, effective, htmlOptions, cancellationToken)) {
+            yield return chunk;
+        }
+    }
+
+    private static IEnumerable<ReaderChunk> ReadHtmlString(string html, SourceMetadata source, ReaderOptions effective, ReaderHtmlOptions? htmlOptions, CancellationToken cancellationToken) {
         var effectiveHtmlOptions = ReaderHtmlOptionsCloner.CloneOrDefault(htmlOptions);
         int maxChars = effective.MaxChars > 0 ? effective.MaxChars : 8_000;
-        var logicalSourceName = sourceName.Trim().Length == 0 ? "document.html" : sourceName;
+        var logicalSourceName = source.Path;
 
         string markdown = html.ToMarkdown(effectiveHtmlOptions.HtmlToMarkdownOptions);
 
         if (string.IsNullOrWhiteSpace(markdown)) {
-            yield return BuildWarningChunk(logicalSourceName, "html-warning-0000", "HTML content produced no markdown text.");
+            yield return EnrichChunk(BuildWarningChunk(logicalSourceName, "html-warning-0000", "HTML content produced no markdown text."), source, effective.ComputeHashes);
             yield break;
         }
 
@@ -67,38 +92,11 @@ public static class DocumentReaderHtmlExtensions {
             chunkByHeadings: effective.MarkdownChunkByHeadings,
             cancellationToken);
 
-        var wasSplit = parts.Count > 1;
         int chunkIndex = 0;
         foreach (var part in parts) {
             cancellationToken.ThrowIfCancellationRequested();
 
-            IReadOnlyList<string>? warnings = null;
-            if (wasSplit || (part.Warnings?.Count > 0)) {
-                var warningList = new List<string>(4);
-                if (wasSplit) {
-                    warningList.Add("HTML content was split due to MaxChars.");
-                }
-
-                if (part.Warnings != null) {
-                    foreach (var warning in part.Warnings) {
-                        bool exists = false;
-                        for (int i = 0; i < warningList.Count; i++) {
-                            if (string.Equals(warningList[i], warning, StringComparison.Ordinal)) {
-                                exists = true;
-                                break;
-                            }
-                        }
-
-                        if (!exists) {
-                            warningList.Add(warning);
-                        }
-                    }
-                }
-
-                warnings = warningList.ToArray();
-            }
-
-            yield return new ReaderChunk {
+            yield return EnrichChunk(new ReaderChunk {
                 Id = string.Concat("html-", chunkIndex.ToString("D4", CultureInfo.InvariantCulture)),
                 Kind = ReaderInputKind.Html,
                 Location = new ReaderLocation {
@@ -109,8 +107,8 @@ public static class DocumentReaderHtmlExtensions {
                 },
                 Text = part.Text,
                 Markdown = part.Text,
-                Warnings = warnings
-            };
+                Warnings = part.Warnings
+            }, source, effective.ComputeHashes);
 
             chunkIndex++;
         }
@@ -175,6 +173,7 @@ public static class DocumentReaderHtmlExtensions {
 
             if (line.Length > maxChars) {
                 if (currentText.Length > 0) {
+                    AddSplitWarning(currentWarnings);
                     FlushCurrent();
                 }
 
@@ -188,6 +187,7 @@ public static class DocumentReaderHtmlExtensions {
                     int take = Math.Min(maxChars, line.Length - segmentIndex);
                     currentText.Append(line, segmentIndex, take);
                     segmentIndex += take;
+                    AddSplitWarning(currentWarnings);
 
                     if (segmentIndex < line.Length) {
                         FlushCurrent();
@@ -198,6 +198,7 @@ public static class DocumentReaderHtmlExtensions {
             }
 
             if (WouldExceed(maxChars, currentText, line)) {
+                AddSplitWarning(currentWarnings);
                 FlushCurrent();
                 currentStartLine = lineNo;
                 currentHeadingPath = chunkByHeadings ? BuildHeadingPath(headingStack) : null;
@@ -289,6 +290,17 @@ public static class DocumentReaderHtmlExtensions {
         builder.Append(line ?? string.Empty);
     }
 
+    private static void AddSplitWarning(List<string> warnings) {
+        const string splitWarning = "HTML content was split due to MaxChars.";
+        for (int i = 0; i < warnings.Count; i++) {
+            if (string.Equals(warnings[i], splitWarning, StringComparison.Ordinal)) {
+                return;
+            }
+        }
+
+        warnings.Add(splitWarning);
+    }
+
     private static string CollapseWhitespace(string value) {
         if (string.IsNullOrEmpty(value)) return string.Empty;
 
@@ -309,6 +321,182 @@ public static class DocumentReaderHtmlExtensions {
         return sb.ToString().Trim();
     }
 
+    private static ReaderChunk EnrichChunk(ReaderChunk chunk, SourceMetadata source, bool computeHashes) {
+        if (chunk == null) throw new ArgumentNullException(nameof(chunk));
+        if (source == null) throw new ArgumentNullException(nameof(source));
+
+        chunk.SourceId ??= source.SourceId;
+        chunk.SourceHash ??= source.SourceHash;
+        chunk.SourceLastWriteUtc ??= source.LastWriteUtc;
+        chunk.SourceLengthBytes ??= source.LengthBytes;
+        if (!chunk.TokenEstimate.HasValue) {
+            chunk.TokenEstimate = EstimateTokenCount(chunk.Markdown ?? chunk.Text);
+        }
+        if (computeHashes && string.IsNullOrWhiteSpace(chunk.ChunkHash)) {
+            chunk.ChunkHash = ComputeChunkHash(chunk);
+        }
+
+        return chunk;
+    }
+
+    private static int EstimateTokenCount(string? text) {
+        var safeText = text ?? string.Empty;
+        if (safeText.Length == 0) return 0;
+        return Math.Max(1, (safeText.Length + 3) / 4);
+    }
+
+    private static string ComputeChunkHash(ReaderChunk chunk) {
+        var data = string.Join("|",
+            chunk.Kind.ToString(),
+            chunk.SourceId ?? string.Empty,
+            chunk.Location.Path ?? string.Empty,
+            chunk.Location.HeadingPath ?? string.Empty,
+            chunk.Location.HeadingSlug ?? string.Empty,
+            chunk.Location.SourceBlockKind ?? string.Empty,
+            chunk.Location.BlockAnchor ?? string.Empty,
+            chunk.Location.Sheet ?? string.Empty,
+            chunk.Location.A1Range ?? string.Empty,
+            chunk.Location.Page?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.Slide?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.StartLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.NormalizedStartLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.NormalizedEndLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Text ?? string.Empty,
+            chunk.Markdown ?? string.Empty);
+
+        return ComputeSha256Hex(data);
+    }
+
+    private static SourceMetadata BuildSourceMetadataFromPath(string path, bool computeHash) {
+        var normalizedPath = NormalizePathForId(path);
+        var sourceId = BuildSourceId(normalizedPath);
+
+        DateTime? lastWriteUtc = null;
+        long? lengthBytes = null;
+        try {
+            var fileInfo = new FileInfo(path);
+            if (fileInfo.Exists) {
+                lastWriteUtc = fileInfo.LastWriteTimeUtc;
+                lengthBytes = fileInfo.Length;
+            }
+        } catch {
+            // Best-effort metadata.
+        }
+
+        return new SourceMetadata {
+            Path = path,
+            SourceId = sourceId,
+            SourceHash = computeHash ? TryComputeFileSha256(path) : null,
+            LastWriteUtc = lastWriteUtc,
+            LengthBytes = lengthBytes
+        };
+    }
+
+    private static SourceMetadata BuildSourceMetadataFromHtmlString(string sourcePath, string html, bool computeHash) {
+        return new SourceMetadata {
+            Path = sourcePath,
+            SourceId = BuildSourceId(sourcePath),
+            SourceHash = computeHash ? ComputeSha256Hex(html) : null,
+            LengthBytes = Encoding.UTF8.GetByteCount(html)
+        };
+    }
+
+    private static void UpdateSourceMetadataFromSeekableStream(SourceMetadata source, Stream stream, bool computeHash) {
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+
+        try {
+            if (stream.CanSeek) {
+                source.LengthBytes = stream.Length;
+            }
+        } catch {
+            // Best-effort metadata.
+        }
+
+        if (computeHash) {
+            source.SourceHash ??= TryComputeStreamSha256(stream);
+        }
+    }
+
+    private static string? TryComputeFileSha256(string path) {
+        try {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            return ComputeSha256Hex(fs);
+        } catch {
+            return null;
+        }
+    }
+
+    private static string? TryComputeStreamSha256(Stream stream) {
+        if (stream == null || !stream.CanSeek) return null;
+
+        long position;
+        try {
+            position = stream.Position;
+        } catch {
+            return null;
+        }
+
+        try {
+            stream.Position = 0;
+            var hash = ComputeSha256Hex(stream);
+            stream.Position = position;
+            return hash;
+        } catch {
+            try {
+                stream.Position = position;
+            } catch {
+                // ignore
+            }
+
+            return null;
+        }
+    }
+
+    private static string ComputeSha256Hex(string value) {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var bytes = Encoding.UTF8.GetBytes(value ?? string.Empty);
+        var hash = sha.ComputeHash(bytes);
+        return ConvertToHexLower(hash);
+    }
+
+    private static string ComputeSha256Hex(Stream stream) {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var hash = sha.ComputeHash(stream);
+        return ConvertToHexLower(hash);
+    }
+
+    private static string ConvertToHexLower(byte[] bytes) {
+        var sb = new StringBuilder(bytes.Length * 2);
+        for (int i = 0; i < bytes.Length; i++) {
+            sb.Append(bytes[i].ToString("x2", CultureInfo.InvariantCulture));
+        }
+
+        return sb.ToString();
+    }
+
+    private static string BuildSourceId(string sourceKey) {
+        var normalized = sourceKey ?? string.Empty;
+        if (Path.DirectorySeparatorChar == '\\') {
+            normalized = normalized.ToLowerInvariant();
+        }
+
+        return "src:" + ComputeSha256Hex(normalized);
+    }
+
+    private static string NormalizePathForId(string path) {
+        if (string.IsNullOrWhiteSpace(path)) return string.Empty;
+
+        string fullPath;
+        try {
+            fullPath = Path.GetFullPath(path);
+        } catch {
+            fullPath = path;
+        }
+
+        return fullPath.Replace('\\', '/');
+    }
+
     private sealed class MarkdownPart {
         public MarkdownPart(string text, int startLine, string? headingPath, IReadOnlyList<string>? warnings) {
             Text = text;
@@ -321,5 +509,13 @@ public static class DocumentReaderHtmlExtensions {
         public int StartLine { get; }
         public string? HeadingPath { get; }
         public IReadOnlyList<string>? Warnings { get; }
+    }
+
+    private sealed class SourceMetadata {
+        public string Path { get; set; } = string.Empty;
+        public string SourceId { get; set; } = string.Empty;
+        public string? SourceHash { get; set; }
+        public DateTime? LastWriteUtc { get; set; }
+        public long? LengthBytes { get; set; }
     }
 }

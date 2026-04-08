@@ -128,6 +128,157 @@ public sealed class ReaderZipModularTests {
         Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void DocumentReaderZip_UsesVirtualPathForSourceIdentity() {
+        var zipBytes = BuildSimpleZipBytes();
+
+        using var first = new MemoryStream(zipBytes, writable: false);
+        using var second = new MemoryStream(zipBytes, writable: false);
+
+        var firstChunk = DocumentReaderZipExtensions.ReadZip(
+            first,
+            sourceName: "first.zip",
+            readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
+            zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
+            .Single(c => c.Kind == ReaderInputKind.Markdown);
+
+        var secondChunk = DocumentReaderZipExtensions.ReadZip(
+            second,
+            sourceName: "second.zip",
+            readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
+            zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
+            .Single(c => c.Kind == ReaderInputKind.Markdown);
+
+        Assert.Contains("first.zip::docs/readme.md", firstChunk.Location.Path ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("second.zip::docs/readme.md", secondChunk.Location.Path ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+        Assert.False(string.IsNullOrWhiteSpace(firstChunk.SourceHash));
+        Assert.False(string.IsNullOrWhiteSpace(secondChunk.SourceHash));
+        Assert.True(firstChunk.TokenEstimate.HasValue && firstChunk.TokenEstimate.Value >= 1);
+        Assert.True(secondChunk.TokenEstimate.HasValue && secondChunk.TokenEstimate.Value >= 1);
+        Assert.NotEqual(firstChunk.SourceId, secondChunk.SourceId);
+        Assert.NotEqual(firstChunk.ChunkHash, secondChunk.ChunkHash);
+        Assert.Equal(firstChunk.SourceHash, secondChunk.SourceHash);
+    }
+
+    [Fact]
+    public void DocumentReaderZip_WarningChunks_UseVirtualPathForSourceIdentity() {
+        var zipBytes = BuildZipWithLargeEntryBytes();
+
+        using var first = new MemoryStream(zipBytes, writable: false);
+        using var second = new MemoryStream(zipBytes, writable: false);
+
+        var firstWarning = DocumentReaderZipExtensions.ReadZip(
+            first,
+            sourceName: "first.zip",
+            readerOptions: new ReaderOptions { MaxInputBytes = 512, MaxChars = 8_000, ComputeHashes = true },
+            zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
+            .Single(c => c.Kind == ReaderInputKind.Zip && (c.Warnings?.Count ?? 0) > 0);
+
+        var secondWarning = DocumentReaderZipExtensions.ReadZip(
+            second,
+            sourceName: "second.zip",
+            readerOptions: new ReaderOptions { MaxInputBytes = 512, MaxChars = 8_000, ComputeHashes = true },
+            zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
+            .Single(c => c.Kind == ReaderInputKind.Zip && (c.Warnings?.Count ?? 0) > 0);
+
+        Assert.Contains("first.zip::big.txt", firstWarning.Location.Path ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("second.zip::big.txt", secondWarning.Location.Path ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+        Assert.NotNull(firstWarning.SourceId);
+        Assert.NotNull(secondWarning.SourceId);
+        Assert.False(string.IsNullOrWhiteSpace(firstWarning.SourceHash));
+        Assert.False(string.IsNullOrWhiteSpace(secondWarning.SourceHash));
+        Assert.NotEqual(firstWarning.SourceId, secondWarning.SourceId);
+        Assert.NotNull(firstWarning.ChunkHash);
+        Assert.NotNull(secondWarning.ChunkHash);
+        Assert.True(firstWarning.TokenEstimate.HasValue && firstWarning.TokenEstimate.Value >= 1);
+        Assert.True(secondWarning.TokenEstimate.HasValue && secondWarning.TokenEstimate.Value >= 1);
+        Assert.NotEqual(firstWarning.ChunkHash, secondWarning.ChunkHash);
+        Assert.Equal(2048, firstWarning.SourceLengthBytes);
+        Assert.Equal(2048, secondWarning.SourceLengthBytes);
+    }
+
+    [Fact]
+    public void DocumentReaderZip_PreservesCaseSensitiveVirtualSourceIdentity() {
+        var zipBytes = BuildZipWithCaseDistinctEntries();
+
+        using var stream = new MemoryStream(zipBytes, writable: false);
+
+        var chunks = DocumentReaderZipExtensions.ReadZip(
+            stream,
+            sourceName: "case-sensitive.zip",
+            readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
+            zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
+            .Where(c => c.Kind == ReaderInputKind.Markdown)
+            .ToList();
+
+        var upperChunk = Assert.Single(chunks, c => string.Equals(c.Location.Path, "case-sensitive.zip::Docs/Readme.md", StringComparison.Ordinal));
+        var lowerChunk = Assert.Single(chunks, c => string.Equals(c.Location.Path, "case-sensitive.zip::docs/readme.md", StringComparison.Ordinal));
+
+        Assert.NotEqual(upperChunk.SourceId, lowerChunk.SourceId);
+        Assert.NotEqual(upperChunk.ChunkHash, lowerChunk.ChunkHash);
+        Assert.Equal(upperChunk.SourceHash, lowerChunk.SourceHash);
+    }
+
+    [Fact]
+    public void DocumentReaderZip_DisabledNestedZipWarnings_IncludeEntryMetadata() {
+        var zipPath = Path.Combine(Path.GetTempPath(), "officeimo-reader-zip-disabled-nested-" + Guid.NewGuid().ToString("N") + ".zip");
+        try {
+            var nestedZipBytes = BuildNestedZipBytes();
+
+            using (var fs = new FileStream(zipPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+            using (var archive = new ZipArchive(fs, ZipArchiveMode.Create, leaveOpen: false)) {
+                WriteBytesEntry(archive, "nested/archive.zip", nestedZipBytes);
+            }
+
+            var warningChunk = DocumentReaderZipExtensions.ReadZip(
+                zipPath,
+                readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
+                zipOptions: new ZipTraversalOptions { DeterministicOrder = true },
+                readerZipOptions: new ReaderZipOptions { ReadNestedZipEntries = false })
+                .Single(c => c.Kind == ReaderInputKind.Zip && (c.Warnings?.Any(w => w.Contains("ReadNestedZipEntries is disabled", StringComparison.OrdinalIgnoreCase)) ?? false));
+
+            Assert.Contains("nested/archive.zip", warningChunk.Location.Path ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+            Assert.NotNull(warningChunk.SourceId);
+            Assert.False(string.IsNullOrWhiteSpace(warningChunk.SourceHash));
+            Assert.NotNull(warningChunk.ChunkHash);
+            Assert.True(warningChunk.TokenEstimate.HasValue && warningChunk.TokenEstimate.Value >= 1);
+            Assert.True(warningChunk.SourceLengthBytes > 0);
+            Assert.NotNull(warningChunk.SourceLastWriteUtc);
+        } finally {
+            if (File.Exists(zipPath)) File.Delete(zipPath);
+        }
+    }
+
+    [Fact]
+    public void DocumentReaderZip_MaxNestedDepthWarnings_IncludeEntryMetadata() {
+        var zipPath = Path.Combine(Path.GetTempPath(), "officeimo-reader-zip-max-depth-" + Guid.NewGuid().ToString("N") + ".zip");
+        try {
+            var nestedZipBytes = BuildNestedZipBytes();
+
+            using (var fs = new FileStream(zipPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
+            using (var archive = new ZipArchive(fs, ZipArchiveMode.Create, leaveOpen: false)) {
+                WriteBytesEntry(archive, "nested/archive.zip", nestedZipBytes);
+            }
+
+            var warningChunk = DocumentReaderZipExtensions.ReadZip(
+                zipPath,
+                readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
+                zipOptions: new ZipTraversalOptions { DeterministicOrder = true },
+                readerZipOptions: new ReaderZipOptions { ReadNestedZipEntries = true, MaxNestedDepth = 0 })
+                .Single(c => c.Kind == ReaderInputKind.Zip && (c.Warnings?.Any(w => w.Contains("MaxNestedDepth", StringComparison.OrdinalIgnoreCase)) ?? false));
+
+            Assert.Contains("nested/archive.zip", warningChunk.Location.Path ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+            Assert.NotNull(warningChunk.SourceId);
+            Assert.False(string.IsNullOrWhiteSpace(warningChunk.SourceHash));
+            Assert.NotNull(warningChunk.ChunkHash);
+            Assert.True(warningChunk.TokenEstimate.HasValue && warningChunk.TokenEstimate.Value >= 1);
+            Assert.True(warningChunk.SourceLengthBytes > 0);
+            Assert.NotNull(warningChunk.SourceLastWriteUtc);
+        } finally {
+            if (File.Exists(zipPath)) File.Delete(zipPath);
+        }
+    }
+
     private static byte[] BuildNestedZipBytes() {
         using var ms = new MemoryStream();
         using (var nestedArchive = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true)) {
@@ -141,6 +292,26 @@ public sealed class ReaderZipModularTests {
         using var ms = new MemoryStream();
         using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true)) {
             WriteTextEntry(archive, "docs/readme.md", "# Stream\n\nFrom non-seekable stream.");
+        }
+
+        return ms.ToArray();
+    }
+
+    private static byte[] BuildZipWithLargeEntryBytes() {
+        using var ms = new MemoryStream();
+        using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true)) {
+            WriteTextEntry(archive, "big.txt", new string('x', 2048));
+        }
+
+        return ms.ToArray();
+    }
+
+    private static byte[] BuildZipWithCaseDistinctEntries() {
+        using var ms = new MemoryStream();
+        using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true)) {
+            const string content = "# Shared\n\nCase-sensitive entry content.";
+            WriteTextEntry(archive, "Docs/Readme.md", content);
+            WriteTextEntry(archive, "docs/readme.md", content);
         }
 
         return ms.ToArray();

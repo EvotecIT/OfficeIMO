@@ -26,6 +26,14 @@ public sealed class ReaderCsvModularTests {
         Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Csv, c.Kind));
         Assert.Contains(chunks, c => (c.Location.Path ?? string.Empty).Contains("users.csv", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(chunks, c => c.Tables != null && c.Tables.Count > 0 && c.Tables[0].Columns.Contains("Name", StringComparer.Ordinal));
+        Assert.All(chunks, c => {
+            Assert.False(string.IsNullOrWhiteSpace(c.SourceId));
+            Assert.False(string.IsNullOrWhiteSpace(c.SourceHash));
+            Assert.False(string.IsNullOrWhiteSpace(c.ChunkHash));
+            Assert.True(c.TokenEstimate.HasValue && c.TokenEstimate.Value >= 1);
+            Assert.Equal(stream.Length, c.SourceLengthBytes);
+            Assert.Null(c.SourceLastWriteUtc);
+        });
     }
 
     [Fact]
@@ -46,5 +54,47 @@ public sealed class ReaderCsvModularTests {
             }).ToList());
 
         Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReaderCsv_ReadCsvStream_NormalizesBlankHeaders() {
+        var csv =
+            "Name,,Role\n" +
+            "Alice,,Admin\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv), writable: false);
+
+        var chunk = Assert.Single(DocumentReaderCsvExtensions.ReadCsv(
+            stream,
+            sourceName: "users.csv",
+            csvOptions: new CsvReadOptions {
+                ChunkRows = 10,
+                IncludeMarkdown = true
+            }));
+
+        var table = Assert.Single(chunk.Tables!);
+        Assert.Equal(3, table.Columns.Count);
+        Assert.Equal("Column2", table.Columns[1]);
+        Assert.Contains("Column2", chunk.Markdown ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReaderCsv_ReadCsvStream_DeduplicatesHeaderNames() {
+        var csv =
+            "Name,Name ,Role\n" +
+            "Alice,Alias,Admin\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv), writable: false);
+
+        var chunk = Assert.Single(DocumentReaderCsvExtensions.ReadCsv(
+            stream,
+            sourceName: "users.csv",
+            csvOptions: new CsvReadOptions {
+                ChunkRows = 10,
+                IncludeMarkdown = true
+            }));
+
+        var table = Assert.Single(chunk.Tables!);
+        Assert.Equal(new[] { "Name", "Name_2", "Role" }, table.Columns);
+        Assert.Contains("Name | Name_2 | Role", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("Name_2", chunk.Markdown ?? string.Empty, StringComparison.Ordinal);
     }
 }

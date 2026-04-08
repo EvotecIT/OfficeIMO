@@ -22,6 +22,26 @@ public sealed class ReaderHtmlModularTests {
             string.Equals(c.Location.Path, "inline.html", StringComparison.OrdinalIgnoreCase) &&
             ((c.Markdown ?? c.Text).Contains("Hello HTML", StringComparison.Ordinal) ||
              (c.Markdown ?? c.Text).Contains("Body text.", StringComparison.Ordinal)));
+        Assert.All(chunks, c => {
+            Assert.False(string.IsNullOrWhiteSpace(c.SourceId));
+            Assert.False(string.IsNullOrWhiteSpace(c.SourceHash));
+            Assert.False(string.IsNullOrWhiteSpace(c.ChunkHash));
+            Assert.True(c.TokenEstimate.HasValue && c.TokenEstimate.Value >= 1);
+            Assert.Equal(Encoding.UTF8.GetByteCount(html), c.SourceLengthBytes);
+            Assert.Null(c.SourceLastWriteUtc);
+        });
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_ReadHtmlString_TrimsLogicalSourceName() {
+        var html = "<html><body><h1>Hello HTML</h1><p>Body text.</p></body></html>";
+
+        var chunk = Assert.Single(DocumentReaderHtmlExtensions.ReadHtmlString(
+            html: html,
+            sourceName: " inline.html ",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 }));
+
+        Assert.Equal("inline.html", chunk.Location.Path);
     }
 
     [Fact]
@@ -72,6 +92,20 @@ public sealed class ReaderHtmlModularTests {
     }
 
     [Fact]
+    public void DocumentReaderHtml_ReadHtmlString_HeadingSplits_DoNotEmitMaxCharsWarning() {
+        var html = "<html><body><h1>One</h1><p>Alpha.</p><h1>Two</h1><p>Beta.</p></body></html>";
+
+        var chunks = DocumentReaderHtmlExtensions.ReadHtmlString(
+            html: html,
+            sourceName: "headings-only.html",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList();
+
+        Assert.True(chunks.Count > 1);
+        Assert.DoesNotContain(chunks, c =>
+            c.Warnings?.Any(w => w.Contains("split due to MaxChars", StringComparison.OrdinalIgnoreCase)) ?? false);
+    }
+
+    [Fact]
     public void DocumentReaderHtml_ReadHtmlString_EmitsWarningForEmptyContent() {
         var chunks = DocumentReaderHtmlExtensions.ReadHtmlString(
             html: "<html><body></body></html>",
@@ -82,6 +116,58 @@ public sealed class ReaderHtmlModularTests {
         Assert.Equal("html-warning-0000", warning.Id);
         Assert.Equal(ReaderInputKind.Html, warning.Kind);
         Assert.Contains("no markdown text", warning.Text ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+        Assert.False(string.IsNullOrWhiteSpace(warning.SourceId));
+        Assert.False(string.IsNullOrWhiteSpace(warning.SourceHash));
+        Assert.False(string.IsNullOrWhiteSpace(warning.ChunkHash));
+        Assert.True(warning.TokenEstimate.HasValue && warning.TokenEstimate.Value >= 1);
+        Assert.Equal(Encoding.UTF8.GetByteCount("<html><body></body></html>"), warning.SourceLengthBytes);
+        Assert.Null(warning.SourceLastWriteUtc);
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_ReadHtmlStream_EmitsLogicalSourceMetadata() {
+        var html = "<html><body><h2>Registry HTML</h2><p>From stream.</p></body></html>";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
+
+        var chunks = DocumentReaderHtmlExtensions.ReadHtml(
+            stream,
+            sourceName: " metadata.html ",
+            readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true }).ToList();
+
+        Assert.NotEmpty(chunks);
+        Assert.All(chunks, c => {
+            Assert.Equal("metadata.html", c.Location.Path);
+            Assert.False(string.IsNullOrWhiteSpace(c.SourceId));
+            Assert.False(string.IsNullOrWhiteSpace(c.SourceHash));
+            Assert.False(string.IsNullOrWhiteSpace(c.ChunkHash));
+            Assert.True(c.TokenEstimate.HasValue && c.TokenEstimate.Value >= 1);
+            Assert.Equal(stream.Length, c.SourceLengthBytes);
+            Assert.Null(c.SourceLastWriteUtc);
+        });
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_ReadHtmlFile_EmitsFileSourceMetadata() {
+        var path = Path.Combine(Path.GetTempPath(), "officeimo-html-meta-" + Guid.NewGuid().ToString("N") + ".html");
+        try {
+            File.WriteAllText(path, "<html><body><h1>File HTML</h1><p>Body text.</p></body></html>");
+
+            var chunks = DocumentReaderHtmlExtensions.ReadHtmlFile(
+                path,
+                readerOptions: new ReaderOptions { ComputeHashes = true, MaxChars = 8_000 }).ToList();
+
+            Assert.NotEmpty(chunks);
+            Assert.All(chunks, c => {
+                Assert.False(string.IsNullOrWhiteSpace(c.SourceId));
+                Assert.False(string.IsNullOrWhiteSpace(c.SourceHash));
+                Assert.False(string.IsNullOrWhiteSpace(c.ChunkHash));
+                Assert.True(c.TokenEstimate.HasValue && c.TokenEstimate.Value >= 1);
+                Assert.True(c.SourceLengthBytes.HasValue && c.SourceLengthBytes.Value > 0);
+                Assert.True(c.SourceLastWriteUtc.HasValue);
+            });
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
     }
 
     [Fact]
@@ -105,6 +191,26 @@ public sealed class ReaderHtmlModularTests {
     }
 
     [Fact]
+    public void DocumentReaderHtml_Registration_DispatchesXhtmlStream() {
+        try {
+            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+
+            var html = "<html><body><h2>Registry XHTML</h2><p>From stream.</p></body></html>";
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
+            var chunks = DocumentReader.Read(stream, "registry.xhtml").ToList();
+
+            Assert.NotEmpty(chunks);
+            Assert.Contains(chunks, c =>
+                c.Kind == ReaderInputKind.Html &&
+                string.Equals(c.Location.Path, "registry.xhtml", StringComparison.OrdinalIgnoreCase) &&
+                ((c.Markdown ?? c.Text).Contains("Registry XHTML", StringComparison.Ordinal) ||
+                 (c.Markdown ?? c.Text).Contains("From stream.", StringComparison.Ordinal)));
+        } finally {
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+        }
+    }
+
+    [Fact]
     public void DocumentReaderHtml_ReadHtmlStream_NonSeekable_EnforcesMaxInputBytes() {
         var html = "<html><body><h2>Registry HTML</h2><p>From stream.</p></body></html>";
         using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes(html));
@@ -115,6 +221,22 @@ public sealed class ReaderHtmlModularTests {
             readerOptions: new ReaderOptions { MaxInputBytes = 16 }).ToList());
 
         Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_ReadHtmlFile_EnforcesMaxInputBytes() {
+        var path = Path.Combine(Path.GetTempPath(), "officeimo-html-" + Guid.NewGuid().ToString("N") + ".html");
+        try {
+            File.WriteAllText(path, "<html><body><p>" + new string('a', 256) + "</p></body></html>");
+
+            var ex = Assert.Throws<IOException>(() => DocumentReaderHtmlExtensions.ReadHtmlFile(
+                path,
+                readerOptions: new ReaderOptions { MaxInputBytes = 32 }).ToList());
+
+            Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
     }
 
     [Fact]

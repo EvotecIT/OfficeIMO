@@ -82,6 +82,14 @@ public sealed class ReaderTextModularTests {
         Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Json, c.Kind));
         Assert.Contains(chunks, c => (c.Text ?? string.Empty).Contains("$.agent.name", StringComparison.Ordinal));
         Assert.Contains(chunks, c => c.Tables != null && c.Tables.Count > 0 && c.Tables[0].Columns.Contains("Path", StringComparer.Ordinal));
+        Assert.All(chunks, c => {
+            Assert.False(string.IsNullOrWhiteSpace(c.SourceId));
+            Assert.False(string.IsNullOrWhiteSpace(c.SourceHash));
+            Assert.False(string.IsNullOrWhiteSpace(c.ChunkHash));
+            Assert.True(c.TokenEstimate.HasValue && c.TokenEstimate.Value >= 1);
+            Assert.Equal(stream.Length, c.SourceLengthBytes);
+            Assert.Null(c.SourceLastWriteUtc);
+        });
     }
 
     [Fact]
@@ -104,6 +112,14 @@ public sealed class ReaderTextModularTests {
         Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Csv, c.Kind));
         Assert.Contains(chunks, c => (c.Location.Path ?? string.Empty).Contains("users.csv", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(chunks, c => c.Tables != null && c.Tables.Count > 0 && c.Tables[0].Columns.Contains("Name", StringComparer.Ordinal));
+        Assert.All(chunks, c => {
+            Assert.False(string.IsNullOrWhiteSpace(c.SourceId));
+            Assert.False(string.IsNullOrWhiteSpace(c.SourceHash));
+            Assert.False(string.IsNullOrWhiteSpace(c.ChunkHash));
+            Assert.True(c.TokenEstimate.HasValue && c.TokenEstimate.Value >= 1);
+            Assert.Equal(stream.Length, c.SourceLengthBytes);
+            Assert.Null(c.SourceLastWriteUtc);
+        });
     }
 
     [Fact]
@@ -134,15 +150,66 @@ public sealed class ReaderTextModularTests {
         try {
             File.WriteAllText(path, "<root><broken></root>");
 
-            var chunks = DocumentReaderTextExtensions.ReadStructuredText(path).ToList();
+            var warningChunk = Assert.Single(
+                DocumentReaderTextExtensions.ReadStructuredText(path, readerOptions: new ReaderOptions { ComputeHashes = true }),
+                c => c.Kind == ReaderInputKind.Xml &&
+                     (c.Warnings?.Any(w => w.Contains("XML parse error", StringComparison.OrdinalIgnoreCase)) ?? false));
 
-            Assert.NotEmpty(chunks);
-            Assert.Contains(chunks, c =>
-                c.Kind == ReaderInputKind.Xml &&
-                (c.Warnings?.Any(w => w.Contains("XML parse error", StringComparison.OrdinalIgnoreCase)) ?? false));
+            Assert.False(string.IsNullOrWhiteSpace(warningChunk.SourceId));
+            Assert.False(string.IsNullOrWhiteSpace(warningChunk.SourceHash));
+            Assert.False(string.IsNullOrWhiteSpace(warningChunk.ChunkHash));
+            Assert.True(warningChunk.TokenEstimate.HasValue && warningChunk.TokenEstimate.Value >= 1);
+            Assert.True(warningChunk.SourceLengthBytes.HasValue && warningChunk.SourceLengthBytes.Value > 0);
+            Assert.True(warningChunk.SourceLastWriteUtc.HasValue);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
+    }
+
+    [Fact]
+    public void DocumentReaderText_ReadStructuredText_PreservesQualifiedXmlNamesInPaths() {
+        var path = Path.Combine(Path.GetTempPath(), "officeimo-structured-ns-xml-" + Guid.NewGuid().ToString("N") + ".xml");
+        try {
+            File.WriteAllText(path,
+                "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
+                "<root xmlns:a=\"urn:alpha\" xmlns:b=\"urn:beta\">" +
+                "<a:item code=\"A1\">One</a:item>" +
+                "<b:item b:code=\"B1\">Two</b:item>" +
+                "</root>");
+
+            var chunks = DocumentReaderTextExtensions.ReadStructuredText(
+                path,
+                structuredOptions: new StructuredTextReadOptions {
+                    XmlChunkRows = 20,
+                    IncludeXmlMarkdown = true
+                }).ToList();
+
+            Assert.NotEmpty(chunks);
+            Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Xml, c.Kind));
+            Assert.Contains(chunks, c => (c.Text ?? string.Empty).Contains("root[1]/a:item[1]", StringComparison.Ordinal));
+            Assert.Contains(chunks, c => (c.Text ?? string.Empty).Contains("root[1]/b:item[1]/@b:code", StringComparison.Ordinal));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReaderText_ReadStructuredTextStream_TrimsSourceNameBeforeDispatch() {
+        var json = "{\"service\":{\"name\":\"OfficeIMO\"}}";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json), writable: false);
+
+        var chunks = DocumentReaderTextExtensions.ReadStructuredText(
+            stream,
+            sourceName: " config.json ",
+            structuredOptions: new StructuredTextReadOptions {
+                JsonChunkRows = 10,
+                IncludeJsonMarkdown = true
+            }).ToList();
+
+        Assert.NotEmpty(chunks);
+        Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Json, c.Kind));
+        Assert.All(chunks, c => Assert.Equal("config.json", c.Location.Path));
+        Assert.Contains(chunks, c => (c.Text ?? string.Empty).Contains("$.service.name", StringComparison.Ordinal));
     }
 
     [Fact]

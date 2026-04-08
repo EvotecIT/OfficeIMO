@@ -134,7 +134,7 @@ public static class DocumentReaderTextExtensions {
     }
 
     private static string GetNormalizedExtension(string? sourceName) {
-        var ext = Path.GetExtension(sourceName ?? string.Empty);
+        var ext = Path.GetExtension((sourceName ?? string.Empty).Trim());
         return ext.ToLowerInvariant();
     }
 }
