@@ -50,7 +50,7 @@ public sealed class PdfReadDocument {
         if (catalogId is int cat && _objects.TryGetValue(cat, out var catObj) && catObj.Value is PdfDictionary catalog) {
             var pagesNode = ResolveDict(catalog.Items.TryGetValue("Pages", out var v) ? v : null);
             if (pagesNode is not null) {
-                var kids = pagesNode.Get<PdfArray>("Kids");
+                var kids = ResolveArray(pagesNode.Items.TryGetValue("Kids", out var kidsObj) ? kidsObj : null);
                 int kidCount = kids?.Items.Count ?? 0;
                 var visited = new HashSet<int>();
                 var contentKeys = new HashSet<string>(StringComparer.Ordinal);
@@ -92,6 +92,13 @@ public sealed class PdfReadDocument {
         return null;
     }
 
+    private PdfArray? ResolveArray(PdfObject? obj) {
+        if (obj is null) return null;
+        if (obj is PdfArray a) return a;
+        if (obj is PdfReference r && _objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfArray aa) return aa;
+        return null;
+    }
+
     private void TraversePagesNode(PdfDictionary node, List<PdfReadPage> outList) {
         var type = node.Get<PdfName>("Type")?.Name;
         if (type == "Page" || (type is null && IsLikelyPage(node))) {
@@ -100,8 +107,9 @@ public sealed class PdfReadDocument {
             outList.Add(new PdfReadPage(objNum, node, _objects));
             return;
         }
-        if (type == "Pages" || (type is null && node.Get<PdfArray>("Kids") is not null)) {
-            var kids = node.Get<PdfArray>("Kids");
+        var kidsObj = node.Items.TryGetValue("Kids", out var kidsValue) ? kidsValue : null;
+        if (type == "Pages" || (type is null && ResolveArray(kidsObj) is not null)) {
+            var kids = ResolveArray(kidsObj);
             if (kids is null) return;
             foreach (var kid in kids.Items) {
                 var d = ResolveDict(kid);
@@ -111,12 +119,12 @@ public sealed class PdfReadDocument {
         }
     }
 
-    private static bool IsLikelyPage(PdfDictionary d) {
-        // Heuristic when /Type is missing: leaf node has Contents, and either its own Resources or MediaBox.
+    private bool IsLikelyPage(PdfDictionary d) {
+        // Heuristic when /Type is missing: leaf node has Contents, and page data can come from itself or inherited /Pages nodes.
         bool hasContents = d.Items.ContainsKey("Contents");
-        bool hasRes = d.Items.ContainsKey("Resources");
-        bool hasMedia = d.Items.ContainsKey("MediaBox") || d.Items.ContainsKey("CropBox");
-        bool hasKids = d.Items.ContainsKey("Kids");
+        bool hasRes = d.Items.ContainsKey("Resources") || HasInheritedValue(d, "Resources");
+        bool hasMedia = HasMedia(d) || HasInheritedValue(d, "MediaBox") || HasInheritedValue(d, "CropBox");
+        bool hasKids = ResolveArray(d.Items.TryGetValue("Kids", out var kidsObj) ? kidsObj : null) is not null;
         return !hasKids && hasContents && (hasRes || hasMedia);
     }
 
@@ -125,7 +133,7 @@ public sealed class PdfReadDocument {
         if (type == "Page" || (type is null && IsLikelyPage(node))) {
             int objNum = FindObjectNumberFor(node);
             if (objNum > 0 && visited.Add(objNum)) {
-                if (HasMedia(node)) {
+                if (type == "Page" || HasMedia(node) || HasInheritedValue(node, "MediaBox") || HasInheritedValue(node, "CropBox")) {
                     var key = ContentsKey(node);
                     if (key is null || contentKeys.Add(key)) {
                         outList.Add(new PdfReadPage(objNum, node, _objects));
@@ -134,15 +142,16 @@ public sealed class PdfReadDocument {
             }
             return;
         }
-        var kids = node.Get<PdfArray>("Kids");
+        var kids = ResolveArray(node.Items.TryGetValue("Kids", out var kidsObj) ? kidsObj : null);
         if (kids is null) return;
         foreach (var kid in kids.Items) {
             if (limit.HasValue && outList.Count >= limit.Value) return;
             var d = ResolveDict(kid);
             if (d is null) { continue; }
             var t = d.Get<PdfName>("Type")?.Name;
-            if (t == "Pages" || (t is null && d.Get<PdfArray>("Kids") is not null)) TraversePagesNodeDeepLimited(d, visited, contentKeys, outList, limit);
-            else if ((t == "Page" || IsLikelyPage(d) || IsLeafPageByParent(d)) && HasMedia(d)) {
+            if (t == "Pages" || (t is null && ResolveArray(d.Items.TryGetValue("Kids", out var dKidsObj) ? dKidsObj : null) is not null)) TraversePagesNodeDeepLimited(d, visited, contentKeys, outList, limit);
+            else if ((t == "Page" || IsLikelyPage(d) || IsLeafPageByParent(d)) &&
+                     (t == "Page" || HasMedia(d) || HasInheritedValue(d, "MediaBox") || HasInheritedValue(d, "CropBox"))) {
                 int on = FindObjectNumberFor(d);
                 if (on > 0 && visited.Add(on)) {
                     var key = ContentsKey(d);
@@ -162,13 +171,13 @@ public sealed class PdfReadDocument {
         int guard = 0;
         while (stack.Count > 0 && guard++ < 10000) {
             var cur = stack.Pop();
-            var kids = cur.Get<PdfArray>("Kids");
+            var kids = ResolveArray(cur.Items.TryGetValue("Kids", out var kidsObj) ? kidsObj : null);
             if (kids is null) continue;
             foreach (var k in kids.Items) {
                 var d = ResolveDict(k);
                 if (d is null) continue;
                 var t = d.Get<PdfName>("Type")?.Name;
-                if (t == "Pages" || (t is null && d.Get<PdfArray>("Kids") is not null)) stack.Push(d);
+                if (t == "Pages" || (t is null && ResolveArray(d.Items.TryGetValue("Kids", out var dKidsObj) ? dKidsObj : null) is not null)) stack.Push(d);
                 else if (IsLikelyPage(d) || IsLeafPageByParent(d)) {
                     int on = FindObjectNumberFor(d);
                     if (on > 0) set.Add(on);
@@ -193,17 +202,52 @@ public sealed class PdfReadDocument {
         return false;
     }
 
+    private bool HasInheritedValue(PdfDictionary start, string key) {
+        PdfDictionary? current = start;
+        int guard = 0;
+        while (current is not null && guard++ < 100) {
+            if (current.Items.ContainsKey(key)) {
+                return true;
+            }
+
+            if (!current.Items.TryGetValue("Parent", out var parentObj)) {
+                break;
+            }
+
+            var parent = ResolveDict(parentObj);
+            if (parent is null) {
+                break;
+            }
+
+            current = parent;
+        }
+
+        return false;
+    }
+
     private static bool HasMedia(PdfDictionary d) => d.Items.ContainsKey("MediaBox") || d.Items.ContainsKey("CropBox");
-    private static string? ContentsKey(PdfDictionary d) {
+    private string? ContentsKey(PdfDictionary d) {
         if (!d.Items.TryGetValue("Contents", out var c)) return null;
-        if (c is PdfReference r) return $"ref:{r.ObjectNumber}";
+        if (c is PdfReference r) {
+            if (_objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfArray referencedArray) {
+                return ContentsArrayKey(referencedArray);
+            }
+            return $"ref:{r.ObjectNumber}";
+        }
+        if (c is PdfStream) return "stream:direct";
         if (c is PdfArray arr) {
-            var sb = new System.Text.StringBuilder();
-            sb.Append("arr:");
-            foreach (var it in arr.Items) if (it is PdfReference rr) sb.Append(rr.ObjectNumber).Append(',');
-            return sb.ToString();
+            return ContentsArrayKey(arr);
         }
         return null;
+    }
+
+    private static string ContentsArrayKey(PdfArray arr) {
+        var sb = new System.Text.StringBuilder();
+        sb.Append("arr:");
+        foreach (var it in arr.Items) {
+            if (it is PdfReference rr) sb.Append(rr.ObjectNumber).Append(',');
+        }
+        return sb.ToString();
     }
 
     private int FindObjectNumberFor(PdfDictionary dict) {

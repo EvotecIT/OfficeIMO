@@ -17,7 +17,7 @@ internal static class ResourceResolver {
             ToUnicodeCMap? cmap = null;
             if (hasToUnicode) {
                 if (fontVal.Items.TryGetValue("ToUnicode", out var tu) && tu is PdfReference r && objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfStream s) {
-                    var data = PdfSyntax.HasFlateDecode(s.Dictionary) ? Filters.FlateDecoder.Decode(s.Data) : s.Data;
+                    var data = Filters.StreamDecoder.Decode(s.Dictionary, s.Data, objects);
                     if (!ToUnicodeCMap.TryParse(data, out cmap)) cmap = null;
                 }
             }
@@ -151,7 +151,7 @@ internal static class ResourceResolver {
             ToUnicodeCMap? cmap = null;
             if (hasToUnicode) {
                 if (fontVal.Items.TryGetValue("ToUnicode", out var tu) && tu is PdfReference r && objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfStream s) {
-                    var data = PdfSyntax.HasFlateDecode(s.Dictionary) ? Filters.FlateDecoder.Decode(s.Data) : s.Data;
+                    var data = Filters.StreamDecoder.Decode(s.Dictionary, s.Data, objects);
                     if (!ToUnicodeCMap.TryParse(data, out cmap)) cmap = null;
                 }
             }
@@ -173,7 +173,7 @@ internal static class ResourceResolver {
             if (kv.Value is PdfReference r && objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfStream s) {
                 var subtype = s.Dictionary.Get<PdfName>("Subtype")?.Name;
                 if (string.Equals(subtype, "Form", System.StringComparison.Ordinal)) {
-                    var data = PdfSyntax.HasFlateDecode(s.Dictionary) ? Filters.FlateDecoder.Decode(s.Data) : s.Data;
+                    var data = Filters.StreamDecoder.Decode(s.Dictionary, s.Data, objects);
                     result[kv.Key] = data;
                 }
             }

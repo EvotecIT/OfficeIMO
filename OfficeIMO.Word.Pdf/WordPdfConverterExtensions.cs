@@ -37,7 +37,8 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentException("Path cannot be empty or whitespace.", nameof(path));
             }
 
-            string? directory = Path.GetDirectoryName(path);
+            string fullPath = ValidateOutputPath(path, nameof(path));
+            string? directory = Path.GetDirectoryName(fullPath);
             if (!string.IsNullOrEmpty(directory)) {
                 Directory.CreateDirectory(directory);
             }
@@ -45,7 +46,7 @@ namespace OfficeIMO.Word.Pdf {
             var originalLicense = QuestPdfLicenseUtil.GetEffectiveLicenseValue();
             try {
                 Document pdf = CreatePdfDocument(document, options);
-                pdf.GeneratePdf(path);
+                pdf.GeneratePdf(fullPath);
             } finally {
                 // Restore whatever license was set before conversion across all loaded QuestPDF TFMs
                 RestoreQuestPdfLicense(originalLicense);
@@ -141,7 +142,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <param name="options">Optional PDF configuration.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        public static Task SaveAsPdfAsync(this WordDocument document, string path, PdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        public static async Task SaveAsPdfAsync(this WordDocument document, string path, PdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
@@ -154,21 +155,20 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentException("Path cannot be empty or whitespace.", nameof(path));
             }
 
-            string? directory = Path.GetDirectoryName(path);
+            string fullPath = ValidateOutputPath(path, nameof(path));
+            string? directory = Path.GetDirectoryName(fullPath);
             cancellationToken.ThrowIfCancellationRequested();
             if (!string.IsNullOrEmpty(directory)) {
                 Directory.CreateDirectory(directory);
             }
 
             var originalLicense = QuestPdfLicenseUtil.GetEffectiveLicenseValue();
-            Document pdf = CreatePdfDocument(document, options);
-            return Task.Run(() => {
-                try {
-                    pdf.GeneratePdf(path);
-                } finally {
-                    RestoreQuestPdfLicense(originalLicense);
-                }
-            }, cancellationToken);
+            try {
+                Document pdf = CreatePdfDocument(document, options);
+                await Task.Run(() => pdf.GeneratePdf(fullPath), cancellationToken).ConfigureAwait(false);
+            } finally {
+                RestoreQuestPdfLicense(originalLicense);
+            }
         }
 
         /// <summary>
@@ -179,7 +179,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <param name="options">Optional PDF configuration.</param>
         /// <param name="cancellationToken">A token to observe while waiting for the task to complete.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        public static Task SaveAsPdfAsync(this WordDocument document, Stream stream, PdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        public static async Task SaveAsPdfAsync(this WordDocument document, Stream stream, PdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
@@ -195,22 +195,44 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             var originalLicense = QuestPdfLicenseUtil.GetEffectiveLicenseValue();
-            Document pdf = CreatePdfDocument(document, options);
-            return Task.Run(() => {
-                try {
-                    pdf.GeneratePdf(stream);
-                    if (stream.CanSeek) {
-                        stream.Position = 0;
-                    }
-                } finally {
-                    RestoreQuestPdfLicense(originalLicense);
+            try {
+                Document pdf = CreatePdfDocument(document, options);
+                await Task.Run(() => pdf.GeneratePdf(stream), cancellationToken).ConfigureAwait(false);
+                if (stream.CanSeek) {
+                    stream.Position = 0;
                 }
-            }, cancellationToken);
+            } finally {
+                RestoreQuestPdfLicense(originalLicense);
+            }
         }
 
         private static void RestoreQuestPdfLicense(int? originalLicense) {
             QuestPdfLicenseUtil.SetLicenseForAll(originalLicense);
             QuestPDF.Settings.License = originalLicense.HasValue ? (LicenseType?) (LicenseType)originalLicense.Value : null;
+        }
+
+        private static string ValidateOutputPath(string path, string paramName) {
+            string fullPath;
+            try {
+                fullPath = Path.GetFullPath(path);
+            } catch (Exception ex) {
+                throw new ArgumentException("Path is invalid.", paramName, ex);
+            }
+
+            if (Directory.Exists(fullPath) && (File.GetAttributes(fullPath) & FileAttributes.Directory) == FileAttributes.Directory) {
+                throw new ArgumentException("Path refers to a directory; a file path is required.", paramName);
+            }
+
+            string fileName = Path.GetFileName(fullPath);
+            if (string.IsNullOrEmpty(fileName)) {
+                throw new ArgumentException("Path must include a file name.", paramName);
+            }
+
+            if (fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) {
+                throw new ArgumentException("Path contains invalid file name characters.", paramName);
+            }
+
+            return fullPath;
         }
 
         private static Document CreatePdfDocument(WordDocument document, PdfSaveOptions? options) {
@@ -553,14 +575,13 @@ namespace OfficeIMO.Word.Pdf {
                     if (string.IsNullOrWhiteSpace(kvp.Key) || string.IsNullOrWhiteSpace(kvp.Value)) {
                         continue;
                     }
-                    if (!_embeddedFonts.Add(kvp.Key)) {
+                    if (_embeddedFonts.Contains(kvp.Key) || !File.Exists(kvp.Value)) {
                         continue;
                     }
-                    if (!File.Exists(kvp.Value)) {
-                        continue;
-                    }
+
                     using var stream = File.OpenRead(kvp.Value);
                     FontManager.RegisterFontWithCustomName(kvp.Key, stream);
+                    _embeddedFonts.Add(kvp.Key);
                 }
             }
 
@@ -569,19 +590,24 @@ namespace OfficeIMO.Word.Pdf {
                     if (string.IsNullOrWhiteSpace(kvp.Key) || kvp.Value == null) {
                         continue;
                     }
-                    if (!_embeddedFonts.Add(kvp.Key)) {
+                    if (_embeddedFonts.Contains(kvp.Key)) {
                         continue;
                     }
+
                     Stream stream = kvp.Value;
-                    if (stream.CanSeek) {
-                        stream.Position = 0;
-                    }
-                    using MemoryStream ms = new();
-                    stream.CopyTo(ms);
-                    ms.Position = 0;
-                    FontManager.RegisterFontWithCustomName(kvp.Key, ms);
-                    if (stream.CanSeek) {
-                        stream.Position = 0;
+                    try {
+                        if (stream.CanSeek) {
+                            stream.Position = 0;
+                        }
+                        using MemoryStream ms = new();
+                        stream.CopyTo(ms);
+                        ms.Position = 0;
+                        FontManager.RegisterFontWithCustomName(kvp.Key, ms);
+                        _embeddedFonts.Add(kvp.Key);
+                    } finally {
+                        if (stream.CanSeek) {
+                            stream.Position = 0;
+                        }
                     }
                 }
             }

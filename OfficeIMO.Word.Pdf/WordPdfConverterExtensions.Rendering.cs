@@ -16,10 +16,11 @@ namespace OfficeIMO.Word.Pdf {
             if (string.IsNullOrWhiteSpace(fontFamily)) {
                 return;
             }
-            if (!_embeddedFonts.Add(fontFamily!)) {
+            if (_embeddedFonts.Contains(fontFamily!)) {
                 return;
             }
             try {
+                bool registered = false;
                 using SKTypeface? typeface = SKTypeface.FromFamilyName(fontFamily);
                 using SKStreamAsset? skStream = typeface?.OpenStream();
                 if (skStream != null) {
@@ -37,6 +38,8 @@ namespace OfficeIMO.Word.Pdf {
                     }
                     ms.Position = 0;
                     FontManager.RegisterFontWithCustomName(fontFamily!, ms);
+                    registered = true;
+                    _embeddedFonts.Add(fontFamily!);
                     return;
                 }
 
@@ -45,6 +48,11 @@ namespace OfficeIMO.Word.Pdf {
                 if (!string.IsNullOrEmpty(path) && File.Exists(path)) {
                     using var fs = File.OpenRead(path);
                     FontManager.RegisterFontWithCustomName(fontFamily!, fs);
+                    registered = true;
+                }
+
+                if (registered) {
+                    _embeddedFonts.Add(fontFamily!);
                 }
             } catch {
             }

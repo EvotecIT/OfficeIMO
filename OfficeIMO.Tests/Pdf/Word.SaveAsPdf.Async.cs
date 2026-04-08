@@ -52,6 +52,19 @@ public partial class Word {
     }
 
     [Fact]
+    public async Task Test_WordDocument_SaveAsPdfAsync_DirectoryPath_Throws() {
+        var docPath = Path.Combine(_directoryWithFiles, "PdfAsyncDirectoryPath.docx");
+
+        using (var document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Hello World");
+            document.Save();
+
+            var ex = await Assert.ThrowsAsync<ArgumentException>(() => document.SaveAsPdfAsync(_directoryWithFiles, cancellationToken: CancellationToken.None));
+            Assert.Contains("directory", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
     public async Task Test_WordDocument_SaveAsPdfAsync_CanceledToken_Throws() {
         var docPath = Path.Combine(_directoryWithFiles, "PdfAsyncCanceled.docx");
         var pdfPath = Path.Combine(_directoryWithFiles, "PdfAsyncCanceled.pdf");

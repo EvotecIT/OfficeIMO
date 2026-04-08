@@ -2,6 +2,7 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using QuestPDF.Infrastructure;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -91,6 +92,54 @@ namespace OfficeIMO.Tests {
                     }, CancellationToken.None);
 
                     Assert.NotEmpty(bytes);
+                }
+
+                Assert.Null(QuestPDF.Settings.License);
+            } finally {
+                QuestPDF.Settings.License = null;
+            }
+        }
+
+        [Fact]
+        public async Task SaveAsPdfAsync_Path_RestoresUnsetLicense_WhenDocumentCreationFails() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfAsyncLicensePathFailure.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfAsyncLicensePathFailure.pdf");
+
+            QuestPDF.Settings.License = null;
+            try {
+                using (WordDocument document = WordDocument.Create(docPath)) {
+                    document.AddParagraph("Hello World");
+                    document.Save();
+
+                    using MemoryStream invalidFontStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
+                    await Assert.ThrowsAnyAsync<Exception>(() => document.SaveAsPdfAsync(pdfPath, new PdfSaveOptions {
+                        QuestPdfLicenseType = LicenseType.Community,
+                        FontStreams = new Dictionary<string, Stream> { { "BrokenFont", invalidFontStream } }
+                    }, CancellationToken.None));
+                }
+
+                Assert.Null(QuestPDF.Settings.License);
+            } finally {
+                QuestPDF.Settings.License = null;
+            }
+        }
+
+        [Fact]
+        public async Task SaveAsPdfAsync_Stream_RestoresUnsetLicense_WhenDocumentCreationFails() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfAsyncLicenseStreamFailure.docx");
+
+            QuestPDF.Settings.License = null;
+            try {
+                using (WordDocument document = WordDocument.Create(docPath)) {
+                    document.AddParagraph("Hello World");
+                    document.Save();
+
+                    using MemoryStream output = new MemoryStream();
+                    using MemoryStream invalidFontStream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
+                    await Assert.ThrowsAnyAsync<Exception>(() => document.SaveAsPdfAsync(output, new PdfSaveOptions {
+                        QuestPdfLicenseType = LicenseType.Community,
+                        FontStreams = new Dictionary<string, Stream> { { "BrokenFont", invalidFontStream } }
+                    }, CancellationToken.None));
                 }
 
                 Assert.Null(QuestPDF.Settings.License);
