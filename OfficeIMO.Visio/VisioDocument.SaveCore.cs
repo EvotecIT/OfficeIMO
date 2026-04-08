@@ -833,9 +833,12 @@ namespace OfficeIMO.Visio {
             writer.WriteEndElement();
         }
 
-        private static void WritePreservedConnectAttributes(XmlWriter writer, IDictionary<string, string> preservedAttributes) {
-            foreach (KeyValuePair<string, string> attribute in preservedAttributes) {
-                writer.WriteAttributeString(attribute.Key, attribute.Value);
+        private static void WritePreservedConnectAttributes(XmlWriter writer, IEnumerable<XAttribute> preservedAttributes) {
+            foreach (XAttribute attribute in preservedAttributes) {
+                writer.WriteAttributeString(
+                    attribute.Name.LocalName,
+                    attribute.Name.NamespaceName.Length == 0 ? null : attribute.Name.NamespaceName,
+                    attribute.Value);
             }
         }
 

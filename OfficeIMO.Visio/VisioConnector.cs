@@ -106,9 +106,9 @@ namespace OfficeIMO.Visio {
 
         internal string? PreservedToConnectionCell { get; set; }
 
-        internal IDictionary<string, string> PreservedBeginConnectAttributes { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
+        internal IList<XAttribute> PreservedBeginConnectAttributes { get; } = new List<XAttribute>();
 
-        internal IDictionary<string, string> PreservedEndConnectAttributes { get; } = new Dictionary<string, string>(StringComparer.Ordinal);
+        internal IList<XAttribute> PreservedEndConnectAttributes { get; } = new List<XAttribute>();
 
         internal XElement? PreservedTextElement { get; set; }
 

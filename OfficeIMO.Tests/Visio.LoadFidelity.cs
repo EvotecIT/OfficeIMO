@@ -344,6 +344,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NamespacedConnectAttributesArePreservedOnRoundTrip() {
+            string filePath = CreateConnectorDocument(ConnectorKind.Straight);
+
+            RewritePage(filePath, pageDoc => {
+                XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+                XNamespace cx = "urn:officeimo:connect-meta";
+                XElement beginConnect = pageDoc.Root!
+                    .Element(ns + "Connects")!
+                    .Elements(ns + "Connect")
+                    .First(connect => (string?)connect.Attribute("FromCell") == "BeginX");
+                beginConnect.SetAttributeValue(cx + "tag", "PreserveMe");
+            });
+
+            string originalAttributes = ReadNamespacedConnectAttributes(filePath);
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            string savedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            loaded.Save(savedPath);
+
+            Assert.Equal(originalAttributes, ReadNamespacedConnectAttributes(savedPath));
+        }
+
+        [Fact]
         public void StyleSheetsFragmentsArePreservedOnRoundTrip() {
             string filePath = CreateShapeDocument();
 
@@ -1318,6 +1341,22 @@ namespace OfficeIMO.Tests {
             return string.Join("|",
                 connects.Elements(ns + "Connect")
                     .Select(connect => $"{(string?)connect.Attribute("FromCell")}:{(string?)connect.Attribute("CustomConnectFlag") ?? string.Empty}"));
+        }
+
+        private static string ReadNamespacedConnectAttributes(string vsdxPath) {
+            using ZipArchive archive = ZipFile.OpenRead(vsdxPath);
+            using Stream stream = archive.GetEntry("visio/pages/page1.xml")!.Open();
+            XDocument pageDoc = XDocument.Load(stream);
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XElement beginConnect = pageDoc.Root!
+                .Element(ns + "Connects")!
+                .Elements(ns + "Connect")
+                .First(connect => (string?)connect.Attribute("FromCell") == "BeginX");
+
+            return string.Concat(
+                beginConnect.Attributes()
+                    .Where(attribute => attribute.Name.NamespaceName == "urn:officeimo:connect-meta")
+                    .Select(attribute => $"{{{attribute.Name.NamespaceName}}}{attribute.Name.LocalName}={attribute.Value}"));
         }
 
         private static string ReadFirstPageAttributes(string vsdxPath) {
