@@ -1830,6 +1830,16 @@ public static class DocumentReader {
             returnedTokenEstimate += returnedChunks[i].TokenEstimate ?? EstimateTokenCount(returnedChunks[i].Text);
         }
 
+        List<string>? shapedWarnings = null;
+        if (source.Warnings != null && source.Warnings.Count > 0) {
+            shapedWarnings = source.Warnings.ToList();
+        }
+
+        if (includeDocumentChunks && returnedChunks.Count < source.Chunks.Count) {
+            shapedWarnings ??= new List<string>();
+            AddWarning(shapedWarnings, "Document chunk payload was truncated due to MaxReturnedChunks.");
+        }
+
         return new ReaderSourceDocument {
             Path = source.Path,
             SourceId = source.SourceId,
@@ -1839,7 +1849,7 @@ public static class DocumentReader {
             Parsed = source.Parsed,
             ChunksProduced = source.ChunksProduced,
             TokenEstimateTotal = source.TokenEstimateTotal,
-            Warnings = source.Warnings is null || source.Warnings.Count == 0 ? null : source.Warnings.ToArray(),
+            Warnings = shapedWarnings is null || shapedWarnings.Count == 0 ? null : shapedWarnings.ToArray(),
             Chunks = returnedChunks
         };
     }

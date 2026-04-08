@@ -1063,6 +1063,7 @@ public sealed class ReaderDocumentReaderTests {
 
             Assert.Single(result.Documents[0].Chunks);
             Assert.Empty(result.Documents[1].Chunks);
+            Assert.True((result.Documents[1].Warnings?.Any(w => w.Contains("MaxReturnedChunks", StringComparison.OrdinalIgnoreCase)) ?? false));
         } finally {
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }
@@ -1098,6 +1099,7 @@ public sealed class ReaderDocumentReaderTests {
             Assert.Single(document.Chunks);
             Assert.False(string.IsNullOrWhiteSpace(document.SourceId));
             Assert.False(string.IsNullOrWhiteSpace(document.SourceHash));
+            Assert.True((document.Warnings?.Any(w => w.Contains("MaxReturnedChunks", StringComparison.OrdinalIgnoreCase)) ?? false));
             Assert.Contains(result.Warnings ?? Array.Empty<string>(), w => w.Contains("MaxReturnedChunks", StringComparison.OrdinalIgnoreCase));
         } finally {
             if (File.Exists(path)) File.Delete(path);
