@@ -186,6 +186,7 @@ public sealed class ReaderRegistryTests {
             Assert.True(zipCapability.SupportsStream);
             Assert.True(htmlCapability.SupportsPath);
             Assert.True(htmlCapability.SupportsStream);
+            Assert.Contains(".xhtml", htmlCapability.Extensions, StringComparer.OrdinalIgnoreCase);
             Assert.True(jsonCapability.SupportsPath);
             Assert.True(jsonCapability.SupportsStream);
             Assert.True(xmlCapability.SupportsPath);
@@ -271,6 +272,41 @@ public sealed class ReaderRegistryTests {
     }
 
     [Fact]
+    public void DocumentReader_ReadFolder_DefaultExtensions_IncludeRegisteredXhtmlHandlers() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-folder-xhtml-" + Guid.NewGuid().ToString("N"));
+        var xhtmlPath = Path.Combine(folder, "index.xhtml");
+
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(xhtmlPath, "<html><body><h1>Folder XHTML</h1><p>Body</p></body></html>");
+
+        try {
+            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+
+            var chunks = DocumentReader.ReadFolder(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    MaxFiles = 10
+                },
+                options: new ReaderOptions {
+                    MaxChars = 8_000
+                }).ToList();
+
+            Assert.NotEmpty(chunks);
+            Assert.Contains(chunks, c =>
+                c.Kind == ReaderInputKind.Html &&
+                string.Equals(c.Location.Path, xhtmlPath, StringComparison.OrdinalIgnoreCase) &&
+                ((c.Markdown ?? c.Text).Contains("Folder XHTML", StringComparison.Ordinal) ||
+                 (c.Markdown ?? c.Text).Contains("Body", StringComparison.Ordinal)));
+        } finally {
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            if (Directory.Exists(folder)) {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void DocumentReader_ReadFolderDocuments_DefaultExtensions_IncludeRegisteredCustomHandlers() {
         var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-folder-docs-" + Guid.NewGuid().ToString("N"));
         var htmlPath = Path.Combine(folder, "index.html");
@@ -294,6 +330,42 @@ public sealed class ReaderRegistryTests {
 
             Assert.NotEmpty(docs);
             var doc = Assert.Single(docs, d => string.Equals(d.Path, htmlPath, StringComparison.OrdinalIgnoreCase));
+            Assert.True(doc.Parsed);
+            Assert.True(doc.ChunksProduced > 0);
+            Assert.NotEmpty(doc.Chunks);
+            Assert.Contains(doc.Chunks, c => c.Kind == ReaderInputKind.Html);
+        } finally {
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            if (Directory.Exists(folder)) {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolderDocuments_DefaultExtensions_IncludeRegisteredXhtmlHandlers() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-folder-docs-xhtml-" + Guid.NewGuid().ToString("N"));
+        var xhtmlPath = Path.Combine(folder, "index.xhtml");
+
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(xhtmlPath, "<html><body><h1>Folder Docs XHTML</h1><p>Body</p></body></html>");
+
+        try {
+            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+
+            var docs = DocumentReader.ReadFolderDocuments(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    MaxFiles = 10
+                },
+                options: new ReaderOptions {
+                    MaxChars = 8_000,
+                    ComputeHashes = true
+                }).ToList();
+
+            Assert.NotEmpty(docs);
+            var doc = Assert.Single(docs, d => string.Equals(d.Path, xhtmlPath, StringComparison.OrdinalIgnoreCase));
             Assert.True(doc.Parsed);
             Assert.True(doc.ChunksProduced > 0);
             Assert.NotEmpty(doc.Chunks);
@@ -335,6 +407,45 @@ public sealed class ReaderRegistryTests {
             Assert.Contains(result.Chunks, c => c.Kind == ReaderInputKind.Html);
 
             var file = Assert.Single(result.Files, f => string.Equals(f.Path, htmlPath, StringComparison.OrdinalIgnoreCase));
+            Assert.True(file.Parsed);
+            Assert.True(file.ChunksProduced > 0);
+        } finally {
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            if (Directory.Exists(folder)) {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolderDetailed_DefaultExtensions_IncludeRegisteredXhtmlHandlers() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-folder-detailed-xhtml-" + Guid.NewGuid().ToString("N"));
+        var xhtmlPath = Path.Combine(folder, "index.xhtml");
+
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(xhtmlPath, "<html><body><h1>Folder Detailed XHTML</h1><p>Body</p></body></html>");
+
+        try {
+            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+
+            var result = DocumentReader.ReadFolderDetailed(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    MaxFiles = 10
+                },
+                options: new ReaderOptions {
+                    MaxChars = 8_000,
+                    ComputeHashes = true
+                },
+                includeChunks: true);
+
+            Assert.NotNull(result);
+            Assert.NotEmpty(result.Files);
+            Assert.NotEmpty(result.Chunks);
+            Assert.Contains(result.Chunks, c => c.Kind == ReaderInputKind.Html);
+
+            var file = Assert.Single(result.Files, f => string.Equals(f.Path, xhtmlPath, StringComparison.OrdinalIgnoreCase));
             Assert.True(file.Parsed);
             Assert.True(file.ChunksProduced > 0);
         } finally {
@@ -901,6 +1012,24 @@ public sealed class ReaderRegistryTests {
             Assert.Contains(chunks, c =>
                 (c.Location.Path?.Contains("config.json", StringComparison.OrdinalIgnoreCase) ?? false) &&
                 (c.Text?.Contains("$.service.name", StringComparison.Ordinal) ?? false));
+        } finally {
+            DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ModularRegistrationHelpers_TrimsStructuredJsonStreamSourceName() {
+        try {
+            DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler(replaceExisting: true);
+
+            var payload = "{\"service\":{\"name\":\"IX\",\"enabled\":true}}";
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(payload), writable: false);
+            var chunks = DocumentReader.Read(stream, " config.json ").ToList();
+
+            Assert.NotEmpty(chunks);
+            Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Json, c.Kind));
+            Assert.All(chunks, c => Assert.Equal("config.json", c.Location.Path));
+            Assert.Contains(chunks, c => (c.Text?.Contains("$.service.name", StringComparison.Ordinal) ?? false));
         } finally {
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
         }

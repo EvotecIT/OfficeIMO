@@ -10,7 +10,7 @@ public static class DocumentReaderHtmlRegistrationExtensions {
     public const string HandlerId = "officeimo.reader.html";
 
     /// <summary>
-    /// Registers HTML ingestion into <see cref="DocumentReader"/> for <c>.html</c> and <c>.htm</c>.
+    /// Registers HTML ingestion into <see cref="DocumentReader"/> for <c>.html</c>, <c>.htm</c>, and <c>.xhtml</c>.
     /// </summary>
     [ReaderHandlerRegistrar(HandlerId)]
     public static void RegisterHtmlHandler(ReaderHtmlOptions? htmlOptions = null, bool replaceExisting = false) {
@@ -21,7 +21,7 @@ public static class DocumentReaderHtmlRegistrationExtensions {
             DisplayName = "HTML Reader Adapter",
             Description = "Modular HTML adapter using OfficeIMO.Markdown.Html.",
             Kind = ReaderInputKind.Html,
-            Extensions = new[] { ".html", ".htm" },
+            Extensions = new[] { ".html", ".htm", ".xhtml" },
             ReadPath = (path, readerOptions, ct) => DocumentReaderHtmlExtensions.ReadHtmlFile(
                 htmlPath: path,
                 readerOptions: readerOptions,

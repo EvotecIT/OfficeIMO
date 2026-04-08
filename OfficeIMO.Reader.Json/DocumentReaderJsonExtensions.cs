@@ -14,8 +14,10 @@ public static class DocumentReaderJsonExtensions {
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         ReaderInputLimits.EnforceFileSize(path, effectiveReaderOptions.MaxInputBytes);
 
+        var source = BuildSourceMetadataFromPath(path, effectiveReaderOptions.ComputeHashes);
+
         using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        foreach (var chunk in ReadJson(fs, path, effectiveReaderOptions, jsonOptions, cancellationToken)) {
+        foreach (var chunk in ReadJson(fs, source, effectiveReaderOptions, jsonOptions, cancellationToken)) {
             yield return chunk;
         }
     }
@@ -30,12 +32,19 @@ public static class DocumentReaderJsonExtensions {
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         var options = Normalize(jsonOptions);
         var sourcePath = BuildLogicalSourcePath(sourceName, "document.json");
+        return ReadJson(stream, BuildSourceMetadataFromLogicalStream(stream, sourcePath, effectiveReaderOptions, cancellationToken), effectiveReaderOptions, options, cancellationToken);
+    }
+
+    private static IEnumerable<ReaderChunk> ReadJson(Stream stream, SourceMetadata source, ReaderOptions effectiveReaderOptions, JsonReadOptions? jsonOptions, CancellationToken cancellationToken) {
+        var options = Normalize(jsonOptions);
+        var sourcePath = source.Path;
 
         var parseStream = ReaderInputLimits.EnsureSeekableReadStream(
             stream,
             effectiveReaderOptions.MaxInputBytes,
             cancellationToken,
             out var ownsParseStream);
+        UpdateSourceMetadataFromSeekableStream(source, parseStream, effectiveReaderOptions.ComputeHashes);
 
         JsonDocument? doc = null;
         string? parseError = null;
@@ -51,7 +60,7 @@ public static class DocumentReaderJsonExtensions {
             }
 
             if (parseError != null) {
-                yield return BuildWarningChunk(sourcePath, "json-warning-0000", parseError);
+                yield return EnrichChunk(BuildWarningChunk(sourcePath, "json-warning-0000", parseError), source, effectiveReaderOptions.ComputeHashes);
                 yield break;
             }
 
@@ -59,7 +68,7 @@ public static class DocumentReaderJsonExtensions {
                 var rows = new List<StructuredRow>(capacity: 1024);
                 TraverseJson(doc!.RootElement, "$", depth: 0, options.MaxDepth, rows, cancellationToken);
 
-                foreach (var chunk in BuildStructuredChunks(sourcePath, rows, options, cancellationToken)) {
+                foreach (var chunk in BuildStructuredChunks(source, rows, options, effectiveReaderOptions.ComputeHashes, cancellationToken)) {
                     yield return chunk;
                 }
             }
@@ -71,14 +80,16 @@ public static class DocumentReaderJsonExtensions {
     }
 
     private static IEnumerable<ReaderChunk> BuildStructuredChunks(
-        string path,
+        SourceMetadata source,
         IReadOnlyList<StructuredRow> rows,
         JsonReadOptions options,
+        bool computeHashes,
         CancellationToken cancellationToken) {
         if (rows.Count == 0) {
             yield break;
         }
 
+        var path = source.Path;
         int index = 0;
         int chunkIndex = 0;
         while (index < rows.Count) {
@@ -102,7 +113,7 @@ public static class DocumentReaderJsonExtensions {
                 Truncated = false
             };
 
-            yield return new ReaderChunk {
+            yield return EnrichChunk(new ReaderChunk {
                 Id = "json-" + chunkIndex.ToString("D4", CultureInfo.InvariantCulture),
                 Kind = ReaderInputKind.Json,
                 Location = new ReaderLocation {
@@ -113,7 +124,7 @@ public static class DocumentReaderJsonExtensions {
                 Text = BuildPlain(slice),
                 Markdown = options.IncludeMarkdown ? BuildMarkdown(slice) : null,
                 Tables = new[] { table }
-            };
+            }, source, computeHashes);
 
             index += take;
             chunkIndex++;
@@ -141,9 +152,7 @@ public static class DocumentReaderJsonExtensions {
                 }
 
                 foreach (var property in element.EnumerateObject()) {
-                    var childPath = path == "$"
-                        ? "$." + property.Name
-                        : path + "." + property.Name;
+                    var childPath = AppendPropertyPath(path, property.Name);
                     TraverseJson(property.Value, childPath, depth + 1, maxDepth, rows, cancellationToken);
                 }
 
@@ -242,11 +251,262 @@ public static class DocumentReaderJsonExtensions {
     }
 
     private static string BuildLogicalSourcePath(string? sourceName, string defaultName) {
-        if (!string.IsNullOrWhiteSpace(sourceName)) {
-            return sourceName!;
+        if (sourceName != null) {
+            var trimmedSourceName = sourceName.Trim();
+            if (trimmedSourceName.Length > 0) {
+                return trimmedSourceName;
+            }
         }
 
         return defaultName;
+    }
+
+    private static string AppendPropertyPath(string path, string propertyName) {
+        if (IsSimpleJsonPathIdentifier(propertyName)) {
+            return path == "$"
+                ? "$." + propertyName
+                : path + "." + propertyName;
+        }
+
+        return path + "[\"" + EscapeJsonPathString(propertyName) + "\"]";
+    }
+
+    private static bool IsSimpleJsonPathIdentifier(string propertyName) {
+        if (string.IsNullOrEmpty(propertyName)) return false;
+
+        if (!IsIdentifierStart(propertyName[0])) return false;
+
+        for (int i = 1; i < propertyName.Length; i++) {
+            if (!IsIdentifierPart(propertyName[i])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsIdentifierStart(char ch) {
+        return ch == '_' || char.IsLetter(ch);
+    }
+
+    private static bool IsIdentifierPart(char ch) {
+        return ch == '_' || char.IsLetterOrDigit(ch);
+    }
+
+    private static string EscapeJsonPathString(string value) {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+
+        var sb = new StringBuilder(value.Length + 4);
+        foreach (var ch in value) {
+            switch (ch) {
+                case '\\':
+                    sb.Append("\\\\");
+                    break;
+                case '"':
+                    sb.Append("\\\"");
+                    break;
+                case '\b':
+                    sb.Append("\\b");
+                    break;
+                case '\f':
+                    sb.Append("\\f");
+                    break;
+                case '\n':
+                    sb.Append("\\n");
+                    break;
+                case '\r':
+                    sb.Append("\\r");
+                    break;
+                case '\t':
+                    sb.Append("\\t");
+                    break;
+                default:
+                    if (char.IsControl(ch)) {
+                        sb.Append("\\u");
+                        sb.Append(((int)ch).ToString("x4", CultureInfo.InvariantCulture));
+                    } else {
+                        sb.Append(ch);
+                    }
+
+                    break;
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    private static SourceMetadata BuildSourceMetadataFromPath(string path, bool computeHash) {
+        var normalizedPath = NormalizePathForId(path);
+        var sourceId = BuildSourceId(normalizedPath);
+
+        DateTime? lastWriteUtc = null;
+        long? lengthBytes = null;
+        try {
+            var fileInfo = new FileInfo(path);
+            if (fileInfo.Exists) {
+                lastWriteUtc = fileInfo.LastWriteTimeUtc;
+                lengthBytes = fileInfo.Length;
+            }
+        } catch {
+            // Best-effort metadata.
+        }
+
+        return new SourceMetadata {
+            Path = path,
+            SourceId = sourceId,
+            SourceHash = computeHash ? TryComputeFileSha256(path) : null,
+            LastWriteUtc = lastWriteUtc,
+            LengthBytes = lengthBytes
+        };
+    }
+
+    private static SourceMetadata BuildSourceMetadataFromLogicalStream(Stream stream, string sourcePath, ReaderOptions options, CancellationToken cancellationToken) {
+        return new SourceMetadata {
+            Path = sourcePath,
+            SourceId = BuildSourceId(sourcePath)
+        };
+    }
+
+    private static void UpdateSourceMetadataFromSeekableStream(SourceMetadata source, Stream stream, bool computeHash) {
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+
+        try {
+            if (stream.CanSeek) {
+                source.LengthBytes = stream.Length;
+            }
+        } catch {
+            // Best-effort metadata.
+        }
+
+        if (computeHash) {
+            source.SourceHash ??= TryComputeStreamSha256(stream);
+        }
+    }
+
+    private static ReaderChunk EnrichChunk(ReaderChunk chunk, SourceMetadata source, bool computeHashes) {
+        if (chunk == null) throw new ArgumentNullException(nameof(chunk));
+        if (source == null) throw new ArgumentNullException(nameof(source));
+
+        chunk.SourceId ??= source.SourceId;
+        chunk.SourceHash ??= source.SourceHash;
+        chunk.SourceLastWriteUtc ??= source.LastWriteUtc;
+        chunk.SourceLengthBytes ??= source.LengthBytes;
+        if (!chunk.TokenEstimate.HasValue) {
+            chunk.TokenEstimate = EstimateTokenCount(chunk.Markdown ?? chunk.Text);
+        }
+        if (computeHashes && string.IsNullOrWhiteSpace(chunk.ChunkHash)) {
+            chunk.ChunkHash = ComputeChunkHash(chunk);
+        }
+
+        return chunk;
+    }
+
+    private static int EstimateTokenCount(string? text) {
+        var safeText = text ?? string.Empty;
+        if (safeText.Length == 0) return 0;
+        return Math.Max(1, (safeText.Length + 3) / 4);
+    }
+
+    private static string ComputeChunkHash(ReaderChunk chunk) {
+        var data = string.Join("|",
+            chunk.Kind.ToString(),
+            chunk.SourceId ?? string.Empty,
+            chunk.Location.Path ?? string.Empty,
+            chunk.Location.HeadingPath ?? string.Empty,
+            chunk.Location.HeadingSlug ?? string.Empty,
+            chunk.Location.SourceBlockKind ?? string.Empty,
+            chunk.Location.BlockAnchor ?? string.Empty,
+            chunk.Location.Sheet ?? string.Empty,
+            chunk.Location.A1Range ?? string.Empty,
+            chunk.Location.Page?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.Slide?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.StartLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.NormalizedStartLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.NormalizedEndLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Text ?? string.Empty,
+            chunk.Markdown ?? string.Empty);
+
+        return ComputeSha256Hex(data);
+    }
+
+    private static string? TryComputeFileSha256(string path) {
+        try {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            return ComputeSha256Hex(fs);
+        } catch {
+            return null;
+        }
+    }
+
+    private static string? TryComputeStreamSha256(Stream stream) {
+        if (stream == null || !stream.CanSeek) return null;
+
+        long position;
+        try {
+            position = stream.Position;
+        } catch {
+            return null;
+        }
+
+        try {
+            stream.Position = 0;
+            var hash = ComputeSha256Hex(stream);
+            stream.Position = position;
+            return hash;
+        } catch {
+            try {
+                stream.Position = position;
+            } catch {
+                // ignore
+            }
+
+            return null;
+        }
+    }
+
+    private static string ComputeSha256Hex(string value) {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var bytes = Encoding.UTF8.GetBytes(value ?? string.Empty);
+        var hash = sha.ComputeHash(bytes);
+        return ConvertToHexLower(hash);
+    }
+
+    private static string ComputeSha256Hex(Stream stream) {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var hash = sha.ComputeHash(stream);
+        return ConvertToHexLower(hash);
+    }
+
+    private static string ConvertToHexLower(byte[] bytes) {
+        var sb = new StringBuilder(bytes.Length * 2);
+        for (int i = 0; i < bytes.Length; i++) {
+            sb.Append(bytes[i].ToString("x2", CultureInfo.InvariantCulture));
+        }
+
+        return sb.ToString();
+    }
+
+    private static string BuildSourceId(string sourceKey) {
+        var normalized = sourceKey ?? string.Empty;
+        if (Path.DirectorySeparatorChar == '\\') {
+            normalized = normalized.ToLowerInvariant();
+        }
+
+        return "src:" + ComputeSha256Hex(normalized);
+    }
+
+    private static string NormalizePathForId(string path) {
+        if (string.IsNullOrWhiteSpace(path)) return string.Empty;
+
+        string fullPath;
+        try {
+            fullPath = Path.GetFullPath(path);
+        } catch {
+            fullPath = path;
+        }
+
+        return fullPath.Replace('\\', '/');
     }
 
     private sealed class StructuredRow {
@@ -259,5 +519,13 @@ public static class DocumentReaderJsonExtensions {
         public string Path { get; }
         public string Type { get; }
         public string Value { get; }
+    }
+
+    private sealed class SourceMetadata {
+        public string Path { get; set; } = string.Empty;
+        public string SourceId { get; set; } = string.Empty;
+        public string? SourceHash { get; set; }
+        public DateTime? LastWriteUtc { get; set; }
+        public long? LengthBytes { get; set; }
     }
 }

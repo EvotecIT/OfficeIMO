@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using OfficeIMO.Zip;
 
 namespace OfficeIMO.Reader.Zip;
@@ -36,12 +37,14 @@ public static class DocumentReaderZipExtensions {
         var effectiveReaderZipOptions = Normalize(readerZipOptions);
         var warningCounter = new WarningCounter();
         ReaderInputLimits.EnforceFileSize(zipPath, effectiveReaderOptions.MaxInputBytes);
+        var archiveSource = BuildArchiveSourceMetadataFromPath(zipPath, effectiveReaderOptions.ComputeHashes);
 
         using var fs = new FileStream(zipPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         using var archive = new ZipArchive(fs, ZipArchiveMode.Read, leaveOpen: false);
         foreach (var chunk in ReadZipArchive(
                      archive,
-                     archivePath: zipPath,
+                     archiveSource,
+                     archivePath: archiveSource.Path,
                      readerOptions: effectiveReaderOptions,
                      zipOptions: effectiveZipOptions,
                      readerZipOptions: effectiveReaderZipOptions,
@@ -82,13 +85,21 @@ public static class DocumentReaderZipExtensions {
         var effectiveZipOptions = zipOptions ?? new ZipTraversalOptions();
         var effectiveReaderZipOptions = Normalize(readerZipOptions);
         var warningCounter = new WarningCounter();
-        var logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "archive.zip" : sourceName!;
+        var logicalSourceName = "archive.zip";
+        if (sourceName != null) {
+            var trimmedSourceName = sourceName.Trim();
+            if (trimmedSourceName.Length > 0) {
+                logicalSourceName = trimmedSourceName;
+            }
+        }
 
         var archiveStream = ReaderInputLimits.EnsureSeekableReadStream(zipStream, effectiveReaderOptions.MaxInputBytes, cancellationToken, out var ownsArchiveStream);
         try {
+            var archiveSource = BuildArchiveSourceMetadataFromStream(archiveStream, logicalSourceName, effectiveReaderOptions.ComputeHashes);
             using var archive = new ZipArchive(archiveStream, ZipArchiveMode.Read, leaveOpen: true);
             foreach (var chunk in ReadZipArchive(
                          archive,
+                         archiveSource,
                          archivePath: logicalSourceName,
                          readerOptions: effectiveReaderOptions,
                          zipOptions: effectiveZipOptions,
@@ -106,6 +117,7 @@ public static class DocumentReaderZipExtensions {
 
     private static IEnumerable<ReaderChunk> ReadZipArchive(
         ZipArchive archive,
+        ArchiveSourceMetadata archiveSource,
         string archivePath,
         ReaderOptions readerOptions,
         ZipTraversalOptions zipOptions,
@@ -114,6 +126,7 @@ public static class DocumentReaderZipExtensions {
         CancellationToken cancellationToken) {
         foreach (var chunk in ReadArchive(
                      archive,
+                     archiveSource,
                      archivePath: archivePath,
                      nestedDepth: 0,
                      readerOptions: readerOptions,
@@ -127,6 +140,7 @@ public static class DocumentReaderZipExtensions {
 
     private static IEnumerable<ReaderChunk> ReadArchive(
         ZipArchive archive,
+        ArchiveSourceMetadata archiveSource,
         string archivePath,
         int nestedDepth,
         ReaderOptions readerOptions,
@@ -140,10 +154,12 @@ public static class DocumentReaderZipExtensions {
         foreach (var traversalWarning in traversal.Warnings) {
             cancellationToken.ThrowIfCancellationRequested();
             yield return BuildWarningChunk(
+                archiveSource,
                 archivePath,
                 traversalWarning.EntryPath,
                 warningCounter.Next(),
-                traversalWarning.Warning);
+                traversalWarning.Warning,
+                readerOptions.ComputeHashes);
         }
 
         foreach (var descriptor in traversal.Entries) {
@@ -154,16 +170,20 @@ public static class DocumentReaderZipExtensions {
             var entry = archive.GetEntry(entryName);
             if (entry == null) {
                 yield return BuildWarningChunk(
+                    archiveSource,
                     archivePath,
                     entryName,
                     warningCounter.Next(),
-                    "Skipped ZIP entry because it could not be opened from archive index.");
+                    "Skipped ZIP entry because it could not be opened from archive index.",
+                    readerOptions.ComputeHashes,
+                    sourceLengthBytes: descriptor.UncompressedLength);
                 continue;
             }
 
             if (IsZipEntry(entryName)) {
                 foreach (var nestedChunk in ReadNestedZipEntry(
                              entry,
+                             archiveSource,
                              archivePath,
                              entryName,
                              nestedDepth,
@@ -182,19 +202,27 @@ public static class DocumentReaderZipExtensions {
 
             if (readerOptions.MaxInputBytes.HasValue && descriptor.UncompressedLength > readerOptions.MaxInputBytes.Value) {
                 yield return BuildWarningChunk(
+                    archiveSource,
                     archivePath,
                     entryName,
                     warningCounter.Next(),
-                    $"Skipped ZIP entry because it exceeds MaxInputBytes ({descriptor.UncompressedLength} > {readerOptions.MaxInputBytes.Value}).");
+                    $"Skipped ZIP entry because it exceeds MaxInputBytes ({descriptor.UncompressedLength} > {readerOptions.MaxInputBytes.Value}).",
+                    readerOptions.ComputeHashes,
+                    sourceLengthBytes: descriptor.UncompressedLength,
+                    sourceLastWriteTime: entry.LastWriteTime);
                 continue;
             }
 
             if (descriptor.UncompressedLength > int.MaxValue) {
                 yield return BuildWarningChunk(
+                    archiveSource,
                     archivePath,
                     entryName,
                     warningCounter.Next(),
-                    "Skipped ZIP entry because it is too large to materialize in memory.");
+                    "Skipped ZIP entry because it is too large to materialize in memory.",
+                    readerOptions.ComputeHashes,
+                    sourceLengthBytes: descriptor.UncompressedLength,
+                    sourceLastWriteTime: entry.LastWriteTime);
                 continue;
             }
 
@@ -207,7 +235,15 @@ public static class DocumentReaderZipExtensions {
             }
 
             if (readError != null) {
-                yield return BuildWarningChunk(archivePath, entryName, warningCounter.Next(), readError);
+                yield return BuildWarningChunk(
+                    archiveSource,
+                    archivePath,
+                    entryName,
+                    warningCounter.Next(),
+                    readError,
+                    readerOptions.ComputeHashes,
+                    sourceLengthBytes: descriptor.UncompressedLength,
+                    sourceLastWriteTime: entry.LastWriteTime);
                 continue;
             }
 
@@ -220,14 +256,28 @@ public static class DocumentReaderZipExtensions {
             }
 
             if (parseError != null) {
-                yield return BuildWarningChunk(archivePath, entryName, warningCounter.Next(), parseError);
+                yield return BuildWarningChunk(
+                    archiveSource,
+                    archivePath,
+                    entryName,
+                    warningCounter.Next(),
+                    parseError,
+                    readerOptions.ComputeHashes,
+                    sourceLengthBytes: descriptor.UncompressedLength,
+                    sourceLastWriteTime: entry.LastWriteTime);
                 continue;
             }
 
             var virtualPath = BuildVirtualPath(archivePath, entryName);
             foreach (var chunk in chunks!) {
                 cancellationToken.ThrowIfCancellationRequested();
-                chunk.Location.Path = virtualPath;
+                ApplyVirtualSourceMetadata(
+                    chunk,
+                    archiveSource,
+                    virtualPath,
+                    descriptor.UncompressedLength,
+                    entry.LastWriteTime,
+                    readerOptions.ComputeHashes);
                 yield return chunk;
             }
         }
@@ -235,6 +285,7 @@ public static class DocumentReaderZipExtensions {
 
     private static IEnumerable<ReaderChunk> ReadNestedZipEntry(
         ZipArchiveEntry entry,
+        ArchiveSourceMetadata archiveSource,
         string archivePath,
         string entryName,
         int nestedDepth,
@@ -243,57 +294,85 @@ public static class DocumentReaderZipExtensions {
         ReaderZipOptions readerZipOptions,
         WarningCounter warningCounter,
         CancellationToken cancellationToken) {
+        var nestedEntryLength = TryGetEntryLength(entry, out var resolvedEntryLength) ? resolvedEntryLength : (long?)null;
+        var nestedEntryLastWriteTime = entry.LastWriteTime;
+
         if (!readerZipOptions.ReadNestedZipEntries) {
             yield return BuildWarningChunk(
+                archiveSource,
                 archivePath,
                 entryName,
                 warningCounter.Next(),
-                "Skipped nested ZIP entry because ReadNestedZipEntries is disabled.");
+                "Skipped nested ZIP entry because ReadNestedZipEntries is disabled.",
+                readerOptions.ComputeHashes,
+                sourceLengthBytes: nestedEntryLength,
+                sourceLastWriteTime: nestedEntryLastWriteTime);
             yield break;
         }
 
         if (nestedDepth >= readerZipOptions.MaxNestedDepth) {
             yield return BuildWarningChunk(
+                archiveSource,
                 archivePath,
                 entryName,
                 warningCounter.Next(),
-                $"Skipped nested ZIP entry because MaxNestedDepth ({readerZipOptions.MaxNestedDepth}) was reached.");
+                $"Skipped nested ZIP entry because MaxNestedDepth ({readerZipOptions.MaxNestedDepth}) was reached.",
+                readerOptions.ComputeHashes,
+                sourceLengthBytes: nestedEntryLength,
+                sourceLastWriteTime: nestedEntryLastWriteTime);
             yield break;
         }
 
-        if (!TryGetEntryLength(entry, out var entryLength)) {
+        if (!nestedEntryLength.HasValue) {
             yield return BuildWarningChunk(
+                archiveSource,
                 archivePath,
                 entryName,
                 warningCounter.Next(),
-                "Skipped nested ZIP entry because size metadata could not be read.");
+                "Skipped nested ZIP entry because size metadata could not be read.",
+                readerOptions.ComputeHashes,
+                sourceLastWriteTime: nestedEntryLastWriteTime);
             yield break;
         }
+
+        var entryLength = nestedEntryLength.Value;
 
         if (readerZipOptions.MaxNestedArchiveBytes.HasValue && entryLength > readerZipOptions.MaxNestedArchiveBytes.Value) {
             yield return BuildWarningChunk(
+                archiveSource,
                 archivePath,
                 entryName,
                 warningCounter.Next(),
-                $"Skipped nested ZIP entry because size {entryLength} exceeds MaxNestedArchiveBytes ({readerZipOptions.MaxNestedArchiveBytes.Value}).");
+                $"Skipped nested ZIP entry because size {entryLength} exceeds MaxNestedArchiveBytes ({readerZipOptions.MaxNestedArchiveBytes.Value}).",
+                readerOptions.ComputeHashes,
+                sourceLengthBytes: entryLength,
+                sourceLastWriteTime: nestedEntryLastWriteTime);
             yield break;
         }
 
         if (readerOptions.MaxInputBytes.HasValue && entryLength > readerOptions.MaxInputBytes.Value) {
             yield return BuildWarningChunk(
+                archiveSource,
                 archivePath,
                 entryName,
                 warningCounter.Next(),
-                $"Skipped nested ZIP entry because it exceeds MaxInputBytes ({entryLength} > {readerOptions.MaxInputBytes.Value}).");
+                $"Skipped nested ZIP entry because it exceeds MaxInputBytes ({entryLength} > {readerOptions.MaxInputBytes.Value}).",
+                readerOptions.ComputeHashes,
+                sourceLengthBytes: entryLength,
+                sourceLastWriteTime: nestedEntryLastWriteTime);
             yield break;
         }
 
         if (!TryReadAllBytes(entry, cancellationToken, out var nestedBytes, out var readError)) {
             yield return BuildWarningChunk(
+                archiveSource,
                 archivePath,
                 entryName,
                 warningCounter.Next(),
-                readError ?? "Skipped nested ZIP entry due read error.");
+                readError ?? "Skipped nested ZIP entry due read error.",
+                readerOptions.ComputeHashes,
+                sourceLengthBytes: entryLength,
+                sourceLastWriteTime: nestedEntryLastWriteTime);
             yield break;
         }
 
@@ -306,6 +385,7 @@ public static class DocumentReaderZipExtensions {
 
             nestedChunks = ReadArchive(
                          nestedArchive,
+                         archiveSource,
                          nestedArchivePath,
                          nestedDepth + 1,
                          readerOptions,
@@ -319,10 +399,14 @@ public static class DocumentReaderZipExtensions {
 
         if (parseError != null) {
             yield return BuildWarningChunk(
+                archiveSource,
                 archivePath,
                 entryName,
                 warningCounter.Next(),
-                parseError);
+                parseError,
+                readerOptions.ComputeHashes,
+                sourceLengthBytes: entryLength,
+                sourceLastWriteTime: nestedEntryLastWriteTime);
             yield break;
         }
 
@@ -400,12 +484,20 @@ public static class DocumentReaderZipExtensions {
         }
     }
 
-    private static ReaderChunk BuildWarningChunk(string archivePath, string entryName, int warningIndex, string warning) {
+    private static ReaderChunk BuildWarningChunk(
+        ArchiveSourceMetadata archiveSource,
+        string archivePath,
+        string entryName,
+        int warningIndex,
+        string warning,
+        bool computeHashes,
+        long? sourceLengthBytes = null,
+        DateTimeOffset? sourceLastWriteTime = null) {
         var warningPath = string.IsNullOrWhiteSpace(entryName)
             ? archivePath
             : BuildVirtualPath(archivePath, entryName);
 
-        return new ReaderChunk {
+        var chunk = new ReaderChunk {
             Id = $"zip-warning-{warningIndex.ToString("D4", System.Globalization.CultureInfo.InvariantCulture)}",
             Kind = ReaderInputKind.Zip,
             Location = new ReaderLocation {
@@ -415,10 +507,281 @@ public static class DocumentReaderZipExtensions {
             Text = warning,
             Warnings = new[] { warning }
         };
+
+        ApplyWarningSourceMetadata(chunk, archiveSource, warningPath, sourceLengthBytes, sourceLastWriteTime, computeHashes);
+        return chunk;
     }
 
     private static string BuildVirtualPath(string zipPath, string entryName) {
         return zipPath + "::" + entryName.Replace('\\', '/');
+    }
+
+    private static void ApplyVirtualSourceMetadata(
+        ReaderChunk chunk,
+        ArchiveSourceMetadata archiveSource,
+        string virtualPath,
+        long uncompressedLength,
+        DateTimeOffset lastWriteTime,
+        bool computeHashes) {
+        if (chunk == null) throw new ArgumentNullException(nameof(chunk));
+
+        chunk.Location.Path = virtualPath;
+        chunk.SourceId = BuildSourceId(virtualPath);
+        chunk.SourceHash ??= archiveSource.SourceHash;
+        chunk.SourceLengthBytes = uncompressedLength >= 0 ? uncompressedLength : chunk.SourceLengthBytes;
+
+        var sourceLastWriteUtc = NormalizeLastWriteUtc(lastWriteTime);
+        if (sourceLastWriteUtc.HasValue) {
+            chunk.SourceLastWriteUtc = sourceLastWriteUtc;
+        }
+        chunk.SourceLastWriteUtc ??= archiveSource.LastWriteUtc;
+
+        if (!chunk.TokenEstimate.HasValue) {
+            chunk.TokenEstimate = EstimateTokenCount(chunk.Markdown ?? chunk.Text);
+        }
+
+        if (computeHashes) {
+            chunk.ChunkHash = ComputeChunkHash(chunk);
+        }
+    }
+
+    private static void ApplyWarningSourceMetadata(
+        ReaderChunk chunk,
+        ArchiveSourceMetadata archiveSource,
+        string sourcePath,
+        long? sourceLengthBytes,
+        DateTimeOffset? sourceLastWriteTime,
+        bool computeHashes) {
+        if (chunk == null) throw new ArgumentNullException(nameof(chunk));
+
+        chunk.Location.Path = sourcePath;
+        chunk.SourceId = BuildSourceId(sourcePath);
+        chunk.SourceHash ??= archiveSource.SourceHash;
+
+        if (sourceLengthBytes.HasValue && sourceLengthBytes.Value >= 0) {
+            chunk.SourceLengthBytes = sourceLengthBytes.Value;
+        } else if (string.Equals(sourcePath, archiveSource.Path, StringComparison.OrdinalIgnoreCase)) {
+            chunk.SourceLengthBytes ??= archiveSource.LengthBytes;
+        }
+
+        if (sourceLastWriteTime.HasValue) {
+            var normalized = NormalizeLastWriteUtc(sourceLastWriteTime.Value);
+            if (normalized.HasValue) {
+                chunk.SourceLastWriteUtc = normalized.Value;
+            }
+        } else if (string.Equals(sourcePath, archiveSource.Path, StringComparison.OrdinalIgnoreCase)) {
+            chunk.SourceLastWriteUtc ??= archiveSource.LastWriteUtc;
+        }
+
+        if (!chunk.TokenEstimate.HasValue) {
+            chunk.TokenEstimate = EstimateTokenCount(chunk.Markdown ?? chunk.Text);
+        }
+
+        if (computeHashes) {
+            chunk.ChunkHash = ComputeChunkHash(chunk);
+        }
+    }
+
+    private static int EstimateTokenCount(string? text) {
+        var safeText = text ?? string.Empty;
+        if (safeText.Length == 0) return 0;
+        return Math.Max(1, (safeText.Length + 3) / 4);
+    }
+
+    private static ArchiveSourceMetadata BuildArchiveSourceMetadataFromPath(string zipPath, bool computeHash) {
+        var normalizedPath = NormalizePathForVirtualPath(zipPath);
+        DateTime? lastWriteUtc = null;
+        long? lengthBytes = null;
+        try {
+            var fileInfo = new FileInfo(zipPath);
+            if (fileInfo.Exists) {
+                lastWriteUtc = fileInfo.LastWriteTimeUtc;
+                lengthBytes = fileInfo.Length;
+            }
+        } catch {
+            // Best-effort metadata.
+        }
+
+        return new ArchiveSourceMetadata {
+            Path = normalizedPath,
+            SourceHash = computeHash ? TryComputeFileSha256(zipPath) : null,
+            LastWriteUtc = lastWriteUtc,
+            LengthBytes = lengthBytes
+        };
+    }
+
+    private static ArchiveSourceMetadata BuildArchiveSourceMetadataFromStream(Stream stream, string sourceName, bool computeHash) {
+        long? lengthBytes = null;
+        try {
+            if (stream.CanSeek) {
+                lengthBytes = stream.Length;
+            }
+        } catch {
+            // Best-effort metadata.
+        }
+
+        return new ArchiveSourceMetadata {
+            Path = sourceName,
+            SourceHash = computeHash ? TryComputeStreamSha256(stream) : null,
+            LastWriteUtc = null,
+            LengthBytes = lengthBytes
+        };
+    }
+
+    private static DateTime? NormalizeLastWriteUtc(DateTimeOffset lastWriteTime) {
+        if (lastWriteTime == default) return null;
+
+        // Zip archives sometimes surface sentinel timestamps; keep only practical values.
+        var utc = lastWriteTime.UtcDateTime;
+        if (utc.Year < 1980) return null;
+        return utc;
+    }
+
+    private static string BuildSourceId(string sourceKey) {
+        var normalized = NormalizeSourceKeyForId(sourceKey);
+
+        return "src:" + ComputeSha256Hex(normalized);
+    }
+
+    private static string NormalizePathForVirtualPath(string path) {
+        if (string.IsNullOrWhiteSpace(path)) return string.Empty;
+
+        string fullPath;
+        try {
+            fullPath = Path.GetFullPath(path);
+        } catch {
+            fullPath = path;
+        }
+
+        fullPath = ResolveExistingFullPath(fullPath);
+        return fullPath.Replace('\\', '/');
+    }
+
+    private static string ResolveExistingFullPath(string fullPath) {
+        if (Path.DirectorySeparatorChar == '\\') {
+            return fullPath;
+        }
+
+        IntPtr resolvedPathPointer = IntPtr.Zero;
+        try {
+            resolvedPathPointer = UnixRealPath(fullPath, IntPtr.Zero);
+            if (resolvedPathPointer == IntPtr.Zero) {
+                return fullPath;
+            }
+
+            var resolvedPath = Marshal.PtrToStringAnsi(resolvedPathPointer);
+            return string.IsNullOrWhiteSpace(resolvedPath) ? fullPath : resolvedPath;
+        } catch {
+            return fullPath;
+        } finally {
+            if (resolvedPathPointer != IntPtr.Zero) {
+                UnixFree(resolvedPathPointer);
+            }
+        }
+    }
+
+    [DllImport("libc", EntryPoint = "realpath", CharSet = CharSet.Ansi)]
+    private static extern IntPtr UnixRealPath(string path, IntPtr buffer);
+
+    [DllImport("libc", EntryPoint = "free")]
+    private static extern void UnixFree(IntPtr pointer);
+
+    private static string NormalizeSourceKeyForId(string? sourceKey) {
+        var normalized = sourceKey ?? string.Empty;
+        if (Path.DirectorySeparatorChar != '\\') {
+            return normalized;
+        }
+
+        var virtualPathSeparatorIndex = normalized.IndexOf("::", StringComparison.Ordinal);
+        if (virtualPathSeparatorIndex < 0) {
+            return normalized.ToLowerInvariant();
+        }
+
+        var archivePath = normalized.Substring(0, virtualPathSeparatorIndex).ToLowerInvariant();
+        var archiveEntryPath = normalized.Substring(virtualPathSeparatorIndex);
+        return archivePath + archiveEntryPath;
+    }
+
+    private static string ComputeChunkHash(ReaderChunk chunk) {
+        var data = string.Join("|",
+            chunk.Kind.ToString(),
+            chunk.SourceId ?? string.Empty,
+            chunk.Location.Path ?? string.Empty,
+            chunk.Location.HeadingPath ?? string.Empty,
+            chunk.Location.HeadingSlug ?? string.Empty,
+            chunk.Location.SourceBlockKind ?? string.Empty,
+            chunk.Location.BlockAnchor ?? string.Empty,
+            chunk.Location.Sheet ?? string.Empty,
+            chunk.Location.A1Range ?? string.Empty,
+            chunk.Location.Page?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.Slide?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.StartLine?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.NormalizedStartLine?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.NormalizedEndLine?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Text ?? string.Empty,
+            chunk.Markdown ?? string.Empty);
+
+        return ComputeSha256Hex(data);
+    }
+
+    private static string ComputeSha256Hex(string value) {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var bytes = System.Text.Encoding.UTF8.GetBytes(value ?? string.Empty);
+        var hash = sha.ComputeHash(bytes);
+
+        var sb = new System.Text.StringBuilder(hash.Length * 2);
+        for (int i = 0; i < hash.Length; i++) {
+            sb.Append(hash[i].ToString("x2", System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        return sb.ToString();
+    }
+
+    private static string ComputeSha256Hex(Stream stream) {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var hash = sha.ComputeHash(stream);
+
+        var sb = new System.Text.StringBuilder(hash.Length * 2);
+        for (int i = 0; i < hash.Length; i++) {
+            sb.Append(hash[i].ToString("x2", System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        return sb.ToString();
+    }
+
+    private static string? TryComputeFileSha256(string path) {
+        try {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            return ComputeSha256Hex(fs);
+        } catch {
+            return null;
+        }
+    }
+
+    private static string? TryComputeStreamSha256(Stream stream) {
+        if (stream == null || !stream.CanSeek) return null;
+
+        long position;
+        try {
+            position = stream.Position;
+        } catch {
+            return null;
+        }
+
+        try {
+            stream.Position = 0;
+            var hash = ComputeSha256Hex(stream);
+            stream.Position = position;
+            return hash;
+        } catch {
+            try {
+                stream.Position = position;
+            } catch {
+                // ignore
+            }
+
+            return null;
+        }
     }
 
     private sealed class WarningCounter {
@@ -428,5 +791,12 @@ public static class DocumentReaderZipExtensions {
             Value = current + 1;
             return current;
         }
+    }
+
+    private sealed class ArchiveSourceMetadata {
+        public string Path { get; set; } = string.Empty;
+        public string? SourceHash { get; set; }
+        public DateTime? LastWriteUtc { get; set; }
+        public long? LengthBytes { get; set; }
     }
 }

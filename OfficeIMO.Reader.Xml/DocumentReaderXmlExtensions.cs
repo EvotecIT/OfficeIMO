@@ -13,9 +13,10 @@ public static class DocumentReaderXmlExtensions {
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         ReaderInputLimits.EnforceFileSize(path, effectiveReaderOptions.MaxInputBytes);
+        var source = BuildSourceMetadataFromPath(path, effectiveReaderOptions.ComputeHashes);
 
         using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        foreach (var chunk in ReadXml(fs, path, effectiveReaderOptions, xmlOptions, cancellationToken)) {
+        foreach (var chunk in ReadXml(fs, source, effectiveReaderOptions, xmlOptions, cancellationToken)) {
             yield return chunk;
         }
     }
@@ -30,12 +31,18 @@ public static class DocumentReaderXmlExtensions {
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         var options = Normalize(xmlOptions);
         var sourcePath = BuildLogicalSourcePath(sourceName, "document.xml");
+        return ReadXml(stream, new SourceMetadata { Path = sourcePath, SourceId = BuildSourceId(sourcePath) }, effectiveReaderOptions, options, cancellationToken);
+    }
 
+    private static IEnumerable<ReaderChunk> ReadXml(Stream stream, SourceMetadata source, ReaderOptions effectiveReaderOptions, XmlReadOptions? xmlOptions, CancellationToken cancellationToken) {
+        var options = Normalize(xmlOptions);
+        var sourcePath = source.Path;
         var parseStream = ReaderInputLimits.EnsureSeekableReadStream(
             stream,
             effectiveReaderOptions.MaxInputBytes,
             cancellationToken,
             out var ownsParseStream);
+        UpdateSourceMetadataFromSeekableStream(source, parseStream, effectiveReaderOptions.ComputeHashes);
 
         try {
             XDocument? doc = null;
@@ -53,20 +60,20 @@ public static class DocumentReaderXmlExtensions {
             }
 
             if (parseError != null) {
-                yield return BuildWarningChunk(sourcePath, "xml-warning-0000", parseError);
+                yield return EnrichChunk(BuildWarningChunk(sourcePath, "xml-warning-0000", parseError), source, effectiveReaderOptions.ComputeHashes);
                 yield break;
             }
 
             var root = doc!.Root;
             if (root == null) {
-                yield return BuildWarningChunk(sourcePath, "xml-warning-0001", "XML document does not contain a root element.");
+                yield return EnrichChunk(BuildWarningChunk(sourcePath, "xml-warning-0001", "XML document does not contain a root element."), source, effectiveReaderOptions.ComputeHashes);
                 yield break;
             }
 
             var rows = new List<StructuredRow>(capacity: 1024);
             TraverseXml(root, parentPath: string.Empty, rows, cancellationToken);
 
-            foreach (var chunk in BuildStructuredChunks(sourcePath, rows, options, cancellationToken)) {
+            foreach (var chunk in BuildStructuredChunks(source, rows, options, effectiveReaderOptions.ComputeHashes, cancellationToken)) {
                 yield return chunk;
             }
         } finally {
@@ -77,14 +84,16 @@ public static class DocumentReaderXmlExtensions {
     }
 
     private static IEnumerable<ReaderChunk> BuildStructuredChunks(
-        string path,
+        SourceMetadata source,
         IReadOnlyList<StructuredRow> rows,
         XmlReadOptions options,
+        bool computeHashes,
         CancellationToken cancellationToken) {
         if (rows.Count == 0) {
             yield break;
         }
 
+        var path = source.Path;
         int index = 0;
         int chunkIndex = 0;
         while (index < rows.Count) {
@@ -108,7 +117,7 @@ public static class DocumentReaderXmlExtensions {
                 Truncated = false
             };
 
-            yield return new ReaderChunk {
+            yield return EnrichChunk(new ReaderChunk {
                 Id = "xml-" + chunkIndex.ToString("D4", CultureInfo.InvariantCulture),
                 Kind = ReaderInputKind.Xml,
                 Location = new ReaderLocation {
@@ -119,7 +128,7 @@ public static class DocumentReaderXmlExtensions {
                 Text = BuildPlain(slice),
                 Markdown = options.IncludeMarkdown ? BuildMarkdown(slice) : null,
                 Tables = new[] { table }
-            };
+            }, source, computeHashes);
 
             index += take;
             chunkIndex++;
@@ -134,7 +143,7 @@ public static class DocumentReaderXmlExtensions {
 
         foreach (var attribute in element.Attributes()) {
             rows.Add(new StructuredRow(
-                currentPath + "/@" + attribute.Name.LocalName,
+                currentPath + "/@" + GetQualifiedName(element, attribute.Name),
                 "attribute",
                 NormalizeText(attribute.Value)));
         }
@@ -146,15 +155,36 @@ public static class DocumentReaderXmlExtensions {
 
     private static string BuildXmlPath(XElement element, string parentPath) {
         var siblingIndex = 1 + element.ElementsBeforeSelf(element.Name).Count();
-        var segment = element.Name.LocalName + "[" + siblingIndex.ToString(CultureInfo.InvariantCulture) + "]";
+        var segment = GetQualifiedName(element, element.Name) + "[" + siblingIndex.ToString(CultureInfo.InvariantCulture) + "]";
         return parentPath.Length == 0 ? segment : parentPath + "/" + segment;
+    }
+
+    private static string GetQualifiedName(XElement context, XName name) {
+        if (name.Namespace == XNamespace.None) {
+            return name.LocalName;
+        }
+
+        var prefix = context.GetPrefixOfNamespace(name.Namespace);
+        if (!string.IsNullOrWhiteSpace(prefix)) {
+            return prefix + ":" + name.LocalName;
+        }
+
+        return "{" + name.NamespaceName + "}" + name.LocalName;
     }
 
     private static string GetDirectText(XElement element) {
         var sb = new StringBuilder();
-        foreach (var node in element.Nodes().OfType<XText>()) {
-            sb.Append(node.Value);
-            sb.Append(' ');
+        foreach (var node in element.Nodes()) {
+            switch (node) {
+                case XCData cdata:
+                    sb.Append(cdata.Value);
+                    sb.Append(' ');
+                    break;
+                case XText text:
+                    sb.Append(text.Value);
+                    sb.Append(' ');
+                    break;
+            }
         }
 
         return sb.ToString();
@@ -245,11 +275,181 @@ public static class DocumentReaderXmlExtensions {
     }
 
     private static string BuildLogicalSourcePath(string? sourceName, string defaultName) {
-        if (!string.IsNullOrWhiteSpace(sourceName)) {
-            return sourceName!;
+        if (sourceName != null) {
+            var trimmedSourceName = sourceName.Trim();
+            if (trimmedSourceName.Length > 0) {
+                return trimmedSourceName;
+            }
         }
 
         return defaultName;
+    }
+
+    private static ReaderChunk EnrichChunk(ReaderChunk chunk, SourceMetadata source, bool computeHashes) {
+        if (chunk == null) throw new ArgumentNullException(nameof(chunk));
+        if (source == null) throw new ArgumentNullException(nameof(source));
+
+        chunk.SourceId ??= source.SourceId;
+        chunk.SourceHash ??= source.SourceHash;
+        chunk.SourceLastWriteUtc ??= source.LastWriteUtc;
+        chunk.SourceLengthBytes ??= source.LengthBytes;
+        if (!chunk.TokenEstimate.HasValue) {
+            chunk.TokenEstimate = EstimateTokenCount(chunk.Markdown ?? chunk.Text);
+        }
+        if (computeHashes && string.IsNullOrWhiteSpace(chunk.ChunkHash)) {
+            chunk.ChunkHash = ComputeChunkHash(chunk);
+        }
+
+        return chunk;
+    }
+
+    private static int EstimateTokenCount(string? text) {
+        var safeText = text ?? string.Empty;
+        if (safeText.Length == 0) return 0;
+        return Math.Max(1, (safeText.Length + 3) / 4);
+    }
+
+    private static string ComputeChunkHash(ReaderChunk chunk) {
+        var data = string.Join("|",
+            chunk.Kind.ToString(),
+            chunk.SourceId ?? string.Empty,
+            chunk.Location.Path ?? string.Empty,
+            chunk.Location.HeadingPath ?? string.Empty,
+            chunk.Location.HeadingSlug ?? string.Empty,
+            chunk.Location.SourceBlockKind ?? string.Empty,
+            chunk.Location.BlockAnchor ?? string.Empty,
+            chunk.Location.Sheet ?? string.Empty,
+            chunk.Location.A1Range ?? string.Empty,
+            chunk.Location.Page?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.Slide?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.StartLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.NormalizedStartLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location.NormalizedEndLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Text ?? string.Empty,
+            chunk.Markdown ?? string.Empty);
+
+        return ComputeSha256Hex(data);
+    }
+
+    private static SourceMetadata BuildSourceMetadataFromPath(string path, bool computeHash) {
+        var normalizedPath = NormalizePathForId(path);
+        var sourceId = BuildSourceId(normalizedPath);
+
+        DateTime? lastWriteUtc = null;
+        long? lengthBytes = null;
+        try {
+            var fileInfo = new FileInfo(path);
+            if (fileInfo.Exists) {
+                lastWriteUtc = fileInfo.LastWriteTimeUtc;
+                lengthBytes = fileInfo.Length;
+            }
+        } catch {
+            // Best-effort metadata.
+        }
+
+        return new SourceMetadata {
+            Path = path,
+            SourceId = sourceId,
+            SourceHash = computeHash ? TryComputeFileSha256(path) : null,
+            LastWriteUtc = lastWriteUtc,
+            LengthBytes = lengthBytes
+        };
+    }
+
+    private static void UpdateSourceMetadataFromSeekableStream(SourceMetadata source, Stream stream, bool computeHash) {
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+
+        try {
+            if (stream.CanSeek) {
+                source.LengthBytes = stream.Length;
+            }
+        } catch {
+            // Best-effort metadata.
+        }
+
+        if (computeHash) {
+            source.SourceHash ??= TryComputeStreamSha256(stream);
+        }
+    }
+
+    private static string? TryComputeFileSha256(string path) {
+        try {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            return ComputeSha256Hex(fs);
+        } catch {
+            return null;
+        }
+    }
+
+    private static string? TryComputeStreamSha256(Stream stream) {
+        if (stream == null || !stream.CanSeek) return null;
+
+        long position;
+        try {
+            position = stream.Position;
+        } catch {
+            return null;
+        }
+
+        try {
+            stream.Position = 0;
+            var hash = ComputeSha256Hex(stream);
+            stream.Position = position;
+            return hash;
+        } catch {
+            try {
+                stream.Position = position;
+            } catch {
+                // ignore
+            }
+
+            return null;
+        }
+    }
+
+    private static string ComputeSha256Hex(string value) {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var bytes = Encoding.UTF8.GetBytes(value ?? string.Empty);
+        var hash = sha.ComputeHash(bytes);
+        return ConvertToHexLower(hash);
+    }
+
+    private static string ComputeSha256Hex(Stream stream) {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var hash = sha.ComputeHash(stream);
+        return ConvertToHexLower(hash);
+    }
+
+    private static string ConvertToHexLower(byte[] bytes) {
+        var sb = new StringBuilder(bytes.Length * 2);
+        for (int i = 0; i < bytes.Length; i++) {
+            sb.Append(bytes[i].ToString("x2", CultureInfo.InvariantCulture));
+        }
+
+        return sb.ToString();
+    }
+
+    private static string BuildSourceId(string sourceKey) {
+        var normalized = sourceKey ?? string.Empty;
+        if (Path.DirectorySeparatorChar == '\\') {
+            normalized = normalized.ToLowerInvariant();
+        }
+
+        return "src:" + ComputeSha256Hex(normalized);
+    }
+
+    private static string NormalizePathForId(string path) {
+        if (string.IsNullOrWhiteSpace(path)) return string.Empty;
+
+        string fullPath;
+        try {
+            fullPath = Path.GetFullPath(path);
+        } catch {
+            fullPath = path;
+        }
+
+        return fullPath.Replace('\\', '/');
     }
 
     private sealed class StructuredRow {
@@ -262,5 +462,13 @@ public static class DocumentReaderXmlExtensions {
         public string Path { get; }
         public string Type { get; }
         public string Value { get; }
+    }
+
+    private sealed class SourceMetadata {
+        public string Path { get; set; } = string.Empty;
+        public string SourceId { get; set; } = string.Empty;
+        public string? SourceHash { get; set; }
+        public DateTime? LastWriteUtc { get; set; }
+        public long? LengthBytes { get; set; }
     }
 }

@@ -3,6 +3,7 @@ using OfficeIMO.Markdown;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Reader;
+using OfficeIMO.Reader.Html;
 using OfficeIMO.Word;
 using System;
 using System.Globalization;
@@ -862,6 +863,100 @@ public sealed class ReaderDocumentReaderTests {
     }
 
     [Fact]
+    public void DocumentReader_ReadFolderDocuments_ProgressCallback_EmitsCompletedWhenMaxTotalBytesStopsEnumeration() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var firstMarkdown = Path.Combine(folder, "a.md");
+        var secondMarkdown = Path.Combine(folder, "b.md");
+        var events = new System.Collections.Generic.List<ReaderProgress>();
+
+        try {
+            File.WriteAllText(firstMarkdown, "# A\n\nalpha");
+            File.WriteAllText(secondMarkdown, "# B\n\nbeta");
+
+            var documents = DocumentReader.ReadFolderDocuments(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    DeterministicOrder = true,
+                    MaxTotalBytes = new FileInfo(firstMarkdown).Length
+                },
+                options: new ReaderOptions(),
+                onProgress: p => events.Add(p)).ToList();
+
+            Assert.NotEmpty(documents);
+            Assert.Contains(events, e => e.Kind == ReaderProgressEventKind.FileSkipped && (e.Message?.Contains("MaxTotalBytes", StringComparison.OrdinalIgnoreCase) ?? false));
+            Assert.Single(events, e => e.Kind == ReaderProgressEventKind.Completed);
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolderDocuments_ProgressCallback_UsesZeroChunkCountForSkippedFiles() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var largeMarkdown = Path.Combine(folder, "large.md");
+        var events = new List<ReaderProgress>();
+
+        try {
+            File.WriteAllText(largeMarkdown, new string('x', 512));
+
+            var documents = DocumentReader.ReadFolderDocuments(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    DeterministicOrder = true
+                },
+                options: new ReaderOptions {
+                    MaxInputBytes = 128
+                },
+                onProgress: p => events.Add(p)).ToList();
+
+            var document = Assert.Single(documents);
+            Assert.False(document.Parsed);
+            Assert.Equal(0, document.ChunksProduced);
+
+            var skippedEvent = Assert.Single(events, e =>
+                e.Kind == ReaderProgressEventKind.FileSkipped &&
+                string.Equals(e.Path, largeMarkdown, StringComparison.OrdinalIgnoreCase));
+
+            Assert.Equal(0, skippedEvent.CurrentFileChunks);
+            Assert.Contains("MaxInputBytes", skippedEvent.Message!, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolderDocuments_SizeSkippedFiles_DoNotComputeSourceHash() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var largeMarkdown = Path.Combine(folder, "large.md");
+
+        try {
+            File.WriteAllText(largeMarkdown, new string('x', 512));
+
+            var document = Assert.Single(DocumentReader.ReadFolderDocuments(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    DeterministicOrder = true
+                },
+                options: new ReaderOptions {
+                    ComputeHashes = true,
+                    MaxInputBytes = 128
+                }));
+
+            Assert.False(document.Parsed);
+            Assert.Null(document.SourceHash);
+            Assert.Contains("MaxInputBytes", document.Warnings![0], StringComparison.OrdinalIgnoreCase);
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_ReadPathDocumentsDetailed_CanReadSingleFile() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
 
@@ -935,6 +1030,36 @@ public sealed class ReaderDocumentReaderTests {
     }
 
     [Fact]
+    public void DocumentReader_ReadPathDocumentsDetailed_SkipsUnsupportedLegacySingleFileWithoutComputingSourceHash() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".doc");
+
+        try {
+            File.WriteAllText(path, "legacy-binary-placeholder");
+
+            var result = DocumentReader.ReadPathDocumentsDetailed(
+                path,
+                options: new ReaderOptions {
+                    ComputeHashes = true
+                },
+                includeDocumentChunks: false);
+
+            Assert.NotNull(result);
+            Assert.Single(result.Files);
+            Assert.Single(result.Documents);
+            Assert.Equal(1, result.FilesScanned);
+            Assert.Equal(0, result.FilesParsed);
+            Assert.Equal(1, result.FilesSkipped);
+
+            var document = result.Documents[0];
+            Assert.False(document.Parsed);
+            Assert.Null(document.SourceHash);
+            Assert.True((document.Warnings?.Any(w => w.Contains("unsupported", StringComparison.OrdinalIgnoreCase)) ?? false));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_ReadPathDocumentsDetailed_RespectsReturnedChunkBudgetAcrossFolder() {
         var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
@@ -968,6 +1093,7 @@ public sealed class ReaderDocumentReaderTests {
 
             Assert.Single(result.Documents[0].Chunks);
             Assert.Empty(result.Documents[1].Chunks);
+            Assert.True((result.Documents[1].Warnings?.Any(w => w.Contains("MaxReturnedChunks", StringComparison.OrdinalIgnoreCase)) ?? false));
         } finally {
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }
@@ -1003,6 +1129,7 @@ public sealed class ReaderDocumentReaderTests {
             Assert.Single(document.Chunks);
             Assert.False(string.IsNullOrWhiteSpace(document.SourceId));
             Assert.False(string.IsNullOrWhiteSpace(document.SourceHash));
+            Assert.True((document.Warnings?.Any(w => w.Contains("MaxReturnedChunks", StringComparison.OrdinalIgnoreCase)) ?? false));
             Assert.Contains(result.Warnings ?? Array.Empty<string>(), w => w.Contains("MaxReturnedChunks", StringComparison.OrdinalIgnoreCase));
         } finally {
             if (File.Exists(path)) File.Delete(path);
@@ -1050,6 +1177,238 @@ public sealed class ReaderDocumentReaderTests {
             Assert.NotNull(bad);
             Assert.False(bad!.Parsed);
             Assert.True((bad.Warnings?.Count ?? 0) > 0);
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolder_ProgressCallback_EmitsCompletedWhenMaxTotalBytesStopsEnumeration() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var firstMarkdown = Path.Combine(folder, "a.md");
+        var secondMarkdown = Path.Combine(folder, "b.md");
+        var events = new System.Collections.Generic.List<ReaderProgress>();
+
+        try {
+            File.WriteAllText(firstMarkdown, "# A\n\nalpha");
+            File.WriteAllText(secondMarkdown, "# B\n\nbeta");
+
+            var chunks = DocumentReader.ReadFolder(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    DeterministicOrder = true,
+                    MaxTotalBytes = new FileInfo(firstMarkdown).Length
+                },
+                options: new ReaderOptions(),
+                onProgress: p => events.Add(p)).ToList();
+
+            Assert.NotEmpty(chunks);
+            Assert.Contains(events, e => e.Kind == ReaderProgressEventKind.FileSkipped && (e.Message?.Contains("MaxTotalBytes", StringComparison.OrdinalIgnoreCase) ?? false));
+            var completedEvent = Assert.Single(events, e => e.Kind == ReaderProgressEventKind.Completed);
+            Assert.Equal(chunks.Count, completedEvent.ChunksProduced);
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolder_ProgressCallback_TracksSkippedWarningChunksInCounts() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var smallMarkdown = Path.Combine(folder, "small.md");
+        var largeMarkdown = Path.Combine(folder, "large.md");
+        var events = new System.Collections.Generic.List<ReaderProgress>();
+
+        try {
+            File.WriteAllText(smallMarkdown, "# Small\n\nok");
+            File.WriteAllText(largeMarkdown, new string('x', 1024));
+
+            var chunks = DocumentReader.ReadFolder(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    DeterministicOrder = true
+                },
+                options: new ReaderOptions {
+                    MaxInputBytes = 128
+                },
+                onProgress: p => events.Add(p)).ToList();
+
+            var skippedEvent = Assert.Single(events, e =>
+                e.Kind == ReaderProgressEventKind.FileSkipped &&
+                string.Equals(e.Path, largeMarkdown, StringComparison.OrdinalIgnoreCase));
+
+            Assert.Equal(1, skippedEvent.CurrentFileChunks);
+
+            var completedEvent = Assert.Single(events, e => e.Kind == ReaderProgressEventKind.Completed);
+            Assert.Equal(chunks.Count, completedEvent.ChunksProduced);
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolder_SizeSkippedWarningChunks_DoNotComputeSourceHash() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var largeMarkdown = Path.Combine(folder, "large.md");
+
+        try {
+            File.WriteAllText(largeMarkdown, new string('x', 512));
+
+            var warningChunk = Assert.Single(DocumentReader.ReadFolder(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    DeterministicOrder = true
+                },
+                options: new ReaderOptions {
+                    ComputeHashes = true,
+                    MaxInputBytes = 128
+                }));
+
+            Assert.Null(warningChunk.SourceHash);
+            Assert.Contains("MaxInputBytes", warningChunk.Warnings![0], StringComparison.OrdinalIgnoreCase);
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolderDocuments_DeduplicatesRepeatedChunkWarningsAtSourceLevel() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+
+        var htmlPath = Path.Combine(folder, "oversized.html");
+
+        try {
+            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+
+            var html = "<html><body><p>" + new string('x', 2048) + "</p></body></html>";
+            File.WriteAllText(htmlPath, html);
+
+            var document = Assert.Single(DocumentReader.ReadFolderDocuments(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    DeterministicOrder = true
+                },
+                options: new ReaderOptions {
+                    MaxChars = 64
+                }));
+
+            Assert.True(document.Parsed);
+            Assert.True(document.ChunksProduced >= 2);
+            Assert.NotNull(document.Warnings);
+            Assert.Single(document.Warnings!);
+            Assert.Contains("split due to MaxChars", document.Warnings![0], StringComparison.OrdinalIgnoreCase);
+        } finally {
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolderDetailed_AggregatesParsedFileWarningsWithoutDuplicates() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+
+        var htmlPath = Path.Combine(folder, "oversized.html");
+
+        try {
+            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+
+            var html = "<html><body><p>" + new string('x', 2048) + "</p></body></html>";
+            File.WriteAllText(htmlPath, html);
+
+            var result = DocumentReader.ReadFolderDetailed(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    DeterministicOrder = true
+                },
+                options: new ReaderOptions {
+                    MaxChars = 64
+                },
+                includeChunks: false);
+
+            var file = Assert.Single(result.Files);
+            Assert.True(file.Parsed);
+            Assert.True(file.ChunksProduced >= 2);
+            Assert.NotNull(file.Warnings);
+            Assert.Single(file.Warnings!);
+            Assert.Contains("split due to MaxChars", file.Warnings![0], StringComparison.OrdinalIgnoreCase);
+
+            Assert.NotNull(result.Warnings);
+            Assert.Single(result.Warnings!);
+            Assert.Contains("split due to MaxChars", result.Warnings![0], StringComparison.OrdinalIgnoreCase);
+        } finally {
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolderDetailed_SkippedFiles_ReportWarningChunkCount() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+
+        var largeMarkdown = Path.Combine(folder, "large.md");
+
+        try {
+            File.WriteAllText(largeMarkdown, new string('x', 1024));
+
+            var result = DocumentReader.ReadFolderDetailed(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    DeterministicOrder = true
+                },
+                options: new ReaderOptions {
+                    MaxInputBytes = 128
+                },
+                includeChunks: false);
+
+            var file = Assert.Single(result.Files);
+            Assert.False(file.Parsed);
+            Assert.Equal(1, file.ChunksProduced);
+            Assert.Equal(1, result.ChunksProduced);
+            Assert.NotNull(file.Warnings);
+            Assert.Contains("MaxInputBytes", file.Warnings![0], StringComparison.OrdinalIgnoreCase);
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolderDetailed_IncludeChunksTrue_KeepsSummaryChunkCountAlignedForSkippedFiles() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+
+        var largeMarkdown = Path.Combine(folder, "large.md");
+
+        try {
+            File.WriteAllText(largeMarkdown, new string('x', 1024));
+
+            var result = DocumentReader.ReadFolderDetailed(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    DeterministicOrder = true
+                },
+                options: new ReaderOptions {
+                    MaxInputBytes = 128
+                },
+                includeChunks: true);
+
+            var file = Assert.Single(result.Files);
+            Assert.False(file.Parsed);
+            Assert.Single(result.Chunks);
+            Assert.Equal(1, file.ChunksProduced);
+            Assert.Equal(result.Chunks.Count, result.ChunksProduced);
+            Assert.Contains("MaxInputBytes", result.Chunks[0].Warnings![0], StringComparison.OrdinalIgnoreCase);
         } finally {
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }

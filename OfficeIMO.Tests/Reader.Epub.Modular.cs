@@ -115,6 +115,192 @@ public sealed class ReaderEpubModularTests {
         }
     }
 
+    [Fact]
+    public void DocumentReaderEpub_UsesMonotonicBlockIndexesAcrossWarningsAndContent() {
+        var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
+        try {
+            BuildEpubWithMalformedChapter(epubPath);
+
+            var chunks = DocumentReaderEpubExtensions.ReadEpub(
+                epubPath,
+                readerOptions: new ReaderOptions { MaxChars = 64 },
+                epubOptions: new EpubReadOptions { PreferSpineOrder = true, FallbackToHtmlScan = true }).ToList();
+
+            Assert.NotEmpty(chunks);
+
+            var blockIndexes = chunks
+                .Select(c => c.Location.BlockIndex)
+                .ToList();
+
+            Assert.DoesNotContain(blockIndexes, static index => !index.HasValue);
+            Assert.Equal(Enumerable.Range(0, blockIndexes.Count), blockIndexes.Select(i => i!.Value));
+
+            var contentChunk = Assert.Single(chunks, c =>
+                c.Kind == ReaderInputKind.Epub &&
+                (c.Location.Path?.Contains("::OEBPS/good.xhtml", StringComparison.OrdinalIgnoreCase) ?? false));
+
+            Assert.Equal(0, contentChunk.Location.SourceBlockIndex);
+        } finally {
+            if (File.Exists(epubPath)) File.Delete(epubPath);
+        }
+    }
+
+    [Fact]
+    public void DocumentReaderEpub_WarningChunks_UseVirtualEntryPaths() {
+        var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
+        try {
+            BuildEpubWithMalformedChapter(epubPath);
+
+            var chunks = DocumentReaderEpubExtensions.ReadEpub(
+                epubPath,
+                readerOptions: new ReaderOptions { ComputeHashes = true, MaxChars = 64 },
+                epubOptions: new EpubReadOptions { PreferSpineOrder = true, FallbackToHtmlScan = true }).ToList();
+
+            var warningChunk = Assert.Single(chunks, c => c.Warnings?.Count > 0);
+            var contentChunk = Assert.Single(chunks, c =>
+                c.Kind == ReaderInputKind.Epub &&
+                (c.Location.Path?.Contains("::OEBPS/good.xhtml", StringComparison.OrdinalIgnoreCase) ?? false));
+
+            Assert.Contains("::OEBPS/bad.xhtml", warningChunk.Location.Path, StringComparison.OrdinalIgnoreCase);
+            Assert.NotEqual(warningChunk.SourceId, contentChunk.SourceId);
+            Assert.NotEqual(warningChunk.ChunkHash, contentChunk.ChunkHash);
+        } finally {
+            if (File.Exists(epubPath)) File.Delete(epubPath);
+        }
+    }
+
+    [Fact]
+    public void DocumentReaderEpub_StreamWarningChunks_UseTrimmedVirtualEntryPaths() {
+        var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
+        try {
+            BuildEpubWithMalformedChapter(epubPath);
+            var bytes = File.ReadAllBytes(epubPath);
+
+            using var stream = new NonSeekableReadStream(bytes);
+            var warningChunk = Assert.Single(
+                DocumentReaderEpubExtensions.ReadEpub(
+                    stream,
+                    sourceName: " malformed.epub ",
+                    readerOptions: new ReaderOptions { MaxChars = 64 },
+                    epubOptions: new EpubReadOptions { PreferSpineOrder = true, FallbackToHtmlScan = true }),
+                c => c.Warnings?.Count > 0);
+
+            Assert.Contains("malformed.epub::OEBPS/bad.xhtml", warningChunk.Location.Path, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            if (File.Exists(epubPath)) File.Delete(epubPath);
+        }
+    }
+
+    [Fact]
+    public void DocumentReaderEpub_DirectRead_EmitsSourceAndChunkMetadata() {
+        var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
+        try {
+            BuildEpubWithSpine(epubPath);
+
+            var chunks = DocumentReaderEpubExtensions.ReadEpub(
+                epubPath,
+                readerOptions: new ReaderOptions { ComputeHashes = true, MaxChars = 4_000 },
+                epubOptions: new EpubReadOptions { PreferSpineOrder = true }).ToList();
+
+            Assert.NotEmpty(chunks);
+            Assert.All(chunks, chunk => {
+                Assert.False(string.IsNullOrWhiteSpace(chunk.SourceId));
+                Assert.False(string.IsNullOrWhiteSpace(chunk.SourceHash));
+                Assert.False(string.IsNullOrWhiteSpace(chunk.ChunkHash));
+                Assert.True(chunk.TokenEstimate.HasValue && chunk.TokenEstimate.Value >= 1);
+                Assert.True(chunk.SourceLengthBytes.HasValue && chunk.SourceLengthBytes.Value > 0);
+                Assert.True(chunk.SourceLastWriteUtc.HasValue);
+            });
+
+            var first = Assert.Single(chunks, c => c.Location.Path?.Contains("::OEBPS/chapter2.xhtml", StringComparison.OrdinalIgnoreCase) ?? false);
+            var second = Assert.Single(chunks, c => c.Location.Path?.Contains("::OEBPS/chapter1.xhtml", StringComparison.OrdinalIgnoreCase) ?? false);
+
+            Assert.NotEqual(first.SourceId, second.SourceId);
+            Assert.NotEqual(first.ChunkHash, second.ChunkHash);
+            Assert.Equal(first.SourceHash, second.SourceHash);
+            Assert.Equal(first.SourceLengthBytes, second.SourceLengthBytes);
+            Assert.Equal(first.SourceLastWriteUtc, second.SourceLastWriteUtc);
+        } finally {
+            if (File.Exists(epubPath)) File.Delete(epubPath);
+        }
+    }
+
+    [Fact]
+    public void DocumentReaderEpub_DirectStreamRead_EmitsLogicalSourceMetadata() {
+        var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
+        try {
+            BuildEpubWithSpine(epubPath);
+            var bytes = File.ReadAllBytes(epubPath);
+
+            using var stream = new NonSeekableReadStream(bytes);
+            var chunks = DocumentReaderEpubExtensions.ReadEpub(
+                stream,
+                sourceName: " metadata.epub ",
+                readerOptions: new ReaderOptions { ComputeHashes = true, MaxChars = 4_000 },
+                epubOptions: new EpubReadOptions { PreferSpineOrder = true }).ToList();
+
+            Assert.NotEmpty(chunks);
+            Assert.All(chunks, chunk => {
+                Assert.False(string.IsNullOrWhiteSpace(chunk.SourceId));
+                Assert.False(string.IsNullOrWhiteSpace(chunk.SourceHash));
+                Assert.False(string.IsNullOrWhiteSpace(chunk.ChunkHash));
+                Assert.True(chunk.TokenEstimate.HasValue && chunk.TokenEstimate.Value >= 1);
+                Assert.Equal(bytes.Length, chunk.SourceLengthBytes);
+                Assert.Null(chunk.SourceLastWriteUtc);
+            });
+
+            Assert.All(chunks, chunk => Assert.StartsWith("metadata.epub::", chunk.Location.Path, StringComparison.OrdinalIgnoreCase));
+
+            var first = Assert.Single(chunks, c => c.Location.Path?.Contains("::OEBPS/chapter2.xhtml", StringComparison.OrdinalIgnoreCase) ?? false);
+            var second = Assert.Single(chunks, c => c.Location.Path?.Contains("::OEBPS/chapter1.xhtml", StringComparison.OrdinalIgnoreCase) ?? false);
+
+            Assert.NotEqual(first.SourceId, second.SourceId);
+            Assert.NotEqual(first.ChunkHash, second.ChunkHash);
+            Assert.Equal(first.SourceHash, second.SourceHash);
+            Assert.Equal(first.SourceLengthBytes, second.SourceLengthBytes);
+        } finally {
+            if (File.Exists(epubPath)) File.Delete(epubPath);
+        }
+    }
+
+    [Fact]
+    public void DocumentReaderEpub_FileReads_CanonicalizeEquivalentArchivePathsForIdentity() {
+        var tempDirectory = Path.Combine(Path.GetTempPath(), "officeimo-reader-epub-canonical-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
+        var epubPath = Path.Combine(tempDirectory, "canonical.epub");
+        var originalCurrentDirectory = Environment.CurrentDirectory;
+
+        try {
+            BuildEpubWithSpine(epubPath);
+
+            Environment.CurrentDirectory = tempDirectory;
+            var relativePath = Path.GetFileName(epubPath);
+            var fullPath = Path.GetFullPath(relativePath).Replace('\\', '/');
+
+            var relativeChunk = DocumentReaderEpubExtensions.ReadEpub(
+                relativePath,
+                readerOptions: new ReaderOptions { ComputeHashes = true, MaxChars = 4_000 },
+                epubOptions: new EpubReadOptions { PreferSpineOrder = true })
+                .Single(c => c.Location.Path?.Contains("::OEBPS/chapter2.xhtml", StringComparison.OrdinalIgnoreCase) ?? false);
+
+            var fullChunk = DocumentReaderEpubExtensions.ReadEpub(
+                epubPath,
+                readerOptions: new ReaderOptions { ComputeHashes = true, MaxChars = 4_000 },
+                epubOptions: new EpubReadOptions { PreferSpineOrder = true })
+                .Single(c => c.Location.Path?.Contains("::OEBPS/chapter2.xhtml", StringComparison.OrdinalIgnoreCase) ?? false);
+
+            Assert.Equal(fullPath + "::OEBPS/chapter2.xhtml", relativeChunk.Location.Path);
+            Assert.Equal(relativeChunk.Location.Path, fullChunk.Location.Path);
+            Assert.Equal(relativeChunk.SourceId, fullChunk.SourceId);
+            Assert.Equal(relativeChunk.ChunkHash, fullChunk.ChunkHash);
+            Assert.Equal(relativeChunk.SourceHash, fullChunk.SourceHash);
+        } finally {
+            Environment.CurrentDirectory = originalCurrentDirectory;
+            if (File.Exists(epubPath)) File.Delete(epubPath);
+            if (Directory.Exists(tempDirectory)) Directory.Delete(tempDirectory);
+        }
+    }
+
     private static void BuildEpubWithSpine(string epubPath) {
         using var fs = new FileStream(epubPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
         using var archive = new ZipArchive(fs, ZipArchiveMode.Create, leaveOpen: false);
