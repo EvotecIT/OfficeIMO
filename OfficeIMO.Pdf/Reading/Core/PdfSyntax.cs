@@ -446,8 +446,29 @@ internal static class PdfSyntax {
     }
 
     private static int FindObjectEnd(string text, int start) {
-        int idx = text.IndexOf("endobj", start, StringComparison.Ordinal);
-        return idx >= 0 ? idx + 6 : -1;
+        int searchFrom = start;
+        while (searchFrom >= 0 && searchFrom < text.Length) {
+            int streamIdx = IndexOfKeyword(text, "stream", searchFrom, text.Length);
+            int endObjIdx = IndexOfKeyword(text, "endobj", searchFrom, text.Length);
+
+            if (endObjIdx < 0) {
+                return -1;
+            }
+
+            if (streamIdx < 0 || endObjIdx < streamIdx) {
+                return endObjIdx + 6;
+            }
+
+            int afterStream = SkipEOL(text, streamIdx + 6, text.Length);
+            int endStreamIdx = IndexOfKeyword(text, "endstream", afterStream, text.Length);
+            if (endStreamIdx < 0) {
+                return -1;
+            }
+
+            searchFrom = endStreamIdx + 9;
+        }
+
+        return -1;
     }
 
     private static int FindDictEnd(string text, int dictStart, int limit) {

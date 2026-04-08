@@ -623,6 +623,26 @@ public class PdfReaderAndFooterRegressionTests {
         Assert.Equal("Hello endstream marker", span.Text);
     }
 
+    [Fact]
+    public void PdfTextExtractor_ExtractAllText_ReadsStreamsContainingEndobjLiterals() {
+        byte[] bytes = BuildSingleStreamPdf("BT\n/F1 12 Tf\n72 720 Td\n(Hello endobj marker) Tj\nET\n");
+
+        string text = PdfTextExtractor.ExtractAllText(bytes);
+
+        Assert.Contains("Hello endobj marker", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_ReadsStreamsContainingEndobjLiterals() {
+        byte[] bytes = BuildSingleStreamPdf("BT\n/F1 12 Tf\n72 720 Td\n(Hello endobj marker) Tj\nET\n");
+
+        var doc = PdfReadDocument.Load(bytes);
+
+        Assert.Single(doc.Pages);
+        var span = Assert.Single(doc.Pages[0].GetTextSpans());
+        Assert.Equal("Hello endobj marker", span.Text);
+    }
+
     private static byte[] BuildPdfWithInheritedMediaBox(int width, int height) {
         const string streamContent = "BT\n/F1 12 Tf\n72 720 Td\n(Hi) Tj\nET\n";
         int streamLength = Encoding.ASCII.GetByteCount(streamContent);
