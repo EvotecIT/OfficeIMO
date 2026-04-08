@@ -9,7 +9,19 @@ namespace OfficeIMO.Visio {
     /// Connects two shapes together.
     /// </summary>
     public class VisioConnector {
-        private static int _idCounter;
+        internal sealed class PreservedShapeChildEntry {
+            public PreservedShapeChildEntry(XElement rawElement) {
+                RawElement = new XElement(rawElement);
+            }
+
+            public PreservedShapeChildEntry(string token) {
+                Token = token;
+            }
+
+            public XElement? RawElement { get; }
+
+            public string? Token { get; }
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VisioConnector"/> class connecting two shapes.
@@ -17,6 +29,7 @@ namespace OfficeIMO.Visio {
         /// <param name="from">Shape from which the connector starts.</param>
         /// <param name="to">Shape at which the connector ends.</param>
         public VisioConnector(VisioShape from, VisioShape to) : this(GetNextId(from, to), from, to) {
+            HasAutomaticId = true;
         }
 
         /// <summary>
@@ -37,17 +50,17 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Identifier of the connector.
         /// </summary>
-        public string Id { get; }
+        public string Id { get; internal set; }
 
         /// <summary>
         /// Shape from which the connector starts.
         /// </summary>
-        public VisioShape From { get; }
+        public VisioShape From { get; internal set; }
 
         /// <summary>
         /// Shape at which the connector ends.
         /// </summary>
-        public VisioShape To { get; }
+        public VisioShape To { get; internal set; }
 
         /// <summary>
         /// Connection point on the starting shape.
@@ -99,11 +112,34 @@ namespace OfficeIMO.Visio {
         /// </summary>
         internal IList<XElement> PreservedGeometrySections { get; } = new List<XElement>();
 
+        internal IList<XElement> PreservedCellElements { get; } = new List<XElement>();
+
+        internal IList<XElement> PreservedNonGeometrySections { get; } = new List<XElement>();
+
+        internal IList<PreservedShapeChildEntry> PreservedShapeChildren { get; } = new List<PreservedShapeChildEntry>();
+
+        internal string? PreservedFromConnectionCell { get; set; }
+
+        internal string? PreservedToConnectionCell { get; set; }
+
+        internal IList<XAttribute> PreservedBeginConnectAttributes { get; } = new List<XAttribute>();
+
+        internal IList<XAttribute> PreservedEndConnectAttributes { get; } = new List<XAttribute>();
+
+        internal IList<XName> PreservedBeginConnectAttributeOrder { get; } = new List<XName>();
+
+        internal IList<XName> PreservedEndConnectAttributeOrder { get; } = new List<XName>();
+
+        internal XElement? PreservedTextElement { get; set; }
+
+        internal string? PreservedTextValue { get; set; }
+
+        internal bool HasAutomaticId { get; }
+
         private static string GetNextId(VisioShape from, VisioShape to) {
             int fromId = int.TryParse(from.Id, out int fi) ? fi : 0;
             int toId = int.TryParse(to.Id, out int ti) ? ti : 0;
-            int newId = Math.Max(Math.Max(fromId, toId) + 1, _idCounter + 1);
-            _idCounter = newId;
+            int newId = Math.Max(fromId, toId) + 1;
             return newId.ToString(CultureInfo.InvariantCulture);
         }
     }

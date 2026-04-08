@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -14,6 +16,10 @@ namespace OfficeIMO.Visio {
             HashSet<int> pageIds = new();
 
             foreach (VisioPage page in _pages) {
+                if (page.Id < 0) {
+                    issues.Add($"Page '{page.Name}' must have a non-negative id.");
+                }
+
                 if (!pageIds.Add(page.Id)) {
                     issues.Add($"Duplicate page id '{page.Id}' found for page '{page.Name}'.");
                 }
@@ -41,9 +47,18 @@ namespace OfficeIMO.Visio {
                     }
                 }
 
-                void VisitShape(VisioShape shape) {
+                void VisitShape(VisioShape shape, HashSet<VisioShape> ancestors) {
+                    if (ancestors.Contains(shape)) {
+                        issues.Add($"Shape '{shape.Id}' on page '{page.Name}' participates in a cyclic parent/child hierarchy.");
+                        return;
+                    }
+
+                    if (!pageShapes.Add(shape)) {
+                        issues.Add($"Shape '{shape.Id}' on page '{page.Name}' is referenced multiple times in the page hierarchy.");
+                        return;
+                    }
+
                     ReserveId(shape.Id, "Shape");
-                    pageShapes.Add(shape);
 
                     if (shape.Width < 0) {
                         issues.Add($"Shape '{shape.Id}' on page '{page.Name}' cannot have a negative width.");
@@ -53,17 +68,23 @@ namespace OfficeIMO.Visio {
                         issues.Add($"Shape '{shape.Id}' on page '{page.Name}' cannot have a negative height.");
                     }
 
+                    ancestors.Add(shape);
                     foreach (VisioShape child in shape.Children) {
                         if (!ReferenceEquals(child.Parent, shape)) {
                             issues.Add($"Child shape '{child.Id}' on page '{page.Name}' has an inconsistent parent reference.");
                         }
 
-                        VisitShape(child);
+                        VisitShape(child, ancestors);
                     }
+                    ancestors.Remove(shape);
                 }
 
                 foreach (VisioShape shape in page.Shapes) {
-                    VisitShape(shape);
+                    if (shape.Parent != null) {
+                        issues.Add($"Top-level shape '{shape.Id}' on page '{page.Name}' cannot reference a parent shape.");
+                    }
+
+                    VisitShape(shape, new HashSet<VisioShape>());
                 }
 
                 foreach (VisioConnector connector in page.Connectors) {
@@ -88,6 +109,22 @@ namespace OfficeIMO.Visio {
             }
 
             return issues;
+        }
+
+        internal void ThrowIfInvalidForSave() {
+            IReadOnlyList<string> issues = Validate();
+            if (issues.Count == 0) {
+                return;
+            }
+
+            StringBuilder message = new("Cannot save Visio document because validation failed:");
+            foreach (string issue in issues.Distinct(StringComparer.Ordinal)) {
+                message.AppendLine();
+                message.Append("- ");
+                message.Append(issue);
+            }
+
+            throw new InvalidOperationException(message.ToString());
         }
     }
 }

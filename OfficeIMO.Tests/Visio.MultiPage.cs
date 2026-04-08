@@ -133,5 +133,36 @@ namespace OfficeIMO.Tests {
                 }
             }
         }
+
+        [Fact]
+        public void AutoPageIdsSkipExplicitlyReservedIds() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            try {
+                VisioDocument document = VisioDocument.Create(filePath);
+                VisioPage first = document.AddPage("Explicit", id: 1);
+                VisioPage second = document.AddPage("Auto");
+                VisioPage third = document.AddPage("Auto-2");
+
+                Assert.Equal(1, first.Id);
+                Assert.Equal(0, second.Id);
+                Assert.Equal(2, third.Id);
+
+                document.Save();
+
+                VisioDocument loaded = VisioDocument.Load(filePath);
+                Assert.Equal(new[] { 1, 0, 2 }, loaded.Pages.Select(page => page.Id));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void AddPageRejectsNegativeExplicitIds() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => document.AddPage("Invalid", id: -1));
+        }
     }
 }

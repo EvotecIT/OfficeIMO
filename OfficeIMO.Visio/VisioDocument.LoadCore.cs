@@ -37,6 +37,80 @@ namespace OfficeIMO.Visio {
             if (documentPart.ContentType != DocumentContentType) {
                 throw new InvalidDataException($"Unexpected Visio document content type: {documentPart.ContentType}");
             }
+            XDocument documentXml = XDocument.Load(documentPart.GetStream());
+            if (documentXml.Root != null) {
+                foreach (XAttribute attribute in documentXml.Root.Attributes().Where(ShouldPreserveDocumentAttribute)) {
+                    document.PreservedDocumentAttributes.Add(new XAttribute(attribute));
+                }
+                foreach (XElement element in documentXml.Root.Elements().Where(ShouldPreserveDocumentElement)) {
+                    document.PreservedDocumentElements.Add(new XElement(element));
+                }
+
+                XElement? documentSettings = documentXml.Root.Element(XName.Get("DocumentSettings", VisioNamespace));
+                if (documentSettings != null) {
+                    foreach (XAttribute attribute in documentSettings.Attributes().Where(ShouldPreserveDocumentSettingsAttribute)) {
+                        document.PreservedDocumentSettingsAttributes.Add(new XAttribute(attribute));
+                    }
+                    foreach (XElement element in documentSettings.Elements().Where(ShouldPreserveDocumentSettingsElement)) {
+                        document.PreservedDocumentSettingsElements.Add(new XElement(element));
+                    }
+
+                    XElement? relayout = documentSettings.Element(XName.Get("RelayoutAndRerouteUponOpen", VisioNamespace));
+                    if (relayout != null && !string.Equals(relayout.Value, "0", StringComparison.OrdinalIgnoreCase)) {
+                        document._requestRecalcOnOpen = true;
+                    }
+                }
+
+                XElement? colors = documentXml.Root.Element(XName.Get("Colors", VisioNamespace));
+                if (colors != null) {
+                    foreach (XAttribute attribute in colors.Attributes().Where(ShouldPreserveColorsAttribute)) {
+                        document.PreservedColorsAttributes.Add(new XAttribute(attribute));
+                    }
+
+                    foreach (XElement element in colors.Elements().Where(ShouldPreserveColorsElement)) {
+                        document.PreservedColorsElements.Add(new XElement(element));
+                    }
+                }
+
+                XElement? faceNames = documentXml.Root.Element(XName.Get("FaceNames", VisioNamespace));
+                if (faceNames != null) {
+                    foreach (XAttribute attribute in faceNames.Attributes().Where(ShouldPreserveFaceNamesAttribute)) {
+                        document.PreservedFaceNamesAttributes.Add(new XAttribute(attribute));
+                    }
+
+                    foreach (XElement element in faceNames.Elements().Where(ShouldPreserveFaceNamesElement)) {
+                        document.PreservedFaceNamesElements.Add(new XElement(element));
+                    }
+                }
+
+                XElement? styleSheets = documentXml.Root.Element(XName.Get("StyleSheets", VisioNamespace));
+                if (styleSheets != null) {
+                    foreach (XAttribute attribute in styleSheets.Attributes().Where(ShouldPreserveStyleSheetsAttribute)) {
+                        document.PreservedStyleSheetsAttributes.Add(new XAttribute(attribute));
+                    }
+
+                    foreach (XElement element in styleSheets.Elements().Where(ShouldPreserveStyleSheetsElement)) {
+                        document.PreservedStyleSheetsElements.Add(new XElement(element));
+                    }
+
+                    foreach (XElement styleSheet in styleSheets.Elements(XName.Get("StyleSheet", VisioNamespace))) {
+                        string id = styleSheet.Attribute("ID")?.Value ?? string.Empty;
+                        if (!IsGeneratedStyleSheet(id)) {
+                            document.PreservedAdditionalStyleSheets.Add(new XElement(styleSheet));
+                            continue;
+                        }
+
+                        PreservedStyleSheetData preserved = GetOrCreatePreservedStyleSheet(document, id);
+                        foreach (XAttribute attribute in styleSheet.Attributes().Where(attribute => ShouldPreserveStyleSheetAttribute(attribute, id))) {
+                            preserved.Attributes.Add(new XAttribute(attribute));
+                        }
+
+                        foreach (XElement element in styleSheet.Elements().Where(element => ShouldPreserveStyleSheetElement(element, id))) {
+                            preserved.ChildElements.Add(new XElement(element));
+                        }
+                    }
+                }
+            }
 
             PackageRelationship? themeRel = documentPart.GetRelationshipsByType(ThemeRelationshipType).FirstOrDefault();
             if (themeRel != null) {
@@ -66,6 +140,16 @@ namespace OfficeIMO.Visio {
                 XDocument mastersDoc = XDocument.Load(mastersPart.GetStream());
                 XNamespace ns = VisioNamespace;
                 XNamespace rNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+                List<XAttribute> preservedMastersRootAttributes = mastersDoc.Root?
+                    .Attributes()
+                    .Where(ShouldPreserveMastersRootAttribute)
+                    .Select(attribute => new XAttribute(attribute))
+                    .ToList() ?? new List<XAttribute>();
+                List<XElement> preservedMastersRootElements = mastersDoc.Root?
+                    .Elements()
+                    .Where(ShouldPreserveMastersRootElement)
+                    .Select(element => new XElement(element))
+                    .ToList() ?? new List<XElement>();
 
                 foreach (XElement masterElement in mastersDoc.Root?.Elements(ns + "Master") ?? Enumerable.Empty<XElement>()) {
                     string masterId = masterElement.Attribute("ID")?.Value ?? string.Empty;
@@ -80,9 +164,50 @@ namespace OfficeIMO.Visio {
                     Uri masterUri = PackUriHelper.ResolvePartUri(mastersPart.Uri, rel.TargetUri);
                     PackagePart masterPart = package.GetPart(masterUri);
                     XDocument masterDoc = XDocument.Load(masterPart.GetStream());
-                    XElement? masterShapeElement = masterDoc.Root?.Element(ns + "Shapes")?.Element(ns + "Shape");
+                    XElement? masterShapesElement = masterDoc.Root?.Element(ns + "Shapes");
+                    XElement? masterShapeElement = masterShapesElement?.Elements(ns + "Shape").FirstOrDefault();
                     VisioShape masterShape = masterShapeElement != null ? ParseShape(masterShapeElement, ns) : new VisioShape("1");
                     VisioMaster master = new(masterId, masterNameU, masterShape);
+                    foreach (XAttribute attribute in masterElement.Attributes().Where(ShouldPreserveMasterAttribute)) {
+                        master.PreservedMasterAttributes.Add(new XAttribute(attribute));
+                    }
+                    XElement? masterPageSheet = masterElement.Element(ns + "PageSheet");
+                    if (masterPageSheet != null) {
+                        foreach (XAttribute attribute in masterPageSheet.Attributes().Where(ShouldPreserveMasterPageSheetAttribute)) {
+                            master.PreservedPageSheetAttributes.Add(new XAttribute(attribute));
+                        }
+                        foreach (XElement cell in masterPageSheet.Elements(ns + "Cell").Where(ShouldPreserveMasterPageSheetCell)) {
+                            master.PreservedPageSheetCells.Add(new XElement(cell));
+                        }
+                        foreach (XElement section in masterPageSheet.Elements(ns + "Section")) {
+                            master.PreservedPageSheetSections.Add(new XElement(section));
+                        }
+                    }
+                    foreach (XElement element in masterElement.Elements().Where(ShouldPreserveMasterElement)) {
+                        master.PreservedMasterElements.Add(new XElement(element));
+                    }
+                    if (masterShapesElement != null) {
+                        foreach (XAttribute attribute in masterShapesElement.Attributes().Where(ShouldPreserveMasterShapesAttribute)) {
+                            master.PreservedShapesAttributes.Add(new XAttribute(attribute));
+                        }
+                        foreach (XElement additionalShape in masterShapesElement.Elements(ns + "Shape").Skip(1)) {
+                            master.PreservedAdditionalShapeElements.Add(new XElement(additionalShape));
+                        }
+                    }
+                    if (masterDoc.Root != null) {
+                        foreach (XAttribute attribute in masterDoc.Root.Attributes().Where(ShouldPreserveMasterContentAttribute)) {
+                            master.PreservedMasterContentAttributes.Add(new XAttribute(attribute));
+                        }
+                        foreach (XElement element in masterDoc.Root.Elements().Where(element => element.Name != ns + "Shapes")) {
+                            master.PreservedMasterContentElements.Add(new XElement(element));
+                        }
+                    }
+                    foreach (XAttribute attribute in preservedMastersRootAttributes) {
+                        master.PreservedMastersRootAttributes.Add(new XAttribute(attribute));
+                    }
+                    foreach (XElement element in preservedMastersRootElements) {
+                        master.PreservedMastersRootElements.Add(new XElement(element));
+                    }
                     masters[masterId] = master;
                 }
             }
@@ -96,6 +221,9 @@ namespace OfficeIMO.Visio {
                 int pageId = int.TryParse(pageRef.Attribute("ID")?.Value, out int tmp) ? tmp : document.Pages.Count;
                 VisioPage page = document.AddPage(name, id: pageId);
                 page.NameU = pageRef.Attribute("NameU")?.Value ?? name;
+                foreach (XAttribute attribute in pageRef.Attributes().Where(ShouldPreservePageAttribute)) {
+                    page.PreservedPageAttributes.Add(new XAttribute(attribute));
+                }
                 string? viewScaleValue = pageRef.Attribute("ViewScale")?.Value;
                 double parsedViewScale = ParseDouble(viewScaleValue);
                 if (double.IsNaN(parsedViewScale) || double.IsInfinity(parsedViewScale) || parsedViewScale <= 0) {
@@ -165,7 +293,16 @@ namespace OfficeIMO.Visio {
                             case "InhibitSnap":
                                 page.Snap = !TryParseTruthyCellValue(valueAttr);
                                 break;
+                            default:
+                                if (ShouldPreservePageCell(cellName)) {
+                                    page.PreservedPageSheetCells.Add(new XElement(cell));
+                                }
+                                break;
                         }
+                    }
+
+                    foreach (XElement section in pageSheet.Elements(vNs + "Section").Where(ShouldPreservePageSection)) {
+                        page.PreservedPageSheetSections.Add(new XElement(section));
                     }
                 }
 
@@ -200,9 +337,30 @@ namespace OfficeIMO.Visio {
                 PackagePart pagePart = package.GetPart(pageUri);
                 XDocument pageDoc = XDocument.Load(pagePart.GetStream());
 
+                if (pageDoc.Root != null) {
+                    foreach (XAttribute attribute in pageDoc.Root.Attributes().Where(ShouldPreservePageContentsAttribute)) {
+                        page.PreservedPageContentAttributes.Add(new XAttribute(attribute));
+                    }
+
+                    foreach (XElement element in pageDoc.Root.Elements().Where(ShouldPreservePageContentsElement)) {
+                        page.PreservedPageContentElements.Add(new XElement(element));
+                    }
+                }
+
                 XElement? shapesRoot = pageDoc.Root?.Element(vNs + "Shapes");
+                if (shapesRoot != null) {
+                    foreach (XAttribute attribute in shapesRoot.Attributes().Where(ShouldPreserveShapesContainerAttribute)) {
+                        page.PreservedShapesContainerAttributes.Add(new XAttribute(attribute));
+                    }
+
+                    foreach (XElement element in shapesRoot.Elements().Where(ShouldPreserveShapesContainerElement)) {
+                        page.PreservedShapesContainerElements.Add(new XElement(element));
+                    }
+                }
+
                 Dictionary<string, VisioShape> shapeMap = new();
                 List<XElement> connectorElements = new();
+                Dictionary<XElement, VisioShape> loadedShapesByElement = new();
                 foreach (XElement shapeElement in shapesRoot?.Elements(vNs + "Shape") ?? Enumerable.Empty<XElement>()) {
                     if (IsConnectorShape(shapeElement, masters)) {
                         connectorElements.Add(shapeElement);
@@ -214,10 +372,23 @@ namespace OfficeIMO.Visio {
 
                     page.Shapes.Add(shape);
                     RegisterShapeHierarchy(shape, shapeMap);
+                    loadedShapesByElement[shapeElement] = shape;
                 }
 
-                Dictionary<string, (string? fromId, string? fromCell, string? toId, string? toCell)> connectionMap = new();
-                foreach (XElement connectElement in pageDoc.Root?.Element(vNs + "Connects")?.Elements(vNs + "Connect") ?? Enumerable.Empty<XElement>()) {
+                XElement? connectsRoot = pageDoc.Root?.Element(vNs + "Connects");
+                if (connectsRoot != null) {
+                    foreach (XAttribute attribute in connectsRoot.Attributes().Where(ShouldPreserveConnectsAttribute)) {
+                        page.PreservedConnectsAttributes.Add(new XAttribute(attribute));
+                    }
+
+                    foreach (XElement element in connectsRoot.Elements().Where(ShouldPreserveConnectsElement)) {
+                        page.PreservedConnectsElements.Add(new XElement(element));
+                    }
+                }
+
+                List<XElement> orderedConnectElements = connectsRoot?.Elements(vNs + "Connect").ToList() ?? new List<XElement>();
+                Dictionary<string, (string? fromId, string? fromCell, string? toId, string? toCell, List<XAttribute> beginAttributes, List<XName> beginOrder, List<XAttribute> endAttributes, List<XName> endOrder, XElement? beginElement, XElement? endElement)> connectionMap = new();
+                foreach (XElement connectElement in orderedConnectElements) {
                     string? connectorId = connectElement.Attribute("FromSheet")?.Value;
                     string? fromCell = connectElement.Attribute("FromCell")?.Value;
                     string? toSheet = connectElement.Attribute("ToSheet")?.Value;
@@ -225,22 +396,42 @@ namespace OfficeIMO.Visio {
                     if (connectorId == null || fromCell == null || toSheet == null) {
                         continue;
                     }
-                    var info = connectionMap.TryGetValue(connectorId, out var existing) ? existing : (null, null, null, null);
+                    var info = connectionMap.TryGetValue(connectorId, out var existing)
+                        ? existing
+                        : (null, null, null, null, new List<XAttribute>(), new List<XName>(), new List<XAttribute>(), new List<XName>(), null, null);
                     if (fromCell == "BeginX") {
+                        if (info.beginElement != null) {
+                            continue;
+                        }
                         info.fromId = toSheet;
                         info.fromCell = toCell;
+                        CaptureConnectAttributes(connectElement, info.beginAttributes, info.beginOrder);
+                        info.beginElement = connectElement;
                     } else if (fromCell == "EndX") {
+                        if (info.endElement != null) {
+                            continue;
+                        }
                         info.toId = toSheet;
                         info.toCell = toCell;
+                        CaptureConnectAttributes(connectElement, info.endAttributes, info.endOrder);
+                        info.endElement = connectElement;
+                    } else {
+                        continue;
                     }
                     connectionMap[connectorId] = info;
                 }
 
+                Dictionary<string, VisioConnector> loadedConnectorsByPersistedId = new(StringComparer.Ordinal);
+                Dictionary<XElement, VisioConnector> loadedConnectorsByElement = new();
                 foreach (XElement connectorElement in connectorElements) {
                     string persistedId = connectorElement.Attribute("ID")?.Value ?? string.Empty;
-                    if (!connectionMap.TryGetValue(persistedId, out var ids) || ids.fromId == null || ids.toId == null) {
+                    if (!connectionMap.TryGetValue(persistedId, out var ids)) {
                         continue;
                     }
+                    if (ids.fromId == null || ids.toId == null) {
+                        continue;
+                    }
+
                     string id = GetOriginalId(connectorElement, vNs) ?? persistedId;
                     string fromId = ids.fromId!;
                     string toId = ids.toId!;
@@ -274,6 +465,11 @@ namespace OfficeIMO.Visio {
                             case "LineColor":
                                 connector.LineColor = ParseColor(v, connector.LineColor);
                                 break;
+                            default:
+                                if (ShouldPreserveConnectorCell(n)) {
+                                    connector.PreservedCellElements.Add(new XElement(cell));
+                                }
+                                break;
                         }
                     }
 
@@ -282,11 +478,77 @@ namespace OfficeIMO.Visio {
                                  .Where(section => string.Equals(section.Attribute("N")?.Value, "Geometry", StringComparison.OrdinalIgnoreCase))) {
                         connector.PreservedGeometrySections.Add(new XElement(geometrySection));
                     }
+                    foreach (XElement section in connectorElement.Elements(vNs + "Section")
+                                 .Where(ShouldPreserveConnectorSection)) {
+                        connector.PreservedNonGeometrySections.Add(new XElement(section));
+                    }
 
                     connector.FromConnectionPoint = ResolveConnectionPoint(fromShape, ids.fromCell);
                     connector.ToConnectionPoint = ResolveConnectionPoint(toShape, ids.toCell);
-                    connector.Label = connectorElement.Element(vNs + "Text")?.Value;
+                    connector.PreservedFromConnectionCell = ids.fromCell;
+                    connector.PreservedToConnectionCell = ids.toCell;
+                    CopyPreservedAttributes(ids.beginAttributes, connector.PreservedBeginConnectAttributes);
+                    CopyPreservedAttributeOrder(ids.beginOrder, connector.PreservedBeginConnectAttributeOrder);
+                    CopyPreservedAttributes(ids.endAttributes, connector.PreservedEndConnectAttributes);
+                    CopyPreservedAttributeOrder(ids.endOrder, connector.PreservedEndConnectAttributeOrder);
+                    XElement? connectorTextElement = connectorElement.Element(vNs + "Text");
+                    connector.Label = connectorTextElement?.Value;
+                    connector.PreservedTextElement = connectorTextElement != null ? new XElement(connectorTextElement) : null;
+                    connector.PreservedTextValue = connectorTextElement?.Value;
+                    CaptureConnectorShapeChildOrder(connector, connectorElement);
                     page.Connectors.Add(connector);
+                    loadedConnectorsByPersistedId[persistedId] = connector;
+                    loadedConnectorsByElement[connectorElement] = connector;
+                }
+
+                foreach (XElement shapeChild in shapesRoot?.Elements() ?? Enumerable.Empty<XElement>()) {
+                    if (!string.Equals(shapeChild.Name.LocalName, "Shape", StringComparison.OrdinalIgnoreCase)) {
+                        page.PreservedShapesChildren.Add(new VisioPage.PreservedShapeChildEntry(shapeChild));
+                        continue;
+                    }
+
+                    if (loadedShapesByElement.TryGetValue(shapeChild, out VisioShape? loadedShape)) {
+                        page.PreservedShapesChildren.Add(new VisioPage.PreservedShapeChildEntry(loadedShape));
+                        continue;
+                    }
+
+                    if (loadedConnectorsByElement.TryGetValue(shapeChild, out VisioConnector? loadedConnector)) {
+                        page.PreservedShapesChildren.Add(new VisioPage.PreservedShapeChildEntry(loadedConnector));
+                        continue;
+                    }
+
+                    page.PreservedShapesChildren.Add(new VisioPage.PreservedShapeChildEntry(shapeChild));
+                }
+
+                foreach (XElement connectChild in connectsRoot?.Elements() ?? Enumerable.Empty<XElement>()) {
+                    if (!string.Equals(connectChild.Name.LocalName, "Connect", StringComparison.OrdinalIgnoreCase)) {
+                        page.PreservedConnectChildren.Add(new VisioPage.PreservedConnectChildEntry(connectChild));
+                        continue;
+                    }
+
+                    string? connectorId = connectChild.Attribute("FromSheet")?.Value;
+                    string? fromCell = connectChild.Attribute("FromCell")?.Value;
+                    if (connectorId != null &&
+                        fromCell != null &&
+                        loadedConnectorsByPersistedId.TryGetValue(connectorId, out VisioConnector? connector) &&
+                        connectionMap.TryGetValue(connectorId, out var ids)) {
+                        if (string.Equals(fromCell, "BeginX", StringComparison.OrdinalIgnoreCase) &&
+                            ReferenceEquals(ids.beginElement, connectChild)) {
+                            page.PreservedConnectRows.Add(new VisioPage.PreservedConnectRowEntry(connector, VisioConnectorEndpointScope.Start));
+                            page.PreservedConnectChildren.Add(new VisioPage.PreservedConnectChildEntry(connector, VisioConnectorEndpointScope.Start));
+                            continue;
+                        }
+
+                        if (string.Equals(fromCell, "EndX", StringComparison.OrdinalIgnoreCase) &&
+                            ReferenceEquals(ids.endElement, connectChild)) {
+                            page.PreservedConnectRows.Add(new VisioPage.PreservedConnectRowEntry(connector, VisioConnectorEndpointScope.End));
+                            page.PreservedConnectChildren.Add(new VisioPage.PreservedConnectChildEntry(connector, VisioConnectorEndpointScope.End));
+                            continue;
+                        }
+                    }
+
+                    page.PreservedConnectRows.Add(new VisioPage.PreservedConnectRowEntry(connectChild));
+                    page.PreservedConnectChildren.Add(new VisioPage.PreservedConnectChildEntry(connectChild));
                 }
             }
 
@@ -317,6 +579,7 @@ namespace OfficeIMO.Visio {
             ParseShapeTransform(shape, shapeElement, ns);
             ParseShapeProperties(shape, shapeElement, ns);
             ParseChildShapes(shape, shapeElement, ns, depth);
+            CaptureShapeChildOrder(shape, shapeElement);
 
             return shape;
         }
@@ -324,15 +587,18 @@ namespace OfficeIMO.Visio {
         private static VisioShape ParseShapeBasics(XElement shapeElement, XNamespace ns) {
             string persistedId = shapeElement.Attribute("ID")?.Value ?? string.Empty;
             string id = GetOriginalId(shapeElement, ns) ?? persistedId;
+            XElement? textElement = shapeElement.Element(ns + "Text");
             VisioShape shape = new(id) {
                 Name = shapeElement.Attribute("Name")?.Value,
                 NameU = shapeElement.Attribute("NameU")?.Value,
-                Text = shapeElement.Element(ns + "Text")?.Value
+                Text = textElement?.Value
             };
 
             shape.PersistedId = persistedId;
             shape.Type = shapeElement.Attribute("Type")?.Value;
             shape.MasterShapeId = shapeElement.Attribute("MasterShape")?.Value;
+            shape.PreservedTextElement = textElement != null ? new XElement(textElement) : null;
+            shape.PreservedTextValue = textElement?.Value;
 
             return shape;
         }
@@ -403,6 +669,11 @@ namespace OfficeIMO.Visio {
                         break;
                     case "FillForegnd":
                         shape.FillColor = ParseColor(v, shape.FillColor);
+                        break;
+                    default:
+                        if (ShouldPreserveShapeCell(n)) {
+                            shape.PreservedCellElements.Add(new XElement(cell));
+                        }
                         break;
                 }
             }
@@ -485,6 +756,9 @@ namespace OfficeIMO.Visio {
                          string.Equals(section.Attribute("N")?.Value, "Geometry", StringComparison.OrdinalIgnoreCase))) {
                 shape.PreservedGeometrySections.Add(new XElement(geometrySection));
             }
+            foreach (XElement section in sectionElements.Where(ShouldPreserveShapeSection)) {
+                shape.PreservedNonGeometrySections.Add(new XElement(section));
+            }
 
             XElement? connectionSection = sectionElements.FirstOrDefault(e => e.Attribute("N")?.Value == "Connection");
             if (connectionSection != null) {
@@ -532,6 +806,7 @@ namespace OfficeIMO.Visio {
                     if (!string.IsNullOrEmpty(key) && value != null && !string.Equals(key, OriginalIdPropName, StringComparison.Ordinal)) {
                         string keyNonNull = key!;
                         shape.Data[keyNonNull] = value;
+                        shape.PreservedDataRows.Add(new XElement(row));
                     }
                 }
             }
@@ -564,6 +839,72 @@ namespace OfficeIMO.Visio {
             }
         }
 
+        private static void CaptureShapeChildOrder(VisioShape shape, XElement shapeElement) {
+            shape.PreservedShapeChildren.Clear();
+            foreach (XElement child in shapeElement.Elements()) {
+                string localName = child.Name.LocalName;
+                if (string.Equals(localName, "XForm", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(localName, "XForm1D", StringComparison.OrdinalIgnoreCase)) {
+                    shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry("XForm"));
+                    continue;
+                }
+
+                if (string.Equals(localName, "Cell", StringComparison.OrdinalIgnoreCase)) {
+                    string? cellName = child.Attribute("N")?.Value;
+                    if (IsModeledShapeCell(cellName)) {
+                        shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry($"Cell:{cellName}"));
+                    } else {
+                        shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry(child));
+                    }
+
+                    continue;
+                }
+
+                if (string.Equals(localName, "Section", StringComparison.OrdinalIgnoreCase)) {
+                    string? sectionName = child.Attribute("N")?.Value;
+                    if (string.Equals(sectionName, "Geometry", StringComparison.OrdinalIgnoreCase)) {
+                        shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry("Section:Geometry"));
+                    } else if (string.Equals(sectionName, "Connection", StringComparison.OrdinalIgnoreCase)) {
+                        shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry("Section:Connection"));
+                    } else if (string.Equals(sectionName, "Prop", StringComparison.OrdinalIgnoreCase)) {
+                        shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry("Section:Prop"));
+                    } else {
+                        shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry(child));
+                    }
+
+                    continue;
+                }
+
+                if (string.Equals(localName, "Text", StringComparison.OrdinalIgnoreCase)) {
+                    shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry("Text"));
+                    continue;
+                }
+
+                if (string.Equals(localName, "Shapes", StringComparison.OrdinalIgnoreCase)) {
+                    shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry("Shapes"));
+                    continue;
+                }
+
+                shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry(child));
+            }
+        }
+
+        private static bool IsModeledShapeCell(string? cellName) {
+            return string.Equals(cellName, "PinX", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "PinY", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "Width", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "Height", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "LocPinX", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "LocPinY", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "Angle", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "LineWeight", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "LinePattern", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "LineColor", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "FillPattern", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "FillForegnd", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "ObjType", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static void ApplyMasterReferences(VisioShape shape, XElement shapeElement, XNamespace ns, Dictionary<string, VisioMaster> masters, VisioMaster? inheritedMaster = null, VisioShape? inheritedMasterShape = null) {
             VisioMaster? effectiveMaster = inheritedMaster;
             VisioShape? effectiveMasterShape = inheritedMasterShape;
@@ -576,6 +917,9 @@ namespace OfficeIMO.Visio {
 
             if (effectiveMaster != null) {
                 shape.Master = effectiveMaster;
+                if (string.IsNullOrWhiteSpace(shape.NameU)) {
+                    shape.NameU = effectiveMaster.NameU;
+                }
             }
 
             if (!string.IsNullOrEmpty(shape.MasterShapeId) && effectiveMaster != null) {
@@ -827,6 +1171,477 @@ namespace OfficeIMO.Visio {
             }
 
             return sectionIndex >= 0 && sectionIndex < shape.ConnectionPoints.Count ? shape.ConnectionPoints[sectionIndex] : null;
+        }
+
+        private static void CaptureConnectAttributes(XElement connectElement, IList<XAttribute> preservedAttributes, IList<XName> attributeOrder) {
+            preservedAttributes.Clear();
+            attributeOrder.Clear();
+            foreach (XAttribute attribute in connectElement.Attributes()) {
+                if (attribute.IsNamespaceDeclaration) {
+                    continue;
+                }
+
+                attributeOrder.Add(attribute.Name);
+
+                if (string.Equals(attribute.Name.LocalName, "FromSheet", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(attribute.Name.LocalName, "FromCell", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(attribute.Name.LocalName, "ToSheet", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(attribute.Name.LocalName, "ToCell", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+
+                preservedAttributes.Add(new XAttribute(attribute));
+            }
+        }
+
+        private static void CopyPreservedAttributes(IEnumerable<XAttribute> source, IList<XAttribute> destination) {
+            destination.Clear();
+            foreach (XAttribute attribute in source) {
+                destination.Add(new XAttribute(attribute));
+            }
+        }
+
+        private static void CopyPreservedAttributeOrder(IEnumerable<XName> source, IList<XName> destination) {
+            destination.Clear();
+            foreach (XName attributeName in source) {
+                destination.Add(attributeName);
+            }
+        }
+
+        private static void CaptureConnectorShapeChildOrder(VisioConnector connector, XElement connectorElement) {
+            connector.PreservedShapeChildren.Clear();
+            foreach (XElement child in connectorElement.Elements()) {
+                string localName = child.Name.LocalName;
+                if (string.Equals(localName, "XForm1D", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(localName, "XForm", StringComparison.OrdinalIgnoreCase)) {
+                    connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry("XForm1D"));
+                    continue;
+                }
+
+                if (string.Equals(localName, "Cell", StringComparison.OrdinalIgnoreCase)) {
+                    string? cellName = child.Attribute("N")?.Value;
+                    if (IsModeledConnectorCell(cellName)) {
+                        connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry($"Cell:{cellName}"));
+                    } else {
+                        connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry(child));
+                    }
+
+                    continue;
+                }
+
+                if (string.Equals(localName, "Section", StringComparison.OrdinalIgnoreCase)) {
+                    string? sectionName = child.Attribute("N")?.Value;
+                    if (string.Equals(sectionName, "Geometry", StringComparison.OrdinalIgnoreCase)) {
+                        connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry("Section:Geometry"));
+                    } else if (string.Equals(sectionName, "Prop", StringComparison.OrdinalIgnoreCase)) {
+                        connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry("Section:Prop"));
+                    } else {
+                        connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry(child));
+                    }
+
+                    continue;
+                }
+
+                if (string.Equals(localName, "Text", StringComparison.OrdinalIgnoreCase)) {
+                    connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry("Text"));
+                    continue;
+                }
+
+                connector.PreservedShapeChildren.Add(new VisioConnector.PreservedShapeChildEntry(child));
+            }
+        }
+
+        private static bool IsModeledConnectorCell(string? cellName) {
+            return string.Equals(cellName, "BeginX", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "BeginY", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "EndX", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "EndY", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "LineWeight", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "LinePattern", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "LineColor", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "FillPattern", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "FillForegnd", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "OneD", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "BeginArrow", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "EndArrow", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ShouldPreserveConnectorCell(string? cellName) {
+            return !string.IsNullOrWhiteSpace(cellName) &&
+                   !string.Equals(cellName, "BeginArrow", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "EndArrow", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "LineWeight", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "LinePattern", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "LineColor", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "FillPattern", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "FillForegnd", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "OneD", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "BeginX", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "BeginY", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "EndX", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "EndY", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ShouldPreserveConnectorSection(XElement section) {
+            string? sectionName = section.Attribute("N")?.Value;
+            return !string.Equals(sectionName, "Geometry", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(sectionName, "Prop", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ShouldPreserveShapeCell(string? cellName) {
+            return !string.IsNullOrWhiteSpace(cellName) &&
+                   !string.Equals(cellName, "PinX", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PinY", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "Width", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "Height", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "LocPinX", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "LocPinY", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "Angle", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "LineWeight", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "LinePattern", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "FillPattern", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "LineColor", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "FillForegnd", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ObjType", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ShouldPreserveShapeSection(XElement section) {
+            string? sectionName = section.Attribute("N")?.Value;
+            return !string.Equals(sectionName, "Geometry", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(sectionName, "Connection", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(sectionName, "Prop", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ShouldPreservePageCell(string? cellName) {
+            return !string.IsNullOrWhiteSpace(cellName) &&
+                   !string.Equals(cellName, "PageWidth", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PageHeight", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ShdwOffsetX", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ShdwOffsetY", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PageScale", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "DrawingScale", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "DrawingSizeType", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "DrawingScaleType", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "InhibitSnap", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PageLockReplace", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PageLockDuplicate", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "UIVisibility", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ShdwType", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ShdwObliqueAngle", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ShdwScaleFactor", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "DrawingResizeType", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PageShapeSplit", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ColorSchemeIndex", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "EffectSchemeIndex", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ConnectorSchemeIndex", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "FontSchemeIndex", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ThemeIndex", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PageLeftMargin", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PageRightMargin", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PageTopMargin", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PageBottomMargin", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PrintPageOrientation", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ShouldPreservePageSection(XElement section) {
+            return true;
+        }
+
+        private static bool ShouldPreservePageAttribute(XAttribute attribute) {
+            string localName = attribute.Name.LocalName;
+            string namespaceName = attribute.Name.NamespaceName;
+
+            if (namespaceName == "http://www.w3.org/XML/1998/namespace") {
+                return false;
+            }
+
+            return !string.Equals(localName, "ID", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "Name", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "NameU", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "ViewScale", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "ViewCenterX", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "ViewCenterY", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ShouldPreserveMasterAttribute(XAttribute attribute) {
+            string localName = attribute.Name.LocalName;
+            string namespaceName = attribute.Name.NamespaceName;
+
+            if (namespaceName == "http://www.w3.org/XML/1998/namespace") {
+                return false;
+            }
+
+            return !string.Equals(localName, "ID", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "Name", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "NameU", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "IsCustomNameU", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "IsCustomName", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "Prompt", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "IconSize", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "AlignName", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "MatchByName", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "IconUpdate", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "UniqueID", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "BaseID", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "PatternFlags", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "Hidden", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "MasterType", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ShouldPreserveMasterPageSheetAttribute(XAttribute attribute) {
+            string localName = attribute.Name.LocalName;
+            string namespaceName = attribute.Name.NamespaceName;
+
+            if (namespaceName == "http://www.w3.org/XML/1998/namespace") {
+                return false;
+            }
+
+            return !string.Equals(localName, "LineStyle", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "FillStyle", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "TextStyle", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ShouldPreserveMasterPageSheetCell(XElement cell) {
+            string? cellName = cell.Attribute("N")?.Value;
+            return !string.IsNullOrWhiteSpace(cellName) &&
+                   !string.Equals(cellName, "PageWidth", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PageHeight", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ShdwOffsetX", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ShdwOffsetY", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PageScale", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "DrawingScale", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "DrawingSizeType", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "DrawingScaleType", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "InhibitSnap", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PageLockReplace", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PageLockDuplicate", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "UIVisibility", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ShdwType", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ShdwObliqueAngle", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ShdwScaleFactor", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "DrawingResizeType", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ShapeKeywords", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ShouldPreserveMasterElement(XElement element) {
+            string localName = element.Name.LocalName;
+            return !string.Equals(localName, "PageSheet", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "Rel", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ShouldPreserveMastersRootAttribute(XAttribute attribute) {
+            if (attribute.IsNamespaceDeclaration) {
+                return false;
+            }
+
+            string namespaceName = attribute.Name.NamespaceName;
+            return namespaceName != "http://www.w3.org/XML/1998/namespace";
+        }
+
+        private static bool ShouldPreserveMastersRootElement(XElement element) {
+            return !string.Equals(element.Name.LocalName, "Master", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ShouldPreserveDocumentAttribute(XAttribute attribute) {
+            if (attribute.IsNamespaceDeclaration) {
+                return false;
+            }
+
+            return attribute.Name.NamespaceName != "http://www.w3.org/XML/1998/namespace";
+        }
+
+        private static bool ShouldPreserveDocumentElement(XElement element) {
+            string localName = element.Name.LocalName;
+            return !string.Equals(localName, "DocumentSettings", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "Colors", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "FaceNames", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "StyleSheets", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ShouldPreserveDocumentSettingsAttribute(XAttribute attribute) {
+            if (attribute.IsNamespaceDeclaration) {
+                return false;
+            }
+
+            string localName = attribute.Name.LocalName;
+            string namespaceName = attribute.Name.NamespaceName;
+
+            if (namespaceName == "http://www.w3.org/XML/1998/namespace") {
+                return false;
+            }
+
+            return !string.Equals(localName, "TopPage", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "DefaultTextStyle", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "DefaultLineStyle", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "DefaultFillStyle", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "DefaultGuideStyle", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ShouldPreserveDocumentSettingsElement(XElement element) {
+            string localName = element.Name.LocalName;
+            return !string.Equals(localName, "GlueSettings", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "SnapSettings", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "SnapExtensions", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "SnapAngles", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "DynamicGridEnabled", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "ProtectStyles", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "ProtectShapes", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "ProtectMasters", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "ProtectBkgnds", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "RelayoutAndRerouteUponOpen", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ShouldPreservePageContentsAttribute(XAttribute attribute) {
+            if (attribute.IsNamespaceDeclaration) {
+                return false;
+            }
+
+            string localName = attribute.Name.LocalName;
+            string namespaceName = attribute.Name.NamespaceName;
+
+            return !(namespaceName == "http://www.w3.org/XML/1998/namespace" &&
+                     string.Equals(localName, "space", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool ShouldPreservePageContentsElement(XElement element) {
+            string localName = element.Name.LocalName;
+            return !string.Equals(localName, "Shapes", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(localName, "Connects", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ShouldPreserveShapesContainerAttribute(XAttribute attribute) {
+            return !attribute.IsNamespaceDeclaration &&
+                   attribute.Name.NamespaceName != "http://www.w3.org/XML/1998/namespace";
+        }
+
+        private static bool ShouldPreserveShapesContainerElement(XElement element) {
+            return !string.Equals(element.Name.LocalName, "Shape", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ShouldPreserveConnectsAttribute(XAttribute attribute) {
+            return !attribute.IsNamespaceDeclaration &&
+                   attribute.Name.NamespaceName != "http://www.w3.org/XML/1998/namespace";
+        }
+
+        private static bool ShouldPreserveConnectsElement(XElement element) {
+            return !string.Equals(element.Name.LocalName, "Connect", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ShouldPreserveColorsAttribute(XAttribute attribute) {
+            return !attribute.IsNamespaceDeclaration &&
+                   attribute.Name.NamespaceName != "http://www.w3.org/XML/1998/namespace";
+        }
+
+        private static bool ShouldPreserveColorsElement(XElement element) {
+            return true;
+        }
+
+        private static bool ShouldPreserveFaceNamesAttribute(XAttribute attribute) {
+            return !attribute.IsNamespaceDeclaration &&
+                   attribute.Name.NamespaceName != "http://www.w3.org/XML/1998/namespace";
+        }
+
+        private static bool ShouldPreserveFaceNamesElement(XElement element) {
+            return true;
+        }
+
+        private static bool ShouldPreserveStyleSheetsAttribute(XAttribute attribute) {
+            return !attribute.IsNamespaceDeclaration &&
+                   attribute.Name.NamespaceName != "http://www.w3.org/XML/1998/namespace";
+        }
+
+        private static bool ShouldPreserveStyleSheetsElement(XElement element) {
+            return !string.Equals(element.Name.LocalName, "StyleSheet", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ShouldPreserveStyleSheetAttribute(XAttribute attribute, string styleSheetId) {
+            if (attribute.IsNamespaceDeclaration) {
+                return false;
+            }
+
+            string localName = attribute.Name.LocalName;
+            string namespaceName = attribute.Name.NamespaceName;
+
+            if (namespaceName == "http://www.w3.org/XML/1998/namespace") {
+                return false;
+            }
+
+            if (string.Equals(localName, "ID", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(localName, "Name", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(localName, "NameU", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            if ((string.Equals(styleSheetId, "0", StringComparison.Ordinal) ||
+                 string.Equals(styleSheetId, "1", StringComparison.Ordinal) ||
+                 string.Equals(styleSheetId, "2", StringComparison.Ordinal)) &&
+                (string.Equals(localName, "BasedOn", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(localName, "LineStyle", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(localName, "FillStyle", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(localName, "TextStyle", StringComparison.OrdinalIgnoreCase))) {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool ShouldPreserveStyleSheetElement(XElement element, string styleSheetId) {
+            if (!string.Equals(element.Name.LocalName, "Cell", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+
+            if (!(element.Attribute("N")?.Value is string cellName) ||
+                string.IsNullOrWhiteSpace(cellName)) {
+                return true;
+            }
+
+            return !GetGeneratedStyleSheetCellNames(styleSheetId).Contains(cellName);
+        }
+
+        private static bool IsGeneratedStyleSheet(string styleSheetId) {
+            return string.Equals(styleSheetId, "0", StringComparison.Ordinal) ||
+                   string.Equals(styleSheetId, "1", StringComparison.Ordinal) ||
+                   string.Equals(styleSheetId, "2", StringComparison.Ordinal);
+        }
+
+        private static ISet<string> GetGeneratedStyleSheetCellNames(string styleSheetId) {
+            return styleSheetId switch {
+                "0" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+                    "EnableLineProps", "EnableFillProps", "EnableTextProps", "LineWeight", "LineColor", "LinePattern", "FillForegnd", "FillPattern"
+                },
+                "1" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+                    "LinePattern", "LineColor", "FillPattern", "FillForegnd"
+                },
+                "2" => new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+                    "EndArrow"
+                },
+                _ => new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            };
+        }
+
+        private static PreservedStyleSheetData GetOrCreatePreservedStyleSheet(VisioDocument document, string styleSheetId) {
+            if (!document.PreservedGeneratedStyleSheets.TryGetValue(styleSheetId, out PreservedStyleSheetData? preserved)) {
+                preserved = new PreservedStyleSheetData();
+                document.PreservedGeneratedStyleSheets[styleSheetId] = preserved;
+            }
+
+            return preserved;
+        }
+
+        private static bool ShouldPreserveMasterContentAttribute(XAttribute attribute) {
+            if (attribute.IsNamespaceDeclaration) {
+                return false;
+            }
+
+            string localName = attribute.Name.LocalName;
+            string namespaceName = attribute.Name.NamespaceName;
+
+            return !(namespaceName == "http://www.w3.org/XML/1998/namespace" &&
+                     string.Equals(localName, "space", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool ShouldPreserveMasterShapesAttribute(XAttribute attribute) {
+            return !attribute.IsNamespaceDeclaration;
         }
     }
 }

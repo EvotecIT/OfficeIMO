@@ -7,6 +7,23 @@ namespace OfficeIMO.Visio {
     /// Represents a shape on a Visio page.
     /// </summary>
     public class VisioShape {
+        internal sealed class PreservedShapeChildEntry {
+            public PreservedShapeChildEntry(XElement rawElement) {
+                RawElement = new XElement(rawElement);
+            }
+
+            public PreservedShapeChildEntry(string token) {
+                Token = token;
+            }
+
+            public XElement? RawElement { get; }
+
+            public string? Token { get; }
+        }
+
+        private readonly List<VisioShape> _children = new();
+        private readonly IList<VisioShape> _childCollection;
+
         /// <summary>
         /// Default line weight used when Visio does not specify a value.
         /// </summary>
@@ -24,6 +41,7 @@ namespace OfficeIMO.Visio {
             FillColor = Color.White;
             LinePattern = 1; // Solid line
             FillPattern = 1; // Solid fill
+            _childCollection = new ChildShapeCollection(this);
         }
 
         /// <summary>
@@ -173,7 +191,7 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Child shapes when this shape represents a group.
         /// </summary>
-        public IList<VisioShape> Children { get; } = new List<VisioShape>();
+        public IList<VisioShape> Children => _childCollection;
 
         /// <summary>
         /// Connection points associated with the shape.
@@ -184,6 +202,18 @@ namespace OfficeIMO.Visio {
         /// Geometry sections captured from a loaded package so custom shape outlines can be preserved on save.
         /// </summary>
         internal IList<XElement> PreservedGeometrySections { get; } = new List<XElement>();
+
+        internal IList<XElement> PreservedCellElements { get; } = new List<XElement>();
+
+        internal IList<XElement> PreservedNonGeometrySections { get; } = new List<XElement>();
+
+        internal IList<PreservedShapeChildEntry> PreservedShapeChildren { get; } = new List<PreservedShapeChildEntry>();
+
+        internal XElement? PreservedTextElement { get; set; }
+
+        internal string? PreservedTextValue { get; set; }
+
+        internal IList<XElement> PreservedDataRows { get; } = new List<XElement>();
 
         /// <summary>
         /// Arbitrary data associated with the shape.
@@ -242,6 +272,58 @@ namespace OfficeIMO.Visio {
             return created;
         }
 
+        internal void NormalizeDescendantParentLinks() {
+            foreach (VisioShape child in _children) {
+                child.Parent = this;
+                child.NormalizeDescendantParentLinks();
+            }
+        }
+
+        internal bool ContainsInHierarchy(VisioShape candidate) {
+            if (ReferenceEquals(this, candidate)) {
+                return true;
+            }
+
+            foreach (VisioShape child in _children) {
+                if (child.ContainsInHierarchy(candidate)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void PrepareChildForParent(VisioShape child) {
+            if (child == null) {
+                throw new ArgumentNullException(nameof(child));
+            }
+
+            if (ReferenceEquals(child, this)) {
+                throw new InvalidOperationException("A shape cannot be added as a child of itself.");
+            }
+
+            if (_children.Contains(child)) {
+                throw new InvalidOperationException("The shape is already a child of this parent.");
+            }
+
+            if (child.ContainsInHierarchy(this)) {
+                throw new InvalidOperationException("Adding this child would create a cycle in the shape hierarchy.");
+            }
+
+            if (child.Parent != null && !ReferenceEquals(child.Parent, this)) {
+                throw new InvalidOperationException("The shape already belongs to another parent. Remove it from the current parent before reusing it.");
+            }
+
+            child.Parent = this;
+            child.NormalizeDescendantParentLinks();
+        }
+
+        private void DetachChild(VisioShape child) {
+            if (ReferenceEquals(child.Parent, this)) {
+                child.Parent = null;
+            }
+        }
+
         private bool MatchesSide(VisioConnectionPoint point, VisioSide side) {
             const double tolerance = 1e-9;
             return side switch {
@@ -298,6 +380,81 @@ namespace OfficeIMO.Visio {
             double bottom = Math.Min(Math.Min(y1, y2), Math.Min(y3, y4));
             double top = Math.Max(Math.Max(y1, y2), Math.Max(y3, y4));
             return (left, bottom, right, top);
+        }
+
+        private sealed class ChildShapeCollection : IList<VisioShape> {
+            private readonly VisioShape _owner;
+
+            public ChildShapeCollection(VisioShape owner) {
+                _owner = owner;
+            }
+
+            public VisioShape this[int index] {
+                get => _owner._children[index];
+                set {
+                    VisioShape existing = _owner._children[index];
+                    if (ReferenceEquals(existing, value)) {
+                        return;
+                    }
+
+                    _owner.PrepareChildForParent(value);
+                    try {
+                        _owner._children[index] = value;
+                    } catch {
+                        _owner.DetachChild(value);
+                        throw;
+                    }
+
+                    _owner.DetachChild(existing);
+                }
+            }
+
+            public int Count => _owner._children.Count;
+
+            public bool IsReadOnly => false;
+
+            public void Add(VisioShape item) {
+                _owner.PrepareChildForParent(item);
+                _owner._children.Add(item);
+            }
+
+            public void Clear() {
+                foreach (VisioShape child in _owner._children) {
+                    _owner.DetachChild(child);
+                }
+
+                _owner._children.Clear();
+            }
+
+            public bool Contains(VisioShape item) => _owner._children.Contains(item);
+
+            public void CopyTo(VisioShape[] array, int arrayIndex) => _owner._children.CopyTo(array, arrayIndex);
+
+            public IEnumerator<VisioShape> GetEnumerator() => _owner._children.GetEnumerator();
+
+            public int IndexOf(VisioShape item) => _owner._children.IndexOf(item);
+
+            public void Insert(int index, VisioShape item) {
+                _owner.PrepareChildForParent(item);
+                _owner._children.Insert(index, item);
+            }
+
+            public bool Remove(VisioShape item) {
+                bool removed = _owner._children.Remove(item);
+                if (removed) {
+                    _owner.DetachChild(item);
+                }
+
+                return removed;
+            }
+
+            public void RemoveAt(int index) {
+                VisioShape child = _owner._children[index];
+                _owner._children.RemoveAt(index);
+                _owner.DetachChild(child);
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
         }
     }
 }
