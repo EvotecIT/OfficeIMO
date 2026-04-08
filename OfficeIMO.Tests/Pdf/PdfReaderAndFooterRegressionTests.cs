@@ -11,6 +11,34 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfReaderAndFooterRegressionTests {
     [Fact]
+    public void PdfSyntax_ParseObjects_ReadsBooleanAndNullObjects() {
+        byte[] bytes = BuildPdfWithBooleanAndNullObjects();
+
+        var (map, _) = PdfSyntax.ParseObjects(bytes);
+
+        Assert.True(map[3].Value is PdfBoolean boolTrue && boolTrue.Value);
+        Assert.True(map[4].Value is PdfBoolean boolFalse && !boolFalse.Value);
+        Assert.Same(PdfNull.Instance, map[5].Value);
+    }
+
+    [Fact]
+    public void PdfSyntax_ParseObjects_ReadsBooleanAndNullDictionaryValues() {
+        byte[] bytes = BuildPdfWithBooleanAndNullObjects();
+
+        var (map, _) = PdfSyntax.ParseObjects(bytes);
+
+        var metadata = Assert.IsType<PdfDictionary>(map[6].Value);
+        Assert.True(metadata.Get<PdfBoolean>("IsTagged")?.Value);
+        Assert.False(metadata.Get<PdfBoolean>("NeedsRendering")?.Value ?? true);
+        Assert.IsType<PdfNull>(metadata.Items["OptionalContent"]);
+
+        var flags = Assert.IsType<PdfArray>(metadata.Items["Flags"]);
+        Assert.True(Assert.IsType<PdfBoolean>(flags.Items[0]).Value);
+        Assert.False(Assert.IsType<PdfBoolean>(flags.Items[1]).Value);
+        Assert.IsType<PdfNull>(flags.Items[2]);
+    }
+
+    [Fact]
     public void PdfReadPage_GetPageSize_InheritsMediaBoxFromPagesNode() {
         byte[] pdfBytes = BuildPdfWithInheritedMediaBox(500, 700);
 
@@ -618,6 +646,35 @@ public class PdfReaderAndFooterRegressionTests {
             "stream",
             streamContent.TrimEnd('\n'),
             "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithBooleanAndNullObjects() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Metadata 6 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 0 /Kids [ ] >>",
+            "endobj",
+            "3 0 obj",
+            "true",
+            "endobj",
+            "4 0 obj",
+            "false",
+            "endobj",
+            "5 0 obj",
+            "null",
+            "endobj",
+            "6 0 obj",
+            "<< /IsTagged true /NeedsRendering false /OptionalContent null /Flags [true false null] >>",
             "endobj",
             "trailer",
             "<< /Root 1 0 R >>",

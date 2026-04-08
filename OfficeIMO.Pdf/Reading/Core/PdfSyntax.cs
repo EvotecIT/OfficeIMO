@@ -179,6 +179,9 @@ internal static class PdfSyntax {
     private static PdfObject? ParseTopLevelObject(string body) {
         if (string.IsNullOrWhiteSpace(body)) return null;
         var s = body.TrimStart();
+        if (string.Equals(s, "true", StringComparison.Ordinal)) return new PdfBoolean(true);
+        if (string.Equals(s, "false", StringComparison.Ordinal)) return new PdfBoolean(false);
+        if (string.Equals(s, "null", StringComparison.Ordinal)) return PdfNull.Instance;
         if (s.StartsWith("<<", System.StringComparison.Ordinal)) {
             // Find matching >> and parse inside
             int dictStart = body.IndexOf("<<", StringComparison.Ordinal);
@@ -276,6 +279,9 @@ internal static class PdfSyntax {
         if (tok.Length > 1 && tok[0] == '<' && tok[tok.Length - 1] == '>' && (tok.Length == 2 || tok[1] != '<')) {
             return (new PdfStringObj(DecodeHexString(tok.Substring(1, tok.Length - 2))), 0);
         }
+        if (string.Equals(tok, "true", StringComparison.Ordinal)) return (new PdfBoolean(true), 0);
+        if (string.Equals(tok, "false", StringComparison.Ordinal)) return (new PdfBoolean(false), 0);
+        if (string.Equals(tok, "null", StringComparison.Ordinal)) return (PdfNull.Instance, 0);
         if (tok.Length > 0 && (char.IsDigit(tok[0]) || tok[0] == '-' || tok[0] == '+')) {
             // reference (obj gen R) or number
             if (i + 2 < tokens.Count && tokens[i + 2] == "R" && int.TryParse(tokens[i], out int obj) && int.TryParse(tokens[i + 1], out int gen)) {
