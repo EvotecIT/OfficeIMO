@@ -360,6 +360,7 @@ namespace OfficeIMO.Visio {
 
                 Dictionary<string, VisioShape> shapeMap = new();
                 List<XElement> connectorElements = new();
+                Dictionary<XElement, VisioShape> loadedShapesByElement = new();
                 foreach (XElement shapeElement in shapesRoot?.Elements(vNs + "Shape") ?? Enumerable.Empty<XElement>()) {
                     if (IsConnectorShape(shapeElement, masters)) {
                         connectorElements.Add(shapeElement);
@@ -371,6 +372,7 @@ namespace OfficeIMO.Visio {
 
                     page.Shapes.Add(shape);
                     RegisterShapeHierarchy(shape, shapeMap);
+                    loadedShapesByElement[shapeElement] = shape;
                 }
 
                 XElement? connectsRoot = pageDoc.Root?.Element(vNs + "Connects");
@@ -420,6 +422,7 @@ namespace OfficeIMO.Visio {
                 }
 
                 Dictionary<string, VisioConnector> loadedConnectorsByPersistedId = new(StringComparer.Ordinal);
+                Dictionary<XElement, VisioConnector> loadedConnectorsByElement = new();
                 foreach (XElement connectorElement in connectorElements) {
                     string persistedId = connectorElement.Attribute("ID")?.Value ?? string.Empty;
                     if (!connectionMap.TryGetValue(persistedId, out var ids)) {
@@ -494,6 +497,26 @@ namespace OfficeIMO.Visio {
                     connector.PreservedTextValue = connectorTextElement?.Value;
                     page.Connectors.Add(connector);
                     loadedConnectorsByPersistedId[persistedId] = connector;
+                    loadedConnectorsByElement[connectorElement] = connector;
+                }
+
+                foreach (XElement shapeChild in shapesRoot?.Elements() ?? Enumerable.Empty<XElement>()) {
+                    if (!string.Equals(shapeChild.Name.LocalName, "Shape", StringComparison.OrdinalIgnoreCase)) {
+                        page.PreservedShapesChildren.Add(new VisioPage.PreservedShapeChildEntry(shapeChild));
+                        continue;
+                    }
+
+                    if (loadedShapesByElement.TryGetValue(shapeChild, out VisioShape? loadedShape)) {
+                        page.PreservedShapesChildren.Add(new VisioPage.PreservedShapeChildEntry(loadedShape));
+                        continue;
+                    }
+
+                    if (loadedConnectorsByElement.TryGetValue(shapeChild, out VisioConnector? loadedConnector)) {
+                        page.PreservedShapesChildren.Add(new VisioPage.PreservedShapeChildEntry(loadedConnector));
+                        continue;
+                    }
+
+                    page.PreservedShapesChildren.Add(new VisioPage.PreservedShapeChildEntry(shapeChild));
                 }
 
                 foreach (XElement connectChild in connectsRoot?.Elements() ?? Enumerable.Empty<XElement>()) {

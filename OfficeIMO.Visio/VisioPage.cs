@@ -7,6 +7,26 @@ namespace OfficeIMO.Visio {
     /// Represents a single page within a Visio document.
     /// </summary>
     public class VisioPage {
+        internal sealed class PreservedShapeChildEntry {
+            public PreservedShapeChildEntry(XElement rawElement) {
+                RawElement = new XElement(rawElement);
+            }
+
+            public PreservedShapeChildEntry(VisioShape shape) {
+                Shape = shape;
+            }
+
+            public PreservedShapeChildEntry(VisioConnector connector) {
+                Connector = connector;
+            }
+
+            public XElement? RawElement { get; }
+
+            public VisioShape? Shape { get; }
+
+            public VisioConnector? Connector { get; }
+        }
+
         internal sealed class PreservedConnectChildEntry {
             public PreservedConnectChildEntry(XElement rawElement) {
                 RawElement = new XElement(rawElement);
@@ -296,6 +316,8 @@ namespace OfficeIMO.Visio {
         internal IList<XAttribute> PreservedShapesContainerAttributes { get; } = new List<XAttribute>();
 
         internal IList<XElement> PreservedShapesContainerElements { get; } = new List<XElement>();
+
+        internal IList<PreservedShapeChildEntry> PreservedShapesChildren { get; } = new List<PreservedShapeChildEntry>();
 
         internal IList<XAttribute> PreservedConnectsAttributes { get; } = new List<XAttribute>();
 

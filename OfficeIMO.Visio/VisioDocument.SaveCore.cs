@@ -468,78 +468,45 @@ namespace OfficeIMO.Visio {
                         bool writeShapesContainer = page.Shapes.Count > 0 ||
                                                     page.Connectors.Count > 0 ||
                                                     page.PreservedShapesContainerAttributes.Count > 0 ||
-                                                    page.PreservedShapesContainerElements.Count > 0;
+                                                    page.PreservedShapesContainerElements.Count > 0 ||
+                                                    page.PreservedShapesChildren.Count > 0;
                         if (writeShapesContainer) {
                             writer.WriteStartElement("Shapes", ns);
                             WritePreservedAttributes(writer, page.PreservedShapesContainerAttributes);
-                            WritePreservedElements(writer, page.PreservedShapesContainerElements);
+                            HashSet<VisioShape> emittedShapes = new();
+                            HashSet<VisioConnector> emittedConnectors = new();
+                            if (page.PreservedShapesChildren.Count > 0) {
+                                foreach (VisioPage.PreservedShapeChildEntry entry in page.PreservedShapesChildren) {
+                                    if (entry.RawElement != null) {
+                                        entry.RawElement.WriteTo(writer);
+                                        continue;
+                                    }
+
+                                    if (entry.Shape != null && page.Shapes.Contains(entry.Shape)) {
+                                        WriteShapeElement(writer, ns, entry.Shape, persistedIds, pageMasters, masters);
+                                        emittedShapes.Add(entry.Shape);
+                                        continue;
+                                    }
+
+                                    if (entry.Connector != null && page.Connectors.Contains(entry.Connector)) {
+                                        WriteConnectorShapeElement(writer, ns, entry.Connector, persistedIds, masters);
+                                        emittedConnectors.Add(entry.Connector);
+                                    }
+                                }
+                            } else {
+                                WritePreservedElements(writer, page.PreservedShapesContainerElements);
+                            }
 
                             foreach (VisioShape shape in page.Shapes) {
-                                WriteShapeElement(writer, ns, shape, persistedIds, pageMasters, masters);
+                                if (emittedShapes.Add(shape)) {
+                                    WriteShapeElement(writer, ns, shape, persistedIds, pageMasters, masters);
+                                }
                             }
 
                             foreach (VisioConnector connector in page.Connectors) {
-                                writer.WriteStartElement("Shape", ns);
-                                writer.WriteAttributeString("ID", GetPersistedId(persistedIds, connector.Id));
-                                bool isDynamic = connector.Kind == ConnectorKind.Dynamic;
-                                string connName = (isDynamic && UseMastersByDefault) ? "Dynamic connector" : "Connector";
-                                writer.WriteAttributeString("Name", connName);
-                                writer.WriteAttributeString("NameU", connName);
-                                writer.WriteAttributeString("LineStyle", "0");
-                                writer.WriteAttributeString("FillStyle", "0");
-                                writer.WriteAttributeString("TextStyle", "0");
-                                if (isDynamic && UseMastersByDefault) {
-                                    var m = EnsureBuiltinMaster("Dynamic connector");
-                                    writer.WriteAttributeString("Master", GetPackageMasterId(masters, m));
+                                if (emittedConnectors.Add(connector)) {
+                                    WriteConnectorShapeElement(writer, ns, connector, persistedIds, masters);
                                 }
-                                double startX, startY, endX, endY;
-                                if (connector.FromConnectionPoint != null) {
-                                    (startX, startY) = connector.From.GetAbsolutePoint(connector.FromConnectionPoint.X, connector.FromConnectionPoint.Y);
-                                } else {
-                                    var (fL, fB, fR, fT) = connector.From.GetBounds();
-                                    // Choose side based on relative centers to respect rotation/locpin.
-                                    var (tL2, _, tR2, _) = connector.To.GetBounds();
-                                    double fromCx = (fL + fR) / 2.0;
-                                    double toCx = (tL2 + tR2) / 2.0;
-                                    bool toIsRight = toCx >= fromCx;
-                                    startX = toIsRight ? fR : fL;
-                                    startY = (fB + fT) / 2.0;
-                                }
-
-                                if (connector.ToConnectionPoint != null) {
-                                    (endX, endY) = connector.To.GetAbsolutePoint(connector.ToConnectionPoint.X, connector.ToConnectionPoint.Y);
-                                } else {
-                                    var (tL, tB, tR, tT) = connector.To.GetBounds();
-                                    // Choose side based on relative centers
-                                    var (fL2, _, fR2, _) = connector.From.GetBounds();
-                                    double toCx = (tL + tR) / 2.0;
-                                    double fromCx = (fL2 + fR2) / 2.0;
-                                    bool fromIsLeft = fromCx <= toCx;
-                                    endX = fromIsLeft ? tL : tR;
-                                    endY = (tB + tT) / 2.0;
-                                }
-                                WriteXForm1D(writer, ns, startX, startY, endX, endY);
-                                WriteCell(writer, ns, "LineWeight", connector.LineWeight);
-                                WriteCell(writer, ns, "LinePattern", connector.LinePattern);
-                                WriteCellValue(writer, ns, "LineColor", connector.LineColor.ToVisioHex());
-                                WriteCell(writer, ns, "FillPattern", 0);
-                                WriteCellValue(writer, ns, "FillForegnd", Color.Transparent.ToVisioHex());
-                                WriteCell(writer, ns, "OneD", 1);
-                                if (connector.BeginArrow.HasValue) {
-                                    WriteCell(writer, ns, "BeginArrow", (int)connector.BeginArrow.Value);
-                                }
-                                if (connector.EndArrow.HasValue) {
-                                    WriteCell(writer, ns, "EndArrow", (int)connector.EndArrow.Value);
-                                }
-
-                                WritePreservedConnectorCells(writer, connector.PreservedCellElements);
-                                WritePreservedConnectorSections(writer, connector.PreservedNonGeometrySections);
-                                WriteConnectorGeometry(writer, ns, connector, startX, startY, endX, endY);
-
-                                KeyValuePair<string, string>? connectorOriginalId = GetOriginalIdEntry(persistedIds, connector.Id);
-                                WriteDataSection(writer, ns, new Dictionary<string, string>(), null, connectorOriginalId);
-                                WriteTextElement(writer, ns, connector.Label, connector.PreservedTextElement, connector.PreservedTextValue);
-                                writer.WriteEndElement();
                             }
 
                             writer.WriteEndElement(); // Shapes
@@ -649,6 +616,73 @@ namespace OfficeIMO.Visio {
                 writer.WriteEndElement();
             }
 
+            writer.WriteEndElement();
+        }
+
+        private void WriteConnectorShapeElement(XmlWriter writer, string ns, VisioConnector connector, IReadOnlyDictionary<string, string> persistedIds, IReadOnlyList<PackageMasterEntry> packageMasters) {
+            writer.WriteStartElement("Shape", ns);
+            writer.WriteAttributeString("ID", GetPersistedId(persistedIds, connector.Id));
+            bool isDynamic = connector.Kind == ConnectorKind.Dynamic;
+            string connName = (isDynamic && UseMastersByDefault) ? "Dynamic connector" : "Connector";
+            writer.WriteAttributeString("Name", connName);
+            writer.WriteAttributeString("NameU", connName);
+            writer.WriteAttributeString("LineStyle", "0");
+            writer.WriteAttributeString("FillStyle", "0");
+            writer.WriteAttributeString("TextStyle", "0");
+            if (isDynamic && UseMastersByDefault) {
+                var m = EnsureBuiltinMaster("Dynamic connector");
+                writer.WriteAttributeString("Master", GetPackageMasterId(packageMasters, m));
+            }
+
+            double startX;
+            double startY;
+            if (connector.FromConnectionPoint != null) {
+                (startX, startY) = connector.From.GetAbsolutePoint(connector.FromConnectionPoint.X, connector.FromConnectionPoint.Y);
+            } else {
+                var (fL, fB, fR, fT) = connector.From.GetBounds();
+                var (tL2, _, tR2, _) = connector.To.GetBounds();
+                double fromCx = (fL + fR) / 2.0;
+                double toCx = (tL2 + tR2) / 2.0;
+                bool toIsRight = toCx >= fromCx;
+                startX = toIsRight ? fR : fL;
+                startY = (fB + fT) / 2.0;
+            }
+
+            double endX;
+            double endY;
+            if (connector.ToConnectionPoint != null) {
+                (endX, endY) = connector.To.GetAbsolutePoint(connector.ToConnectionPoint.X, connector.ToConnectionPoint.Y);
+            } else {
+                var (tL, tB, tR, tT) = connector.To.GetBounds();
+                var (fL2, _, fR2, _) = connector.From.GetBounds();
+                double toCx = (tL + tR) / 2.0;
+                double fromCx = (fL2 + fR2) / 2.0;
+                bool fromIsLeft = fromCx <= toCx;
+                endX = fromIsLeft ? tL : tR;
+                endY = (tB + tT) / 2.0;
+            }
+
+            WriteXForm1D(writer, ns, startX, startY, endX, endY);
+            WriteCell(writer, ns, "LineWeight", connector.LineWeight);
+            WriteCell(writer, ns, "LinePattern", connector.LinePattern);
+            WriteCellValue(writer, ns, "LineColor", connector.LineColor.ToVisioHex());
+            WriteCell(writer, ns, "FillPattern", 0);
+            WriteCellValue(writer, ns, "FillForegnd", Color.Transparent.ToVisioHex());
+            WriteCell(writer, ns, "OneD", 1);
+            if (connector.BeginArrow.HasValue) {
+                WriteCell(writer, ns, "BeginArrow", (int)connector.BeginArrow.Value);
+            }
+            if (connector.EndArrow.HasValue) {
+                WriteCell(writer, ns, "EndArrow", (int)connector.EndArrow.Value);
+            }
+
+            WritePreservedConnectorCells(writer, connector.PreservedCellElements);
+            WritePreservedConnectorSections(writer, connector.PreservedNonGeometrySections);
+            WriteConnectorGeometry(writer, ns, connector, startX, startY, endX, endY);
+
+            KeyValuePair<string, string>? connectorOriginalId = GetOriginalIdEntry(persistedIds, connector.Id);
+            WriteDataSection(writer, ns, new Dictionary<string, string>(), null, connectorOriginalId);
+            WriteTextElement(writer, ns, connector.Label, connector.PreservedTextElement, connector.PreservedTextValue);
             writer.WriteEndElement();
         }
 

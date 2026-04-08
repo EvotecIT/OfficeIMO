@@ -288,6 +288,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ShapesChildOrderIsPreservedOnRoundTrip() {
+            string filePath = CreateConnectorDocument(ConnectorKind.Straight);
+
+            RewritePage(filePath, pageDoc => {
+                XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+                XElement shapes = pageDoc.Root!.Element(ns + "Shapes")!;
+                XElement[] originalShapes = shapes.Elements(ns + "Shape").ToArray();
+                XElement firstShape = originalShapes[0];
+                XElement secondShape = originalShapes[1];
+                XElement connectorShape = originalShapes[2];
+                XElement sidecarElement = new(ns + "ShapesMeta",
+                    new XAttribute("KeepOrder", "1"));
+
+                shapes.RemoveNodes();
+                shapes.Add(connectorShape, sidecarElement, secondShape, firstShape);
+            });
+
+            string originalOrder = ReadShapesChildOrder(filePath);
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            string savedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            loaded.Save(savedPath);
+
+            Assert.Equal(originalOrder, ReadShapesChildOrder(savedPath));
+        }
+
+        [Fact]
         public void AdditionalConnectRowsArePreservedOnRoundTrip() {
             string filePath = CreateConnectorDocument(ConnectorKind.Straight);
 
@@ -1376,6 +1403,20 @@ namespace OfficeIMO.Tests {
                 connects.Elements()
                     .Where(element => element.Name != ns + "Connect")
                     .Select(element => element.ToString(SaveOptions.DisableFormatting)));
+        }
+
+        private static string ReadShapesChildOrder(string vsdxPath) {
+            using ZipArchive archive = ZipFile.OpenRead(vsdxPath);
+            using Stream stream = archive.GetEntry("visio/pages/page1.xml")!.Open();
+            XDocument pageDoc = XDocument.Load(stream);
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XElement shapes = pageDoc.Root!.Element(ns + "Shapes")!;
+
+            return string.Join("|",
+                shapes.Elements()
+                    .Select(element => string.Equals(element.Name.LocalName, "Shape", StringComparison.OrdinalIgnoreCase)
+                        ? $"Shape:{(string?)element.Attribute("NameU")}"
+                        : $"{element.Name.LocalName}:{(string?)element.Attribute("KeepOrder") ?? string.Empty}"));
         }
 
         private static string ReadAdditionalConnectRows(string vsdxPath) {
