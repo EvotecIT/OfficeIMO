@@ -929,6 +929,34 @@ public sealed class ReaderDocumentReaderTests {
     }
 
     [Fact]
+    public void DocumentReader_ReadFolderDocuments_SizeSkippedFiles_DoNotComputeSourceHash() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var largeMarkdown = Path.Combine(folder, "large.md");
+
+        try {
+            File.WriteAllText(largeMarkdown, new string('x', 512));
+
+            var document = Assert.Single(DocumentReader.ReadFolderDocuments(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    DeterministicOrder = true
+                },
+                options: new ReaderOptions {
+                    ComputeHashes = true,
+                    MaxInputBytes = 128
+                }));
+
+            Assert.False(document.Parsed);
+            Assert.Null(document.SourceHash);
+            Assert.Contains("MaxInputBytes", document.Warnings![0], StringComparison.OrdinalIgnoreCase);
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_ReadPathDocumentsDetailed_CanReadSingleFile() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".md");
 
@@ -1184,6 +1212,33 @@ public sealed class ReaderDocumentReaderTests {
 
             var completedEvent = Assert.Single(events, e => e.Kind == ReaderProgressEventKind.Completed);
             Assert.Equal(chunks.Count, completedEvent.ChunksProduced);
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadFolder_SizeSkippedWarningChunks_DoNotComputeSourceHash() {
+        var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var largeMarkdown = Path.Combine(folder, "large.md");
+
+        try {
+            File.WriteAllText(largeMarkdown, new string('x', 512));
+
+            var warningChunk = Assert.Single(DocumentReader.ReadFolder(
+                folderPath: folder,
+                folderOptions: new ReaderFolderOptions {
+                    Recurse = false,
+                    DeterministicOrder = true
+                },
+                options: new ReaderOptions {
+                    ComputeHashes = true,
+                    MaxInputBytes = 128
+                }));
+
+            Assert.Null(warningChunk.SourceHash);
+            Assert.Contains("MaxInputBytes", warningChunk.Warnings![0], StringComparison.OrdinalIgnoreCase);
         } finally {
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }

@@ -551,7 +551,7 @@ public static class DocumentReader {
             if (state.FilesScanned >= fo.MaxFiles) break;
 
             state.FilesScanned++;
-            var source = BuildSourceInfoFromPath(file, opt.ComputeHashes);
+            var source = BuildSourceInfoFromPath(file, computeHash: false);
             NotifyProgress(onProgress, ReaderProgressEventKind.FileStarted, state, source, null, fileChunkCount: null);
 
             string? statWarning = null;
@@ -601,6 +601,10 @@ public static class DocumentReader {
                     source,
                     opt.ComputeHashes);
                 continue;
+            }
+
+            if (opt.ComputeHashes && string.IsNullOrWhiteSpace(source.SourceHash)) {
+                source.SourceHash = TryComputeFileSha256(file);
             }
 
             List<ReaderChunk>? fileChunks = null;
@@ -670,7 +674,7 @@ public static class DocumentReader {
             if (state.FilesScanned >= fo.MaxFiles) break;
 
             state.FilesScanned++;
-            var source = BuildSourceInfoFromPath(file, opt.ComputeHashes);
+            var source = BuildSourceInfoFromPath(file, computeHash: false);
             NotifyProgress(onProgress, ReaderProgressEventKind.FileStarted, state, source, null, fileChunkCount: null);
 
             var length = source.LengthBytes;
@@ -699,6 +703,10 @@ public static class DocumentReader {
                 NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, warning, fileChunkCount: 0);
                 yield return BuildSourceDocument(source, parsed: false, chunks: null, sourceWarnings: new[] { warning });
                 continue;
+            }
+
+            if (opt.ComputeHashes && string.IsNullOrWhiteSpace(source.SourceHash)) {
+                source.SourceHash = TryComputeFileSha256(file);
             }
 
             List<ReaderChunk>? fileChunks = null;
