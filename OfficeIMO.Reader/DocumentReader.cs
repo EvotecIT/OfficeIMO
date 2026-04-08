@@ -959,7 +959,13 @@ public static class DocumentReader {
 
         var opt = NormalizeOptions(options);
         EnforceStreamSize(stream, opt.MaxInputBytes);
-        var logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? null : sourceName.Trim();
+        string? logicalSourceName = null;
+        if (sourceName != null) {
+            var trimmedSourceName = sourceName.Trim();
+            if (trimmedSourceName.Length > 0) {
+                logicalSourceName = trimmedSourceName;
+            }
+        }
         var source = BuildSourceInfoFromStream(stream, logicalSourceName, opt.ComputeHashes);
 
         IEnumerable<ReaderChunk> raw;

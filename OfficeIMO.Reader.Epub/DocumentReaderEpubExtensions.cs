@@ -273,7 +273,7 @@ public static class DocumentReaderEpubExtensions {
         }
 
         return new SourceMetadata {
-            Path = epubPath,
+            Path = normalizedPath,
             SourceId = sourceId,
             SourceHash = sourceHash,
             LastWriteUtc = lastWriteUtc,

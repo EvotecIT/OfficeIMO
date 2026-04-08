@@ -220,6 +220,44 @@ public sealed class ReaderZipModularTests {
     }
 
     [Fact]
+    public void DocumentReaderZip_FileReads_CanonicalizeEquivalentArchivePathsForIdentity() {
+        var tempDirectory = Path.Combine(Path.GetTempPath(), "officeimo-reader-zip-canonical-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
+        var zipPath = Path.Combine(tempDirectory, "canonical.zip");
+        var originalCurrentDirectory = Environment.CurrentDirectory;
+
+        try {
+            File.WriteAllBytes(zipPath, BuildSimpleZipBytes());
+
+            Environment.CurrentDirectory = tempDirectory;
+            var relativePath = Path.GetFileName(zipPath);
+            var fullPath = Path.GetFullPath(relativePath).Replace('\\', '/');
+
+            var relativeChunk = DocumentReaderZipExtensions.ReadZip(
+                relativePath,
+                readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
+                zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
+                .Single(c => c.Kind == ReaderInputKind.Markdown);
+
+            var fullChunk = DocumentReaderZipExtensions.ReadZip(
+                zipPath,
+                readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
+                zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
+                .Single(c => c.Kind == ReaderInputKind.Markdown);
+
+            Assert.Equal(fullPath + "::docs/readme.md", relativeChunk.Location.Path);
+            Assert.Equal(relativeChunk.Location.Path, fullChunk.Location.Path);
+            Assert.Equal(relativeChunk.SourceId, fullChunk.SourceId);
+            Assert.Equal(relativeChunk.ChunkHash, fullChunk.ChunkHash);
+            Assert.Equal(relativeChunk.SourceHash, fullChunk.SourceHash);
+        } finally {
+            Environment.CurrentDirectory = originalCurrentDirectory;
+            if (File.Exists(zipPath)) File.Delete(zipPath);
+            if (Directory.Exists(tempDirectory)) Directory.Delete(tempDirectory);
+        }
+    }
+
+    [Fact]
     public void DocumentReaderZip_DisabledNestedZipWarnings_IncludeEntryMetadata() {
         var zipPath = Path.Combine(Path.GetTempPath(), "officeimo-reader-zip-disabled-nested-" + Guid.NewGuid().ToString("N") + ".zip");
         try {

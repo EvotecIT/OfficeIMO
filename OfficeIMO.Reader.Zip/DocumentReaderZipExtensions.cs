@@ -43,7 +43,7 @@ public static class DocumentReaderZipExtensions {
         foreach (var chunk in ReadZipArchive(
                      archive,
                      archiveSource,
-                     archivePath: zipPath,
+                     archivePath: archiveSource.Path,
                      readerOptions: effectiveReaderOptions,
                      zipOptions: effectiveZipOptions,
                      readerZipOptions: effectiveReaderZipOptions,
@@ -582,6 +582,7 @@ public static class DocumentReaderZipExtensions {
     }
 
     private static ArchiveSourceMetadata BuildArchiveSourceMetadataFromPath(string zipPath, bool computeHash) {
+        var normalizedPath = NormalizePathForVirtualPath(zipPath);
         DateTime? lastWriteUtc = null;
         long? lengthBytes = null;
         try {
@@ -595,7 +596,7 @@ public static class DocumentReaderZipExtensions {
         }
 
         return new ArchiveSourceMetadata {
-            Path = zipPath,
+            Path = normalizedPath,
             SourceHash = computeHash ? TryComputeFileSha256(zipPath) : null,
             LastWriteUtc = lastWriteUtc,
             LengthBytes = lengthBytes
@@ -633,6 +634,19 @@ public static class DocumentReaderZipExtensions {
         var normalized = NormalizeSourceKeyForId(sourceKey);
 
         return "src:" + ComputeSha256Hex(normalized);
+    }
+
+    private static string NormalizePathForVirtualPath(string path) {
+        if (string.IsNullOrWhiteSpace(path)) return string.Empty;
+
+        string fullPath;
+        try {
+            fullPath = Path.GetFullPath(path);
+        } catch {
+            fullPath = path;
+        }
+
+        return fullPath.Replace('\\', '/');
     }
 
     private static string NormalizeSourceKeyForId(string? sourceKey) {
