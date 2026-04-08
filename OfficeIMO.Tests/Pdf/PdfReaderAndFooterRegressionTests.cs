@@ -575,6 +575,26 @@ public class PdfReaderAndFooterRegressionTests {
         Assert.Equal("Hello indirect arrays", span.Text);
     }
 
+    [Fact]
+    public void PdfTextExtractor_ExtractAllText_ReadsStreamsWithIndirectLengthObjects() {
+        byte[] bytes = BuildPdfWithIndirectLengthStreamContainingEndstreamLiteral();
+
+        string text = PdfTextExtractor.ExtractAllText(bytes);
+
+        Assert.Contains("Hello endstream marker", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_ReadsStreamsWithIndirectLengthObjects() {
+        byte[] bytes = BuildPdfWithIndirectLengthStreamContainingEndstreamLiteral();
+
+        var doc = PdfReadDocument.Load(bytes);
+
+        Assert.Single(doc.Pages);
+        var span = Assert.Single(doc.Pages[0].GetTextSpans());
+        Assert.Equal("Hello endstream marker", span.Text);
+    }
+
     private static byte[] BuildPdfWithInheritedMediaBox(int width, int height) {
         const string streamContent = "BT\n/F1 12 Tf\n72 720 Td\n(Hi) Tj\nET\n";
         int streamLength = Encoding.ASCII.GetByteCount(streamContent);
@@ -983,6 +1003,17 @@ public class PdfReaderAndFooterRegressionTests {
             "endobj",
             "8 0 obj",
             $"<< /Predictor 12 /Columns {streamBytes.Length} >>",
+            "endobj");
+    }
+
+    private static byte[] BuildPdfWithIndirectLengthStreamContainingEndstreamLiteral() {
+        const string streamContent = "BT\n/F1 12 Tf\n72 720 Td\n(Hello endstream marker) Tj\nET\n";
+        byte[] streamBytes = Encoding.ASCII.GetBytes(streamContent);
+        return BuildSingleStreamPdfWithExtraObjects(
+            streamBytes,
+            "/Length 6 0 R",
+            "6 0 obj",
+            streamBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture),
             "endobj");
     }
 

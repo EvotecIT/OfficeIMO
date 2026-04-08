@@ -15,6 +15,7 @@ internal static class PdfSyntax {
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(byte[] pdf) {
         string text = PdfEncoding.Latin1GetString(pdf);
         var map = new Dictionary<int, PdfIndirectObject>();
+        var streamLocations = new List<(int Id, int Generation, int DataStart)>();
         var matches = ObjRegex.Matches(text);
         for (int i = 0; i < matches.Count; i++) {
             int id = int.Parse(matches[i].Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
@@ -38,14 +39,11 @@ internal static class PdfSyntax {
                     int streamKw = IndexOfKeyword(text, "stream", dictEnd, end);
                     if (streamKw >= 0) {
                         int dataStart = SkipEOL(text, streamKw + 6, end);
+                        streamLocations.Add((id, gen, dataStart));
                         // Try /Length first (inline number only)
                         int byteStart = dataStart;
                         int byteLen = -1;
-                        var lenNum = dict.Get<PdfNumber>("Length");
-                        if (lenNum is not null) {
-                            int L = (int)Math.Max(0, Math.Min(int.MaxValue, lenNum.Value));
-                            if (byteStart >= 0 && byteStart + L <= pdf.Length) byteLen = L;
-                        }
+                        TryGetResolvedLength(dict, map, out byteLen);
                         if (byteLen < 0) {
                             int endStream = IndexOfKeyword(text, "endstream", dataStart, end);
                             if (endStream > dataStart) byteLen = endStream - dataStart;
@@ -83,11 +81,42 @@ internal static class PdfSyntax {
                 }
             }
         }
+        ResolveIndirectStreamLengths(map, pdf, streamLocations);
         // Expand object streams (/Type /ObjStm) to populate embedded objects (pages and resources often live there)
         ExpandObjectStreams(map, pdf);
         int trailerIdx = text.LastIndexOf("trailer", StringComparison.OrdinalIgnoreCase);
         string trailerRaw = trailerIdx >= 0 ? text.Substring(trailerIdx) : string.Empty;
         return (map, trailerRaw);
+    }
+
+    private static void ResolveIndirectStreamLengths(Dictionary<int, PdfIndirectObject> map, byte[] pdf, List<(int Id, int Generation, int DataStart)> streamLocations) {
+        foreach (var streamLocation in streamLocations) {
+            if (!map.TryGetValue(streamLocation.Id, out var indirect) || indirect.Value is not PdfStream stream) {
+                continue;
+            }
+
+            if (!TryGetResolvedLength(stream.Dictionary, map, out int byteLen)) {
+                continue;
+            }
+
+            bool isImage = (stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Image") || (stream.Dictionary.Get<PdfName>("Type")?.Name == "XObject" && stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Image");
+            if (isImage) {
+                continue;
+            }
+
+            int byteStart = streamLocation.DataStart;
+            if (byteStart < 0 || byteLen < 0 || byteStart + byteLen > pdf.Length) {
+                continue;
+            }
+
+            if (stream.Data.Length == byteLen) {
+                continue;
+            }
+
+            var data = new byte[byteLen];
+            Buffer.BlockCopy(pdf, byteStart, data, 0, byteLen);
+            map[streamLocation.Id] = new PdfIndirectObject(streamLocation.Id, streamLocation.Generation, new PdfStream(stream.Dictionary, data, stream.DecodingFailed, stream.DecodingError));
+        }
     }
 
     private static void ExpandObjectStreams(Dictionary<int, PdfIndirectObject> map, byte[] pdf) {
@@ -307,6 +336,26 @@ internal static class PdfSyntax {
             i = j;
         }
         return tokens;
+    }
+
+    private static bool TryGetResolvedLength(PdfDictionary dict, Dictionary<int, PdfIndirectObject> map, out int length) {
+        length = -1;
+
+        if (dict.Get<PdfNumber>("Length") is PdfNumber lenNum) {
+            int resolved = (int)Math.Max(0, Math.Min(int.MaxValue, lenNum.Value));
+            length = resolved;
+            return true;
+        }
+
+        if (dict.Get<PdfReference>("Length") is PdfReference lenRef &&
+            map.TryGetValue(lenRef.ObjectNumber, out var indirectLength) &&
+            indirectLength.Value is PdfNumber referencedLength) {
+            int resolved = (int)Math.Max(0, Math.Min(int.MaxValue, referencedLength.Value));
+            length = resolved;
+            return true;
+        }
+
+        return false;
     }
 
     private static string Unescape(string s) => PdfTextExtractor.UnescapePdfLiteral(s);
