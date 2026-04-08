@@ -314,6 +314,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ConnectRowOrderIsPreservedOnRoundTrip() {
+            string filePath = CreateConnectorDocument(ConnectorKind.Straight);
+
+            RewritePage(filePath, pageDoc => {
+                XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+                XElement connects = pageDoc.Root!.Element(ns + "Connects")!;
+                XElement[] originalRows = connects.Elements(ns + "Connect").ToArray();
+                XElement beginRow = originalRows.First(connect => (string?)connect.Attribute("FromCell") == "BeginX");
+                XElement endRow = originalRows.First(connect => (string?)connect.Attribute("FromCell") == "EndX");
+                XElement extraRow = new(ns + "Connect",
+                    new XAttribute("FromSheet", beginRow.Attribute("FromSheet")!.Value),
+                    new XAttribute("FromCell", "PinX"),
+                    new XAttribute("ToSheet", beginRow.Attribute("ToSheet")!.Value),
+                    new XAttribute("ToCell", "Connections.X1"),
+                    new XAttribute("CustomConnectFlag", "KeepOrder"));
+
+                connects.RemoveNodes();
+                connects.Add(endRow, extraRow, beginRow);
+            });
+
+            string originalOrder = ReadConnectRowOrder(filePath);
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            string savedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            loaded.Save(savedPath);
+
+            Assert.Equal(originalOrder, ReadConnectRowOrder(savedPath));
+        }
+
+        [Fact]
         public void StyleSheetsFragmentsArePreservedOnRoundTrip() {
             string filePath = CreateShapeDocument();
 
@@ -1276,6 +1306,18 @@ namespace OfficeIMO.Tests {
                 connects.Elements(ns + "Connect")
                     .Where(connect => (string?)connect.Attribute("FromCell") == "PinX")
                     .Select(connect => connect.ToString(SaveOptions.DisableFormatting)));
+        }
+
+        private static string ReadConnectRowOrder(string vsdxPath) {
+            using ZipArchive archive = ZipFile.OpenRead(vsdxPath);
+            using Stream stream = archive.GetEntry("visio/pages/page1.xml")!.Open();
+            XDocument pageDoc = XDocument.Load(stream);
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XElement connects = pageDoc.Root!.Element(ns + "Connects")!;
+
+            return string.Join("|",
+                connects.Elements(ns + "Connect")
+                    .Select(connect => $"{(string?)connect.Attribute("FromCell")}:{(string?)connect.Attribute("CustomConnectFlag") ?? string.Empty}"));
         }
 
         private static string ReadFirstPageAttributes(string vsdxPath) {

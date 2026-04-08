@@ -548,29 +548,42 @@ namespace OfficeIMO.Visio {
 
                         bool writeConnectsContainer = page.Connectors.Count > 0 ||
                                                       page.PreservedConnectsAttributes.Count > 0 ||
-                                                      page.PreservedConnectsElements.Count > 0;
+                                                      page.PreservedConnectsElements.Count > 0 ||
+                                                      page.PreservedConnectRows.Count > 0;
                         if (writeConnectsContainer) {
                             writer.WriteStartElement("Connects", ns);
                             WritePreservedAttributes(writer, page.PreservedConnectsAttributes);
                             WritePreservedElements(writer, page.PreservedConnectsElements);
+                            HashSet<(VisioConnector Connector, VisioConnectorEndpointScope Endpoint)> emittedConnectRows = new();
+                            if (page.PreservedConnectRows.Count > 0) {
+                                foreach (VisioPage.PreservedConnectRowEntry entry in page.PreservedConnectRows) {
+                                    if (entry.RawElement != null) {
+                                        entry.RawElement.WriteTo(writer);
+                                        continue;
+                                    }
+
+                                    if (entry.Connector == null ||
+                                        !page.Connectors.Contains(entry.Connector) ||
+                                        entry.EndpointScope is not VisioConnectorEndpointScope.Start and not VisioConnectorEndpointScope.End) {
+                                        continue;
+                                    }
+
+                                    WriteConnectElement(writer, ns, persistedIds, entry.Connector, entry.EndpointScope.Value);
+                                    emittedConnectRows.Add((entry.Connector, entry.EndpointScope.Value));
+                                }
+                            }
+
                             foreach (VisioConnector connector in page.Connectors) {
-                            writer.WriteStartElement("Connect", ns);
-                            writer.WriteAttributeString("FromSheet", GetPersistedId(persistedIds, connector.Id));
-                            writer.WriteAttributeString("FromCell", "BeginX");
-                            writer.WriteAttributeString("ToSheet", GetPersistedId(persistedIds, connector.From.Id));
-                            writer.WriteAttributeString("ToCell", GetConnectionCell(connector.From, connector.FromConnectionPoint, connector.PreservedFromConnectionCell));
-                            WritePreservedConnectAttributes(writer, connector.PreservedBeginConnectAttributes);
-                            writer.WriteEndElement();
-                            writer.WriteStartElement("Connect", ns);
-                            writer.WriteAttributeString("FromSheet", GetPersistedId(persistedIds, connector.Id));
-                            writer.WriteAttributeString("FromCell", "EndX");
-                            writer.WriteAttributeString("ToSheet", GetPersistedId(persistedIds, connector.To.Id));
-                            writer.WriteAttributeString("ToCell", GetConnectionCell(connector.To, connector.ToConnectionPoint, connector.PreservedToConnectionCell));
-                            WritePreservedConnectAttributes(writer, connector.PreservedEndConnectAttributes);
-                            writer.WriteEndElement();
+                                if (!emittedConnectRows.Contains((connector, VisioConnectorEndpointScope.Start))) {
+                                    WriteConnectElement(writer, ns, persistedIds, connector, VisioConnectorEndpointScope.Start);
+                                }
+
+                                if (!emittedConnectRows.Contains((connector, VisioConnectorEndpointScope.End))) {
+                                    WriteConnectElement(writer, ns, persistedIds, connector, VisioConnectorEndpointScope.End);
+                                }
+                            }
+                            writer.WriteEndElement(); // Connects
                         }
-                        writer.WriteEndElement(); // Connects
-                    }
 
                         writer.WriteEndElement(); // PageContents
                         writer.WriteEndDocument();
@@ -824,6 +837,28 @@ namespace OfficeIMO.Visio {
             foreach (KeyValuePair<string, string> attribute in preservedAttributes) {
                 writer.WriteAttributeString(attribute.Key, attribute.Value);
             }
+        }
+
+        private static void WriteConnectElement(
+            XmlWriter writer,
+            string ns,
+            IReadOnlyDictionary<string, string> persistedIds,
+            VisioConnector connector,
+            VisioConnectorEndpointScope endpointScope) {
+            writer.WriteStartElement("Connect", ns);
+            writer.WriteAttributeString("FromSheet", GetPersistedId(persistedIds, connector.Id));
+            if (endpointScope == VisioConnectorEndpointScope.Start) {
+                writer.WriteAttributeString("FromCell", "BeginX");
+                writer.WriteAttributeString("ToSheet", GetPersistedId(persistedIds, connector.From.Id));
+                writer.WriteAttributeString("ToCell", GetConnectionCell(connector.From, connector.FromConnectionPoint, connector.PreservedFromConnectionCell));
+                WritePreservedConnectAttributes(writer, connector.PreservedBeginConnectAttributes);
+            } else {
+                writer.WriteAttributeString("FromCell", "EndX");
+                writer.WriteAttributeString("ToSheet", GetPersistedId(persistedIds, connector.To.Id));
+                writer.WriteAttributeString("ToCell", GetConnectionCell(connector.To, connector.ToConnectionPoint, connector.PreservedToConnectionCell));
+                WritePreservedConnectAttributes(writer, connector.PreservedEndConnectAttributes);
+            }
+            writer.WriteEndElement();
         }
 
         private static void WritePreservedConnectorCells(XmlWriter writer, IEnumerable<XElement> preservedCells) => WritePreservedElements(writer, preservedCells);

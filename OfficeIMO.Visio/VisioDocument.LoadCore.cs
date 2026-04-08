@@ -384,14 +384,14 @@ namespace OfficeIMO.Visio {
                     }
                 }
 
+                List<XElement> orderedConnectElements = connectsRoot?.Elements(vNs + "Connect").ToList() ?? new List<XElement>();
                 Dictionary<string, (string? fromId, string? fromCell, string? toId, string? toCell, Dictionary<string, string> beginAttributes, Dictionary<string, string> endAttributes, XElement? beginElement, XElement? endElement)> connectionMap = new();
-                foreach (XElement connectElement in connectsRoot?.Elements(vNs + "Connect") ?? Enumerable.Empty<XElement>()) {
+                foreach (XElement connectElement in orderedConnectElements) {
                     string? connectorId = connectElement.Attribute("FromSheet")?.Value;
                     string? fromCell = connectElement.Attribute("FromCell")?.Value;
                     string? toSheet = connectElement.Attribute("ToSheet")?.Value;
                     string? toCell = connectElement.Attribute("ToCell")?.Value;
                     if (connectorId == null || fromCell == null || toSheet == null) {
-                        page.PreservedConnectsElements.Add(new XElement(connectElement));
                         continue;
                     }
                     var info = connectionMap.TryGetValue(connectorId, out var existing)
@@ -399,39 +399,33 @@ namespace OfficeIMO.Visio {
                         : (null, null, null, null, new Dictionary<string, string>(StringComparer.Ordinal), new Dictionary<string, string>(StringComparer.Ordinal), null, null);
                     if (fromCell == "BeginX") {
                         if (info.beginElement != null) {
-                            page.PreservedConnectsElements.Add(new XElement(connectElement));
                             continue;
                         }
                         info.fromId = toSheet;
                         info.fromCell = toCell;
                         CaptureConnectAttributes(connectElement, info.beginAttributes);
-                        info.beginElement = new XElement(connectElement);
+                        info.beginElement = connectElement;
                     } else if (fromCell == "EndX") {
                         if (info.endElement != null) {
-                            page.PreservedConnectsElements.Add(new XElement(connectElement));
                             continue;
                         }
                         info.toId = toSheet;
                         info.toCell = toCell;
                         CaptureConnectAttributes(connectElement, info.endAttributes);
-                        info.endElement = new XElement(connectElement);
+                        info.endElement = connectElement;
                     } else {
-                        page.PreservedConnectsElements.Add(new XElement(connectElement));
                         continue;
                     }
                     connectionMap[connectorId] = info;
                 }
 
-                HashSet<string> consumedConnectionIds = new(StringComparer.Ordinal);
+                Dictionary<string, VisioConnector> loadedConnectorsByPersistedId = new(StringComparer.Ordinal);
                 foreach (XElement connectorElement in connectorElements) {
                     string persistedId = connectorElement.Attribute("ID")?.Value ?? string.Empty;
                     if (!connectionMap.TryGetValue(persistedId, out var ids)) {
                         continue;
                     }
-
-                    consumedConnectionIds.Add(persistedId);
                     if (ids.fromId == null || ids.toId == null) {
-                        PreserveConnectElements(page, ids.beginElement, ids.endElement);
                         continue;
                     }
 
@@ -439,7 +433,6 @@ namespace OfficeIMO.Visio {
                     string fromId = ids.fromId!;
                     string toId = ids.toId!;
                     if (!shapeMap.TryGetValue(fromId, out VisioShape? fromShape) || !shapeMap.TryGetValue(toId, out VisioShape? toShape)) {
-                        PreserveConnectElements(page, ids.beginElement, ids.endElement);
                         continue;
                     }
                     VisioConnector connector = new VisioConnector(id, fromShape!, toShape!);
@@ -498,14 +491,30 @@ namespace OfficeIMO.Visio {
                     connector.PreservedTextElement = connectorTextElement != null ? new XElement(connectorTextElement) : null;
                     connector.PreservedTextValue = connectorTextElement?.Value;
                     page.Connectors.Add(connector);
+                    loadedConnectorsByPersistedId[persistedId] = connector;
                 }
 
-                foreach (KeyValuePair<string, (string? fromId, string? fromCell, string? toId, string? toCell, Dictionary<string, string> beginAttributes, Dictionary<string, string> endAttributes, XElement? beginElement, XElement? endElement)> connectionEntry in connectionMap) {
-                    if (consumedConnectionIds.Contains(connectionEntry.Key)) {
-                        continue;
+                foreach (XElement connectElement in orderedConnectElements) {
+                    string? connectorId = connectElement.Attribute("FromSheet")?.Value;
+                    string? fromCell = connectElement.Attribute("FromCell")?.Value;
+                    if (connectorId != null &&
+                        fromCell != null &&
+                        loadedConnectorsByPersistedId.TryGetValue(connectorId, out VisioConnector? connector) &&
+                        connectionMap.TryGetValue(connectorId, out var ids)) {
+                        if (string.Equals(fromCell, "BeginX", StringComparison.OrdinalIgnoreCase) &&
+                            ReferenceEquals(ids.beginElement, connectElement)) {
+                            page.PreservedConnectRows.Add(new VisioPage.PreservedConnectRowEntry(connector, VisioConnectorEndpointScope.Start));
+                            continue;
+                        }
+
+                        if (string.Equals(fromCell, "EndX", StringComparison.OrdinalIgnoreCase) &&
+                            ReferenceEquals(ids.endElement, connectElement)) {
+                            page.PreservedConnectRows.Add(new VisioPage.PreservedConnectRowEntry(connector, VisioConnectorEndpointScope.End));
+                            continue;
+                        }
                     }
 
-                    PreserveConnectElements(page, connectionEntry.Value.beginElement, connectionEntry.Value.endElement);
+                    page.PreservedConnectRows.Add(new VisioPage.PreservedConnectRowEntry(connectElement));
                 }
             }
 
@@ -1081,14 +1090,6 @@ namespace OfficeIMO.Visio {
             destination.Clear();
             foreach (KeyValuePair<string, string> entry in source) {
                 destination[entry.Key] = entry.Value;
-            }
-        }
-
-        private static void PreserveConnectElements(VisioPage page, params XElement?[] connectElements) {
-            foreach (XElement? connectElement in connectElements) {
-                if (connectElement != null) {
-                    page.PreservedConnectsElements.Add(new XElement(connectElement));
-                }
             }
         }
 
