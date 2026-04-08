@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using OfficeIMO.Zip;
 
 namespace OfficeIMO.Reader.Zip;
@@ -652,8 +653,38 @@ public static class DocumentReaderZipExtensions {
             fullPath = path;
         }
 
+        fullPath = ResolveExistingFullPath(fullPath);
         return fullPath.Replace('\\', '/');
     }
+
+    private static string ResolveExistingFullPath(string fullPath) {
+        if (Path.DirectorySeparatorChar == '\\') {
+            return fullPath;
+        }
+
+        IntPtr resolvedPathPointer = IntPtr.Zero;
+        try {
+            resolvedPathPointer = UnixRealPath(fullPath, IntPtr.Zero);
+            if (resolvedPathPointer == IntPtr.Zero) {
+                return fullPath;
+            }
+
+            var resolvedPath = Marshal.PtrToStringAnsi(resolvedPathPointer);
+            return string.IsNullOrWhiteSpace(resolvedPath) ? fullPath : resolvedPath;
+        } catch {
+            return fullPath;
+        } finally {
+            if (resolvedPathPointer != IntPtr.Zero) {
+                UnixFree(resolvedPathPointer);
+            }
+        }
+    }
+
+    [DllImport("libc", EntryPoint = "realpath", CharSet = CharSet.Ansi)]
+    private static extern IntPtr UnixRealPath(string path, IntPtr buffer);
+
+    [DllImport("libc", EntryPoint = "free")]
+    private static extern void UnixFree(IntPtr pointer);
 
     private static string NormalizeSourceKeyForId(string? sourceKey) {
         var normalized = sourceKey ?? string.Empty;
