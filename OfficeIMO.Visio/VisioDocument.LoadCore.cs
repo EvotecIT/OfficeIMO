@@ -1316,9 +1316,31 @@ namespace OfficeIMO.Visio {
             return !string.IsNullOrWhiteSpace(cellName) &&
                    !string.Equals(cellName, "PageWidth", StringComparison.OrdinalIgnoreCase) &&
                    !string.Equals(cellName, "PageHeight", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ShdwOffsetX", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ShdwOffsetY", StringComparison.OrdinalIgnoreCase) &&
                    !string.Equals(cellName, "PageScale", StringComparison.OrdinalIgnoreCase) &&
                    !string.Equals(cellName, "DrawingScale", StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(cellName, "InhibitSnap", StringComparison.OrdinalIgnoreCase);
+                   !string.Equals(cellName, "DrawingSizeType", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "DrawingScaleType", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "InhibitSnap", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PageLockReplace", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PageLockDuplicate", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "UIVisibility", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ShdwType", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ShdwObliqueAngle", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ShdwScaleFactor", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "DrawingResizeType", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PageShapeSplit", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ColorSchemeIndex", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "EffectSchemeIndex", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ConnectorSchemeIndex", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "FontSchemeIndex", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "ThemeIndex", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PageLeftMargin", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PageRightMargin", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PageTopMargin", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PageBottomMargin", StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(cellName, "PrintPageOrientation", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool ShouldPreservePageSection(XElement section) {

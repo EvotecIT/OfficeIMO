@@ -879,6 +879,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void UpdatingShapeDataValueClearsPreservedValueFormula() {
+            string filePath = CreateShapeDocument();
+
+            RewritePage(filePath, pageDoc => {
+                XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+                XElement shape = GetFirstShape(pageDoc, ns);
+                shape.Add(
+                    new XElement(ns + "Section",
+                        new XAttribute("N", "Prop"),
+                        new XElement(ns + "Row",
+                            new XAttribute("N", "Status"),
+                            new XAttribute("IX", "0"),
+                            new XAttribute("T", "Prop"),
+                            new XElement(ns + "Cell", new XAttribute("N", "Value"), new XAttribute("V", "Open"), new XAttribute("F", "\"Open\"")))));
+            });
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioShape shape = Assert.Single(loaded.Pages[0].Shapes);
+            shape.Data["Status"] = "Closed";
+
+            string savedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            loaded.Save(savedPath);
+
+            XElement valueCell = ReadFirstShapeDataRow(savedPath, "Status")
+                .Elements(XName.Get("Cell", "http://schemas.microsoft.com/office/visio/2012/main"))
+                .Single(cell => (string?)cell.Attribute("N") == "Value");
+            Assert.Equal("Closed", (string?)valueCell.Attribute("V"));
+            Assert.Null(valueCell.Attribute("F"));
+        }
+
+        [Fact]
         public void PageSheetCellsAndSectionsArePreservedOnRoundTrip() {
             string filePath = CreateShapeDocument();
 
@@ -909,6 +940,33 @@ namespace OfficeIMO.Tests {
             loaded.Save(savedPath);
 
             Assert.Equal(originalFragments, ReadFirstPageSheetFragments(savedPath));
+        }
+
+        [Fact]
+        public void GeneratedPageSheetCellsAreNotDuplicatedOnRoundTrip() {
+            string filePath = CreateShapeDocument();
+
+            RewritePages(filePath, pagesDoc => {
+                XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+                XElement pageSheet = GetFirstPageSheet(pagesDoc, ns);
+                pageSheet.Add(
+                    new XElement(ns + "Cell", new XAttribute("N", "DrawingResizeType"), new XAttribute("V", "1")),
+                    new XElement(ns + "Cell", new XAttribute("N", "PageShapeSplit"), new XAttribute("V", "1")),
+                    new XElement(ns + "Cell", new XAttribute("N", "UIVisibility"), new XAttribute("V", "0")));
+            });
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            string savedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            loaded.Save(savedPath);
+
+            using ZipArchive archive = ZipFile.OpenRead(savedPath);
+            using Stream stream = archive.GetEntry("visio/pages/pages.xml")!.Open();
+            XDocument pagesDoc = XDocument.Load(stream);
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XElement pageSheet = GetFirstPageSheet(pagesDoc, ns);
+            Assert.Equal(1, pageSheet.Elements(ns + "Cell").Count(cell => (string?)cell.Attribute("N") == "DrawingResizeType"));
+            Assert.Equal(1, pageSheet.Elements(ns + "Cell").Count(cell => (string?)cell.Attribute("N") == "PageShapeSplit"));
+            Assert.Equal(1, pageSheet.Elements(ns + "Cell").Count(cell => (string?)cell.Attribute("N") == "UIVisibility"));
         }
 
         [Fact]

@@ -518,6 +518,7 @@ namespace OfficeIMO.Visio {
                         clone.Add(valueCell);
                     }
                     valueCell.SetAttributeValue("V", value);
+                    valueCell.Attribute("F")?.Remove();
 
                     using var reader = clone.CreateReader();
                     writer.WriteNode(reader, false);
