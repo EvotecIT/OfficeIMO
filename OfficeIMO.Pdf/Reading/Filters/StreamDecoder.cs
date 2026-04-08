@@ -51,13 +51,21 @@ internal static class StreamDecoder {
         }
 
         int predictor = (int)(decodeParms.Get<PdfNumber>("Predictor")?.Value ?? 1);
-        if (predictor < 10) {
+        if (predictor <= 1) {
             return data;
         }
 
         int columns = (int)(decodeParms.Get<PdfNumber>("Columns")?.Value ?? 1);
         int colors = (int)(decodeParms.Get<PdfNumber>("Colors")?.Value ?? 1);
         int bitsPerComponent = (int)(decodeParms.Get<PdfNumber>("BitsPerComponent")?.Value ?? 8);
+        if (predictor == 2) {
+            return TiffPredictorDecoder.Decode(data, columns, colors, bitsPerComponent);
+        }
+
+        if (predictor < 10) {
+            return data;
+        }
+
         return PngPredictorDecoder.Decode(data, columns, colors, bitsPerComponent);
     }
 

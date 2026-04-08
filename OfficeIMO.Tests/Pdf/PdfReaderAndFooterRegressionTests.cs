@@ -515,6 +515,26 @@ public class PdfReaderAndFooterRegressionTests {
         Assert.Equal("Hello predictor indirect chain", span.Text);
     }
 
+    [Fact]
+    public void PdfTextExtractor_ExtractAllText_ReadsFlateStreamsWithTiffPredictorDecodeParms() {
+        byte[] bytes = BuildPdfWithTiffPredictorEncodedStream("BT\n/F1 12 Tf\n72 720 Td\n(Hello TIFF predictor) Tj\nET\n");
+
+        string text = PdfTextExtractor.ExtractAllText(bytes);
+
+        Assert.Contains("Hello TIFF predictor", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_ReadsFlateStreamsWithTiffPredictorDecodeParms() {
+        byte[] bytes = BuildPdfWithTiffPredictorEncodedStream("BT\n/F1 12 Tf\n72 720 Td\n(Hello TIFF predictor) Tj\nET\n");
+
+        var doc = PdfReadDocument.Load(bytes);
+
+        Assert.Single(doc.Pages);
+        var span = Assert.Single(doc.Pages[0].GetTextSpans());
+        Assert.Equal("Hello TIFF predictor", span.Text);
+    }
+
     private static byte[] BuildPdfWithInheritedMediaBox(int width, int height) {
         const string streamContent = "BT\n/F1 12 Tf\n72 720 Td\n(Hi) Tj\nET\n";
         int streamLength = Encoding.ASCII.GetByteCount(streamContent);
@@ -890,6 +910,13 @@ public class PdfReaderAndFooterRegressionTests {
             "endobj");
     }
 
+    private static byte[] BuildPdfWithTiffPredictorEncodedStream(string streamContent) {
+        byte[] streamBytes = Encoding.ASCII.GetBytes(streamContent);
+        byte[] predictedBytes = EncodeTiffPredictedRows(streamBytes);
+        byte[] compressedBytes = CompressWithDeflate(predictedBytes);
+        return BuildSingleStreamPdf(compressedBytes, $"/Filter /FlateDecode /DecodeParms << /Predictor 2 /Columns {streamBytes.Length} >>");
+    }
+
     private static byte[] BuildPdfWithTjArraySpacing() {
         const string streamContent = "BT\n/F1 12 Tf\n72 720 Td\n[(Hello) -600 (world)] TJ\nET\n";
         int streamLength = Encoding.ASCII.GetByteCount(streamContent);
@@ -1074,6 +1101,20 @@ public class PdfReaderAndFooterRegressionTests {
         var output = new byte[input.Length + 1];
         output[0] = 2;
         Buffer.BlockCopy(input, 0, output, 1, input.Length);
+        return output;
+    }
+
+    private static byte[] EncodeTiffPredictedRows(byte[] input) {
+        if (input.Length == 0) {
+            return Array.Empty<byte>();
+        }
+
+        var output = new byte[input.Length];
+        output[0] = input[0];
+        for (int i = 1; i < input.Length; i++) {
+            output[i] = unchecked((byte)(input[i] - input[i - 1]));
+        }
+
         return output;
     }
 
