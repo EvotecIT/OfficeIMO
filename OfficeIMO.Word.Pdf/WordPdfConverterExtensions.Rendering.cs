@@ -246,21 +246,7 @@ namespace OfficeIMO.Word.Pdf {
             return container;
 
             string? ResolveRegisteredFamily(string? name) {
-                if (!string.IsNullOrWhiteSpace(name)) {
-                    if (options?.FontFilePaths != null &&
-                        options.FontFilePaths.TryGetValue(name!, out var path) &&
-                        !string.IsNullOrWhiteSpace(path)) {
-                        return name;
-                    }
-
-                    if (options?.FontStreams != null &&
-                        options.FontStreams.TryGetValue(name!, out var stream) &&
-                        stream != null) {
-                        return name;
-                    }
-                }
-
-                return name;
+                return ResolveRegisteredFontFamily(name);
             }
 
             void ApplyFormatting(TextSpanDescriptor span) {

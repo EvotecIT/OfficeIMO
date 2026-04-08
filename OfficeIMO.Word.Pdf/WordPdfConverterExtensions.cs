@@ -2,6 +2,7 @@ using QuestPDF.Drawing;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using SkiaSharp;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -18,6 +19,8 @@ namespace OfficeIMO.Word.Pdf {
     /// Provides extension methods for converting <see cref="WordDocument"/> instances to PDF files.
     /// </summary>
     public static partial class WordPdfConverterExtensions {
+        static readonly Dictionary<string, string> _registeredCustomFontFamilies = new(StringComparer.OrdinalIgnoreCase);
+
         /// <summary>
         /// Saves the specified <see cref="WordDocument"/> as a PDF at the given <paramref name="path"/>.
         /// </summary>
@@ -575,13 +578,12 @@ namespace OfficeIMO.Word.Pdf {
                     if (string.IsNullOrWhiteSpace(kvp.Key) || string.IsNullOrWhiteSpace(kvp.Value)) {
                         continue;
                     }
-                    if (_embeddedFonts.Contains(kvp.Key) || !File.Exists(kvp.Value)) {
+                    if (!File.Exists(kvp.Value)) {
                         continue;
                     }
 
                     using var stream = File.OpenRead(kvp.Value);
-                    FontManager.RegisterFontWithCustomName(kvp.Key, stream);
-                    _embeddedFonts.Add(kvp.Key);
+                    TryRegisterFontWithAliases(kvp.Key, stream);
                 }
             }
 
@@ -599,17 +601,81 @@ namespace OfficeIMO.Word.Pdf {
                         if (stream.CanSeek) {
                             stream.Position = 0;
                         }
-                        using MemoryStream ms = new();
-                        stream.CopyTo(ms);
-                        ms.Position = 0;
-                        FontManager.RegisterFontWithCustomName(kvp.Key, ms);
-                        _embeddedFonts.Add(kvp.Key);
+                        TryRegisterFontWithAliases(kvp.Key, stream);
                     } finally {
                         if (stream.CanSeek) {
                             stream.Position = 0;
                         }
                     }
                 }
+            }
+        }
+
+        private static void TryRegisterFontWithAliases(string alias, Stream stream) {
+            byte[] bytes;
+            using (MemoryStream ms = new()) {
+                stream.CopyTo(ms);
+                bytes = ms.ToArray();
+            }
+
+            if (bytes.Length == 0) {
+                return;
+            }
+
+            RegisterFontData(alias, bytes);
+
+            string? family = TryReadFontFamily(bytes);
+            if (string.IsNullOrWhiteSpace(family)) {
+                return;
+            }
+
+            string familyName = family ?? string.Empty;
+            if (familyName.Length == 0) {
+                return;
+            }
+
+            _registeredCustomFontFamilies[alias] = familyName;
+            if (!string.Equals(alias, familyName, StringComparison.OrdinalIgnoreCase)) {
+                RegisterFontData(familyName, bytes);
+            }
+        }
+
+        private static void RegisterFontData(string fontName, byte[] bytes) {
+            if (string.IsNullOrWhiteSpace(fontName) || _embeddedFonts.Contains(fontName)) {
+                return;
+            }
+
+            using MemoryStream ms = new(bytes, writable: false);
+            FontManager.RegisterFontWithCustomName(fontName, ms);
+            _embeddedFonts.Add(fontName);
+        }
+
+        private static string? ResolveRegisteredFontFamily(string? fontName) {
+            if (string.IsNullOrWhiteSpace(fontName)) {
+                return fontName;
+            }
+
+            string key = fontName ?? string.Empty;
+            if (key.Length == 0) {
+                return fontName;
+            }
+
+            if (_registeredCustomFontFamilies.TryGetValue(key, out var family) &&
+                !string.IsNullOrWhiteSpace(family)) {
+                return family;
+            }
+
+            return key;
+        }
+
+        private static string? TryReadFontFamily(byte[] bytes) {
+            try {
+                using MemoryStream ms = new(bytes, writable: false);
+                using SKManagedStream skStream = new(ms);
+                using SKTypeface? typeface = SKTypeface.FromStream(skStream);
+                return typeface?.FamilyName;
+            } catch {
+                return null;
             }
         }
 
