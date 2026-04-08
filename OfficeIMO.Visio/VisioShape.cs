@@ -397,9 +397,15 @@ namespace OfficeIMO.Visio {
                         return;
                     }
 
-                    _owner.DetachChild(existing);
                     _owner.PrepareChildForParent(value);
-                    _owner._children[index] = value;
+                    try {
+                        _owner._children[index] = value;
+                    } catch {
+                        _owner.DetachChild(value);
+                        throw;
+                    }
+
+                    _owner.DetachChild(existing);
                 }
             }
 

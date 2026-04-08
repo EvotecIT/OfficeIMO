@@ -378,6 +378,10 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(connector));
             }
 
+            if (_connectors.Contains(connector) && !ReferenceEquals(connector, ignoredConnector)) {
+                throw new InvalidOperationException("The connector is already part of this page.");
+            }
+
             if (connector.HasAutomaticId) {
                 connector.Id = NextId(ignoredConnector);
             }
@@ -947,7 +951,11 @@ namespace OfficeIMO.Visio {
             }
 
             if (ReferenceEquals(currentCollection, newParent.Children)) {
-                if (childIndex < 0 || childIndex == currentIndex) {
+                if (childIndex < 0) {
+                    childIndex = currentCollection.Count;
+                }
+
+                if (childIndex == currentIndex) {
                     return;
                 }
 
@@ -1255,7 +1263,12 @@ namespace OfficeIMO.Visio {
             public VisioConnector this[int index] {
                 get => _page._connectors[index];
                 set {
-                    _page.PrepareConnectorForPage(value, _page._connectors[index]);
+                    VisioConnector existing = _page._connectors[index];
+                    if (ReferenceEquals(existing, value)) {
+                        return;
+                    }
+
+                    _page.PrepareConnectorForPage(value, existing);
                     _page._connectors[index] = value;
                 }
             }

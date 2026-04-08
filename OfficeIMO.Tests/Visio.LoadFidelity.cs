@@ -1012,6 +1012,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MastersRootMetadataSurvivesWhenNewGeneratedMasterSortsBeforeLoadedMaster() {
+            string filePath = CreateMasterBackedShapeDocument();
+
+            RewriteMasters(filePath, mastersDoc => {
+                XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+                XElement masters = mastersDoc.Root!;
+                masters.SetAttributeValue("IconCacheVersion", "5");
+                masters.AddFirst(new XElement(ns + "CustomCatalogMetadata",
+                    new XAttribute("Scope", "Global"),
+                    new XElement(ns + "Value", "RetainMe")));
+            });
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            loaded.UseMastersByDefault = true;
+            loaded.Pages[0].Shapes.Insert(0, new VisioShape("2", 4, 1, 2, 1, "Diamond") { NameU = "Diamond" });
+
+            string savedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            loaded.Save(savedPath);
+
+            Assert.Equal(ReadMastersRootFragments(filePath), ReadMastersRootFragments(savedPath));
+        }
+
+        [Fact]
         public void MasterContentsAdditionalShapesAndRootElementsArePreservedOnRoundTrip() {
             string filePath = CreateMasterBackedShapeDocument();
 

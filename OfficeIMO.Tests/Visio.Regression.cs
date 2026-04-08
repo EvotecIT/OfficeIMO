@@ -122,6 +122,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ConnectorIndexerRejectsDuplicateConnectorInstancesAndAllowsSelfAssignment() {
+            VisioPage page = new("Page-1");
+            VisioShape start = new("1", 1, 1, 1, 1, "Start");
+            VisioShape middle = new("2", 4, 1, 1, 1, "Middle");
+            VisioShape end = new("3", 7, 1, 1, 1, "End");
+            page.Shapes.Add(start);
+            page.Shapes.Add(middle);
+            page.Shapes.Add(end);
+            VisioConnector first = page.AddConnector(start, middle);
+            VisioConnector second = page.AddConnector(middle, end);
+
+            page.Connectors[0] = first;
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => page.Connectors[0] = second);
+
+            Assert.Contains("already part of this page", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(new[] { first, second }, page.Connectors.ToArray());
+        }
+
+        [Fact]
         public void LoadPreservesExplicitZeroGeometryOnMasterBackedShapes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 

@@ -499,10 +499,13 @@ namespace OfficeIMO.Visio {
             HashSet<string> emittedKeys = new(StringComparer.Ordinal);
             if (preservedRows != null) {
                 foreach (XElement preservedRow in preservedRows) {
-                    string? key = preservedRow.Attribute("N")?.Value;
-                    if (string.IsNullOrEmpty(key) ||
-                        string.Equals(key, OriginalIdPropName, StringComparison.Ordinal) ||
-                        !data.TryGetValue(key, out string? value)) {
+                    if (!(preservedRow.Attribute("N")?.Value is string key) ||
+                        key.Length == 0 ||
+                        string.Equals(key, OriginalIdPropName, StringComparison.Ordinal)) {
+                        continue;
+                    }
+
+                    if (!data.TryGetValue(key, out string? value)) {
                         continue;
                     }
 

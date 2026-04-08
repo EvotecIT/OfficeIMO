@@ -1566,8 +1566,8 @@ namespace OfficeIMO.Visio {
                 return true;
             }
 
-            string? cellName = element.Attribute("N")?.Value;
-            if (string.IsNullOrWhiteSpace(cellName)) {
+            if (!(element.Attribute("N")?.Value is string cellName) ||
+                string.IsNullOrWhiteSpace(cellName)) {
                 return true;
             }
 

@@ -310,9 +310,9 @@ namespace OfficeIMO.Visio {
                         writer.WriteStartDocument();
                         writer.WriteStartElement("Masters", ns);
                         writer.WriteAttributeString("xmlns", "r", null, "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
-                        VisioMaster firstMaster = masters[0].Master;
-                        WritePreservedAttributes(writer, firstMaster.PreservedMastersRootAttributes);
-                        WritePreservedElements(writer, firstMaster.PreservedMastersRootElements);
+                        VisioMaster mastersRootMetadataSource = GetMastersRootMetadataSource(masters);
+                        WritePreservedAttributes(writer, mastersRootMetadataSource.PreservedMastersRootAttributes);
+                        WritePreservedElements(writer, mastersRootMetadataSource.PreservedMastersRootElements);
                         for (int i = 0; i < masters.Count; i++) {
                             PackageMasterEntry entry = masters[i];
                             VisioMaster m = entry.Master;
@@ -649,9 +649,10 @@ namespace OfficeIMO.Visio {
                         continue;
                     }
 
-                    if (!string.IsNullOrWhiteSpace(entry.Token) &&
-                        emittedTokens.Add(entry.Token) &&
-                        TryWriteConnectorShapeChildToken(writer, ns, connector, connectorOriginalId, entry.Token, startX, startY, endX, endY)) {
+                    if (entry.Token is string token &&
+                        !string.IsNullOrWhiteSpace(token) &&
+                        emittedTokens.Add(token) &&
+                        TryWriteConnectorShapeChildToken(writer, ns, connector, connectorOriginalId, token, startX, startY, endX, endY)) {
                         continue;
                     }
                 }
@@ -947,10 +948,11 @@ namespace OfficeIMO.Visio {
                     continue;
                 }
 
-                if (!string.IsNullOrWhiteSpace(entry.Token) &&
-                    emittedTokens.Add(entry.Token) &&
-                    TryWriteStandaloneShapeChildToken(writer, ns, shape, isGroup, originalIdEntry, entry.Token, width, height, locPinX, locPinY, persistedIds, effectiveMasters, packageMasters, ref wroteChildShapes)) {
-                    if (string.Equals(entry.Token, "XForm", StringComparison.OrdinalIgnoreCase)) {
+                if (entry.Token is string token &&
+                    !string.IsNullOrWhiteSpace(token) &&
+                    emittedTokens.Add(token) &&
+                    TryWriteStandaloneShapeChildToken(writer, ns, shape, isGroup, originalIdEntry, token, width, height, locPinX, locPinY, persistedIds, effectiveMasters, packageMasters, ref wroteChildShapes)) {
+                    if (string.Equals(token, "XForm", StringComparison.OrdinalIgnoreCase)) {
                         MarkShapeTransformCellTokens(emittedTokens);
                     }
                     continue;
@@ -1517,6 +1519,17 @@ namespace OfficeIMO.Visio {
             }
 
             return TryEnsureBuiltinMaster(shapeNameU, out VisioMaster? master) ? master : null;
+        }
+
+        private static VisioMaster GetMastersRootMetadataSource(IReadOnlyList<PackageMasterEntry> masters) {
+            foreach (PackageMasterEntry entry in masters) {
+                if (entry.Master.PreservedMastersRootAttributes.Count > 0 ||
+                    entry.Master.PreservedMastersRootElements.Count > 0) {
+                    return entry.Master;
+                }
+            }
+
+            return masters[0].Master;
         }
 
         private static List<PackageMasterEntry> CreatePackageMasterEntries(IEnumerable<VisioMaster> masters) {
