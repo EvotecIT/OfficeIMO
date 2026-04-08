@@ -510,7 +510,7 @@ internal static class PdfSyntax {
         }
 
         char c = text[idx];
-        return char.IsWhiteSpace(c) || c is '/' or '<' or '>' or '[' or ']' or '(' or ')' or '%';
+        return char.IsWhiteSpace(c) || c is '<' or '>' or '[' or ']' or '%';
     }
 
     private static int SkipEOL(string text, int idx, int limit) {

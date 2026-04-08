@@ -342,12 +342,9 @@ namespace OfficeIMO.Word.Pdf {
                 if (run.VerticalTextAlignment == W.VerticalPositionValues.Subscript) span = span.Subscript();
                 // Inline hyperlink on text spans is not supported by QuestPDF directly.
                 // Paragraph-level hyperlinks are applied earlier; skip span-level link here.
-                // Choose run font: explicit run font, otherwise platform monospace, otherwise PdfSaveOptions.FontFamily
-                string? mono = null;
-                if (!string.IsNullOrEmpty(run.FontFamily)) mono = run.FontFamily;
-                mono ??= FontResolver.Resolve("monospace") ?? opt?.FontFamily;
-                if (!string.IsNullOrEmpty(mono)) {
-                    var fam = ResolveRegisteredFamily(mono)!;
+                // Preserve paragraph/default fonts unless the run explicitly overrides them.
+                if (!string.IsNullOrEmpty(run.FontFamily)) {
+                    var fam = ResolveRegisteredFamily(run.FontFamily)!;
                     EmbedFont(fam);
                     span = span.FontFamily(fam);
                 }
