@@ -496,27 +496,35 @@ namespace OfficeIMO.Visio {
                     loadedConnectorsByPersistedId[persistedId] = connector;
                 }
 
-                foreach (XElement connectElement in orderedConnectElements) {
-                    string? connectorId = connectElement.Attribute("FromSheet")?.Value;
-                    string? fromCell = connectElement.Attribute("FromCell")?.Value;
+                foreach (XElement connectChild in connectsRoot?.Elements() ?? Enumerable.Empty<XElement>()) {
+                    if (!string.Equals(connectChild.Name.LocalName, "Connect", StringComparison.OrdinalIgnoreCase)) {
+                        page.PreservedConnectChildren.Add(new VisioPage.PreservedConnectChildEntry(connectChild));
+                        continue;
+                    }
+
+                    string? connectorId = connectChild.Attribute("FromSheet")?.Value;
+                    string? fromCell = connectChild.Attribute("FromCell")?.Value;
                     if (connectorId != null &&
                         fromCell != null &&
                         loadedConnectorsByPersistedId.TryGetValue(connectorId, out VisioConnector? connector) &&
                         connectionMap.TryGetValue(connectorId, out var ids)) {
                         if (string.Equals(fromCell, "BeginX", StringComparison.OrdinalIgnoreCase) &&
-                            ReferenceEquals(ids.beginElement, connectElement)) {
+                            ReferenceEquals(ids.beginElement, connectChild)) {
                             page.PreservedConnectRows.Add(new VisioPage.PreservedConnectRowEntry(connector, VisioConnectorEndpointScope.Start));
+                            page.PreservedConnectChildren.Add(new VisioPage.PreservedConnectChildEntry(connector, VisioConnectorEndpointScope.Start));
                             continue;
                         }
 
                         if (string.Equals(fromCell, "EndX", StringComparison.OrdinalIgnoreCase) &&
-                            ReferenceEquals(ids.endElement, connectElement)) {
+                            ReferenceEquals(ids.endElement, connectChild)) {
                             page.PreservedConnectRows.Add(new VisioPage.PreservedConnectRowEntry(connector, VisioConnectorEndpointScope.End));
+                            page.PreservedConnectChildren.Add(new VisioPage.PreservedConnectChildEntry(connector, VisioConnectorEndpointScope.End));
                             continue;
                         }
                     }
 
-                    page.PreservedConnectRows.Add(new VisioPage.PreservedConnectRowEntry(connectElement));
+                    page.PreservedConnectRows.Add(new VisioPage.PreservedConnectRowEntry(connectChild));
+                    page.PreservedConnectChildren.Add(new VisioPage.PreservedConnectChildEntry(connectChild));
                 }
             }
 

@@ -344,6 +344,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ConnectsChildOrderIsPreservedOnRoundTrip() {
+            string filePath = CreateConnectorDocument(ConnectorKind.Straight);
+
+            RewritePage(filePath, pageDoc => {
+                XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+                XElement connects = pageDoc.Root!.Element(ns + "Connects")!;
+                XElement[] originalRows = connects.Elements(ns + "Connect").ToArray();
+                XElement beginRow = originalRows.First(connect => (string?)connect.Attribute("FromCell") == "BeginX");
+                XElement endRow = originalRows.First(connect => (string?)connect.Attribute("FromCell") == "EndX");
+                XElement sidecarElement = new(ns + "ConnectionMeta",
+                    new XAttribute("KeepOrder", "1"));
+
+                connects.RemoveNodes();
+                connects.Add(beginRow, sidecarElement, endRow);
+            });
+
+            string originalOrder = ReadConnectChildOrder(filePath);
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            string savedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            loaded.Save(savedPath);
+
+            Assert.Equal(originalOrder, ReadConnectChildOrder(savedPath));
+        }
+
+        [Fact]
         public void NamespacedConnectAttributesArePreservedOnRoundTrip() {
             string filePath = CreateConnectorDocument(ConnectorKind.Straight);
 
@@ -1375,6 +1401,20 @@ namespace OfficeIMO.Tests {
             return string.Join("|",
                 connects.Elements(ns + "Connect")
                     .Select(connect => $"{(string?)connect.Attribute("FromCell")}:{(string?)connect.Attribute("CustomConnectFlag") ?? string.Empty}"));
+        }
+
+        private static string ReadConnectChildOrder(string vsdxPath) {
+            using ZipArchive archive = ZipFile.OpenRead(vsdxPath);
+            using Stream stream = archive.GetEntry("visio/pages/page1.xml")!.Open();
+            XDocument pageDoc = XDocument.Load(stream);
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XElement connects = pageDoc.Root!.Element(ns + "Connects")!;
+
+            return string.Join("|",
+                connects.Elements()
+                    .Select(element => string.Equals(element.Name.LocalName, "Connect", StringComparison.OrdinalIgnoreCase)
+                        ? $"Connect:{(string?)element.Attribute("FromCell")}"
+                        : $"{element.Name.LocalName}:{(string?)element.Attribute("KeepOrder") ?? string.Empty}"));
         }
 
         private static string ReadNamespacedConnectAttributes(string vsdxPath) {

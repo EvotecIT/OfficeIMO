@@ -553,9 +553,25 @@ namespace OfficeIMO.Visio {
                         if (writeConnectsContainer) {
                             writer.WriteStartElement("Connects", ns);
                             WritePreservedAttributes(writer, page.PreservedConnectsAttributes);
-                            WritePreservedElements(writer, page.PreservedConnectsElements);
                             HashSet<(VisioConnector Connector, VisioConnectorEndpointScope Endpoint)> emittedConnectRows = new();
-                            if (page.PreservedConnectRows.Count > 0) {
+                            if (page.PreservedConnectChildren.Count > 0) {
+                                foreach (VisioPage.PreservedConnectChildEntry entry in page.PreservedConnectChildren) {
+                                    if (entry.RawElement != null) {
+                                        entry.RawElement.WriteTo(writer);
+                                        continue;
+                                    }
+
+                                    if (entry.Connector == null ||
+                                        !page.Connectors.Contains(entry.Connector) ||
+                                        entry.EndpointScope is not VisioConnectorEndpointScope.Start and not VisioConnectorEndpointScope.End) {
+                                        continue;
+                                    }
+
+                                    WriteConnectElement(writer, ns, persistedIds, entry.Connector, entry.EndpointScope.Value);
+                                    emittedConnectRows.Add((entry.Connector, entry.EndpointScope.Value));
+                                }
+                            } else if (page.PreservedConnectRows.Count > 0) {
+                                WritePreservedElements(writer, page.PreservedConnectsElements);
                                 foreach (VisioPage.PreservedConnectRowEntry entry in page.PreservedConnectRows) {
                                     if (entry.RawElement != null) {
                                         entry.RawElement.WriteTo(writer);
@@ -571,6 +587,8 @@ namespace OfficeIMO.Visio {
                                     WriteConnectElement(writer, ns, persistedIds, entry.Connector, entry.EndpointScope.Value);
                                     emittedConnectRows.Add((entry.Connector, entry.EndpointScope.Value));
                                 }
+                            } else {
+                                WritePreservedElements(writer, page.PreservedConnectsElements);
                             }
 
                             foreach (VisioConnector connector in page.Connectors) {
