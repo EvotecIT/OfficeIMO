@@ -288,6 +288,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AdditionalConnectRowsArePreservedOnRoundTrip() {
+            string filePath = CreateConnectorDocument(ConnectorKind.Straight);
+
+            RewritePage(filePath, pageDoc => {
+                XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+                XElement connects = pageDoc.Root!.Element(ns + "Connects")!;
+                XElement beginConnect = connects.Elements(ns + "Connect")
+                    .First(connect => (string?)connect.Attribute("FromCell") == "BeginX");
+                connects.AddFirst(new XElement(ns + "Connect",
+                    new XAttribute("FromSheet", beginConnect.Attribute("FromSheet")!.Value),
+                    new XAttribute("FromCell", "PinX"),
+                    new XAttribute("ToSheet", beginConnect.Attribute("ToSheet")!.Value),
+                    new XAttribute("ToCell", "Connections.X1"),
+                    new XAttribute("CustomConnectFlag", "KeepMe")));
+            });
+
+            string originalFragments = ReadAdditionalConnectRows(filePath);
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            string savedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            loaded.Save(savedPath);
+
+            Assert.Equal(originalFragments, ReadAdditionalConnectRows(savedPath));
+        }
+
+        [Fact]
         public void StyleSheetsFragmentsArePreservedOnRoundTrip() {
             string filePath = CreateShapeDocument();
 
@@ -1237,6 +1263,19 @@ namespace OfficeIMO.Tests {
                 connects.Elements()
                     .Where(element => element.Name != ns + "Connect")
                     .Select(element => element.ToString(SaveOptions.DisableFormatting)));
+        }
+
+        private static string ReadAdditionalConnectRows(string vsdxPath) {
+            using ZipArchive archive = ZipFile.OpenRead(vsdxPath);
+            using Stream stream = archive.GetEntry("visio/pages/page1.xml")!.Open();
+            XDocument pageDoc = XDocument.Load(stream);
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XElement connects = pageDoc.Root!.Element(ns + "Connects")!;
+
+            return string.Concat(
+                connects.Elements(ns + "Connect")
+                    .Where(connect => (string?)connect.Attribute("FromCell") == "PinX")
+                    .Select(connect => connect.ToString(SaveOptions.DisableFormatting)));
         }
 
         private static string ReadFirstPageAttributes(string vsdxPath) {
