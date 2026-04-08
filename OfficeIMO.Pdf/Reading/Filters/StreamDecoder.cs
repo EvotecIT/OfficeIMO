@@ -11,7 +11,7 @@ internal static class StreamDecoder {
         byte[] original = data;
         byte[] current = data;
         int filterIndex = 0;
-        foreach (string filterName in EnumerateFilters(filterObj)) {
+        foreach (string filterName in EnumerateFilters(filterObj, objects)) {
             try {
                 switch (filterName) {
                     case "FlateDecode":
@@ -74,11 +74,13 @@ internal static class StreamDecoder {
             return null;
         }
 
-        if (ResolveDictionary(decodeParmsObj, objects) is PdfDictionary directDict) {
+        PdfObject? resolvedDecodeParms = ResolveObject(decodeParmsObj, objects);
+
+        if (resolvedDecodeParms is PdfDictionary directDict) {
             return filterIndex == 0 ? directDict : null;
         }
 
-        if (decodeParmsObj is PdfArray decodeParmsArray &&
+        if (resolvedDecodeParms is PdfArray decodeParmsArray &&
             filterIndex >= 0 &&
             filterIndex < decodeParmsArray.Items.Count &&
             ResolveDictionary(decodeParmsArray.Items[filterIndex], objects) is PdfDictionary indexedDict) {
@@ -89,29 +91,33 @@ internal static class StreamDecoder {
     }
 
     private static PdfDictionary? ResolveDictionary(PdfObject? obj, Dictionary<int, PdfIndirectObject>? objects) {
-        if (obj is PdfDictionary directDictionary) {
+        if (ResolveObject(obj, objects) is PdfDictionary directDictionary) {
             return directDictionary;
-        }
-
-        if (obj is PdfReference reference &&
-            objects is not null &&
-            objects.TryGetValue(reference.ObjectNumber, out var indirect) &&
-            indirect.Value is PdfDictionary referencedDictionary) {
-            return referencedDictionary;
         }
 
         return null;
     }
 
-    private static IEnumerable<string> EnumerateFilters(PdfObject filterObj) {
-        if (filterObj is PdfName filterName) {
+    private static PdfObject? ResolveObject(PdfObject? obj, Dictionary<int, PdfIndirectObject>? objects) {
+        if (obj is PdfReference reference &&
+            objects is not null &&
+            objects.TryGetValue(reference.ObjectNumber, out var indirect) &&
+            indirect.Value is PdfObject resolvedObject) {
+            return resolvedObject;
+        }
+
+        return obj;
+    }
+
+    private static IEnumerable<string> EnumerateFilters(PdfObject filterObj, Dictionary<int, PdfIndirectObject>? objects) {
+        if (ResolveObject(filterObj, objects) is PdfName filterName) {
             yield return filterName.Name;
             yield break;
         }
 
-        if (filterObj is PdfArray filterArray) {
+        if (ResolveObject(filterObj, objects) is PdfArray filterArray) {
             foreach (var item in filterArray.Items) {
-                if (item is PdfName arrayFilterName) {
+                if (ResolveObject(item, objects) is PdfName arrayFilterName) {
                     yield return arrayFilterName.Name;
                 }
             }

@@ -535,6 +535,46 @@ public class PdfReaderAndFooterRegressionTests {
         Assert.Equal("Hello TIFF predictor", span.Text);
     }
 
+    [Fact]
+    public void PdfTextExtractor_ExtractAllText_ReadsIndirectFilterNameObjects() {
+        byte[] bytes = BuildPdfWithIndirectFilterNameEncodedStream("BT\n/F1 12 Tf\n72 720 Td\n(Hello indirect filter) Tj\nET\n");
+
+        string text = PdfTextExtractor.ExtractAllText(bytes);
+
+        Assert.Contains("Hello indirect filter", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_ReadsIndirectFilterNameObjects() {
+        byte[] bytes = BuildPdfWithIndirectFilterNameEncodedStream("BT\n/F1 12 Tf\n72 720 Td\n(Hello indirect filter) Tj\nET\n");
+
+        var doc = PdfReadDocument.Load(bytes);
+
+        Assert.Single(doc.Pages);
+        var span = Assert.Single(doc.Pages[0].GetTextSpans());
+        Assert.Equal("Hello indirect filter", span.Text);
+    }
+
+    [Fact]
+    public void PdfTextExtractor_ExtractAllText_ReadsIndirectFilterAndDecodeParmsArrayObjects() {
+        byte[] bytes = BuildPdfWithIndirectFilterAndDecodeParmsArrayObjects("BT\n/F1 12 Tf\n72 720 Td\n(Hello indirect arrays) Tj\nET\n");
+
+        string text = PdfTextExtractor.ExtractAllText(bytes);
+
+        Assert.Contains("Hello indirect arrays", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_ReadsIndirectFilterAndDecodeParmsArrayObjects() {
+        byte[] bytes = BuildPdfWithIndirectFilterAndDecodeParmsArrayObjects("BT\n/F1 12 Tf\n72 720 Td\n(Hello indirect arrays) Tj\nET\n");
+
+        var doc = PdfReadDocument.Load(bytes);
+
+        Assert.Single(doc.Pages);
+        var span = Assert.Single(doc.Pages[0].GetTextSpans());
+        Assert.Equal("Hello indirect arrays", span.Text);
+    }
+
     private static byte[] BuildPdfWithInheritedMediaBox(int width, int height) {
         const string streamContent = "BT\n/F1 12 Tf\n72 720 Td\n(Hi) Tj\nET\n";
         int streamLength = Encoding.ASCII.GetByteCount(streamContent);
@@ -915,6 +955,35 @@ public class PdfReaderAndFooterRegressionTests {
         byte[] predictedBytes = EncodeTiffPredictedRows(streamBytes);
         byte[] compressedBytes = CompressWithDeflate(predictedBytes);
         return BuildSingleStreamPdf(compressedBytes, $"/Filter /FlateDecode /DecodeParms << /Predictor 2 /Columns {streamBytes.Length} >>");
+    }
+
+    private static byte[] BuildPdfWithIndirectFilterNameEncodedStream(string streamContent) {
+        byte[] compressedBytes = CompressWithDeflate(Encoding.ASCII.GetBytes(streamContent));
+        return BuildSingleStreamPdfWithExtraObjects(
+            compressedBytes,
+            "/Filter 6 0 R",
+            "6 0 obj",
+            "/FlateDecode",
+            "endobj");
+    }
+
+    private static byte[] BuildPdfWithIndirectFilterAndDecodeParmsArrayObjects(string streamContent) {
+        byte[] streamBytes = Encoding.ASCII.GetBytes(streamContent);
+        byte[] predictedBytes = EncodeUpPredictedRows(streamBytes);
+        byte[] compressedBytes = CompressWithDeflate(predictedBytes);
+        byte[] encodedBytes = Encoding.ASCII.GetBytes(EncodeAscii85(compressedBytes));
+        return BuildSingleStreamPdfWithExtraObjects(
+            encodedBytes,
+            "/Filter 6 0 R /DecodeParms 7 0 R",
+            "6 0 obj",
+            "[/ASCII85Decode /FlateDecode]",
+            "endobj",
+            "7 0 obj",
+            "[null 8 0 R]",
+            "endobj",
+            "8 0 obj",
+            $"<< /Predictor 12 /Columns {streamBytes.Length} >>",
+            "endobj");
     }
 
     private static byte[] BuildPdfWithTjArraySpacing() {
