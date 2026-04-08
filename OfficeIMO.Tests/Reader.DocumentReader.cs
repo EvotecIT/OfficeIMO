@@ -1030,6 +1030,36 @@ public sealed class ReaderDocumentReaderTests {
     }
 
     [Fact]
+    public void DocumentReader_ReadPathDocumentsDetailed_SkipsUnsupportedLegacySingleFileWithoutComputingSourceHash() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".doc");
+
+        try {
+            File.WriteAllText(path, "legacy-binary-placeholder");
+
+            var result = DocumentReader.ReadPathDocumentsDetailed(
+                path,
+                options: new ReaderOptions {
+                    ComputeHashes = true
+                },
+                includeDocumentChunks: false);
+
+            Assert.NotNull(result);
+            Assert.Single(result.Files);
+            Assert.Single(result.Documents);
+            Assert.Equal(1, result.FilesScanned);
+            Assert.Equal(0, result.FilesParsed);
+            Assert.Equal(1, result.FilesSkipped);
+
+            var document = result.Documents[0];
+            Assert.False(document.Parsed);
+            Assert.Null(document.SourceHash);
+            Assert.True((document.Warnings?.Any(w => w.Contains("unsupported", StringComparison.OrdinalIgnoreCase)) ?? false));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_ReadPathDocumentsDetailed_RespectsReturnedChunkBudgetAcrossFolder() {
         var folder = Path.Combine(Path.GetTempPath(), "officeimo-reader-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);

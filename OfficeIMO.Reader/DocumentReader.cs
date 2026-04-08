@@ -1777,10 +1777,15 @@ public static class DocumentReader {
         string? warning = null;
         try {
             EnforceFileSize(path, opt.MaxInputBytes);
+            chunks = ReadPathCore(path, opt, source, cancellationToken).ToList();
             if (opt.ComputeHashes) {
                 source.SourceHash = TryComputeFileSha256(path);
+                if (!string.IsNullOrWhiteSpace(source.SourceHash)) {
+                    for (int i = 0; i < chunks.Count; i++) {
+                        chunks[i].SourceHash ??= source.SourceHash;
+                    }
+                }
             }
-            chunks = ReadPathCore(path, opt, source, cancellationToken).ToList();
         } catch (OperationCanceledException) {
             throw;
         } catch (NotSupportedException ex) {
