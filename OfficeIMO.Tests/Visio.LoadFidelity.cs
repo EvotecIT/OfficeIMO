@@ -125,6 +125,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ShapeChildOrderIsPreservedOnRoundTrip() {
+            string filePath = CreateShapeDocument();
+
+            RewritePage(filePath, pageDoc => {
+                XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+                XElement shape = GetFirstShape(pageDoc, ns);
+                XElement pinX = shape.Elements(ns + "Cell")
+                    .First(cell => (string?)cell.Attribute("N") == "PinX");
+                XElement lineWeight = shape.Elements(ns + "Cell")
+                    .First(cell => (string?)cell.Attribute("N") == "LineWeight");
+                XElement geometry = shape.Elements(ns + "Section")
+                    .First(section => (string?)section.Attribute("N") == "Geometry");
+                XElement sidecarElement = new(ns + "ShapeMeta",
+                    new XAttribute("KeepOrder", "1"));
+
+                XElement[] remainingChildren = shape.Elements()
+                    .Where(element => element != pinX && element != lineWeight && element != geometry)
+                    .ToArray();
+
+                shape.RemoveNodes();
+                shape.Add(lineWeight, sidecarElement, geometry, pinX);
+                foreach (XElement remainingChild in remainingChildren) {
+                    shape.Add(remainingChild);
+                }
+            });
+
+            string originalOrder = ReadFirstShapeChildOrder(filePath);
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            string savedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            loaded.Save(savedPath);
+
+            Assert.Equal(originalOrder, ReadFirstShapeChildOrder(savedPath));
+        }
+
+        [Fact]
         public void DocumentRootAttributesAndElementsArePreservedOnRoundTrip() {
             string filePath = CreateShapeDocument();
 
@@ -1438,6 +1474,22 @@ namespace OfficeIMO.Tests {
                 connects.Elements()
                     .Where(element => element.Name != ns + "Connect")
                     .Select(element => element.ToString(SaveOptions.DisableFormatting)));
+        }
+
+        private static string ReadFirstShapeChildOrder(string vsdxPath) {
+            using ZipArchive archive = ZipFile.OpenRead(vsdxPath);
+            using Stream stream = archive.GetEntry("visio/pages/page1.xml")!.Open();
+            XDocument pageDoc = XDocument.Load(stream);
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XElement shape = GetFirstShape(pageDoc, ns);
+
+            return string.Join("|",
+                shape.Elements()
+                    .Select(element => element.Name.LocalName switch {
+                        "Cell" => $"Cell:{(string?)element.Attribute("N")}",
+                        "Section" => $"Section:{(string?)element.Attribute("N")}",
+                        _ => $"{element.Name.LocalName}:{(string?)element.Attribute("KeepOrder") ?? string.Empty}"
+                    }));
         }
 
         private static string ReadShapesChildOrder(string vsdxPath) {

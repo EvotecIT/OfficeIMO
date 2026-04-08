@@ -602,18 +602,17 @@ namespace OfficeIMO.Visio {
             }
 
             KeyValuePair<string, string>? originalIdEntry = GetOriginalIdEntry(persistedIds, shape.Id);
+            bool wroteChildShapesInBody = false;
             if (effectiveMaster != null && !isGroup) {
                 WriteMasterBackedShapeBody(writer, ns, shape, effectiveMaster, originalIdEntry);
+            } else if (shape.PreservedShapeChildren.Count > 0) {
+                wroteChildShapesInBody = WriteStandaloneShapeBodyWithPreservedChildOrder(writer, ns, shape, isGroup, originalIdEntry, persistedIds, effectiveMasters, packageMasters);
             } else {
                 WriteStandaloneShapeBody(writer, ns, shape, isGroup, originalIdEntry);
             }
 
-            if (isGroup && shape.Children.Count > 0) {
-                writer.WriteStartElement("Shapes", ns);
-                foreach (VisioShape child in shape.Children) {
-                    WriteShapeElement(writer, ns, child, persistedIds, effectiveMasters, packageMasters);
-                }
-                writer.WriteEndElement();
+            if (!wroteChildShapesInBody && isGroup && shape.Children.Count > 0) {
+                WriteChildShapesContainer(writer, ns, shape, persistedIds, effectiveMasters, packageMasters);
             }
 
             writer.WriteEndElement();
@@ -926,6 +925,246 @@ namespace OfficeIMO.Visio {
             WriteTextElement(writer, ns, shape.Text, shape.PreservedTextElement, shape.PreservedTextValue);
         }
 
+        private bool WriteStandaloneShapeBodyWithPreservedChildOrder(
+            XmlWriter writer,
+            string ns,
+            VisioShape shape,
+            bool isGroup,
+            KeyValuePair<string, string>? originalIdEntry,
+            IReadOnlyDictionary<string, string> persistedIds,
+            IReadOnlyDictionary<string, VisioMaster> effectiveMasters,
+            IReadOnlyList<PackageMasterEntry> packageMasters) {
+            double width = shape.Width > 0 ? shape.Width : 1;
+            double height = shape.Height > 0 ? shape.Height : 1;
+            double locPinX = Math.Abs(shape.LocPinX) < double.Epsilon ? width / 2 : shape.LocPinX;
+            double locPinY = Math.Abs(shape.LocPinY) < double.Epsilon ? height / 2 : shape.LocPinY;
+
+            HashSet<string> emittedTokens = new(StringComparer.OrdinalIgnoreCase);
+            bool wroteChildShapes = false;
+            foreach (VisioShape.PreservedShapeChildEntry entry in shape.PreservedShapeChildren) {
+                if (entry.RawElement != null) {
+                    entry.RawElement.WriteTo(writer);
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(entry.Token) &&
+                    emittedTokens.Add(entry.Token) &&
+                    TryWriteStandaloneShapeChildToken(writer, ns, shape, isGroup, originalIdEntry, entry.Token, width, height, locPinX, locPinY, persistedIds, effectiveMasters, packageMasters, ref wroteChildShapes)) {
+                    if (string.Equals(entry.Token, "XForm", StringComparison.OrdinalIgnoreCase)) {
+                        MarkShapeTransformCellTokens(emittedTokens);
+                    }
+                    continue;
+                }
+            }
+
+            WriteRemainingStandaloneShapeChildren(writer, ns, shape, isGroup, originalIdEntry, emittedTokens, width, height, locPinX, locPinY, persistedIds, effectiveMasters, packageMasters, ref wroteChildShapes);
+            return wroteChildShapes;
+        }
+
+        private bool TryWriteStandaloneShapeChildToken(
+            XmlWriter writer,
+            string ns,
+            VisioShape shape,
+            bool isGroup,
+            KeyValuePair<string, string>? originalIdEntry,
+            string token,
+            double width,
+            double height,
+            double locPinX,
+            double locPinY,
+            IReadOnlyDictionary<string, string> persistedIds,
+            IReadOnlyDictionary<string, VisioMaster> effectiveMasters,
+            IReadOnlyList<PackageMasterEntry> packageMasters,
+            ref bool wroteChildShapes) {
+            if (string.Equals(token, "XForm", StringComparison.OrdinalIgnoreCase)) {
+                WriteXForm(writer, ns, shape.PinX, shape.PinY, width, height, locPinX, locPinY, shape.Angle);
+                return true;
+            }
+
+            if (token.StartsWith("Cell:", StringComparison.OrdinalIgnoreCase)) {
+                return TryWriteModeledShapeCell(writer, ns, shape, token.Substring("Cell:".Length), isGroup, width, height, locPinX, locPinY);
+            }
+
+            if (string.Equals(token, "Section:Geometry", StringComparison.OrdinalIgnoreCase)) {
+                WriteShapeGeometry(writer, ns, shape.PreservedGeometrySections, shape.NameU, width, height, writeGeneratedGeometryWhenEmpty: !isGroup);
+                return true;
+            }
+
+            if (string.Equals(token, "Section:Connection", StringComparison.OrdinalIgnoreCase)) {
+                WriteConnectionSection(writer, ns, shape.ConnectionPoints);
+                return true;
+            }
+
+            if (string.Equals(token, "Section:Prop", StringComparison.OrdinalIgnoreCase)) {
+                WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry);
+                return true;
+            }
+
+            if (string.Equals(token, "Text", StringComparison.OrdinalIgnoreCase)) {
+                WriteTextElement(writer, ns, shape.Text, shape.PreservedTextElement, shape.PreservedTextValue);
+                return true;
+            }
+
+            if (string.Equals(token, "Shapes", StringComparison.OrdinalIgnoreCase)) {
+                if (isGroup && shape.Children.Count > 0) {
+                    WriteChildShapesContainer(writer, ns, shape, persistedIds, effectiveMasters, packageMasters);
+                }
+                wroteChildShapes = true;
+                return true;
+            }
+
+            return false;
+        }
+
+        private void WriteRemainingStandaloneShapeChildren(
+            XmlWriter writer,
+            string ns,
+            VisioShape shape,
+            bool isGroup,
+            KeyValuePair<string, string>? originalIdEntry,
+            ISet<string> emittedTokens,
+            double width,
+            double height,
+            double locPinX,
+            double locPinY,
+            IReadOnlyDictionary<string, string> persistedIds,
+            IReadOnlyDictionary<string, VisioMaster> effectiveMasters,
+            IReadOnlyList<PackageMasterEntry> packageMasters,
+            ref bool wroteChildShapes) {
+            if (!HasAnyShapeTransformCellTokens(emittedTokens) && emittedTokens.Add("XForm")) {
+                WriteXForm(writer, ns, shape.PinX, shape.PinY, width, height, locPinX, locPinY, shape.Angle);
+                MarkShapeTransformCellTokens(emittedTokens);
+            }
+
+            WriteRemainingModeledShapeCells(writer, ns, shape, isGroup, width, height, locPinX, locPinY, emittedTokens);
+
+            if (emittedTokens.Add("Section:Geometry")) {
+                WriteShapeGeometry(writer, ns, shape.PreservedGeometrySections, shape.NameU, width, height, writeGeneratedGeometryWhenEmpty: !isGroup);
+            }
+
+            if (emittedTokens.Add("Section:Connection")) {
+                WriteConnectionSection(writer, ns, shape.ConnectionPoints);
+            }
+
+            if (emittedTokens.Add("Section:Prop")) {
+                WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry);
+            }
+
+            if (emittedTokens.Add("Text")) {
+                WriteTextElement(writer, ns, shape.Text, shape.PreservedTextElement, shape.PreservedTextValue);
+            }
+
+            if (!wroteChildShapes && emittedTokens.Add("Shapes") && isGroup && shape.Children.Count > 0) {
+                WriteChildShapesContainer(writer, ns, shape, persistedIds, effectiveMasters, packageMasters);
+                wroteChildShapes = true;
+            }
+        }
+
+        private static void WriteRemainingModeledShapeCells(
+            XmlWriter writer,
+            string ns,
+            VisioShape shape,
+            bool isGroup,
+            double width,
+            double height,
+            double locPinX,
+            double locPinY,
+            ISet<string> emittedTokens) {
+            foreach (string cellName in ShapeModeledCellOrder) {
+                string token = $"Cell:{cellName}";
+                if (emittedTokens.Add(token)) {
+                    TryWriteModeledShapeCell(writer, ns, shape, cellName, isGroup, width, height, locPinX, locPinY);
+                }
+            }
+        }
+
+        private static bool TryWriteModeledShapeCell(
+            XmlWriter writer,
+            string ns,
+            VisioShape shape,
+            string cellName,
+            bool isGroup,
+            double width,
+            double height,
+            double locPinX,
+            double locPinY) {
+            switch (cellName) {
+                case "PinX":
+                    WriteCell(writer, ns, "PinX", shape.PinX);
+                    return true;
+                case "PinY":
+                    WriteCell(writer, ns, "PinY", shape.PinY);
+                    return true;
+                case "Width":
+                    WriteCell(writer, ns, "Width", width);
+                    return true;
+                case "Height":
+                    WriteCell(writer, ns, "Height", height);
+                    return true;
+                case "LocPinX":
+                    WriteCell(writer, ns, "LocPinX", locPinX);
+                    return true;
+                case "LocPinY":
+                    WriteCell(writer, ns, "LocPinY", locPinY);
+                    return true;
+                case "Angle":
+                    WriteCell(writer, ns, "Angle", shape.Angle);
+                    return true;
+                case "LineWeight":
+                    WriteCell(writer, ns, "LineWeight", shape.LineWeight);
+                    return true;
+                case "LinePattern":
+                    WriteCell(writer, ns, "LinePattern", shape.LinePattern);
+                    return true;
+                case "LineColor":
+                    WriteCellValue(writer, ns, "LineColor", shape.LineColor.ToVisioHex());
+                    return true;
+                case "FillPattern":
+                    WriteCell(writer, ns, "FillPattern", shape.FillPattern);
+                    return true;
+                case "FillForegnd":
+                    WriteCellValue(writer, ns, "FillForegnd", shape.FillColor.ToVisioHex());
+                    return true;
+                case "ObjType":
+                    if (!isGroup) {
+                        WriteCell(writer, ns, "ObjType", 1);
+                    }
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static bool HasAnyShapeTransformCellTokens(ISet<string> emittedTokens) {
+            foreach (string cellName in ShapeTransformCellNames) {
+                if (emittedTokens.Contains($"Cell:{cellName}")) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static void MarkShapeTransformCellTokens(ISet<string> emittedTokens) {
+            foreach (string cellName in ShapeTransformCellNames) {
+                emittedTokens.Add($"Cell:{cellName}");
+            }
+        }
+
+        private void WriteChildShapesContainer(
+            XmlWriter writer,
+            string ns,
+            VisioShape shape,
+            IReadOnlyDictionary<string, string> persistedIds,
+            IReadOnlyDictionary<string, VisioMaster> effectiveMasters,
+            IReadOnlyList<PackageMasterEntry> packageMasters) {
+            writer.WriteStartElement("Shapes", ns);
+            foreach (VisioShape child in shape.Children) {
+                WriteShapeElement(writer, ns, child, persistedIds, effectiveMasters, packageMasters);
+            }
+            writer.WriteEndElement();
+        }
+
         private static readonly string[] ConnectorModeledCellOrder = {
             "BeginX",
             "BeginY",
@@ -939,6 +1178,32 @@ namespace OfficeIMO.Visio {
             "OneD",
             "BeginArrow",
             "EndArrow"
+        };
+
+        private static readonly string[] ShapeModeledCellOrder = {
+            "PinX",
+            "PinY",
+            "Width",
+            "Height",
+            "LocPinX",
+            "LocPinY",
+            "Angle",
+            "LineWeight",
+            "LinePattern",
+            "LineColor",
+            "FillPattern",
+            "FillForegnd",
+            "ObjType"
+        };
+
+        private static readonly string[] ShapeTransformCellNames = {
+            "PinX",
+            "PinY",
+            "Width",
+            "Height",
+            "LocPinX",
+            "LocPinY",
+            "Angle"
         };
 
         private static Dictionary<string, string> BuildPersistedIdMap(VisioPage page) {

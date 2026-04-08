@@ -7,6 +7,20 @@ namespace OfficeIMO.Visio {
     /// Represents a shape on a Visio page.
     /// </summary>
     public class VisioShape {
+        internal sealed class PreservedShapeChildEntry {
+            public PreservedShapeChildEntry(XElement rawElement) {
+                RawElement = new XElement(rawElement);
+            }
+
+            public PreservedShapeChildEntry(string token) {
+                Token = token;
+            }
+
+            public XElement? RawElement { get; }
+
+            public string? Token { get; }
+        }
+
         private readonly List<VisioShape> _children = new();
         private readonly IList<VisioShape> _childCollection;
 
@@ -192,6 +206,8 @@ namespace OfficeIMO.Visio {
         internal IList<XElement> PreservedCellElements { get; } = new List<XElement>();
 
         internal IList<XElement> PreservedNonGeometrySections { get; } = new List<XElement>();
+
+        internal IList<PreservedShapeChildEntry> PreservedShapeChildren { get; } = new List<PreservedShapeChildEntry>();
 
         internal XElement? PreservedTextElement { get; set; }
 

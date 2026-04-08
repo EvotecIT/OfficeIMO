@@ -579,6 +579,7 @@ namespace OfficeIMO.Visio {
             ParseShapeTransform(shape, shapeElement, ns);
             ParseShapeProperties(shape, shapeElement, ns);
             ParseChildShapes(shape, shapeElement, ns, depth);
+            CaptureShapeChildOrder(shape, shapeElement);
 
             return shape;
         }
@@ -836,6 +837,72 @@ namespace OfficeIMO.Visio {
                 VisioShape childShape = ParseShape(childElement, ns, shape, depth + 1);
                 shape.Children.Add(childShape);
             }
+        }
+
+        private static void CaptureShapeChildOrder(VisioShape shape, XElement shapeElement) {
+            shape.PreservedShapeChildren.Clear();
+            foreach (XElement child in shapeElement.Elements()) {
+                string localName = child.Name.LocalName;
+                if (string.Equals(localName, "XForm", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(localName, "XForm1D", StringComparison.OrdinalIgnoreCase)) {
+                    shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry("XForm"));
+                    continue;
+                }
+
+                if (string.Equals(localName, "Cell", StringComparison.OrdinalIgnoreCase)) {
+                    string? cellName = child.Attribute("N")?.Value;
+                    if (IsModeledShapeCell(cellName)) {
+                        shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry($"Cell:{cellName}"));
+                    } else {
+                        shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry(child));
+                    }
+
+                    continue;
+                }
+
+                if (string.Equals(localName, "Section", StringComparison.OrdinalIgnoreCase)) {
+                    string? sectionName = child.Attribute("N")?.Value;
+                    if (string.Equals(sectionName, "Geometry", StringComparison.OrdinalIgnoreCase)) {
+                        shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry("Section:Geometry"));
+                    } else if (string.Equals(sectionName, "Connection", StringComparison.OrdinalIgnoreCase)) {
+                        shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry("Section:Connection"));
+                    } else if (string.Equals(sectionName, "Prop", StringComparison.OrdinalIgnoreCase)) {
+                        shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry("Section:Prop"));
+                    } else {
+                        shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry(child));
+                    }
+
+                    continue;
+                }
+
+                if (string.Equals(localName, "Text", StringComparison.OrdinalIgnoreCase)) {
+                    shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry("Text"));
+                    continue;
+                }
+
+                if (string.Equals(localName, "Shapes", StringComparison.OrdinalIgnoreCase)) {
+                    shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry("Shapes"));
+                    continue;
+                }
+
+                shape.PreservedShapeChildren.Add(new VisioShape.PreservedShapeChildEntry(child));
+            }
+        }
+
+        private static bool IsModeledShapeCell(string? cellName) {
+            return string.Equals(cellName, "PinX", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "PinY", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "Width", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "Height", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "LocPinX", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "LocPinY", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "Angle", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "LineWeight", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "LinePattern", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "LineColor", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "FillPattern", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "FillForegnd", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "ObjType", StringComparison.OrdinalIgnoreCase);
         }
 
         private static void ApplyMasterReferences(VisioShape shape, XElement shapeElement, XNamespace ns, Dictionary<string, VisioMaster> masters, VisioMaster? inheritedMaster = null, VisioShape? inheritedMasterShape = null) {
