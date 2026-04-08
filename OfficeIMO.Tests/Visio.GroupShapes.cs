@@ -194,6 +194,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ReparentShapeHonorsForwardIndexWhenMovingWithinSameParent() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Page-1");
+            VisioShape group = new("1") { Type = "Group" };
+            VisioShape first = new("2", 1, 1, 1, 1, "First");
+            VisioShape middle = new("3", 2, 1, 1, 1, "Middle");
+            VisioShape last = new("4", 3, 1, 1, 1, "Last");
+            page.Shapes.Add(group);
+            group.Children.Add(first);
+            group.Children.Add(middle);
+            group.Children.Add(last);
+
+            page.ReparentShape(first, group, childIndex: 2);
+
+            Assert.Equal(new[] { middle, last, first }, group.Children.ToArray());
+            Assert.Same(group, first.Parent);
+        }
+
+        [Fact]
         public void ReplacingChildWithDuplicateLeavesExistingParentLinkIntact() {
             VisioShape group = new("1") { Type = "Group" };
             VisioShape first = new("2", 1, 1, 1, 1, "First");

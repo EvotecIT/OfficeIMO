@@ -964,8 +964,8 @@ namespace OfficeIMO.Visio {
                 }
 
                 currentCollection.RemoveAt(currentIndex);
-                if (childIndex > currentIndex) {
-                    childIndex--;
+                if (childIndex > currentCollection.Count) {
+                    childIndex = currentCollection.Count;
                 }
 
                 currentCollection.Insert(childIndex, shape);
