@@ -145,6 +145,15 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfTextExtractor_ExtractAllText_IgnoresCyclicKidsReferences() {
+        byte[] bytes = BuildPdfWithCyclicKidsReferences();
+
+        string text = PdfTextExtractor.ExtractAllText(bytes);
+
+        Assert.Contains("Hello cyclic kids", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfTextExtractor_ExtractAllText_ReadsPagesWithIndirectContentArrayObjects() {
         byte[] bytes = BuildPdfWithIndirectContentArrayObject();
 
@@ -875,6 +884,41 @@ public class PdfReaderAndFooterRegressionTests {
             "endobj",
             "6 0 obj",
             "[3 0 R]",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithCyclicKidsReferences() {
+        const string streamContent = "BT\n/F1 12 Tf\n72 720 Td\n(Hello cyclic kids) Tj\nET\n";
+        int streamLength = Encoding.ASCII.GetByteCount(streamContent);
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Pages /Parent 2 0 R /Kids [2 0 R 4 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Page /Parent 3 0 R /Resources << /Font << /F1 5 0 R >> >> /Contents 6 0 R >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            "endobj",
+            "6 0 obj",
+            $"<< /Length {streamLength} >>",
+            "stream",
+            streamContent.TrimEnd('\n'),
+            "endstream",
             "endobj",
             "trailer",
             "<< /Root 1 0 R >>",

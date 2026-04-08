@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
                 byte[] pdf = document.SaveAsPdf(options);
                 using (PdfDocument pdfDoc = PdfDocument.Open(new MemoryStream(pdf))) {
                     var fonts = pdfDoc.GetPage(1).Letters.Select(l => l.FontName).Distinct();
-                    Assert.Contains(fonts, f => f != null && f.Contains(expectedFont));
+                    Assert.Contains(fonts, f => FontNameMatches(f, expectedFont));
                 }
             }
         }
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
                 byte[] pdf = document.SaveAsPdf(options);
                 using (PdfDocument pdfDoc = PdfDocument.Open(new MemoryStream(pdf))) {
                     var fonts = pdfDoc.GetPage(1).Letters.Select(l => l.FontName).Distinct();
-                    Assert.Contains(fonts, f => f != null && f.Contains(expectedFont));
+                    Assert.Contains(fonts, f => FontNameMatches(f, expectedFont));
                 }
             }
         }
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
 
                 using (PdfDocument pdfDoc = PdfDocument.Open(new MemoryStream(secondPdf))) {
                     var fonts = pdfDoc.GetPage(1).Letters.Select(l => l.FontName).Distinct();
-                    Assert.Contains(fonts, f => f != null && f.Contains(expectedFont));
+                    Assert.Contains(fonts, f => FontNameMatches(f, expectedFont));
                 }
             }
         }
@@ -115,6 +115,22 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(0, invalidFontStream.Position);
             }
+        }
+
+        private static bool FontNameMatches(string? actualFontName, string expectedFont) {
+            if (string.IsNullOrWhiteSpace(actualFontName)) {
+                return false;
+            }
+
+            string normalizedExpected = NormalizeFontName(expectedFont);
+            string normalizedActual = NormalizeFontName(actualFontName!);
+            return normalizedActual.Contains(normalizedExpected, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string NormalizeFontName(string fontName) {
+            int subsetSeparator = fontName.IndexOf('+');
+            string trimmed = subsetSeparator >= 0 ? fontName.Substring(subsetSeparator + 1) : fontName;
+            return string.Concat(trimmed.Where(char.IsLetterOrDigit));
         }
     }
 }

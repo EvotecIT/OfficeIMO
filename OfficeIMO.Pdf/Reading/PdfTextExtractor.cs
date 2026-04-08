@@ -939,12 +939,14 @@ public static class PdfTextExtractor {
         Dictionary<int, PdfIndirectObject> objects,
         List<PdfDictionary> result,
         HashSet<int> visited) {
+        int objectNumber = FindObjectNumberFor(node, objects);
+        if (objectNumber > 0 && !visited.Add(objectNumber)) {
+            return;
+        }
+
         string? type = node.Get<PdfName>("Type")?.Name;
         if (type == "Page" || (type is null && IsLeafPage(node, objects))) {
-            int objectNumber = FindObjectNumberFor(node, objects);
-            if (objectNumber <= 0 || visited.Add(objectNumber)) {
-                result.Add(node);
-            }
+            result.Add(node);
             return;
         }
 

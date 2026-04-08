@@ -6,6 +6,7 @@ using SkiaSharp;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
@@ -22,7 +23,7 @@ namespace OfficeIMO.Word.Pdf {
             try {
                 bool registered = false;
                 using SKTypeface? typeface = SKTypeface.FromFamilyName(fontFamily);
-                using SKStreamAsset? skStream = typeface?.OpenStream();
+                using SKStreamAsset? skStream = MatchesRequestedFamily(typeface, fontFamily!) ? typeface?.OpenStream() : null;
                 if (skStream != null) {
                     using MemoryStream ms = new();
                     if (skStream.HasLength) {
@@ -56,6 +57,29 @@ namespace OfficeIMO.Word.Pdf {
                 }
             } catch {
             }
+        }
+
+        static bool MatchesRequestedFamily(SKTypeface? typeface, string requestedFamily) {
+            if (typeface == null || string.IsNullOrWhiteSpace(typeface.FamilyName)) {
+                return false;
+            }
+
+            string resolved = NormalizeFontFamily(typeface.FamilyName);
+            string requested = NormalizeFontFamily(requestedFamily);
+            return resolved.Equals(requested, StringComparison.OrdinalIgnoreCase) ||
+                   resolved.StartsWith(requested, StringComparison.OrdinalIgnoreCase) ||
+                   requested.StartsWith(resolved, StringComparison.OrdinalIgnoreCase);
+        }
+
+        static string NormalizeFontFamily(string family) {
+            var sb = new StringBuilder(family.Length);
+            foreach (char c in family) {
+                if (char.IsLetterOrDigit(c)) {
+                    sb.Append(c);
+                }
+            }
+
+            return sb.ToString();
         }
 
         static string? TryResolveSystemFontFile(string family) {
