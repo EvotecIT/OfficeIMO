@@ -246,7 +246,25 @@ namespace OfficeIMO.Word.Pdf {
             return container;
 
             string? ResolveRegisteredFamily(string? name) {
-                return ResolveRegisteredFontFamily(name);
+                string? resolved = ResolveRegisteredFontFamily(name);
+                if (!string.Equals(resolved, name, StringComparison.Ordinal) || string.IsNullOrWhiteSpace(name)) {
+                    return resolved;
+                }
+
+                string fontName = name ?? string.Empty;
+                if (fontName.Length > 0 &&
+                    options?.FontFilePaths != null &&
+                    options.FontFilePaths.TryGetValue(fontName, out string? path) &&
+                    !string.IsNullOrWhiteSpace(path) &&
+                    File.Exists(path)) {
+                    using SKTypeface? typeface = SKTypeface.FromFile(path);
+                    string? familyName = typeface?.FamilyName;
+                    if (!string.IsNullOrWhiteSpace(familyName)) {
+                        return familyName;
+                    }
+                }
+
+                return resolved;
             }
 
             void ApplyFormatting(TextSpanDescriptor span) {

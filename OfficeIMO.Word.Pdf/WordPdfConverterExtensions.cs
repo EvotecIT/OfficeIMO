@@ -583,7 +583,7 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     using var stream = File.OpenRead(kvp.Value);
-                    TryRegisterFontWithAliases(kvp.Key, stream);
+                    TryRegisterFontWithAliases(kvp.Key, stream, kvp.Value);
                 }
             }
 
@@ -611,7 +611,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void TryRegisterFontWithAliases(string alias, Stream stream) {
+        private static void TryRegisterFontWithAliases(string alias, Stream stream, string? sourcePath = null) {
             byte[] bytes;
             using (MemoryStream ms = new()) {
                 stream.CopyTo(ms);
@@ -624,7 +624,7 @@ namespace OfficeIMO.Word.Pdf {
 
             RegisterFontData(alias, bytes);
 
-            string? family = TryReadFontFamily(bytes);
+            string? family = TryReadFontFamily(sourcePath, bytes);
             if (string.IsNullOrWhiteSpace(family)) {
                 return;
             }
@@ -668,8 +668,16 @@ namespace OfficeIMO.Word.Pdf {
             return key;
         }
 
-        private static string? TryReadFontFamily(byte[] bytes) {
+        private static string? TryReadFontFamily(string? sourcePath, byte[] bytes) {
             try {
+                if (!string.IsNullOrWhiteSpace(sourcePath) && File.Exists(sourcePath)) {
+                    using SKTypeface? fileTypeface = SKTypeface.FromFile(sourcePath);
+                    string? familyName = fileTypeface?.FamilyName;
+                    if (!string.IsNullOrWhiteSpace(familyName)) {
+                        return familyName;
+                    }
+                }
+
                 using MemoryStream ms = new(bytes, writable: false);
                 using SKManagedStream skStream = new(ms);
                 using SKTypeface? typeface = SKTypeface.FromStream(skStream);

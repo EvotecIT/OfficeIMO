@@ -145,6 +145,27 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfReadDocument_Load_PreservesPagesWithDirectContentStreams() {
+        byte[] bytes = BuildPdfWithTwoDirectContentPages();
+
+        var document = PdfReadDocument.Load(bytes);
+
+        Assert.Equal(2, document.Pages.Count);
+        Assert.NotEqual(document.Pages[0].ObjectNumber, document.Pages[1].ObjectNumber);
+    }
+
+    [Fact]
+    public void PdfReadDocument_Load_PreservesPagesWithDistinctReferencedContentArrays() {
+        byte[] bytes = BuildPdfWithDistinctReferencedContentArrays();
+
+        var document = PdfReadDocument.Load(bytes);
+
+        Assert.Equal(2, document.Pages.Count);
+        Assert.Contains("Shared stream page", document.Pages[0].ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Shared stream page", document.Pages[1].ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfTextExtractor_ExtractAllText_IgnoresCyclicKidsReferences() {
         byte[] bytes = BuildPdfWithCyclicKidsReferences();
 
@@ -1628,6 +1649,88 @@ public class PdfReaderAndFooterRegressionTests {
             "endobj",
             "13 0 obj",
             "<< /F1 4 0 R >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithTwoDirectContentPages() {
+        const string pageOne = "BT\n/F1 12 Tf\n72 720 Td\n(Direct page one) Tj\nET\n";
+        const string pageTwo = "BT\n/F1 12 Tf\n72 720 Td\n(Direct page two) Tj\nET\n";
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] /MediaBox [0 0 612 792] /Resources 5 0 R >>",
+            "endobj",
+            "3 0 obj",
+            $"<< /Type /Page /Parent 2 0 R /Contents << /Length {Encoding.ASCII.GetByteCount(pageOne)} >>\nstream\n{pageOne.TrimEnd('\n')}\nendstream >>",
+            "endobj",
+            "4 0 obj",
+            $"<< /Type /Page /Parent 2 0 R /Contents << /Length {Encoding.ASCII.GetByteCount(pageTwo)} >>\nstream\n{pageTwo.TrimEnd('\n')}\nendstream >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Font 6 0 R >>",
+            "endobj",
+            "6 0 obj",
+            "<< /F1 7 0 R >>",
+            "endobj",
+            "7 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithDistinctReferencedContentArrays() {
+        const string sharedStream = "BT\n/F1 12 Tf\n72 720 Td\n(Shared stream page) Tj\nET\n";
+        int sharedLength = Encoding.ASCII.GetByteCount(sharedStream);
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] /MediaBox [0 0 612 792] /Resources 8 0 R >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Contents 6 0 R >>",
+            "endobj",
+            "5 0 obj",
+            "[7 0 R]",
+            "endobj",
+            "6 0 obj",
+            "[7 0 R]",
+            "endobj",
+            "7 0 obj",
+            $"<< /Length {sharedLength} >>",
+            "stream",
+            sharedStream.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "8 0 obj",
+            "<< /Font 9 0 R >>",
+            "endobj",
+            "9 0 obj",
+            "<< /F1 10 0 R >>",
+            "endobj",
+            "10 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
             "endobj",
             "trailer",
             "<< /Root 1 0 R >>",

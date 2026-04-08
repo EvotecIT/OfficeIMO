@@ -53,13 +53,12 @@ public sealed class PdfReadDocument {
                 var kids = ResolveArray(pagesNode.Items.TryGetValue("Kids", out var kidsObj) ? kidsObj : null);
                 int kidCount = kids?.Items.Count ?? 0;
                 var visited = new HashSet<int>();
-                var contentKeys = new HashSet<string>(StringComparer.Ordinal);
                 int? target = null;
                 var cnt = pagesNode.Get<PdfNumber>("Count");
                 if (cnt is not null) {
                     int cc = (int)cnt.Value; if (cc > 0) target = cc;
                 }
-                TraversePagesNodeDeepLimited(pagesNode, visited, contentKeys, result, target);
+                TraversePagesNodeDeepLimited(pagesNode, visited, result, target);
                 if (result.Count == 0 && kidCount > 0) {
                     // Build a reachable candidate set from Kids only
                     var reachable = CollectReachableLeafCandidates(pagesNode);
@@ -128,16 +127,13 @@ public sealed class PdfReadDocument {
         return !hasKids && hasContents && (hasRes || hasMedia);
     }
 
-    private void TraversePagesNodeDeepLimited(PdfDictionary node, HashSet<int> visited, HashSet<string> contentKeys, List<PdfReadPage> outList, int? limit) {
+    private void TraversePagesNodeDeepLimited(PdfDictionary node, HashSet<int> visited, List<PdfReadPage> outList, int? limit) {
         var type = node.Get<PdfName>("Type")?.Name;
         if (type == "Page" || (type is null && IsLikelyPage(node))) {
             int objNum = FindObjectNumberFor(node);
             if (objNum > 0 && visited.Add(objNum)) {
                 if (type == "Page" || HasMedia(node) || HasInheritedValue(node, "MediaBox") || HasInheritedValue(node, "CropBox")) {
-                    var key = ContentsKey(node);
-                    if (key is null || contentKeys.Add(key)) {
-                        outList.Add(new PdfReadPage(objNum, node, _objects));
-                    }
+                    outList.Add(new PdfReadPage(objNum, node, _objects));
                 }
             }
             return;
@@ -149,16 +145,13 @@ public sealed class PdfReadDocument {
             var d = ResolveDict(kid);
             if (d is null) { continue; }
             var t = d.Get<PdfName>("Type")?.Name;
-            if (t == "Pages" || (t is null && ResolveArray(d.Items.TryGetValue("Kids", out var dKidsObj) ? dKidsObj : null) is not null)) TraversePagesNodeDeepLimited(d, visited, contentKeys, outList, limit);
+            if (t == "Pages" || (t is null && ResolveArray(d.Items.TryGetValue("Kids", out var dKidsObj) ? dKidsObj : null) is not null)) TraversePagesNodeDeepLimited(d, visited, outList, limit);
             else if ((t == "Page" || IsLikelyPage(d) || IsLeafPageByParent(d)) &&
                      (t == "Page" || HasMedia(d) || HasInheritedValue(d, "MediaBox") || HasInheritedValue(d, "CropBox"))) {
                 int on = FindObjectNumberFor(d);
                 if (on > 0 && visited.Add(on)) {
-                    var key = ContentsKey(d);
-                    if (key is null || contentKeys.Add(key)) {
-                        outList.Add(new PdfReadPage(on, d, _objects));
-                        if (limit.HasValue && outList.Count >= limit.Value) return;
-                    }
+                    outList.Add(new PdfReadPage(on, d, _objects));
+                    if (limit.HasValue && outList.Count >= limit.Value) return;
                 }
             }
         }
@@ -226,30 +219,6 @@ public sealed class PdfReadDocument {
     }
 
     private static bool HasMedia(PdfDictionary d) => d.Items.ContainsKey("MediaBox") || d.Items.ContainsKey("CropBox");
-    private string? ContentsKey(PdfDictionary d) {
-        if (!d.Items.TryGetValue("Contents", out var c)) return null;
-        if (c is PdfReference r) {
-            if (_objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfArray referencedArray) {
-                return ContentsArrayKey(referencedArray);
-            }
-            return $"ref:{r.ObjectNumber}";
-        }
-        if (c is PdfStream) return "stream:direct";
-        if (c is PdfArray arr) {
-            return ContentsArrayKey(arr);
-        }
-        return null;
-    }
-
-    private static string ContentsArrayKey(PdfArray arr) {
-        var sb = new System.Text.StringBuilder();
-        sb.Append("arr:");
-        foreach (var it in arr.Items) {
-            if (it is PdfReference rr) sb.Append(rr.ObjectNumber).Append(',');
-        }
-        return sb.ToString();
-    }
-
     private int FindObjectNumberFor(PdfDictionary dict) {
         foreach (var kv in _objects) if (ReferenceEquals(kv.Value.Value, dict)) return kv.Key;
         // As a fallback when dictionary was re-parsed separately, match by identity via a simple scan of Page objects
