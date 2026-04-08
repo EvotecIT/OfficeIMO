@@ -101,6 +101,24 @@ public static class DocumentReaderCsvExtensions {
 
         if (rows.Count > 0) {
             yield return EnrichChunk(BuildCsvChunk(sourcePath, headers, rows, chunkIndex, rowIndex - rows.Count, options.IncludeMarkdown), source, computeHashes);
+            yield break;
+        }
+
+        if (rowIndex == 0) {
+            if (csv.Header.Count > 0) {
+                yield return EnrichChunk(
+                    BuildCsvChunk(
+                        sourcePath,
+                        headers,
+                        Array.Empty<IReadOnlyList<string>>(),
+                        chunkIndex,
+                        sourceRowStart: 0,
+                        includeMarkdown: options.IncludeMarkdown),
+                    source,
+                    computeHashes);
+            } else {
+                yield return EnrichChunk(BuildWarningChunk(sourcePath, "csv-warning-0000", "CSV content produced no rows."), source, computeHashes);
+            }
         }
     }
 
@@ -132,6 +150,19 @@ public static class DocumentReaderCsvExtensions {
             Text = BuildPlain(effectiveHeaders, normalizedRows),
             Markdown = includeMarkdown ? BuildMarkdown(effectiveHeaders, normalizedRows) : null,
             Tables = new[] { table }
+        };
+    }
+
+    private static ReaderChunk BuildWarningChunk(string path, string id, string warning) {
+        return new ReaderChunk {
+            Id = id,
+            Kind = ReaderInputKind.Csv,
+            Location = new ReaderLocation {
+                Path = path,
+                BlockIndex = 0
+            },
+            Text = warning,
+            Warnings = new[] { warning }
         };
     }
 
