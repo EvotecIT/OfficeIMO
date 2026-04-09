@@ -4,7 +4,7 @@
         <Description>HTML converter for OfficeIMO.Markdown - Convert HTML fragments or documents into OfficeIMO.Markdown documents and Markdown text.</Description>
         <AssemblyName>OfficeIMO.Markdown.Html</AssemblyName>
         <AssemblyTitle>OfficeIMO.Markdown.Html</AssemblyTitle>
-        <VersionPrefix>0.1.8</VersionPrefix>
+        <VersionPrefix>0.1.9</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472
