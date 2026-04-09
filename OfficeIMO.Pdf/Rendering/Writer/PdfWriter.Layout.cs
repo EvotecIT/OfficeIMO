@@ -9,7 +9,7 @@ internal static partial class PdfWriter {
     private sealed class ColHead : ColItem { public HeadingBlock Block = null!; public System.Collections.Generic.List<string> Lines = null!; public double Leading; public double Size; public ColHead() { Kind = "H"; } }
     private sealed class ColRule : ColItem { public HorizontalRuleBlock Block = null!; public ColRule() { Kind = "R"; } }
     private sealed class ColImg : ColItem { public ImageBlock Block = null!; public ColImg() { Kind = "I"; } }
-    private static string BuildFooter(PdfOptions opts, int page, int pages) {
+    private static string BuildFooter(PdfOptions opts, int page, int pages, PdfStandardFont footerFont, string footerFontResource) {
         string text;
         if (opts.FooterSegments != null && opts.FooterSegments.Count > 0) {
             var sbFooter = new StringBuilder();
@@ -25,7 +25,7 @@ internal static partial class PdfWriter {
             text = opts.FooterFormat.Replace("{page}", page.ToString(CultureInfo.InvariantCulture)).Replace("{pages}", pages.ToString(CultureInfo.InvariantCulture));
         }
         double width = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
-        double em = GlyphWidthEmFor(ChooseNormal(opts.FooterFont));
+        double em = GlyphWidthEmFor(footerFont);
         double textWidth = text.Length * opts.FooterFontSize * em;
         double x = opts.MarginLeft;
         if (opts.FooterAlign == PdfAlign.Center) x = opts.MarginLeft + Math.Max(0, (width - textWidth) / 2);
@@ -33,9 +33,9 @@ internal static partial class PdfWriter {
         double y = opts.MarginBottom - opts.FooterOffsetY;
         var sb = new StringBuilder();
         sb.Append("BT\n");
-        sb.Append("/F1 ").Append(F(opts.FooterFontSize)).Append(" Tf\n");
+        sb.Append('/').Append(footerFontResource).Append(' ').Append(F(opts.FooterFontSize)).Append(" Tf\n");
         sb.Append("1 0 0 1 ").Append(F(x)).Append(' ').Append(F(y)).Append(" Tm\n");
-        sb.Append('(').Append(EscapeText(text)).Append(") Tj\n");
+        sb.Append('<').Append(EncodeWinAnsiHex(text)).Append("> Tj\n");
         sb.Append("ET\n");
         return sb.ToString();
     }

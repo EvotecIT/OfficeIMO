@@ -9,6 +9,13 @@ internal sealed class PdfNumber : PdfObject {
     public override string ToString() => Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
 }
 
+/// <summary>PDF boolean value.</summary>
+internal sealed class PdfBoolean : PdfObject {
+    public bool Value { get; }
+    public PdfBoolean(bool value) { Value = value; }
+    public override string ToString() => Value ? "true" : "false";
+}
+
 /// <summary>PDF name object (e.g. /Type, /Font).</summary>
 internal sealed class PdfName : PdfObject {
     public string Name { get; }
@@ -26,6 +33,13 @@ internal sealed class PdfStringObj : PdfObject {
 /// <summary>PDF array object.</summary>
 internal sealed class PdfArray : PdfObject {
     public System.Collections.Generic.List<PdfObject> Items { get; } = new();
+}
+
+/// <summary>PDF null object.</summary>
+internal sealed class PdfNull : PdfObject {
+    private PdfNull() { }
+    public static PdfNull Instance { get; } = new PdfNull();
+    public override string ToString() => "null";
 }
 
 /// <summary>PDF dictionary object.</summary>

@@ -24,80 +24,229 @@ public sealed class PdfReadPage {
     }
 
     /// <summary>
-    /// Attempts to read page size from MediaBox (or CropBox) and returns width/height in points.
+    /// Attempts to read page size from CropBox (or MediaBox) and returns width/height in points.
     /// Falls back to 612x792 (US Letter) when not present or malformed.
     /// </summary>
     public (double Width, double Height) GetPageSize() {
-        static (double, double) ParseBox(PdfObject? box) {
-            if (box is PdfArray arr && arr.Items.Count >= 4 &&
-                arr.Items[0] is PdfNumber llx && arr.Items[1] is PdfNumber lly &&
-                arr.Items[2] is PdfNumber urx && arr.Items[3] is PdfNumber ury) {
-                double w = urx.Value - llx.Value;
-                double h = ury.Value - lly.Value;
-                if (w > 0 && h > 0) return (w, h);
-            }
-            return (612, 792); // default Letter
-        }
-        if (_pageDict.Items.TryGetValue("MediaBox", out var media)) return ParseBox(media);
-        if (_pageDict.Items.TryGetValue("CropBox", out var crop)) return ParseBox(crop);
+        var crop = GetInheritedValue("CropBox");
+        if (TryParseBox(crop, out var cropSize)) return cropSize;
+
+        var media = GetInheritedValue("MediaBox");
+        if (TryParseBox(media, out var mediaSize)) return mediaSize;
+
         return (612, 792);
     }
 
     /// <summary>Gets text spans (text with position and font info) from this page.</summary>
     public IReadOnlyList<PdfTextSpan> GetTextSpans() {
         var spans = new List<PdfTextSpan>();
-        var streams = GetContentStreams();
-        var decoders = ResourceResolver.GetFontDecoders(_pageDict, _objects);
-        var widthProviders = ResourceResolver.GetFontWidthProviders(_pageDict, _objects);
-        string DecodeWithFont(string fontRes, byte[] bytes) =>
-            decoders.TryGetValue(fontRes, out var dec) ? dec(bytes) : PdfWinAnsiEncoding.Decode(bytes);
-        double SumWidth1000(string fontRes, byte[] bytes) => widthProviders.TryGetValue(fontRes, out var wp) ? wp(bytes) : (bytes?.Length ?? 0) * 500.0;
-        foreach (var s in streams) {
-            var content = PdfEncoding.Latin1GetString(s);
-            spans.AddRange(TextContentParser.Parse(content, DecodeWithFont, SumWidth1000));
+        var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
+        var pageDecoders = ResourceResolver.GetFontDecoders(_pageDict, _objects);
+        var pageWidthProviders = ResourceResolver.GetFontWidthProviders(_pageDict, _objects);
+        var activeForms = new HashSet<PdfStream>();
+
+        foreach (var stream in GetContentStreams()) {
+            CollectTextAndForms(
+                PdfEncoding.Latin1GetString(stream),
+                pageResources,
+                pageDecoders,
+                pageWidthProviders,
+                spans,
+                activeForms);
         }
-        // Additionally parse Form XObjects referenced via /Resources/XObject
-        var formStreams = ResourceResolver.GetFormXObjectStreams(_pageDict, _objects);
-        foreach (var kv in formStreams) {
-            var formName = kv.Key;
-            var bytes = kv.Value;
-            var content = PdfEncoding.Latin1GetString(bytes);
-            // Build decoders using the form's own resources if present
-            var formDict = GetFormDict(formName);
-            var formDecoders = ResourceResolver.GetFontDecodersForForm(formDict, _objects);
-            var formWidths = ResourceResolver.GetFontWidthProviders(formDict, _objects);
-            string DecodeWithFormFont(string fontRes, byte[] input) => formDecoders.TryGetValue(fontRes, out var dec) ? dec(input) : DecodeWithFont(fontRes, input);
-            double SumWidth1000Form(string fontRes, byte[] input) => formWidths.TryGetValue(fontRes, out var wp) ? wp(input) : SumWidth1000(fontRes, input);
-            // If the form has a /Matrix, inject it as a cm operator to apply CTM correctly
-            if (formDict is not null && formDict.Items.TryGetValue("Matrix", out var mObj) && mObj is PdfArray arr && arr.Items.Count >= 6) {
-                double A() => (arr.Items[0] as PdfNumber)?.Value ?? 1;
-                double B() => (arr.Items[1] as PdfNumber)?.Value ?? 0;
-                double C() => (arr.Items[2] as PdfNumber)?.Value ?? 0;
-                double D() => (arr.Items[3] as PdfNumber)?.Value ?? 1;
-                double E() => (arr.Items[4] as PdfNumber)?.Value ?? 0;
-                double F() => (arr.Items[5] as PdfNumber)?.Value ?? 0;
-                string prefix = $"q {A().ToString(System.Globalization.CultureInfo.InvariantCulture)} {B().ToString(System.Globalization.CultureInfo.InvariantCulture)} {C().ToString(System.Globalization.CultureInfo.InvariantCulture)} {D().ToString(System.Globalization.CultureInfo.InvariantCulture)} {E().ToString(System.Globalization.CultureInfo.InvariantCulture)} {F().ToString(System.Globalization.CultureInfo.InvariantCulture)} cm ";
-                content = prefix + content + " Q";
-            }
-            spans.AddRange(TextContentParser.Parse(content, DecodeWithFormFont, SumWidth1000Form));
-        }
+
         return spans;
     }
 
-    private PdfDictionary GetFormDict(string name) {
-        if (_pageDict.Items.TryGetValue("Resources", out var resObj) && resObj is PdfReference rr && _objects.TryGetValue(rr.ObjectNumber, out var indr) && indr.Value is PdfDictionary res) {
-            if (res.Items.TryGetValue("XObject", out var xoObj)) {
-                PdfDictionary? xoDict = null;
-                if (xoObj is PdfReference xref && _objects.TryGetValue(xref.ObjectNumber, out var indxo) && indxo.Value is PdfDictionary xod) xoDict = xod;
-                if (xoObj is PdfDictionary d) xoDict = d;
-                if (xoDict is not null && xoDict.Items.TryGetValue(name, out var formObj)) {
-                    if (formObj is PdfReference fr && _objects.TryGetValue(fr.ObjectNumber, out var indForm) && indForm.Value is PdfStream s && s.Dictionary is not null) {
-                        return s.Dictionary;
-                    }
-                }
+    private void CollectTextAndForms(
+        string content,
+        PdfDictionary? resources,
+        Dictionary<string, Func<byte[], string>> decoders,
+        Dictionary<string, Func<byte[], double>> widthProviders,
+        List<PdfTextSpan> spans,
+        HashSet<PdfStream> activeForms) {
+        string DecodeWithFont(string fontRes, byte[] bytes) =>
+            decoders.TryGetValue(fontRes, out var dec) ? dec(bytes) : PdfWinAnsiEncoding.Decode(bytes);
+        double SumWidth1000(string fontRes, byte[] bytes) =>
+            widthProviders.TryGetValue(fontRes, out var wp) ? wp(bytes) : (bytes?.Length ?? 0) * 500.0;
+
+        spans.AddRange(TextContentParser.Parse(content, DecodeWithFont, SumWidth1000));
+
+        foreach (var invocation in TextContentParser.ExtractFormInvocations(content)) {
+            if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
+                continue;
+            }
+
+            if (!activeForms.Add(formStream)) {
+                continue;
+            }
+
+            try {
+                var formDict = formStream.Dictionary;
+                var formResources = ResolveDictionary(formDict.Items.TryGetValue("Resources", out var resObj) ? resObj : null) ?? resources;
+                var formDecoders = MergeDecoders(decoders, ResourceResolver.GetFontDecodersForForm(formDict, _objects));
+                var formWidths = MergeWidthProviders(widthProviders, ResourceResolver.GetFontWidthProviders(formDict, _objects));
+                var combinedTransform = ApplyFormMatrix(invocation.Transform, formDict);
+                var formContent = WrapContentWithTransform(PdfEncoding.Latin1GetString(DecodeIfNeeded(formStream)), combinedTransform);
+
+                CollectTextAndForms(formContent, formResources, formDecoders, formWidths, spans, activeForms);
+            } finally {
+                activeForms.Remove(formStream);
             }
         }
-        return _pageDict;
+    }
+
+    private bool TryGetFormStream(PdfDictionary? resources, string name, out PdfStream formStream) {
+        if (resources is null || !resources.Items.TryGetValue("XObject", out var xoObj)) {
+            formStream = null!;
+            return false;
+        }
+
+        var xoDict = ResolveDictionary(xoObj);
+        if (xoDict is null || !xoDict.Items.TryGetValue(name, out var formObj)) {
+            formStream = null!;
+            return false;
+        }
+
+        if (formObj is PdfReference formRef &&
+            _objects.TryGetValue(formRef.ObjectNumber, out var indirectForm) &&
+            indirectForm.Value is PdfStream stream &&
+            string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) {
+            formStream = stream;
+            return true;
+        }
+
+        if (formObj is PdfStream directStream &&
+            string.Equals(directStream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) {
+            formStream = directStream;
+            return true;
+        }
+
+        formStream = null!;
+        return false;
+    }
+
+    private static Dictionary<string, Func<byte[], string>> MergeDecoders(
+        Dictionary<string, Func<byte[], string>> parent,
+        Dictionary<string, Func<byte[], string>> local) {
+        var merged = new Dictionary<string, Func<byte[], string>>(parent, StringComparer.Ordinal);
+        foreach (var entry in local) {
+            merged[entry.Key] = entry.Value;
+        }
+
+        return merged;
+    }
+
+    private static Dictionary<string, Func<byte[], double>> MergeWidthProviders(
+        Dictionary<string, Func<byte[], double>> parent,
+        Dictionary<string, Func<byte[], double>> local) {
+        var merged = new Dictionary<string, Func<byte[], double>>(parent, StringComparer.Ordinal);
+        foreach (var entry in local) {
+            merged[entry.Key] = entry.Value;
+        }
+
+        return merged;
+    }
+
+    private static string WrapContentWithTransform(string content, Matrix2D transform) {
+        string prefix = string.Format(
+            System.Globalization.CultureInfo.InvariantCulture,
+            "q {0} {1} {2} {3} {4} {5} cm ",
+            transform.A,
+            transform.B,
+            transform.C,
+            transform.D,
+            transform.E,
+            transform.F);
+        return prefix + content + " Q";
+    }
+
+    private static Matrix2D ApplyFormMatrix(Matrix2D invocationTransform, PdfDictionary? formDict) {
+        if (formDict is null ||
+            !formDict.Items.TryGetValue("Matrix", out var matrixObj) ||
+            matrixObj is not PdfArray arr ||
+            arr.Items.Count < 6) {
+            return invocationTransform;
+        }
+
+        var formMatrix = new Matrix2D(
+            (arr.Items[0] as PdfNumber)?.Value ?? 1,
+            (arr.Items[1] as PdfNumber)?.Value ?? 0,
+            (arr.Items[2] as PdfNumber)?.Value ?? 0,
+            (arr.Items[3] as PdfNumber)?.Value ?? 1,
+            (arr.Items[4] as PdfNumber)?.Value ?? 0,
+            (arr.Items[5] as PdfNumber)?.Value ?? 0);
+
+        return Matrix2D.Multiply(invocationTransform, formMatrix);
+    }
+
+    private PdfObject? GetInheritedValue(string key) {
+        PdfDictionary? current = _pageDict;
+        int guard = 0;
+        while (current is not null && guard++ < 100) {
+            if (current.Items.TryGetValue(key, out var value)) {
+                return value;
+            }
+
+            if (!current.Items.TryGetValue("Parent", out var parentObj) ||
+                parentObj is not PdfReference parentRef ||
+                !_objects.TryGetValue(parentRef.ObjectNumber, out var parentIndirect) ||
+                parentIndirect.Value is not PdfDictionary parentDict) {
+                break;
+            }
+
+            current = parentDict;
+        }
+
+        return null;
+    }
+
+    private PdfDictionary? ResolveDictionary(PdfObject? obj) {
+        if (obj is PdfDictionary dictionary) {
+            return dictionary;
+        }
+
+        if (obj is PdfReference reference &&
+            _objects.TryGetValue(reference.ObjectNumber, out var indirect) &&
+            indirect.Value is PdfDictionary referencedDictionary) {
+            return referencedDictionary;
+        }
+
+        return null;
+    }
+
+    private PdfArray? ResolveArray(PdfObject? obj) {
+        if (obj is PdfArray array) {
+            return array;
+        }
+
+        if (obj is PdfReference reference &&
+            _objects.TryGetValue(reference.ObjectNumber, out var indirect) &&
+            indirect.Value is PdfArray referencedArray) {
+            return referencedArray;
+        }
+
+        return null;
+    }
+
+    private bool TryParseBox(PdfObject? box, out (double Width, double Height) size) {
+        var arr = ResolveArray(box);
+        if (arr is not null &&
+            arr.Items.Count >= 4 &&
+            arr.Items[0] is PdfNumber llx &&
+            arr.Items[1] is PdfNumber lly &&
+            arr.Items[2] is PdfNumber urx &&
+            arr.Items[3] is PdfNumber ury) {
+            double width = urx.Value - llx.Value;
+            double height = ury.Value - lly.Value;
+            if (width > 0 && height > 0) {
+                size = (width, height);
+                return true;
+            }
+        }
+
+        size = default;
+        return false;
     }
 
     private static double GlyphWidthEmForBase(string baseFont) {
@@ -123,21 +272,31 @@ public sealed class PdfReadPage {
         var result = new List<byte[]>();
         var contents = _pageDict.Items.TryGetValue("Contents", out var obj) ? obj : null;
         if (contents is PdfReference r) {
-            if (_objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfStream s) result.Add(DecodeIfNeeded(s));
-        } else if (contents is PdfArray arr) {
-            foreach (var item in arr.Items) {
-                if (item is PdfReference rr) {
-                    if (_objects.TryGetValue(rr.ObjectNumber, out var ind2) && ind2.Value is PdfStream s2) result.Add(DecodeIfNeeded(s2));
-                }
+            if (_objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfStream s) {
+                result.Add(DecodeIfNeeded(s));
+                return result;
             }
         }
+
+        var contentArray = ResolveArray(contents);
+        if (contentArray is null) {
+            return result;
+        }
+
+        foreach (var item in contentArray.Items) {
+            if (item is PdfReference rr &&
+                _objects.TryGetValue(rr.ObjectNumber, out var ind2) &&
+                ind2.Value is PdfStream s2) {
+                result.Add(DecodeIfNeeded(s2));
+            } else if (item is PdfStream directStream) {
+                result.Add(DecodeIfNeeded(directStream));
+            }
+        }
+
         return result;
     }
 
-    private static byte[] DecodeIfNeeded(PdfStream s) {
-        if (PdfSyntax.HasFlateDecode(s.Dictionary)) {
-            try { return Filters.FlateDecoder.Decode(s.Data); } catch { return s.Data; }
-        }
-        return s.Data;
+    private byte[] DecodeIfNeeded(PdfStream s) {
+        return Filters.StreamDecoder.Decode(s.Dictionary, s.Data, _objects);
     }
 }

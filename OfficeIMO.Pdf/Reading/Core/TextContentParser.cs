@@ -10,6 +10,16 @@ internal static class TextContentParser {
         "er", "ers", "ed", "ly", "ology", "ologies"
     };
 
+    internal readonly struct FormInvocation {
+        public string Name { get; }
+        public Matrix2D Transform { get; }
+
+        public FormInvocation(string name, Matrix2D transform) {
+            Name = name;
+            Transform = transform;
+        }
+    }
+
     public static List<PdfTextSpan> Parse(
         string content,
         System.Func<string, byte[], string> decodeWithFont,
@@ -177,8 +187,8 @@ internal static class TextContentParser {
 
         string ReadName() {
             i++; int start = i;
-            while (i < n) { char ch = content[i]; if (char.IsWhiteSpace(ch) || ch == '/' || ch == '[' || ch == ']' || ch == '(' || ch == ')' || ch == '<' || ch == '>') break; i++; }
-            return content.Substring(start, i - start);
+            while (i < n) { char ch = content[i]; if (char.IsWhiteSpace(ch) || ch == '%' || ch == '/' || ch == '[' || ch == ']' || ch == '(' || ch == ')' || ch == '<' || ch == '>') break; i++; }
+            return PdfSyntax.DecodeName(content.Substring(start, i - start));
         }
 
         byte[] ReadLiteralStringBytes() {
@@ -238,7 +248,7 @@ internal static class TextContentParser {
             if (ch == '\'' || ch == '"') return ch.ToString();
             while (i < n) {
                 char c2 = content[i];
-                if (char.IsWhiteSpace(c2) || c2 == '(' || c2 == '[' || c2 == '/' || c2 == '<' || c2 == '>') break;
+                if (char.IsWhiteSpace(c2) || c2 == '%' || c2 == '(' || c2 == '[' || c2 == '/' || c2 == '<' || c2 == '>') break;
                 i++;
             }
             return content.Substring(start, i - start);
@@ -295,5 +305,159 @@ internal static class TextContentParser {
             }
             return joined;
         }
+    }
+
+    public static List<FormInvocation> ExtractFormInvocations(string content) {
+        var invocations = new List<FormInvocation>();
+        Matrix2D ctm = Matrix2D.Identity;
+        var gstack = new Stack<Matrix2D>();
+        var args = new List<object>(8);
+        int i = 0;
+        int n = content.Length;
+
+        while (i < n) {
+            SkipWs();
+            if (i >= n) break;
+
+            char c = content[i];
+            if (c == '%') {
+                while (i < n && content[i] != '\n' && content[i] != '\r') i++;
+                continue;
+            }
+
+            if (c == '/') { args.Add(ReadName()); continue; }
+            if (c == '(') { ReadLiteralStringBytes(); continue; }
+            if (c == '<') {
+                if (i + 1 < n && content[i + 1] == '<') { i += 2; continue; }
+                ReadHexStringBytes();
+                continue;
+            }
+            if (c == '[') { ReadArray(); continue; }
+            if (c == ']' || c == '>') { i++; continue; }
+            if (IsNumberStart(c)) { args.Add(ReadNumber()); continue; }
+
+            string op = ReadOperator();
+            if (op.Length == 0) { i++; continue; }
+
+            switch (op) {
+                case "q":
+                    gstack.Push(ctm);
+                    args.Clear();
+                    break;
+                case "Q":
+                    ctm = gstack.Count > 0 ? gstack.Pop() : Matrix2D.Identity;
+                    args.Clear();
+                    break;
+                case "cm":
+                    if (args.Count >= 6) {
+                        var m2 = new Matrix2D(
+                            ToDouble(args[args.Count - 6]),
+                            ToDouble(args[args.Count - 5]),
+                            ToDouble(args[args.Count - 4]),
+                            ToDouble(args[args.Count - 3]),
+                            ToDouble(args[args.Count - 2]),
+                            ToDouble(args[args.Count - 1]));
+                        ctm = Matrix2D.Multiply(ctm, m2);
+                    }
+                    args.Clear();
+                    break;
+                case "Do":
+                    if (args.Count >= 1) {
+                        string name = ToName(args[args.Count - 1]);
+                        if (!string.IsNullOrEmpty(name)) {
+                            invocations.Add(new FormInvocation(name, ctm));
+                        }
+                    }
+                    args.Clear();
+                    break;
+                default:
+                    args.Clear();
+                    break;
+            }
+        }
+
+        return invocations;
+
+        void SkipWs() { while (i < n && char.IsWhiteSpace(content[i])) i++; }
+        static bool IsDigit(char ch) => ch >= '0' && ch <= '9';
+        bool IsNumberStart(char ch) => ch == '-' || ch == '+' || ch == '.' || IsDigit(ch);
+
+        double ReadNumber() {
+            int start = i;
+            i++;
+            while (i < n) {
+                char ch = content[i];
+                if (!(IsDigit(ch) || ch == '.' || ch == 'E' || ch == 'e' || ch == '-' || ch == '+')) break;
+                i++;
+            }
+            var s = content.Substring(start, i - start);
+            if (!double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var v)) v = 0;
+            return v;
+        }
+
+        string ReadName() {
+            i++;
+            int start = i;
+            while (i < n) {
+                char ch = content[i];
+                if (char.IsWhiteSpace(ch) || ch == '%' || ch == '/' || ch == '[' || ch == ']' || ch == '(' || ch == ')' || ch == '<' || ch == '>') break;
+                i++;
+            }
+            return PdfSyntax.DecodeName(content.Substring(start, i - start));
+        }
+
+        void ReadLiteralStringBytes() {
+            i++;
+            int depth = 1;
+            bool esc = false;
+            while (i < n && depth > 0) {
+                char ch = content[i++];
+                if (esc) esc = false;
+                else if (ch == '\\') esc = true;
+                else if (ch == '(') depth++;
+                else if (ch == ')') depth--;
+            }
+        }
+
+        void ReadHexStringBytes() {
+            i++;
+            while (i < n && content[i] != '>') i++;
+            if (i < n && content[i] == '>') i++;
+        }
+
+        void ReadArray() {
+            i++;
+            while (i < n) {
+                SkipWs();
+                if (i >= n) break;
+                char ch = content[i];
+                if (ch == ']') { i++; break; }
+                if (ch == '(') { ReadLiteralStringBytes(); continue; }
+                if (ch == '<') {
+                    if (i + 1 < n && content[i + 1] == '<') { i += 2; continue; }
+                    ReadHexStringBytes();
+                    continue;
+                }
+                if (IsNumberStart(ch)) { ReadNumber(); continue; }
+                if (ch == '/') { ReadName(); continue; }
+                if (ch == '[') { i++; continue; }
+                ReadOperator();
+            }
+        }
+
+        string ReadOperator() {
+            int start = i;
+            char ch = content[i++];
+            if (ch == '\'' || ch == '"') return ch.ToString();
+            while (i < n) {
+                char c2 = content[i];
+                if (char.IsWhiteSpace(c2) || c2 == '%' || c2 == '(' || c2 == '[' || c2 == '/' || c2 == '<' || c2 == '>') break;
+                i++;
+            }
+            return content.Substring(start, i - start);
+        }
+
+        static double ToDouble(object o) => o is double d ? d : 0.0;
+        static string ToName(object o) => o as string ?? string.Empty;
     }
 }

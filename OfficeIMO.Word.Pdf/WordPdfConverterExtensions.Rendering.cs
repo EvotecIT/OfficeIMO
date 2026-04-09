@@ -6,6 +6,7 @@ using SkiaSharp;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
@@ -16,12 +17,13 @@ namespace OfficeIMO.Word.Pdf {
             if (string.IsNullOrWhiteSpace(fontFamily)) {
                 return;
             }
-            if (!_embeddedFonts.Add(fontFamily!)) {
+            if (_embeddedFonts.Contains(fontFamily!)) {
                 return;
             }
             try {
+                bool registered = false;
                 using SKTypeface? typeface = SKTypeface.FromFamilyName(fontFamily);
-                using SKStreamAsset? skStream = typeface?.OpenStream();
+                using SKStreamAsset? skStream = MatchesRequestedFamily(typeface, fontFamily!) ? typeface?.OpenStream() : null;
                 if (skStream != null) {
                     using MemoryStream ms = new();
                     if (skStream.HasLength) {
@@ -37,6 +39,8 @@ namespace OfficeIMO.Word.Pdf {
                     }
                     ms.Position = 0;
                     FontManager.RegisterFontWithCustomName(fontFamily!, ms);
+                    registered = true;
+                    _embeddedFonts.Add(fontFamily!);
                     return;
                 }
 
@@ -45,9 +49,37 @@ namespace OfficeIMO.Word.Pdf {
                 if (!string.IsNullOrEmpty(path) && File.Exists(path)) {
                     using var fs = File.OpenRead(path);
                     FontManager.RegisterFontWithCustomName(fontFamily!, fs);
+                    registered = true;
+                }
+
+                if (registered) {
+                    _embeddedFonts.Add(fontFamily!);
                 }
             } catch {
             }
+        }
+
+        static bool MatchesRequestedFamily(SKTypeface? typeface, string requestedFamily) {
+            if (typeface == null || string.IsNullOrWhiteSpace(typeface.FamilyName)) {
+                return false;
+            }
+
+            string resolved = NormalizeFontFamily(typeface.FamilyName);
+            string requested = NormalizeFontFamily(requestedFamily);
+            return resolved.Equals(requested, StringComparison.OrdinalIgnoreCase) ||
+                   resolved.StartsWith(requested, StringComparison.OrdinalIgnoreCase) ||
+                   requested.StartsWith(resolved, StringComparison.OrdinalIgnoreCase);
+        }
+
+        static string NormalizeFontFamily(string family) {
+            var sb = new StringBuilder(family.Length);
+            foreach (char c in family) {
+                if (char.IsLetterOrDigit(c)) {
+                    sb.Append(c);
+                }
+            }
+
+            return sb.ToString();
         }
 
         static string? TryResolveSystemFontFile(string family) {
@@ -214,25 +246,29 @@ namespace OfficeIMO.Word.Pdf {
             return container;
 
             string? ResolveRegisteredFamily(string? name) {
-                try {
-                    if (!string.IsNullOrWhiteSpace(name)) {
-                        if (options?.FontFilePaths != null && options.FontFilePaths.TryGetValue(name!, out var path) && File.Exists(path)) {
-                            using var tf = SKTypeface.FromFile(path);
-                            return tf?.FamilyName ?? name;
-                        }
-                        if (options?.FontStreams != null && options.FontStreams.TryGetValue(name!, out var s) && s != null) {
-                            Stream src = s;
-                            if (src.CanSeek) src.Position = 0;
-                            using MemoryStream ms = new();
-                            src.CopyTo(ms);
-                            ms.Position = 0;
-                            using var tf = SKTypeface.FromStream(new SKManagedStream(ms));
-                            if (src.CanSeek) src.Position = 0;
-                            return tf?.FamilyName ?? name;
-                        }
+                string? resolved = ResolveRegisteredFontFamily(name);
+                if (!string.Equals(resolved, name, StringComparison.Ordinal) || string.IsNullOrWhiteSpace(name)) {
+                    return resolved;
+                }
+
+                string fontName = name ?? string.Empty;
+                if (fontName.Length > 0 &&
+                    options?.FontFilePaths != null &&
+                    options.FontFilePaths.TryGetValue(fontName, out string? path) &&
+                    !string.IsNullOrWhiteSpace(path) &&
+                    File.Exists(path)) {
+                    string? familyName = null;
+                    try {
+                        familyName = TryReadFontFamily(path, File.ReadAllBytes(path));
+                    } catch {
                     }
-                } catch { }
-                return name;
+
+                    if (!string.IsNullOrWhiteSpace(familyName)) {
+                        return familyName;
+                    }
+                }
+
+                return resolved;
             }
 
             void ApplyFormatting(TextSpanDescriptor span) {
@@ -314,12 +350,9 @@ namespace OfficeIMO.Word.Pdf {
                 if (run.VerticalTextAlignment == W.VerticalPositionValues.Subscript) span = span.Subscript();
                 // Inline hyperlink on text spans is not supported by QuestPDF directly.
                 // Paragraph-level hyperlinks are applied earlier; skip span-level link here.
-                // Choose run font: explicit run font, otherwise platform monospace, otherwise PdfSaveOptions.FontFamily
-                string? mono = null;
-                if (!string.IsNullOrEmpty(run.FontFamily)) mono = run.FontFamily;
-                mono ??= FontResolver.Resolve("monospace") ?? opt?.FontFamily;
-                if (!string.IsNullOrEmpty(mono)) {
-                    var fam = ResolveRegisteredFamily(mono)!;
+                // Preserve paragraph/default fonts unless the run explicitly overrides them.
+                if (!string.IsNullOrEmpty(run.FontFamily)) {
+                    var fam = ResolveRegisteredFamily(run.FontFamily)!;
                     EmbedFont(fam);
                     span = span.FontFamily(fam);
                 }

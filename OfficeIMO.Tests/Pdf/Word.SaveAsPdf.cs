@@ -172,6 +172,19 @@ public partial class Word {
     }
 
     [Fact]
+    public void Test_WordDocument_SaveAsPdf_DirectoryPath_Throws() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfDirectoryPath.docx");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Hello World");
+            document.Save();
+
+            var ex = Assert.Throws<ArgumentException>(() => document.SaveAsPdf(_directoryWithFiles));
+            Assert.Contains("directory", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
     public void Test_WordDocument_SaveAsPdf_NullDocument_Throws() {
         Assert.Throws<ArgumentNullException>(() => WordPdfConverterExtensions.SaveAsPdf(null!, "file.pdf"));
     }

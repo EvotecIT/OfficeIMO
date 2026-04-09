@@ -19,6 +19,11 @@ internal static class PdfStringParser {
                     case '(': bytes.Add((byte)'('); break;
                     case ')': bytes.Add((byte)')'); break;
                     case '\n': /* line continuation */ break;
+                    case '\r':
+                        if (i + 1 < inner.Length && inner[i + 1] == '\n') {
+                            i++;
+                        }
+                        break;
                     default:
                         if (IsOctalDigit(n)) {
                             int v = n - '0';
