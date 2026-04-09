@@ -429,9 +429,6 @@ namespace OfficeIMO.Word {
                     WordTableCell cell = new WordTableCell(document, this, row);
                 }
             }
-            // Ensure tblGrid mirrors initial cell widths so online viewers render correctly
-            // (ColumnWidth defaults to DXA 2400 per cell at creation time).
-            try { RefreshTblGridFromColumnWidths(); } catch { }
             return table;
         }
 
@@ -476,6 +473,7 @@ namespace OfficeIMO.Word {
         internal WordTable(WordDocument document, WordParagraph wordParagraph, int rows, int columns, WordTableStyle tableStyle, string location) {
             _document = document;
             _table = GenerateTable(document, rows, columns, tableStyle);
+            try { RefreshTblGridFromColumnWidths(); } catch { }
 
             // Establish Position property
             Position = new WordTablePosition(this);
@@ -500,6 +498,7 @@ namespace OfficeIMO.Word {
         internal WordTable(WordDocument document, int rows, int columns, WordTableStyle tableStyle, bool insert = true) {
             _document = document;
             _table = GenerateTable(document, rows, columns, tableStyle);
+            try { RefreshTblGridFromColumnWidths(); } catch { }
 
             // Establish Position property
             Position = new WordTablePosition(this);
@@ -522,6 +521,7 @@ namespace OfficeIMO.Word {
             _document = document;
 
             _table = GenerateTable(document, rows, columns, tableStyle);
+            try { RefreshTblGridFromColumnWidths(); } catch { }
 
             // Establish Position property
             Position = new WordTablePosition(this);
@@ -532,6 +532,7 @@ namespace OfficeIMO.Word {
         internal WordTable(WordDocument document, Footer footer, int rows, int columns, WordTableStyle tableStyle) {
             _document = document;
             _table = GenerateTable(document, rows, columns, tableStyle);
+            try { RefreshTblGridFromColumnWidths(); } catch { }
 
             // Establish Position property
             Position = new WordTablePosition(this);
@@ -541,6 +542,7 @@ namespace OfficeIMO.Word {
         internal WordTable(WordDocument document, Header header, int rows, int columns, WordTableStyle tableStyle) {
             _document = document;
             _table = GenerateTable(document, rows, columns, tableStyle);
+            try { RefreshTblGridFromColumnWidths(); } catch { }
 
             // Establish Position property
             Position = new WordTablePosition(this);
