@@ -19,7 +19,7 @@ The goal is clean IntelligenceX integration without forcing one large dependency
 - `OfficeIMO.Reader.Text`
 - `OfficeIMO.Reader.Html`
 
-All scaffolded packages are currently excluded from publishing.
+These scaffolded packages are now wired into the publishing pipeline.
 
 ## Delivery Order (Low -> High Effort)
 
