@@ -4,6 +4,7 @@
   "ExpectedVersion": null,
   "ExpectedVersionMap": {
     "OfficeIMO.CSV": "0.1.X",
+    "OfficeIMO.Epub": "0.0.X",
     "OfficeIMO.Excel": "0.6.X",
     "OfficeIMO.Markdown": "0.6.X",
     "OfficeIMO.Markdown.Html": "0.1.X",
@@ -12,22 +13,24 @@
     "OfficeIMO.Pdf": "0.1.X",
     "OfficeIMO.PowerPoint": "1.0.X",
     "OfficeIMO.Reader": "0.1.X",
+    "OfficeIMO.Reader.Csv": "0.0.X",
+    "OfficeIMO.Reader.Epub": "0.0.X",
+    "OfficeIMO.Reader.Html": "0.0.X",
+    "OfficeIMO.Reader.Json": "0.0.X",
+    "OfficeIMO.Reader.Text": "0.0.X",
+    "OfficeIMO.Reader.Xml": "0.0.X",
+    "OfficeIMO.Reader.Zip": "0.0.X",
     "OfficeIMO.Word": "1.0.X",
     "OfficeIMO.Word.Html": "1.0.X",
     "OfficeIMO.Word.Markdown": "1.0.X",
-    "OfficeIMO.Word.Pdf": "1.0.X"
+    "OfficeIMO.Word.Pdf": "1.0.X",
+    "OfficeIMO.Zip": "0.0.X"
   },
   "ExpectedVersionMapAsInclude": true,
   "ExpectedVersionMapUseWildcards": false,
   "ExcludeProjects": [
     "OfficeIMO.Visio",
-    "OfficeIMO.Project",
-    "OfficeIMO.Zip",
-    "OfficeIMO.Epub",
-    "OfficeIMO.Reader.Zip",
-    "OfficeIMO.Reader.Epub",
-    "OfficeIMO.Reader.Text",
-    "OfficeIMO.Reader.Html"
+    "OfficeIMO.Project"
   ],
   "NugetSource": [],
   "IncludePrerelease": false,

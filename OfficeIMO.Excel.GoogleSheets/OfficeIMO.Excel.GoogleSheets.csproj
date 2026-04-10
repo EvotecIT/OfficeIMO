@@ -46,7 +46,7 @@
         <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
+    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">
         <PackageReference Include="System.Text.Json" Version="[8.0.5,9.0.0)" />
     </ItemGroup>
 
