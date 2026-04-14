@@ -21,7 +21,7 @@
   },
   "featureContracts": {
     "apiDocs": {
-      "requiredPartials": ["api-header", "api-footer"],
+      "requiredPartials": ["api-header", "api-footer", "theme-tokens"],
       "cssHrefs": ["/css/app.css", "/css/api.css"],
       "requiredCssSelectors": [
         ".api-layout",
