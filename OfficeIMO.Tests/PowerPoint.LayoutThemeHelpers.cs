@@ -94,6 +94,7 @@ namespace OfficeIMO.Tests {
                         majorComplexScript: "Arial",
                         minorComplexScript: "Tahoma"));
                     presentation.Save();
+                    Assert.Empty(presentation.ValidateDocument());
                 }
 
                 using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
@@ -106,6 +107,12 @@ namespace OfficeIMO.Tests {
                     Assert.Equal("Yu Gothic", fontScheme.MinorFont?.EastAsianFont?.Typeface);
                     Assert.Equal("Arial", fontScheme.MajorFont?.ComplexScriptFont?.Typeface);
                     Assert.Equal("Tahoma", fontScheme.MinorFont?.ComplexScriptFont?.Typeface);
+                    Assert.IsType<A.LatinFont>(fontScheme.MajorFont!.ChildElements[0]);
+                    Assert.IsType<A.EastAsianFont>(fontScheme.MajorFont.ChildElements[1]);
+                    Assert.IsType<A.ComplexScriptFont>(fontScheme.MajorFont.ChildElements[2]);
+                    Assert.IsType<A.LatinFont>(fontScheme.MinorFont!.ChildElements[0]);
+                    Assert.IsType<A.EastAsianFont>(fontScheme.MinorFont.ChildElements[1]);
+                    Assert.IsType<A.ComplexScriptFont>(fontScheme.MinorFont.ChildElements[2]);
                 }
             } finally {
                 if (File.Exists(filePath)) {
