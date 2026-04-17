@@ -48,7 +48,7 @@
     {{ for section in downloads.sections }}
       {{ for package in section.packages }}
         {{ tracked_package_count = tracked_package_count + 1 }}
-        {{ if package.registry == "nuget" }}
+        {{ if package.registry == "nuget" && section.id != "reader-adapters" && section.id != "google-bridges" }}
           {{ tracked_nuget_count = tracked_nuget_count + 1 }}
           {{ if stats_doc && stats_doc.nuget && stats_doc.nuget.packages }}
             {{ for stat_package in stats_doc.nuget.packages }}
@@ -137,7 +137,7 @@
             <div class="imo-downloads__grid">
               {{ for package in section.packages }}
                 {{ package_stats = null }}
-                {{ if package.registry == "nuget" && stats_doc && stats_doc.nuget && stats_doc.nuget.packages }}
+                {{ if package.registry == "nuget" && section.id != "reader-adapters" && section.id != "google-bridges" && stats_doc && stats_doc.nuget && stats_doc.nuget.packages }}
                   {{ for stat_package in stats_doc.nuget.packages }}
                     {{ if stat_package.id == package.registry_package }}
                       {{ package_stats = stat_package }}

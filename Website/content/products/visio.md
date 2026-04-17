@@ -32,6 +32,15 @@ OfficeIMO.Visio lets you generate and modify `.vsdx` diagrams from pure .NET cod
 | Org and service maps | HR systems, ownership registries, service catalogs | Diagrams that show teams, responsibilities, and platform boundaries |
 | Release and runbook visuals | CI pipelines, deployment targets, or support procedures | Supporting diagrams that travel with Word reports and PowerPoint decks |
 
+## Where Visio fits in the suite
+
+| Pair it with | Use the combination for |
+|--------------|-------------------------|
+| OfficeIMO.Word | Architecture reports, runbooks, and handoff documents that include generated diagrams. |
+| OfficeIMO.PowerPoint | Stakeholder decks where the same topology or workflow data becomes presentation material. |
+| OfficeIMO.CSV | Inventory-driven diagrams where nodes, owners, environments, or dependencies start in flat files. |
+| OfficeIMO.Reader | Indexing generated diagram metadata alongside related documents for search or review workflows. |
+
 ## Quick start
 
 ```csharp
@@ -89,6 +98,8 @@ OfficeIMO.Visio runs on Windows, Linux, and macOS. Generated files open in Micro
 | Guide | Description |
 |-------|-------------|
 | [Visio documentation](/docs/visio/) | Review the shape, page, and connector model before you build diagrams. |
+| [Visio API reference](/api/visio/) | Browse diagram, shape, connector, and fluent builder types. |
 | [Getting Started](/docs/getting-started/) | Set up the package and validate your first generated diagram. |
 | [OfficeIMO.Word](/products/word/) | Pair diagrams with generated reports, architecture notes, or implementation docs. |
 | [OfficeIMO.PowerPoint](/products/powerpoint/) | Turn the same topology or process data into stakeholder-ready slide decks. |
+| [Downloads](/downloads/) | Install the Visio package and compare it with the rest of the OfficeIMO family. |

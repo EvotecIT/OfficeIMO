@@ -5,7 +5,7 @@
     "title": "Mixed documents in, stable chunks out",
     "description": "A single ingestion surface for Office documents, Markdown, and PDFs. Normalize once, then feed the same output into search, RAG, and review workflows.",
     "metrics": [
-      { "value": "DOCX/XLSX/PPTX/PDF", "label": "Input families" },
+      { "value": "Office + PDF", "label": "Core inputs" },
       { "value": "512 + overlap", "label": "Typical chunk profile" },
       { "value": "Search + AI", "label": "Downstream targets" }
     ],

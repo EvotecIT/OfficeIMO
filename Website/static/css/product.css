@@ -7,18 +7,20 @@
 .imo-product-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% -10%,rgba(56,189,248,0.12) 0%,transparent 60%),radial-gradient(ellipse 40% 50% at 80% 40%,rgba(139,92,246,0.07) 0%,transparent 55%);pointer-events:none}
 .imo-product-hero::after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(56,189,248,0.03) 1px,transparent 1px);background-size:28px 28px;mask-image:radial-gradient(ellipse 50% 40% at 50% 40%,black 20%,transparent 70%);-webkit-mask-image:radial-gradient(ellipse 50% 40% at 50% 40%,black 20%,transparent 70%);pointer-events:none}
 
-.imo-product-hero h1{font-size:3rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:0.75rem;position:relative;background:linear-gradient(135deg,#fff 0%,#a5b4cf 50%,var(--imo-accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-[data-theme="light"] .imo-product-hero h1{background:linear-gradient(135deg,#0f172a 0%,#334155 50%,#2563eb 100%);-webkit-background-clip:text;background-clip:text}
-.imo-product-hero p{font-size:1.1rem;color:var(--imo-text-secondary);line-height:1.7;max-width:600px;margin:0 auto 2rem;position:relative}
+.imo-product-hero__title{font-size:3rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:0.75rem;position:relative;background:linear-gradient(135deg,#fff 0%,#a5b4cf 50%,var(--imo-accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+[data-theme="light"] .imo-product-hero__title{background:linear-gradient(135deg,#0f172a 0%,#334155 50%,#2563eb 100%);-webkit-background-clip:text;background-clip:text}
+.imo-product-hero__desc{font-size:1.1rem;color:var(--imo-text-secondary);line-height:1.7;max-width:600px;margin:0 auto 2rem;position:relative}
 
 .imo-product-hero .imo-install{max-width:480px;margin:0 auto 2rem;box-shadow:var(--imo-shadow-lg),0 0 40px rgba(56,189,248,0.04);position:relative}
 .imo-product-hero__links{display:flex;justify-content:center;gap:0.75rem;flex-wrap:wrap;position:relative}
 .imo-product-hero__preview{
+  grid-column:1 / -1;
   margin:2.75rem auto 0;
-  max-width:980px;
+  width:min(100%,1080px);
+  max-width:1080px;
   display:grid;
-  grid-template-columns:minmax(0,1.15fr) minmax(320px,.95fr);
-  gap:1.25rem;
+  grid-template-columns:minmax(0,1fr) minmax(300px,.92fr);
+  gap:1rem;
   padding:1.25rem;
   text-align:left;
   border-radius:28px;
@@ -39,7 +41,7 @@
   opacity:.6;
   pointer-events:none;
 }
-.imo-product-hero__preview-copy,.imo-product-hero__preview-surface{position:relative;z-index:1}
+.imo-product-hero__preview-copy,.imo-product-hero__preview-surface{position:relative;z-index:1;min-width:0}
 .imo-product-hero__preview-copy{
   padding:1rem 1rem 1rem 1.1rem;
   align-self:center;
@@ -57,12 +59,14 @@
   font-size:1.7rem;
   line-height:1.15;
   color:#f8fafc;
+  overflow-wrap:anywhere;
 }
 .imo-product-hero__preview-desc{
   margin:1rem 0 0;
   max-width:56ch;
   color:#cbd5e1;
   font-size:.98rem;
+  line-height:1.68;
 }
 .imo-product-hero__preview-metrics{
   display:grid;
@@ -71,6 +75,7 @@
   margin-top:1.35rem;
 }
 .imo-product-hero__preview-metric{
+  min-width:0;
   padding:.85rem .95rem;
   border-radius:18px;
   background:rgba(15,23,42,0.65);
@@ -81,6 +86,8 @@
   font-weight:800;
   color:#f8fafc;
   font-size:.95rem;
+  line-height:1.25;
+  overflow-wrap:anywhere;
 }
 .imo-product-hero__preview-metric-label{
   display:block;
@@ -133,17 +140,20 @@
 .imo-product-hero__artifact-name{
   font-weight:700;
   color:#f8fafc;
+  overflow-wrap:anywhere;
 }
 .imo-product-hero__artifact-summary{
   margin:.75rem 0 .25rem;
   color:#e2e8f0;
   font-weight:600;
+  max-width:none;
 }
 .imo-product-hero__artifact-detail{
   margin:0;
   color:#94a3b8;
   font-size:.9rem;
   line-height:1.55;
+  max-width:none;
 }
 
 .imo-product__content{padding:4rem 0;max-width:860px;margin:0 auto}
@@ -179,7 +189,7 @@
 .imo-feature-card__desc{font-size:0.875rem;color:var(--imo-text-secondary);line-height:1.6}
 
 @media(max-width:767px){
-  .imo-product-hero h1{font-size:2.25rem}
+  .imo-product-hero__title{font-size:2.25rem}
   .imo-product-hero__preview{grid-template-columns:1fr;padding:1rem}
   .imo-product-hero__preview-copy{padding:.6rem .6rem .3rem}
   .imo-product-hero__preview-metrics{grid-template-columns:1fr}
