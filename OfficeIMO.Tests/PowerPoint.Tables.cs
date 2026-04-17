@@ -4,7 +4,9 @@ using System.IO;
 
 using System.Linq;
 
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Validation;
 using A = DocumentFormat.OpenXml.Drawing;
 using OfficeIMO.PowerPoint;
 
@@ -308,6 +310,71 @@ namespace OfficeIMO.Tests {
             }
 
             File.Delete(filePath);
+        }
+
+        [Fact]
+        public void CombinedTableMutationsValidatePackage() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                var data = new[] {
+                    new SalesRow("Alpha", 12, 15),
+                    new SalesRow("Beta", 9, 11)
+                };
+
+                var columns = new[] {
+                    PowerPointTableColumn<SalesRow>.Create("Product", row => row.Product),
+                    PowerPointTableColumn<SalesRow>.Create("Q1", row => row.Q1)
+                };
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointTable table = slide.AddTable(3, 3, left: 0L, top: 0L, width: 6000000L, height: 3000000L);
+
+                    table.ApplyStyle(new PowerPointTableStylePreset(firstRow: true, bandedRows: true, bandedColumns: true));
+                    table.LastRow = true;
+                    table.FirstColumn = true;
+                    table.SetColumnWidthsByRatio(2, 1, 1);
+                    table.SetRowHeightsByRatio(1, 1, 1);
+                    table.SetCellPaddingCm(0.15, 0.1, 0.15, 0.1);
+                    table.SetCellAlignment(A.TextAlignmentTypeValues.Center, A.TextAnchoringTypeValues.Center);
+                    table.SetCellBorders(TableCellBorders.All, "4472C4", widthPoints: 0.75, dash: A.PresetLineDashValues.Dash);
+
+                    PowerPointTableCell header = table.GetCell(0, 0);
+                    header.Text = "Header";
+                    header.FillColor = "1F4E79";
+                    header.Color = "FFFFFF";
+                    header.Bold = true;
+                    header.FontSize = 12;
+                    header.FontName = "Aptos";
+                    header.SetTextAutoFit(PowerPointTextAutoFit.Normal,
+                        new PowerPointTextAutoFitOptions(fontScalePercent: 90, lineSpaceReductionPercent: 5));
+
+                    table.AddRowFromTemplate(0, index: 1);
+                    table.AddColumnFromTemplate(0, index: 1);
+                    table.RemoveRow(table.Rows - 1);
+                    table.RemoveColumn(table.Columns - 1);
+                    table.Bind(data, columns, includeHeaders: true, startRow: 1, startColumn: 1);
+                    table.MergeCells(0, 0, 1, 1);
+
+                    presentation.Save();
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                    Assert.Empty(validator.Validate(document));
+
+                    A.Table table = document.PresentationPart!.SlideParts.First()
+                        .Slide.Descendants<A.Table>().First();
+                    Assert.Equal(4, table.Elements<A.TableRow>().Count());
+                    Assert.Equal(3, table.TableGrid!.Elements<A.GridColumn>().Count());
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
         }
 
         private sealed class SalesRow {
