@@ -330,27 +330,27 @@ namespace OfficeIMO.PowerPoint {
             }
 
             foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
-                ReplaceChild(EnsureDataLabels(barChart), new C.DataLabelPosition { Val = position });
+                SetDataLabelPosition(EnsureDataLabels(barChart), position);
             }
 
             foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
-                ReplaceChild(EnsureDataLabels(lineChart), new C.DataLabelPosition { Val = position });
+                SetDataLabelPosition(EnsureDataLabels(lineChart), position);
             }
 
             foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
-                ReplaceChild(EnsureDataLabels(areaChart), new C.DataLabelPosition { Val = position });
+                SetDataLabelPosition(EnsureDataLabels(areaChart), position);
             }
 
             foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
-                ReplaceChild(EnsureDataLabels(pieChart), new C.DataLabelPosition { Val = position });
+                SetDataLabelPosition(EnsureDataLabels(pieChart), GetPowerPointCompatibleDataLabelPosition(pieChart, position));
             }
 
             foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
-                ReplaceChild(EnsureDataLabels(doughnutChart), new C.DataLabelPosition { Val = position });
+                SetDataLabelPosition(EnsureDataLabels(doughnutChart), GetPowerPointCompatibleDataLabelPosition(doughnutChart, position));
             }
 
             foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
-                ReplaceChild(EnsureDataLabels(scatterChart), new C.DataLabelPosition { Val = position });
+                SetDataLabelPosition(EnsureDataLabels(scatterChart), position);
             }
 
             Save();
@@ -372,45 +372,27 @@ namespace OfficeIMO.PowerPoint {
             }
 
             foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
-                ReplaceChild(EnsureDataLabels(barChart), new C.NumberingFormat {
-                    FormatCode = formatCode,
-                    SourceLinked = sourceLinked
-                });
+                SetDataLabelNumberFormat(EnsureDataLabels(barChart), formatCode, sourceLinked);
             }
 
             foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
-                ReplaceChild(EnsureDataLabels(lineChart), new C.NumberingFormat {
-                    FormatCode = formatCode,
-                    SourceLinked = sourceLinked
-                });
+                SetDataLabelNumberFormat(EnsureDataLabels(lineChart), formatCode, sourceLinked);
             }
 
             foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
-                ReplaceChild(EnsureDataLabels(areaChart), new C.NumberingFormat {
-                    FormatCode = formatCode,
-                    SourceLinked = sourceLinked
-                });
+                SetDataLabelNumberFormat(EnsureDataLabels(areaChart), formatCode, sourceLinked);
             }
 
             foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
-                ReplaceChild(EnsureDataLabels(pieChart), new C.NumberingFormat {
-                    FormatCode = formatCode,
-                    SourceLinked = sourceLinked
-                });
+                SetDataLabelNumberFormat(EnsureDataLabels(pieChart), formatCode, sourceLinked);
             }
 
             foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
-                ReplaceChild(EnsureDataLabels(doughnutChart), new C.NumberingFormat {
-                    FormatCode = formatCode,
-                    SourceLinked = sourceLinked
-                });
+                SetDataLabelNumberFormat(EnsureDataLabels(doughnutChart), formatCode, sourceLinked);
             }
 
             foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
-                ReplaceChild(EnsureDataLabels(scatterChart), new C.NumberingFormat {
-                    FormatCode = formatCode,
-                    SourceLinked = sourceLinked
-                });
+                SetDataLabelNumberFormat(EnsureDataLabels(scatterChart), formatCode, sourceLinked);
             }
 
             Save();
@@ -2897,6 +2879,33 @@ namespace OfficeIMO.PowerPoint {
             NormalizeDataLabelsOrder(labels);
         }
 
+        private static void SetDataLabelPosition(C.DataLabels labels, C.DataLabelPositionValues? position) {
+            labels.GetFirstChild<C.DataLabelPosition>()?.Remove();
+            if (position != null) {
+                ReplaceChild(labels, new C.DataLabelPosition { Val = position.Value });
+            }
+            NormalizeDataLabelsOrder(labels);
+        }
+
+        private static C.DataLabelPositionValues? GetPowerPointCompatibleDataLabelPosition(
+            OpenXmlElement chartElement,
+            C.DataLabelPositionValues position) {
+            if (chartElement is C.DoughnutChart && position == C.DataLabelPositionValues.BestFit) {
+                // PowerPoint repairs doughnut charts that explicitly serialize bestFit; omitting it keeps the default behavior.
+                return null;
+            }
+
+            return position;
+        }
+
+        private static void SetDataLabelNumberFormat(C.DataLabels labels, string formatCode, bool sourceLinked) {
+            ReplaceChild(labels, new C.NumberingFormat {
+                FormatCode = formatCode,
+                SourceLinked = sourceLinked
+            });
+            NormalizeDataLabelsOrder(labels);
+        }
+
         private static void ApplyDataLabelOverrides(OpenXmlCompositeElement label, bool? showLegendKey, bool? showValue,
             bool? showCategoryName, bool? showSeriesName, bool? showPercent,
             C.DataLabelPositionValues? position, string? numberFormat, bool sourceLinked) {
@@ -3536,9 +3545,20 @@ namespace OfficeIMO.PowerPoint {
 
         private static C.ChartShapeProperties EnsureChartShapeProperties(OpenXmlCompositeElement series) {
             C.ChartShapeProperties props = series.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
-            if (props.Parent == null) {
-                series.Append(props);
+            if (props.Parent != null) {
+                props.Remove();
             }
+
+            OpenXmlElement? insertAfter = series.GetFirstChild<C.SeriesText>();
+            insertAfter ??= series.GetFirstChild<C.Order>();
+            insertAfter ??= series.GetFirstChild<C.Index>();
+
+            if (insertAfter != null) {
+                series.InsertAfter(props, insertAfter);
+            } else {
+                series.PrependChild(props);
+            }
+
             return props;
         }
 

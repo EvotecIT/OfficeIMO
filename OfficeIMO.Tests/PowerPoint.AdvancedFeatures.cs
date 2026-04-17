@@ -119,6 +119,61 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void TransitionBackgroundAndNotesMutationsValidatePackage() {
+            string filePath = CreateTempFilePath(".pptx");
+            string imagesDirectory = AppendPathSegment(AppDomain.CurrentDomain.BaseDirectory, "Images");
+            string imagePath = AppendPathSegment(imagesDirectory, "BackgroundImage.png");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    slide.SetBackgroundImage(imagePath);
+                    slide.Transition = SlideTransition.Morph;
+                    slide.Notes.Text = "Initial morph notes";
+
+                    slide.Transition = SlideTransition.Flash;
+                    slide.BackgroundColor = "112233";
+                    slide.Notes.Text = "Updated notes";
+
+                    PowerPointSlide cleared = presentation.AddSlide();
+                    cleared.Transition = SlideTransition.Morph;
+                    cleared.Transition = SlideTransition.None;
+                    cleared.SetBackgroundImage(imagePath);
+                    cleared.ClearBackgroundImage();
+                    cleared.Notes.Text = "Cleared transition notes";
+
+                    presentation.Save();
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    Assert.Equal(SlideTransition.Flash, presentation.Slides[0].Transition);
+                    Assert.Equal("112233", presentation.Slides[0].BackgroundColor);
+                    Assert.Equal("Updated notes", presentation.Slides[0].Notes.Text);
+                    Assert.Equal(SlideTransition.None, presentation.Slides[1].Transition);
+                    Assert.Equal("Cleared transition notes", presentation.Slides[1].Notes.Text);
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    OpenXmlValidator validator = new(FileFormatVersions.Microsoft365);
+                    Assert.Empty(validator.Validate(document));
+
+                    SlidePart[] slideParts = document.PresentationPart!.SlideParts.ToArray();
+                    Assert.DoesNotContain("AlternateContent", slideParts[0].Slide.OuterXml, StringComparison.Ordinal);
+                    Assert.Contains("flash", slideParts[0].Slide.OuterXml, StringComparison.OrdinalIgnoreCase);
+                    Assert.DoesNotContain("AlternateContent", slideParts[1].Slide.OuterXml, StringComparison.Ordinal);
+                    Assert.Null(slideParts[1].Slide.Transition);
+                    Assert.Empty(slideParts[1].ImageParts);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void CanAddMultipleChartsWithUniqueAxisIds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
@@ -400,6 +455,18 @@ namespace OfficeIMO.Tests {
             }
 
             return builder.ToString();
+        }
+
+        private static string CreateTempFilePath(string extension) {
+            string path = Path.GetTempFileName();
+            File.Delete(path);
+            return Path.ChangeExtension(path, extension);
+        }
+
+        private static string AppendPathSegment(string directoryPath, string childName) {
+            string normalizedDirectory = Path.GetFullPath(directoryPath)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            return normalizedDirectory + Path.DirectorySeparatorChar + childName;
         }
     }
 }

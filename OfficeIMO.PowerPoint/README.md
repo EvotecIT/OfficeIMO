@@ -12,6 +12,24 @@ OfficeIMO.PowerPoint focuses on creating and editing .pptx presentations with Op
 
 See `OfficeIMO.Examples` for runnable samples. This README hosts PowerPoint‑specific usage and notes.
 
+## Runnable modern deck sample
+
+To generate the richer validation sample deck with theme colors, theme fonts, background image, transitions, shape effects,
+charts, a table, and speaker notes:
+
+```powershell
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --modern-powerpoint
+```
+
+The sample writes `Modern PowerPoint Deck.pptx` to the examples `Documents` output folder and validates the generated Open
+XML package before reporting success.
+
+To run the full PowerPoint examples set without opening PowerPoint and validate every generated deck:
+
+```powershell
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint
+```
+
 ## Install
 
 ```powershell

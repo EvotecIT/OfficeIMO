@@ -253,15 +253,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static PowerPointLayoutBox[,] BuildGrid(PowerPointLayoutBox bounds, int columns, int rows,
             long gutterX, long gutterY) {
-            PowerPointLayoutBox[,] grid = new PowerPointLayoutBox[rows, columns];
-            PowerPointLayoutBox[] rowBoxes = bounds.SplitRows(rows, gutterY);
-            for (int r = 0; r < rows; r++) {
-                PowerPointLayoutBox[] colBoxes = rowBoxes[r].SplitColumns(columns, gutterX);
-                for (int c = 0; c < columns; c++) {
-                    grid[r, c] = colBoxes[c];
-                }
-            }
-            return grid;
+            return bounds.SplitGrid(rows, columns, gutterY, gutterX);
         }
 
         private static int GetAutoGridColumns(int count, PowerPointLayoutBox bounds, long gutterX, long gutterY,

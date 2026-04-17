@@ -103,6 +103,16 @@ namespace OfficeIMO.PowerPoint {
         public double HeightCm => PowerPointUnits.ToCentimeters(Height);
 
         /// <summary>
+        ///     Right position in centimeters.
+        /// </summary>
+        public double RightCm => PowerPointUnits.ToCentimeters(Right);
+
+        /// <summary>
+        ///     Bottom position in centimeters.
+        /// </summary>
+        public double BottomCm => PowerPointUnits.ToCentimeters(Bottom);
+
+        /// <summary>
         ///     Left position in inches.
         /// </summary>
         public double LeftInches => PowerPointUnits.ToInches(Left);
@@ -123,6 +133,16 @@ namespace OfficeIMO.PowerPoint {
         public double HeightInches => PowerPointUnits.ToInches(Height);
 
         /// <summary>
+        ///     Right position in inches.
+        /// </summary>
+        public double RightInches => PowerPointUnits.ToInches(Right);
+
+        /// <summary>
+        ///     Bottom position in inches.
+        /// </summary>
+        public double BottomInches => PowerPointUnits.ToInches(Bottom);
+
+        /// <summary>
         ///     Left position in points.
         /// </summary>
         public double LeftPoints => PowerPointUnits.ToPoints(Left);
@@ -141,6 +161,16 @@ namespace OfficeIMO.PowerPoint {
         ///     Height in points.
         /// </summary>
         public double HeightPoints => PowerPointUnits.ToPoints(Height);
+
+        /// <summary>
+        ///     Right position in points.
+        /// </summary>
+        public double RightPoints => PowerPointUnits.ToPoints(Right);
+
+        /// <summary>
+        ///     Bottom position in points.
+        /// </summary>
+        public double BottomPoints => PowerPointUnits.ToPoints(Bottom);
 
         /// <summary>
         ///     Splits the layout box into equal columns (EMU units).
@@ -244,6 +274,64 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointLayoutBox[] SplitRowsPoints(int rowCount, double gutterPoints) {
             return SplitRows(rowCount, PowerPointUnits.FromPoints(gutterPoints));
+        }
+
+        /// <summary>
+        ///     Splits the layout box into an equal row/column grid (EMU units).
+        /// </summary>
+        public PowerPointLayoutBox[,] SplitGrid(int rowCount, int columnCount, long rowGutterEmus, long columnGutterEmus) {
+            if (rowCount <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(rowCount));
+            }
+            if (columnCount <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(columnCount));
+            }
+            if (rowGutterEmus < 0) {
+                throw new ArgumentOutOfRangeException(nameof(rowGutterEmus));
+            }
+            if (columnGutterEmus < 0) {
+                throw new ArgumentOutOfRangeException(nameof(columnGutterEmus));
+            }
+
+            PowerPointLayoutBox[,] grid = new PowerPointLayoutBox[rowCount, columnCount];
+            PowerPointLayoutBox[] rows = SplitRows(rowCount, rowGutterEmus);
+            for (int row = 0; row < rowCount; row++) {
+                PowerPointLayoutBox[] columns = rows[row].SplitColumns(columnCount, columnGutterEmus);
+                for (int column = 0; column < columnCount; column++) {
+                    grid[row, column] = columns[column];
+                }
+            }
+
+            return grid;
+        }
+
+        /// <summary>
+        ///     Splits the layout box into an equal row/column grid in centimeters.
+        /// </summary>
+        public PowerPointLayoutBox[,] SplitGridCm(int rowCount, int columnCount, double rowGutterCm, double columnGutterCm) {
+            return SplitGrid(rowCount, columnCount,
+                PowerPointUnits.FromCentimeters(rowGutterCm),
+                PowerPointUnits.FromCentimeters(columnGutterCm));
+        }
+
+        /// <summary>
+        ///     Splits the layout box into an equal row/column grid in inches.
+        /// </summary>
+        public PowerPointLayoutBox[,] SplitGridInches(int rowCount, int columnCount, double rowGutterInches,
+            double columnGutterInches) {
+            return SplitGrid(rowCount, columnCount,
+                PowerPointUnits.FromInches(rowGutterInches),
+                PowerPointUnits.FromInches(columnGutterInches));
+        }
+
+        /// <summary>
+        ///     Splits the layout box into an equal row/column grid in points.
+        /// </summary>
+        public PowerPointLayoutBox[,] SplitGridPoints(int rowCount, int columnCount, double rowGutterPoints,
+            double columnGutterPoints) {
+            return SplitGrid(rowCount, columnCount,
+                PowerPointUnits.FromPoints(rowGutterPoints),
+                PowerPointUnits.FromPoints(columnGutterPoints));
         }
 
         /// <summary>

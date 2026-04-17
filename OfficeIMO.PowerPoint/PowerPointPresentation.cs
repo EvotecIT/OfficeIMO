@@ -1680,25 +1680,41 @@ namespace OfficeIMO.PowerPoint {
 
         private static void SetThemeFont(OpenXmlCompositeElement parent, string? latin, string? eastAsian,
             string? complexScript, bool keepExistingWhenNull) {
-            SetThemeFontElement<A.LatinFont>(parent, latin, keepExistingWhenNull);
-            SetThemeFontElement<A.EastAsianFont>(parent, eastAsian, keepExistingWhenNull);
-            SetThemeFontElement<A.ComplexScriptFont>(parent, complexScript, keepExistingWhenNull);
+            A.LatinFont? resolvedLatin = ResolveThemeFont<A.LatinFont>(parent, latin, keepExistingWhenNull);
+            A.EastAsianFont? resolvedEastAsian =
+                ResolveThemeFont<A.EastAsianFont>(parent, eastAsian, keepExistingWhenNull);
+            A.ComplexScriptFont? resolvedComplexScript =
+                ResolveThemeFont<A.ComplexScriptFont>(parent, complexScript, keepExistingWhenNull);
+
+            parent.RemoveAllChildren<A.LatinFont>();
+            parent.RemoveAllChildren<A.EastAsianFont>();
+            parent.RemoveAllChildren<A.ComplexScriptFont>();
+
+            int insertIndex = 0;
+            if (resolvedLatin != null) {
+                parent.InsertAt(resolvedLatin, insertIndex++);
+            }
+            if (resolvedEastAsian != null) {
+                parent.InsertAt(resolvedEastAsian, insertIndex++);
+            }
+            if (resolvedComplexScript != null) {
+                parent.InsertAt(resolvedComplexScript, insertIndex);
+            }
         }
 
-        private static void SetThemeFontElement<TFont>(OpenXmlCompositeElement parent, string? typeface,
+        private static TFont? ResolveThemeFont<TFont>(OpenXmlCompositeElement parent, string? typeface,
             bool keepExistingWhenNull) where TFont : A.TextFontType, new() {
+            TFont? existing = parent.GetFirstChild<TFont>()?.CloneNode(true) as TFont;
             if (typeface == null) {
-                if (!keepExistingWhenNull) {
-                    parent.RemoveAllChildren<TFont>();
-                }
-                return;
+                return keepExistingWhenNull ? existing : null;
             }
             if (string.IsNullOrWhiteSpace(typeface)) {
                 throw new ArgumentException("Font name cannot be null or empty.", nameof(typeface));
             }
 
-            parent.RemoveAllChildren<TFont>();
-            parent.Append(new TFont { Typeface = typeface });
+            TFont font = existing ?? new TFont();
+            font.Typeface = typeface;
+            return font;
         }
 
         private static OpenXmlCompositeElement? GetColorElement(A.ColorScheme scheme, PowerPointThemeColor color) {

@@ -160,5 +160,69 @@ namespace OfficeIMO.Tests {
                 }
             }
         }
+
+        [Fact]
+        public void ShapePropertiesStayInSchemaOrderWhenStylingAfterEffects() {
+            string filePath = CreateTempFilePath(".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointAutoShape shape = slide.AddRectangle(0, 0, 4000, 2000, "StyledAfterEffects");
+
+                    shape.SetSoftEdges(2);
+                    shape.SetReflection(blurPoints: 2, distancePoints: 1, startOpacityPercent: 20);
+                    shape.SetShadow("000000", blurPoints: 6, distancePoints: 3, transparencyPercent: 55);
+                    shape.SetGlow("F26A3D", radiusPoints: 3, transparencyPercent: 30);
+                    shape.FillColor = "EFE8DA";
+                    shape.FillTransparency = 8;
+                    shape.OutlineColor = "6B6EA8";
+                    shape.OutlineWidthPoints = 1.2;
+
+                    presentation.Save();
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.First();
+                    Shape shape = slidePart.Slide.CommonSlideData!.ShapeTree!.Elements<Shape>()
+                        .First(xmlShape => xmlShape.NonVisualShapeProperties?.NonVisualDrawingProperties?.Name?.Value == "StyledAfterEffects");
+
+                    var shapePropertyChildren = shape.ShapeProperties!.ChildElements.ToList();
+                    int fillIndex = shapePropertyChildren.FindIndex(child => child is A.SolidFill);
+                    int outlineIndex = shapePropertyChildren.FindIndex(child => child is A.Outline);
+                    int effectsIndex = shapePropertyChildren.FindIndex(child => child is A.EffectList);
+
+                    Assert.True(fillIndex >= 0);
+                    Assert.True(outlineIndex >= 0);
+                    Assert.True(effectsIndex >= 0);
+                    Assert.True(fillIndex < outlineIndex);
+                    Assert.True(outlineIndex < effectsIndex);
+
+                    var effectChildren = shape.ShapeProperties.GetFirstChild<A.EffectList>()!.ChildElements.ToList();
+                    int glowIndex = effectChildren.FindIndex(child => child is A.Glow);
+                    int shadowIndex = effectChildren.FindIndex(child => child is A.OuterShadow);
+                    int reflectionIndex = effectChildren.FindIndex(child => child is A.Reflection);
+                    int softEdgeIndex = effectChildren.FindIndex(child => child is A.SoftEdge);
+
+                    Assert.True(glowIndex >= 0);
+                    Assert.True(shadowIndex >= 0);
+                    Assert.True(reflectionIndex >= 0);
+                    Assert.True(softEdgeIndex >= 0);
+                    Assert.True(glowIndex < shadowIndex);
+                    Assert.True(shadowIndex < reflectionIndex);
+                    Assert.True(reflectionIndex < softEdgeIndex);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        private static string CreateTempFilePath(string extension) {
+            string path = Path.GetTempFileName();
+            File.Delete(path);
+            return Path.ChangeExtension(path, extension);
+        }
     }
 }

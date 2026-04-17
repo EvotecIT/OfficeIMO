@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -52,7 +53,7 @@ namespace OfficeIMO.PowerPoint {
 
                 props.RemoveAllChildren<A.SolidFill>();
                 if (value != null) {
-                    props.Append(new A.SolidFill(new A.RgbColorModelHex { Val = value }));
+                    InsertShapePropertyChild(props, new A.SolidFill(new A.RgbColorModelHex { Val = value }));
                 }
             }
         }
@@ -493,8 +494,8 @@ namespace OfficeIMO.PowerPoint {
                     return;
                 }
 
-                outline.RemoveAllChildren<A.SolidFill>();
-                outline.Append(new A.SolidFill(new A.RgbColorModelHex { Val = value }));
+                RemoveOutlineFillChildren(outline);
+                InsertOutlineChild(outline, new A.SolidFill(new A.RgbColorModelHex { Val = value }));
             }
         }
 
@@ -544,7 +545,7 @@ namespace OfficeIMO.PowerPoint {
                 A.PresetDash dash = outline.GetFirstChild<A.PresetDash>() ?? new A.PresetDash();
                 dash.Val = value.Value;
                 if (dash.Parent == null) {
-                    outline.Append(dash);
+                    InsertOutlineChild(outline, dash);
                 }
             }
         }
@@ -815,7 +816,7 @@ namespace OfficeIMO.PowerPoint {
                         return;
                     }
                     solid = new A.SolidFill(new A.RgbColorModelHex { Val = "FFFFFF" });
-                    props.Append(solid);
+                    InsertShapePropertyChild(props, solid);
                 }
 
                 A.RgbColorModelHex? rgb = solid.RgbColorModelHex ?? new A.RgbColorModelHex { Val = "FFFFFF" };
@@ -980,7 +981,7 @@ namespace OfficeIMO.PowerPoint {
             A.Outline? outline = props.GetFirstChild<A.Outline>();
             if (outline == null && create) {
                 outline = new A.Outline();
-                props.Append(outline);
+                InsertShapePropertyChild(props, outline);
             }
 
             return outline;
@@ -995,7 +996,7 @@ namespace OfficeIMO.PowerPoint {
             A.EffectList? effectList = props.GetFirstChild<A.EffectList>();
             if (effectList == null && create) {
                 effectList = new A.EffectList();
-                props.Append(effectList);
+                InsertShapePropertyChild(props, effectList);
             }
 
             return effectList;
@@ -1010,7 +1011,7 @@ namespace OfficeIMO.PowerPoint {
             A.OuterShadow? shadow = effects.GetFirstChild<A.OuterShadow>();
             if (shadow == null && create) {
                 shadow = new A.OuterShadow();
-                effects.Append(shadow);
+                InsertEffectChild(effects, shadow);
             }
 
             return shadow;
@@ -1025,7 +1026,7 @@ namespace OfficeIMO.PowerPoint {
             A.Blur? blur = effects.GetFirstChild<A.Blur>();
             if (blur == null && create) {
                 blur = new A.Blur();
-                effects.Append(blur);
+                InsertEffectChild(effects, blur);
             }
 
             return blur;
@@ -1040,7 +1041,7 @@ namespace OfficeIMO.PowerPoint {
             A.Reflection? reflection = effects.GetFirstChild<A.Reflection>();
             if (reflection == null && create) {
                 reflection = new A.Reflection();
-                effects.Append(reflection);
+                InsertEffectChild(effects, reflection);
             }
 
             return reflection;
@@ -1055,7 +1056,7 @@ namespace OfficeIMO.PowerPoint {
             A.Glow? glow = effects.GetFirstChild<A.Glow>();
             if (glow == null && create) {
                 glow = new A.Glow();
-                effects.Append(glow);
+                InsertEffectChild(effects, glow);
             }
 
             return glow;
@@ -1070,10 +1071,102 @@ namespace OfficeIMO.PowerPoint {
             A.SoftEdge? softEdge = effects.GetFirstChild<A.SoftEdge>();
             if (softEdge == null && create) {
                 softEdge = new A.SoftEdge();
-                effects.Append(softEdge);
+                InsertEffectChild(effects, softEdge);
             }
 
             return softEdge;
+        }
+
+        private static void InsertShapePropertyChild(ShapeProperties properties, OpenXmlElement child) {
+            int childOrder = GetShapePropertyChildOrder(child);
+            OpenXmlElement? insertBefore = properties.ChildElements
+                .FirstOrDefault(existing => GetShapePropertyChildOrder(existing) > childOrder);
+
+            if (insertBefore != null) {
+                properties.InsertBefore(child, insertBefore);
+            } else {
+                properties.Append(child);
+            }
+        }
+
+        private static int GetShapePropertyChildOrder(OpenXmlElement child) {
+            return child switch {
+                A.Transform2D => 0,
+                A.CustomGeometry => 1,
+                A.PresetGeometry => 1,
+                A.NoFill => 2,
+                A.SolidFill => 2,
+                A.GradientFill => 2,
+                A.BlipFill => 2,
+                A.PatternFill => 2,
+                A.GroupFill => 2,
+                A.Outline => 3,
+                A.EffectList => 4,
+                A.EffectDag => 4,
+                _ => 100
+            };
+        }
+
+        private static void InsertOutlineChild(A.Outline outline, OpenXmlElement child) {
+            int childOrder = GetOutlineChildOrder(child);
+            OpenXmlElement? insertBefore = outline.ChildElements
+                .FirstOrDefault(existing => GetOutlineChildOrder(existing) > childOrder);
+
+            if (insertBefore != null) {
+                outline.InsertBefore(child, insertBefore);
+            } else {
+                outline.Append(child);
+            }
+        }
+
+        private static int GetOutlineChildOrder(OpenXmlElement child) {
+            return child switch {
+                A.NoFill => 0,
+                A.SolidFill => 0,
+                A.GradientFill => 0,
+                A.PatternFill => 0,
+                A.PresetDash => 1,
+                A.CustomDash => 1,
+                A.Round => 2,
+                A.Bevel => 2,
+                A.Miter => 2,
+                A.HeadEnd => 3,
+                A.TailEnd => 4,
+                _ => 100
+            };
+        }
+
+        private static void RemoveOutlineFillChildren(A.Outline outline) {
+            outline.RemoveAllChildren<A.NoFill>();
+            outline.RemoveAllChildren<A.SolidFill>();
+            outline.RemoveAllChildren<A.GradientFill>();
+            outline.RemoveAllChildren<A.PatternFill>();
+        }
+
+        private static void InsertEffectChild(A.EffectList effects, OpenXmlElement child) {
+            int childOrder = GetEffectChildOrder(child);
+            OpenXmlElement? insertBefore = effects.ChildElements
+                .FirstOrDefault(existing => GetEffectChildOrder(existing) > childOrder);
+
+            if (insertBefore != null) {
+                effects.InsertBefore(child, insertBefore);
+            } else {
+                effects.Append(child);
+            }
+        }
+
+        private static int GetEffectChildOrder(OpenXmlElement child) {
+            return child switch {
+                A.Blur => 0,
+                A.FillOverlay => 1,
+                A.Glow => 2,
+                A.InnerShadow => 3,
+                A.OuterShadow => 4,
+                A.PresetShadow => 5,
+                A.Reflection => 6,
+                A.SoftEdge => 7,
+                _ => 100
+            };
         }
 
         private static void RemoveShadowColors(A.OuterShadow shadow) {
@@ -1124,7 +1217,7 @@ namespace OfficeIMO.PowerPoint {
                     head.Length = length.Value;
                 }
                 if (head.Parent == null) {
-                    outline.Append(head);
+                    InsertOutlineChild(outline, head);
                 }
             } else {
                 A.TailEnd? tail = outline.GetFirstChild<A.TailEnd>();
@@ -1142,7 +1235,7 @@ namespace OfficeIMO.PowerPoint {
                     tail.Length = length.Value;
                 }
                 if (tail.Parent == null) {
-                    outline.Append(tail);
+                    InsertOutlineChild(outline, tail);
                 }
             }
         }

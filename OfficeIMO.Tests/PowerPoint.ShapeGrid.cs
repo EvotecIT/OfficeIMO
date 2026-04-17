@@ -68,6 +68,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SplitGrid_ReturnsAlignedCellsWithIndependentGutters() {
+            PowerPointLayoutBox bounds = new(100, 200, 6300, 4400);
+
+            PowerPointLayoutBox[,] grid = bounds.SplitGrid(2, 3, rowGutterEmus: 400, columnGutterEmus: 300);
+
+            Assert.Equal(2, grid.GetLength(0));
+            Assert.Equal(3, grid.GetLength(1));
+
+            Assert.Equal(100, grid[0, 0].Left);
+            Assert.Equal(200, grid[0, 0].Top);
+            Assert.Equal(1900, grid[0, 0].Width);
+            Assert.Equal(2000, grid[0, 0].Height);
+
+            Assert.Equal(2300, grid[0, 1].Left);
+            Assert.Equal(4500, grid[0, 2].Left);
+            Assert.Equal(2600, grid[1, 0].Top);
+            Assert.Equal(grid[0, 1].Width, grid[1, 1].Width);
+            Assert.Equal(grid[0, 1].Height, grid[1, 2].Height);
+            Assert.Equal(PowerPointUnits.ToCentimeters(grid[0, 0].Right), grid[0, 0].RightCm);
+            Assert.Equal(PowerPointUnits.ToCentimeters(grid[0, 0].Bottom), grid[0, 0].BottomCm);
+        }
+
+        [Fact]
         public void ArrangeShapesInGrid_DoesNotResizeWhenDisabled() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {

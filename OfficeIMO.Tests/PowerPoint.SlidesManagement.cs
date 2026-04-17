@@ -134,6 +134,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Speaker notes", duplicate.Notes.Text);
 
                 presentation.Save();
+                Assert.Empty(presentation.ValidateDocument());
             }
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
@@ -184,6 +185,7 @@ namespace OfficeIMO.Tests {
                 sourceSlide.Notes.Text = "Imported notes";
                 sourceSlide.Hidden = true;
                 source.Save();
+                Assert.Empty(source.ValidateDocument());
 
                 using (PowerPointPresentation target = PowerPointPresentation.Create(targetPath)) {
                     PowerPointSlide imported = target.ImportSlide(source, 0);
@@ -195,6 +197,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal("Imported notes", imported.Notes.Text);
 
                     target.Save();
+                    Assert.Empty(target.ValidateDocument());
                 }
             }
 
@@ -208,6 +211,45 @@ namespace OfficeIMO.Tests {
 
             File.Delete(sourcePath);
             File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void HiddenSlideUsesSlideShowAttributeAndValidates() {
+            string filePath = CreateTempFilePath(".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.AddSlide().AddTextBox("Visible slide");
+                    PowerPointSlide hiddenSlide = presentation.AddSlide();
+                    hiddenSlide.AddTextBox("Hidden slide");
+                    hiddenSlide.Hide();
+
+                    presentation.Save();
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    OpenXmlValidator validator = new();
+                    Assert.Empty(validator.Validate(document));
+
+                    PresentationPart presentationPart = document.PresentationPart!;
+                    SlideId hiddenSlideId = presentationPart.Presentation!.SlideIdList!.Elements<SlideId>().Last();
+                    Assert.DoesNotContain(hiddenSlideId.GetAttributes(),
+                        attribute => attribute.LocalName == "show" && string.IsNullOrEmpty(attribute.NamespaceUri));
+
+                    SlidePart hiddenSlidePart = (SlidePart)presentationPart.GetPartById(hiddenSlideId.RelationshipId!);
+                    Assert.False(hiddenSlidePart.Slide!.Show!.Value);
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    Assert.False(presentation.Slides[0].Hidden);
+                    Assert.True(presentation.Slides[1].Hidden);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
         }
 
         [Fact]
@@ -267,6 +309,12 @@ namespace OfficeIMO.Tests {
                     File.Delete(targetPath);
                 }
             }
+        }
+
+        private static string CreateTempFilePath(string extension) {
+            string path = Path.GetTempFileName();
+            File.Delete(path);
+            return Path.ChangeExtension(path, extension);
         }
     }
 }
