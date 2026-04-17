@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void LineEndsStayAfterExistingLineJoinNodes() {
-            string filePath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".pptx"));
+            string filePath = CreateTempFilePath(".pptx");
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void OutlineChildrenStayInSchemaOrderWhenStylingAfterArrowheads() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempFilePath(".pptx");
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
@@ -144,6 +144,12 @@ namespace OfficeIMO.Tests {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        private static string CreateTempFilePath(string extension) {
+            string path = Path.GetTempFileName();
+            File.Delete(path);
+            return Path.ChangeExtension(path, extension);
         }
     }
 }

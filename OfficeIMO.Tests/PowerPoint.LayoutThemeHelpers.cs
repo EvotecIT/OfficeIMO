@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void SetThemeLatinFontsPreservesExistingScriptFontAttributes() {
-            string filePath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".pptx"));
+            string filePath = CreateTempFilePath(".pptx");
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     presentation.SetThemeFonts(new PowerPointThemeFontSet(
@@ -179,6 +179,12 @@ namespace OfficeIMO.Tests {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        private static string CreateTempFilePath(string extension) {
+            string path = Path.GetTempFileName();
+            File.Delete(path);
+            return Path.ChangeExtension(path, extension);
         }
     }
 }

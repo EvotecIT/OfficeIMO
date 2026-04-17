@@ -314,7 +314,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void CombinedTableMutationsValidatePackage() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempFilePath(".pptx");
 
             try {
                 var data = new[] {
@@ -387,6 +387,12 @@ namespace OfficeIMO.Tests {
             public string Product { get; }
             public int Q1 { get; }
             public int Q2 { get; }
+        }
+
+        private static string CreateTempFilePath(string extension) {
+            string path = Path.GetTempFileName();
+            File.Delete(path);
+            return Path.ChangeExtension(path, extension);
         }
     }
 

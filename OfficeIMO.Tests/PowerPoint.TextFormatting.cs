@@ -248,7 +248,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BulletSizingAndFontStayInSchemaOrder() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempFilePath(".pptx");
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
@@ -287,6 +287,12 @@ namespace OfficeIMO.Tests {
                 where T : DocumentFormat.OpenXml.OpenXmlElement {
                 return children.ToList().FindIndex(child => child is T);
             }
+        }
+
+        private static string CreateTempFilePath(string extension) {
+            string path = Path.GetTempFileName();
+            File.Delete(path);
+            return Path.ChangeExtension(path, extension);
         }
     }
 }
