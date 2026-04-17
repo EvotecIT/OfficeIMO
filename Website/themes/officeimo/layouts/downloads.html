@@ -146,7 +146,7 @@
                 {{ end }}
 
                 {{ archive_asset = null }}
-                {{ if latest_release && latest_release.assets }}
+                {{ if latest_release && latest_release.assets && section.id != "reader-adapters" && section.id != "google-bridges" }}
                   {{ for asset in latest_release.assets }}
                     {{ if asset.product == package.release_product }}
                       {{ archive_asset = asset }}
