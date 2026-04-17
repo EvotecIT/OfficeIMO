@@ -50,6 +50,9 @@ namespace OfficeIMO.Examples.PowerPoint {
                 minorComplexScript: "Arial"));
 
             AddCoverSlide(presentation, backgroundImagePath);
+            AddAgendaSlide(presentation);
+            AddCapabilitiesSlide(presentation);
+            AddProcessSlide(presentation);
             AddPerformanceSlide(presentation);
             AddChannelMixSlide(presentation);
             AddGrowthSlide(presentation);
@@ -112,11 +115,127 @@ namespace OfficeIMO.Examples.PowerPoint {
             pill.OutlineColor = Linen;
             pill.SetSoftEdges(1.2);
 
-            PowerPointTextBox footer = slide.AddTextBoxCm("Validated PPTX output", 22.7, 13.45, 7.8, 0.45);
+            PowerPointTextBox footer = slide.AddTextBoxCm("Composable layout system", 22.7, 13.45, 7.8, 0.45);
             footer.FontSize = 11;
             footer.Color = Ink;
             footer.TextVerticalAlignment = A.TextAnchoringTypeValues.Center;
             slide.Notes.Text = "Opening slide introduces the feature set demonstrated by this deck.";
+        }
+
+        private static void AddAgendaSlide(PowerPointPresentation presentation) {
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.BackgroundColor = Paper;
+            slide.Transition = SlideTransition.Fade;
+            AddSlideTitle(slide, "Agenda", "Lists, layout grids, charts, tables, and guided placement.");
+
+            PowerPointAutoShape rail = slide.AddRectangleCm(1.25, 4.05, 0.18, 8.7, "Agenda Rail");
+            rail.FillColor = Teal;
+            rail.OutlineColor = Teal;
+
+            PowerPointTextBox list = slide.AddTextBox("",
+                PowerPointLayoutBox.FromCentimeters(2.25, 4.25, 13.4, 5.4));
+            list.SetBullets(new[] {
+                "Build a reusable visual system",
+                "Use grids for predictable placement",
+                "Validate rich slides with real content"
+            }, configure: paragraph => {
+                paragraph.SetFontSize(25)
+                    .SetColor(Ink)
+                    .SetFontName("Aptos Display")
+                    .SetHangingPoints(22)
+                    .SetSpaceAfterPoints(14)
+                    .SetBulletSizePercent(72);
+            });
+            list.SetTextMarginsCm(0, 0, 0, 0);
+            list.TextAutoFit = PowerPointTextAutoFit.Normal;
+
+            PowerPointAutoShape note = AddPanel(slide, 2.25, 10.6, 11.8, 1.8, "Agenda Note");
+            note.FillColor = Linen;
+            note.OutlineColor = Linen;
+            AddBody(slide, "The main lesson: charts and tables are only useful when the surrounding layout makes the story obvious.", 2.75, 11.05, 10.7, 0.75, 12);
+
+            PowerPointLayoutBox[,] cards = PowerPointLayoutBox
+                .FromCentimeters(17.0, 4.15, 13.6, 8.15)
+                .SplitGridCm(3, 1, 0.55, 0);
+            AddNumberedAgendaCard(slide, cards[0, 0], "01", "Composition", "Shared margins and rhythm");
+            AddNumberedAgendaCard(slide, cards[1, 0], "02", "Content blocks", "Lists, cards, tables, and notes");
+            AddNumberedAgendaCard(slide, cards[2, 0], "03", "Native charts", "Readable visuals that stay editable");
+
+            slide.Notes.Text = "Agenda slide demonstrates styled bullet lists, numbered cards, and a consistent placement grid.";
+        }
+
+        private static void AddCapabilitiesSlide(PowerPointPresentation presentation) {
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.BackgroundColor = Paper;
+            slide.Transition = SlideTransition.Fade;
+            AddSlideTitle(slide, "Layout building blocks", "Cards, lists, and aligned sections from one grid.");
+
+            AddLabel(slide, "Reusable sections", 2.1, 3.25, 7.5, 0.55, Teal, 16, bold: true);
+            AddBody(slide, "The same grid can drive service cards, checklist panels, logos, and table-adjacent commentary without hand tuning every element.", 2.1, 4.0, 15.0, 1.0, 13);
+
+            PowerPointLayoutBox[,] serviceGrid = PowerPointLayoutBox
+                .FromCentimeters(2.1, 6.0, 28.3, 4.5)
+                .SplitGridCm(1, 4, 0, 0.55);
+            AddServiceCard(slide, serviceGrid[0, 0], "Device Management", Teal,
+                new[] { "Microsoft Intune", "Autopilot", "SCCM / MECM" });
+            AddServiceCard(slide, serviceGrid[0, 1], "Microsoft Ecosystem", Indigo,
+                new[] { "Entra ID", "Conditional Access", "Identity guardrails" });
+            AddServiceCard(slide, serviceGrid[0, 2], "Security", "12B8C9",
+                new[] { "Defender", "Security baselines", "Compliance policies" });
+            AddServiceCard(slide, serviceGrid[0, 3], "Apple", Orange,
+                new[] { "macOS", "Jamf Pro", "Apple Business Manager" });
+
+            PowerPointAutoShape band = AddPanel(slide, 2.1, 11.55, 28.3, 3.8, "Additional Areas");
+            band.FillColor = "FFFFFF";
+            band.OutlineColor = "D8DDE3";
+            AddLabel(slide, "Additional areas we can model", 2.7, 12.0, 9.0, 0.55, Ink, 15, bold: true);
+
+            PowerPointLayoutBox[,] pillGrid = PowerPointLayoutBox
+                .FromCentimeters(2.7, 13.0, 26.8, 1.7)
+                .SplitGridCm(2, 3, 0.35, 0.55);
+            string[] pills = {
+                "Application Packaging",
+                "OS / application patching",
+                "Reporting",
+                "Onboarding / offboarding",
+                "Modern roadmap",
+                "Compliance review"
+            };
+            for (int index = 0; index < pills.Length; index++) {
+                int row = index / 3;
+                int column = index % 3;
+                AddPill(slide, pillGrid[row, column], pills[index]);
+            }
+
+            slide.Notes.Text = "Capabilities slide exercises card grids, bulleted text inside cards, and pill-style supporting sections.";
+        }
+
+        private static void AddProcessSlide(PowerPointPresentation presentation) {
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.BackgroundColor = Teal;
+            slide.Transition = SlideTransition.Fade;
+            AddDarkSlideChrome(slide);
+
+            AddLabel(slide, "Commercial snapshot", 1.85, 1.25, 8.0, 0.45, "D7F3FA", 10, bold: false);
+            AddLabel(slide, "From data to decision", 1.85, 2.2, 18.0, 1.1, "FFFFFF", 31, bold: true);
+            AddBodyOnDark(slide, "A process layout with aligned cards, arrows, captions, and slide-level brand rhythm.", 1.9, 3.35, 18.0, 0.7, 13);
+
+            PowerPointAutoShape wash = slide.AddShapeCm(A.ShapeTypeValues.Parallelogram, 10.0, 0.0, 11.0, 19.05, "Dark Process Wash");
+            wash.FillColor = "0B5475";
+            wash.FillTransparency = 42;
+            wash.OutlineColor = "0B5475";
+
+            PowerPointLayoutBox[,] steps = PowerPointLayoutBox
+                .FromCentimeters(2.0, 7.0, 28.5, 5.2)
+                .SplitGridCm(1, 3, 0, 1.2);
+            AddProcessStep(slide, steps[0, 0], "1.", "Collect", new[] { "Source data", "Inventory", "Baseline" });
+            AddProcessStep(slide, steps[0, 1], "2.", "Analyze", new[] { "Risk signals", "Gaps", "Priorities" });
+            AddProcessStep(slide, steps[0, 2], "3.", "Act", new[] { "Roadmap", "Owners", "Controls" });
+            AddArrowBetween(slide, steps[0, 0], steps[0, 1]);
+            AddArrowBetween(slide, steps[0, 1], steps[0, 2]);
+
+            AddBodyOnDark(slide, "Use this pattern when the audience needs sequence first and details second.", 2.0, 15.55, 18.0, 0.65, 13);
+            slide.Notes.Text = "Process slide demonstrates dark backgrounds, arrows, large numbers, grouped step content, and bottom captions.";
         }
 
         private static void AddPerformanceSlide(PowerPointPresentation presentation) {
@@ -254,7 +373,127 @@ namespace OfficeIMO.Examples.PowerPoint {
             slide.Notes.Text = "Growth slide: this intentionally uses a line chart because the month-to-month sequence matters.";
         }
 
+        private static void AddNumberedAgendaCard(PowerPointSlide slide, PowerPointLayoutBox box, string number,
+            string title, string detail) {
+            PowerPointAutoShape card = AddPanel(slide, box.LeftCm, box.TopCm, box.WidthCm, box.HeightCm, title + " Agenda Card");
+            card.FillColor = "FFFFFF";
+            card.OutlineColor = Linen;
+            card.SetShadow("000000", blurPoints: 5, distancePoints: 1, angleDegrees: 90, transparencyPercent: 88);
+
+            AddLabel(slide, number, box.LeftCm + 0.55, box.TopCm + 0.36, 2.0, 0.8, Orange, 20, bold: true);
+            AddLabel(slide, title, box.LeftCm + 2.25, box.TopCm + 0.38, 6.5, 0.5, Ink, 14, bold: true);
+            AddBody(slide, detail, box.LeftCm + 2.25, box.TopCm + 1.02, 9.8, 0.45, 10);
+        }
+
+        private static void AddServiceCard(PowerPointSlide slide, PowerPointLayoutBox box, string title, string color,
+            IEnumerable<string> bullets) {
+            PowerPointAutoShape card = AddPanel(slide, box.LeftCm, box.TopCm, box.WidthCm, box.HeightCm, title + " Service Card");
+            card.FillColor = "FFFFFF";
+            card.OutlineColor = "D8DDE3";
+            card.OutlineWidthPoints = 1.0;
+
+            PowerPointAutoShape accent = slide.AddRectangleCm(box.LeftCm, box.TopCm, box.WidthCm, 0.18, title + " Accent");
+            accent.FillColor = color;
+            accent.OutlineColor = color;
+
+            AddLabel(slide, title, box.LeftCm + 0.45, box.TopCm + 0.65, box.WidthCm - 0.9, 0.55, color, 14, bold: true);
+            PowerPointTextBox list = slide.AddTextBox("",
+                PowerPointLayoutBox.FromCentimeters(box.LeftCm + 0.55, box.TopCm + 1.55, box.WidthCm - 0.95, box.HeightCm - 1.9));
+            list.SetBullets(bullets, configure: paragraph => {
+                paragraph.SetFontSize(10)
+                    .SetColor("626B75")
+                    .SetHangingPoints(12)
+                    .SetSpaceAfterPoints(3)
+                    .SetBulletSizePercent(72);
+            });
+            list.SetTextMarginsCm(0, 0, 0, 0);
+            list.TextAutoFit = PowerPointTextAutoFit.Normal;
+        }
+
+        private static void AddPill(PowerPointSlide slide, PowerPointLayoutBox box, string text) {
+            PowerPointAutoShape pill = AddPanel(slide, box.LeftCm, box.TopCm, box.WidthCm, box.HeightCm, text + " Pill");
+            pill.FillColor = "FDFBF7";
+            pill.OutlineColor = "D8DDE3";
+
+            PowerPointTextBox label = AddLabel(slide, text, box.LeftCm + 0.25, box.TopCm + 0.17, box.WidthCm - 0.5,
+                box.HeightCm - 0.3, "4A4F55", 10, bold: false);
+            label.TextVerticalAlignment = A.TextAnchoringTypeValues.Center;
+            foreach (PowerPointParagraph paragraph in label.Paragraphs) {
+                paragraph.Alignment = A.TextAlignmentTypeValues.Center;
+            }
+        }
+
+        private static void AddProcessStep(PowerPointSlide slide, PowerPointLayoutBox box, string number, string title,
+            IEnumerable<string> bullets) {
+            AddLabel(slide, number, box.LeftCm, box.TopCm, 3.0, 1.4, "FFFFFF", 39, bold: true);
+            AddLabel(slide, title, box.LeftCm, box.TopCm + 2.0, box.WidthCm, 0.6, "FFFFFF", 15, bold: true);
+            PowerPointTextBox list = slide.AddTextBox("",
+                PowerPointLayoutBox.FromCentimeters(box.LeftCm, box.TopCm + 2.85, box.WidthCm, 1.7));
+            list.SetParagraphs(bullets, paragraph => {
+                paragraph.SetFontSize(11)
+                    .SetColor("D7F3FA")
+                    .SetFontName("Aptos")
+                    .SetSpaceAfterPoints(4);
+            });
+            list.SetTextMarginsCm(0, 0, 0, 0);
+        }
+
+        private static void AddArrowBetween(PowerPointSlide slide, PowerPointLayoutBox left, PowerPointLayoutBox right) {
+            double y = left.TopCm + 2.42;
+            PowerPointAutoShape arrow = slide.AddLineCm(left.RightCm + 0.25, y, right.LeftCm - 0.45, y, "Process Arrow");
+            arrow.OutlineColor = "FFFFFF";
+            arrow.OutlineWidthPoints = 2.0;
+            arrow.SetLineEnds(null, A.LineEndValues.Triangle, A.LineEndWidthValues.Medium, A.LineEndLengthValues.Medium);
+        }
+
+        private static void AddLightSlideChrome(PowerPointSlide slide) {
+            PowerPointAutoShape diagonal = slide.AddShapeCm(A.ShapeTypeValues.Parallelogram, 11.2, -2.2, 9.5, 23.5,
+                "Subtle Diagonal Wash");
+            diagonal.FillColor = Linen;
+            diagonal.FillTransparency = 58;
+            diagonal.OutlineColor = Linen;
+
+            PowerPointTextBox brand = slide.AddTextBoxCm("OfficeIMO.PowerPoint", 1.3, 17.4, 7.0, 0.35);
+            brand.FontSize = 8;
+            brand.Color = Teal;
+            brand.SetTextMarginsCm(0, 0, 0, 0);
+
+            PowerPointTextBox marker = slide.AddTextBoxCm("layout system", 27.6, 17.4, 4.3, 0.35);
+            marker.FontSize = 8;
+            marker.Color = "8B847C";
+            marker.SetTextMarginsCm(0, 0, 0, 0);
+        }
+
+        private static void AddDarkSlideChrome(PowerPointSlide slide) {
+            PowerPointAutoShape bottom = slide.AddRectangleCm(0, 15.1, 33.87, 3.95, "Dark Footer Wash");
+            bottom.FillColor = "0B415A";
+            bottom.FillTransparency = 35;
+            bottom.OutlineColor = "0B415A";
+
+            PowerPointTextBox brand = slide.AddTextBoxCm("OfficeIMO.PowerPoint", 1.85, 17.1, 7.0, 0.35);
+            brand.FontSize = 8;
+            brand.Color = "D7F3FA";
+            brand.SetTextMarginsCm(0, 0, 0, 0);
+
+            PowerPointTextBox marker = slide.AddTextBoxCm("modern layouts", 27.0, 17.1, 4.8, 0.35);
+            marker.FontSize = 8;
+            marker.Color = "D7F3FA";
+            marker.SetTextMarginsCm(0, 0, 0, 0);
+        }
+
+        private static PowerPointTextBox AddBodyOnDark(PowerPointSlide slide, string text, double leftCm, double topCm,
+            double widthCm, double heightCm, int fontSize) {
+            PowerPointTextBox box = slide.AddTextBoxCm(text, leftCm, topCm, widthCm, heightCm);
+            box.FontSize = fontSize;
+            box.Color = "D7F3FA";
+            box.TextAutoFit = PowerPointTextAutoFit.Normal;
+            box.SetTextMarginsCm(0, 0, 0, 0);
+            return box;
+        }
+
         private static void AddSlideTitle(PowerPointSlide slide, string title, string subtitle) {
+            AddLightSlideChrome(slide);
+
             PowerPointTextBox titleBox = slide.AddTextBoxCm(title, 1.3, 0.85, 17.5, 0.95);
             titleBox.FontSize = 23;
             titleBox.Color = Ink;

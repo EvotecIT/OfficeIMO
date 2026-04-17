@@ -245,5 +245,48 @@ namespace OfficeIMO.Tests {
 
             File.Delete(filePath);
         }
+
+        [Fact]
+        public void BulletSizingAndFontStayInSchemaOrder() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointTextBox box = slide.AddTextBox("Bullets");
+                box.SetBullets(new[] { "First", "Second" }, configure: paragraph => {
+                    paragraph.SetBulletSizePercent(72)
+                        .SetBulletFont("Aptos")
+                        .SetHangingPoints(16)
+                        .SetFontSize(18);
+                });
+
+                presentation.Save();
+
+                Assert.Empty(presentation.ValidateDocument());
+            }
+
+            using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                Shape shape = document.PresentationPart!.SlideParts.First().Slide.Descendants<Shape>().First();
+                A.ParagraphProperties props = shape.TextBody!.Elements<A.Paragraph>().First().ParagraphProperties!;
+                var children = props.ChildElements.ToList();
+
+                int sizeIndex = IndexOf<A.BulletSizePercentage>(children);
+                int fontIndex = IndexOf<A.BulletFont>(children);
+                int bulletIndex = IndexOf<A.CharacterBullet>(children);
+
+                Assert.NotEqual(-1, sizeIndex);
+                Assert.NotEqual(-1, fontIndex);
+                Assert.NotEqual(-1, bulletIndex);
+                Assert.True(sizeIndex < fontIndex);
+                Assert.True(fontIndex < bulletIndex);
+            }
+
+            File.Delete(filePath);
+
+            static int IndexOf<T>(IReadOnlyList<DocumentFormat.OpenXml.OpenXmlElement> children)
+                where T : DocumentFormat.OpenXml.OpenXmlElement {
+                return children.ToList().FindIndex(child => child is T);
+            }
+        }
     }
 }

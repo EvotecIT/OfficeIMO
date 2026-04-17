@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -412,7 +413,7 @@ namespace OfficeIMO.PowerPoint {
                 A.ParagraphProperties props = EnsureParagraphProperties();
                 props.RemoveAllChildren<A.BulletFont>();
                 if (!string.IsNullOrWhiteSpace(value)) {
-                    props.Append(new A.BulletFont { Typeface = value });
+                    InsertParagraphPropertyChild(props, new A.BulletFont { Typeface = value });
                 }
             }
         }
@@ -430,7 +431,7 @@ namespace OfficeIMO.PowerPoint {
                 props.RemoveAllChildren<A.BulletSizePoints>();
                 props.RemoveAllChildren<A.BulletSizePercentage>();
                 if (value != null) {
-                    props.Append(new A.BulletSizePoints { Val = value.Value * 100 });
+                    InsertParagraphPropertyChild(props, new A.BulletSizePoints { Val = value.Value * 100 });
                 }
             }
         }
@@ -448,7 +449,7 @@ namespace OfficeIMO.PowerPoint {
                 props.RemoveAllChildren<A.BulletSizePercentage>();
                 props.RemoveAllChildren<A.BulletSizePoints>();
                 if (value != null) {
-                    props.Append(new A.BulletSizePercentage { Val = value.Value * 1000 });
+                    InsertParagraphPropertyChild(props, new A.BulletSizePercentage { Val = value.Value * 1000 });
                 }
             }
         }
@@ -483,7 +484,7 @@ namespace OfficeIMO.PowerPoint {
         public void SetBullet(char bulletChar = '\u2022') {
             A.ParagraphProperties props = EnsureParagraphProperties();
             ClearBulletInternal(props);
-            props.Append(new A.CharacterBullet { Char = bulletChar.ToString() });
+            InsertParagraphPropertyChild(props, new A.CharacterBullet { Char = bulletChar.ToString() });
         }
 
         /// <summary>
@@ -492,7 +493,7 @@ namespace OfficeIMO.PowerPoint {
         public void SetNumbered(A.TextAutoNumberSchemeValues style, int startAt = 1) {
             A.ParagraphProperties props = EnsureParagraphProperties();
             ClearBulletInternal(props);
-            props.Append(new A.AutoNumberedBullet { Type = style, StartAt = startAt });
+            InsertParagraphPropertyChild(props, new A.AutoNumberedBullet { Type = style, StartAt = startAt });
         }
 
         /// <summary>
@@ -501,7 +502,7 @@ namespace OfficeIMO.PowerPoint {
         public void SetNumbered(A.TextAutoNumberSchemeValues style) {
             A.ParagraphProperties props = EnsureParagraphProperties();
             ClearBulletInternal(props);
-            props.Append(new A.AutoNumberedBullet { Type = style });
+            InsertParagraphPropertyChild(props, new A.AutoNumberedBullet { Type = style });
         }
 
         /// <summary>
@@ -517,7 +518,7 @@ namespace OfficeIMO.PowerPoint {
         public void ClearBullet() {
             A.ParagraphProperties props = EnsureParagraphProperties();
             ClearBulletInternal(props);
-            props.Append(new A.NoBullet());
+            InsertParagraphPropertyChild(props, new A.NoBullet());
         }
 
         private PowerPointTextRun GetDefaultRun() {
@@ -543,6 +544,40 @@ namespace OfficeIMO.PowerPoint {
             props.RemoveAllChildren<A.CharacterBullet>();
             props.RemoveAllChildren<A.AutoNumberedBullet>();
             props.RemoveAllChildren<A.NoBullet>();
+        }
+
+        private static void InsertParagraphPropertyChild(A.ParagraphProperties props, OpenXmlElement child) {
+            int childOrder = GetParagraphPropertyChildOrder(child);
+            OpenXmlElement? insertBefore = props.ChildElements
+                .FirstOrDefault(existing => GetParagraphPropertyChildOrder(existing) > childOrder);
+
+            if (insertBefore == null) {
+                props.Append(child);
+            } else {
+                props.InsertBefore(child, insertBefore);
+            }
+        }
+
+        private static int GetParagraphPropertyChildOrder(OpenXmlElement element) {
+            return element switch {
+                A.LineSpacing => 10,
+                A.SpaceBefore => 20,
+                A.SpaceAfter => 30,
+                A.BulletColorText => 40,
+                A.BulletColor => 50,
+                A.BulletSizeText => 60,
+                A.BulletSizePercentage => 70,
+                A.BulletSizePoints => 80,
+                A.BulletFontText => 90,
+                A.BulletFont => 100,
+                A.NoBullet => 110,
+                A.AutoNumberedBullet => 120,
+                A.CharacterBullet => 130,
+                A.TabStopList => 140,
+                A.DefaultRunProperties => 150,
+                A.ExtensionList => 160,
+                _ => 1000
+            };
         }
 
         private A.ParagraphProperties EnsureParagraphProperties() {
