@@ -3536,9 +3536,20 @@ namespace OfficeIMO.PowerPoint {
 
         private static C.ChartShapeProperties EnsureChartShapeProperties(OpenXmlCompositeElement series) {
             C.ChartShapeProperties props = series.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
-            if (props.Parent == null) {
-                series.Append(props);
+            if (props.Parent != null) {
+                props.Remove();
             }
+
+            OpenXmlElement? insertAfter = series.GetFirstChild<C.SeriesText>();
+            insertAfter ??= series.GetFirstChild<C.Order>();
+            insertAfter ??= series.GetFirstChild<C.Index>();
+
+            if (insertAfter != null) {
+                series.InsertAfter(props, insertAfter);
+            } else {
+                series.PrependChild(props);
+            }
+
             return props;
         }
 
