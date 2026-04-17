@@ -79,6 +79,9 @@
   "Head": {
     "Links": [
       { "Rel": "icon", "Href": "/favicon.svg", "Type": "image/svg+xml" }
+    ],
+    "Meta": [
+      { "Name": "robots", "Content": "index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1" }
     ]
   },
   "Social": {
@@ -119,6 +122,84 @@
     ],
     "OrganizationEmail": "support@evotec.xyz",
     "OrganizationContactUrl": "https://officeimo.com/docs/getting-started/"
+  },
+  "AgentReadiness": {
+    "Enabled": true,
+    "HeadersPath": "_headers",
+    "LinkHeaders": true,
+    "Robots": true,
+    "SecurityHeaders": {
+      "Enabled": true,
+      "ContentSecurityPolicyValue": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    },
+    "ContentSignals": {
+      "Enabled": true,
+      "Search": true,
+      "AiInput": true,
+      "AiTrain": false
+    },
+    "BotRules": [
+      { "UserAgent": "GPTBot", "Allow": "/" },
+      { "UserAgent": "ChatGPT-User", "Allow": "/" },
+      { "UserAgent": "OAI-SearchBot", "Allow": "/" },
+      { "UserAgent": "ClaudeBot", "Allow": "/" },
+      { "UserAgent": "Claude-SearchBot", "Allow": "/" },
+      { "UserAgent": "Claude-User", "Allow": "/" },
+      { "UserAgent": "PerplexityBot", "Allow": "/" },
+      { "UserAgent": "Perplexity-User", "Allow": "/" },
+      { "UserAgent": "Google-Extended", "Allow": "/" },
+      { "UserAgent": "Applebot-Extended", "Allow": "/" },
+      { "UserAgent": "Meta-ExternalAgent", "Allow": "/" },
+      { "UserAgent": "Amazonbot", "Allow": "/" },
+      { "UserAgent": "CCBot", "Allow": "/" }
+    ],
+    "ApiCatalog": {
+      "Enabled": true,
+      "Entries": [
+        { "Anchor": "/api/word/", "ServiceDesc": "/api/word/index.json", "ServiceDoc": "/api/word/", "Title": "OfficeIMO.Word API Reference" },
+        { "Anchor": "/api/excel/", "ServiceDesc": "/api/excel/index.json", "ServiceDoc": "/api/excel/", "Title": "OfficeIMO.Excel API Reference" },
+        { "Anchor": "/api/markdown/", "ServiceDesc": "/api/markdown/index.json", "ServiceDoc": "/api/markdown/", "Title": "OfficeIMO.Markdown API Reference" },
+        { "Anchor": "/api/powerpoint/", "ServiceDesc": "/api/powerpoint/index.json", "ServiceDoc": "/api/powerpoint/", "Title": "OfficeIMO.PowerPoint API Reference" },
+        { "Anchor": "/api/csv/", "ServiceDesc": "/api/csv/index.json", "ServiceDoc": "/api/csv/", "Title": "OfficeIMO.CSV API Reference" },
+        { "Anchor": "/api/visio/", "ServiceDesc": "/api/visio/index.json", "ServiceDoc": "/api/visio/", "Title": "OfficeIMO.Visio API Reference" },
+        { "Anchor": "/api/reader/", "ServiceDesc": "/api/reader/index.json", "ServiceDoc": "/api/reader/", "Title": "OfficeIMO.Reader API Reference" },
+        { "Anchor": "/api/powershell/", "ServiceDesc": "/api/powershell/index.json", "ServiceDoc": "/api/powershell/", "Title": "PSWriteOffice Cmdlet Reference" }
+      ]
+    },
+    "AgentSkills": {
+      "Enabled": true,
+      "Skills": [
+        {
+          "Name": "officeimo-site-assistant",
+          "Type": "skill-md",
+          "Description": "Use OfficeIMO documentation, API reference, sitemap, and llms files.",
+          "Content": "---\nname: officeimo-site-assistant\ndescription: Use OfficeIMO documentation, API reference, sitemap, and llms resources.\n---\n\n# OfficeIMO Site Assistant\n\nUse this skill when answering questions about OfficeIMO.\n\n- Prefer canonical pages from https://officeimo.com.\n- Use `/docs/` for product and workflow guidance.\n- Use `/api/` routes for .NET API reference and `/api/powershell/` for PSWriteOffice cmdlets.\n- Check `/llms.txt`, `/llms.json`, and `/llms-full.txt` when present for agent-readable summaries.\n- Check `/.well-known/api-catalog` before assuming API documentation paths.\n- Respect `/robots.txt` and Content-Signal preferences.\n"
+        }
+      ]
+    },
+    "AgentsJson": {
+      "Enabled": true,
+      "Description": "Agent-facing discovery metadata for OfficeIMO documentation, API reference, and support resources."
+    },
+    "A2AAgentCard": {
+      "Enabled": true,
+      "Name": "OfficeIMO Documentation Discovery",
+      "Description": "Discover OfficeIMO documentation, API reference, llms summaries, sitemap, and project resources.",
+      "Url": "/",
+      "DocumentationUrl": "/docs/",
+      "Skills": [
+        {
+          "Id": "documentation-discovery",
+          "Name": "Documentation discovery",
+          "Description": "Find OfficeIMO product documentation, API reference, release resources, and support pages.",
+          "Tags": ["documentation", "api-reference", "sitemap", "llms"]
+        }
+      ]
+    },
+    "McpServerCard": { "Enabled": false },
+    "OpenApi": { "Enabled": false },
+    "WebMcp": false,
+    "MarkdownNegotiation": true
   },
   "EditLinks": {
     "Enabled": true,
