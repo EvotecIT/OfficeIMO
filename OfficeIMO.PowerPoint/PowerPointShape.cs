@@ -494,8 +494,8 @@ namespace OfficeIMO.PowerPoint {
                     return;
                 }
 
-                outline.RemoveAllChildren<A.SolidFill>();
-                outline.Append(new A.SolidFill(new A.RgbColorModelHex { Val = value }));
+                RemoveOutlineFillChildren(outline);
+                InsertOutlineChild(outline, new A.SolidFill(new A.RgbColorModelHex { Val = value }));
             }
         }
 
@@ -545,7 +545,7 @@ namespace OfficeIMO.PowerPoint {
                 A.PresetDash dash = outline.GetFirstChild<A.PresetDash>() ?? new A.PresetDash();
                 dash.Val = value.Value;
                 if (dash.Parent == null) {
-                    outline.Append(dash);
+                    InsertOutlineChild(outline, dash);
                 }
             }
         }
@@ -1107,6 +1107,38 @@ namespace OfficeIMO.PowerPoint {
             };
         }
 
+        private static void InsertOutlineChild(A.Outline outline, OpenXmlElement child) {
+            int childOrder = GetOutlineChildOrder(child);
+            OpenXmlElement? insertBefore = outline.ChildElements
+                .FirstOrDefault(existing => GetOutlineChildOrder(existing) > childOrder);
+
+            if (insertBefore != null) {
+                outline.InsertBefore(child, insertBefore);
+            } else {
+                outline.Append(child);
+            }
+        }
+
+        private static int GetOutlineChildOrder(OpenXmlElement child) {
+            return child switch {
+                A.NoFill => 0,
+                A.SolidFill => 0,
+                A.GradientFill => 0,
+                A.PatternFill => 0,
+                A.PresetDash => 1,
+                A.HeadEnd => 3,
+                A.TailEnd => 4,
+                _ => 100
+            };
+        }
+
+        private static void RemoveOutlineFillChildren(A.Outline outline) {
+            outline.RemoveAllChildren<A.NoFill>();
+            outline.RemoveAllChildren<A.SolidFill>();
+            outline.RemoveAllChildren<A.GradientFill>();
+            outline.RemoveAllChildren<A.PatternFill>();
+        }
+
         private static void InsertEffectChild(A.EffectList effects, OpenXmlElement child) {
             int childOrder = GetEffectChildOrder(child);
             OpenXmlElement? insertBefore = effects.ChildElements
@@ -1181,7 +1213,7 @@ namespace OfficeIMO.PowerPoint {
                     head.Length = length.Value;
                 }
                 if (head.Parent == null) {
-                    outline.Append(head);
+                    InsertOutlineChild(outline, head);
                 }
             } else {
                 A.TailEnd? tail = outline.GetFirstChild<A.TailEnd>();
@@ -1199,7 +1231,7 @@ namespace OfficeIMO.PowerPoint {
                     tail.Length = length.Value;
                 }
                 if (tail.Parent == null) {
-                    outline.Append(tail);
+                    InsertOutlineChild(outline, tail);
                 }
             }
         }
