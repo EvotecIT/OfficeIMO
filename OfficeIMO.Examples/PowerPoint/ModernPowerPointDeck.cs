@@ -23,9 +23,9 @@ namespace OfficeIMO.Examples.PowerPoint {
 
         public static void Example_ModernPowerPointDeck(string folderPath, bool openPowerPoint) {
             Console.WriteLine("[*] PowerPoint - Modern themed deck");
-            string filePath = Path.Combine(folderPath, Path.GetFileName("Modern PowerPoint Deck.pptx"));
-            string imagesDirectory = Path.Combine(AppContext.BaseDirectory, "Images");
-            string backgroundImagePath = Path.Combine(imagesDirectory, "BackgroundImage.png");
+            string filePath = AppendPathSegment(folderPath, "Modern PowerPoint Deck.pptx");
+            string imagesDirectory = AppendPathSegment(AppContext.BaseDirectory, "Images");
+            string backgroundImagePath = AppendPathSegment(imagesDirectory, "BackgroundImage.png");
 
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
             presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
@@ -615,6 +615,12 @@ namespace OfficeIMO.Examples.PowerPoint {
             wash.FillColor = Paper;
             wash.FillTransparency = 6;
             wash.OutlineColor = Paper;
+        }
+
+        private static string AppendPathSegment(string directoryPath, string childName) {
+            string normalizedDirectory = Path.GetFullPath(directoryPath)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            return normalizedDirectory + Path.DirectorySeparatorChar + childName;
         }
 
         private sealed class KpiRow {

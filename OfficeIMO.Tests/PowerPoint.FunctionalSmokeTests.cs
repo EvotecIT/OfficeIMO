@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void CanBuildRichDeckAndValidate() {
-            string filePath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".pptx"));
+            string filePath = CreateTempFilePath(".pptx");
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     presentation.SetThemeColorForAllMasters(PowerPointThemeColor.Accent1, "4472C4");
@@ -90,8 +90,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void CanBuildModernThemeDeckAndValidate() {
-            string filePath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".pptx"));
-            string backgroundPath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".png"));
+            string filePath = CreateTempFilePath(".pptx");
+            string backgroundPath = CreateTempFilePath(".png");
 
             try {
                 File.WriteAllBytes(backgroundPath, OnePixelPng);
@@ -231,6 +231,12 @@ namespace OfficeIMO.Tests {
                     $"ErrorType: {error.ErrorType}\n" +
                     $"Part: {error.Part?.Uri}\n" +
                     $"Path: {error.Path?.XPath}"));
+        }
+
+        private static string CreateTempFilePath(string extension) {
+            string path = Path.GetTempFileName();
+            File.Delete(path);
+            return Path.ChangeExtension(path, extension);
         }
     }
 }

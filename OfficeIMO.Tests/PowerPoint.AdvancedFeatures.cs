@@ -120,9 +120,9 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void TransitionBackgroundAndNotesMutationsValidatePackage() {
-            string filePath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".pptx"));
-            string imagesDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images");
-            string imagePath = Path.Combine(imagesDirectory, "BackgroundImage.png");
+            string filePath = CreateTempFilePath(".pptx");
+            string imagesDirectory = AppendPathSegment(AppDomain.CurrentDomain.BaseDirectory, "Images");
+            string imagePath = AppendPathSegment(imagesDirectory, "BackgroundImage.png");
 
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
@@ -455,6 +455,18 @@ namespace OfficeIMO.Tests {
             }
 
             return builder.ToString();
+        }
+
+        private static string CreateTempFilePath(string extension) {
+            string path = Path.GetTempFileName();
+            File.Delete(path);
+            return Path.ChangeExtension(path, extension);
+        }
+
+        private static string AppendPathSegment(string directoryPath, string childName) {
+            string normalizedDirectory = Path.GetFullPath(directoryPath)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            return normalizedDirectory + Path.DirectorySeparatorChar + childName;
         }
     }
 }

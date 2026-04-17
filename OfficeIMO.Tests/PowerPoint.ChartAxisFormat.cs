@@ -1102,7 +1102,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void CombinedAxisMutationsValidateChartParts() {
-            string filePath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".pptx"));
+            string filePath = CreateTempFilePath(".pptx");
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide barSlide = presentation.AddSlide();
@@ -1169,6 +1169,12 @@ namespace OfficeIMO.Tests {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        private static string CreateTempFilePath(string extension) {
+            string path = Path.GetTempFileName();
+            File.Delete(path);
+            return Path.ChangeExtension(path, extension);
         }
     }
 }
