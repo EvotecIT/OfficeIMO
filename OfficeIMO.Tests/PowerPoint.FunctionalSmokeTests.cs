@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void CanBuildRichDeckAndValidate() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".pptx"));
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     presentation.SetThemeColorForAllMasters(PowerPointThemeColor.Accent1, "4472C4");
@@ -90,8 +90,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void CanBuildModernThemeDeckAndValidate() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
-            string backgroundPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".png");
+            string filePath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".pptx"));
+            string backgroundPath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".png"));
 
             try {
                 File.WriteAllBytes(backgroundPath, OnePixelPng);

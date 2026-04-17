@@ -23,8 +23,9 @@ namespace OfficeIMO.Examples.PowerPoint {
 
         public static void Example_ModernPowerPointDeck(string folderPath, bool openPowerPoint) {
             Console.WriteLine("[*] PowerPoint - Modern themed deck");
-            string filePath = Path.Combine(folderPath, "Modern PowerPoint Deck.pptx");
-            string backgroundImagePath = Path.Combine(AppContext.BaseDirectory, "Images", "BackgroundImage.png");
+            string filePath = Path.Combine(folderPath, Path.GetFileName("Modern PowerPoint Deck.pptx"));
+            string imagesDirectory = Path.Combine(AppContext.BaseDirectory, "Images");
+            string backgroundImagePath = Path.Combine(imagesDirectory, "BackgroundImage.png");
 
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
             presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);

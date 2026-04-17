@@ -62,6 +62,66 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SetThemeLatinFontsPreservesExistingScriptFontAttributes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".pptx"));
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.SetThemeFonts(new PowerPointThemeFontSet(
+                        majorLatin: "Major Latin",
+                        minorLatin: "Minor Latin",
+                        majorEastAsian: "Major East Asian",
+                        minorEastAsian: "Minor East Asian",
+                        majorComplexScript: "Major Complex",
+                        minorComplexScript: "Minor Complex"));
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlideMasterPart master = document.PresentationPart!.SlideMasterParts.First();
+                    A.FontScheme fontScheme = master.ThemePart!.Theme!.ThemeElements!.FontScheme!;
+                    A.EastAsianFont eastAsian = fontScheme.MajorFont!.EastAsianFont!;
+                    eastAsian.Panose = "020B0604020202020204";
+                    eastAsian.PitchFamily = 34;
+                    eastAsian.CharacterSet = 0;
+
+                    A.ComplexScriptFont complexScript = fontScheme.MajorFont.ComplexScriptFont!;
+                    complexScript.Panose = "020B0604020202020205";
+                    complexScript.PitchFamily = 18;
+                    complexScript.CharacterSet = 1;
+                    master.ThemePart.Theme.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    presentation.SetThemeLatinFonts("Updated Major Latin", "Updated Minor Latin");
+                    presentation.Save();
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    SlideMasterPart master = document.PresentationPart!.SlideMasterParts.First();
+                    A.FontScheme fontScheme = master.ThemePart!.Theme!.ThemeElements!.FontScheme!;
+
+                    Assert.Equal("Updated Major Latin", fontScheme.MajorFont!.LatinFont!.Typeface);
+                    A.EastAsianFont eastAsian = fontScheme.MajorFont.EastAsianFont!;
+                    Assert.Equal("Major East Asian", eastAsian.Typeface);
+                    Assert.Equal("020B0604020202020204", eastAsian.Panose);
+                    Assert.Equal(34, eastAsian.PitchFamily);
+                    Assert.Equal(0, eastAsian.CharacterSet);
+
+                    A.ComplexScriptFont complexScript = fontScheme.MajorFont.ComplexScriptFont!;
+                    Assert.Equal("Major Complex", complexScript.Typeface);
+                    Assert.Equal("020B0604020202020205", complexScript.Panose);
+                    Assert.Equal(18, complexScript.PitchFamily);
+                    Assert.Equal(1, complexScript.CharacterSet);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void DefaultThemeColors_IncludeSystemColorBackedEntries() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {

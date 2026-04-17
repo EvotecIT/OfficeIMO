@@ -165,7 +165,7 @@ namespace OfficeIMO.PowerPoint {
                 presentationPart.TryGetPartById(relationshipId, out OpenXmlPart? part) &&
                 part is SlidePart slidePart &&
                 slidePart.Slide?.Show?.Value != null) {
-                return slidePart.Slide.Show.Value == false;
+                return !slidePart.Slide.Show.Value;
             }
 
             string? legacyShowValue = slideId.GetAttributes()

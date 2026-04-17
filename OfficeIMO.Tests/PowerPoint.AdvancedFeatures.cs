@@ -120,8 +120,9 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void TransitionBackgroundAndNotesMutationsValidatePackage() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
-            string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
+            string filePath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".pptx"));
+            string imagesDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images");
+            string imagePath = Path.Combine(imagesDirectory, "BackgroundImage.png");
 
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {

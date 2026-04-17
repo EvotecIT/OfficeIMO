@@ -48,6 +48,58 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LineEndsStayAfterExistingLineJoinNodes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".pptx"));
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointAutoShape line = slide.AddLine(0, 0, 4000, 0, "JoinedArrowLine");
+                    line.OutlineColor = "156082";
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, true)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.First();
+                    Shape lineShape = slidePart.Slide.CommonSlideData!.ShapeTree!
+                        .Elements<Shape>()
+                        .First(shape => shape.NonVisualShapeProperties?.NonVisualDrawingProperties?.Name?.Value == "JoinedArrowLine");
+                    A.Outline outline = lineShape.ShapeProperties!.GetFirstChild<A.Outline>()!;
+                    outline.Append(new A.Round());
+                    slidePart.Slide.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointShape line = presentation.Slides[0].GetShape("JoinedArrowLine")!;
+                    line.SetLineEnds(null, A.LineEndValues.Triangle, A.LineEndWidthValues.Medium, A.LineEndLengthValues.Medium);
+                    presentation.Save();
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    OpenXmlValidator validator = new(FileFormatVersions.Microsoft365);
+                    Assert.Empty(validator.Validate(document));
+
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.First();
+                    Shape lineShape = slidePart.Slide.CommonSlideData!.ShapeTree!
+                        .Elements<Shape>()
+                        .First(shape => shape.NonVisualShapeProperties?.NonVisualDrawingProperties?.Name?.Value == "JoinedArrowLine");
+                    A.Outline outline = lineShape.ShapeProperties!.GetFirstChild<A.Outline>()!;
+                    var children = outline.ChildElements.ToList();
+                    int roundIndex = children.FindIndex(child => child is A.Round);
+                    int headIndex = children.FindIndex(child => child is A.HeadEnd);
+
+                    Assert.True(roundIndex >= 0);
+                    Assert.True(headIndex >= 0);
+                    Assert.True(roundIndex < headIndex);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void OutlineChildrenStayInSchemaOrderWhenStylingAfterArrowheads() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {

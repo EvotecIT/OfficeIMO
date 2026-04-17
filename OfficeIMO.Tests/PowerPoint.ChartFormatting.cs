@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ChartLevelDataLabelPositionValidatesAfterLabelFlags() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".pptx"));
 
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DoughnutBestFitDataLabelPositionIsOmittedForPowerPointCompatibility() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".pptx"));
 
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {

@@ -1102,7 +1102,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void CombinedAxisMutationsValidateChartParts() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".pptx"));
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
                     PowerPointSlide barSlide = presentation.AddSlide();

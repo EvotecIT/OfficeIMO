@@ -369,7 +369,7 @@ namespace OfficeIMO.PowerPoint {
         public bool Hidden {
             get {
                 if (SlideRoot.Show?.Value != null) {
-                    return SlideRoot.Show.Value == false;
+                    return !SlideRoot.Show.Value;
                 }
 
                 return IsHiddenShowValue(GetLegacySlideIdShowValue(GetSlideId()));
