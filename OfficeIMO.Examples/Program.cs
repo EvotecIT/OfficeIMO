@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace OfficeIMO.Examples {
     internal static class Program {
@@ -9,14 +11,75 @@ namespace OfficeIMO.Examples {
             }
         }
 
+        private static bool HasArgument(string[] args, string value) {
+            return Array.Exists(args, arg => string.Equals(arg, value, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static void RunPowerPointExamples(string folderPath) {
+            DateTime startedUtc = DateTime.UtcNow.AddSeconds(-2);
+
+            PowerPoint.BasicPowerPointDocument.Example_BasicPowerPoint(folderPath, false);
+            PowerPoint.AdvancedPowerPoint.Example_AdvancedPowerPoint(folderPath, false);
+            PowerPoint.ModernPowerPointDeck.Example_ModernPowerPointDeck(folderPath, false);
+            PowerPoint.FluentPowerPoint.Example_FluentPowerPoint(folderPath, false);
+            PowerPoint.ShapesPowerPoint.Example_PowerPointShapes(folderPath, false);
+            PowerPoint.SlidesManagementPowerPoint.Example_SlidesManagement(folderPath, false);
+            PowerPoint.SectionsWithoutRepairPowerPoint.Example_PowerPointSectionsWithoutRepair(folderPath, false);
+            PowerPoint.TablesPowerPoint.Example_PowerPointTables(folderPath, false);
+            PowerPoint.TextFormattingPowerPoint.Example_TextFormattingPowerPoint(folderPath, false);
+            PowerPoint.ThemeAndLayoutPowerPoint.Example_PowerPointThemeAndLayout(folderPath, false);
+            PowerPoint.TransitionsThemesPowerPoint.Example_TransitionsThemes(folderPath, false);
+            PowerPoint.UpdatePicturePowerPoint.Example_PowerPointUpdatePicture(folderPath, false);
+            PowerPoint.ValidateDocument.Example(folderPath, false);
+            PowerPoint.TestLazyInit.Example_TestLazyInit(folderPath, false);
+
+            ValidateGeneratedPowerPointDecks(folderPath, startedUtc);
+        }
+
+        private static void ValidateGeneratedPowerPointDecks(string folderPath, DateTime startedUtc) {
+            List<string> failures = new();
+            List<string> generatedFiles = Directory
+                .EnumerateFiles(folderPath, "*.pptx")
+                .Where(file => File.GetLastWriteTimeUtc(file) >= startedUtc)
+                .OrderBy(file => file, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            foreach (string filePath in generatedFiles) {
+                using global::OfficeIMO.PowerPoint.PowerPointPresentation presentation =
+                    global::OfficeIMO.PowerPoint.PowerPointPresentation.Open(filePath);
+                List<DocumentFormat.OpenXml.Validation.ValidationErrorInfo> errors =
+                    presentation.ValidateDocument().ToList();
+                if (errors.Count == 0) {
+                    continue;
+                }
+
+                string details = string.Join("; ", errors.Take(3).Select(error => error.Description));
+                failures.Add($"{Path.GetFileName(filePath)}: {errors.Count} validation error(s). {details}");
+            }
+
+            if (failures.Count > 0) {
+                throw new InvalidOperationException(
+                    "One or more PowerPoint examples generated invalid Open XML." +
+                    Environment.NewLine +
+                    string.Join(Environment.NewLine, failures));
+            }
+
+            Console.WriteLine($"    Validation: {generatedFiles.Count} generated PowerPoint deck(s) passed Open XML validation.");
+        }
+
         static void Main(string[] args) {
             string baseFolder = Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory);
             Directory.SetCurrentDirectory(baseFolder);
             string templatesPath = Path.Combine(baseFolder, "Templates");
             string folderPath = Path.Combine(baseFolder, "Documents");
             Setup(folderPath);
-            if (Array.Exists(args, arg => string.Equals(arg, "--modern-powerpoint", StringComparison.OrdinalIgnoreCase))) {
+            if (HasArgument(args, "--modern-powerpoint")) {
                 PowerPoint.ModernPowerPointDeck.Example_ModernPowerPointDeck(folderPath, false);
+                return;
+            }
+
+            if (HasArgument(args, "--powerpoint")) {
+                RunPowerPointExamples(folderPath);
                 return;
             }
 

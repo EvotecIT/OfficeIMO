@@ -147,7 +147,8 @@ namespace OfficeIMO.PowerPoint {
             properties.Slides.Text = slideIds.Length.ToString(CultureInfo.InvariantCulture);
             properties.Notes.Text = presentationPart.SlideParts.Count(slidePart => slidePart.NotesSlidePart != null)
                 .ToString(CultureInfo.InvariantCulture);
-            properties.HiddenSlides.Text = slideIds.Count(IsHiddenSlide).ToString(CultureInfo.InvariantCulture);
+            properties.HiddenSlides.Text = slideIds.Count(slideId => IsHiddenSlide(presentationPart, slideId))
+                .ToString(CultureInfo.InvariantCulture);
             properties.PresentationFormat.Text = GetPresentationFormat(presentationPart.Presentation?.SlideSize);
 
             var packageProperties = presentationDocument.PackageProperties;
@@ -158,17 +159,25 @@ namespace OfficeIMO.PowerPoint {
             packageProperties.Modified = DateTime.UtcNow;
         }
 
-        private static bool IsHiddenSlide(SlideId slideId) {
-            string? showValue = slideId.GetAttributes()
+        private static bool IsHiddenSlide(PresentationPart presentationPart, SlideId slideId) {
+            string? relationshipId = slideId.RelationshipId?.Value;
+            if (relationshipId is { Length: > 0 } &&
+                presentationPart.TryGetPartById(relationshipId, out OpenXmlPart? part) &&
+                part is SlidePart slidePart &&
+                slidePart.Slide?.Show?.Value != null) {
+                return slidePart.Slide.Show.Value == false;
+            }
+
+            string? legacyShowValue = slideId.GetAttributes()
                 .FirstOrDefault(attribute =>
                     attribute.LocalName == "show" && string.IsNullOrEmpty(attribute.NamespaceUri))
                 .Value;
-            if (string.IsNullOrEmpty(showValue)) {
+            if (string.IsNullOrEmpty(legacyShowValue)) {
                 return false;
             }
 
-            return string.Equals(showValue, "0", StringComparison.Ordinal) ||
-                   string.Equals(showValue, "false", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(legacyShowValue, "0", StringComparison.Ordinal) ||
+                   string.Equals(legacyShowValue, "false", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string GetPresentationFormat(SlideSize? slideSize) {

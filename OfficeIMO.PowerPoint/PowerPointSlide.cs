@@ -368,23 +368,20 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public bool Hidden {
             get {
-                SlideId slideId = GetSlideId();
-                OpenXmlAttribute? showAttribute = slideId.GetAttributes()
-                    .FirstOrDefault(attribute =>
-                        attribute.LocalName == "show" && string.IsNullOrEmpty(attribute.NamespaceUri));
-                if (showAttribute == null || string.IsNullOrEmpty(showAttribute.Value.Value)) {
-                    return false;
+                if (SlideRoot.Show?.Value != null) {
+                    return SlideRoot.Show.Value == false;
                 }
 
-                return string.Equals(showAttribute.Value.Value, "0", StringComparison.Ordinal) ||
-                       string.Equals(showAttribute.Value.Value, "false", StringComparison.OrdinalIgnoreCase);
+                return IsHiddenShowValue(GetLegacySlideIdShowValue(GetSlideId()));
             }
             set {
                 SlideId slideId = GetSlideId();
+                slideId.RemoveAttribute("show", string.Empty);
+
                 if (value) {
-                    slideId.SetAttribute(new OpenXmlAttribute("show", string.Empty, "0"));
+                    SlideRoot.Show = false;
                 } else {
-                    slideId.RemoveAttribute("show", string.Empty);
+                    SlideRoot.Show = null;
                 }
             }
         }
@@ -563,6 +560,32 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return slideId;
+        }
+
+        private static string? GetLegacySlideIdShowValue(SlideId slideId) {
+            return slideId.GetAttributes()
+                .FirstOrDefault(attribute =>
+                    attribute.LocalName == "show" && string.IsNullOrEmpty(attribute.NamespaceUri))
+                .Value;
+        }
+
+        private static bool IsHiddenShowValue(string? showValue) {
+            if (string.IsNullOrEmpty(showValue)) {
+                return false;
+            }
+
+            return string.Equals(showValue, "0", StringComparison.Ordinal) ||
+                   string.Equals(showValue, "false", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void NormalizeHiddenSlideMarkup() {
+            SlideId slideId = GetSlideId();
+            string? legacyShowValue = GetLegacySlideIdShowValue(slideId);
+            if (SlideRoot.Show?.Value == null && IsHiddenShowValue(legacyShowValue)) {
+                SlideRoot.Show = false;
+            }
+
+            slideId.RemoveAttribute("show", string.Empty);
         }
 
         /// <summary>
@@ -865,6 +888,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal void Save() {
+            NormalizeHiddenSlideMarkup();
             SlideRoot.Save();
             _notes?.Save();
         }
