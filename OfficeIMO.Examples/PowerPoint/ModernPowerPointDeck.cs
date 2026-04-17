@@ -215,33 +215,49 @@ namespace OfficeIMO.Examples.PowerPoint {
             slide.BackgroundColor = Teal;
             slide.Transition = SlideTransition.Fade;
 
-            PowerPointAutoShape wash = slide.AddShapeCm(A.ShapeTypeValues.Parallelogram, 9.5, 0.0, 12.0, 19.05, "Dark Process Wash");
-            wash.FillColor = "0B5475";
-            wash.FillTransparency = 45;
-            wash.OutlineColor = "0B5475";
+            PowerPointAutoShape leftPlane = slide.AddShapeCm(A.ShapeTypeValues.Parallelogram, -1.0, 0.0, 15.1, 19.05, "Process Left Plane");
+            leftPlane.FillColor = "176A8D";
+            leftPlane.FillTransparency = 18;
+            leftPlane.OutlineColor = "176A8D";
 
-            PowerPointAutoShape highlight = slide.AddRectangleCm(1.85, 5.35, 28.5, 0.04, "Process Divider");
-            highlight.FillColor = "D7F3FA";
-            highlight.FillTransparency = 74;
-            highlight.OutlineColor = "D7F3FA";
+            PowerPointAutoShape middlePlane = slide.AddShapeCm(A.ShapeTypeValues.Parallelogram, 11.0, 0.0, 10.7, 19.05, "Process Middle Plane");
+            middlePlane.FillColor = "0B5475";
+            middlePlane.FillTransparency = 26;
+            middlePlane.OutlineColor = "0B5475";
+
+            PowerPointAutoShape rightPlane = slide.AddShapeCm(A.ShapeTypeValues.Parallelogram, 21.0, 0.0, 13.4, 19.05, "Process Right Plane");
+            rightPlane.FillColor = "0B415A";
+            rightPlane.FillTransparency = 34;
+            rightPlane.OutlineColor = "0B415A";
+
+            AddArrowMotif(slide, 25.1, 1.75, 10, 0.42);
 
             AddDarkSlideChrome(slide);
 
             AddLabel(slide, "Commercial snapshot", 1.85, 1.25, 8.0, 0.45, "D7F3FA", 10, bold: false);
             AddLabel(slide, "From data to decision", 1.85, 2.15, 18.0, 1.1, "FFFFFF", 31, bold: true);
-            AddBodyOnDark(slide, "Aligned steps, clear hierarchy, stronger arrows, and enough whitespace for the sequence to breathe.", 1.9, 3.3, 20.0, 0.7, 13);
+            AddBodyOnDark(slide, "A process layout with scale, direction, and enough whitespace for the sequence to breathe.", 1.9, 3.3, 21.2, 0.7, 13);
+
+            PowerPointAutoShape titleRule = slide.AddRectangleCm(1.85, 5.25, 4.2, 0.06, "Process Title Rule");
+            titleRule.FillColor = "D7F3FA";
+            titleRule.OutlineColor = "D7F3FA";
 
             PowerPointLayoutBox[,] steps = PowerPointLayoutBox
-                .FromCentimeters(2.0, 6.95, 28.5, 5.9)
-                .SplitGridCm(1, 3, 0, 1.0);
-            AddProcessStep(slide, steps[0, 0], "01", "Collect", new[] { "Source data", "Inventory", "Baseline" }, Teal);
-            AddProcessStep(slide, steps[0, 1], "02", "Analyze", new[] { "Risk signals", "Gaps", "Priorities" }, "0B5475");
-            AddProcessStep(slide, steps[0, 2], "03", "Act", new[] { "Roadmap", "Owners", "Controls" }, "0B415A");
+                .FromCentimeters(2.0, 6.75, 29.0, 6.3)
+                .SplitGridCm(1, 3, 0, 1.65);
+
+            AddProcessLane(slide, steps[0, 0], "Process Collect Lane", "1B7194");
+            AddProcessLane(slide, steps[0, 1], "Process Analyze Lane", "0E5572");
+            AddProcessLane(slide, steps[0, 2], "Process Act Lane", "0B415A");
+
+            AddProcessStep(slide, steps[0, 0], "1.", "Collect", new[] { "Source data", "Inventory", "Baseline" }, Orange);
+            AddProcessStep(slide, steps[0, 1], "2.", "Analyze", new[] { "Risk signals", "Gaps", "Priorities" }, "D7F3FA");
+            AddProcessStep(slide, steps[0, 2], "3.", "Act", new[] { "Roadmap", "Owners", "Controls" }, Gold);
             AddArrowBetween(slide, steps[0, 0], steps[0, 1]);
             AddArrowBetween(slide, steps[0, 1], steps[0, 2]);
 
             AddBodyOnDark(slide, "Use this pattern when the audience needs sequence first and details second.", 2.0, 15.55, 19.0, 0.65, 13);
-            slide.Notes.Text = "Process slide demonstrates dark backgrounds, arrows, large numbers, grouped step content, and bottom captions.";
+            slide.Notes.Text = "Process slide demonstrates dark backgrounds, diagonal planes, arrow connectors, large numbers, grouped step content, and bottom captions.";
         }
 
         private static void AddPerformanceSlide(PowerPointPresentation presentation) {
@@ -429,36 +445,38 @@ namespace OfficeIMO.Examples.PowerPoint {
             }
         }
 
+        private static void AddProcessLane(PowerPointSlide slide, PowerPointLayoutBox box, string name, string fillColor) {
+            PowerPointAutoShape lane = slide.AddShapeCm(A.ShapeTypeValues.Parallelogram, box.LeftCm - 0.55, box.TopCm + 0.15,
+                box.WidthCm + 1.0, box.HeightCm + 0.8, name);
+            lane.FillColor = fillColor;
+            lane.FillTransparency = 72;
+            lane.OutlineColor = fillColor;
+            lane.OutlineWidthPoints = 0;
+        }
+
+        private static void AddArrowMotif(PowerPointSlide slide, double leftCm, double topCm, int count, double spacingCm) {
+            for (int index = 0; index < count; index++) {
+                PowerPointAutoShape arrow = slide.AddShapeCm(A.ShapeTypeValues.RightArrow, leftCm + index * spacingCm, topCm,
+                    0.26, 0.18, "Process Direction Motif " + (index + 1));
+                arrow.FillColor = "D7F3FA";
+                arrow.FillTransparency = Math.Min(65, 18 + index * 5);
+                arrow.OutlineColor = "D7F3FA";
+            }
+        }
+
         private static void AddProcessStep(PowerPointSlide slide, PowerPointLayoutBox box, string number, string title,
             IEnumerable<string> bullets, string accentColor) {
-            PowerPointAutoShape card = slide.AddRectangleCm(box.LeftCm - 0.28, box.TopCm - 0.2, box.WidthCm + 0.56,
-                box.HeightCm + 0.25, title + " Step Card");
-            card.FillColor = "FFFFFF";
-            card.FillTransparency = 92;
-            card.OutlineColor = "D7F3FA";
-            card.OutlineWidthPoints = 0.7;
-
-            PowerPointAutoShape accent = slide.AddRectangleCm(box.LeftCm - 0.28, box.TopCm - 0.2, box.WidthCm + 0.56,
-                0.16, title + " Step Accent");
+            PowerPointAutoShape accent = slide.AddRectangleCm(box.LeftCm, box.TopCm + 2.72, 1.45, 0.08, title + " Step Accent");
             accent.FillColor = accentColor;
-            accent.FillTransparency = 0;
             accent.OutlineColor = accentColor;
 
-            PowerPointAutoShape badge = slide.AddEllipseCm(box.LeftCm, box.TopCm + 0.3, 1.35, 1.35, title + " Badge");
-            badge.FillColor = "FFFFFF";
-            badge.FillTransparency = 0;
-            badge.OutlineColor = "FFFFFF";
+            PowerPointTextBox numberBox = AddLabel(slide, number, box.LeftCm, box.TopCm + 0.05, 3.25, 1.75,
+                "FFFFFF", 46, bold: true);
+            numberBox.TextAutoFit = PowerPointTextAutoFit.Normal;
 
-            PowerPointTextBox numberBox = AddLabel(slide, number, box.LeftCm + 0.17, box.TopCm + 0.68, 1.0, 0.4,
-                accentColor, 11, bold: true);
-            numberBox.TextVerticalAlignment = A.TextAnchoringTypeValues.Center;
-            foreach (PowerPointParagraph paragraph in numberBox.Paragraphs) {
-                paragraph.Alignment = A.TextAlignmentTypeValues.Center;
-            }
-
-            AddLabel(slide, title, box.LeftCm, box.TopCm + 2.15, box.WidthCm, 0.6, "FFFFFF", 15, bold: true);
+            AddLabel(slide, title, box.LeftCm, box.TopCm + 2.0, box.WidthCm, 0.6, "FFFFFF", 15, bold: true);
             PowerPointTextBox list = slide.AddTextBox("",
-                PowerPointLayoutBox.FromCentimeters(box.LeftCm, box.TopCm + 2.95, box.WidthCm, 1.7));
+                PowerPointLayoutBox.FromCentimeters(box.LeftCm, box.TopCm + 3.15, box.WidthCm, 1.85));
             list.SetParagraphs(bullets, paragraph => {
                 paragraph.SetFontSize(11)
                     .SetColor("D7F3FA")
@@ -469,13 +487,11 @@ namespace OfficeIMO.Examples.PowerPoint {
         }
 
         private static void AddArrowBetween(PowerPointSlide slide, PowerPointLayoutBox left, PowerPointLayoutBox right) {
-            double y = left.TopCm + 2.5;
-            PowerPointAutoShape arrow = slide.AddShapeCm(A.ShapeTypeValues.RightArrow, left.RightCm + 0.08, y,
-                Math.Max(0.7, right.LeftCm - left.RightCm - 0.42), 0.52, "Process Arrow");
-            arrow.FillColor = "D7F3FA";
-            arrow.FillTransparency = 16;
+            double y = left.TopCm + 1.15;
+            PowerPointAutoShape arrow = slide.AddLineCm(left.RightCm + 0.06, y, right.LeftCm - 0.22, y, "Process Arrow");
             arrow.OutlineColor = "D7F3FA";
-            arrow.OutlineWidthPoints = 0.4;
+            arrow.OutlineWidthPoints = 2.8;
+            arrow.SetLineEnds(null, A.LineEndValues.Triangle, A.LineEndWidthValues.Medium, A.LineEndLengthValues.Medium);
         }
 
         private static void AddLightSlideChrome(PowerPointSlide slide) {
