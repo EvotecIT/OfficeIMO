@@ -330,27 +330,27 @@ namespace OfficeIMO.PowerPoint {
             }
 
             foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
-                ReplaceChild(EnsureDataLabels(barChart), new C.DataLabelPosition { Val = position });
+                SetDataLabelPosition(EnsureDataLabels(barChart), position);
             }
 
             foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
-                ReplaceChild(EnsureDataLabels(lineChart), new C.DataLabelPosition { Val = position });
+                SetDataLabelPosition(EnsureDataLabels(lineChart), position);
             }
 
             foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
-                ReplaceChild(EnsureDataLabels(areaChart), new C.DataLabelPosition { Val = position });
+                SetDataLabelPosition(EnsureDataLabels(areaChart), position);
             }
 
             foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
-                ReplaceChild(EnsureDataLabels(pieChart), new C.DataLabelPosition { Val = position });
+                SetDataLabelPosition(EnsureDataLabels(pieChart), position);
             }
 
             foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
-                ReplaceChild(EnsureDataLabels(doughnutChart), new C.DataLabelPosition { Val = position });
+                SetDataLabelPosition(EnsureDataLabels(doughnutChart), position);
             }
 
             foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
-                ReplaceChild(EnsureDataLabels(scatterChart), new C.DataLabelPosition { Val = position });
+                SetDataLabelPosition(EnsureDataLabels(scatterChart), position);
             }
 
             Save();
@@ -372,45 +372,27 @@ namespace OfficeIMO.PowerPoint {
             }
 
             foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
-                ReplaceChild(EnsureDataLabels(barChart), new C.NumberingFormat {
-                    FormatCode = formatCode,
-                    SourceLinked = sourceLinked
-                });
+                SetDataLabelNumberFormat(EnsureDataLabels(barChart), formatCode, sourceLinked);
             }
 
             foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
-                ReplaceChild(EnsureDataLabels(lineChart), new C.NumberingFormat {
-                    FormatCode = formatCode,
-                    SourceLinked = sourceLinked
-                });
+                SetDataLabelNumberFormat(EnsureDataLabels(lineChart), formatCode, sourceLinked);
             }
 
             foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
-                ReplaceChild(EnsureDataLabels(areaChart), new C.NumberingFormat {
-                    FormatCode = formatCode,
-                    SourceLinked = sourceLinked
-                });
+                SetDataLabelNumberFormat(EnsureDataLabels(areaChart), formatCode, sourceLinked);
             }
 
             foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
-                ReplaceChild(EnsureDataLabels(pieChart), new C.NumberingFormat {
-                    FormatCode = formatCode,
-                    SourceLinked = sourceLinked
-                });
+                SetDataLabelNumberFormat(EnsureDataLabels(pieChart), formatCode, sourceLinked);
             }
 
             foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
-                ReplaceChild(EnsureDataLabels(doughnutChart), new C.NumberingFormat {
-                    FormatCode = formatCode,
-                    SourceLinked = sourceLinked
-                });
+                SetDataLabelNumberFormat(EnsureDataLabels(doughnutChart), formatCode, sourceLinked);
             }
 
             foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
-                ReplaceChild(EnsureDataLabels(scatterChart), new C.NumberingFormat {
-                    FormatCode = formatCode,
-                    SourceLinked = sourceLinked
-                });
+                SetDataLabelNumberFormat(EnsureDataLabels(scatterChart), formatCode, sourceLinked);
             }
 
             Save();
@@ -2894,6 +2876,19 @@ namespace OfficeIMO.PowerPoint {
             ReplaceChild(labels, new C.ShowSeriesName { Val = showSeriesName });
             ReplaceChild(labels, new C.ShowPercent { Val = showPercent });
             ReplaceChild(labels, new C.ShowBubbleSize { Val = false });
+            NormalizeDataLabelsOrder(labels);
+        }
+
+        private static void SetDataLabelPosition(C.DataLabels labels, C.DataLabelPositionValues position) {
+            ReplaceChild(labels, new C.DataLabelPosition { Val = position });
+            NormalizeDataLabelsOrder(labels);
+        }
+
+        private static void SetDataLabelNumberFormat(C.DataLabels labels, string formatCode, bool sourceLinked) {
+            ReplaceChild(labels, new C.NumberingFormat {
+                FormatCode = formatCode,
+                SourceLinked = sourceLinked
+            });
             NormalizeDataLabelsOrder(labels);
         }
 

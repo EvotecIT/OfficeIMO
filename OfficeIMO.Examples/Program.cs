@@ -15,6 +15,11 @@ namespace OfficeIMO.Examples {
             string templatesPath = Path.Combine(baseFolder, "Templates");
             string folderPath = Path.Combine(baseFolder, "Documents");
             Setup(folderPath);
+            if (Array.Exists(args, arg => string.Equals(arg, "--modern-powerpoint", StringComparison.OrdinalIgnoreCase))) {
+                PowerPoint.ModernPowerPointDeck.Example_ModernPowerPointDeck(folderPath, false);
+                return;
+            }
+
             // Visio - Core Examples
             // Visio.BasicVisioDocument.Example_BasicVisio(folderPath, false);
             // Visio.ConnectRectangles.Example_ConnectRectangles(folderPath, false);
@@ -114,6 +119,7 @@ namespace OfficeIMO.Examples {
             // // PowerPoint
             PowerPoint.BasicPowerPointDocument.Example_BasicPowerPoint(folderPath, false);
             PowerPoint.AdvancedPowerPoint.Example_AdvancedPowerPoint(folderPath, false);
+            PowerPoint.ModernPowerPointDeck.Example_ModernPowerPointDeck(folderPath, false);
             PowerPoint.FluentPowerPoint.Example_FluentPowerPoint(folderPath, false);
             PowerPoint.ShapesPowerPoint.Example_PowerPointShapes(folderPath, false);
             PowerPoint.SlidesManagementPowerPoint.Example_SlidesManagement(folderPath, false);

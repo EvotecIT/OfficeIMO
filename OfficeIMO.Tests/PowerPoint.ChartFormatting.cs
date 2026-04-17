@@ -77,6 +77,12 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(C.DataLabelPositionValues.OutsideEnd, dataLabels?.GetFirstChild<C.DataLabelPosition>()?.Val?.Value);
                     Assert.Equal("#,##0.0", dataLabels?.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value);
                     Assert.False(dataLabels?.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value);
+                    var labelChildren = dataLabels!.ChildElements.ToList();
+                    int positionIndex = labelChildren.FindIndex(child => child is C.DataLabelPosition);
+                    int numberFormatIndex = labelChildren.FindIndex(child => child is C.NumberingFormat);
+                    int showValueIndex = labelChildren.FindIndex(child => child is C.ShowValue);
+                    Assert.True(numberFormatIndex < positionIndex);
+                    Assert.True(positionIndex < showValueIndex);
 
                     string? categoryTitle = chart.PlotArea!
                         .GetFirstChild<C.CategoryAxis>()?
@@ -99,6 +105,46 @@ namespace OfficeIMO.Tests {
                         .GetFirstChild<A.Text>()?
                         .Text;
                     Assert.Equal("Revenue", valueTitle);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void ChartLevelDataLabelPositionValidatesAfterLabelFlags() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    PowerPointChartData data = new(
+                        new[] { "Direct", "Partner", "Online" },
+                        new[] { new PowerPointChartSeries("Share", new[] { 42d, 27d, 31d }) });
+                    PowerPointChart chart = slide.AddDoughnutChart(data);
+                    chart.SetDataLabels(showPercent: true)
+                        .SetDataLabelPosition(C.DataLabelPositionValues.BestFit);
+
+                    presentation.Save();
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator();
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace));
+
+                    C.DataLabels labels = chartPart.ChartSpace.GetFirstChild<C.Chart>()!
+                        .GetFirstChild<C.PlotArea>()!
+                        .GetFirstChild<C.DoughnutChart>()!
+                        .GetFirstChild<C.DataLabels>()!;
+
+                    var labelChildren = labels.ChildElements.ToList();
+                    int positionIndex = labelChildren.FindIndex(child => child is C.DataLabelPosition);
+                    int showPercentIndex = labelChildren.FindIndex(child => child is C.ShowPercent);
+                    Assert.True(positionIndex < showPercentIndex);
                 }
             } finally {
                 if (File.Exists(filePath)) {
