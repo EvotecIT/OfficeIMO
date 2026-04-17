@@ -96,6 +96,7 @@
           "order": 40
         },
         { "id": "officeimo.csv", "name": "OfficeIMO.CSV", "order": 50 },
+        { "id": "officeimo.visio", "name": "OfficeIMO.Visio", "order": 60 },
         { "id": "officeimo.reader", "name": "OfficeIMO.Reader", "order": 70 },
         { "id": "pswriteoffice", "name": "PSWriteOffice", "order": 80 },
         {
@@ -205,6 +206,11 @@
           "product": "officeimo.csv",
           "label": "OfficeIMO.CSV",
           "match": ["*OfficeIMO.CSV*.zip", "*OfficeIMO.CSV*.nupkg"]
+        },
+        {
+          "product": "officeimo.visio",
+          "label": "OfficeIMO.Visio",
+          "match": ["*OfficeIMO.Visio*.zip", "*OfficeIMO.Visio*.nupkg"]
         },
         {
           "product": "officeimo.reader",
