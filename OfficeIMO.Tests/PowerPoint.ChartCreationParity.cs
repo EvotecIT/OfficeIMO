@@ -81,8 +81,12 @@ namespace OfficeIMO.Tests {
                         .GetFirstChild<C.ShowPercent>()?
                         .Val?.Value;
                     Assert.True(showPercent);
-                    Assert.Equal(C.DataLabelPositionValues.BestFit,
-                        chartElement.GetFirstChild<C.DataLabels>()?.GetFirstChild<C.DataLabelPosition>()?.Val?.Value);
+                    C.DataLabelPosition? labelPosition = chartElement.GetFirstChild<C.DataLabels>()?.GetFirstChild<C.DataLabelPosition>();
+                    if (doughnut) {
+                        Assert.Null(labelPosition);
+                    } else {
+                        Assert.Equal(C.DataLabelPositionValues.BestFit, labelPosition?.Val?.Value);
+                    }
                     Assert.Equal("0.0%",
                         chartElement.GetFirstChild<C.DataLabels>()?.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value);
 

@@ -342,11 +342,11 @@ namespace OfficeIMO.PowerPoint {
             }
 
             foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
-                SetDataLabelPosition(EnsureDataLabels(pieChart), position);
+                SetDataLabelPosition(EnsureDataLabels(pieChart), GetPowerPointCompatibleDataLabelPosition(pieChart, position));
             }
 
             foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
-                SetDataLabelPosition(EnsureDataLabels(doughnutChart), position);
+                SetDataLabelPosition(EnsureDataLabels(doughnutChart), GetPowerPointCompatibleDataLabelPosition(doughnutChart, position));
             }
 
             foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
@@ -2879,9 +2879,23 @@ namespace OfficeIMO.PowerPoint {
             NormalizeDataLabelsOrder(labels);
         }
 
-        private static void SetDataLabelPosition(C.DataLabels labels, C.DataLabelPositionValues position) {
-            ReplaceChild(labels, new C.DataLabelPosition { Val = position });
+        private static void SetDataLabelPosition(C.DataLabels labels, C.DataLabelPositionValues? position) {
+            labels.GetFirstChild<C.DataLabelPosition>()?.Remove();
+            if (position != null) {
+                ReplaceChild(labels, new C.DataLabelPosition { Val = position.Value });
+            }
             NormalizeDataLabelsOrder(labels);
+        }
+
+        private static C.DataLabelPositionValues? GetPowerPointCompatibleDataLabelPosition(
+            OpenXmlElement chartElement,
+            C.DataLabelPositionValues position) {
+            if (chartElement is C.DoughnutChart && position == C.DataLabelPositionValues.BestFit) {
+                // PowerPoint repairs doughnut charts that explicitly serialize bestFit; omitting it keeps the default behavior.
+                return null;
+            }
+
+            return position;
         }
 
         private static void SetDataLabelNumberFormat(C.DataLabels labels, string formatCode, bool sourceLinked) {
