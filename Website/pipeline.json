@@ -548,9 +548,20 @@
       "cacheHeadersOut": "_headers"
     },
     {
+      "task": "agent-ready",
+      "id": "agent-ready",
+      "dependsOn": "optimize-site",
+      "skipModes": ["dev"],
+      "operation": "prepare",
+      "config": "./site.json",
+      "siteRoot": "./_site",
+      "output": "./_reports/agent-ready.json",
+      "failOnFailures": true
+    },
+    {
       "task": "audit",
       "id": "audit-ci",
-      "dependsOn": "optimize-site",
+      "dependsOn": "agent-ready",
       "modes": ["ci"],
       "config": "./site.json",
       "siteRoot": "./_site",
@@ -564,7 +575,7 @@
     {
       "task": "doctor",
       "id": "doctor-site",
-      "dependsOn": "optimize-site",
+      "dependsOn": "agent-ready",
       "skipModes": ["dev", "ci"],
       "config": "./site.json",
       "siteRoot": "./_site",

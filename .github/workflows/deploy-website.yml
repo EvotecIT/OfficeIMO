@@ -44,7 +44,7 @@ jobs:
       engine_mode: source
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: 7ebebd771b3e99fd590babfd1c905b21df89243e
+      powerforge_ref: 6b08cecc26f870d0d6797be673b4a959638aed42
     secrets:
       indexnow_key: ${{ secrets.INDEXNOW_KEY }}
       cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
