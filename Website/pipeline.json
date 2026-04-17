@@ -96,7 +96,6 @@
           "order": 40
         },
         { "id": "officeimo.csv", "name": "OfficeIMO.CSV", "order": 50 },
-        { "id": "officeimo.visio", "name": "OfficeIMO.Visio", "order": 60 },
         { "id": "officeimo.reader", "name": "OfficeIMO.Reader", "order": 70 },
         { "id": "pswriteoffice", "name": "PSWriteOffice", "order": 80 },
         {
@@ -129,36 +128,7 @@
           "name": "OfficeIMO.MarkdownRenderer.Wpf",
           "order": 140
         },
-        { "id": "officeimo.pdf", "name": "OfficeIMO.Pdf", "order": 150 },
-        { "id": "officeimo.reader.csv", "name": "OfficeIMO.Reader.Csv", "order": 160 },
-        { "id": "officeimo.reader.json", "name": "OfficeIMO.Reader.Json", "order": 170 },
-        { "id": "officeimo.reader.xml", "name": "OfficeIMO.Reader.Xml", "order": 180 },
-        { "id": "officeimo.reader.text", "name": "OfficeIMO.Reader.Text", "order": 190 },
-        { "id": "officeimo.reader.html", "name": "OfficeIMO.Reader.Html", "order": 200 },
-        { "id": "officeimo.reader.epub", "name": "OfficeIMO.Reader.Epub", "order": 210 },
-        { "id": "officeimo.reader.zip", "name": "OfficeIMO.Reader.Zip", "order": 220 },
-        { "id": "officeimo.epub", "name": "OfficeIMO.Epub", "order": 230 },
-        { "id": "officeimo.zip", "name": "OfficeIMO.Zip", "order": 240 },
-        {
-          "id": "officeimo.markdownrenderer.intelligencex",
-          "name": "OfficeIMO.MarkdownRenderer.IntelligenceX",
-          "order": 250
-        },
-        {
-          "id": "officeimo.googleworkspace",
-          "name": "OfficeIMO.GoogleWorkspace",
-          "order": 260
-        },
-        {
-          "id": "officeimo.word.googledocs",
-          "name": "OfficeIMO.Word.GoogleDocs",
-          "order": 270
-        },
-        {
-          "id": "officeimo.excel.googlesheets",
-          "name": "OfficeIMO.Excel.GoogleSheets",
-          "order": 280
-        }
+        { "id": "officeimo.pdf", "name": "OfficeIMO.Pdf", "order": 150 }
       ],
       "assetRules": [
         {
@@ -209,83 +179,6 @@
           "match": ["*OfficeIMO.Pdf*.zip", "*OfficeIMO.Pdf*.nupkg"]
         },
         {
-          "product": "officeimo.reader.csv",
-          "label": "OfficeIMO.Reader.Csv",
-          "match": ["*OfficeIMO.Reader.Csv*.zip", "*OfficeIMO.Reader.Csv*.nupkg"]
-        },
-        {
-          "product": "officeimo.reader.json",
-          "label": "OfficeIMO.Reader.Json",
-          "match": ["*OfficeIMO.Reader.Json*.zip", "*OfficeIMO.Reader.Json*.nupkg"]
-        },
-        {
-          "product": "officeimo.reader.xml",
-          "label": "OfficeIMO.Reader.Xml",
-          "match": ["*OfficeIMO.Reader.Xml*.zip", "*OfficeIMO.Reader.Xml*.nupkg"]
-        },
-        {
-          "product": "officeimo.reader.text",
-          "label": "OfficeIMO.Reader.Text",
-          "match": ["*OfficeIMO.Reader.Text*.zip", "*OfficeIMO.Reader.Text*.nupkg"]
-        },
-        {
-          "product": "officeimo.reader.html",
-          "label": "OfficeIMO.Reader.Html",
-          "match": ["*OfficeIMO.Reader.Html*.zip", "*OfficeIMO.Reader.Html*.nupkg"]
-        },
-        {
-          "product": "officeimo.reader.epub",
-          "label": "OfficeIMO.Reader.Epub",
-          "match": ["*OfficeIMO.Reader.Epub*.zip", "*OfficeIMO.Reader.Epub*.nupkg"]
-        },
-        {
-          "product": "officeimo.reader.zip",
-          "label": "OfficeIMO.Reader.Zip",
-          "match": ["*OfficeIMO.Reader.Zip*.zip", "*OfficeIMO.Reader.Zip*.nupkg"]
-        },
-        {
-          "product": "officeimo.epub",
-          "label": "OfficeIMO.Epub",
-          "match": ["*OfficeIMO.Epub*.zip", "*OfficeIMO.Epub*.nupkg"]
-        },
-        {
-          "product": "officeimo.zip",
-          "label": "OfficeIMO.Zip",
-          "match": ["*OfficeIMO.Zip*.zip", "*OfficeIMO.Zip*.nupkg"]
-        },
-        {
-          "product": "officeimo.markdownrenderer.intelligencex",
-          "label": "OfficeIMO.MarkdownRenderer.IntelligenceX",
-          "match": [
-            "*OfficeIMO.MarkdownRenderer.IntelligenceX*.zip",
-            "*OfficeIMO.MarkdownRenderer.IntelligenceX*.nupkg"
-          ]
-        },
-        {
-          "product": "officeimo.googleworkspace",
-          "label": "OfficeIMO.GoogleWorkspace",
-          "match": [
-            "*OfficeIMO.GoogleWorkspace*.zip",
-            "*OfficeIMO.GoogleWorkspace*.nupkg"
-          ]
-        },
-        {
-          "product": "officeimo.word.googledocs",
-          "label": "OfficeIMO.Word.GoogleDocs",
-          "match": [
-            "*OfficeIMO.Word.GoogleDocs*.zip",
-            "*OfficeIMO.Word.GoogleDocs*.nupkg"
-          ]
-        },
-        {
-          "product": "officeimo.excel.googlesheets",
-          "label": "OfficeIMO.Excel.GoogleSheets",
-          "match": [
-            "*OfficeIMO.Excel.GoogleSheets*.zip",
-            "*OfficeIMO.Excel.GoogleSheets*.nupkg"
-          ]
-        },
-        {
           "product": "officeimo.word",
           "label": "OfficeIMO.Word",
           "match": ["*OfficeIMO.Word*.zip", "*OfficeIMO.Word*.nupkg"]
@@ -312,11 +205,6 @@
           "product": "officeimo.csv",
           "label": "OfficeIMO.CSV",
           "match": ["*OfficeIMO.CSV*.zip", "*OfficeIMO.CSV*.nupkg"]
-        },
-        {
-          "product": "officeimo.visio",
-          "label": "OfficeIMO.Visio",
-          "match": ["*OfficeIMO.Visio*.zip", "*OfficeIMO.Visio*.nupkg"]
         },
         {
           "product": "officeimo.reader",

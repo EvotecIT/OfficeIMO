@@ -30,12 +30,6 @@
       "label": "Download OfficeIMO.CSV",
       "class": "imo-btn imo-btn-ghost"
     },
-    "latest_visio": {
-      "product": "officeimo.visio",
-      "channel": "stable",
-      "label": "Download OfficeIMO.Visio",
-      "class": "imo-btn imo-btn-ghost"
-    },
     "latest_reader": {
       "product": "officeimo.reader",
       "channel": "stable",
@@ -83,12 +77,6 @@
       "channel": "stable",
       "label": "Download OfficeIMO.MarkdownRenderer.Wpf",
       "class": "imo-btn imo-btn-ghost"
-    },
-    "latest_reader_adapters": {
-      "product": "officeimo.reader.*",
-      "channel": "stable",
-      "limit": 12,
-      "class": "pf-release-buttons--compact"
     },
     "current_release": {
       "product": "*",
