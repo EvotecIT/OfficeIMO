@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
 using Xunit;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
@@ -42,6 +43,9 @@ namespace OfficeIMO.Tests {
 
                 using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
                     ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator();
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace!));
+
                     C.Chart chart = chartPart.ChartSpace!.GetFirstChild<C.Chart>()!;
                     C.PlotArea plotArea = chart.PlotArea!;
 
@@ -118,6 +122,9 @@ namespace OfficeIMO.Tests {
 
                 using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
                     ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator();
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace!));
+
                     C.Chart chart = chartPart.ChartSpace!.GetFirstChild<C.Chart>()!;
                     C.PlotArea plotArea = chart.PlotArea!;
 
@@ -202,6 +209,9 @@ namespace OfficeIMO.Tests {
 
                 using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
                     ChartPart chartPart = document.PresentationPart!.SlideParts.First().ChartParts.First();
+                    OpenXmlValidator validator = new OpenXmlValidator();
+                    Assert.Empty(validator.Validate(chartPart.ChartSpace!));
+
                     C.Chart chart = chartPart.ChartSpace!.GetFirstChild<C.Chart>()!;
                     C.PlotArea plotArea = chart.PlotArea!;
 
