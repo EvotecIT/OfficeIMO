@@ -1099,5 +1099,76 @@ namespace OfficeIMO.Tests {
                 }
             }
         }
+
+        [Fact]
+        public void CombinedAxisMutationsValidateChartParts() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide barSlide = presentation.AddSlide();
+                    PowerPointChart barChart = barSlide.AddChart();
+                    barChart.SetTitle("Axis Stress")
+                        .SetCategoryAxisTitle("Quarter")
+                        .SetCategoryAxisTitleTextStyle(fontSizePoints: 11, bold: true, color: "1F4E79", fontName: "Calibri")
+                        .SetCategoryAxisNumberFormat("0")
+                        .SetCategoryAxisLabelRotation(35)
+                        .SetCategoryAxisTickLabelPosition(C.TickLabelPositionValues.High)
+                        .SetCategoryAxisGridlines(showMajor: true, showMinor: false, lineColor: "D9D9D9", lineWidthPoints: 0.5)
+                        .SetCategoryAxisReverseOrder()
+                        .SetCategoryAxisCrossing(C.CrossesValues.Minimum)
+                        .SetValueAxisTitle("Revenue")
+                        .SetValueAxisTitleTextStyle(fontSizePoints: 10, italic: true, color: "C55A11", fontName: "Arial")
+                        .SetValueAxisNumberFormat("#,##0.00")
+                        .SetValueAxisLabelTextStyle(fontSizePoints: 10, color: "404040", fontName: "Aptos")
+                        .SetValueAxisGridlines(showMajor: true, showMinor: true, lineColor: "C0C0C0", lineWidthPoints: 0.75)
+                        .SetValueAxisScale(minimum: 0, maximum: 100, majorUnit: 25, minorUnit: 5)
+                        .SetValueAxisCrossing(C.CrossesValues.Maximum)
+                        .SetValueAxisCrossBetween(C.CrossBetweenValues.Between)
+                        .SetValueAxisDisplayUnits(C.BuiltInUnitValues.Thousands, "Thousands USD", showLabel: true);
+
+                    PowerPointSlide scatterSlide = presentation.AddSlide();
+                    PowerPointChart scatterChart = scatterSlide.AddScatterChart();
+                    scatterChart.SetScatterXAxisTitle("Month")
+                        .SetScatterXAxisTitleTextStyle(fontSizePoints: 11, bold: true, color: "1F4E79", fontName: "Calibri")
+                        .SetScatterXAxisNumberFormat("0.0")
+                        .SetScatterXAxisLabelTextStyle(fontSizePoints: 9, color: "404040", fontName: "Aptos")
+                        .SetScatterXAxisLabelRotation(45)
+                        .SetScatterXAxisTickLabelPosition(C.TickLabelPositionValues.Low)
+                        .SetScatterXAxisGridlines(showMajor: true, showMinor: false, lineColor: "D9D9D9", lineWidthPoints: 0.5)
+                        .SetScatterXAxisScale(minimum: 1, maximum: 10, majorUnit: 1)
+                        .SetScatterXAxisCrossing(C.CrossesValues.AutoZero, crossesAt: 2d)
+                        .SetScatterXAxisDisplayUnits(C.BuiltInUnitValues.Hundreds, "Hundreds X", showLabel: true)
+                        .SetScatterYAxisTitle("Revenue")
+                        .SetScatterYAxisTitleTextStyle(fontSizePoints: 10, italic: true, color: "C55A11", fontName: "Arial")
+                        .SetScatterYAxisNumberFormat("#,##0.00")
+                        .SetScatterYAxisLabelTextStyle(fontSizePoints: 10, color: "1F4E79", fontName: "Aptos")
+                        .SetScatterYAxisLabelRotation(-30)
+                        .SetScatterYAxisTickLabelPosition(C.TickLabelPositionValues.High)
+                        .SetScatterYAxisGridlines(showMajor: true, showMinor: true, lineColor: "C0C0C0", lineWidthPoints: 0.75)
+                        .SetScatterYAxisScale(minimum: 0, maximum: 6, majorUnit: 1)
+                        .SetScatterYAxisCrossing(crossesAt: 3d)
+                        .SetScatterYAxisDisplayUnits(1000d, "Thousands Y", showLabel: true);
+
+                    presentation.Save();
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
+                    ChartPart[] chartParts = document.PresentationPart!.SlideParts
+                        .SelectMany(slidePart => slidePart.ChartParts)
+                        .ToArray();
+
+                    Assert.Equal(2, chartParts.Length);
+                    foreach (ChartPart chartPart in chartParts) {
+                        Assert.Empty(validator.Validate(chartPart.ChartSpace));
+                    }
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
     }
 }
