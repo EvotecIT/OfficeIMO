@@ -4,6 +4,10 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <!-- Do not elevate informational messages (e.g., preview SDK notice). -->
   </PropertyGroup>
+  <PropertyGroup Condition="$([System.String]::Copy('$(MSBuildProjectDirectory)').Contains('.powerforge-runner'))">
+    <!-- The website workflow restores PowerForge from source under this path; keep upstream NuGet audit churn from breaking OfficeIMO PRs. -->
+    <NuGetAudit>false</NuGetAudit>
+  </PropertyGroup>
   <ItemGroup Condition="'$(EnableTrimmingPolyfills)' == 'true'">
     <Compile Include="$(MSBuildThisFileDirectory)Build\Trimming\TrimmingAttributes.cs"
              Condition="Exists('$(MSBuildThisFileDirectory)Build\Trimming\TrimmingAttributes.cs')" />
