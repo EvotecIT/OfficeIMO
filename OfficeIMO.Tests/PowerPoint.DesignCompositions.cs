@@ -1195,7 +1195,8 @@ namespace OfficeIMO.Tests {
         }
 
         private static string CreateTempPresentationPath() {
-            return Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
+            string fileName = Path.GetFileName(Guid.NewGuid().ToString("N") + ".pptx");
+            return Path.Combine(Path.GetTempPath(), fileName);
         }
     }
 }
