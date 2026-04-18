@@ -81,7 +81,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             int pick = StablePick(seed, 7);
-            double coolShift = 18 + pick * 8;
+            double coolShift = 18d + pick * 8d;
 
             PowerPointDesignTheme clone = Clone();
             clone.Name = Name + " Variant " + (pick + 1).ToString();
@@ -322,16 +322,17 @@ namespace OfficeIMO.PowerPoint {
             double delta = max - min;
 
             lightness = (max + min) / 2d;
-            if (delta == 0) {
+            const double epsilon = 1e-12;
+            if (Math.Abs(delta) < epsilon) {
                 hue = 0;
                 saturation = 0;
                 return;
             }
 
             saturation = delta / (1d - Math.Abs(2d * lightness - 1d));
-            if (max == red) {
+            if (red >= green && red >= blue) {
                 hue = 60d * (((green - blue) / delta) % 6d);
-            } else if (max == green) {
+            } else if (green >= red && green >= blue) {
                 hue = 60d * (((blue - red) / delta) + 2d);
             } else {
                 hue = 60d * (((red - green) / delta) + 4d);

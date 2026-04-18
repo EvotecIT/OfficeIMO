@@ -870,7 +870,6 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            int count = steps.Count;
             double left = options.DesignIntent.Density == PowerPointSlideDensity.Relaxed ? 2.35 : 2.1;
             double top = slideHeightCm * 0.47;
             double width = slideWidthCm - 4.2;

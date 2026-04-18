@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
     public class PowerPointDesignCompositions {
         [Fact]
         public void DesignerCompositions_CreateValidEditableDeck() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerCardGrid_KeepsCardsWithinSlideBounds() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerProcessSlide_RejectsTooManyStepsForReadableLayout() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -261,7 +261,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerDeckDesign_MinimalProfileSuppressesDirectionMotifs() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -285,7 +285,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerDeckComposer_AppliesDesignAndKeepsRecipeOverridesSimple() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -320,8 +320,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerDeckComposer_SameContentCanUseDifferentDeckPersonalities() {
-            string corporatePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
-            string minimalPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string corporatePath = CreateTempPresentationPath();
+            string minimalPath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation corporate = PowerPointPresentation.Create(corporatePath);
@@ -355,7 +355,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerDirectionMotif_UsesEditableTrianglesInsteadOfTextGlyphs() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -382,7 +382,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerSectionSlide_CanUseEditorialRailVariant() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -405,7 +405,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerCaseStudySlide_UsesPolishedVisualPlaceholderWithoutHeavyBorder() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -435,7 +435,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerCaseStudySlide_VisualPlaceholderVariesWithDesignIntent() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -472,7 +472,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerCaseStudySlide_CanUseEditorialSplitVariant() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -504,7 +504,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerCaseStudySlide_AutoUsesEditorialSplitForContentRichStory() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -536,7 +536,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerCaseStudySlide_CanUseVisualHeroVariant() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -569,7 +569,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerProcessSlide_UsesSingleRailWithDeliberateNodes() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -607,7 +607,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerProcessSlide_CanUseAlternateNumberedColumnVariant() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -636,7 +636,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerProcessSlide_AutoUsesRailForLongFlows() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -661,7 +661,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerCardGrid_CanUseAlternateSoftTileVariant() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -689,7 +689,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerCardGrid_AutoUsesCompactAccentBarsForLargeGrids() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -715,7 +715,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerCardGrid_AutoUsesSoftTilesForEditorialMood() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -743,7 +743,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Composer_CreatesValidCustomSlideFromReusablePrimitives() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
@@ -786,7 +786,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Composer_CanPlacePrimitivesInsideSemanticContentRegions() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
@@ -848,7 +848,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerLogoWallSlide_CanPairLogoGridWithCertificateFeature() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
@@ -891,7 +891,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerLogoWallSlide_AutoUsesCertificateFeatureWhenProofIsProvided() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -922,7 +922,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerCoverageSlide_AddsEditablePinsAndRejectsInvalidCoordinates() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -958,7 +958,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerCoverageSlide_AutoUsesListMapForManyLocations() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -991,7 +991,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Composer_CanPlaceLogoWallAndCoverageMapInsideRegions() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
@@ -1040,7 +1040,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Composer_LogoWallAutoUsesCertificateFeatureWhenProofIsProvided() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -1068,7 +1068,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerCapabilitySlide_CanCombineSectionsWithCoverageVisual() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -1105,7 +1105,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerCapabilitySlide_AutoUsesStackedLayoutForSectionHeavySlides() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -1135,7 +1135,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerCapabilitySlide_CanUseStackedSectionsWithMetrics() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -1168,7 +1168,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesignerCapabilitySlide_RejectsTooManySectionsForReadableLayout() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string filePath = CreateTempPresentationPath();
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -1192,6 +1192,10 @@ namespace OfficeIMO.Tests {
                     $"ErrorType: {error.ErrorType}\n" +
                     $"Part: {error.Part?.Uri}\n" +
                     $"Path: {error.Path?.XPath}"));
+        }
+
+        private static string CreateTempPresentationPath() {
+            return Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
         }
     }
 }

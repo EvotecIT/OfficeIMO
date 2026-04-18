@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.PowerPoint {
     public static class DesignerPowerPointDeck {
         public static void Example_DesignerPowerPointDeck(string folderPath, bool openPowerPoint) {
             Console.WriteLine("[*] PowerPoint - Designer composition deck");
-            string filePath = Path.Combine(folderPath, "Designer PowerPoint Deck.pptx");
+            string filePath = Path.Join(folderPath, "Designer PowerPoint Deck.pptx");
 
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
             presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
