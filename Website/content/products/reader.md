@@ -12,7 +12,7 @@ preview_id: "reader"
 
 ## Why OfficeIMO.Reader?
 
-OfficeIMO.Reader provides a single API to extract structured content from common document formats. Feed it Word, Excel, PowerPoint, Markdown, PDF, or text-like inputs and get back normalized chunks with location data, source hashes, and token estimates. It is purpose-built for RAG pipelines, search indexing, and any workflow where you need reproducible document slices instead of ad-hoc parsers.
+OfficeIMO.Reader provides a single API to extract structured content from common document formats. Feed it Word, Excel, PowerPoint, Markdown, PDF, or text-like inputs and get back normalized chunks with location data, source hashes, and token estimates. Optional adapters extend the same reader model to CSV/TSV, JSON, XML, HTML, EPUB, and ZIP-oriented ingestion. It is purpose-built for RAG pipelines, search indexing, and any workflow where you need reproducible document slices instead of ad-hoc parsers.
 
 ## Features
 
@@ -22,6 +22,7 @@ OfficeIMO.Reader provides a single API to extract structured content from common
 - **Token estimates per chunk** -- budget prompts and indexing payloads without an extra preprocessing pass
 - **Folder batch processing** -- process entire directories with progress callbacks, skip reporting, and cancellation support
 - **Pluggable handler registration** -- register custom extractors for proprietary or domain-specific formats
+- **Adapter packages** -- add CSV, JSON, XML, HTML, EPUB, ZIP, or structured text support without bloating every reader deployment
 
 ## What teams build with Reader
 
@@ -31,6 +32,19 @@ OfficeIMO.Reader provides a single API to extract structured content from common
 | Compliance and review pipelines | Searchable evidence bundles with headings and citations | Stable chunk boundaries make reviews and re-runs easier to compare |
 | File-share indexing jobs | Normalized documents ready for Lucene, Elasticsearch, or Azure AI Search | Batch extraction works well in workers, scheduled jobs, and containers |
 | Content migration tools | Markdown, JSON, or sidecar artifacts derived from legacy documents | Structured extraction keeps enough source context to transform before re-emitting |
+
+## Reader package family
+
+| Package | Use it when |
+|---------|-------------|
+| `OfficeIMO.Reader` | You need the core mixed Office, Markdown, and PDF extraction facade. |
+| `OfficeIMO.Reader.Csv` | CSV and TSV files should flow through the same chunking and metadata model. |
+| `OfficeIMO.Reader.Json` | JSON payloads need deterministic document slices for indexing or review. |
+| `OfficeIMO.Reader.Xml` | XML documents should keep element-aware source context during extraction. |
+| `OfficeIMO.Reader.Text` | You want the combined CSV, JSON, and XML adapter path in one package. |
+| `OfficeIMO.Reader.Html` | HTML input should be normalized through the Markdown/Reader pipeline. |
+| `OfficeIMO.Reader.Epub` | EPUB books or packaged publications belong in the same ingestion workflow. |
+| `OfficeIMO.Reader.Zip` | ZIP archives need safe traversal and chunking as part of a reader job. |
 
 ## Quick start
 
@@ -97,7 +111,9 @@ OfficeIMO.Reader targets the same cross-platform .NET runtimes as the packages i
 
 | Guide | Description |
 |-------|-------------|
-| [Reader documentation](/docs/reader/) | Learn the core extraction model, chunking workflow, and ingestion patterns. |
+| [Reader documentation](/docs/reader/) | Learn the core extraction model, chunking workflow, adapter family, and ingestion patterns. |
+| [Reader API reference](/api/reader/) | Browse `DocumentReader`, `ReaderOptions`, chunk models, and handler extension points. |
 | [AOT and trimming](/docs/advanced/aot-trimming/) | Review runtime and deployment guidance for lean extraction services. |
 | [Reader tutorial](/blog/reading-documents-with-reader/) | Walk through chunk inspection, folder ingestion, and indexing-oriented extraction patterns. |
 | [OfficeIMO.Markdown](/products/markdown/) | Pair extraction with markdown rendering and transformation workflows. |
+| [Downloads](/downloads/) | Pick the core reader package or one of the specialized adapter packages. |

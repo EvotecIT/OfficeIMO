@@ -6,7 +6,7 @@ order: 55
 
 # Reader and Extraction
 
-`OfficeIMO.Reader` provides a single extraction surface for the built-in formats currently handled in the repo, plus optional adapters for adjacent document types. Instead of maintaining separate parsing pipelines for `.docx`, `.xlsx`, `.pptx`, Markdown, PDF, or text-like files, you can normalize them into one chunk model and then feed that output into indexing, search, and AI workflows.
+`OfficeIMO.Reader` provides a single extraction surface for the built-in formats currently handled in the repo, plus optional adapters for adjacent document types. Instead of maintaining separate parsing pipelines for `.docx`, `.xlsx`, `.pptx`, Markdown, PDF, CSV, JSON, XML, HTML, EPUB, ZIP, or text-like files, you can normalize them into one chunk model and then feed that output into indexing, search, and AI workflows.
 
 ## Best fit scenarios
 
@@ -50,6 +50,26 @@ foreach (var chunk in chunks)
 | PowerPoint (`.pptx`) | Slide decks, speaker notes, and presentation narratives |
 | Markdown | Documentation, changelogs, developer notes, and generated content |
 | PDF | Published exports, archival documents, and third-party handoffs |
+| CSV/TSV | Structured flat files through `OfficeIMO.Reader.Csv` |
+| JSON | API exports and structured payloads through `OfficeIMO.Reader.Json` |
+| XML | Element-oriented documents through `OfficeIMO.Reader.Xml` |
+| HTML | Web pages and exported fragments through `OfficeIMO.Reader.Html` |
+| EPUB | Books and packaged publications through `OfficeIMO.Reader.Epub` |
+| ZIP | Archive traversal through `OfficeIMO.Reader.Zip` |
+
+## Adapter packages
+
+The core package covers the main Office-oriented extraction flow. Add adapter packages only when the deployment needs those input families:
+
+- `OfficeIMO.Reader.Csv` for CSV and TSV ingestion.
+- `OfficeIMO.Reader.Json` for JSON payloads.
+- `OfficeIMO.Reader.Xml` for XML documents.
+- `OfficeIMO.Reader.Text` when CSV, JSON, and XML adapters should travel together.
+- `OfficeIMO.Reader.Html` for HTML normalization through the Markdown pipeline.
+- `OfficeIMO.Reader.Epub` for EPUB publications.
+- `OfficeIMO.Reader.Zip` for safe archive traversal.
+
+Use the [Reader API reference](/api/reader/) for the core `DocumentReader`, `ReaderOptions`, chunk, manifest, and handler registration types. Adapter-specific APIs are documented through their package README files until the website generates separate adapter reference sections.
 
 ## Design goals
 

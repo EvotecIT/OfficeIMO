@@ -252,6 +252,189 @@
           "best_for": "Windows desktop apps that want a WPF-friendly markdown presentation layer",
           "install": "dotnet add package OfficeIMO.MarkdownRenderer.Wpf",
           "accent": "#0ea5e9"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.MarkdownRenderer.IntelligenceX",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer.IntelligenceX",
+          "title": "OfficeIMO.MarkdownRenderer.IntelligenceX",
+          "summary": "Plugin pack for transcript-oriented MarkdownRenderer presets and Intelligence X visual aliases.",
+          "best_for": "desktop and WebView surfaces that need a domain-specific markdown rendering plugin",
+          "install": "dotnet add package OfficeIMO.MarkdownRenderer.IntelligenceX",
+          "docs_url": "/docs/markdown/",
+          "accent": "#14b8a6"
+        }
+      ]
+    },
+    {
+      "id": "reader-adapters",
+      "eyebrow": "Reader adapters",
+      "title": "Format adapters for modular ingestion",
+      "description": "Add these when a reader service needs adjacent formats without forcing every deployment to carry every adapter.",
+      "packages": [
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Reader.Csv",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Reader.Csv",
+          "title": "OfficeIMO.Reader.Csv",
+          "summary": "CSV and TSV adapter extensions for OfficeIMO.Reader.",
+          "best_for": "flat-file ingestion that should share Reader chunks, hashes, and metadata",
+          "install": "dotnet add package OfficeIMO.Reader.Csv",
+          "product_url": "/products/reader/",
+          "docs_url": "/docs/reader/",
+          "accent": "#22d3ee"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Reader.Json",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Reader.Json",
+          "title": "OfficeIMO.Reader.Json",
+          "summary": "JSON adapter extensions for OfficeIMO.Reader.",
+          "best_for": "API exports and structured payloads that need deterministic indexing slices",
+          "install": "dotnet add package OfficeIMO.Reader.Json",
+          "product_url": "/products/reader/",
+          "docs_url": "/docs/reader/",
+          "accent": "#f59e0b"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Reader.Xml",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Reader.Xml",
+          "title": "OfficeIMO.Reader.Xml",
+          "summary": "XML adapter extensions for OfficeIMO.Reader.",
+          "best_for": "element-oriented documents that still need Reader metadata and chunking",
+          "install": "dotnet add package OfficeIMO.Reader.Xml",
+          "product_url": "/products/reader/",
+          "docs_url": "/docs/reader/",
+          "accent": "#38bdf8"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Reader.Text",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Reader.Text",
+          "title": "OfficeIMO.Reader.Text",
+          "summary": "Structured text compatibility adapter extensions for the CSV, JSON, and XML path.",
+          "best_for": "reader deployments that want the structured text adapters together",
+          "install": "dotnet add package OfficeIMO.Reader.Text",
+          "product_url": "/products/reader/",
+          "docs_url": "/docs/reader/",
+          "accent": "#64748b"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Reader.Html",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Reader.Html",
+          "title": "OfficeIMO.Reader.Html",
+          "summary": "HTML adapter for OfficeIMO.Reader using the OfficeIMO.Markdown.Html pipeline.",
+          "best_for": "web pages, exported fragments, and HTML-first source material",
+          "install": "dotnet add package OfficeIMO.Reader.Html",
+          "product_url": "/products/reader/",
+          "docs_url": "/docs/reader/",
+          "accent": "#22c55e"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Reader.Epub",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Reader.Epub",
+          "title": "OfficeIMO.Reader.Epub",
+          "summary": "EPUB adapter for modular OfficeIMO.Reader ingestion.",
+          "best_for": "books, packaged publications, and long-form EPUB content",
+          "install": "dotnet add package OfficeIMO.Reader.Epub",
+          "product_url": "/products/reader/",
+          "docs_url": "/docs/reader/",
+          "accent": "#a78bfa"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Reader.Zip",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Reader.Zip",
+          "title": "OfficeIMO.Reader.Zip",
+          "summary": "ZIP adapter for OfficeIMO.Reader modular ingestion.",
+          "best_for": "archive traversal that needs safe paths and Reader-compatible output",
+          "install": "dotnet add package OfficeIMO.Reader.Zip",
+          "product_url": "/products/reader/",
+          "docs_url": "/docs/reader/",
+          "accent": "#f97316"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Epub",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Epub",
+          "title": "OfficeIMO.Epub",
+          "summary": "EPUB extraction primitives for modular ingestion pipelines.",
+          "best_for": "low-level EPUB extraction and reader adapter internals",
+          "install": "dotnet add package OfficeIMO.Epub",
+          "product_url": "/products/reader/",
+          "docs_url": "/docs/reader/",
+          "accent": "#c084fc"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Zip",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Zip",
+          "title": "OfficeIMO.Zip",
+          "summary": "Safe ZIP traversal primitives for modular OfficeIMO ingestion pipelines.",
+          "best_for": "archive-aware ingestion helpers and ZIP-safe traversal",
+          "install": "dotnet add package OfficeIMO.Zip",
+          "product_url": "/products/reader/",
+          "docs_url": "/docs/reader/",
+          "accent": "#fb923c"
+        }
+      ]
+    },
+    {
+      "id": "google-bridges",
+      "eyebrow": "Google Workspace bridges",
+      "title": "Planning and export scaffolding for Google surfaces",
+      "description": "Use these companion packages when OfficeIMO output needs to line up with Google Docs or Sheets workflows.",
+      "packages": [
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.GoogleWorkspace",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.GoogleWorkspace",
+          "title": "OfficeIMO.GoogleWorkspace",
+          "summary": "Shared Google Workspace abstractions for OfficeIMO extension packages.",
+          "best_for": "common Google Workspace models used by Docs and Sheets bridge packages",
+          "install": "dotnet add package OfficeIMO.GoogleWorkspace",
+          "docs_url": "/docs/getting-started/",
+          "accent": "#0ea5e9"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Word.GoogleDocs",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Word.GoogleDocs",
+          "title": "OfficeIMO.Word.GoogleDocs",
+          "summary": "Google Docs planning and export scaffolding for OfficeIMO.Word.",
+          "best_for": "Word-oriented flows that need Google Docs planning or export shapes",
+          "install": "dotnet add package OfficeIMO.Word.GoogleDocs",
+          "product_url": "/products/word/",
+          "docs_url": "/docs/word/",
+          "accent": "#60a5fa"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Excel.GoogleSheets",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Excel.GoogleSheets",
+          "title": "OfficeIMO.Excel.GoogleSheets",
+          "summary": "Google Sheets planning and export scaffolding for OfficeIMO.Excel.",
+          "best_for": "workbook-oriented flows that need Google Sheets planning or export shapes",
+          "install": "dotnet add package OfficeIMO.Excel.GoogleSheets",
+          "product_url": "/products/excel/",
+          "docs_url": "/docs/excel/",
+          "accent": "#34d399"
         }
       ]
     }

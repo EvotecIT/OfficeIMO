@@ -7,12 +7,20 @@
   "docsUrl": "/docs/reader/",
   "apiUrl": "/api/reader/",
   "targets": [".NET 8.0", ".NET 10.0", ".NET Standard 2.0", ".NET Framework 4.7.2"],
-  "dependencies": ["OfficeIMO.Word", "OfficeIMO.Excel", "OfficeIMO.PowerPoint", "OfficeIMO.Markdown"],
+  "dependencies": ["OfficeIMO.Word", "OfficeIMO.Excel", "OfficeIMO.PowerPoint", "OfficeIMO.Markdown", "OfficeIMO.Pdf"],
   "features": [
     { "title": "Unified Extraction", "description": "Single API to extract content from Word, Excel, PowerPoint, Markdown, and PDF.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'/></svg>" },
     { "title": "AI-Ready Chunking", "description": "Deterministic chunking with heading-aware extraction and token estimation for LLM pipelines.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z'/></svg>" },
     { "title": "Batch Processing", "description": "Process entire folders of documents with progress tracking and parallel execution.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'/></svg>" },
     { "title": "Pluggable Handlers", "description": "Register custom format handlers to extend extraction to proprietary formats.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z'/></svg>" }
   ],
-  "relatedPackages": []
+  "relatedPackages": [
+    { "name": "OfficeIMO.Reader.Csv", "description": "CSV and TSV adapter for Reader ingestion", "install": "dotnet add package OfficeIMO.Reader.Csv" },
+    { "name": "OfficeIMO.Reader.Json", "description": "JSON adapter for deterministic chunking", "install": "dotnet add package OfficeIMO.Reader.Json" },
+    { "name": "OfficeIMO.Reader.Xml", "description": "XML adapter with element-oriented extraction", "install": "dotnet add package OfficeIMO.Reader.Xml" },
+    { "name": "OfficeIMO.Reader.Text", "description": "Combined CSV, JSON, and XML adapter path", "install": "dotnet add package OfficeIMO.Reader.Text" },
+    { "name": "OfficeIMO.Reader.Html", "description": "HTML adapter backed by the Markdown pipeline", "install": "dotnet add package OfficeIMO.Reader.Html" },
+    { "name": "OfficeIMO.Reader.Epub", "description": "EPUB adapter for packaged publications", "install": "dotnet add package OfficeIMO.Reader.Epub" },
+    { "name": "OfficeIMO.Reader.Zip", "description": "ZIP archive adapter for safe traversal", "install": "dotnet add package OfficeIMO.Reader.Zip" }
+  ]
 }

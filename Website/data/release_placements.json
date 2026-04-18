@@ -24,6 +24,18 @@
       "label": "Download OfficeIMO.Markdown",
       "class": "imo-btn imo-btn-ghost"
     },
+    "latest_csv": {
+      "product": "officeimo.csv",
+      "channel": "stable",
+      "label": "Download OfficeIMO.CSV",
+      "class": "imo-btn imo-btn-ghost"
+    },
+    "latest_reader": {
+      "product": "officeimo.reader",
+      "channel": "stable",
+      "label": "Download OfficeIMO.Reader",
+      "class": "imo-btn imo-btn-ghost"
+    },
     "latest_word_html": {
       "product": "officeimo.word.html",
       "channel": "stable",

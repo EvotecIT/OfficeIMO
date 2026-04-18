@@ -49,6 +49,7 @@ diagram.Save();
 
 ## Related packages
 
+- [OfficeIMO.Visio API reference](/api/visio/) for diagram, shape, connector, and fluent builder types.
 - [OfficeIMO.Word](/products/word/) for report documents that embed or reference generated diagrams.
 - [OfficeIMO.PowerPoint](/products/powerpoint/) for slide decks built from the same topology data.
 - [OfficeIMO.Reader](/products/reader/) when your workflow also needs ingestion and extraction.
