@@ -1,0 +1,143 @@
+using System;
+using System.Collections.Generic;
+
+namespace OfficeIMO.PowerPoint {
+    /// <summary>
+    ///     Presentation-bound designer facade that applies one deck design across many semantic slides.
+    /// </summary>
+    public sealed class PowerPointDeckComposer {
+        private readonly PowerPointPresentation _presentation;
+        private readonly PowerPointDeckDesign _design;
+        private int _slideIndex;
+
+        internal PowerPointDeckComposer(PowerPointPresentation presentation, PowerPointDeckDesign design,
+            bool applyTheme) {
+            _presentation = presentation ?? throw new ArgumentNullException(nameof(presentation));
+            _design = design ?? throw new ArgumentNullException(nameof(design));
+
+            if (applyTheme) {
+                _design.ApplyTo(_presentation);
+            }
+        }
+
+        /// <summary>
+        ///     Underlying presentation.
+        /// </summary>
+        public PowerPointPresentation Presentation => _presentation;
+
+        /// <summary>
+        ///     Active deck design.
+        /// </summary>
+        public PowerPointDeckDesign Design => _design;
+
+        /// <summary>
+        ///     Adds a section/title slide using the active deck design.
+        /// </summary>
+        public PowerPointSlide AddSectionSlide(string title, string? subtitle = null, string? seed = null,
+            Action<PowerPointDesignerSlideOptions>? configure = null) {
+            PowerPointDesignerSlideOptions options = Configure(new PowerPointDesignerSlideOptions(),
+                seed ?? title, configure);
+            return _presentation.AddDesignerSectionSlide(title, subtitle, _design.Theme, options);
+        }
+
+        /// <summary>
+        ///     Adds a case-study slide using the active deck design.
+        /// </summary>
+        public PowerPointSlide AddCaseStudySlide(string clientTitle, IEnumerable<PowerPointCaseStudySection> sections,
+            IEnumerable<PowerPointMetric>? metrics = null, string? seed = null,
+            Action<PowerPointCaseStudySlideOptions>? configure = null) {
+            PowerPointCaseStudySlideOptions options = Configure(new PowerPointCaseStudySlideOptions(),
+                seed ?? clientTitle, configure);
+            return _presentation.AddDesignerCaseStudySlide(clientTitle, sections, metrics, _design.Theme, options);
+        }
+
+        /// <summary>
+        ///     Adds a process/timeline slide using the active deck design.
+        /// </summary>
+        public PowerPointSlide AddProcessSlide(string title, string? subtitle, IEnumerable<PowerPointProcessStep> steps,
+            string? seed = null, Action<PowerPointProcessSlideOptions>? configure = null) {
+            PowerPointProcessSlideOptions options = Configure(new PowerPointProcessSlideOptions(),
+                seed ?? title, configure);
+            return _presentation.AddDesignerProcessSlide(title, subtitle, steps, _design.Theme, options);
+        }
+
+        /// <summary>
+        ///     Adds a card-grid slide using the active deck design.
+        /// </summary>
+        public PowerPointSlide AddCardGridSlide(string title, string? subtitle, IEnumerable<PowerPointCardContent> cards,
+            string? seed = null, Action<PowerPointCardGridSlideOptions>? configure = null) {
+            PowerPointCardGridSlideOptions options = Configure(new PowerPointCardGridSlideOptions(),
+                seed ?? title, configure);
+            return _presentation.AddDesignerCardGridSlide(title, subtitle, cards, _design.Theme, options);
+        }
+
+        /// <summary>
+        ///     Adds a logo/proof wall slide using the active deck design.
+        /// </summary>
+        public PowerPointSlide AddLogoWallSlide(string title, string? subtitle, IEnumerable<PowerPointLogoItem> logos,
+            string? seed = null, Action<PowerPointLogoWallSlideOptions>? configure = null) {
+            PowerPointLogoWallSlideOptions options = Configure(new PowerPointLogoWallSlideOptions(),
+                seed ?? title, configure);
+            return _presentation.AddDesignerLogoWallSlide(title, subtitle, logos, _design.Theme, options);
+        }
+
+        /// <summary>
+        ///     Adds a coverage/location slide using the active deck design.
+        /// </summary>
+        public PowerPointSlide AddCoverageSlide(string title, string? subtitle,
+            IEnumerable<PowerPointCoverageLocation> locations, string? seed = null,
+            Action<PowerPointCoverageSlideOptions>? configure = null) {
+            PowerPointCoverageSlideOptions options = Configure(new PowerPointCoverageSlideOptions(),
+                seed ?? title, configure);
+            return _presentation.AddDesignerCoverageSlide(title, subtitle, locations, _design.Theme, options);
+        }
+
+        /// <summary>
+        ///     Adds a capability/content slide using the active deck design.
+        /// </summary>
+        public PowerPointSlide AddCapabilitySlide(string title, string? subtitle,
+            IEnumerable<PowerPointCapabilitySection> sections, string? seed = null,
+            Action<PowerPointCapabilitySlideOptions>? configure = null) {
+            PowerPointCapabilitySlideOptions options = Configure(new PowerPointCapabilitySlideOptions(),
+                seed ?? title, configure);
+            return _presentation.AddDesignerCapabilitySlide(title, subtitle, sections, _design.Theme, options);
+        }
+
+        /// <summary>
+        ///     Adds a custom designer slide with raw composition primitives and active deck chrome.
+        /// </summary>
+        public PowerPointSlide ComposeSlide(Action<PowerPointSlideComposer> compose, string? seed = null,
+            Action<PowerPointDesignerSlideOptions>? configure = null, bool dark = false) {
+            PowerPointDesignerSlideOptions options = Configure(new PowerPointDesignerSlideOptions(),
+                seed ?? "custom", configure);
+            return _presentation.ComposeDesignerSlide(compose, _design.Theme, options, dark);
+        }
+
+        private T Configure<T>(T options, string seed, Action<T>? configure)
+            where T : PowerPointDesignerSlideOptions {
+            string resolvedSeed = ResolveSeed(seed);
+            _design.Configure(options, resolvedSeed);
+            configure?.Invoke(options);
+            return options;
+        }
+
+        private string ResolveSeed(string seed) {
+            _slideIndex++;
+            if (string.IsNullOrWhiteSpace(seed)) {
+                return "slide-" + _slideIndex.ToString();
+            }
+
+            return seed.Trim();
+        }
+    }
+
+    public static partial class PowerPointDesignExtensions {
+        /// <summary>
+        ///     Creates a presentation-bound designer facade and optionally applies the deck theme immediately.
+        /// </summary>
+        public static PowerPointDeckComposer UseDesigner(this PowerPointPresentation presentation,
+            PowerPointDeckDesign design, bool applyTheme = true) {
+            return new PowerPointDeckComposer(presentation, design, applyTheme);
+        }
+    }
+}

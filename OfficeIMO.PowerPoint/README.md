@@ -50,6 +50,141 @@ box.SetSizeCm(6, 2);
 ppt.Save();
 ```
 
+## Designer composition sample
+
+For business decks where you want polished placement without manually positioning every text box, use the designer
+composition helpers. They create editable PowerPoint shapes, text, optional pictures, and theme-driven layouts.
+Use `PowerPointDesignIntent` and layout variants when the same content should not produce the same slide every time.
+
+```csharp
+using OfficeIMO.PowerPoint;
+
+using var ppt = PowerPointPresentation.Create("designer-demo.pptx");
+ppt.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+var alternatives = PowerPointDeckDesign.CreateAlternativesFromBrand("#008C95", "client-demo",
+    name: "Client Theme", eyebrow: "Client Group",
+    footerLeft: "CLIENT", footerRight: "Service deck");
+var design = alternatives[1]; // pick the stable Editorial creative direction for this deck
+var deck = ppt.UseDesigner(design);
+
+// Or supply your own creative directions so decks do not all share the same house style.
+var clientDirections = new[] {
+    new PowerPointDesignDirection("Board Brief", PowerPointDesignMood.Corporate,
+        PowerPointSlideDensity.Relaxed, PowerPointVisualStyle.Soft, "Georgia", "Aptos",
+        showDirectionMotif: false),
+    new PowerPointDesignDirection("Field Ops", PowerPointDesignMood.Energetic,
+        PowerPointSlideDensity.Compact, PowerPointVisualStyle.Geometric, "Poppins", "Segoe UI")
+};
+var clientAlternatives = PowerPointDeckDesign.CreateAlternativesFromBrand("#008C95", "client-demo",
+    clientDirections, name: "Client Theme", footerLeft: "CLIENT");
+
+deck.AddSectionSlide("Case Study", "Project portfolio", "cover",
+    options => options.SectionVariant = PowerPointSectionLayoutVariant.EditorialRail);
+
+deck.AddCaseStudySlide("Example client",
+    new[] {
+        new PowerPointCaseStudySection("Client", "A concise customer story."),
+        new PowerPointCaseStudySection("Challenge", "Many details needed structure."),
+        new PowerPointCaseStudySection("Solution", "Separate story, evidence, and outcome."),
+        new PowerPointCaseStudySection("Result", "Keep the output editable and readable.")
+    },
+    seed: "case-study",
+    configure: options => options.Variant = PowerPointCaseStudyLayoutVariant.EditorialSplit);
+
+deck.AddProcessSlide("How we work", "Transparent phases reduce risk",
+    new[] {
+        new PowerPointProcessStep("Analysis", "Understand the environment and constraints."),
+        new PowerPointProcessStep("Discovery", "Review configuration and dependencies."),
+        new PowerPointProcessStep("Delivery", "Implement changes in controlled stages.")
+    },
+    seed: "process",
+    configure: options => options.Variant = PowerPointProcessLayoutVariant.NumberedColumns);
+
+deck.AddCardGridSlide("Scope of services", "Cards choose their own grid.",
+    new[] {
+        new PowerPointCardContent("Deployments", new[] { "Intune", "Autopilot" }),
+        new PowerPointCardContent("Maintenance", new[] { "Incidents", "Monitoring" }),
+        new PowerPointCardContent("Audits", new[] { "Configuration", "Security" })
+    },
+    seed: "services",
+    configure: options => options.Variant = PowerPointCardGridLayoutVariant.SoftTiles);
+
+deck.AddLogoWallSlide("Proof points", "Reusable logo and certification wall.",
+    new[] {
+        new PowerPointLogoItem("Lenovo", "Partner"),
+        new PowerPointLogoItem("Samsung", "Devices"),
+        new PowerPointLogoItem("Epson", "Service")
+    },
+    seed: "proof",
+    configure: options => options.FeatureTitle = "Featured certification");
+
+deck.AddCoverageSlide("Service coverage", "Pins are normalized inside the editable map panel.",
+    new[] {
+        new PowerPointCoverageLocation("Warszawa", 0.60, 0.48),
+        new PowerPointCoverageLocation("Gdansk", 0.55, 0.18),
+        new PowerPointCoverageLocation("Krakow", 0.58, 0.78)
+    },
+    seed: "coverage",
+    configure: options => {
+        options.MapLabel = "Editable locations";
+    });
+
+deck.AddCapabilitySlide("Service capability", "Structured text with visual support.",
+    new[] {
+        new PowerPointCapabilitySection("Warranty service",
+            "Nationwide support for distributed environments.",
+            new[] { "Computers and notebooks", "Printers and scanners" }),
+        new PowerPointCapabilitySection("Extended care",
+            "Support beyond standard vendor warranty.",
+            new[] { "SLA options", "Continuity monitoring" })
+    },
+    seed: "capability",
+    configure: options => {
+        options.VisualKind = PowerPointCapabilityVisualKind.CoverageMap;
+        options.VisualLabel = "Service locations";
+        options.Locations.Add(new PowerPointCoverageLocation("Warszawa", 0.60, 0.48));
+        options.Locations.Add(new PowerPointCoverageLocation("Gdansk", 0.55, 0.18));
+        options.Metrics.Add(new PowerPointMetric("8", "locations"));
+    });
+
+deck.ComposeSlide(composer => {
+    composer.AddTitle("Custom slide", "Use primitives when a recipe is too fixed.");
+    var columns = composer.ContentColumns(2);
+    composer.AddCardGrid(new[] {
+        new PowerPointCardContent("Story", new[] { "Context", "Need" }),
+        new PowerPointCardContent("Evidence", new[] { "Metrics", "Visual" })
+    }, columns[0]);
+    composer.AddCoverageMap(new[] {
+        new PowerPointCoverageLocation("North", 0.45, 0.20),
+        new PowerPointCoverageLocation("Central", 0.60, 0.48)
+    }, columns[1].TakeTopCm(3.0));
+    composer.AddCalloutBand("Use composer regions when the slide needs its own structure.",
+        columns[1].TakeBottomCm(1.5));
+}, "custom");
+
+ppt.Save();
+```
+
+Runnable sample:
+
+```powershell
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --designer-powerpoint
+```
+
+The helpers are intentionally not fixed templates. Start with `PowerPointDeckDesign.FromBrand(...)` to define the
+deck personality once, including brand color, stable seed, mood, fonts, and chrome. Use a named
+`PowerPointDesignDirection` such as `Structured`, `Editorial`, `Quiet`, `Signal`, or `Executive` when you want a
+recognizable creative direction without hand-tuning every slide. The deck design configures per-slide
+`PowerPointDesignIntent` values so repeated content can receive stable but different accents, motifs, and automatic
+layout choices. Auto variants use both the design intent and the content shape: dense card grids stay compact, softer
+moods get softer cards, long processes stay readable, proof slides emphasize supplied certificate details, many
+locations become list-plus-map slides, section-heavy capability slides stack into readable panels, and content-rich
+case studies choose stronger structure. Use
+`PowerPointDeckDesign.CreateAlternativesFromBrand(...)` when you want a few stable directions from the same brand before
+choosing the deck personality. Use explicit layout variants when a deck needs a controlled art direction, or use
+`ComposeDesignerSlide` and `PowerPointLayoutBox` regions when the slide needs a custom composition while still reusing
+cards, metrics, process steps, logo walls, coverage maps, and callout bands.
+
 ## Common Tasks by Example
 
 ### Title + content

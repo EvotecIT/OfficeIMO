@@ -335,6 +335,80 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Returns a new layout box inset equally on every side.
+        /// </summary>
+        public PowerPointLayoutBox InsetCm(double insetCm) {
+            return InsetCm(insetCm, insetCm, insetCm, insetCm);
+        }
+
+        /// <summary>
+        ///     Returns a new layout box inset horizontally and vertically.
+        /// </summary>
+        public PowerPointLayoutBox InsetCm(double horizontalCm, double verticalCm) {
+            return InsetCm(horizontalCm, verticalCm, horizontalCm, verticalCm);
+        }
+
+        /// <summary>
+        ///     Returns a new layout box inset by individual side values.
+        /// </summary>
+        public PowerPointLayoutBox InsetCm(double leftCm, double topCm, double rightCm, double bottomCm) {
+            if (leftCm < 0) {
+                throw new ArgumentOutOfRangeException(nameof(leftCm));
+            }
+            if (topCm < 0) {
+                throw new ArgumentOutOfRangeException(nameof(topCm));
+            }
+            if (rightCm < 0) {
+                throw new ArgumentOutOfRangeException(nameof(rightCm));
+            }
+            if (bottomCm < 0) {
+                throw new ArgumentOutOfRangeException(nameof(bottomCm));
+            }
+
+            long left = PowerPointUnits.FromCentimeters(leftCm);
+            long top = PowerPointUnits.FromCentimeters(topCm);
+            long right = PowerPointUnits.FromCentimeters(rightCm);
+            long bottom = PowerPointUnits.FromCentimeters(bottomCm);
+            if (left + right >= Width || top + bottom >= Height) {
+                throw new ArgumentOutOfRangeException(nameof(leftCm), "Insets exceed the layout box.");
+            }
+
+            return new PowerPointLayoutBox(Left + left, Top + top, Width - left - right, Height - top - bottom);
+        }
+
+        /// <summary>
+        ///     Returns the top part of the layout box with the requested height.
+        /// </summary>
+        public PowerPointLayoutBox TakeTopCm(double heightCm) {
+            if (heightCm <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(heightCm));
+            }
+
+            long height = PowerPointUnits.FromCentimeters(heightCm);
+            if (height > Height) {
+                throw new ArgumentOutOfRangeException(nameof(heightCm), "Requested height exceeds the layout box.");
+            }
+
+            return new PowerPointLayoutBox(Left, Top, Width, height);
+        }
+
+        /// <summary>
+        ///     Returns the bottom part of the layout box with the requested height.
+        /// </summary>
+        public PowerPointLayoutBox TakeBottomCm(double heightCm) {
+            if (heightCm <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(heightCm));
+            }
+
+            long height = PowerPointUnits.FromCentimeters(heightCm);
+            if (height > Height) {
+                throw new ArgumentOutOfRangeException(nameof(heightCm), "Requested height exceeds the layout box.");
+            }
+
+            return new PowerPointLayoutBox(Left, Bottom - height, Width, height);
+        }
+
+        /// <summary>
         ///     Applies the layout box to the provided shape.
         /// </summary>
         /// <param name="shape">Shape to update.</param>
