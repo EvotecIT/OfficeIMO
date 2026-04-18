@@ -89,7 +89,7 @@ namespace OfficeIMO.PowerPoint {
             IReadOnlyList<PowerPointDesignDirection> directions = PowerPointDesignDirection.BuiltIn;
             for (int i = 0; i < count; i++) {
                 PowerPointDesignDirection direction = directions[i % directions.Count];
-                string candidateSeed = seed + "/direction-" + (i + 1).ToString();
+                string candidateSeed = seed + "/direction-" + (i + 1);
                 string candidateName = string.IsNullOrWhiteSpace(name)
                     ? direction.Name + " Direction"
                     : name + " " + direction.Name;
@@ -138,7 +138,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDeckDesign[] designs = new PowerPointDeckDesign[directionList.Count];
             for (int i = 0; i < directionList.Count; i++) {
                 PowerPointDesignDirection direction = directionList[i];
-                string candidateSeed = seed + "/" + NormalizeSeedPart(direction.Name) + "-" + (i + 1).ToString();
+                string candidateSeed = seed + "/" + NormalizeSeedPart(direction.Name) + "-" + (i + 1);
                 string candidateName = string.IsNullOrWhiteSpace(name)
                     ? direction.Name + " Direction"
                     : name + " " + direction.Name;

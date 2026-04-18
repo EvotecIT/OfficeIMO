@@ -124,7 +124,7 @@ namespace OfficeIMO.PowerPoint {
         private string ResolveSeed(string seed) {
             _slideIndex++;
             if (string.IsNullOrWhiteSpace(seed)) {
-                return "slide-" + _slideIndex.ToString();
+                return "slide-" + _slideIndex;
             }
 
             return seed.Trim();

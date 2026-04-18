@@ -84,7 +84,7 @@ namespace OfficeIMO.PowerPoint {
             double coolShift = 18d + pick * 8d;
 
             PowerPointDesignTheme clone = Clone();
-            clone.Name = Name + " Variant " + (pick + 1).ToString();
+            clone.Name = Name + " Variant " + (pick + 1);
             clone.Accent2Color = ShiftHue(AccentColor, coolShift, saturationScale: 0.95, lightnessShift: 0.02);
             clone.Accent3Color = ShiftHue(AccentColor, -coolShift - 18, saturationScale: 0.75, lightnessShift: 0.04);
             clone.WarningColor = WarmAccent(pick);
@@ -100,7 +100,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointDesignTheme WithMood(PowerPointDesignMood mood) {
             PowerPointDesignTheme clone = Clone();
-            clone.Name = Name + " " + mood.ToString();
+            clone.Name = Name + " " + mood;
 
             switch (mood) {
                 case PowerPointDesignMood.Editorial:

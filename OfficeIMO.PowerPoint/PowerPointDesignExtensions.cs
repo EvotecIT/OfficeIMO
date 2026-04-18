@@ -905,7 +905,7 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < count; i++) {
                 PowerPointLayoutBox box = boxes[i];
                 PowerPointProcessStep step = steps[i];
-                string number = !string.IsNullOrWhiteSpace(step.Number) ? step.Number! : (i + 1).ToString() + ".";
+                string number = !string.IsNullOrWhiteSpace(step.Number) ? step.Number! : (i + 1) + ".";
                 AddProcessNode(slide, theme, i, box.LeftCm, box.TopCm, nodeSize, number);
                 AddText(slide, step.Title, box.LeftCm, box.TopCm + 1.55, box.WidthCm, 0.7, 13,
                     theme.AccentContrastColor, theme.HeadingFontName, bold: true);
