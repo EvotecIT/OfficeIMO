@@ -110,6 +110,7 @@ var plan = new PowerPointDeckPlan()
         composer.AddMetricStrip(new[] { new PowerPointMetric("2", "modes") },
             composer.ContentArea().TakeTopCm(1.5));
     }, seed: "custom-detail");
+var plannedSlides = plan.DescribeSlides(); // kind, title, seed, and content count
 briefDeck.AddSlides(plan);
 
 // Or supply your own creative directions so decks do not all share the same house style.

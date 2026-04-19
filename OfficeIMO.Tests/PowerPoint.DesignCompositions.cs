@@ -593,6 +593,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDeckPlan_CanDescribeSlideSequenceBeforeRendering() {
+            PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                .AddSection("Cover", "Opening", "cover")
+                .AddCaseStudy("Client",
+                    new[] {
+                        new PowerPointCaseStudySection("Challenge", "Many details."),
+                        new PowerPointCaseStudySection("Result", "Clear story.")
+                    },
+                    new[] {
+                        new PowerPointMetric("2", "proof points")
+                    },
+                    "case-study")
+                .AddProcess("Path", null,
+                    new[] {
+                        new PowerPointProcessStep("One", "Start."),
+                        new PowerPointProcessStep("Two", "Finish.")
+                    },
+                    "path")
+                .AddCustom("Appendix", composer => composer.AddTitle("Appendix"), "custom");
+
+            IReadOnlyList<PowerPointDeckPlanSlideSummary> summaries = plan.DescribeSlides();
+
+            Assert.Equal(4, summaries.Count);
+            Assert.Equal(PowerPointDeckPlanSlideKind.Section, summaries[0].Kind);
+            Assert.Equal("Cover", summaries[0].Title);
+            Assert.Equal("cover", summaries[0].Seed);
+            Assert.Equal(3, summaries[1].ContentItemCount);
+            Assert.Equal(PowerPointDeckPlanSlideKind.Process, summaries[2].Kind);
+            Assert.Equal(2, summaries[2].ContentItemCount);
+            Assert.Equal(PowerPointDeckPlanSlideKind.Custom, summaries[3].Kind);
+            Assert.Contains("Appendix", summaries[3].ToString());
+        }
+
+        [Fact]
         public void DesignerDeckComposer_SameContentCanUseDifferentDeckPersonalities() {
             string corporatePath = CreateTempPresentationPath();
             string minimalPath = CreateTempPresentationPath();

@@ -4,6 +4,28 @@ using System.Linq;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
+    ///     Semantic kind of a planned designer slide.
+    /// </summary>
+    public enum PowerPointDeckPlanSlideKind {
+        /// <summary>Section or title slide.</summary>
+        Section,
+        /// <summary>Case-study summary slide.</summary>
+        CaseStudy,
+        /// <summary>Process or timeline slide.</summary>
+        Process,
+        /// <summary>Card-grid slide.</summary>
+        CardGrid,
+        /// <summary>Logo, partner, or proof wall slide.</summary>
+        LogoWall,
+        /// <summary>Coverage or location slide.</summary>
+        Coverage,
+        /// <summary>Capability or content slide.</summary>
+        Capability,
+        /// <summary>Custom raw-composition slide.</summary>
+        Custom
+    }
+
+    /// <summary>
     ///     Semantic sequence of designer slides that can be applied to a deck composer.
     /// </summary>
     public sealed class PowerPointDeckPlan {
@@ -95,6 +117,18 @@ namespace OfficeIMO.PowerPoint {
             string? seed = null, Action<PowerPointDesignerSlideOptions>? configure = null, bool dark = false) {
             return Add(new PowerPointCustomPlanSlide(title, compose, seed, configure, dark));
         }
+
+        /// <summary>
+        ///     Creates lightweight descriptions of the planned slide sequence before rendering.
+        /// </summary>
+        public IReadOnlyList<PowerPointDeckPlanSlideSummary> DescribeSlides() {
+            PowerPointDeckPlanSlideSummary[] summaries = new PowerPointDeckPlanSlideSummary[_slides.Count];
+            for (int i = 0; i < _slides.Count; i++) {
+                summaries[i] = _slides[i].Describe(i);
+            }
+
+            return summaries;
+        }
     }
 
     /// <summary>
@@ -126,7 +160,18 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string? Seed { get; }
 
+        /// <summary>
+        ///     Semantic slide kind.
+        /// </summary>
+        public abstract PowerPointDeckPlanSlideKind Kind { get; }
+
         internal abstract PowerPointSlide AddTo(PowerPointDeckComposer deck);
+
+        internal virtual int ContentItemCount => 0;
+
+        internal PowerPointDeckPlanSlideSummary Describe(int index) {
+            return new PowerPointDeckPlanSlideSummary(index, Kind, Title, Subtitle, Seed, ContentItemCount);
+        }
 
         private protected static IReadOnlyList<T> Materialize<T>(IEnumerable<T> values, string name) {
             if (values == null) {
@@ -155,6 +200,9 @@ namespace OfficeIMO.PowerPoint {
             Action<PowerPointDesignerSlideOptions>? configure = null) : base(title, subtitle, seed) {
             _configure = configure;
         }
+
+        /// <inheritdoc />
+        public override PowerPointDeckPlanSlideKind Kind => PowerPointDeckPlanSlideKind.Section;
 
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
             return deck.AddSectionSlide(Title, Subtitle, Seed, _configure);
@@ -189,6 +237,11 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointMetric> Metrics { get; }
 
+        /// <inheritdoc />
+        public override PowerPointDeckPlanSlideKind Kind => PowerPointDeckPlanSlideKind.CaseStudy;
+
+        internal override int ContentItemCount => Sections.Count + Metrics.Count;
+
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
             return deck.AddCaseStudySlide(Title, Sections, Metrics, Seed, _configure);
         }
@@ -214,6 +267,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Process steps.
         /// </summary>
         public IReadOnlyList<PowerPointProcessStep> Steps { get; }
+
+        /// <inheritdoc />
+        public override PowerPointDeckPlanSlideKind Kind => PowerPointDeckPlanSlideKind.Process;
+
+        internal override int ContentItemCount => Steps.Count;
 
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
             return deck.AddProcessSlide(Title, Subtitle, Steps, Seed, _configure);
@@ -241,6 +299,11 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointCardContent> Cards { get; }
 
+        /// <inheritdoc />
+        public override PowerPointDeckPlanSlideKind Kind => PowerPointDeckPlanSlideKind.CardGrid;
+
+        internal override int ContentItemCount => Cards.Count;
+
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
             return deck.AddCardGridSlide(Title, Subtitle, Cards, Seed, _configure);
         }
@@ -266,6 +329,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Logo, partner, product, or certification items.
         /// </summary>
         public IReadOnlyList<PowerPointLogoItem> Logos { get; }
+
+        /// <inheritdoc />
+        public override PowerPointDeckPlanSlideKind Kind => PowerPointDeckPlanSlideKind.LogoWall;
+
+        internal override int ContentItemCount => Logos.Count;
 
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
             return deck.AddLogoWallSlide(Title, Subtitle, Logos, Seed, _configure);
@@ -293,6 +361,11 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointCoverageLocation> Locations { get; }
 
+        /// <inheritdoc />
+        public override PowerPointDeckPlanSlideKind Kind => PowerPointDeckPlanSlideKind.Coverage;
+
+        internal override int ContentItemCount => Locations.Count;
+
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
             return deck.AddCoverageSlide(Title, Subtitle, Locations, Seed, _configure);
         }
@@ -318,6 +391,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Capability or content sections.
         /// </summary>
         public IReadOnlyList<PowerPointCapabilitySection> Sections { get; }
+
+        /// <inheritdoc />
+        public override PowerPointDeckPlanSlideKind Kind => PowerPointDeckPlanSlideKind.Capability;
+
+        internal override int ContentItemCount => Sections.Count;
 
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
             return deck.AddCapabilitySlide(Title, Subtitle, Sections, Seed, _configure);
@@ -347,8 +425,63 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public bool Dark { get; }
 
+        /// <inheritdoc />
+        public override PowerPointDeckPlanSlideKind Kind => PowerPointDeckPlanSlideKind.Custom;
+
+        internal override int ContentItemCount => 1;
+
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
             return deck.ComposeSlide(_compose, Seed ?? Title, _configure, Dark);
+        }
+    }
+
+    /// <summary>
+    ///     Lightweight description of one planned slide.
+    /// </summary>
+    public sealed class PowerPointDeckPlanSlideSummary {
+        internal PowerPointDeckPlanSlideSummary(int index, PowerPointDeckPlanSlideKind kind,
+            string title, string? subtitle, string? seed, int contentItemCount) {
+            Index = index;
+            Kind = kind;
+            Title = title;
+            Subtitle = subtitle;
+            Seed = seed;
+            ContentItemCount = contentItemCount;
+        }
+
+        /// <summary>
+        ///     Zero-based slide index within the plan.
+        /// </summary>
+        public int Index { get; }
+
+        /// <summary>
+        ///     Semantic slide kind.
+        /// </summary>
+        public PowerPointDeckPlanSlideKind Kind { get; }
+
+        /// <summary>
+        ///     Planned slide title.
+        /// </summary>
+        public string Title { get; }
+
+        /// <summary>
+        ///     Optional planned slide subtitle.
+        /// </summary>
+        public string? Subtitle { get; }
+
+        /// <summary>
+        ///     Optional stable seed used for the planned slide.
+        /// </summary>
+        public string? Seed { get; }
+
+        /// <summary>
+        ///     Count of primary content items such as sections, steps, cards, or locations.
+        /// </summary>
+        public int ContentItemCount { get; }
+
+        /// <inheritdoc />
+        public override string ToString() {
+            return Index + ": " + Kind + " - " + Title;
         }
     }
 }
