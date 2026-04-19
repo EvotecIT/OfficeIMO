@@ -141,6 +141,7 @@ namespace OfficeIMO.PowerPoint {
                     clone.Accent2Color = Shade(clone.AccentColor, 0.34);
                     clone.Accent3Color = Shade(clone.AccentDarkColor, 0.50);
                     clone.WarningColor = clone.Accent2Color;
+                    clone.PaletteStyle = PowerPointPaletteStyle.Auto;
                     clone.HeadingFontName = "Aptos Display";
                     clone.BodyFontName = "Aptos";
                     break;
@@ -148,7 +149,6 @@ namespace OfficeIMO.PowerPoint {
                     break;
             }
 
-            clone.PaletteStyle = PowerPointPaletteStyle.Auto;
             clone.Validate();
             return clone;
         }
