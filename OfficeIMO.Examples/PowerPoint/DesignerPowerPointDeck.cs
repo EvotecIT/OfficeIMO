@@ -16,14 +16,10 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
             presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-            PowerPointDesignDirection portfolioDirection = new("Portfolio", PowerPointDesignMood.Corporate,
-                PowerPointSlideDensity.Balanced, PowerPointVisualStyle.Geometric, "Poppins", "Lato");
-            PowerPointDesignDirection executiveDirection = new("Executive Calm", PowerPointDesignMood.Corporate,
-                PowerPointSlideDensity.Relaxed, PowerPointVisualStyle.Soft, "Segoe UI Semibold", "Segoe UI",
-                showDirectionMotif: false);
-            IReadOnlyList<PowerPointDeckDesign> alternatives = PowerPointDeckDesign.CreateAlternativesFromBrand(
-                "#008C95", "designer-example", new[] { portfolioDirection, executiveDirection },
-                name: "OfficeIMO Teal", eyebrow: "OfficeIMO.PowerPoint",
+            PowerPointDesignRecipe recipe = PowerPointDesignRecipe.FindBuiltIn("consulting portfolio")
+                ?? PowerPointDesignRecipe.ConsultingPortfolio;
+            IReadOnlyList<PowerPointDeckDesign> alternatives = recipe.CreateAlternativesFromBrand(
+                "#008C95", "designer-example", name: "OfficeIMO Teal", eyebrow: "OfficeIMO.PowerPoint",
                 footerLeft: "OFFICEIMO", footerRight: "The Good Slides");
             PowerPointDeckDesign design = alternatives[0];
             PowerPointDeckComposer deck = presentation.UseDesigner(design);

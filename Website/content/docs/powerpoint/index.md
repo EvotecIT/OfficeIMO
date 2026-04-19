@@ -26,6 +26,41 @@ order: 30
 | `PowerPointChart` | Chart host for series-driven visualizations inside a slide |
 | `PowerPointNotes` | Speaker notes attached to a slide |
 | `PowerPointLayoutBox` | Measurement helper for content regions, columns, and spacing |
+| `PowerPointDesignBrief` | Brand, purpose, palette, and design preferences used to generate alternatives |
+| `PowerPointDeckPlan` | Semantic sequence of designer slides that can be scored before rendering |
+
+## Designer decks
+
+For decks that should look intentional without hand-positioning every object, use designer briefs and semantic deck plans. A brief can propose several visual directions from the same brand, while a deck plan lets the library score how well those directions fit the content before rendering editable slides.
+
+![PowerPoint designer deck plan process slide](/images/powerpoint/examples/deck-plan-process.png)
+
+```csharp
+PowerPointDesignBrief brief = PowerPointDesignBrief
+    .FromBrand("#008C95", "client-demo", "technical rollout proposal")
+    .WithIdentity("Client Theme", footerLeft: "CLIENT", footerRight: "Service deck")
+    .WithVariety(PowerPointDesignVariety.Exploratory);
+
+PowerPointDeckPlan plan = new PowerPointDeckPlan()
+    .AddSection("Service proposal", "Generated from a semantic plan.")
+    .AddProcess("Implementation path", "The selected design handles layout.",
+        new[] {
+            new PowerPointProcessStep("Discover", "Collect constraints."),
+            new PowerPointProcessStep("Design", "Choose the target model."),
+            new PowerPointProcessStep("Roll out", "Deliver in waves.")
+        });
+
+var best = brief.DescribeDeckPlanAlternatives(plan, 3)
+    .OrderByDescending(alternative => alternative.ContentFitScore)
+    .First();
+
+using var presentation = PowerPointPresentation.Create("proposal.pptx");
+presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+presentation.UseDesigner(brief, best.Index).AddSlides(plan);
+presentation.Save();
+```
+
+[Designer Decks](/docs/powerpoint/designer/) shows design recommendations, deck-plan scoring, raw composition primitives, and screenshots from runnable examples.
 
 ## Quick start
 
@@ -91,5 +126,6 @@ presentation.Save();
 ## Further reading
 
 - [Slides](/docs/powerpoint/slides) -- Creating slides with text boxes, shapes, images, and charts.
+- [Designer Decks](/docs/powerpoint/designer/) -- Build visually structured decks with design briefs, recommendations, semantic plans, and screenshots.
 - [PSWriteOffice PowerPoint Cmdlets](/docs/pswriteoffice/powerpoint/) -- Build decks from PowerShell with DSL aliases and cmdlets.
 - [OfficeIMO.PowerPoint product page](/products/powerpoint/) -- Package-level overview, install command, and positioning.

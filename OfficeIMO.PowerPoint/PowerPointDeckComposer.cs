@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -113,6 +114,49 @@ namespace OfficeIMO.PowerPoint {
             return _presentation.ComposeDesignerSlide(compose, _design.Theme, options, dark);
         }
 
+        /// <summary>
+        ///     Adds all slides described by a semantic deck plan using the active deck design.
+        /// </summary>
+        public IReadOnlyList<PowerPointSlide> AddSlides(PowerPointDeckPlan plan) {
+            return AddSlides(plan, validate: true);
+        }
+
+        /// <summary>
+        ///     Adds all slides described by a semantic deck plan using the active deck design.
+        /// </summary>
+        public IReadOnlyList<PowerPointSlide> AddSlides(PowerPointDeckPlan plan, bool validate) {
+            if (plan == null) {
+                throw new ArgumentNullException(nameof(plan));
+            }
+
+            if (validate) {
+                IReadOnlyList<PowerPointDeckPlanDiagnostic> diagnostics = plan.ValidateSlides();
+                if (diagnostics.Any(diagnostic =>
+                        diagnostic.Severity == PowerPointDeckPlanDiagnosticSeverity.Error)) {
+                    throw new PowerPointDeckPlanValidationException(diagnostics);
+                }
+            }
+
+            List<PowerPointSlide> slides = new();
+            foreach (PowerPointDeckPlanSlide slide in plan.Slides) {
+                slides.Add(slide.AddTo(this));
+            }
+
+            return slides.AsReadOnly();
+        }
+
+        /// <summary>
+        ///     Previews how a semantic deck plan resolves against the active deck design from the composer's
+        ///     current slide position.
+        /// </summary>
+        public IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> DescribeSlides(PowerPointDeckPlan plan) {
+            if (plan == null) {
+                throw new ArgumentNullException(nameof(plan));
+            }
+
+            return plan.DescribeSlides(_design, _slideIndex);
+        }
+
         private T Configure<T>(T options, string seed, Action<T>? configure)
             where T : PowerPointDesignerSlideOptions {
             string resolvedSeed = ResolveSeed(seed);
@@ -123,11 +167,15 @@ namespace OfficeIMO.PowerPoint {
 
         private string ResolveSeed(string seed) {
             _slideIndex++;
+            return ResolveSeed(seed, _slideIndex);
+        }
+
+        internal static string ResolveSeed(string? seed, int slideIndex) {
             if (string.IsNullOrWhiteSpace(seed)) {
-                return "slide-" + _slideIndex;
+                return "slide-" + slideIndex;
             }
 
-            return seed.Trim();
+            return seed!.Trim();
         }
     }
 
@@ -138,6 +186,52 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointDeckComposer UseDesigner(this PowerPointPresentation presentation,
             PowerPointDeckDesign design, bool applyTheme = true) {
             return new PowerPointDeckComposer(presentation, design, applyTheme);
+        }
+
+        /// <summary>
+        ///     Creates a designer facade from a reusable design brief.
+        /// </summary>
+        public static PowerPointDeckComposer UseDesigner(this PowerPointPresentation presentation,
+            PowerPointDesignBrief brief, int alternativeIndex = 0, bool applyTheme = true) {
+            if (brief == null) {
+                throw new ArgumentNullException(nameof(brief));
+            }
+
+            return new PowerPointDeckComposer(presentation, brief.CreateDesign(alternativeIndex), applyTheme);
+        }
+
+        /// <summary>
+        ///     Creates a designer facade directly from a brand accent and scenario recipe.
+        /// </summary>
+        public static PowerPointDeckComposer UseDesigner(this PowerPointPresentation presentation,
+            string accentColor, string seed, PowerPointDesignRecipe recipe, int alternativeIndex = 0,
+            string? name = null, string? eyebrow = null, string? footerLeft = null, string? footerRight = null,
+            bool applyTheme = true) {
+            if (recipe == null) {
+                throw new ArgumentNullException(nameof(recipe));
+            }
+            if (alternativeIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(alternativeIndex),
+                    "Design alternative index cannot be negative.");
+            }
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = recipe.CreateAlternativesFromBrand(accentColor, seed,
+                count: alternativeIndex + 1, name: name, eyebrow: eyebrow, footerLeft: footerLeft,
+                footerRight: footerRight);
+            return new PowerPointDeckComposer(presentation, alternatives[alternativeIndex], applyTheme);
+        }
+
+        /// <summary>
+        ///     Creates a designer facade from a brand accent and plain-language deck purpose.
+        /// </summary>
+        public static PowerPointDeckComposer UseDesigner(this PowerPointPresentation presentation,
+            string accentColor, string seed, string purpose, int alternativeIndex = 0,
+            string? name = null, string? eyebrow = null, string? footerLeft = null, string? footerRight = null,
+            bool applyTheme = true) {
+            PowerPointDesignRecipe recipe = PowerPointDesignRecipe.FindBuiltIn(purpose)
+                ?? PowerPointDesignRecipe.ConsultingPortfolio;
+            return presentation.UseDesigner(accentColor, seed, recipe, alternativeIndex, name, eyebrow,
+                footerLeft, footerRight, applyTheme);
         }
     }
 }

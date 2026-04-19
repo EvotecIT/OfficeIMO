@@ -15,6 +15,12 @@
       "code": "using var doc = ExcelDocument.Load(\"sales-data.xlsx\");\nvar sheet = doc.WorkSheets[0];\n\n// Read typed data from rows\nvar rows = sheet.RowsAs<SalesRecord>(r => new SalesRecord {\n    Region = r.String(\"Region\"),\n    Revenue = r.Decimal(\"Revenue\"),\n    Growth = r.Double(\"Growth\")\n});\n\n// Add a summary chart\nvar chart = sheet.AddChart(ExcelChartType.ColumnClustered);\nchart.Title = \"Revenue by Region\";\nchart.AddSeries(\"Revenue\", rows.Select(r => r.Revenue));\n\ndoc.Save(\"sales-report.xlsx\");"
     },
     {
+      "id": "powerpoint",
+      "label": "Design PowerPoint (C#)",
+      "language": "csharp",
+      "code": "PowerPointDesignBrief brief = PowerPointDesignBrief\n    .FromBrand(\"#008C95\", \"client-demo\", \"technical rollout proposal\")\n    .WithIdentity(\"Client Theme\", footerLeft: \"CLIENT\", footerRight: \"Service deck\")\n    .WithVariety(PowerPointDesignVariety.Exploratory);\n\nvar plan = new PowerPointDeckPlan()\n    .AddSection(\"Service proposal\", \"Generated from a semantic plan.\")\n    .AddProcess(\"Implementation path\", \"The selected design handles layout.\", new[] {\n        new PowerPointProcessStep(\"Discover\", \"Collect constraints.\"),\n        new PowerPointProcessStep(\"Design\", \"Choose the target model.\"),\n        new PowerPointProcessStep(\"Roll out\", \"Deliver in waves.\")\n    });\n\nvar best = brief.DescribeDeckPlanAlternatives(plan, 3)\n    .OrderByDescending(alternative => alternative.ContentFitScore)\n    .First();\n\nusing var ppt = PowerPointPresentation.Create(\"proposal.pptx\");\nppt.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);\nppt.UseDesigner(brief, best.Index).AddSlides(plan);\nppt.Save();"
+    },
+    {
       "id": "markdown",
       "label": "Build Markdown (C#)",
       "language": "csharp",

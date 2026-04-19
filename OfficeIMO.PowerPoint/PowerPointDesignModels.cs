@@ -42,6 +42,18 @@ namespace OfficeIMO.PowerPoint {
     }
 
     /// <summary>
+    ///     Controls how far generated alternatives should move from the selected recipe or preferred direction.
+    /// </summary>
+    public enum PowerPointDesignVariety {
+        /// <summary>Stay close to the highest-ranked direction and vary mostly by palette and seed.</summary>
+        Focused,
+        /// <summary>Use the selected recipe or custom direction set as supplied.</summary>
+        Balanced,
+        /// <summary>Extend recipe alternatives with broader built-in directions for more creative distance.</summary>
+        Exploratory
+    }
+
+    /// <summary>
     ///     Section/title slide layout variants. Auto uses the design intent seed to pick a stable variant.
     /// </summary>
     public enum PowerPointSectionLayoutVariant {

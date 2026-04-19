@@ -24,6 +24,16 @@ dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- 
 The sample writes `Modern PowerPoint Deck.pptx` to the examples `Documents` output folder and validates the generated Open
 XML package before reporting success.
 
+To generate the designer examples used by the website screenshots:
+
+```powershell
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint-design-brief
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint-deck-plan
+```
+
+The first sample demonstrates explainable design recommendations. The second demonstrates semantic deck-plan scoring
+before rendering editable slides.
+
 To run the full PowerPoint examples set without opening PowerPoint and validate every generated deck:
 
 ```powershell
@@ -67,6 +77,63 @@ var alternatives = PowerPointDeckDesign.CreateAlternativesFromBrand("#008C95", "
 var design = alternatives[1]; // pick the stable Editorial creative direction for this deck
 var deck = ppt.UseDesigner(design);
 
+// Or use a recipe when you want a scenario-specific family of distinct directions.
+var portfolioAlternatives = PowerPointDesignRecipe.ConsultingPortfolio.CreateAlternativesFromBrand("#008C95", "client-demo",
+    name: "Client Theme", footerLeft: "CLIENT", footerRight: "Service deck");
+var portfolioDesign = portfolioAlternatives[0]; // Board Story, Field Proof, Quiet Appendix, ...
+
+// Recipes can also be selected from plain-language purpose text.
+var recipeChoices = PowerPointDesignRecipe.DescribeBuiltIns(); // names, keywords, directions, fonts, and moods
+var purposeMatches = PowerPointDesignRecipe.DescribeMatches("technical rollout proposal");
+var recipe = PowerPointDesignRecipe.FindBuiltIn("technical rollout proposal")
+    ?? PowerPointDesignRecipe.ConsultingPortfolio;
+
+// For the shortest path, start the deck composer directly from brand and purpose text.
+var quickDeck = ppt.UseDesigner("#008C95", "client-demo", "technical rollout proposal",
+    name: "Client Theme", footerLeft: "CLIENT", footerRight: "Service deck");
+
+// Use a design brief when brand, purpose, identity, and custom directions should travel together.
+var brief = PowerPointDesignBrief
+    .FromBrand("#008C95", "client-demo", "technical rollout proposal")
+    .WithIdentity("Client Theme", footerLeft: "CLIENT", footerRight: "Service deck")
+    .WithPalette(secondaryAccentColor: "#6D5BD0", warmAccentColor: "#FFB000")
+    .WithVariety(PowerPointDesignVariety.Exploratory)
+    .WithPreferredMoods(PowerPointDesignMood.Energetic)
+    .WithPreferredVisualStyles(PowerPointVisualStyle.Geometric);
+var choices = brief.DescribeAlternatives(3); // direction, mood, fonts, and palette preview
+var recommendations = brief.RecommendAlternatives(3); // preference score and reasons before choosing
+var briefDeck = ppt.UseDesigner(brief, alternativeIndex: 1);
+
+// A deck plan lets callers describe the story while the designer chooses the slide compositions.
+var plan = new PowerPointDeckPlan()
+    .AddSection("Case Study", "Project portfolio", "cover")
+    .AddCaseStudy("Example client",
+        new[] {
+            new PowerPointCaseStudySection("Client", "A concise customer story."),
+            new PowerPointCaseStudySection("Challenge", "Many details needed structure."),
+            new PowerPointCaseStudySection("Solution", "Separate story, evidence, and outcome."),
+            new PowerPointCaseStudySection("Result", "Keep the output editable and readable.")
+        },
+        seed: "case-study")
+    .AddProcess("How we work", "Transparent phases reduce risk",
+        new[] {
+            new PowerPointProcessStep("Analysis", "Understand the environment and constraints."),
+            new PowerPointProcessStep("Discovery", "Review configuration and dependencies."),
+            new PowerPointProcessStep("Delivery", "Implement changes in controlled stages.")
+        },
+        seed: "process")
+    .AddCustom("Custom detail", composer => {
+        composer.AddTitle("Custom detail", "Use raw composition when a planned slide needs something special.");
+        composer.AddMetricStrip(new[] { new PowerPointMetric("2", "modes") },
+            composer.ContentArea().TakeTopCm(1.5));
+    }, seed: "custom-detail");
+var plannedSlides = plan.DescribeSlides(); // kind, title, seed, and content count
+var planDiagnostics = plan.ValidateSlides(); // density, clipping, and bounds issues before rendering
+var renderPreview = brief.DescribeDeckPlan(plan, alternativeIndex: 1); // variants, layout reasons, fonts, and seeds
+var planChoices = brief.DescribeDeckPlanAlternatives(plan, 3); // includes content-fit score and reasons
+var livePreview = briefDeck.DescribeSlides(plan); // seed preview accounts for slides already composed in this deck
+briefDeck.AddSlides(plan); // validates errors before rendering and keeps warnings inspectable
+
 // Or supply your own creative directions so decks do not all share the same house style.
 var clientDirections = new[] {
     new PowerPointDesignDirection("Board Brief", PowerPointDesignMood.Corporate,
@@ -77,6 +144,10 @@ var clientDirections = new[] {
 };
 var clientAlternatives = PowerPointDeckDesign.CreateAlternativesFromBrand("#008C95", "client-demo",
     clientDirections, name: "Client Theme", footerLeft: "CLIENT");
+var uniqueBrief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
+    .WithIdentity("Client Theme", footerLeft: "CLIENT")
+    .WithDirections(clientDirections)
+    .WithPreferredDensities(PowerPointSlideDensity.Compact);
 
 deck.AddSectionSlide("Case Study", "Project portfolio", "cover",
     options => options.SectionVariant = PowerPointSectionLayoutVariant.EditorialRail);
@@ -174,16 +245,19 @@ dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- 
 The helpers are intentionally not fixed templates. Start with `PowerPointDeckDesign.FromBrand(...)` to define the
 deck personality once, including brand color, stable seed, mood, fonts, and chrome. Use a named
 `PowerPointDesignDirection` such as `Structured`, `Editorial`, `Quiet`, `Signal`, or `Executive` when you want a
-recognizable creative direction without hand-tuning every slide. The deck design configures per-slide
+recognizable creative direction without hand-tuning every slide. Use `PowerPointDesignRecipe` values such as
+`ConsultingPortfolio`, `ExecutiveBrief`, `TechnicalProposal`, or `TransformationRoadmap` when you want a
+scenario-specific family of alternatives instead of one house style repeated across every client deck. The deck design
+configures per-slide
 `PowerPointDesignIntent` values so repeated content can receive stable but different accents, motifs, and automatic
 layout choices. Auto variants use both the design intent and the content shape: dense card grids stay compact, softer
 moods get softer cards, long processes stay readable, proof slides emphasize supplied certificate details, many
 locations become list-plus-map slides, section-heavy capability slides stack into readable panels, and content-rich
-case studies choose stronger structure. Use
-`PowerPointDeckDesign.CreateAlternativesFromBrand(...)` when you want a few stable directions from the same brand before
-choosing the deck personality. Use explicit layout variants when a deck needs a controlled art direction, or use
-`ComposeDesignerSlide` and `PowerPointLayoutBox` regions when the slide needs a custom composition while still reusing
-cards, metrics, process steps, logo walls, coverage maps, and callout bands.
+case studies choose stronger structure. Use `PowerPointDeckDesign.CreateAlternativesFromBrand(...)` with either a count,
+custom directions, or a recipe when you want stable choices from the same brand before choosing the deck personality.
+Use explicit layout variants when a deck needs a controlled art direction, or use `ComposeDesignerSlide` and
+`PowerPointLayoutBox` regions when the slide needs a custom composition while still reusing cards, metrics, process
+steps, logo walls, coverage maps, and callout bands.
 
 ## Common Tasks by Example
 

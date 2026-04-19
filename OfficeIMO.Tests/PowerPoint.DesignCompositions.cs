@@ -260,6 +260,279 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDeckDesign_CanCreateAlternativesFromRecipe() {
+            IReadOnlyList<PowerPointDeckDesign> alternatives =
+                PowerPointDeckDesign.CreateAlternativesFromBrand("#008C95", "service-client",
+                    PowerPointDesignRecipe.ConsultingPortfolio, name: "Client", footerLeft: "CLIENT");
+
+            Assert.Equal(3, alternatives.Count);
+            Assert.Equal("Consulting Portfolio", PowerPointDesignRecipe.ConsultingPortfolio.Name);
+            Assert.Equal("Board Story", alternatives[0].Direction.Name);
+            Assert.Equal(PowerPointDesignMood.Corporate, alternatives[0].BaseIntent.Mood);
+            Assert.Equal(PowerPointVisualStyle.Soft, alternatives[0].BaseIntent.VisualStyle);
+            Assert.Equal("Georgia", alternatives[0].Theme.HeadingFontName);
+            Assert.False(alternatives[0].ShowDirectionMotif);
+            Assert.Equal("Project portfolio", alternatives[0].Options("cover").Eyebrow);
+            Assert.Equal("service-client/consulting-portfolio-board-story-1/cover",
+                alternatives[0].Options("cover").DesignIntent.Seed);
+
+            Assert.Equal("Field Proof", alternatives[1].Direction.Name);
+            Assert.Equal(PowerPointDesignMood.Energetic, alternatives[1].BaseIntent.Mood);
+            Assert.Equal(PowerPointVisualStyle.Geometric, alternatives[1].BaseIntent.VisualStyle);
+            Assert.True(alternatives[1].ShowDirectionMotif);
+
+            Assert.Equal("Quiet Appendix", alternatives[2].Direction.Name);
+            Assert.Equal(PowerPointDesignMood.Minimal, alternatives[2].BaseIntent.Mood);
+            Assert.Equal(PowerPointVisualStyle.Minimal, alternatives[2].BaseIntent.VisualStyle);
+            Assert.Equal("CLIENT", alternatives[2].Options("cover").FooterLeft);
+        }
+
+        [Fact]
+        public void DesignerDeckDesign_RecipeAlternativesCanCycleAndOverrideFonts() {
+            IReadOnlyList<PowerPointDeckDesign> alternatives =
+                PowerPointDeckDesign.CreateAlternativesFromBrand("#008C95", "technical-client",
+                    PowerPointDesignRecipe.TechnicalProposal, count: 4, name: "Client",
+                    headingFontName: "Aptos Display", bodyFontName: "Aptos");
+
+            Assert.Equal(4, alternatives.Count);
+            Assert.Equal("Architecture Map", alternatives[0].Direction.Name);
+            Assert.Equal("Architecture Map", alternatives[3].Direction.Name);
+            Assert.NotEqual(alternatives[0].Options("cover").DesignIntent.Seed,
+                alternatives[3].Options("cover").DesignIntent.Seed);
+            Assert.All(alternatives, design => Assert.Equal("Aptos Display", design.Theme.HeadingFontName));
+            Assert.All(alternatives, design => Assert.Equal("Aptos", design.Theme.BodyFontName));
+            Assert.Equal("Technical proposal", alternatives[1].Options("cover").Eyebrow);
+        }
+
+        [Fact]
+        public void DesignerRecipe_CanCreateAlternativesDirectlyAndMatchPurpose() {
+            PowerPointDesignRecipe? recipe = PowerPointDesignRecipe.FindBuiltIn("board decision brief");
+
+            Assert.Same(PowerPointDesignRecipe.ExecutiveBrief, recipe);
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = recipe!.CreateAlternativesFromBrand("#1F6FEB",
+                "board-pack", count: 2, name: "Board Pack", footerLeft: "BOARD");
+
+            Assert.Equal(2, alternatives.Count);
+            Assert.Equal("Decision Pack", alternatives[0].Direction.Name);
+            Assert.Equal("Investment Memo", alternatives[1].Direction.Name);
+            Assert.Equal("Executive summary", alternatives[0].Options("cover").Eyebrow);
+            Assert.Equal("BOARD", alternatives[1].Options("cover").FooterLeft);
+            Assert.Equal("board-pack/executive-brief-investment-memo-2/cover",
+                alternatives[1].Options("cover").DesignIntent.Seed);
+        }
+
+        [Fact]
+        public void DesignerRecipe_CanMatchTransformationRoadmaps() {
+            PowerPointDesignRecipe? recipe = PowerPointDesignRecipe.FindBuiltIn("transformation roadmap");
+
+            Assert.Same(PowerPointDesignRecipe.TransformationRoadmap, recipe);
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = recipe!.CreateAlternativesFromBrand("#008C95",
+                "roadmap-client", count: 3, name: "Roadmap Client", footerLeft: "ROADMAP");
+
+            Assert.Equal(3, alternatives.Count);
+            Assert.Equal("North Star", alternatives[0].Direction.Name);
+            Assert.Equal(PowerPointDesignMood.Editorial, alternatives[0].BaseIntent.Mood);
+            Assert.Equal("Georgia", alternatives[0].Theme.HeadingFontName);
+            Assert.False(alternatives[0].ShowDirectionMotif);
+
+            Assert.Equal("Momentum Map", alternatives[1].Direction.Name);
+            Assert.Equal(PowerPointVisualStyle.Geometric, alternatives[1].BaseIntent.VisualStyle);
+            Assert.True(alternatives[1].ShowDirectionMotif);
+
+            Assert.Equal("Operating Plan", alternatives[2].Direction.Name);
+            Assert.Equal(PowerPointSlideDensity.Compact, alternatives[2].BaseIntent.Density);
+            Assert.Equal("Roadmap", alternatives[2].Options("cover").Eyebrow);
+            Assert.Equal("ROADMAP", alternatives[2].Options("cover").FooterLeft);
+            Assert.Equal("roadmap-client/transformation-roadmap-operating-plan-3/cover",
+                alternatives[2].Options("cover").DesignIntent.Seed);
+        }
+
+        [Fact]
+        public void DesignerRecipe_CanDescribeBuiltInsAndMatches() {
+            IReadOnlyList<PowerPointDesignRecipeSummary> recipes = PowerPointDesignRecipe.DescribeBuiltIns();
+            IReadOnlyList<PowerPointDesignRecipeSummary> matches =
+                PowerPointDesignRecipe.DescribeMatches("roadmap program");
+
+            Assert.Equal(4, recipes.Count);
+            Assert.Equal("Consulting Portfolio", recipes[0].Name);
+            Assert.Equal("Transformation Roadmap", recipes[3].Name);
+            Assert.Equal("Roadmap", recipes[3].DefaultEyebrow);
+            Assert.Contains("journey", recipes[3].Keywords);
+            Assert.Equal(3, recipes[3].DirectionCount);
+            Assert.Equal("Momentum Map", recipes[3].Directions[1].Name);
+            Assert.Equal(PowerPointDesignMood.Energetic, recipes[3].Directions[1].Mood);
+            Assert.Equal("Poppins", recipes[3].Directions[1].HeadingFontName);
+            Assert.Contains("Transformation Roadmap", recipes[3].ToString());
+            Assert.Contains("Momentum Map", recipes[3].Directions[1].ToString());
+
+            PowerPointDesignRecipeSummary match = Assert.Single(matches);
+            Assert.Equal("Transformation Roadmap", match.Name);
+            Assert.Empty(PowerPointDesignRecipe.DescribeMatches(""));
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_CreatesAlternativesFromPurposeAndIdentity() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-client", "technical rollout proposal")
+                .WithIdentity("Client", footerLeft: "CLIENT")
+                .WithFonts(bodyFontName: "Segoe UI");
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(2);
+
+            Assert.Equal(2, alternatives.Count);
+            Assert.Equal("Architecture Map", alternatives[0].Direction.Name);
+            Assert.Equal("Runbook", alternatives[1].Direction.Name);
+            Assert.Equal("Technical proposal", alternatives[0].Options("cover").Eyebrow);
+            Assert.Equal("CLIENT", alternatives[1].Options("cover").FooterLeft);
+            Assert.Equal("Segoe UI", alternatives[0].Theme.BodyFontName);
+            Assert.Equal("Segoe UI", alternatives[1].Theme.BodyFontName);
+            Assert.NotEqual(alternatives[0].Theme.Accent2Color, alternatives[1].Theme.Accent2Color);
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_CanRankRecipeDirectionsByPreferences() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-preferred", "technical rollout proposal")
+                .WithPreferredMoods(PowerPointDesignMood.Energetic)
+                .WithPreferredVisualStyles(PowerPointVisualStyle.Geometric);
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(3);
+            IReadOnlyList<PowerPointDeckDesignSummary> summaries = brief.DescribeAlternatives(1);
+            IReadOnlyList<PowerPointDeckDesignRecommendation> recommendations =
+                brief.RecommendAlternatives(2);
+
+            Assert.Equal("Delivery Signal", alternatives[0].Direction.Name);
+            Assert.Equal("Architecture Map", alternatives[1].Direction.Name);
+            Assert.Equal("Runbook", alternatives[2].Direction.Name);
+            Assert.Equal("Technical proposal", alternatives[0].Options("cover").Eyebrow);
+            Assert.Equal(PowerPointDesignMood.Energetic, summaries[0].Mood);
+            Assert.Equal(PowerPointVisualStyle.Geometric, summaries[0].VisualStyle);
+            Assert.Equal(PowerPointDesignMood.Energetic, brief.PreferredMoods[0]);
+            Assert.Equal(PowerPointVisualStyle.Geometric, brief.PreferredVisualStyles[0]);
+            Assert.Equal("Delivery Signal", recommendations[0].Design.DirectionName);
+            Assert.True(recommendations[0].MatchesPreferences);
+            Assert.Equal(5, recommendations[0].PreferenceScore);
+            Assert.Contains("Matches preferred mood: Energetic.", recommendations[0].Reasons);
+            Assert.Contains("Matches preferred visual style: Geometric.", recommendations[0].Reasons);
+            Assert.Contains("Delivery Signal score 5", recommendations[0].ToString());
+            Assert.True(recommendations[1].MatchesPreferences);
+            Assert.Equal(2, recommendations[1].PreferenceScore);
+
+            brief.ClearDesignPreferences();
+            Assert.Empty(brief.PreferredMoods);
+            Assert.Equal("Architecture Map", brief.CreateAlternatives(1)[0].Direction.Name);
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_CanControlAlternativeVariety() {
+            PowerPointDesignBrief focused = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-focused", "technical rollout proposal")
+                .WithPreferredMoods(PowerPointDesignMood.Energetic)
+                .WithVariety(PowerPointDesignVariety.Focused);
+            PowerPointDesignBrief exploratory = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-exploratory", "technical rollout proposal")
+                .WithVariety(PowerPointDesignVariety.Exploratory);
+
+            IReadOnlyList<PowerPointDeckDesign> focusedAlternatives = focused.CreateAlternatives(3);
+            IReadOnlyList<PowerPointDeckDesignSummary> exploratorySummaries = exploratory.DescribeAlternatives(5);
+
+            Assert.Equal(PowerPointDesignVariety.Focused, focused.Variety);
+            Assert.All(focusedAlternatives,
+                design => Assert.Equal("Delivery Signal", design.Direction.Name));
+            Assert.NotEqual(focusedAlternatives[0].Seed, focusedAlternatives[1].Seed);
+            Assert.Equal("Architecture Map", exploratorySummaries[0].DirectionName);
+            Assert.Equal("Runbook", exploratorySummaries[1].DirectionName);
+            Assert.Equal("Delivery Signal", exploratorySummaries[2].DirectionName);
+            Assert.Equal("Structured", exploratorySummaries[3].DirectionName);
+            Assert.Equal("Editorial", exploratorySummaries[4].DirectionName);
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_CanDescribeAlternativesBeforeChoosing() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-preview", "technical rollout proposal")
+                .WithIdentity("Client")
+                .WithFonts(bodyFontName: "Segoe UI");
+
+            IReadOnlyList<PowerPointDeckDesignSummary> summaries = brief.DescribeAlternatives(3);
+
+            Assert.Equal(3, summaries.Count);
+            Assert.Equal(0, summaries[0].Index);
+            Assert.Equal("Architecture Map", summaries[0].DirectionName);
+            Assert.Equal("Runbook", summaries[1].DirectionName);
+            Assert.Equal(PowerPointDesignMood.Minimal, summaries[1].Mood);
+            Assert.Equal("008C95", summaries[2].AccentColor);
+            Assert.Equal("Segoe UI", summaries[2].BodyFontName);
+            Assert.NotEqual(summaries[0].Accent2Color, summaries[1].Accent2Color);
+            Assert.Contains("Delivery Signal", summaries[2].ToString());
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_CanOverrideSupportingPaletteWithoutCustomTheme() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-palette", "technical rollout proposal")
+                .WithPalette(
+                    secondaryAccentColor: "#6D5BD0",
+                    tertiaryAccentColor: "24A148",
+                    warmAccentColor: "#FFB000",
+                    surfaceColor: "F2F6F8",
+                    panelBorderColor: "#B8C7D3");
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(2);
+            IReadOnlyList<PowerPointDeckDesignSummary> summaries = brief.DescribeAlternatives(1);
+
+            Assert.Equal("008C95", alternatives[0].Theme.AccentColor);
+            Assert.Equal("6D5BD0", alternatives[0].Theme.Accent2Color);
+            Assert.Equal("24A148", alternatives[0].Theme.Accent3Color);
+            Assert.Equal("FFB000", alternatives[0].Theme.WarningColor);
+            Assert.Equal("F2F6F8", alternatives[0].Theme.SurfaceColor);
+            Assert.Equal("B8C7D3", alternatives[0].Theme.PanelBorderColor);
+            Assert.Equal("6D5BD0", alternatives[1].Theme.Accent2Color);
+            Assert.Equal("6D5BD0", summaries[0].Accent2Color);
+            Assert.Equal("FFB000", summaries[0].WarningColor);
+        }
+
+        [Fact]
+        public void DesignerDeckComposer_CanStartFromBriefWithCustomDirections() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                PowerPointDesignBrief brief = PowerPointDesignBrief
+                    .FromBrand("#008C95", "custom-brief", "executive brief")
+                    .WithIdentity("Client Brief", eyebrow: "Unique deck", footerLeft: "CLIENT")
+                    .WithDirections(new[] {
+                        new PowerPointDesignDirection("Local Proof", PowerPointDesignMood.Editorial,
+                            PowerPointSlideDensity.Relaxed, PowerPointVisualStyle.Soft, "Georgia", "Aptos",
+                            showDirectionMotif: false),
+                        new PowerPointDesignDirection("Operational Signal", PowerPointDesignMood.Energetic,
+                            PowerPointSlideDensity.Compact, PowerPointVisualStyle.Geometric, "Poppins", "Segoe UI")
+                    });
+
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointDeckComposer deck = presentation.UseDesigner(brief, alternativeIndex: 1);
+                deck.AddSectionSlide("Custom brief", "Caller directions beat matched recipes.", "cover");
+
+                Assert.Equal("Operational Signal", deck.Design.Direction.Name);
+                Assert.Equal(PowerPointDesignMood.Energetic, deck.Design.BaseIntent.Mood);
+                Assert.Equal("Unique deck", deck.Design.Options("cover").Eyebrow);
+                Assert.Equal("CLIENT", deck.Design.Options("cover").FooterLeft);
+                Assert.Equal(deck.Design.Theme.Name, presentation.ThemeName);
+                Assert.NotNull(presentation.Slides[0].GetShape("Designer Direction 1"));
+
+                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void DesignerDeckDesign_MinimalProfileSuppressesDirectionMotifs() {
             string filePath = CreateTempPresentationPath();
 
@@ -316,6 +589,500 @@ namespace OfficeIMO.Tests {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        [Fact]
+        public void DesignerDeckComposer_CanStartDirectlyFromPurposeText() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointDeckComposer deck = presentation.UseDesigner("#008C95", "proposal-client",
+                    "technical rollout proposal", alternativeIndex: 1, name: "Proposal Client",
+                    footerLeft: "PROPOSAL");
+                deck.AddSectionSlide("Rollout plan", "Purpose-selected recipe", "cover");
+
+                Assert.Equal("Runbook", deck.Design.Direction.Name);
+                Assert.Equal(PowerPointDesignMood.Minimal, deck.Design.BaseIntent.Mood);
+                Assert.Equal("Technical proposal", deck.Design.Options("cover").Eyebrow);
+                Assert.Equal("PROPOSAL", deck.Design.Options("cover").FooterLeft);
+                Assert.Equal(deck.Design.Theme.Name, presentation.ThemeName);
+                Assert.Null(presentation.Slides[0].GetShape("Designer Direction 1"));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerDeckComposer_CanApplySemanticDeckPlan() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointDesignBrief brief = PowerPointDesignBrief
+                    .FromBrand("#008C95", "plan-client", "technical rollout proposal")
+                    .WithIdentity("Plan Client", footerLeft: "PLAN", footerRight: "Proposal");
+                PowerPointDeckComposer deck = presentation.UseDesigner(brief, alternativeIndex: 0);
+
+                PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                    .AddSection("Rollout proposal", "Structured from a semantic plan.", "cover",
+                        options => options.SectionVariant = PowerPointSectionLayoutVariant.EditorialRail)
+                    .AddCaseStudy("Example client",
+                        new[] {
+                            new PowerPointCaseStudySection("Client", "A client needed clear rollout structure."),
+                            new PowerPointCaseStudySection("Challenge", "The source story mixed operations and proof."),
+                            new PowerPointCaseStudySection("Solution", "The plan chooses a case-study composition."),
+                            new PowerPointCaseStudySection("Result", "The output remains editable.")
+                        },
+                        new[] {
+                            new PowerPointMetric("150", "devices")
+                        },
+                        "case-study")
+                    .AddProcess("Delivery path", "A readable rollout flow.",
+                        new[] {
+                            new PowerPointProcessStep("Discover", "Map constraints."),
+                            new PowerPointProcessStep("Pilot", "Validate with a small group."),
+                            new PowerPointProcessStep("Rollout", "Move in controlled waves.")
+                        },
+                        "process",
+                        options => options.Variant = PowerPointProcessLayoutVariant.NumberedColumns)
+                    .AddCardGrid("Scope", "Grouped workstreams.",
+                        new[] {
+                            new PowerPointCardContent("Deployments", new[] { "Intune", "Autopilot" }),
+                            new PowerPointCardContent("Care", new[] { "Monitoring", "Reporting" })
+                        },
+                        "scope");
+
+                IReadOnlyList<PowerPointSlide> slides = deck.AddSlides(plan);
+
+                Assert.Equal(4, slides.Count);
+                Assert.Equal(4, presentation.Slides.Count);
+                Assert.NotNull(slides[0].GetShape("Section Editorial Rail"));
+                Assert.NotNull(slides[2].GetShape("Process Column 1"));
+                Assert.Contains(slides[3].TextBoxes, textBox => textBox.Text == "PLAN");
+
+                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerDeckComposer_PreflightsSemanticDeckPlanBeforeRendering() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+                PowerPointDeckComposer deck = presentation.UseDesigner("#008C95", "invalid-plan",
+                    PowerPointDesignRecipe.ConsultingPortfolio);
+                PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                    .AddSection("Cover")
+                    .AddProcess("Too long", null,
+                        Enumerable.Range(1, 9)
+                            .Select(index => new PowerPointProcessStep("Step " + index, "Body")));
+                int slideCountBefore = presentation.Slides.Count;
+
+                PowerPointDeckPlanValidationException exception =
+                    Assert.Throws<PowerPointDeckPlanValidationException>(() => deck.AddSlides(plan));
+
+                Assert.Contains(exception.Diagnostics, diagnostic =>
+                    diagnostic.Code == "Process.TooManySteps" &&
+                    diagnostic.Severity == PowerPointDeckPlanDiagnosticSeverity.Error);
+                Assert.Contains("Process.TooManySteps", exception.Message);
+                Assert.Equal(slideCountBefore, presentation.Slides.Count);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerDeckComposer_CanBypassDeckPlanPreflightForLegacyBehavior() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+                PowerPointDeckComposer deck = presentation.UseDesigner("#008C95", "legacy-invalid-plan",
+                    PowerPointDesignRecipe.ConsultingPortfolio);
+                PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                    .AddProcess("Too long", null,
+                        Enumerable.Range(1, 9)
+                            .Select(index => new PowerPointProcessStep("Step " + index, "Body")));
+
+                Assert.Throws<ArgumentOutOfRangeException>(() => deck.AddSlides(plan, validate: false));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerDeckPlan_RejectsEmptySemanticContent() {
+            Assert.Throws<ArgumentException>(() =>
+                new PowerPointDeckPlan().AddProcess("Empty process", null, Array.Empty<PowerPointProcessStep>()));
+
+            Assert.Throws<ArgumentNullException>(() =>
+                new PowerPointDeckPlan().Add(null!));
+        }
+
+        [Fact]
+        public void DesignerDeckPlan_CanMixSemanticSlidesWithRawComposition() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointDeckComposer deck = presentation.UseDesigner("#008C95", "mixed-plan",
+                    PowerPointDesignRecipe.ConsultingPortfolio, footerLeft: "MIXED");
+                PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                    .AddSection("Mixed plan", "Semantic structure with a custom detail slide.", "cover")
+                    .AddCustom("Custom detail", composer => {
+                        composer.AddTitle("Custom detail", "A raw composition can live inside the plan.");
+                        PowerPointLayoutBox[] columns = composer.ContentColumns(2);
+                        composer.AddCardGrid(new[] {
+                            new PowerPointCardContent("Choice", new[] { "Semantic plan" }),
+                            new PowerPointCardContent("Escape hatch", new[] { "Raw composer" })
+                        }, columns[0]);
+                        composer.AddMetricStrip(new[] {
+                            new PowerPointMetric("2", "modes")
+                        }, columns[1].TakeTopCm(1.6));
+                    }, "custom");
+
+                IReadOnlyList<PowerPointSlide> slides = deck.AddSlides(plan);
+
+                Assert.Equal(2, slides.Count);
+                Assert.Contains(slides[1].TextBoxes, textBox => textBox.Text == "Custom detail");
+                Assert.NotNull(slides[1].GetShape("Designer Card 1"));
+                Assert.NotNull(slides[1].GetShape("Composer Metric Band"));
+
+                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerDeckPlan_CanDescribeSlideSequenceBeforeRendering() {
+            PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                .AddSection("Cover", "Opening", "cover")
+                .AddCaseStudy("Client",
+                    new[] {
+                        new PowerPointCaseStudySection("Challenge", "Many details."),
+                        new PowerPointCaseStudySection("Result", "Clear story.")
+                    },
+                    new[] {
+                        new PowerPointMetric("2", "proof points")
+                    },
+                    "case-study")
+                .AddProcess("Path", null,
+                    new[] {
+                        new PowerPointProcessStep("One", "Start."),
+                        new PowerPointProcessStep("Two", "Finish.")
+                    },
+                    "path")
+                .AddCustom("Appendix", composer => composer.AddTitle("Appendix"), "custom");
+
+            IReadOnlyList<PowerPointDeckPlanSlideSummary> summaries = plan.DescribeSlides();
+
+            Assert.Equal(4, summaries.Count);
+            Assert.Equal(PowerPointDeckPlanSlideKind.Section, summaries[0].Kind);
+            Assert.Equal("Cover", summaries[0].Title);
+            Assert.Equal("cover", summaries[0].Seed);
+            Assert.Equal(3, summaries[1].ContentItemCount);
+            Assert.Equal(PowerPointDeckPlanSlideKind.Process, summaries[2].Kind);
+            Assert.Equal(2, summaries[2].ContentItemCount);
+            Assert.Equal(PowerPointDeckPlanSlideKind.Custom, summaries[3].Kind);
+            Assert.Contains("Appendix", summaries[3].ToString());
+        }
+
+        [Fact]
+        public void DesignerDeckPlan_CanValidateContentBeforeRendering() {
+            PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                .AddCaseStudy("Dense case",
+                    Enumerable.Range(1, 5)
+                        .Select(index => new PowerPointCaseStudySection("Section " + index, "Body")),
+                    Enumerable.Range(1, 4).Select(index => new PowerPointMetric(index.ToString(), "metric")))
+                .AddProcess("Long process", null,
+                    Enumerable.Range(1, 9)
+                        .Select(index => new PowerPointProcessStep("Step " + index, "Body")))
+                .AddLogoWall("Large proof wall", null,
+                    Enumerable.Range(1, 25).Select(index => new PowerPointLogoItem("Logo " + index)))
+                .AddCoverage("Coverage", null,
+                    Enumerable.Range(1, 19)
+                        .Select(index => new PowerPointCoverageLocation("Location " + index, index == 19 ? 1.2 : 0.5, 0.5)))
+                .AddCapability("Capabilities", null,
+                    Enumerable.Range(1, 7).Select(index => new PowerPointCapabilitySection("Section " + index)));
+
+            IReadOnlyList<PowerPointDeckPlanDiagnostic> diagnostics = plan.ValidateSlides();
+
+            Assert.Contains(diagnostics, diagnostic =>
+                diagnostic.Code == "CaseStudy.TooManySections" &&
+                diagnostic.Severity == PowerPointDeckPlanDiagnosticSeverity.Error);
+            Assert.Contains(diagnostics, diagnostic =>
+                diagnostic.Code == "CaseStudy.HiddenMetrics" &&
+                diagnostic.Severity == PowerPointDeckPlanDiagnosticSeverity.Warning);
+            Assert.Contains(diagnostics, diagnostic =>
+                diagnostic.Code == "Process.TooManySteps" &&
+                diagnostic.Index == 1);
+            Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "LogoWall.TooManyItems");
+            Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "Coverage.HiddenPins");
+            Assert.Contains(diagnostics, diagnostic =>
+                diagnostic.Code == "Coverage.LocationOutOfBounds" &&
+                diagnostic.Message.Contains("Location 19", StringComparison.Ordinal));
+            Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "Capability.TooManySections");
+            Assert.Contains("Coverage.LocationOutOfBounds", diagnostics.First(diagnostic =>
+                diagnostic.Code == "Coverage.LocationOutOfBounds").ToString());
+        }
+
+        [Fact]
+        public void DesignerDeckPlan_ValidationAllowsReadablePlans() {
+            PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                .AddSection("Cover")
+                .AddProcess("Process", null,
+                    new[] {
+                        new PowerPointProcessStep("One", "Start."),
+                        new PowerPointProcessStep("Two", "Finish.")
+                    })
+                .AddCapability("Capabilities", null,
+                    new[] {
+                        new PowerPointCapabilitySection("One", "Body"),
+                        new PowerPointCapabilitySection("Two", "Body")
+                    });
+
+            Assert.Empty(plan.ValidateSlides());
+        }
+
+        [Fact]
+        public void DesignerDeckPlan_CanPreviewResolvedLayoutsBeforeRendering() {
+            PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "render-preview",
+                PowerPointDesignDirection.Executive, footerLeft: "CLIENT");
+
+            PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                .AddSection("Cover", "Opening", "cover",
+                    options => options.SectionVariant = PowerPointSectionLayoutVariant.Poster)
+                .AddCaseStudy("Client",
+                    new[] {
+                        new PowerPointCaseStudySection("Challenge", "Many details."),
+                        new PowerPointCaseStudySection("Result", "Clear story.")
+                    },
+                    new[] {
+                        new PowerPointMetric("2", "proof points")
+                    },
+                    "case-study",
+                    options => options.Variant = PowerPointCaseStudyLayoutVariant.VisualHero)
+                .AddProcess("Path", null,
+                    new[] {
+                        new PowerPointProcessStep("One", "Start."),
+                        new PowerPointProcessStep("Two", "Finish.")
+                    },
+                    "path",
+                    options => options.Variant = PowerPointProcessLayoutVariant.NumberedColumns)
+                .AddCardGrid("Cards", null,
+                    new[] {
+                        new PowerPointCardContent("One", new[] { "A" }),
+                        new PowerPointCardContent("Two", new[] { "B" })
+                    },
+                    "cards",
+                    options => options.Variant = PowerPointCardGridLayoutVariant.SoftTiles)
+                .AddLogoWall("Proof", null,
+                    new[] {
+                        new PowerPointLogoItem("A"),
+                        new PowerPointLogoItem("B")
+                    },
+                    "proof",
+                    options => options.Variant = PowerPointLogoWallLayoutVariant.CertificateFeature)
+                .AddCoverage("Coverage", null,
+                    new[] {
+                        new PowerPointCoverageLocation("One", 0.2, 0.3),
+                        new PowerPointCoverageLocation("Two", 0.7, 0.5)
+                    },
+                    "coverage",
+                    options => options.Variant = PowerPointCoverageLayoutVariant.ListMap)
+                .AddCapability("Capabilities", null,
+                    new[] {
+                        new PowerPointCapabilitySection("One", "Body"),
+                        new PowerPointCapabilitySection("Two", "Body")
+                    },
+                    "capabilities",
+                    options => options.Variant = PowerPointCapabilityLayoutVariant.Stacked)
+                .AddCustom("Appendix", composer => composer.AddTitle("Appendix"), "appendix", dark: true);
+
+            IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> summaries = plan.DescribeSlides(design);
+
+            Assert.Equal(8, summaries.Count);
+            Assert.Equal("Executive", summaries[0].DirectionName);
+            Assert.Equal(PowerPointDesignMood.Corporate, summaries[0].Mood);
+            Assert.Equal(PowerPointSlideDensity.Balanced, summaries[0].Density);
+            Assert.Equal(PowerPointVisualStyle.Soft, summaries[0].VisualStyle);
+            Assert.Equal("Segoe UI Semibold", summaries[0].HeadingFontName);
+            Assert.Equal("Segoe UI", summaries[0].BodyFontName);
+            Assert.Equal("cover", summaries[0].ResolvedSeed);
+            Assert.Equal("render-preview/cover", summaries[0].DesignSeed);
+            Assert.Equal("Poster", summaries[0].LayoutVariant);
+            Assert.Equal("VisualHero", summaries[1].LayoutVariant);
+            Assert.Equal(3, summaries[1].ContentItemCount);
+            Assert.Equal("NumberedColumns", summaries[2].LayoutVariant);
+            Assert.Equal("SoftTiles", summaries[3].LayoutVariant);
+            Assert.Equal("CertificateFeature", summaries[4].LayoutVariant);
+            Assert.Equal("ListMap", summaries[5].LayoutVariant);
+            Assert.Equal("Stacked", summaries[6].LayoutVariant);
+            Assert.Equal("CustomDark", summaries[7].LayoutVariant);
+            Assert.Contains("Resolved process layout: NumberedColumns.", summaries[2].LayoutReasons);
+            Assert.Contains("Resolved capability layout: Stacked.", summaries[6].LayoutReasons);
+            Assert.Contains("The custom slide requests the dark designer surface.", summaries[7].LayoutReasons);
+            Assert.Contains("Appendix", summaries[7].ToString());
+        }
+
+        [Fact]
+        public void DesignerDeckComposer_PreviewsPlanSeedsFromCurrentSlidePosition() {
+            string filePath = CreateTempPresentationPath();
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+                PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "seed-preview",
+                    PowerPointDesignDirection.Executive);
+                PowerPointDeckComposer deck = presentation.UseDesigner(design);
+                deck.AddSectionSlide("Already rendered");
+
+                PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                    .AddSection("Planned cover", seed: " ")
+                    .AddProcess("Planned path", null,
+                        new[] {
+                            new PowerPointProcessStep("One", "Start."),
+                            new PowerPointProcessStep("Two", "Finish.")
+                        },
+                        seed: " ");
+
+                IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> neutralPreview = plan.DescribeSlides(design);
+                IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> composerPreview = deck.DescribeSlides(plan);
+
+                Assert.Equal("slide-1", neutralPreview[0].ResolvedSeed);
+                Assert.Equal("slide-2", composerPreview[0].ResolvedSeed);
+                Assert.Equal("slide-3", composerPreview[1].ResolvedSeed);
+                Assert.Equal("seed-preview/slide-2", composerPreview[0].DesignSeed);
+
+                IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> explicitOffsetPreview =
+                    plan.DescribeSlides(design, slideIndexOffset: 1);
+                Assert.Equal(composerPreview[0].ResolvedSeed, explicitOffsetPreview[0].ResolvedSeed);
+                Assert.Equal(composerPreview[1].DesignSeed, explicitOffsetPreview[1].DesignSeed);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerDeckPlan_RejectsNegativePreviewOffset() {
+            PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "seed-preview",
+                PowerPointDesignDirection.Executive);
+            PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                .AddSection("Planned cover");
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => plan.DescribeSlides(design, -1));
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_CanDescribeDeckPlanWithSlideOffset() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-offset-preview", "technical rollout proposal");
+            PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                .AddSection("Planned cover", seed: " ");
+
+            IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> summaries =
+                brief.DescribeDeckPlan(plan, alternativeIndex: 0, slideIndexOffset: 3);
+
+            Assert.Equal("slide-4", summaries[0].ResolvedSeed);
+            Assert.Contains("/slide-4", summaries[0].DesignSeed);
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_CanDescribeDeckPlanBeforeRendering() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-render-preview", "technical rollout proposal")
+                .WithIdentity("Client", footerLeft: "CLIENT");
+            PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                .AddSection("Cover", "Opening", "cover")
+                .AddProcess("Path", null,
+                    new[] {
+                        new PowerPointProcessStep("One", "Start."),
+                        new PowerPointProcessStep("Two", "Finish.")
+                    },
+                    "path");
+
+            IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> summaries =
+                brief.DescribeDeckPlan(plan, alternativeIndex: 1);
+
+            Assert.Equal(2, summaries.Count);
+            Assert.Equal("Runbook", summaries[0].DirectionName);
+            Assert.Equal(PowerPointDesignMood.Minimal, summaries[0].Mood);
+            Assert.Equal("Segoe UI Semibold", summaries[0].HeadingFontName);
+            Assert.Equal("cover", summaries[0].ResolvedSeed);
+            Assert.Equal("brief-render-preview/technical-proposal-runbook-2/cover", summaries[0].DesignSeed);
+            Assert.Equal("Rail", summaries[1].LayoutVariant);
+            Assert.Equal(2, summaries[1].ContentItemCount);
+            Assert.Contains("Minimal style favors a rail over heavier process decoration.",
+                summaries[1].LayoutReasons);
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_CanCompareDeckPlanAlternativesBeforeRendering() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-plan-alternatives", "technical rollout proposal")
+                .WithIdentity("Client", footerLeft: "CLIENT");
+            PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                .AddSection("Cover", "Opening", "cover")
+                .AddProcess("Path", null,
+                    Enumerable.Range(1, 6)
+                        .Select(index => new PowerPointProcessStep("Step " + index, "Body")),
+                    "path");
+
+            IReadOnlyList<PowerPointDeckPlanAlternativeSummary> alternatives =
+                brief.DescribeDeckPlanAlternatives(plan, 3);
+
+            Assert.Equal(3, alternatives.Count);
+            Assert.Equal(PowerPointDesignVariety.Balanced, alternatives[0].Variety);
+            Assert.Equal("Architecture Map", alternatives[0].Design.DirectionName);
+            Assert.Equal("Runbook", alternatives[1].Design.DirectionName);
+            Assert.Equal("Delivery Signal", alternatives[2].Design.DirectionName);
+            Assert.NotEqual(alternatives[0].Design.Accent2Color, alternatives[1].Design.Accent2Color);
+            Assert.Equal(2, alternatives[0].Slides.Count);
+            Assert.Equal("cover", alternatives[0].Slides[0].ResolvedSeed);
+            Assert.NotEqual(alternatives[0].Slides[0].DesignSeed, alternatives[1].Slides[0].DesignSeed);
+            Assert.Contains(alternatives[0].Diagnostics,
+                diagnostic => diagnostic.Code == "Process.DenseSteps");
+            Assert.True(alternatives[0].HasWarnings);
+            Assert.False(alternatives[0].HasErrors);
+            Assert.True(alternatives[0].MatchesContent);
+            Assert.Equal(2, alternatives[0].ContentFitScore);
+            Assert.Contains("Geometric visual style supports process, timeline, and coverage slides.",
+                alternatives[0].ContentFitReasons);
+            Assert.True(alternatives[1].ContentFitScore > alternatives[0].ContentFitScore);
+            Assert.Contains("Compact density fits denser planned slides without manual placement.",
+                alternatives[1].ContentFitReasons);
+            Assert.Contains("Six or more process steps use a rail so the sequence stays connected.",
+                alternatives[1].Slides[1].LayoutReasons);
+            Assert.True(alternatives[2].ContentFitScore > alternatives[1].ContentFitScore);
+            Assert.Contains("Architecture Map", alternatives[0].ToString());
+            Assert.Contains("Balanced", alternatives[0].ToString());
+            Assert.Contains("fit 2", alternatives[0].ToString());
         }
 
         [Fact]

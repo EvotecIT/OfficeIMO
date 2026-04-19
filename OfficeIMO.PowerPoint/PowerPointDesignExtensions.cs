@@ -246,7 +246,7 @@ namespace OfficeIMO.PowerPoint {
             return list;
         }
 
-        private static PowerPointSectionLayoutVariant ResolveSectionVariant(PowerPointDesignerSlideOptions options) {
+        internal static PowerPointSectionLayoutVariant ResolveSectionVariant(PowerPointDesignerSlideOptions options) {
             if (options.SectionVariant != PowerPointSectionLayoutVariant.Auto) {
                 return options.SectionVariant;
             }
