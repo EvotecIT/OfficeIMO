@@ -86,10 +86,13 @@ namespace OfficeIMO.Examples.PowerPoint {
                     new PowerPointMetric(selected.Reasons.Count.ToString(), "reasons")
                 }, columns[1].TakeTopCm(2.2));
 
+                composer.AddVisualFrame(columns[1].InsetCm(0, 2.55, 0, 2.25).TakeTopCm(2.0),
+                    PowerPointVisualFrameVariant.ProofBoard);
+
                 composer.AddCalloutBand(
                     $"{selected.Design.Mood} mood, {selected.Design.VisualStyle} visuals, " +
                     $"{selected.Design.HeadingFontName} headings. Change only the alternative index to render a different direction.",
-                    columns[1].InsetCm(0, 2.75, 0, 0).TakeTopCm(1.75));
+                    columns[1].InsetCm(0, 4.85, 0, 0).TakeTopCm(1.45));
             }, "selected-direction", options => options.FooterRight = "Recommended");
 
             presentation.Save();

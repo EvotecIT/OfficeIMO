@@ -162,12 +162,19 @@ recommendedDeck.ComposeSlide(composer => {
     composer.AddCardGrid(recommendedPlan.ContentFitReasons.Take(3)
         .Select((reason, index) => new PowerPointCardContent("Signal " + (index + 1), new[] { reason })),
         layout.Primary);
-    composer.AddVisualFrame(layout.Visual, PowerPointVisualFrameVariant.Collage);
+    composer.AddVisualFrame(layout.Visual, PowerPointVisualFrameVariant.ProofBoard);
     composer.AddMetricStrip(new[] {
         new PowerPointMetric(recommendedPlan.ContentFitScore.ToString(), "fit score"),
         new PowerPointMetric(recommendedPlan.Slides.Count.ToString(), "slides")
     }, layout.Metrics, PowerPointMetricStripVariant.SeparatedTiles);
 }, seed: "advisor-summary");
+
+// Visual frames can switch between dashboard, collage, diagram, device, and proof-board treatments.
+recommendedDeck.AddCapabilitySlide("Evidence", "Choose visual support without hand-drawing a frame.",
+    new[] {
+        new PowerPointCapabilitySection("Proof", "Editable evidence area.", new[] { "Screenshot", "Certificate" })
+    },
+    configure: options => options.VisualFrameVariant = PowerPointVisualFrameVariant.DeviceMockup);
 
 // Or supply your own creative directions so decks do not all share the same house style.
 var clientDirections = new[] {

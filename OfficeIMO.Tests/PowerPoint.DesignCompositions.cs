@@ -361,10 +361,12 @@ namespace OfficeIMO.Tests {
                     });
 
                     PowerPointSlide visualSlide = presentation.ComposeDesignerSlide(composer => {
-                        PowerPointLayoutBox[] columns = composer.ContentColumns(3, 0.35, topCm: 3.8, bottomMarginCm: 2.0);
+                        PowerPointLayoutBox[] columns = composer.ContentColumns(5, 0.35, topCm: 3.8, bottomMarginCm: 2.0);
                         composer.AddVisualFrame(columns[0], PowerPointVisualFrameVariant.Dashboard);
                         composer.AddVisualFrame(columns[1], PowerPointVisualFrameVariant.Collage);
                         composer.AddVisualFrame(columns[2], PowerPointVisualFrameVariant.Diagram);
+                        composer.AddVisualFrame(columns[3], PowerPointVisualFrameVariant.DeviceMockup);
+                        composer.AddVisualFrame(columns[4], PowerPointVisualFrameVariant.ProofBoard);
                     }, options: new PowerPointDesignerSlideOptions {
                         DesignIntent = new PowerPointDesignIntent { Seed = "surface-visuals" }
                     });
@@ -375,6 +377,8 @@ namespace OfficeIMO.Tests {
                     Assert.Contains(visualSlide.Shapes, shape => shape.Name == "Case Study Visual Content Panel");
                     Assert.Contains(visualSlide.Shapes, shape => shape.Name == "Visual Collage Tile 1");
                     Assert.Contains(visualSlide.Shapes, shape => shape.Name == "Visual Diagram Node 1");
+                    Assert.Contains(visualSlide.Shapes, shape => shape.Name == "Visual Device Screen");
+                    Assert.Contains(visualSlide.Shapes, shape => shape.Name == "Visual Proof Mat");
 
                     List<ValidationErrorInfo> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
@@ -1826,13 +1830,13 @@ namespace OfficeIMO.Tests {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
-                PowerPointSlide softSlide = presentation.AddDesignerCaseStudySlide("Soft client",
+                PowerPointSlide editorialSlide = presentation.AddDesignerCaseStudySlide("Editorial client",
                     new[] {
                         new PowerPointCaseStudySection("Client", "Short story."),
                         new PowerPointCaseStudySection("Challenge", "Needs a clean visual support area.")
                     },
                     options: new PowerPointCaseStudySlideOptions {
-                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Editorial, "soft-case")
+                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Editorial, "editorial-case")
                     });
 
                 PowerPointSlide minimalSlide = presentation.AddDesignerCaseStudySlide("Minimal client",
@@ -1844,8 +1848,8 @@ namespace OfficeIMO.Tests {
                         DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Minimal, "minimal-case")
                     });
 
-                Assert.NotNull(softSlide.GetShape("Visual Collage Tile 1"));
-                Assert.Null(softSlide.GetShape("Case Study Visual Content Panel"));
+                Assert.NotNull(editorialSlide.GetShape("Visual Proof Mat"));
+                Assert.Null(editorialSlide.GetShape("Case Study Visual Content Panel"));
                 Assert.NotNull(minimalSlide.GetShape("Visual Diagram Node 1"));
                 Assert.Null(minimalSlide.GetShape("Case Study Visual Content Panel"));
             } finally {
@@ -2563,6 +2567,41 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(slide.GetShape("Capability Section Accent 1"));
                 Assert.NotNull(slide.GetShape("Coverage Map Panel"));
                 Assert.NotNull(slide.GetShape("Coverage Pin 1"));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerCapabilitySlide_CanUseProofBoardVisualFrame() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointSlide slide = presentation.AddDesignerCapabilitySlide("Evidence",
+                    "Visual support can use an editorial proof-board treatment.",
+                    new[] {
+                        new PowerPointCapabilitySection("Certified service",
+                            "Proof-led content stays structured.", new[] { "Partner evidence", "Audit trail" }),
+                        new PowerPointCapabilitySection("Operational record",
+                            "Support details stay editable.", new[] { "Locations", "Metrics" })
+                    },
+                    options: new PowerPointCapabilitySlideOptions {
+                        Variant = PowerPointCapabilityLayoutVariant.TextVisual,
+                        VisualKind = PowerPointCapabilityVisualKind.VisualFrame,
+                        VisualFrameVariant = PowerPointVisualFrameVariant.ProofBoard
+                    });
+
+                Assert.NotNull(slide.GetShape("Visual Proof Mat"));
+                Assert.NotNull(slide.GetShape("Visual Proof Primary Panel"));
+                Assert.Null(slide.GetShape("Visual Device Screen"));
+
+                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

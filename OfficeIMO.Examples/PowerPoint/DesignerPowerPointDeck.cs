@@ -47,6 +47,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     options.BrandText = "OFFICEIMO";
                     options.BandLabel = "Project portfolio";
                     options.Variant = PowerPointCaseStudyLayoutVariant.EditorialSplit;
+                    options.VisualFrameVariant = PowerPointVisualFrameVariant.DeviceMockup;
                 });
 
             deck.AddProcessSlide("How we work",

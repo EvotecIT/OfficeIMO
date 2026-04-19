@@ -561,7 +561,7 @@ namespace OfficeIMO.PowerPoint {
             double visualWidth = slideWidthCm - visualLeft - 1.45;
             double visualHeight = 4.75;
             AddVisualFrame(slide, theme, options.VisualImagePath, visualLeft, visualTop, visualWidth, visualHeight,
-                options.DesignIntent);
+                options.VisualFrameVariant, options.DesignIntent);
 
             if (metrics.Count > 0) {
                 PowerPointAutoShape metricBand = slide.AddRectangleCm(visualLeft, visualTop + visualHeight + 0.55,
@@ -607,7 +607,7 @@ namespace OfficeIMO.PowerPoint {
 
             AddMetrics(slide, theme, metrics, slideWidthCm * 0.46, bandTop + 1.75, slideWidthCm * 0.22, 1.65);
             AddVisualFrame(slide, theme, options.VisualImagePath, slideWidthCm - 8.6, bandTop + 0.9, 6.8, bandHeight - 1.5,
-                options.DesignIntent);
+                options.VisualFrameVariant, options.DesignIntent);
             AddTags(slide, theme, options.Tags, 9.4, bandTop + bandHeight - 1.15, slideWidthCm - 12.6, 0.7);
         }
 
@@ -657,13 +657,34 @@ namespace OfficeIMO.PowerPoint {
             frame.OutlineWidthPoints = 0;
             frame.SetShadow("000000", blurPoints: 5, distancePoints: 1.5, angleDegrees: 90, transparencyPercent: 82);
 
+            PowerPointVisualFrameVariant resolvedVariant = ResolveVisualPlaceholderVariant(variant, intent);
             if (!string.IsNullOrWhiteSpace(imagePath) && File.Exists(imagePath)) {
-                AddPictureIfExists(slide, imagePath!, leftCm + 0.08, topCm + 0.08, widthCm - 0.16, heightCm - 0.16, crop: true);
+                AddVisualPicture(slide, theme, imagePath!, leftCm + 0.08, topCm + 0.08,
+                    widthCm - 0.16, heightCm - 0.16, resolvedVariant);
                 return;
             }
 
             AddVisualPlaceholder(slide, theme, leftCm + 0.08, topCm + 0.08, widthCm - 0.16, heightCm - 0.16,
-                variant, intent);
+                resolvedVariant, intent);
+        }
+
+        private static void AddVisualPicture(PowerPointSlide slide, PowerPointDesignTheme theme, string imagePath,
+            double leftCm, double topCm, double widthCm, double heightCm, PowerPointVisualFrameVariant variant) {
+            if (variant == PowerPointVisualFrameVariant.DeviceMockup) {
+                AddVisualDeviceChrome(slide, theme, leftCm, topCm, widthCm, heightCm);
+                AddPictureIfExists(slide, imagePath, leftCm + 0.18, topCm + 0.55, widthCm - 0.36,
+                    heightCm - 0.78, crop: true);
+                return;
+            }
+
+            if (variant == PowerPointVisualFrameVariant.ProofBoard) {
+                AddVisualProofMat(slide, theme, leftCm, topCm, widthCm, heightCm);
+                AddPictureIfExists(slide, imagePath, leftCm + widthCm * 0.10, topCm + heightCm * 0.14,
+                    widthCm * 0.78, heightCm * 0.68, crop: true);
+                return;
+            }
+
+            AddPictureIfExists(slide, imagePath, leftCm, topCm, widthCm, heightCm, crop: true);
         }
 
         private static void AddVisualPlaceholder(PowerPointSlide slide, PowerPointDesignTheme theme,
@@ -681,6 +702,14 @@ namespace OfficeIMO.PowerPoint {
             }
             if (resolvedVariant == PowerPointVisualFrameVariant.Diagram) {
                 AddVisualDiagramPlaceholder(slide, theme, leftCm, topCm, widthCm, heightCm);
+                return;
+            }
+            if (resolvedVariant == PowerPointVisualFrameVariant.DeviceMockup) {
+                AddVisualDeviceMockupPlaceholder(slide, theme, leftCm, topCm, widthCm, heightCm);
+                return;
+            }
+            if (resolvedVariant == PowerPointVisualFrameVariant.ProofBoard) {
+                AddVisualProofBoardPlaceholder(slide, theme, leftCm, topCm, widthCm, heightCm);
                 return;
             }
 
@@ -785,6 +814,122 @@ namespace OfficeIMO.PowerPoint {
             plate.OutlineWidthPoints = 0.45;
         }
 
+        private static void AddVisualDeviceMockupPlaceholder(PowerPointSlide slide, PowerPointDesignTheme theme,
+            double leftCm, double topCm, double widthCm, double heightCm) {
+            AddVisualDeviceChrome(slide, theme, leftCm, topCm, widthCm, heightCm);
+
+            double contentTop = topCm + 0.65;
+            double contentLeft = leftCm + widthCm * 0.11;
+            double contentWidth = widthCm * 0.78;
+            double contentHeight = heightCm * 0.58;
+
+            PowerPointAutoShape hero = slide.AddRectangleCm(contentLeft, contentTop, contentWidth, contentHeight,
+                "Visual Device Hero Area");
+            hero.FillColor = theme.AccentColor;
+            hero.FillTransparency = 34;
+            hero.OutlineColor = theme.AccentColor;
+            hero.OutlineWidthPoints = 0;
+
+            for (int i = 0; i < 3; i++) {
+                PowerPointAutoShape bar = slide.AddRectangleCm(contentLeft + contentWidth * 0.09,
+                    contentTop + contentHeight * (0.22 + i * 0.18),
+                    contentWidth * (i == 0 ? 0.38 : 0.25), 0.06, "Visual Device Content Line " + (i + 1));
+                bar.FillColor = theme.AccentLightColor;
+                bar.FillTransparency = i == 0 ? 12 : 42;
+                bar.OutlineColor = theme.AccentLightColor;
+                bar.OutlineWidthPoints = 0;
+            }
+
+            for (int i = 0; i < 3; i++) {
+                PowerPointAutoShape tile = slide.AddRectangleCm(contentLeft + contentWidth * (0.58 + i * 0.11),
+                    contentTop + contentHeight * 0.22, contentWidth * 0.08, contentHeight * 0.46,
+                    "Visual Device Metric Tile " + (i + 1));
+                tile.FillColor = GetAccent(theme, i);
+                tile.FillTransparency = 18 + i * 10;
+                tile.OutlineColor = theme.AccentLightColor;
+                tile.OutlineWidthPoints = 0.35;
+            }
+        }
+
+        private static void AddVisualDeviceChrome(PowerPointSlide slide, PowerPointDesignTheme theme,
+            double leftCm, double topCm, double widthCm, double heightCm) {
+            PowerPointAutoShape screen = slide.AddRectangleCm(leftCm + widthCm * 0.06, topCm + heightCm * 0.08,
+                widthCm * 0.88, heightCm * 0.76, "Visual Device Screen");
+            screen.FillColor = theme.AccentDarkColor;
+            screen.FillTransparency = 18;
+            screen.OutlineColor = theme.AccentLightColor;
+            screen.OutlineWidthPoints = 0.45;
+
+            PowerPointAutoShape topBar = slide.AddRectangleCm(leftCm + widthCm * 0.06, topCm + heightCm * 0.08,
+                widthCm * 0.88, 0.38, "Visual Device Chrome Bar");
+            topBar.FillColor = theme.AccentLightColor;
+            topBar.FillTransparency = 8;
+            topBar.OutlineColor = theme.AccentLightColor;
+            topBar.OutlineWidthPoints = 0;
+
+            for (int i = 0; i < 3; i++) {
+                PowerPointAutoShape dot = slide.AddEllipseCm(leftCm + widthCm * 0.10 + i * 0.18,
+                    topCm + heightCm * 0.08 + 0.12, 0.09, 0.09, "Visual Device Chrome Dot " + (i + 1));
+                dot.FillColor = GetAccent(theme, i);
+                dot.FillTransparency = i == 0 ? 0 : 18;
+                dot.OutlineColor = dot.FillColor;
+                dot.OutlineWidthPoints = 0;
+            }
+
+            PowerPointAutoShape baseLine = slide.AddLineCm(leftCm + widthCm * 0.18, topCm + heightCm * 0.89,
+                leftCm + widthCm * 0.82, topCm + heightCm * 0.89, "Visual Device Base");
+            baseLine.OutlineColor = theme.AccentLightColor;
+            baseLine.OutlineWidthPoints = 1.1;
+        }
+
+        private static void AddVisualProofBoardPlaceholder(PowerPointSlide slide, PowerPointDesignTheme theme,
+            double leftCm, double topCm, double widthCm, double heightCm) {
+            AddVisualProofMat(slide, theme, leftCm, topCm, widthCm, heightCm);
+
+            AddVisualProofPanel(slide, theme, leftCm + widthCm * 0.10, topCm + heightCm * 0.15,
+                widthCm * 0.36, heightCm * 0.55, "Visual Proof Primary Panel", theme.PanelColor, 0);
+            AddVisualProofPanel(slide, theme, leftCm + widthCm * 0.53, topCm + heightCm * 0.18,
+                widthCm * 0.34, heightCm * 0.24, "Visual Proof Detail Panel 1", theme.AccentLightColor, 10);
+            AddVisualProofPanel(slide, theme, leftCm + widthCm * 0.58, topCm + heightCm * 0.48,
+                widthCm * 0.28, heightCm * 0.22, "Visual Proof Detail Panel 2", theme.AccentLightColor, 24);
+
+            for (int i = 0; i < 3; i++) {
+                PowerPointAutoShape rule = slide.AddRectangleCm(leftCm + widthCm * 0.15,
+                    topCm + heightCm * (0.78 + i * 0.055), widthCm * (0.46 - i * 0.06), 0.045,
+                    "Visual Proof Caption Line " + (i + 1));
+                rule.FillColor = theme.AccentLightColor;
+                rule.FillTransparency = 18 + i * 18;
+                rule.OutlineColor = theme.AccentLightColor;
+                rule.OutlineWidthPoints = 0;
+            }
+        }
+
+        private static void AddVisualProofMat(PowerPointSlide slide, PowerPointDesignTheme theme,
+            double leftCm, double topCm, double widthCm, double heightCm) {
+            PowerPointAutoShape mat = slide.AddRectangleCm(leftCm + widthCm * 0.05, topCm + heightCm * 0.08,
+                widthCm * 0.90, heightCm * 0.78, "Visual Proof Mat");
+            mat.FillColor = theme.AccentContrastColor;
+            mat.FillTransparency = 8;
+            mat.OutlineColor = theme.AccentLightColor;
+            mat.OutlineWidthPoints = 0.4;
+
+            PowerPointAutoShape accent = slide.AddRectangleCm(leftCm + widthCm * 0.05, topCm + heightCm * 0.08,
+                widthCm * 0.90, 0.08, "Visual Proof Mat Accent");
+            accent.FillColor = theme.Accent2Color;
+            accent.OutlineColor = theme.Accent2Color;
+            accent.OutlineWidthPoints = 0;
+        }
+
+        private static void AddVisualProofPanel(PowerPointSlide slide, PowerPointDesignTheme theme,
+            double leftCm, double topCm, double widthCm, double heightCm, string name, string fillColor,
+            int fillTransparency) {
+            PowerPointAutoShape panel = slide.AddRectangleCm(leftCm, topCm, widthCm, heightCm, name);
+            panel.FillColor = fillColor;
+            panel.FillTransparency = fillTransparency;
+            panel.OutlineColor = theme.PanelBorderColor;
+            panel.OutlineWidthPoints = 0.35;
+        }
+
         private static void AddVisualTile(PowerPointSlide slide, PowerPointDesignTheme theme,
             double leftCm, double topCm, double widthCm, double heightCm, string name, string fillColor,
             int fillTransparency) {
@@ -809,6 +954,12 @@ namespace OfficeIMO.PowerPoint {
                 intent.VisualStyle == PowerPointVisualStyle.Geometric) {
                 return PowerPointVisualFrameVariant.Dashboard;
             }
+            if (intent.Mood == PowerPointDesignMood.Energetic) {
+                return PowerPointVisualFrameVariant.DeviceMockup;
+            }
+            if (intent.Mood == PowerPointDesignMood.Editorial) {
+                return PowerPointVisualFrameVariant.ProofBoard;
+            }
             if (intent.VisualStyle == PowerPointVisualStyle.Soft) {
                 return PowerPointVisualFrameVariant.Collage;
             }
@@ -816,10 +967,12 @@ namespace OfficeIMO.PowerPoint {
                 return PowerPointVisualFrameVariant.Diagram;
             }
 
-            return intent.Pick(3, "visual-placeholder") switch {
+            return intent.Pick(5, "visual-placeholder") switch {
                 0 => PowerPointVisualFrameVariant.Dashboard,
                 1 => PowerPointVisualFrameVariant.Collage,
-                _ => PowerPointVisualFrameVariant.Diagram
+                2 => PowerPointVisualFrameVariant.Diagram,
+                3 => PowerPointVisualFrameVariant.DeviceMockup,
+                _ => PowerPointVisualFrameVariant.ProofBoard
             };
         }
 

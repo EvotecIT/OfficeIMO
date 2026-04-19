@@ -198,7 +198,11 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Layered collage placeholder with overlapping proof tiles.</summary>
         Collage,
         /// <summary>Diagram placeholder with editable nodes and connectors.</summary>
-        Diagram
+        Diagram,
+        /// <summary>Screen or laptop-like visual treatment for product, app, or screenshot content.</summary>
+        DeviceMockup,
+        /// <summary>Editorial proof board with image, certificate, or evidence panels.</summary>
+        ProofBoard
     }
 
     /// <summary>
@@ -399,6 +403,11 @@ namespace OfficeIMO.PowerPoint {
         public string? VisualImagePath { get; set; }
 
         /// <summary>
+        ///     Visual frame treatment for the supporting image or editable placeholder.
+        /// </summary>
+        public PowerPointVisualFrameVariant VisualFrameVariant { get; set; } = PowerPointVisualFrameVariant.Auto;
+
+        /// <summary>
         ///     Optional person or product cutout displayed in the bottom brand band.
         /// </summary>
         public string? PersonImagePath { get; set; }
@@ -527,6 +536,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Optional image path for the visual frame.
         /// </summary>
         public string? VisualImagePath { get; set; }
+
+        /// <summary>
+        ///     Visual frame treatment used when VisualKind is VisualFrame.
+        /// </summary>
+        public PowerPointVisualFrameVariant VisualFrameVariant { get; set; } = PowerPointVisualFrameVariant.Auto;
 
         /// <summary>
         ///     Optional label displayed with the visual support area.

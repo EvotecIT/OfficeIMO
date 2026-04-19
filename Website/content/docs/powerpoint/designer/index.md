@@ -140,7 +140,17 @@ Named composition presets sit between manual coordinates and full semantic slide
 
 Variants keep those presets from becoming one fixed look. Use `Standard` for the baseline arrangement, `Mirrored` or `VisualLead` when the visual should move, `EvidenceLead` when metrics should lead, or `Auto` when the design intent and seed should pick a stable variation.
 
-Surface variants keep repeated regions from looking identical. A visual frame can use `Dashboard`, `Collage`, or `Diagram` placeholders, and a metric strip can use a `SolidBand`, `SeparatedTiles`, or `Underlined` treatment.
+Surface variants keep repeated regions from looking identical. A visual frame can use `Dashboard`, `Collage`, `Diagram`, `DeviceMockup`, or `ProofBoard` treatments, and a metric strip can use a `SolidBand`, `SeparatedTiles`, or `Underlined` treatment.
+
+Semantic slides expose the same visual-frame choice through options, so screenshot-heavy and proof-heavy slides do not need a custom layout just to avoid the default placeholder:
+
+```csharp
+deck.AddCapabilitySlide("Evidence", "Choose visual support without hand-drawing a frame.",
+    new[] {
+        new PowerPointCapabilitySection("Proof", "Editable evidence area.", new[] { "Screenshot", "Certificate" })
+    },
+    configure: options => options.VisualFrameVariant = PowerPointVisualFrameVariant.DeviceMockup);
+```
 
 ```csharp
 deck.ComposeSlide(composer => {
@@ -154,7 +164,7 @@ deck.ComposeSlide(composer => {
                 "Fit signal " + (index + 1), new[] { reason })),
         layout.Primary);
 
-    composer.AddVisualFrame(layout.Visual, PowerPointVisualFrameVariant.Collage);
+    composer.AddVisualFrame(layout.Visual, PowerPointVisualFrameVariant.ProofBoard);
 
     composer.AddMetricStrip(new[] {
         new PowerPointMetric(selectedPlan.ContentFitScore.ToString(), "fit score"),
