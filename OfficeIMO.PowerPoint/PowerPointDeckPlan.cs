@@ -26,6 +26,16 @@ namespace OfficeIMO.PowerPoint {
     }
 
     /// <summary>
+    ///     Severity of a planned slide diagnostic.
+    /// </summary>
+    public enum PowerPointDeckPlanDiagnosticSeverity {
+        /// <summary>The plan can render, but content may be dense, hidden, or better split across slides.</summary>
+        Warning,
+        /// <summary>The plan contains content that the semantic renderer rejects.</summary>
+        Error
+    }
+
+    /// <summary>
     ///     Semantic sequence of designer slides that can be applied to a deck composer.
     /// </summary>
     public sealed class PowerPointDeckPlan {
@@ -146,6 +156,18 @@ namespace OfficeIMO.PowerPoint {
 
             return summaries;
         }
+
+        /// <summary>
+        ///     Returns warnings and errors for the planned slide sequence before rendering.
+        /// </summary>
+        public IReadOnlyList<PowerPointDeckPlanDiagnostic> ValidateSlides() {
+            List<PowerPointDeckPlanDiagnostic> diagnostics = new();
+            for (int i = 0; i < _slides.Count; i++) {
+                _slides[i].Validate(i, diagnostics);
+            }
+
+            return diagnostics.AsReadOnly();
+        }
     }
 
     /// <summary>
@@ -208,6 +230,14 @@ namespace OfficeIMO.PowerPoint {
                 design.BaseIntent.VisualStyle,
                 design.Theme.HeadingFontName,
                 design.Theme.BodyFontName);
+        }
+
+        internal virtual void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {
+        }
+
+        private protected void AddDiagnostic(IList<PowerPointDeckPlanDiagnostic> diagnostics, int index,
+            PowerPointDeckPlanDiagnosticSeverity severity, string code, string message) {
+            diagnostics.Add(new PowerPointDeckPlanDiagnostic(index, Kind, Title, severity, code, message));
         }
 
         private protected virtual string? ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
@@ -312,6 +342,17 @@ namespace OfficeIMO.PowerPoint {
             PowerPointCaseStudySlideOptions options = ConfigurePreview(design, slideSeed, _configure);
             return PowerPointDesignExtensions.ResolveCaseStudyVariant(options, Sections, Metrics).ToString();
         }
+
+        internal override void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {
+            if (Sections.Count > 4) {
+                AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Error,
+                    "CaseStudy.TooManySections", "Case-study slides support up to 4 narrative sections.");
+            }
+            if (Metrics.Count > 3) {
+                AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Warning,
+                    "CaseStudy.HiddenMetrics", "Case-study slides display up to 3 metrics; extra metrics are ignored.");
+            }
+        }
     }
 
     /// <summary>
@@ -347,6 +388,16 @@ namespace OfficeIMO.PowerPoint {
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointProcessSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
             return PowerPointDesignExtensions.ResolveProcessVariant(options, Steps).ToString();
+        }
+
+        internal override void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {
+            if (Steps.Count > 8) {
+                AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Error,
+                    "Process.TooManySteps", "Process slides support up to 8 steps.");
+            } else if (Steps.Count > 5) {
+                AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Warning,
+                    "Process.DenseSteps", "Process slides with more than 5 steps are dense; consider splitting the flow.");
+            }
         }
     }
 
@@ -420,6 +471,16 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLogoWallSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
             return PowerPointDesignExtensions.ResolveLogoWallVariant(options, Logos).ToString();
         }
+
+        internal override void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {
+            if (Logos.Count > 24) {
+                AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Error,
+                    "LogoWall.TooManyItems", "Logo wall slides support up to 24 items.");
+            } else if (Logos.Count > 12) {
+                AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Warning,
+                    "LogoWall.DenseItems", "Logo wall slides with more than 12 items become compact.");
+            }
+        }
     }
 
     /// <summary>
@@ -456,6 +517,25 @@ namespace OfficeIMO.PowerPoint {
             PowerPointCoverageSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
             return PowerPointDesignExtensions.ResolveCoverageVariant(options, Locations).ToString();
         }
+
+        internal override void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {
+            if (Locations.Count > 24) {
+                AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Error,
+                    "Coverage.TooManyLocations", "Coverage slides support up to 24 locations.");
+            } else if (Locations.Count > 18) {
+                AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Warning,
+                    "Coverage.HiddenPins", "Coverage map variants show up to 18 pins; extra locations may appear only in text.");
+            }
+
+            for (int i = 0; i < Locations.Count; i++) {
+                PowerPointCoverageLocation location = Locations[i];
+                if (location.X < 0 || location.X > 1 || location.Y < 0 || location.Y > 1) {
+                    AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Error,
+                        "Coverage.LocationOutOfBounds",
+                        "Location '" + location.Name + "' must use X and Y values between 0 and 1.");
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -491,6 +571,16 @@ namespace OfficeIMO.PowerPoint {
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointCapabilitySlideOptions options = ConfigurePreview(design, slideSeed, _configure);
             return PowerPointDesignExtensions.ResolveCapabilityVariant(options, Sections).ToString();
+        }
+
+        internal override void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {
+            if (Sections.Count > 6) {
+                AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Error,
+                    "Capability.TooManySections", "Capability slides support up to 6 sections.");
+            } else if (Sections.Count > 4) {
+                AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Warning,
+                    "Capability.DenseSections", "Capability slides with more than 4 sections are dense.");
+            }
         }
     }
 
@@ -578,6 +668,56 @@ namespace OfficeIMO.PowerPoint {
         /// <inheritdoc />
         public override string ToString() {
             return Index + ": " + Kind + " - " + Title;
+        }
+    }
+
+    /// <summary>
+    ///     Warning or error found while validating a planned designer slide.
+    /// </summary>
+    public sealed class PowerPointDeckPlanDiagnostic {
+        internal PowerPointDeckPlanDiagnostic(int index, PowerPointDeckPlanSlideKind kind, string title,
+            PowerPointDeckPlanDiagnosticSeverity severity, string code, string message) {
+            Index = index;
+            Kind = kind;
+            Title = title;
+            Severity = severity;
+            Code = code;
+            Message = message;
+        }
+
+        /// <summary>
+        ///     Zero-based slide index within the plan.
+        /// </summary>
+        public int Index { get; }
+
+        /// <summary>
+        ///     Semantic slide kind.
+        /// </summary>
+        public PowerPointDeckPlanSlideKind Kind { get; }
+
+        /// <summary>
+        ///     Planned slide title.
+        /// </summary>
+        public string Title { get; }
+
+        /// <summary>
+        ///     Diagnostic severity.
+        /// </summary>
+        public PowerPointDeckPlanDiagnosticSeverity Severity { get; }
+
+        /// <summary>
+        ///     Stable machine-readable diagnostic code.
+        /// </summary>
+        public string Code { get; }
+
+        /// <summary>
+        ///     Human-readable diagnostic message.
+        /// </summary>
+        public string Message { get; }
+
+        /// <inheritdoc />
+        public override string ToString() {
+            return Index + ": " + Severity + " " + Code + " - " + Message;
         }
     }
 

@@ -652,6 +652,63 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDeckPlan_CanValidateContentBeforeRendering() {
+            PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                .AddCaseStudy("Dense case",
+                    Enumerable.Range(1, 5)
+                        .Select(index => new PowerPointCaseStudySection("Section " + index, "Body")),
+                    Enumerable.Range(1, 4).Select(index => new PowerPointMetric(index.ToString(), "metric")))
+                .AddProcess("Long process", null,
+                    Enumerable.Range(1, 9)
+                        .Select(index => new PowerPointProcessStep("Step " + index, "Body")))
+                .AddLogoWall("Large proof wall", null,
+                    Enumerable.Range(1, 25).Select(index => new PowerPointLogoItem("Logo " + index)))
+                .AddCoverage("Coverage", null,
+                    Enumerable.Range(1, 19)
+                        .Select(index => new PowerPointCoverageLocation("Location " + index, index == 19 ? 1.2 : 0.5, 0.5)))
+                .AddCapability("Capabilities", null,
+                    Enumerable.Range(1, 7).Select(index => new PowerPointCapabilitySection("Section " + index)));
+
+            IReadOnlyList<PowerPointDeckPlanDiagnostic> diagnostics = plan.ValidateSlides();
+
+            Assert.Contains(diagnostics, diagnostic =>
+                diagnostic.Code == "CaseStudy.TooManySections" &&
+                diagnostic.Severity == PowerPointDeckPlanDiagnosticSeverity.Error);
+            Assert.Contains(diagnostics, diagnostic =>
+                diagnostic.Code == "CaseStudy.HiddenMetrics" &&
+                diagnostic.Severity == PowerPointDeckPlanDiagnosticSeverity.Warning);
+            Assert.Contains(diagnostics, diagnostic =>
+                diagnostic.Code == "Process.TooManySteps" &&
+                diagnostic.Index == 1);
+            Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "LogoWall.TooManyItems");
+            Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "Coverage.HiddenPins");
+            Assert.Contains(diagnostics, diagnostic =>
+                diagnostic.Code == "Coverage.LocationOutOfBounds" &&
+                diagnostic.Message.Contains("Location 19", StringComparison.Ordinal));
+            Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "Capability.TooManySections");
+            Assert.Contains("Coverage.LocationOutOfBounds", diagnostics.First(diagnostic =>
+                diagnostic.Code == "Coverage.LocationOutOfBounds").ToString());
+        }
+
+        [Fact]
+        public void DesignerDeckPlan_ValidationAllowsReadablePlans() {
+            PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                .AddSection("Cover")
+                .AddProcess("Process", null,
+                    new[] {
+                        new PowerPointProcessStep("One", "Start."),
+                        new PowerPointProcessStep("Two", "Finish.")
+                    })
+                .AddCapability("Capabilities", null,
+                    new[] {
+                        new PowerPointCapabilitySection("One", "Body"),
+                        new PowerPointCapabilitySection("Two", "Body")
+                    });
+
+            Assert.Empty(plan.ValidateSlides());
+        }
+
+        [Fact]
         public void DesignerDeckPlan_CanPreviewResolvedLayoutsBeforeRendering() {
             PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "render-preview",
                 PowerPointDesignDirection.Executive, footerLeft: "CLIENT");

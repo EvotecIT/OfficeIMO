@@ -112,6 +112,7 @@ var plan = new PowerPointDeckPlan()
             composer.ContentArea().TakeTopCm(1.5));
     }, seed: "custom-detail");
 var plannedSlides = plan.DescribeSlides(); // kind, title, seed, and content count
+var planDiagnostics = plan.ValidateSlides(); // density, clipping, and bounds issues before rendering
 var renderPreview = brief.DescribeDeckPlan(plan, alternativeIndex: 1); // resolved variants, direction, fonts, and design seeds
 briefDeck.AddSlides(plan);
 
