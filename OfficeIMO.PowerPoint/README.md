@@ -179,7 +179,10 @@ recommendedDeck.AddCapabilitySlide("Evidence", "Choose visual support without ha
 
 // Direction motifs can be explicit too: triangles, chevrons, dots, bars, or none.
 recommendedDeck.AddSectionSlide("Approach", "A calmer opening rhythm", "approach",
-    configure: options => options.DirectionMotifStyle = PowerPointDirectionMotifStyle.Dots);
+    configure: options => {
+        options.DirectionMotifStyle = PowerPointDirectionMotifStyle.Dots;
+        options.TitleAccentStyle = PowerPointTitleAccentStyle.KickerRule;
+    });
 
 // Or supply your own creative directions so decks do not all share the same house style.
 var clientDirections = new[] {
@@ -315,6 +318,8 @@ Use `SurfaceStyle` on card-grid options when cards should be elevated, flat, hai
 changing the card content or layout.
 Use `DirectionMotifStyle` on slide options when the small movement markers should be triangles, chevrons, dots, bars,
 or hidden entirely for quieter slides.
+Use `TitleAccentStyle` on section-slide options when titles should use an underline, side rule, editorial kicker rule,
+or no extra accent without changing the section layout.
 Use `RecommendDeckPlanAlternative(...)` when callers want the library to pick the strongest content-fit alternative
 from the same plan while still returning the selected design index and reasons.
 Use `presentation.UseDesigner(brief, plan, alternativeCount: ...)` when the caller wants to skip manual ranking and

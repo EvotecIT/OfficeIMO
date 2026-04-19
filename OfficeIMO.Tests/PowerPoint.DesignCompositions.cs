@@ -2160,6 +2160,79 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerSectionSlide_CanUseEditableTitleAccentStyles() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointSlide underlineSlide = presentation.AddDesignerSectionSlide("Underline", "Accent",
+                    options: new PowerPointDesignerSlideOptions {
+                        TitleAccentStyle = PowerPointTitleAccentStyle.Underline
+                    });
+                PowerPointSlide sideRuleSlide = presentation.AddDesignerSectionSlide("Side rule", "Accent",
+                    options: new PowerPointDesignerSlideOptions {
+                        SectionVariant = PowerPointSectionLayoutVariant.EditorialRail,
+                        TitleAccentStyle = PowerPointTitleAccentStyle.SideRule
+                    });
+                PowerPointSlide kickerSlide = presentation.AddDesignerSectionSlide("Kicker", "Accent",
+                    options: new PowerPointDesignerSlideOptions {
+                        SectionVariant = PowerPointSectionLayoutVariant.Poster,
+                        TitleAccentStyle = PowerPointTitleAccentStyle.KickerRule
+                    });
+                PowerPointSlide quietSlide = presentation.AddDesignerSectionSlide("Quiet", "No accent",
+                    options: new PowerPointDesignerSlideOptions {
+                        TitleAccentStyle = PowerPointTitleAccentStyle.None
+                    });
+
+                Assert.NotNull(underlineSlide.GetShape("Section Title Accent Underline"));
+                Assert.NotNull(sideRuleSlide.GetShape("Section Title Accent Side Rule"));
+                Assert.NotNull(kickerSlide.GetShape("Section Title Accent Kicker Rule"));
+                Assert.Null(quietSlide.GetShape("Section Title Accent Underline"));
+                Assert.Null(quietSlide.GetShape("Section Title Accent Side Rule"));
+                Assert.Null(quietSlide.GetShape("Section Title Accent Kicker Rule"));
+
+                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerSectionSlide_AutoTitleAccentUsesDesignIntent() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointSlide editorialSlide = presentation.AddDesignerSectionSlide("Editorial", "Seeded",
+                    options: new PowerPointDesignerSlideOptions {
+                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Editorial,
+                            "editorial-section")
+                    });
+                PowerPointSlide minimalSlide = presentation.AddDesignerSectionSlide("Minimal", "Quiet",
+                    options: new PowerPointDesignerSlideOptions {
+                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Minimal,
+                            "minimal-section")
+                    });
+
+                Assert.NotNull(editorialSlide.GetShape("Section Title Accent Kicker Rule"));
+                Assert.Null(minimalSlide.GetShape("Section Title Accent Underline"));
+                Assert.Null(minimalSlide.GetShape("Section Title Accent Side Rule"));
+                Assert.Null(minimalSlide.GetShape("Section Title Accent Kicker Rule"));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void DesignerProcessSlide_AutoConnectorStyleUsesDotsForEditorialFlows() {
             string filePath = CreateTempPresentationPath();
 

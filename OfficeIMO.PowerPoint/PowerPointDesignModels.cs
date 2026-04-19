@@ -156,6 +156,22 @@ namespace OfficeIMO.PowerPoint {
     }
 
     /// <summary>
+    ///     Title accent treatment used by section/title slides.
+    /// </summary>
+    public enum PowerPointTitleAccentStyle {
+        /// <summary>Choose a deterministic title accent from the design intent.</summary>
+        Auto,
+        /// <summary>Do not draw an additional title accent.</summary>
+        None,
+        /// <summary>Draw a short accent underline near the section title.</summary>
+        Underline,
+        /// <summary>Draw a compact vertical accent rule beside the section title.</summary>
+        SideRule,
+        /// <summary>Draw a small editorial kicker rule above the section title.</summary>
+        KickerRule
+    }
+
+    /// <summary>
     ///     Case-study slide layout variants. Auto uses the design intent seed to pick a stable variant.
     /// </summary>
     public enum PowerPointCaseStudyLayoutVariant {
@@ -443,6 +459,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Section slide layout variant. Used by section/title slide helpers.
         /// </summary>
         public PowerPointSectionLayoutVariant SectionVariant { get; set; } = PowerPointSectionLayoutVariant.Auto;
+
+        /// <summary>
+        ///     Optional title accent for section/title slide helpers.
+        /// </summary>
+        public PowerPointTitleAccentStyle TitleAccentStyle { get; set; } = PowerPointTitleAccentStyle.Auto;
     }
 
     /// <summary>

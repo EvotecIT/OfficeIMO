@@ -54,6 +54,8 @@ The same `PowerPointDeckPlan` can be reused with several briefs. Change the layo
 style to get a different rhythm without changing slide coordinates or duplicating every slide recipe.
 Small direction motifs can also vary per slide with `PowerPointDirectionMotifStyle`: `Triangles`, `Chevrons`, `Dots`,
 `Bars`, or `None`.
+Section titles can vary their emphasis with `PowerPointTitleAccentStyle`: `Underline`, `SideRule`, `KickerRule`, or
+`None`.
 Card grids can keep the same content while changing panel treatment with `PowerPointCardSurfaceStyle`: `Elevated`,
 `Flat`, `Hairline`, or `AccentWash`.
 
@@ -75,7 +77,10 @@ foreach (PowerPointAutoLayoutStrategy strategy in new[] {
     PowerPointDeckComposer deck = presentation.UseDesigner(variant);
     deck.AddSlides(plan);
     deck.AddSectionSlide("Approach", "A calmer opening rhythm", "approach",
-        configure: options => options.DirectionMotifStyle = PowerPointDirectionMotifStyle.Dots);
+        configure: options => {
+            options.DirectionMotifStyle = PowerPointDirectionMotifStyle.Dots;
+            options.TitleAccentStyle = PowerPointTitleAccentStyle.KickerRule;
+        });
     deck.AddCardGridSlide("Scope", "Same cards, quieter surface.",
         new[] {
             new PowerPointCardContent("Deployments", new[] { "Intune", "Autopilot" }),

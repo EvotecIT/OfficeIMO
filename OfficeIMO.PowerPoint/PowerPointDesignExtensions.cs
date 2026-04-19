@@ -268,6 +268,36 @@ namespace OfficeIMO.PowerPoint {
             };
         }
 
+        internal static PowerPointTitleAccentStyle ResolveTitleAccentStyle(PowerPointDesignerSlideOptions options,
+            PowerPointSectionLayoutVariant variant) {
+            if (options.TitleAccentStyle != PowerPointTitleAccentStyle.Auto) {
+                return options.TitleAccentStyle;
+            }
+
+            PowerPointDesignIntent intent = options.DesignIntent;
+            if (string.IsNullOrWhiteSpace(intent.Seed) ||
+                intent.VisualStyle == PowerPointVisualStyle.Minimal) {
+                return PowerPointTitleAccentStyle.None;
+            }
+            if (intent.Mood == PowerPointDesignMood.Editorial) {
+                return PowerPointTitleAccentStyle.KickerRule;
+            }
+            if (intent.Mood == PowerPointDesignMood.Energetic ||
+                intent.LayoutStrategy == PowerPointAutoLayoutStrategy.VisualFirst ||
+                variant == PowerPointSectionLayoutVariant.Poster) {
+                return PowerPointTitleAccentStyle.Underline;
+            }
+            if (intent.VisualStyle == PowerPointVisualStyle.Soft) {
+                return PowerPointTitleAccentStyle.SideRule;
+            }
+
+            return intent.Pick(3, "title-accent") switch {
+                0 => PowerPointTitleAccentStyle.Underline,
+                1 => PowerPointTitleAccentStyle.SideRule,
+                _ => PowerPointTitleAccentStyle.KickerRule
+            };
+        }
+
         internal static PowerPointCaseStudyLayoutVariant ResolveCaseStudyVariant(PowerPointCaseStudySlideOptions options,
             IReadOnlyList<PowerPointCaseStudySection> sections, IReadOnlyList<PowerPointMetric> metrics) {
             if (options.Variant != PowerPointCaseStudyLayoutVariant.Auto) {
@@ -431,8 +461,14 @@ namespace OfficeIMO.PowerPoint {
             AddDiagonalPlanes(slide, theme, slideWidthCm, slideHeightCm, dark: true);
             AddChrome(slide, theme, slideWidthCm, slideHeightCm, dark: true, options);
 
-            AddText(slide, title, 1.85, slideHeightCm * 0.47, slideWidthCm * 0.58, 1.35, 40,
+            PowerPointTitleAccentStyle titleAccent = ResolveTitleAccentStyle(options,
+                PowerPointSectionLayoutVariant.GeometricCover);
+            double titleLeft = 1.85;
+            double titleTop = slideHeightCm * 0.47;
+            double titleWidth = slideWidthCm * 0.58;
+            AddText(slide, title, titleLeft, titleTop, titleWidth, 1.35, 40,
                 theme.AccentContrastColor, theme.HeadingFontName, bold: true);
+            AddSectionTitleAccent(slide, theme, titleAccent, titleLeft, titleTop, titleWidth, 1.35, dark: true);
 
             if (!string.IsNullOrWhiteSpace(subtitle)) {
                 AddText(slide, subtitle!, 1.9, slideHeightCm * 0.59, slideWidthCm * 0.52, 0.8, 15,
@@ -461,8 +497,14 @@ namespace OfficeIMO.PowerPoint {
             block.FillColor = theme.WarningColor;
             block.OutlineColor = theme.WarningColor;
 
-            AddText(slide, title, 1.9, 2.15, slideWidthCm * 0.55, 1.2, 38,
+            PowerPointTitleAccentStyle titleAccent = ResolveTitleAccentStyle(options,
+                PowerPointSectionLayoutVariant.EditorialRail);
+            double titleLeft = 1.9;
+            double titleTop = 2.15;
+            double titleWidth = slideWidthCm * 0.55;
+            AddText(slide, title, titleLeft, titleTop, titleWidth, 1.2, 38,
                 theme.PrimaryTextColor, theme.HeadingFontName, bold: true);
+            AddSectionTitleAccent(slide, theme, titleAccent, titleLeft, titleTop, titleWidth, 1.2, dark: false);
 
             if (!string.IsNullOrWhiteSpace(subtitle)) {
                 AddText(slide, subtitle!, 1.95, 4.15, slideWidthCm * 0.47, 0.8, 14,
@@ -501,9 +543,13 @@ namespace OfficeIMO.PowerPoint {
             frame.OutlineColor = theme.AccentLightColor;
             frame.OutlineWidthPoints = 0.7;
 
+            PowerPointTitleAccentStyle titleAccent = ResolveTitleAccentStyle(options,
+                PowerPointSectionLayoutVariant.Poster);
             PowerPointTextBox titleBox = AddText(slide, title, 2.4, slideHeightCm * 0.42, slideWidthCm - 4.8, 1.4,
                 42, theme.AccentContrastColor, theme.HeadingFontName, bold: true);
             CenterText(titleBox);
+            AddSectionTitleAccent(slide, theme, titleAccent, 2.4, slideHeightCm * 0.42, slideWidthCm - 4.8, 1.4,
+                dark: true, centered: true);
 
             if (!string.IsNullOrWhiteSpace(subtitle)) {
                 PowerPointTextBox subtitleBox = AddText(slide, subtitle!, 4.1, slideHeightCm * 0.58,
@@ -1352,6 +1398,45 @@ namespace OfficeIMO.PowerPoint {
             middle.FillColor = second;
             middle.FillTransparency = dark ? 35 : 72;
             middle.OutlineColor = second;
+        }
+
+        private static void AddSectionTitleAccent(PowerPointSlide slide, PowerPointDesignTheme theme,
+            PowerPointTitleAccentStyle style, double titleLeftCm, double titleTopCm, double titleWidthCm,
+            double titleHeightCm, bool dark, bool centered = false) {
+            if (style == PowerPointTitleAccentStyle.None) {
+                return;
+            }
+
+            string accent = dark ? theme.WarningColor : theme.AccentColor;
+            string secondary = dark ? theme.AccentLightColor : theme.WarningColor;
+            switch (style) {
+                case PowerPointTitleAccentStyle.SideRule:
+                    PowerPointAutoShape sideRule = slide.AddRectangleCm(titleLeftCm - 0.28, titleTopCm + 0.16,
+                        0.08, Math.Max(0.82, titleHeightCm * 0.7), "Section Title Accent Side Rule");
+                    sideRule.FillColor = accent;
+                    sideRule.OutlineColor = accent;
+                    sideRule.OutlineWidthPoints = 0;
+                    break;
+                case PowerPointTitleAccentStyle.KickerRule:
+                    double kickerWidth = Math.Min(3.2, titleWidthCm * 0.28);
+                    double kickerLeft = centered ? titleLeftCm + (titleWidthCm - kickerWidth) / 2d : titleLeftCm;
+                    PowerPointAutoShape kicker = slide.AddLineCm(kickerLeft, Math.Max(0.65, titleTopCm - 0.22),
+                        kickerLeft + kickerWidth, Math.Max(0.65, titleTopCm - 0.22),
+                        "Section Title Accent Kicker Rule");
+                    kicker.OutlineColor = secondary;
+                    kicker.OutlineWidthPoints = 1.4;
+                    break;
+                case PowerPointTitleAccentStyle.Underline:
+                    double underlineWidth = Math.Min(4.2, titleWidthCm * 0.36);
+                    double underlineLeft = centered ? titleLeftCm + (titleWidthCm - underlineWidth) / 2d : titleLeftCm;
+                    double underlineTop = titleTopCm + Math.Min(0.86, Math.Max(0.52, titleHeightCm * 0.62));
+                    PowerPointAutoShape underline = slide.AddRectangleCm(underlineLeft, underlineTop, underlineWidth,
+                        0.08, "Section Title Accent Underline");
+                    underline.FillColor = accent;
+                    underline.OutlineColor = accent;
+                    underline.OutlineWidthPoints = 0;
+                    break;
+            }
         }
 
         private static void AddChrome(PowerPointSlide slide, PowerPointDesignTheme theme, double slideWidthCm,
