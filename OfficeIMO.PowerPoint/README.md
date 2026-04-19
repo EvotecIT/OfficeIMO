@@ -102,6 +102,8 @@ var choices = brief.DescribeAlternatives(3); // direction, mood, fonts, and pale
 var recommendations = brief.RecommendAlternatives(3); // preference score and reasons before choosing
 var briefDeck = ppt.UseDesigner(brief, alternativeIndex: 1);
 
+var packs = PowerPointDesignBrief.DescribeCreativeDirectionPacks(); // pack names, recipes, palette, and layout strategy
+
 // A deck plan lets callers describe the story while the designer chooses the slide compositions.
 var plan = new PowerPointDeckPlan()
     .AddSection("Case Study", "Project portfolio", "cover")

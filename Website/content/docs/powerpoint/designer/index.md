@@ -40,6 +40,8 @@ The recommendation object keeps the choice explainable: score, direction, mood, 
 
 Built-in packs include `Boardroom`, `FieldProof`, `EditorialCaseStudy`, `TechnicalMap`, and `QuietAppendix`. They combine recipe, palette style, layout strategy, variety, and ranking preferences without freezing exact slide coordinates.
 
+Use `PowerPointDesignBrief.DescribeCreativeDirectionPacks()` to list pack names, descriptions, recipes, palette styles, layout strategies, and preferred moods before asking a user or workflow to choose one.
+
 `WithLayoutStrategy(...)` lets a brief steer `Auto` slide variants without turning the deck into a fixed template.
 Use `ContentFirst` for content-fit defaults, `DesignFirst` for more seeded variation, `Compact` for denser business decks,
 or `VisualFirst` when visual proof and hero compositions should win when the content allows it.

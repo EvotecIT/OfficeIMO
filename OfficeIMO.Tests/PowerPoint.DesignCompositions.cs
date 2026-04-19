@@ -677,6 +677,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDesignBrief_CanDescribeCreativeDirectionPacks() {
+            IReadOnlyList<PowerPointCreativeDirectionPackSummary> packs =
+                PowerPointDesignBrief.DescribeCreativeDirectionPacks();
+            PowerPointCreativeDirectionPackSummary fieldProof =
+                PowerPointDesignBrief.DescribeCreativeDirectionPack(PowerPointCreativeDirectionPack.FieldProof);
+            PowerPointCreativeDirectionPackSummary auto =
+                PowerPointDesignBrief.DescribeCreativeDirectionPack(PowerPointCreativeDirectionPack.Auto);
+
+            Assert.Equal(5, packs.Count);
+            Assert.Equal(0, packs[0].Index);
+            Assert.Equal(PowerPointCreativeDirectionPack.Boardroom, packs[0].Pack);
+            Assert.Equal("Boardroom", packs[0].Name);
+            Assert.Equal("Executive Brief", packs[0].RecipeName);
+            Assert.Equal(PowerPointPaletteStyle.CoolNeutral, packs[0].PaletteStyle);
+            Assert.Equal(PowerPointAutoLayoutStrategy.ContentFirst, packs[0].LayoutStrategy);
+            Assert.Equal(PowerPointDesignVariety.Balanced, packs[0].Variety);
+            Assert.Contains(PowerPointDesignMood.Corporate, packs[0].PreferredMoods);
+            Assert.Contains("Boardroom", packs[0].ToString());
+
+            Assert.Equal("Field Proof", fieldProof.Name);
+            Assert.Equal("Consulting Portfolio", fieldProof.RecipeName);
+            Assert.Equal(PowerPointDesignVariety.Exploratory, fieldProof.Variety);
+            Assert.Contains(PowerPointVisualStyle.Geometric, fieldProof.PreferredVisualStyles);
+
+            Assert.Equal(PowerPointCreativeDirectionPack.Auto, auto.Pack);
+            Assert.Null(auto.RecipeName);
+            Assert.Null(auto.PaletteStyle);
+            Assert.Empty(auto.PreferredMoods);
+            Assert.Contains("Purpose matched", auto.ToString());
+        }
+
+        [Fact]
         public void DesignerDesignBrief_CreatesAlternativesFromPurposeAndIdentity() {
             PowerPointDesignBrief brief = PowerPointDesignBrief
                 .FromBrand("#008C95", "brief-client", "technical rollout proposal")
