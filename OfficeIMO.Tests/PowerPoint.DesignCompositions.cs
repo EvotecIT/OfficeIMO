@@ -553,6 +553,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDeckPlan_CanMixSemanticSlidesWithRawComposition() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointDeckComposer deck = presentation.UseDesigner("#008C95", "mixed-plan",
+                    PowerPointDesignRecipe.ConsultingPortfolio, footerLeft: "MIXED");
+                PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                    .AddSection("Mixed plan", "Semantic structure with a custom detail slide.", "cover")
+                    .AddCustom("Custom detail", composer => {
+                        composer.AddTitle("Custom detail", "A raw composition can live inside the plan.");
+                        PowerPointLayoutBox[] columns = composer.ContentColumns(2);
+                        composer.AddCardGrid(new[] {
+                            new PowerPointCardContent("Choice", new[] { "Semantic plan" }),
+                            new PowerPointCardContent("Escape hatch", new[] { "Raw composer" })
+                        }, columns[0]);
+                        composer.AddMetricStrip(new[] {
+                            new PowerPointMetric("2", "modes")
+                        }, columns[1].TakeTopCm(1.6));
+                    }, "custom");
+
+                IReadOnlyList<PowerPointSlide> slides = deck.AddSlides(plan);
+
+                Assert.Equal(2, slides.Count);
+                Assert.Contains(slides[1].TextBoxes, textBox => textBox.Text == "Custom detail");
+                Assert.NotNull(slides[1].GetShape("Designer Card 1"));
+                Assert.NotNull(slides[1].GetShape("Composer Metric Band"));
+
+                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void DesignerDeckComposer_SameContentCanUseDifferentDeckPersonalities() {
             string corporatePath = CreateTempPresentationPath();
             string minimalPath = CreateTempPresentationPath();

@@ -104,7 +104,12 @@ var plan = new PowerPointDeckPlan()
             new PowerPointProcessStep("Discovery", "Review configuration and dependencies."),
             new PowerPointProcessStep("Delivery", "Implement changes in controlled stages.")
         },
-        seed: "process");
+        seed: "process")
+    .AddCustom("Custom detail", composer => {
+        composer.AddTitle("Custom detail", "Use raw composition when a planned slide needs something special.");
+        composer.AddMetricStrip(new[] { new PowerPointMetric("2", "modes") },
+            composer.ContentArea().TakeTopCm(1.5));
+    }, seed: "custom-detail");
 briefDeck.AddSlides(plan);
 
 // Or supply your own creative directions so decks do not all share the same house style.

@@ -87,6 +87,14 @@ namespace OfficeIMO.PowerPoint {
             Action<PowerPointCapabilitySlideOptions>? configure = null) {
             return Add(new PowerPointCapabilityPlanSlide(title, subtitle, sections, seed, configure));
         }
+
+        /// <summary>
+        ///     Adds a custom slide request that can use raw composition primitives inside the same semantic plan.
+        /// </summary>
+        public PowerPointDeckPlan AddCustom(string title, Action<PowerPointSlideComposer> compose,
+            string? seed = null, Action<PowerPointDesignerSlideOptions>? configure = null, bool dark = false) {
+            return Add(new PowerPointCustomPlanSlide(title, compose, seed, configure, dark));
+        }
     }
 
     /// <summary>
@@ -313,6 +321,34 @@ namespace OfficeIMO.PowerPoint {
 
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
             return deck.AddCapabilitySlide(Title, Subtitle, Sections, Seed, _configure);
+        }
+    }
+
+    /// <summary>
+    ///     Custom raw-composition slide request.
+    /// </summary>
+    public sealed class PowerPointCustomPlanSlide : PowerPointDeckPlanSlide {
+        private readonly Action<PowerPointSlideComposer> _compose;
+        private readonly Action<PowerPointDesignerSlideOptions>? _configure;
+
+        /// <summary>
+        ///     Creates a custom slide request that can use slide composer primitives.
+        /// </summary>
+        public PowerPointCustomPlanSlide(string title, Action<PowerPointSlideComposer> compose,
+            string? seed = null, Action<PowerPointDesignerSlideOptions>? configure = null, bool dark = false)
+            : base(title, null, seed) {
+            _compose = compose ?? throw new ArgumentNullException(nameof(compose));
+            _configure = configure;
+            Dark = dark;
+        }
+
+        /// <summary>
+        ///     Whether the custom slide should use the dark designer surface.
+        /// </summary>
+        public bool Dark { get; }
+
+        internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
+            return deck.ComposeSlide(_compose, Seed ?? Title, _configure, Dark);
         }
     }
 }
