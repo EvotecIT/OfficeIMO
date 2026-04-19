@@ -335,6 +335,7 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointDeckDesign design = alternatives[i];
                 summaries[i] = new PowerPointDeckPlanAlternativeSummary(
                     i,
+                    Variety,
                     design.Describe(i),
                     plan.DescribeSlides(design),
                     diagnostics);

@@ -980,6 +980,7 @@ namespace OfficeIMO.Tests {
                 brief.DescribeDeckPlanAlternatives(plan, 3);
 
             Assert.Equal(3, alternatives.Count);
+            Assert.Equal(PowerPointDesignVariety.Balanced, alternatives[0].Variety);
             Assert.Equal("Architecture Map", alternatives[0].Design.DirectionName);
             Assert.Equal("Runbook", alternatives[1].Design.DirectionName);
             Assert.Equal("Delivery Signal", alternatives[2].Design.DirectionName);
@@ -992,6 +993,7 @@ namespace OfficeIMO.Tests {
             Assert.True(alternatives[0].HasWarnings);
             Assert.False(alternatives[0].HasErrors);
             Assert.Contains("Architecture Map", alternatives[0].ToString());
+            Assert.Contains("Balanced", alternatives[0].ToString());
         }
 
         [Fact]

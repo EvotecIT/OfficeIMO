@@ -6,10 +6,12 @@ namespace OfficeIMO.PowerPoint {
     ///     Lightweight description of how one deck plan resolves under one generated design alternative.
     /// </summary>
     public sealed class PowerPointDeckPlanAlternativeSummary {
-        internal PowerPointDeckPlanAlternativeSummary(int index, PowerPointDeckDesignSummary design,
+        internal PowerPointDeckPlanAlternativeSummary(int index, PowerPointDesignVariety variety,
+            PowerPointDeckDesignSummary design,
             IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> slides,
             IReadOnlyList<PowerPointDeckPlanDiagnostic> diagnostics) {
             Index = index;
+            Variety = variety;
             Design = design;
             Slides = slides;
             Diagnostics = diagnostics;
@@ -19,6 +21,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Zero-based alternative index.
         /// </summary>
         public int Index { get; }
+
+        /// <summary>
+        ///     Variety level used when resolving design alternatives for this preview.
+        /// </summary>
+        public PowerPointDesignVariety Variety { get; }
 
         /// <summary>
         ///     Design alternative summary.
@@ -49,7 +56,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <inheritdoc />
         public override string ToString() {
-            return Index + ": " + Design.DirectionName + " - " + Slides.Count + " slides";
+            return Index + ": " + Design.DirectionName + " (" + Variety + ") - " + Slides.Count + " slides";
         }
     }
 }
