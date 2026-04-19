@@ -879,7 +879,7 @@ namespace OfficeIMO.PowerPoint {
             double titleWidth = Math.Max(0.5, box.WidthCm - 0.9);
             int titleFontSize = ResolveCardTitleFontSize(card.Title, titleWidth);
             double titleHeight = ResolveCardTitleHeight(card.Title, titleWidth, titleFontSize, box.HeightCm);
-            PowerPointTextBox title = AddText(slide, card.Title, titleLeft, box.TopCm + 0.65, titleWidth, titleHeight,
+            AddText(slide, card.Title, titleLeft, box.TopCm + 0.65, titleWidth, titleHeight,
                 titleFontSize, theme.PrimaryTextColor, theme.HeadingFontName, bold: true);
 
             double bodyTop = box.TopCm + 0.65 + titleHeight + 0.28;

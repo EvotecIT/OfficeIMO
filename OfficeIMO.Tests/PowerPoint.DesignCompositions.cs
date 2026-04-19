@@ -201,6 +201,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerTheme_DerivedVariantsResetPaletteStyleMetadata() {
+            PowerPointDesignTheme theme = PowerPointDesignTheme
+                .FromBrand("#008C95", "Brand Theme")
+                .WithPaletteStyle(PowerPointPaletteStyle.SplitComplementary, "client-a");
+
+            PowerPointDesignTheme variation = theme.WithVariation("client-b");
+            PowerPointDesignTheme mood = theme.WithMood(PowerPointDesignMood.Minimal);
+
+            Assert.Equal(PowerPointPaletteStyle.SplitComplementary, theme.PaletteStyle);
+            Assert.Equal(PowerPointPaletteStyle.Auto, variation.PaletteStyle);
+            Assert.Equal(PowerPointPaletteStyle.Auto, mood.PaletteStyle);
+            Assert.Equal(theme.AccentColor, variation.AccentColor);
+            Assert.Equal(theme.AccentColor, mood.AccentColor);
+        }
+
+        [Fact]
         public void DesignerDeckDesign_ConfiguresThemeIntentAndChromeFromOnePlace() {
             PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "client-a",
                 PowerPointDesignMood.Editorial, name: "Client A", eyebrow: "Portfolio",

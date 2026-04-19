@@ -94,6 +94,7 @@ namespace OfficeIMO.PowerPoint {
             clone.AccentLightColor = Shade(AccentColor, 0.78 + pick * 0.02);
             clone.SurfaceColor = Shade(clone.Accent2Color, 0.91);
             clone.PanelBorderColor = Shade(clone.Accent3Color, 0.72);
+            clone.PaletteStyle = PowerPointPaletteStyle.Auto;
             clone.Validate();
             return clone;
         }
@@ -147,6 +148,7 @@ namespace OfficeIMO.PowerPoint {
                     break;
             }
 
+            clone.PaletteStyle = PowerPointPaletteStyle.Auto;
             clone.Validate();
             return clone;
         }
