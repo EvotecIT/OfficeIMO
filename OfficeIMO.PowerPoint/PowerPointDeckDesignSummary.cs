@@ -10,12 +10,14 @@ namespace OfficeIMO.PowerPoint {
             Mood = design.BaseIntent.Mood;
             Density = design.BaseIntent.Density;
             VisualStyle = design.BaseIntent.VisualStyle;
+            LayoutStrategy = design.BaseIntent.LayoutStrategy;
             HeadingFontName = design.Theme.HeadingFontName;
             BodyFontName = design.Theme.BodyFontName;
             AccentColor = design.Theme.AccentColor;
             Accent2Color = design.Theme.Accent2Color;
             Accent3Color = design.Theme.Accent3Color;
             WarningColor = design.Theme.WarningColor;
+            PaletteStyle = design.Theme.PaletteStyle;
             ShowsDirectionMotif = design.ShowDirectionMotif;
         }
 
@@ -50,6 +52,11 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointVisualStyle VisualStyle { get; }
 
         /// <summary>
+        ///     Strategy used by Auto slide variants.
+        /// </summary>
+        public PowerPointAutoLayoutStrategy LayoutStrategy { get; }
+
+        /// <summary>
         ///     Heading font used by this alternative.
         /// </summary>
         public string HeadingFontName { get; }
@@ -78,6 +85,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Warm accent used for markers and highlights.
         /// </summary>
         public string WarningColor { get; }
+
+        /// <summary>
+        ///     Supporting palette strategy used by this alternative.
+        /// </summary>
+        public PowerPointPaletteStyle PaletteStyle { get; }
 
         /// <summary>
         ///     Whether this alternative uses repeated direction markers by default.

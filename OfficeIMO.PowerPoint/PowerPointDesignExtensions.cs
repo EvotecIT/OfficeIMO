@@ -251,6 +251,12 @@ namespace OfficeIMO.PowerPoint {
                 return options.SectionVariant;
             }
 
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.Compact) {
+                return PowerPointSectionLayoutVariant.EditorialRail;
+            }
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.VisualFirst) {
+                return PowerPointSectionLayoutVariant.Poster;
+            }
             if (string.IsNullOrWhiteSpace(options.DesignIntent.Seed)) {
                 return PowerPointSectionLayoutVariant.GeometricCover;
             }
@@ -268,12 +274,26 @@ namespace OfficeIMO.PowerPoint {
                 return options.Variant;
             }
 
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.Compact ||
+                sections.Count >= 4) {
+                return PowerPointCaseStudyLayoutVariant.EditorialSplit;
+            }
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.VisualFirst &&
+                sections.Count <= 3) {
+                return PowerPointCaseStudyLayoutVariant.VisualHero;
+            }
             if (string.IsNullOrWhiteSpace(options.DesignIntent.Seed)) {
                 return PowerPointCaseStudyLayoutVariant.VisualBand;
             }
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.DesignFirst) {
+                return options.DesignIntent.Pick(3, "case-study") switch {
+                    0 => PowerPointCaseStudyLayoutVariant.VisualBand,
+                    1 => PowerPointCaseStudyLayoutVariant.EditorialSplit,
+                    _ => PowerPointCaseStudyLayoutVariant.VisualHero
+                };
+            }
             if (options.DesignIntent.VisualStyle == PowerPointVisualStyle.Soft ||
-                options.DesignIntent.VisualStyle == PowerPointVisualStyle.Minimal ||
-                sections.Count >= 4) {
+                options.DesignIntent.VisualStyle == PowerPointVisualStyle.Minimal) {
                 return PowerPointCaseStudyLayoutVariant.EditorialSplit;
             }
             if (metrics.Count > 0 && sections.Count <= 3) {
@@ -293,14 +313,24 @@ namespace OfficeIMO.PowerPoint {
                 return options.Variant;
             }
 
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.Compact ||
+                cards.Count > 4) {
+                return PowerPointCardGridLayoutVariant.AccentTop;
+            }
             if (string.IsNullOrWhiteSpace(options.DesignIntent.Seed)) {
                 return PowerPointCardGridLayoutVariant.AccentTop;
+            }
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.DesignFirst ||
+                options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.VisualFirst) {
+                return options.DesignIntent.Pick(2, "card-grid") == 0
+                    ? PowerPointCardGridLayoutVariant.AccentTop
+                    : PowerPointCardGridLayoutVariant.SoftTiles;
             }
             if (options.DesignIntent.VisualStyle == PowerPointVisualStyle.Soft ||
                 options.DesignIntent.VisualStyle == PowerPointVisualStyle.Minimal) {
                 return PowerPointCardGridLayoutVariant.SoftTiles;
             }
-            if (options.DesignIntent.Density == PowerPointSlideDensity.Compact || cards.Count > 4) {
+            if (options.DesignIntent.Density == PowerPointSlideDensity.Compact) {
                 return PowerPointCardGridLayoutVariant.AccentTop;
             }
 
@@ -315,19 +345,25 @@ namespace OfficeIMO.PowerPoint {
                 return options.Variant;
             }
 
+            if (steps.Count > PowerPointDeckPlanLimits.DenseProcessSteps ||
+                options.DesignIntent.VisualStyle == PowerPointVisualStyle.Minimal) {
+                return PowerPointProcessLayoutVariant.Rail;
+            }
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.Compact) {
+                return PowerPointProcessLayoutVariant.NumberedColumns;
+            }
             if (string.IsNullOrWhiteSpace(options.DesignIntent.Seed)) {
                 return PowerPointProcessLayoutVariant.Rail;
             }
-            if (steps.Count >= 6 || options.DesignIntent.VisualStyle == PowerPointVisualStyle.Minimal) {
-                return PowerPointProcessLayoutVariant.Rail;
-            }
-            if (options.DesignIntent.Density == PowerPointSlideDensity.Compact) {
-                return PowerPointProcessLayoutVariant.NumberedColumns;
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.DesignFirst ||
+                options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.VisualFirst ||
+                options.DesignIntent.Density != PowerPointSlideDensity.Compact) {
+                return options.DesignIntent.Pick(2, "process") == 0
+                    ? PowerPointProcessLayoutVariant.Rail
+                    : PowerPointProcessLayoutVariant.NumberedColumns;
             }
 
-            return options.DesignIntent.Pick(2, "process") == 0
-                ? PowerPointProcessLayoutVariant.Rail
-                : PowerPointProcessLayoutVariant.NumberedColumns;
+            return PowerPointProcessLayoutVariant.NumberedColumns;
         }
 
         private static void AddSectionGeometricCover(PowerPointSlide slide, PowerPointDesignTheme theme,
@@ -567,12 +603,14 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < count; i++) {
                 PowerPointMetric metric = metrics[i];
                 PowerPointLayoutBox box = boxes[i];
+                int resolvedValueFontSize = ResolveMetricValueFontSize(metric.Value, box.WidthCm, valueFontSize);
                 PowerPointTextBox value = AddText(slide, metric.Value, box.LeftCm, box.TopCm, box.WidthCm, valueHeight,
-                    valueFontSize,
+                    resolvedValueFontSize,
                     theme.AccentContrastColor, theme.HeadingFontName, bold: true);
                 CenterText(value);
+                int resolvedLabelFontSize = ResolveMetricLabelFontSize(metric.Label, box.WidthCm, labelFontSize);
                 PowerPointTextBox label = AddText(slide, metric.Label, box.LeftCm, box.TopCm + labelTopOffset,
-                    box.WidthCm, labelHeight, labelFontSize,
+                    box.WidthCm, labelHeight, resolvedLabelFontSize,
                     theme.AccentContrastColor, theme.BodyFontName, bold: true);
                 CenterText(label);
             }
@@ -838,11 +876,17 @@ namespace OfficeIMO.PowerPoint {
             }
 
             double titleLeft = variant == PowerPointCardGridLayoutVariant.SoftTiles ? box.LeftCm + 0.6 : box.LeftCm + 0.45;
-            AddText(slide, card.Title, titleLeft, box.TopCm + 0.65, box.WidthCm - 0.9, 0.6, 15,
-                theme.PrimaryTextColor, theme.HeadingFontName, bold: true);
+            double titleWidth = Math.Max(0.5, box.WidthCm - 0.9);
+            int titleFontSize = ResolveCardTitleFontSize(card.Title, titleWidth);
+            double titleHeight = ResolveCardTitleHeight(card.Title, titleWidth, titleFontSize, box.HeightCm);
+            AddText(slide, card.Title, titleLeft, box.TopCm + 0.65, titleWidth, titleHeight,
+                titleFontSize, theme.PrimaryTextColor, theme.HeadingFontName, bold: true);
 
+            double bodyTop = box.TopCm + 0.65 + titleHeight + 0.28;
+            double bodyHeight = Math.Max(0.42, box.HeightCm - (bodyTop - box.TopCm) - 0.35);
+            int bodyFontSize = ResolveCardBodyFontSize(card.Items, titleWidth, bodyHeight);
             PowerPointTextBox body = slide.AddTextBox("", PowerPointLayoutBox.FromCentimeters(
-                titleLeft + 0.1, box.TopCm + 1.55, box.WidthCm - 1.05, box.HeightCm - 1.9));
+                titleLeft + 0.1, bodyTop, box.WidthCm - 1.05, bodyHeight));
             body.SetTextMarginsCm(0, 0, 0, 0);
             body.TextAutoFit = PowerPointTextAutoFit.Normal;
 
@@ -851,14 +895,79 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
+            int bulletSpaceAfter = bodyHeight < 1.15 || card.Items.Count > 3 ? 2 : 4;
             body.SetBullets(card.Items.Select(item => " " + item), configure: paragraph => {
                 paragraph.SetFontName(theme.BodyFontName)
-                    .SetFontSize(10)
+                    .SetFontSize(bodyFontSize)
                     .SetColor(theme.SecondaryTextColor)
-                    .SetHangingPoints(16)
-                    .SetSpaceAfterPoints(4)
+                    .SetHangingPoints(bodyFontSize <= 8 ? 12 : 16)
+                    .SetSpaceAfterPoints(bulletSpaceAfter)
                     .SetBulletSizePercent(70);
             });
+        }
+
+        private static int ResolveCardTitleFontSize(string title, double widthCm) {
+            int length = string.IsNullOrWhiteSpace(title) ? 0 : title.Trim().Length;
+            if (widthCm < 3.4 || length > 46) {
+                return 12;
+            }
+            if (widthCm < 4.2 || length > 32) {
+                return 13;
+            }
+            return 15;
+        }
+
+        private static double ResolveCardTitleHeight(string title, double widthCm, int fontSize, double cardHeightCm) {
+            int lines = EstimateWrappedLines(title, widthCm, fontSize);
+            double desiredHeight = 0.58 + Math.Max(0, lines - 1) * 0.34;
+            double maxHeight = Math.Min(1.35, Math.Max(0.62, cardHeightCm * 0.36));
+            return Math.Min(maxHeight, Math.Max(0.62, desiredHeight));
+        }
+
+        private static int ResolveCardBodyFontSize(IReadOnlyList<string> items, double widthCm, double bodyHeightCm) {
+            if (items.Count == 0) {
+                return 10;
+            }
+
+            int longest = items.Max(item => string.IsNullOrWhiteSpace(item) ? 0 : item.Trim().Length);
+            int estimatedLines = items.Sum(item => EstimateWrappedLines(item, widthCm, 10));
+            if (bodyHeightCm < 1.05 || items.Count > 5 || estimatedLines > 7 || longest > 60) {
+                return 8;
+            }
+            if (bodyHeightCm < 1.35 || items.Count > 3 || estimatedLines > 5 || longest > 42) {
+                return 9;
+            }
+            return 10;
+        }
+
+        private static int ResolveMetricValueFontSize(string value, double widthCm, int preferredFontSize) {
+            int length = string.IsNullOrWhiteSpace(value) ? 0 : value.Trim().Length;
+            if (length <= 3) {
+                return preferredFontSize;
+            }
+
+            int estimate = (int)Math.Floor(widthCm * 7.5 / Math.Max(1, length));
+            return Math.Max(12, Math.Min(preferredFontSize, estimate));
+        }
+
+        private static int ResolveMetricLabelFontSize(string label, double widthCm, int preferredFontSize) {
+            int length = string.IsNullOrWhiteSpace(label) ? 0 : label.Trim().Length;
+            if (length <= 12) {
+                return preferredFontSize;
+            }
+
+            int estimate = (int)Math.Floor(widthCm * 5.5 / Math.Max(1, length));
+            return Math.Max(7, Math.Min(preferredFontSize, estimate));
+        }
+
+        private static int EstimateWrappedLines(string? text, double widthCm, int fontSize) {
+            string textValue = text == null ? string.Empty : text.Trim();
+            if (textValue.Length == 0) {
+                return 1;
+            }
+
+            double charsPerLine = Math.Max(8, widthCm * (fontSize <= 10 ? 5.1 : 4.3));
+            return Math.Max(1, (int)Math.Ceiling(textValue.Length / charsPerLine));
         }
 
         internal static void AddProcessTimeline(PowerPointSlide slide, PowerPointDesignTheme theme,

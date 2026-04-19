@@ -21,7 +21,9 @@ PowerPointDesignBrief brief = PowerPointDesignBrief
     .FromBrand("#008C95", "design-brief-recommendations", "technical rollout proposal")
     .WithIdentity("Client Theme", eyebrow: "OfficeIMO.PowerPoint",
         footerLeft: "OFFICEIMO", footerRight: "Design brief")
+    .WithPaletteStyle(PowerPointPaletteStyle.SplitComplementary)
     .WithPalette(secondaryAccentColor: "#6D5BD0", warmAccentColor: "#FFB000")
+    .WithLayoutStrategy(PowerPointAutoLayoutStrategy.ContentFirst)
     .WithVariety(PowerPointDesignVariety.Exploratory)
     .WithPreferredMoods(PowerPointDesignMood.Energetic, PowerPointDesignMood.Editorial)
     .WithPreferredVisualStyles(PowerPointVisualStyle.Geometric, PowerPointVisualStyle.Soft);
@@ -40,7 +42,43 @@ PowerPointDeckComposer deck = presentation.UseDesigner(brief, selected.Design.In
 
 The recommendation object keeps the choice explainable: score, direction, mood, visual style, fonts, palette, and human-readable reasons are all available before slides are rendered.
 
+`WithLayoutStrategy(...)` lets a brief steer `Auto` slide variants without turning the deck into a fixed template.
+Use `ContentFirst` for content-fit defaults, `DesignFirst` for more seeded variation, `Compact` for denser business decks,
+or `VisualFirst` when visual proof and hero compositions should win when the content allows it.
+
 ![PowerPoint selected direction slide](/images/powerpoint/examples/design-brief-selected.png)
+
+## Variation controls
+
+The same `PowerPointDeckPlan` can be reused with several briefs. Change the layout strategy and palette style to get a
+different rhythm without changing slide coordinates or duplicating every slide recipe.
+
+```csharp
+PowerPointDeckPlan plan = CreateReusablePlan();
+
+foreach (PowerPointAutoLayoutStrategy strategy in new[] {
+    PowerPointAutoLayoutStrategy.ContentFirst,
+    PowerPointAutoLayoutStrategy.Compact,
+    PowerPointAutoLayoutStrategy.VisualFirst
+}) {
+    PowerPointDesignBrief variant = PowerPointDesignBrief
+        .FromBrand("#008C95", "layout-strategy-comparison", "service proposal")
+        .WithPaletteStyle(PowerPointPaletteStyle.SplitComplementary)
+        .WithLayoutStrategy(strategy);
+
+    var preview = variant.DescribeDeckPlan(plan);
+    PowerPointDeckComposer deck = presentation.UseDesigner(variant);
+    deck.AddSlides(plan);
+}
+```
+
+Run the comparison deck from the examples project:
+
+```powershell
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint-layout-strategy
+```
+
+![PowerPoint layout strategy comparison](/images/powerpoint/examples/layout-strategy-comparison.png)
 
 ## Semantic deck plan
 
@@ -72,12 +110,9 @@ PowerPointDeckPlan plan = new PowerPointDeckPlan()
         });
 
 var alternatives = brief.DescribeDeckPlanAlternatives(plan, 4);
-var selectedPlan = alternatives
-    .OrderByDescending(alternative => alternative.ContentFitScore)
-    .ThenBy(alternative => alternative.Index)
-    .First();
+var selectedPlan = brief.RecommendDeckPlanAlternative(plan, 4);
 
-PowerPointDeckComposer deck = presentation.UseDesigner(brief, selectedPlan.Index);
+PowerPointDeckComposer deck = presentation.UseDesigner(brief, plan, alternativeCount: 4);
 deck.AddSlides(plan);
 ```
 
@@ -86,7 +121,7 @@ deck.AddSlides(plan);
 When a deck already contains slides, preview through the active composer so fallback seeds line up with the render path:
 
 ```csharp
-PowerPointDeckComposer deck = presentation.UseDesigner(brief, selectedPlan.Index);
+PowerPointDeckComposer deck = presentation.UseDesigner(brief, plan, alternativeCount: 4);
 var livePreview = deck.DescribeSlides(plan);
 deck.AddSlides(plan);
 ```
@@ -136,3 +171,4 @@ Use `--powerpoint` to run the full PowerPoint example set and validate every gen
 | Semantic slide | The content has a known shape such as process, case study, or card grid | `PowerPointDeckComposer` |
 | Deck plan | The caller wants to describe the whole story and choose a fitting design | `PowerPointDeckPlan` |
 | Design brief | Brand, purpose, palette, and preferences should travel together | `PowerPointDesignBrief` |
+| Auto layout strategy | Auto variants should lean toward content fit, seeded variation, compactness, or visual proof | `PowerPointAutoLayoutStrategy` |

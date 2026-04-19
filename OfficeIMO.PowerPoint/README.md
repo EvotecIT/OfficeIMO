@@ -96,7 +96,9 @@ var quickDeck = ppt.UseDesigner("#008C95", "client-demo", "technical rollout pro
 var brief = PowerPointDesignBrief
     .FromBrand("#008C95", "client-demo", "technical rollout proposal")
     .WithIdentity("Client Theme", footerLeft: "CLIENT", footerRight: "Service deck")
+    .WithPaletteStyle(PowerPointPaletteStyle.SplitComplementary)
     .WithPalette(secondaryAccentColor: "#6D5BD0", warmAccentColor: "#FFB000")
+    .WithLayoutStrategy(PowerPointAutoLayoutStrategy.ContentFirst)
     .WithVariety(PowerPointDesignVariety.Exploratory)
     .WithPreferredMoods(PowerPointDesignMood.Energetic)
     .WithPreferredVisualStyles(PowerPointVisualStyle.Geometric);
@@ -131,8 +133,10 @@ var plannedSlides = plan.DescribeSlides(); // kind, title, seed, and content cou
 var planDiagnostics = plan.ValidateSlides(); // density, clipping, and bounds issues before rendering
 var renderPreview = brief.DescribeDeckPlan(plan, alternativeIndex: 1); // variants, layout reasons, fonts, and seeds
 var planChoices = brief.DescribeDeckPlanAlternatives(plan, 3); // includes content-fit score and reasons
-var livePreview = briefDeck.DescribeSlides(plan); // seed preview accounts for slides already composed in this deck
-briefDeck.AddSlides(plan); // validates errors before rendering and keeps warnings inspectable
+var recommendedPlan = brief.RecommendDeckPlanAlternative(plan, 3); // strongest content-fit choice first
+var recommendedDeck = ppt.UseDesigner(brief, plan, alternativeCount: 3); // choose the recommended design
+var livePreview = recommendedDeck.DescribeSlides(plan); // seed preview accounts for slides already composed in this deck
+recommendedDeck.AddSlides(plan); // validates errors before rendering and keeps warnings inspectable
 
 // Or supply your own creative directions so decks do not all share the same house style.
 var clientDirections = new[] {
@@ -147,6 +151,8 @@ var clientAlternatives = PowerPointDeckDesign.CreateAlternativesFromBrand("#008C
 var uniqueBrief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
     .WithIdentity("Client Theme", footerLeft: "CLIENT")
     .WithDirections(clientDirections)
+    .WithPaletteStyle(PowerPointPaletteStyle.CoolNeutral)
+    .WithLayoutStrategy(PowerPointAutoLayoutStrategy.Compact)
     .WithPreferredDensities(PowerPointSlideDensity.Compact);
 
 deck.AddSectionSlide("Case Study", "Project portfolio", "cover",
@@ -240,6 +246,7 @@ Runnable sample:
 
 ```powershell
 dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --designer-powerpoint
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint-layout-strategy
 ```
 
 The helpers are intentionally not fixed templates. Start with `PowerPointDeckDesign.FromBrand(...)` to define the
@@ -255,6 +262,15 @@ moods get softer cards, long processes stay readable, proof slides emphasize sup
 locations become list-plus-map slides, section-heavy capability slides stack into readable panels, and content-rich
 case studies choose stronger structure. Use `PowerPointDeckDesign.CreateAlternativesFromBrand(...)` with either a count,
 custom directions, or a recipe when you want stable choices from the same brand before choosing the deck personality.
+
+Use `PowerPointDesignBrief.WithLayoutStrategy(...)` when `Auto` variants should lean toward content fit, seeded design
+variety, compact business layouts, or more visual hero/proof compositions without hardcoding every slide variant.
+Use `RecommendDeckPlanAlternative(...)` when callers want the library to pick the strongest content-fit alternative
+from the same plan while still returning the selected design index and reasons.
+Use `presentation.UseDesigner(brief, plan, alternativeCount: ...)` when the caller wants to skip manual ranking and
+compose with the recommended alternative directly.
+Run the layout strategy sample when you want to compare the same semantic `PowerPointDeckPlan` rendered through
+different brief-level palette and layout choices.
 Use explicit layout variants when a deck needs a controlled art direction, or use `ComposeDesignerSlide` and
 `PowerPointLayoutBox` regions when the slide needs a custom composition while still reusing cards, metrics, process
 steps, logo walls, coverage maps, and callout bands.

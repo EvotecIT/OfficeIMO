@@ -116,6 +116,16 @@ namespace OfficeIMO.PowerPoint {
         public string? PanelBorderColor { get; private set; }
 
         /// <summary>
+        ///     Optional supporting palette strategy applied before explicit palette color overrides.
+        /// </summary>
+        public PowerPointPaletteStyle? PaletteStyle { get; private set; }
+
+        /// <summary>
+        ///     Optional Auto layout strategy applied to generated design alternatives.
+        /// </summary>
+        public PowerPointAutoLayoutStrategy? LayoutStrategy { get; private set; }
+
+        /// <summary>
         ///     Controls how far generated alternatives should move from the selected recipe or preferred direction.
         /// </summary>
         public PowerPointDesignVariety Variety { get; private set; } = PowerPointDesignVariety.Balanced;
@@ -192,6 +202,22 @@ namespace OfficeIMO.PowerPoint {
             WarmAccentColor = NormalizeOptionalColor(warmAccentColor, nameof(warmAccentColor));
             SurfaceColor = NormalizeOptionalColor(surfaceColor, nameof(surfaceColor));
             PanelBorderColor = NormalizeOptionalColor(panelBorderColor, nameof(panelBorderColor));
+            return this;
+        }
+
+        /// <summary>
+        ///     Chooses a supporting palette strategy while preserving the primary brand accent.
+        /// </summary>
+        public PowerPointDesignBrief WithPaletteStyle(PowerPointPaletteStyle paletteStyle) {
+            PaletteStyle = paletteStyle;
+            return this;
+        }
+
+        /// <summary>
+        ///     Chooses how Auto slide variants should balance content fit, design variety, and compactness.
+        /// </summary>
+        public PowerPointDesignBrief WithLayoutStrategy(PowerPointAutoLayoutStrategy layoutStrategy) {
+            LayoutStrategy = layoutStrategy;
             return this;
         }
 
@@ -278,7 +304,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (_directions.Count > 0) {
-                return ApplyPaletteOverrides(CreateDirectionAlternatives(count));
+                return ApplyBriefOverrides(CreateDirectionAlternatives(count));
             }
 
             PowerPointDesignRecipe recipe = Recipe
@@ -289,7 +315,7 @@ namespace OfficeIMO.PowerPoint {
                     recipe.DefaultEyebrow, recipe.Description, recipe.Keywords);
             }
 
-            return ApplyPaletteOverrides(recipe.CreateAlternativesFromBrand(AccentColor, Seed, count, Name,
+            return ApplyBriefOverrides(recipe.CreateAlternativesFromBrand(AccentColor, Seed, count, Name,
                 Eyebrow, FooterLeft, FooterRight, HeadingFontName, BodyFontName));
         }
 
@@ -370,7 +396,7 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointDeckDesignSummary designSummary = design.Describe(i);
                 IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> slides =
                     plan.DescribeSlides(design, slideIndexOffset);
-                PowerPointDeckPlanContentFit fit = RecommendDeckPlanAlternative(designSummary, slides, diagnostics);
+                PowerPointDeckPlanContentFit fit = ScoreDeckPlanAlternative(designSummary, slides, diagnostics);
                 summaries[i] = new PowerPointDeckPlanAlternativeSummary(
                     i,
                     Variety,
@@ -382,6 +408,42 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return summaries;
+        }
+
+        /// <summary>
+        ///     Creates content-fit recommendations for a deck plan, ordered with the strongest match first.
+        /// </summary>
+        public IReadOnlyList<PowerPointDeckPlanAlternativeSummary> RecommendDeckPlanAlternatives(
+            PowerPointDeckPlan plan, int count = 0) {
+            return RecommendDeckPlanAlternatives(plan, count, slideIndexOffset: 0);
+        }
+
+        /// <summary>
+        ///     Creates content-fit recommendations for a deck plan, ordered with the strongest match first,
+        ///     using an existing composer slide count for fallback seed generation.
+        /// </summary>
+        public IReadOnlyList<PowerPointDeckPlanAlternativeSummary> RecommendDeckPlanAlternatives(
+            PowerPointDeckPlan plan, int count, int slideIndexOffset) {
+            return OrderDeckPlanAlternatives(DescribeDeckPlanAlternatives(plan, count, slideIndexOffset));
+        }
+
+        /// <summary>
+        ///     Selects the strongest content-fit recommendation for a deck plan.
+        /// </summary>
+        public PowerPointDeckPlanAlternativeSummary RecommendDeckPlanAlternative(PowerPointDeckPlan plan,
+            int count = 0) {
+            return RecommendDeckPlanAlternative(plan, count, slideIndexOffset: 0);
+        }
+
+        /// <summary>
+        ///     Selects the strongest content-fit recommendation for a deck plan,
+        ///     using an existing composer slide count for fallback seed generation.
+        /// </summary>
+        public PowerPointDeckPlanAlternativeSummary RecommendDeckPlanAlternative(PowerPointDeckPlan plan,
+            int count, int slideIndexOffset) {
+            IReadOnlyList<PowerPointDeckPlanAlternativeSummary> recommendations =
+                RecommendDeckPlanAlternatives(plan, count, slideIndexOffset);
+            return recommendations[0];
         }
 
         /// <summary>
@@ -500,7 +562,7 @@ namespace OfficeIMO.PowerPoint {
             return new PowerPointDeckDesignRecommendation(design, score, reasons.AsReadOnly());
         }
 
-        private static PowerPointDeckPlanContentFit RecommendDeckPlanAlternative(
+        private static PowerPointDeckPlanContentFit ScoreDeckPlanAlternative(
             PowerPointDeckDesignSummary design,
             IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> slides,
             IReadOnlyList<PowerPointDeckPlanDiagnostic> diagnostics) {
@@ -557,14 +619,32 @@ namespace OfficeIMO.PowerPoint {
             return new PowerPointDeckPlanContentFit(score, reasons.AsReadOnly());
         }
 
-        private IReadOnlyList<PowerPointDeckDesign> ApplyPaletteOverrides(
+        private static IReadOnlyList<PowerPointDeckPlanAlternativeSummary> OrderDeckPlanAlternatives(
+            IEnumerable<PowerPointDeckPlanAlternativeSummary> alternatives) {
+            return alternatives
+                .OrderBy(alternative => alternative.HasErrors)
+                .ThenByDescending(alternative => alternative.ContentFitScore)
+                .ThenBy(alternative => alternative.HasWarnings)
+                .ThenBy(alternative => alternative.Index)
+                .ToList()
+                .AsReadOnly();
+        }
+
+        private IReadOnlyList<PowerPointDeckDesign> ApplyBriefOverrides(
             IReadOnlyList<PowerPointDeckDesign> alternatives) {
-            if (SecondaryAccentColor == null && TertiaryAccentColor == null && WarmAccentColor == null &&
-                SurfaceColor == null && PanelBorderColor == null) {
+            if (LayoutStrategy == null && PaletteStyle == null && SecondaryAccentColor == null &&
+                TertiaryAccentColor == null && WarmAccentColor == null && SurfaceColor == null &&
+                PanelBorderColor == null) {
                 return alternatives;
             }
 
             foreach (PowerPointDeckDesign design in alternatives) {
+                if (LayoutStrategy != null) {
+                    design.BaseIntent.LayoutStrategy = LayoutStrategy.Value;
+                }
+                if (PaletteStyle != null) {
+                    design.Theme.ApplyPaletteStyle(PaletteStyle.Value, design.Seed);
+                }
                 if (SecondaryAccentColor != null) {
                     design.Theme.Accent2Color = SecondaryAccentColor;
                 }

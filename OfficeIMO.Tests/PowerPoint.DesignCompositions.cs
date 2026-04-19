@@ -174,6 +174,56 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerTheme_CanApplyNamedPaletteStyle() {
+            PowerPointDesignTheme theme = PowerPointDesignTheme.FromBrand("#008C95", "Brand Theme");
+
+            PowerPointDesignTheme styled =
+                theme.WithPaletteStyle(PowerPointPaletteStyle.SplitComplementary, "client-a");
+
+            Assert.Equal("008C95", styled.AccentColor);
+            Assert.Equal(PowerPointPaletteStyle.SplitComplementary, styled.PaletteStyle);
+            Assert.NotEqual(styled.AccentColor, styled.Accent2Color);
+            Assert.NotEqual(styled.Accent2Color, styled.Accent3Color);
+            Assert.NotEqual(theme.SurfaceColor, styled.SurfaceColor);
+        }
+
+        [Fact]
+        public void DesignerTheme_AutoPaletteStyleIsDeterministic() {
+            PowerPointDesignTheme theme = PowerPointDesignTheme.FromBrand("#008C95", "Brand Theme");
+
+            PowerPointDesignTheme first = theme.WithPaletteStyle(PowerPointPaletteStyle.Auto, "client-a");
+            PowerPointDesignTheme second = theme.WithPaletteStyle(PowerPointPaletteStyle.Auto, "client-a");
+
+            Assert.Equal(first.PaletteStyle, second.PaletteStyle);
+            Assert.NotEqual(PowerPointPaletteStyle.Auto, first.PaletteStyle);
+            Assert.Equal(first.Accent2Color, second.Accent2Color);
+            Assert.Equal(first.Accent3Color, second.Accent3Color);
+        }
+
+        [Fact]
+        public void DesignerTheme_DerivedVariantsResetPaletteStyleMetadata() {
+            PowerPointDesignTheme theme = PowerPointDesignTheme
+                .FromBrand("#008C95", "Brand Theme")
+                .WithPaletteStyle(PowerPointPaletteStyle.SplitComplementary, "client-a");
+
+            PowerPointDesignTheme variation = theme.WithVariation("client-b");
+            PowerPointDesignTheme corporate = theme.WithMood(PowerPointDesignMood.Corporate);
+            PowerPointDesignTheme editorial = theme.WithMood(PowerPointDesignMood.Editorial);
+            PowerPointDesignTheme energetic = theme.WithMood(PowerPointDesignMood.Energetic);
+            PowerPointDesignTheme mood = theme.WithMood(PowerPointDesignMood.Minimal);
+
+            Assert.Equal(PowerPointPaletteStyle.SplitComplementary, theme.PaletteStyle);
+            Assert.Equal(PowerPointPaletteStyle.Auto, variation.PaletteStyle);
+            Assert.Equal(PowerPointPaletteStyle.SplitComplementary, corporate.PaletteStyle);
+            Assert.Equal(PowerPointPaletteStyle.Auto, editorial.PaletteStyle);
+            Assert.Equal(PowerPointPaletteStyle.Auto, energetic.PaletteStyle);
+            Assert.Equal(PowerPointPaletteStyle.Auto, mood.PaletteStyle);
+            Assert.Equal(theme.AccentColor, variation.AccentColor);
+            Assert.Equal(theme.Accent2Color, corporate.Accent2Color);
+            Assert.Equal(theme.AccentColor, mood.AccentColor);
+        }
+
+        [Fact]
         public void DesignerDeckDesign_ConfiguresThemeIntentAndChromeFromOnePlace() {
             PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "client-a",
                 PowerPointDesignMood.Editorial, name: "Client A", eyebrow: "Portfolio",
@@ -495,6 +545,153 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDesignBrief_CanChoosePaletteStyleBeforeManualOverrides() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
+                .WithPaletteStyle(PowerPointPaletteStyle.Monochrome)
+                .WithPalette(secondaryAccentColor: "#6D5BD0");
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(2);
+            IReadOnlyList<PowerPointDeckDesignSummary> summaries = brief.DescribeAlternatives(1);
+
+            Assert.Equal(PowerPointPaletteStyle.Monochrome, brief.PaletteStyle);
+            Assert.All(alternatives, design => Assert.Equal(PowerPointPaletteStyle.Monochrome,
+                design.Theme.PaletteStyle));
+            Assert.All(alternatives, design => Assert.Equal("6D5BD0", design.Theme.Accent2Color));
+            Assert.Equal(PowerPointPaletteStyle.Monochrome, summaries[0].PaletteStyle);
+            Assert.Equal("6D5BD0", summaries[0].Accent2Color);
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_CanChooseAutoLayoutStrategy() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
+                .WithLayoutStrategy(PowerPointAutoLayoutStrategy.Compact);
+            PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                .AddSection("Opening", "Compact introduction", "cover")
+                .AddCaseStudy("Client",
+                    new[] {
+                        new PowerPointCaseStudySection("Client", "One story block."),
+                        new PowerPointCaseStudySection("Challenge", "Second story block."),
+                        new PowerPointCaseStudySection("Result", "Third story block.")
+                    },
+                    seed: "case")
+                .AddProcess("Delivery", null,
+                    new[] {
+                        new PowerPointProcessStep("One", "Assess."),
+                        new PowerPointProcessStep("Two", "Plan."),
+                        new PowerPointProcessStep("Three", "Deliver.")
+                    },
+                    seed: "process")
+                .AddCardGrid("Areas", null,
+                    new[] {
+                        new PowerPointCardContent("One"),
+                        new PowerPointCardContent("Two"),
+                        new PowerPointCardContent("Three")
+                    },
+                    seed: "cards");
+
+            PowerPointDeckDesign design = brief.CreateDesign();
+            IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> summaries = brief.DescribeDeckPlan(plan);
+
+            Assert.Equal(PowerPointAutoLayoutStrategy.Compact, brief.LayoutStrategy);
+            Assert.Equal(PowerPointAutoLayoutStrategy.Compact, design.BaseIntent.LayoutStrategy);
+            Assert.Equal(PowerPointAutoLayoutStrategy.Compact, design.Describe().LayoutStrategy);
+            Assert.Equal("EditorialRail", summaries[0].LayoutVariant);
+            Assert.Equal(PowerPointAutoLayoutStrategy.Compact, summaries[0].LayoutStrategy);
+            Assert.Equal("EditorialSplit", summaries[1].LayoutVariant);
+            Assert.Equal("NumberedColumns", summaries[2].LayoutVariant);
+            Assert.Equal("AccentTop", summaries[3].LayoutVariant);
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_VisualLayoutStrategyPrefersHeroVariants() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
+                .WithLayoutStrategy(PowerPointAutoLayoutStrategy.VisualFirst);
+            PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                .AddSection("Opening", "Visual introduction", "cover")
+                .AddCaseStudy("Client",
+                    new[] {
+                        new PowerPointCaseStudySection("Client", "One story block."),
+                        new PowerPointCaseStudySection("Result", "Second story block.")
+                    },
+                    seed: "case")
+                .AddCoverage("Coverage", null,
+                    new[] {
+                        new PowerPointCoverageLocation("Warsaw", 0.54, 0.42),
+                        new PowerPointCoverageLocation("Krakow", 0.56, 0.72)
+                    },
+                    seed: "coverage");
+
+            IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> summaries = brief.DescribeDeckPlan(plan);
+
+            Assert.Equal("Poster", summaries[0].LayoutVariant);
+            Assert.Equal(PowerPointAutoLayoutStrategy.VisualFirst, summaries[0].LayoutStrategy);
+            Assert.Equal("VisualHero", summaries[1].LayoutVariant);
+            Assert.Equal("PinBoard", summaries[2].LayoutVariant);
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_CanRecommendDeckPlanAlternative() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                PowerPointDesignBrief brief = PowerPointDesignBrief
+                    .FromBrand("#008C95", "recommended-plan", "technical rollout proposal")
+                    .WithVariety(PowerPointDesignVariety.Exploratory);
+                PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                    .AddProcess("Rollout path", "Six steps should prefer compact geometric options.",
+                        new[] {
+                            new PowerPointProcessStep("Discover", "Inventory the current state."),
+                            new PowerPointProcessStep("Design", "Define the target model."),
+                            new PowerPointProcessStep("Pilot", "Validate the first rollout group."),
+                            new PowerPointProcessStep("Deploy", "Move through controlled batches."),
+                            new PowerPointProcessStep("Stabilize", "Watch early support signals."),
+                            new PowerPointProcessStep("Optimize", "Tune the operating model.")
+                        },
+                        seed: "process")
+                    .AddCoverage("Delivery coverage", null,
+                        new[] {
+                            new PowerPointCoverageLocation("Warsaw", 0.58, 0.43),
+                            new PowerPointCoverageLocation("Gdansk", 0.55, 0.18),
+                            new PowerPointCoverageLocation("Krakow", 0.58, 0.78)
+                        },
+                        seed: "coverage")
+                    .AddCustom("Raw proof", composer => {
+                        composer.AddTitle("Raw proof", "The recommendation still allows custom composition.");
+                        composer.AddMetricStrip(new[] {
+                            new PowerPointMetric("6", "steps"),
+                            new PowerPointMetric("3", "regions")
+                        }, composer.ContentArea().TakeTopCm(1.8));
+                    }, seed: "raw-proof");
+
+                IReadOnlyList<PowerPointDeckPlanAlternativeSummary> described =
+                    brief.DescribeDeckPlanAlternatives(plan, 5);
+                IReadOnlyList<PowerPointDeckPlanAlternativeSummary> recommended =
+                    brief.RecommendDeckPlanAlternatives(plan, 5);
+                PowerPointDeckPlanAlternativeSummary selected = brief.RecommendDeckPlanAlternative(plan, 5);
+
+                Assert.Equal(described.Count, recommended.Count);
+                Assert.Equal(recommended[0].Index, selected.Index);
+                Assert.Equal(recommended.Max(alternative => alternative.ContentFitScore), selected.ContentFitScore);
+                Assert.True(recommended[0].ContentFitScore >= recommended[recommended.Count - 1].ContentFitScore);
+                Assert.Contains(selected.ContentFitReasons, reason => reason.Length > 0);
+                Assert.Contains(selected.Slides, slide => slide.Kind == PowerPointDeckPlanSlideKind.Custom);
+
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+                PowerPointDeckComposer deck = presentation.UseDesigner(brief, plan, alternativeCount: 5);
+                deck.AddSlides(plan);
+
+                Assert.Equal(selected.Design.DirectionName, deck.Design.Direction.Name);
+                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void DesignerDeckComposer_CanStartFromBriefWithCustomDirections() {
             string filePath = CreateTempPresentationPath();
 
@@ -768,6 +965,71 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(slides[1].TextBoxes, textBox => textBox.Text == "Custom detail");
                 Assert.NotNull(slides[1].GetShape("Designer Card 1"));
                 Assert.NotNull(slides[1].GetShape("Composer Metric Band"));
+
+                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerComposer_AdaptsCardsAndMetricsForLongLabels() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointDeckComposer deck = presentation.UseDesigner("#008C95", "adaptive-primitives",
+                    PowerPointDesignRecipe.ConsultingPortfolio, footerLeft: "ADAPT");
+                PowerPointSlide slide = deck.ComposeSlide(composer => {
+                    composer.AddTitle("Adaptive primitives", "Long labels should stay inside their regions.");
+                    PowerPointLayoutBox[] columns = composer.ContentColumns(2, 0.8, topCm: 3.85);
+                    composer.AddCardGrid(new[] {
+                        new PowerPointCardContent("Operational Readiness And Service Transition",
+                            new[] {
+                                "Multi-location rollout governance",
+                                "Support ownership and reporting cadence",
+                                "Configuration baseline with exception handling"
+                            }),
+                        new PowerPointCardContent("Visual Proof And Delivery Coverage",
+                            new[] {
+                                "Regional delivery model",
+                                "Reusable plan rendered through design choices"
+                            })
+                    }, columns[0].TakeTopCm(4.2), new PowerPointCardGridSlideOptions {
+                        MaxColumns = 2,
+                        Variant = PowerPointCardGridLayoutVariant.SoftTiles
+                    });
+                    composer.AddMetricStrip(new[] {
+                        new PowerPointMetric("SplitComplementary", "palette strategy"),
+                        new PowerPointMetric("ContentFirst", "layout strategy"),
+                        new PowerPointMetric("21", "slides")
+                    }, columns[1].TakeTopCm(2.2));
+                }, "adaptive-primitives");
+
+                PowerPointTextBox cardTitle = slide.TextBoxes.First(textBox =>
+                    textBox.Text == "Operational Readiness And Service Transition");
+                Assert.True(cardTitle.FontSize <= 13);
+                Assert.Equal(PowerPointTextAutoFit.Normal, cardTitle.TextAutoFit);
+                Assert.NotNull(cardTitle.TextAutoFitOptions);
+
+                PowerPointTextBox cardBody = slide.TextBoxes.First(textBox =>
+                    textBox.Text.Contains("Configuration baseline", StringComparison.Ordinal));
+                Assert.NotNull(cardBody.TextAutoFitOptions);
+
+                PowerPointTextBox metricValue = slide.TextBoxes.First(textBox =>
+                    textBox.Text == "SplitComplementary");
+                Assert.True(metricValue.FontSize < 24);
+                Assert.NotNull(metricValue.TextAutoFitOptions);
+
+                PowerPointTextBox metricLabel = slide.TextBoxes.First(textBox =>
+                    textBox.Text == "palette strategy");
+                Assert.True(metricLabel.FontSize <= 8);
+                Assert.NotNull(metricLabel.TextAutoFitOptions);
 
                 List<ValidationErrorInfo> errors = presentation.ValidateDocument();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));

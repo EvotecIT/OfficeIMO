@@ -54,6 +54,40 @@ namespace OfficeIMO.PowerPoint {
     }
 
     /// <summary>
+    ///     Supporting palette strategy used to move generated alternatives away from a single house style.
+    /// </summary>
+    public enum PowerPointPaletteStyle {
+        /// <summary>Choose a deterministic supporting palette from the design seed.</summary>
+        Auto,
+        /// <summary>Use nearby hues for a calm brand-led palette.</summary>
+        Analogous,
+        /// <summary>Use a contrasting hue for stronger visual separation.</summary>
+        Complementary,
+        /// <summary>Use two contrasting hues around the brand accent complement.</summary>
+        SplitComplementary,
+        /// <summary>Use mostly tints and shades of the brand accent.</summary>
+        Monochrome,
+        /// <summary>Pair the brand accent with warmer neutral surfaces and markers.</summary>
+        WarmNeutral,
+        /// <summary>Pair the brand accent with cooler neutral surfaces and markers.</summary>
+        CoolNeutral
+    }
+
+    /// <summary>
+    ///     Controls how Auto slide variants balance content fit against visual variety.
+    /// </summary>
+    public enum PowerPointAutoLayoutStrategy {
+        /// <summary>Favor layouts that fit the supplied content, then use the design seed for ties.</summary>
+        ContentFirst,
+        /// <summary>Favor deterministic design-seed variety unless content would become dense or less readable.</summary>
+        DesignFirst,
+        /// <summary>Favor compact, scannable variants for denser business decks.</summary>
+        Compact,
+        /// <summary>Favor variants with stronger visual panels, proof areas, or hero framing when content allows it.</summary>
+        VisualFirst
+    }
+
+    /// <summary>
     ///     Section/title slide layout variants. Auto uses the design intent seed to pick a stable variant.
     /// </summary>
     public enum PowerPointSectionLayoutVariant {
@@ -204,7 +238,8 @@ namespace OfficeIMO.PowerPoint {
                 Seed = Seed,
                 Mood = Mood,
                 Density = Density,
-                VisualStyle = VisualStyle
+                VisualStyle = VisualStyle,
+                LayoutStrategy = LayoutStrategy
             };
         }
 
@@ -228,12 +263,19 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointVisualStyle VisualStyle { get; set; } = PowerPointVisualStyle.Geometric;
 
+        /// <summary>
+        ///     Strategy used by Auto slide variants.
+        /// </summary>
+        public PowerPointAutoLayoutStrategy LayoutStrategy { get; set; } = PowerPointAutoLayoutStrategy.ContentFirst;
+
         internal int Pick(int choices, string salt) {
             if (choices <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(choices));
             }
 
-            string value = string.Join("|", Seed ?? string.Empty, Mood, Density, VisualStyle, salt);
+            string value = LayoutStrategy == PowerPointAutoLayoutStrategy.ContentFirst
+                ? string.Join("|", Seed ?? string.Empty, Mood, Density, VisualStyle, salt)
+                : string.Join("|", Seed ?? string.Empty, Mood, Density, VisualStyle, LayoutStrategy, salt);
             unchecked {
                 int hash = (int)2166136261;
                 for (int i = 0; i < value.Length; i++) {
