@@ -891,6 +891,71 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerComposer_AdaptsCardsAndMetricsForLongLabels() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointDeckComposer deck = presentation.UseDesigner("#008C95", "adaptive-primitives",
+                    PowerPointDesignRecipe.ConsultingPortfolio, footerLeft: "ADAPT");
+                PowerPointSlide slide = deck.ComposeSlide(composer => {
+                    composer.AddTitle("Adaptive primitives", "Long labels should stay inside their regions.");
+                    PowerPointLayoutBox[] columns = composer.ContentColumns(2, 0.8, topCm: 3.85);
+                    composer.AddCardGrid(new[] {
+                        new PowerPointCardContent("Operational Readiness And Service Transition",
+                            new[] {
+                                "Multi-location rollout governance",
+                                "Support ownership and reporting cadence",
+                                "Configuration baseline with exception handling"
+                            }),
+                        new PowerPointCardContent("Visual Proof And Delivery Coverage",
+                            new[] {
+                                "Regional delivery model",
+                                "Reusable plan rendered through design choices"
+                            })
+                    }, columns[0].TakeTopCm(4.2), new PowerPointCardGridSlideOptions {
+                        MaxColumns = 2,
+                        Variant = PowerPointCardGridLayoutVariant.SoftTiles
+                    });
+                    composer.AddMetricStrip(new[] {
+                        new PowerPointMetric("SplitComplementary", "palette strategy"),
+                        new PowerPointMetric("ContentFirst", "layout strategy"),
+                        new PowerPointMetric("21", "slides")
+                    }, columns[1].TakeTopCm(2.2));
+                }, "adaptive-primitives");
+
+                PowerPointTextBox cardTitle = slide.TextBoxes.First(textBox =>
+                    textBox.Text == "Operational Readiness And Service Transition");
+                Assert.True(cardTitle.FontSize <= 13);
+                Assert.Equal(PowerPointTextAutoFit.Normal, cardTitle.TextAutoFit);
+                Assert.NotNull(cardTitle.TextAutoFitOptions);
+
+                PowerPointTextBox cardBody = slide.TextBoxes.First(textBox =>
+                    textBox.Text.Contains("Configuration baseline", StringComparison.Ordinal));
+                Assert.NotNull(cardBody.TextAutoFitOptions);
+
+                PowerPointTextBox metricValue = slide.TextBoxes.First(textBox =>
+                    textBox.Text == "SplitComplementary");
+                Assert.True(metricValue.FontSize < 24);
+                Assert.NotNull(metricValue.TextAutoFitOptions);
+
+                PowerPointTextBox metricLabel = slide.TextBoxes.First(textBox =>
+                    textBox.Text == "palette strategy");
+                Assert.True(metricLabel.FontSize <= 8);
+                Assert.NotNull(metricLabel.TextAutoFitOptions);
+
+                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void DesignerDeckPlan_CanDescribeSlideSequenceBeforeRendering() {
             PowerPointDeckPlan plan = new PowerPointDeckPlan()
                 .AddSection("Cover", "Opening", "cover")
