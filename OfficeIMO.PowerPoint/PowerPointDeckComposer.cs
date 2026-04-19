@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -117,8 +118,23 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds all slides described by a semantic deck plan using the active deck design.
         /// </summary>
         public IReadOnlyList<PowerPointSlide> AddSlides(PowerPointDeckPlan plan) {
+            return AddSlides(plan, validate: true);
+        }
+
+        /// <summary>
+        ///     Adds all slides described by a semantic deck plan using the active deck design.
+        /// </summary>
+        public IReadOnlyList<PowerPointSlide> AddSlides(PowerPointDeckPlan plan, bool validate) {
             if (plan == null) {
                 throw new ArgumentNullException(nameof(plan));
+            }
+
+            if (validate) {
+                IReadOnlyList<PowerPointDeckPlanDiagnostic> diagnostics = plan.ValidateSlides();
+                if (diagnostics.Any(diagnostic =>
+                        diagnostic.Severity == PowerPointDeckPlanDiagnosticSeverity.Error)) {
+                    throw new PowerPointDeckPlanValidationException(diagnostics);
+                }
             }
 
             List<PowerPointSlide> slides = new();

@@ -569,6 +569,59 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDeckComposer_PreflightsSemanticDeckPlanBeforeRendering() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+                PowerPointDeckComposer deck = presentation.UseDesigner("#008C95", "invalid-plan",
+                    PowerPointDesignRecipe.ConsultingPortfolio);
+                PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                    .AddSection("Cover")
+                    .AddProcess("Too long", null,
+                        Enumerable.Range(1, 9)
+                            .Select(index => new PowerPointProcessStep("Step " + index, "Body")));
+                int slideCountBefore = presentation.Slides.Count;
+
+                PowerPointDeckPlanValidationException exception =
+                    Assert.Throws<PowerPointDeckPlanValidationException>(() => deck.AddSlides(plan));
+
+                Assert.Contains(exception.Diagnostics, diagnostic =>
+                    diagnostic.Code == "Process.TooManySteps" &&
+                    diagnostic.Severity == PowerPointDeckPlanDiagnosticSeverity.Error);
+                Assert.Contains("Process.TooManySteps", exception.Message);
+                Assert.Equal(slideCountBefore, presentation.Slides.Count);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerDeckComposer_CanBypassDeckPlanPreflightForLegacyBehavior() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+                PowerPointDeckComposer deck = presentation.UseDesigner("#008C95", "legacy-invalid-plan",
+                    PowerPointDesignRecipe.ConsultingPortfolio);
+                PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                    .AddProcess("Too long", null,
+                        Enumerable.Range(1, 9)
+                            .Select(index => new PowerPointProcessStep("Step " + index, "Body")));
+
+                Assert.Throws<ArgumentOutOfRangeException>(() => deck.AddSlides(plan, validate: false));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void DesignerDeckPlan_RejectsEmptySemanticContent() {
             Assert.Throws<ArgumentException>(() =>
                 new PowerPointDeckPlan().AddProcess("Empty process", null, Array.Empty<PowerPointProcessStep>()));

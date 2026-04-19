@@ -115,7 +115,7 @@ var plannedSlides = plan.DescribeSlides(); // kind, title, seed, and content cou
 var planDiagnostics = plan.ValidateSlides(); // density, clipping, and bounds issues before rendering
 var renderPreview = brief.DescribeDeckPlan(plan, alternativeIndex: 1); // resolved variants, direction, fonts, and design seeds
 var planChoices = brief.DescribeDeckPlanAlternatives(plan, 3); // compare the same content across design directions
-briefDeck.AddSlides(plan);
+briefDeck.AddSlides(plan); // validates errors before rendering and keeps warnings inspectable
 
 // Or supply your own creative directions so decks do not all share the same house style.
 var clientDirections = new[] {

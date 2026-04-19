@@ -722,6 +722,29 @@ namespace OfficeIMO.PowerPoint {
     }
 
     /// <summary>
+    ///     Raised when a semantic deck plan contains validation errors that would prevent rendering.
+    /// </summary>
+    public sealed class PowerPointDeckPlanValidationException : InvalidOperationException {
+        internal PowerPointDeckPlanValidationException(IReadOnlyList<PowerPointDeckPlanDiagnostic> diagnostics)
+            : base(CreateMessage(diagnostics)) {
+            Diagnostics = diagnostics.ToList().AsReadOnly();
+        }
+
+        /// <summary>
+        ///     Diagnostics collected from the deck plan.
+        /// </summary>
+        public IReadOnlyList<PowerPointDeckPlanDiagnostic> Diagnostics { get; }
+
+        private static string CreateMessage(IReadOnlyList<PowerPointDeckPlanDiagnostic> diagnostics) {
+            IEnumerable<PowerPointDeckPlanDiagnostic> errors = diagnostics.Where(diagnostic =>
+                diagnostic.Severity == PowerPointDeckPlanDiagnosticSeverity.Error);
+            return "Deck plan contains rendering errors: " + string.Join("; ",
+                errors.Select(diagnostic => diagnostic.Code + " on slide " + diagnostic.Index + " (" +
+                                            diagnostic.Title + "): " + diagnostic.Message));
+        }
+    }
+
+    /// <summary>
     ///     Lightweight description of one planned slide after resolving a deck design.
     /// </summary>
     public sealed class PowerPointDeckPlanSlideRenderSummary {
