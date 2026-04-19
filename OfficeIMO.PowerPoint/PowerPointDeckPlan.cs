@@ -129,6 +129,23 @@ namespace OfficeIMO.PowerPoint {
 
             return summaries;
         }
+
+        /// <summary>
+        ///     Creates lightweight descriptions of how the planned slide sequence resolves under a deck design.
+        /// </summary>
+        public IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> DescribeSlides(PowerPointDeckDesign design) {
+            if (design == null) {
+                throw new ArgumentNullException(nameof(design));
+            }
+
+            PowerPointDeckPlanSlideRenderSummary[] summaries =
+                new PowerPointDeckPlanSlideRenderSummary[_slides.Count];
+            for (int i = 0; i < _slides.Count; i++) {
+                summaries[i] = _slides[i].DescribeRender(i, design);
+            }
+
+            return summaries;
+        }
     }
 
     /// <summary>
@@ -173,6 +190,46 @@ namespace OfficeIMO.PowerPoint {
             return new PowerPointDeckPlanSlideSummary(index, Kind, Title, Subtitle, Seed, ContentItemCount);
         }
 
+        internal PowerPointDeckPlanSlideRenderSummary DescribeRender(int index, PowerPointDeckDesign design) {
+            string slideSeed = ResolveSeed(index);
+            return new PowerPointDeckPlanSlideRenderSummary(
+                index,
+                Kind,
+                Title,
+                Subtitle,
+                Seed,
+                slideSeed,
+                design.Seed + "/" + slideSeed,
+                ContentItemCount,
+                ResolveLayoutVariant(design, slideSeed),
+                design.Direction.Name,
+                design.BaseIntent.Mood,
+                design.BaseIntent.Density,
+                design.BaseIntent.VisualStyle,
+                design.Theme.HeadingFontName,
+                design.Theme.BodyFontName);
+        }
+
+        private protected virtual string? ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
+            return null;
+        }
+
+        private protected static T ConfigurePreview<T>(PowerPointDeckDesign design, string slideSeed,
+            Action<T>? configure) where T : PowerPointDesignerSlideOptions, new() {
+            T options = design.Configure(new T(), slideSeed);
+            configure?.Invoke(options);
+            return options;
+        }
+
+        private string ResolveSeed(int index) {
+            string seed = Seed ?? Title;
+            if (string.IsNullOrWhiteSpace(seed)) {
+                return "slide-" + (index + 1);
+            }
+
+            return seed.Trim();
+        }
+
         private protected static IReadOnlyList<T> Materialize<T>(IEnumerable<T> values, string name) {
             if (values == null) {
                 throw new ArgumentNullException(name);
@@ -206,6 +263,11 @@ namespace OfficeIMO.PowerPoint {
 
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
             return deck.AddSectionSlide(Title, Subtitle, Seed, _configure);
+        }
+
+        private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
+            PowerPointDesignerSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
+            return PowerPointDesignExtensions.ResolveSectionVariant(options).ToString();
         }
     }
 
@@ -245,6 +307,11 @@ namespace OfficeIMO.PowerPoint {
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
             return deck.AddCaseStudySlide(Title, Sections, Metrics, Seed, _configure);
         }
+
+        private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
+            PowerPointCaseStudySlideOptions options = ConfigurePreview(design, slideSeed, _configure);
+            return PowerPointDesignExtensions.ResolveCaseStudyVariant(options, Sections, Metrics).ToString();
+        }
     }
 
     /// <summary>
@@ -275,6 +342,11 @@ namespace OfficeIMO.PowerPoint {
 
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
             return deck.AddProcessSlide(Title, Subtitle, Steps, Seed, _configure);
+        }
+
+        private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
+            PowerPointProcessSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
+            return PowerPointDesignExtensions.ResolveProcessVariant(options, Steps).ToString();
         }
     }
 
@@ -307,6 +379,11 @@ namespace OfficeIMO.PowerPoint {
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
             return deck.AddCardGridSlide(Title, Subtitle, Cards, Seed, _configure);
         }
+
+        private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
+            PowerPointCardGridSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
+            return PowerPointDesignExtensions.ResolveCardGridVariant(options, Cards).ToString();
+        }
     }
 
     /// <summary>
@@ -337,6 +414,11 @@ namespace OfficeIMO.PowerPoint {
 
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
             return deck.AddLogoWallSlide(Title, Subtitle, Logos, Seed, _configure);
+        }
+
+        private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
+            PowerPointLogoWallSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
+            return PowerPointDesignExtensions.ResolveLogoWallVariant(options, Logos).ToString();
         }
     }
 
@@ -369,6 +451,11 @@ namespace OfficeIMO.PowerPoint {
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
             return deck.AddCoverageSlide(Title, Subtitle, Locations, Seed, _configure);
         }
+
+        private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
+            PowerPointCoverageSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
+            return PowerPointDesignExtensions.ResolveCoverageVariant(options, Locations).ToString();
+        }
     }
 
     /// <summary>
@@ -399,6 +486,11 @@ namespace OfficeIMO.PowerPoint {
 
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
             return deck.AddCapabilitySlide(Title, Subtitle, Sections, Seed, _configure);
+        }
+
+        private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
+            PowerPointCapabilitySlideOptions options = ConfigurePreview(design, slideSeed, _configure);
+            return PowerPointDesignExtensions.ResolveCapabilityVariant(options, Sections).ToString();
         }
     }
 
@@ -432,6 +524,10 @@ namespace OfficeIMO.PowerPoint {
 
         internal override PowerPointSlide AddTo(PowerPointDeckComposer deck) {
             return deck.ComposeSlide(_compose, Seed ?? Title, _configure, Dark);
+        }
+
+        private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
+            return Dark ? "CustomDark" : "Custom";
         }
     }
 
@@ -482,6 +578,113 @@ namespace OfficeIMO.PowerPoint {
         /// <inheritdoc />
         public override string ToString() {
             return Index + ": " + Kind + " - " + Title;
+        }
+    }
+
+    /// <summary>
+    ///     Lightweight description of one planned slide after resolving a deck design.
+    /// </summary>
+    public sealed class PowerPointDeckPlanSlideRenderSummary {
+        internal PowerPointDeckPlanSlideRenderSummary(int index, PowerPointDeckPlanSlideKind kind,
+            string title, string? subtitle, string? seed, string resolvedSeed, string designSeed,
+            int contentItemCount, string? layoutVariant, string directionName, PowerPointDesignMood mood,
+            PowerPointSlideDensity density, PowerPointVisualStyle visualStyle, string headingFontName,
+            string bodyFontName) {
+            Index = index;
+            Kind = kind;
+            Title = title;
+            Subtitle = subtitle;
+            Seed = seed;
+            ResolvedSeed = resolvedSeed;
+            DesignSeed = designSeed;
+            ContentItemCount = contentItemCount;
+            LayoutVariant = layoutVariant;
+            DirectionName = directionName;
+            Mood = mood;
+            Density = density;
+            VisualStyle = visualStyle;
+            HeadingFontName = headingFontName;
+            BodyFontName = bodyFontName;
+        }
+
+        /// <summary>
+        ///     Zero-based slide index within the plan.
+        /// </summary>
+        public int Index { get; }
+
+        /// <summary>
+        ///     Semantic slide kind.
+        /// </summary>
+        public PowerPointDeckPlanSlideKind Kind { get; }
+
+        /// <summary>
+        ///     Planned slide title.
+        /// </summary>
+        public string Title { get; }
+
+        /// <summary>
+        ///     Optional planned slide subtitle.
+        /// </summary>
+        public string? Subtitle { get; }
+
+        /// <summary>
+        ///     Optional caller-supplied stable seed used for the planned slide.
+        /// </summary>
+        public string? Seed { get; }
+
+        /// <summary>
+        ///     Slide seed resolved the same way the deck composer resolves it before rendering.
+        /// </summary>
+        public string ResolvedSeed { get; }
+
+        /// <summary>
+        ///     Full deterministic design seed formed from the deck design seed and resolved slide seed.
+        /// </summary>
+        public string DesignSeed { get; }
+
+        /// <summary>
+        ///     Count of primary content items such as sections, steps, cards, or locations.
+        /// </summary>
+        public int ContentItemCount { get; }
+
+        /// <summary>
+        ///     Resolved layout variant name for semantic slides, or custom surface name for raw composition slides.
+        /// </summary>
+        public string? LayoutVariant { get; }
+
+        /// <summary>
+        ///     Creative direction name used by the deck design.
+        /// </summary>
+        public string DirectionName { get; }
+
+        /// <summary>
+        ///     Broad visual mood used by the deck design.
+        /// </summary>
+        public PowerPointDesignMood Mood { get; }
+
+        /// <summary>
+        ///     Preferred content density used by the deck design.
+        /// </summary>
+        public PowerPointSlideDensity Density { get; }
+
+        /// <summary>
+        ///     Preferred visual style used by the deck design.
+        /// </summary>
+        public PowerPointVisualStyle VisualStyle { get; }
+
+        /// <summary>
+        ///     Heading font used by the deck design.
+        /// </summary>
+        public string HeadingFontName { get; }
+
+        /// <summary>
+        ///     Body font used by the deck design.
+        /// </summary>
+        public string BodyFontName { get; }
+
+        /// <inheritdoc />
+        public override string ToString() {
+            return Index + ": " + Kind + " - " + Title + " [" + LayoutVariant + "]";
         }
     }
 }

@@ -652,6 +652,84 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDeckPlan_CanPreviewResolvedLayoutsBeforeRendering() {
+            PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "render-preview",
+                PowerPointDesignDirection.Executive, footerLeft: "CLIENT");
+
+            PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                .AddSection("Cover", "Opening", "cover",
+                    options => options.SectionVariant = PowerPointSectionLayoutVariant.Poster)
+                .AddCaseStudy("Client",
+                    new[] {
+                        new PowerPointCaseStudySection("Challenge", "Many details."),
+                        new PowerPointCaseStudySection("Result", "Clear story.")
+                    },
+                    new[] {
+                        new PowerPointMetric("2", "proof points")
+                    },
+                    "case-study",
+                    options => options.Variant = PowerPointCaseStudyLayoutVariant.VisualHero)
+                .AddProcess("Path", null,
+                    new[] {
+                        new PowerPointProcessStep("One", "Start."),
+                        new PowerPointProcessStep("Two", "Finish.")
+                    },
+                    "path",
+                    options => options.Variant = PowerPointProcessLayoutVariant.NumberedColumns)
+                .AddCardGrid("Cards", null,
+                    new[] {
+                        new PowerPointCardContent("One", new[] { "A" }),
+                        new PowerPointCardContent("Two", new[] { "B" })
+                    },
+                    "cards",
+                    options => options.Variant = PowerPointCardGridLayoutVariant.SoftTiles)
+                .AddLogoWall("Proof", null,
+                    new[] {
+                        new PowerPointLogoItem("A"),
+                        new PowerPointLogoItem("B")
+                    },
+                    "proof",
+                    options => options.Variant = PowerPointLogoWallLayoutVariant.CertificateFeature)
+                .AddCoverage("Coverage", null,
+                    new[] {
+                        new PowerPointCoverageLocation("One", 0.2, 0.3),
+                        new PowerPointCoverageLocation("Two", 0.7, 0.5)
+                    },
+                    "coverage",
+                    options => options.Variant = PowerPointCoverageLayoutVariant.ListMap)
+                .AddCapability("Capabilities", null,
+                    new[] {
+                        new PowerPointCapabilitySection("One", "Body"),
+                        new PowerPointCapabilitySection("Two", "Body")
+                    },
+                    "capabilities",
+                    options => options.Variant = PowerPointCapabilityLayoutVariant.Stacked)
+                .AddCustom("Appendix", composer => composer.AddTitle("Appendix"), "appendix", dark: true);
+
+            IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> summaries = plan.DescribeSlides(design);
+
+            Assert.Equal(8, summaries.Count);
+            Assert.Equal("Executive", summaries[0].DirectionName);
+            Assert.Equal(PowerPointDesignMood.Corporate, summaries[0].Mood);
+            Assert.Equal(PowerPointSlideDensity.Balanced, summaries[0].Density);
+            Assert.Equal(PowerPointVisualStyle.Soft, summaries[0].VisualStyle);
+            Assert.Equal("Segoe UI Semibold", summaries[0].HeadingFontName);
+            Assert.Equal("Segoe UI", summaries[0].BodyFontName);
+            Assert.Equal("cover", summaries[0].ResolvedSeed);
+            Assert.Equal("render-preview/cover", summaries[0].DesignSeed);
+            Assert.Equal("Poster", summaries[0].LayoutVariant);
+            Assert.Equal("VisualHero", summaries[1].LayoutVariant);
+            Assert.Equal(3, summaries[1].ContentItemCount);
+            Assert.Equal("NumberedColumns", summaries[2].LayoutVariant);
+            Assert.Equal("SoftTiles", summaries[3].LayoutVariant);
+            Assert.Equal("CertificateFeature", summaries[4].LayoutVariant);
+            Assert.Equal("ListMap", summaries[5].LayoutVariant);
+            Assert.Equal("Stacked", summaries[6].LayoutVariant);
+            Assert.Equal("CustomDark", summaries[7].LayoutVariant);
+            Assert.Contains("Appendix", summaries[7].ToString());
+        }
+
+        [Fact]
         public void DesignerDeckComposer_SameContentCanUseDifferentDeckPersonalities() {
             string corporatePath = CreateTempPresentationPath();
             string minimalPath = CreateTempPresentationPath();

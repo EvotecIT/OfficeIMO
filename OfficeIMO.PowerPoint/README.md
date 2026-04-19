@@ -112,6 +112,7 @@ var plan = new PowerPointDeckPlan()
             composer.ContentArea().TakeTopCm(1.5));
     }, seed: "custom-detail");
 var plannedSlides = plan.DescribeSlides(); // kind, title, seed, and content count
+var renderPreview = plan.DescribeSlides(briefDeck.Design); // resolved variants, direction, fonts, and design seeds
 briefDeck.AddSlides(plan);
 
 // Or supply your own creative directions so decks do not all share the same house style.
