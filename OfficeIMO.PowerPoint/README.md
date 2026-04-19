@@ -91,6 +91,7 @@ var brief = PowerPointDesignBrief
     .WithPreferredMoods(PowerPointDesignMood.Energetic)
     .WithPreferredVisualStyles(PowerPointVisualStyle.Geometric);
 var choices = brief.DescribeAlternatives(3); // direction, mood, fonts, and palette preview
+var recommendations = brief.RecommendAlternatives(3); // preference score and reasons before choosing
 var briefDeck = ppt.UseDesigner(brief, alternativeIndex: 1);
 
 // A deck plan lets callers describe the story while the designer chooses the slide compositions.

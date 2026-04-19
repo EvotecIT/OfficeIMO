@@ -306,6 +306,21 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Creates lightweight recommendations explaining why generated alternatives fit this brief.
+        /// </summary>
+        public IReadOnlyList<PowerPointDeckDesignRecommendation> RecommendAlternatives(int count = 0) {
+            IReadOnlyList<PowerPointDeckDesign> alternatives = CreateAlternatives(count);
+            PowerPointDeckDesignRecommendation[] recommendations =
+                new PowerPointDeckDesignRecommendation[alternatives.Count];
+
+            for (int i = 0; i < alternatives.Count; i++) {
+                recommendations[i] = RecommendAlternative(alternatives[i].Describe(i));
+            }
+
+            return recommendations;
+        }
+
+        /// <summary>
         ///     Creates lightweight descriptions of how a deck plan would resolve under one design alternative.
         /// </summary>
         public IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> DescribeDeckPlan(
@@ -432,6 +447,40 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return true;
+        }
+
+        private PowerPointDeckDesignRecommendation RecommendAlternative(PowerPointDeckDesignSummary design) {
+            List<string> reasons = new();
+            int score = 0;
+
+            if (_preferredMoods.Contains(design.Mood)) {
+                score += 3;
+                reasons.Add("Matches preferred mood: " + design.Mood + ".");
+            }
+            if (_preferredVisualStyles.Contains(design.VisualStyle)) {
+                score += 2;
+                reasons.Add("Matches preferred visual style: " + design.VisualStyle + ".");
+            }
+            if (_preferredDensities.Contains(design.Density)) {
+                score += 1;
+                reasons.Add("Matches preferred density: " + design.Density + ".");
+            }
+
+            if (Variety == PowerPointDesignVariety.Focused) {
+                reasons.Add("Focused variety keeps this option close to the strongest matching direction.");
+            } else if (Variety == PowerPointDesignVariety.Exploratory) {
+                reasons.Add("Exploratory variety allows broader directions when more visual distance is useful.");
+            } else {
+                reasons.Add("Balanced variety keeps the selected recipe breadth.");
+            }
+
+            if (design.ShowsDirectionMotif) {
+                reasons.Add("Uses direction motifs for stronger visual rhythm.");
+            } else {
+                reasons.Add("Avoids repeated direction motifs for a quieter deck.");
+            }
+
+            return new PowerPointDeckDesignRecommendation(design, score, reasons.AsReadOnly());
         }
 
         private static bool ContainsDirection(IEnumerable<PowerPointDesignDirection> directions, string name) {

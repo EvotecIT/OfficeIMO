@@ -400,6 +400,8 @@ namespace OfficeIMO.Tests {
 
             IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(3);
             IReadOnlyList<PowerPointDeckDesignSummary> summaries = brief.DescribeAlternatives(1);
+            IReadOnlyList<PowerPointDeckDesignRecommendation> recommendations =
+                brief.RecommendAlternatives(2);
 
             Assert.Equal("Delivery Signal", alternatives[0].Direction.Name);
             Assert.Equal("Architecture Map", alternatives[1].Direction.Name);
@@ -409,6 +411,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(PowerPointVisualStyle.Geometric, summaries[0].VisualStyle);
             Assert.Equal(PowerPointDesignMood.Energetic, brief.PreferredMoods[0]);
             Assert.Equal(PowerPointVisualStyle.Geometric, brief.PreferredVisualStyles[0]);
+            Assert.Equal("Delivery Signal", recommendations[0].Design.DirectionName);
+            Assert.True(recommendations[0].MatchesPreferences);
+            Assert.Equal(5, recommendations[0].PreferenceScore);
+            Assert.Contains("Matches preferred mood: Energetic.", recommendations[0].Reasons);
+            Assert.Contains("Matches preferred visual style: Geometric.", recommendations[0].Reasons);
+            Assert.Contains("Delivery Signal score 5", recommendations[0].ToString());
+            Assert.True(recommendations[1].MatchesPreferences);
+            Assert.Equal(2, recommendations[1].PreferenceScore);
 
             brief.ClearDesignPreferences();
             Assert.Empty(brief.PreferredMoods);
