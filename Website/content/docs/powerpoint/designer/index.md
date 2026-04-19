@@ -12,7 +12,7 @@ Use this when a generated deck should feel designed without forcing every caller
 
 ## Design brief recommendations
 
-A `PowerPointDesignBrief` packages brand color, stable seed, purpose, identity, palette preferences, and creative preferences. Callers can inspect alternatives before choosing one.
+A `PowerPointDesignBrief` packages brand color, stable seed, purpose, identity, and creative direction. Start with a pack when you want a strong direction quickly, then override individual palette or layout knobs only where needed. Callers can inspect alternatives before choosing one.
 
 ![PowerPoint design brief alternatives](/images/powerpoint/examples/design-brief-alternatives.png)
 
@@ -21,12 +21,8 @@ PowerPointDesignBrief brief = PowerPointDesignBrief
     .FromBrand("#008C95", "design-brief-recommendations", "technical rollout proposal")
     .WithIdentity("Client Theme", eyebrow: "OfficeIMO.PowerPoint",
         footerLeft: "OFFICEIMO", footerRight: "Design brief")
-    .WithPaletteStyle(PowerPointPaletteStyle.SplitComplementary)
-    .WithPalette(secondaryAccentColor: "#6D5BD0", warmAccentColor: "#FFB000")
-    .WithLayoutStrategy(PowerPointAutoLayoutStrategy.ContentFirst)
-    .WithVariety(PowerPointDesignVariety.Exploratory)
-    .WithPreferredMoods(PowerPointDesignMood.Energetic, PowerPointDesignMood.Editorial)
-    .WithPreferredVisualStyles(PowerPointVisualStyle.Geometric, PowerPointVisualStyle.Soft);
+    .WithCreativeDirectionPack(PowerPointCreativeDirectionPack.FieldProof)
+    .WithPalette(surfaceColor: "#F6FAFC", panelBorderColor: "#D5E3EA");
 
 var recommendations = brief.RecommendAlternatives(4);
 var selected = recommendations
@@ -41,6 +37,8 @@ PowerPointDeckComposer deck = presentation.UseDesigner(brief, selected.Design.In
 ```
 
 The recommendation object keeps the choice explainable: score, direction, mood, visual style, fonts, palette, and human-readable reasons are all available before slides are rendered.
+
+Built-in packs include `Boardroom`, `FieldProof`, `EditorialCaseStudy`, `TechnicalMap`, and `QuietAppendix`. They combine recipe, palette style, layout strategy, variety, and ranking preferences without freezing exact slide coordinates.
 
 `WithLayoutStrategy(...)` lets a brief steer `Auto` slide variants without turning the deck into a fixed template.
 Use `ContentFirst` for content-fit defaults, `DesignFirst` for more seeded variation, `Compact` for denser business decks,

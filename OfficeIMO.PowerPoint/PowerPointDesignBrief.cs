@@ -126,6 +126,12 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointAutoLayoutStrategy? LayoutStrategy { get; private set; }
 
         /// <summary>
+        ///     Optional high-level creative pack used to configure recipe, palette, layout strategy, and ranking preferences.
+        /// </summary>
+        public PowerPointCreativeDirectionPack CreativeDirectionPack { get; private set; } =
+            PowerPointCreativeDirectionPack.Auto;
+
+        /// <summary>
         ///     Controls how far generated alternatives should move from the selected recipe or preferred direction.
         /// </summary>
         public PowerPointDesignVariety Variety { get; private set; } = PowerPointDesignVariety.Balanced;
@@ -218,6 +224,72 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointDesignBrief WithLayoutStrategy(PowerPointAutoLayoutStrategy layoutStrategy) {
             LayoutStrategy = layoutStrategy;
+            return this;
+        }
+
+        /// <summary>
+        ///     Applies a curated creative starting point while preserving seed-based variation and any later explicit overrides.
+        /// </summary>
+        public PowerPointDesignBrief WithCreativeDirectionPack(PowerPointCreativeDirectionPack pack) {
+            CreativeDirectionPack = pack;
+
+            switch (pack) {
+                case PowerPointCreativeDirectionPack.Auto:
+                    return this;
+                case PowerPointCreativeDirectionPack.Boardroom:
+                    Recipe = PowerPointDesignRecipe.ExecutiveBrief;
+                    PaletteStyle = PowerPointPaletteStyle.CoolNeutral;
+                    LayoutStrategy = PowerPointAutoLayoutStrategy.ContentFirst;
+                    Variety = PowerPointDesignVariety.Balanced;
+                    SetDirectionPreferences(
+                        new[] { PowerPointDesignMood.Corporate },
+                        new[] { PowerPointSlideDensity.Balanced, PowerPointSlideDensity.Relaxed },
+                        new[] { PowerPointVisualStyle.Soft });
+                    break;
+                case PowerPointCreativeDirectionPack.FieldProof:
+                    Recipe = PowerPointDesignRecipe.ConsultingPortfolio;
+                    PaletteStyle = PowerPointPaletteStyle.SplitComplementary;
+                    LayoutStrategy = PowerPointAutoLayoutStrategy.VisualFirst;
+                    Variety = PowerPointDesignVariety.Exploratory;
+                    SetDirectionPreferences(
+                        new[] { PowerPointDesignMood.Energetic },
+                        new[] { PowerPointSlideDensity.Balanced },
+                        new[] { PowerPointVisualStyle.Geometric });
+                    break;
+                case PowerPointCreativeDirectionPack.EditorialCaseStudy:
+                    Recipe = PowerPointDesignRecipe.ConsultingPortfolio;
+                    PaletteStyle = PowerPointPaletteStyle.WarmNeutral;
+                    LayoutStrategy = PowerPointAutoLayoutStrategy.VisualFirst;
+                    Variety = PowerPointDesignVariety.Balanced;
+                    SetDirectionPreferences(
+                        new[] { PowerPointDesignMood.Corporate, PowerPointDesignMood.Editorial },
+                        new[] { PowerPointSlideDensity.Relaxed },
+                        new[] { PowerPointVisualStyle.Soft });
+                    break;
+                case PowerPointCreativeDirectionPack.TechnicalMap:
+                    Recipe = PowerPointDesignRecipe.TechnicalProposal;
+                    PaletteStyle = PowerPointPaletteStyle.Complementary;
+                    LayoutStrategy = PowerPointAutoLayoutStrategy.Compact;
+                    Variety = PowerPointDesignVariety.Exploratory;
+                    SetDirectionPreferences(
+                        new[] { PowerPointDesignMood.Corporate, PowerPointDesignMood.Energetic },
+                        new[] { PowerPointSlideDensity.Balanced, PowerPointSlideDensity.Compact },
+                        new[] { PowerPointVisualStyle.Geometric });
+                    break;
+                case PowerPointCreativeDirectionPack.QuietAppendix:
+                    Recipe = PowerPointDesignRecipe.TechnicalProposal;
+                    PaletteStyle = PowerPointPaletteStyle.Monochrome;
+                    LayoutStrategy = PowerPointAutoLayoutStrategy.ContentFirst;
+                    Variety = PowerPointDesignVariety.Focused;
+                    SetDirectionPreferences(
+                        new[] { PowerPointDesignMood.Minimal },
+                        new[] { PowerPointSlideDensity.Compact },
+                        new[] { PowerPointVisualStyle.Minimal });
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(pack), pack, "Unknown creative direction pack.");
+            }
+
             return this;
         }
 
@@ -712,6 +784,13 @@ namespace OfficeIMO.PowerPoint {
 
             target.Clear();
             target.AddRange(values.Distinct());
+        }
+
+        private void SetDirectionPreferences(IEnumerable<PowerPointDesignMood> moods,
+            IEnumerable<PowerPointSlideDensity> densities, IEnumerable<PowerPointVisualStyle> visualStyles) {
+            ReplacePreferences(_preferredMoods, moods, nameof(moods));
+            ReplacePreferences(_preferredDensities, densities, nameof(densities));
+            ReplacePreferences(_preferredVisualStyles, visualStyles, nameof(visualStyles));
         }
 
         private sealed class PowerPointDeckPlanContentFit {

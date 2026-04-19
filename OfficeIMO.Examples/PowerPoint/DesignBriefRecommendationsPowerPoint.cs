@@ -18,11 +18,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                 .FromBrand("#008C95", "design-brief-recommendations", "technical rollout proposal")
                 .WithIdentity("Client Theme", eyebrow: "OfficeIMO.PowerPoint", footerLeft: "OFFICEIMO",
                     footerRight: "Design brief")
-                .WithPalette(secondaryAccentColor: "#6D5BD0", tertiaryAccentColor: "#0E7490",
-                    warmAccentColor: "#FFB000", surfaceColor: "#F6FAFC", panelBorderColor: "#D5E3EA")
-                .WithVariety(PowerPointDesignVariety.Exploratory)
-                .WithPreferredMoods(PowerPointDesignMood.Energetic, PowerPointDesignMood.Editorial)
-                .WithPreferredVisualStyles(PowerPointVisualStyle.Geometric, PowerPointVisualStyle.Soft);
+                .WithCreativeDirectionPack(PowerPointCreativeDirectionPack.FieldProof)
+                .WithPalette(surfaceColor: "#F6FAFC", panelBorderColor: "#D5E3EA");
 
             IReadOnlyList<PowerPointDeckDesignRecommendation> recommendations = brief.RecommendAlternatives(4);
             PowerPointDeckDesignRecommendation selected = recommendations
@@ -45,6 +42,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     recommendation.Design.DirectionName,
                     new[] {
                         $"Score: {recommendation.PreferenceScore}",
+                        $"{recommendation.Design.PaletteStyle} / {recommendation.Design.LayoutStrategy}",
                         $"{recommendation.Design.Mood} / {recommendation.Design.VisualStyle}",
                         $"{recommendation.Design.HeadingFontName} + {recommendation.Design.BodyFontName}"
                     },

@@ -857,6 +857,50 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDesignBrief_CanApplyCreativeDirectionPack() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-pack", "technical rollout proposal")
+                .WithCreativeDirectionPack(PowerPointCreativeDirectionPack.FieldProof);
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(3);
+            IReadOnlyList<PowerPointDeckDesignSummary> summaries = brief.DescribeAlternatives(1);
+            IReadOnlyList<PowerPointDeckDesignRecommendation> recommendations =
+                brief.RecommendAlternatives(2);
+
+            Assert.Equal(PowerPointCreativeDirectionPack.FieldProof, brief.CreativeDirectionPack);
+            Assert.Same(PowerPointDesignRecipe.ConsultingPortfolio, brief.Recipe);
+            Assert.Equal(PowerPointPaletteStyle.SplitComplementary, brief.PaletteStyle);
+            Assert.Equal(PowerPointAutoLayoutStrategy.VisualFirst, brief.LayoutStrategy);
+            Assert.Equal(PowerPointDesignVariety.Exploratory, brief.Variety);
+            Assert.Equal("Field Proof", alternatives[0].Direction.Name);
+            Assert.Equal("Board Story", alternatives[1].Direction.Name);
+            Assert.Equal(PowerPointAutoLayoutStrategy.VisualFirst, alternatives[0].BaseIntent.LayoutStrategy);
+            Assert.Equal(PowerPointPaletteStyle.SplitComplementary, alternatives[0].Theme.PaletteStyle);
+            Assert.Equal(PowerPointDesignMood.Energetic, summaries[0].Mood);
+            Assert.Equal(PowerPointVisualStyle.Geometric, summaries[0].VisualStyle);
+            Assert.True(recommendations[0].MatchesPreferences);
+            Assert.Contains("Matches preferred mood: Energetic.", recommendations[0].Reasons);
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_CreativeDirectionPacksKeepAlternativesDistinct() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-pack-distinct", "technical rollout proposal")
+                .WithCreativeDirectionPack(PowerPointCreativeDirectionPack.TechnicalMap);
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(3);
+
+            Assert.Equal(PowerPointCreativeDirectionPack.TechnicalMap, brief.CreativeDirectionPack);
+            Assert.Equal(PowerPointPaletteStyle.Complementary, brief.PaletteStyle);
+            Assert.Equal(PowerPointAutoLayoutStrategy.Compact, alternatives[0].BaseIntent.LayoutStrategy);
+            Assert.Equal("Architecture Map", alternatives[0].Direction.Name);
+            Assert.Equal("Delivery Signal", alternatives[1].Direction.Name);
+            Assert.NotEqual(alternatives[0].Seed, alternatives[1].Seed);
+            Assert.NotEqual(alternatives[0].Theme.Accent2Color, alternatives[1].Theme.Accent2Color);
+            Assert.NotEqual(alternatives[1].Theme.Accent2Color, alternatives[2].Theme.Accent2Color);
+        }
+
+        [Fact]
         public void DesignerDesignBrief_VisualLayoutStrategyPrefersHeroVariants() {
             PowerPointDesignBrief brief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
                 .WithLayoutStrategy(PowerPointAutoLayoutStrategy.VisualFirst);

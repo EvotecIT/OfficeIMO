@@ -96,12 +96,8 @@ var quickDeck = ppt.UseDesigner("#008C95", "client-demo", "technical rollout pro
 var brief = PowerPointDesignBrief
     .FromBrand("#008C95", "client-demo", "technical rollout proposal")
     .WithIdentity("Client Theme", footerLeft: "CLIENT", footerRight: "Service deck")
-    .WithPaletteStyle(PowerPointPaletteStyle.SplitComplementary)
-    .WithPalette(secondaryAccentColor: "#6D5BD0", warmAccentColor: "#FFB000")
-    .WithLayoutStrategy(PowerPointAutoLayoutStrategy.ContentFirst)
-    .WithVariety(PowerPointDesignVariety.Exploratory)
-    .WithPreferredMoods(PowerPointDesignMood.Energetic)
-    .WithPreferredVisualStyles(PowerPointVisualStyle.Geometric);
+    .WithCreativeDirectionPack(PowerPointCreativeDirectionPack.FieldProof)
+    .WithPalette(surfaceColor: "#F6FAFC", panelBorderColor: "#D5E3EA");
 var choices = brief.DescribeAlternatives(3); // direction, mood, fonts, and palette preview
 var recommendations = brief.RecommendAlternatives(3); // preference score and reasons before choosing
 var briefDeck = ppt.UseDesigner(brief, alternativeIndex: 1);

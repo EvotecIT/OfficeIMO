@@ -74,6 +74,24 @@ namespace OfficeIMO.PowerPoint {
     }
 
     /// <summary>
+    ///     Higher-level creative starting points that combine recipe, palette, layout, and ranking preferences.
+    /// </summary>
+    public enum PowerPointCreativeDirectionPack {
+        /// <summary>Let the purpose text and explicit brief settings choose the design direction.</summary>
+        Auto,
+        /// <summary>Restrained, board-ready hierarchy for executive and decision decks.</summary>
+        Boardroom,
+        /// <summary>Visual proof and stronger contrast for case studies, portfolios, and service stories.</summary>
+        FieldProof,
+        /// <summary>Editorial spacing and softer surfaces for narrative-heavy customer stories.</summary>
+        EditorialCaseStudy,
+        /// <summary>Compact geometric structure for architecture, rollout, and operational decks.</summary>
+        TechnicalMap,
+        /// <summary>Quiet, dense appendix treatment for supporting detail and reference slides.</summary>
+        QuietAppendix
+    }
+
+    /// <summary>
     ///     Controls how Auto slide variants balance content fit against visual variety.
     /// </summary>
     public enum PowerPointAutoLayoutStrategy {
