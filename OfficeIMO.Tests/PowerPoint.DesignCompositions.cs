@@ -730,6 +730,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDesignBrief_CanDescribeDeckPlanBeforeRendering() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-render-preview", "technical rollout proposal")
+                .WithIdentity("Client", footerLeft: "CLIENT");
+            PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                .AddSection("Cover", "Opening", "cover")
+                .AddProcess("Path", null,
+                    new[] {
+                        new PowerPointProcessStep("One", "Start."),
+                        new PowerPointProcessStep("Two", "Finish.")
+                    },
+                    "path");
+
+            IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> summaries =
+                brief.DescribeDeckPlan(plan, alternativeIndex: 1);
+
+            Assert.Equal(2, summaries.Count);
+            Assert.Equal("Runbook", summaries[0].DirectionName);
+            Assert.Equal(PowerPointDesignMood.Minimal, summaries[0].Mood);
+            Assert.Equal("Segoe UI Semibold", summaries[0].HeadingFontName);
+            Assert.Equal("cover", summaries[0].ResolvedSeed);
+            Assert.Equal("brief-render-preview/technical-proposal-runbook-2/cover", summaries[0].DesignSeed);
+            Assert.Equal("Rail", summaries[1].LayoutVariant);
+            Assert.Equal(2, summaries[1].ContentItemCount);
+        }
+
+        [Fact]
         public void DesignerDeckComposer_SameContentCanUseDifferentDeckPersonalities() {
             string corporatePath = CreateTempPresentationPath();
             string minimalPath = CreateTempPresentationPath();

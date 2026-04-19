@@ -237,6 +237,18 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Creates lightweight descriptions of how a deck plan would resolve under one design alternative.
+        /// </summary>
+        public IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> DescribeDeckPlan(
+            PowerPointDeckPlan plan, int alternativeIndex = 0) {
+            if (plan == null) {
+                throw new ArgumentNullException(nameof(plan));
+            }
+
+            return plan.DescribeSlides(CreateDesign(alternativeIndex));
+        }
+
+        /// <summary>
         ///     Creates one deterministic deck design from this brief.
         /// </summary>
         public PowerPointDeckDesign CreateDesign(int alternativeIndex = 0) {
