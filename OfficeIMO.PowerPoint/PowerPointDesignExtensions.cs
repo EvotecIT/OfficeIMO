@@ -251,6 +251,12 @@ namespace OfficeIMO.PowerPoint {
                 return options.SectionVariant;
             }
 
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.Compact) {
+                return PowerPointSectionLayoutVariant.EditorialRail;
+            }
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.VisualFirst) {
+                return PowerPointSectionLayoutVariant.Poster;
+            }
             if (string.IsNullOrWhiteSpace(options.DesignIntent.Seed)) {
                 return PowerPointSectionLayoutVariant.GeometricCover;
             }
@@ -268,12 +274,26 @@ namespace OfficeIMO.PowerPoint {
                 return options.Variant;
             }
 
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.Compact ||
+                sections.Count >= 4) {
+                return PowerPointCaseStudyLayoutVariant.EditorialSplit;
+            }
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.VisualFirst &&
+                sections.Count <= 3) {
+                return PowerPointCaseStudyLayoutVariant.VisualHero;
+            }
             if (string.IsNullOrWhiteSpace(options.DesignIntent.Seed)) {
                 return PowerPointCaseStudyLayoutVariant.VisualBand;
             }
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.DesignFirst) {
+                return options.DesignIntent.Pick(3, "case-study") switch {
+                    0 => PowerPointCaseStudyLayoutVariant.VisualBand,
+                    1 => PowerPointCaseStudyLayoutVariant.EditorialSplit,
+                    _ => PowerPointCaseStudyLayoutVariant.VisualHero
+                };
+            }
             if (options.DesignIntent.VisualStyle == PowerPointVisualStyle.Soft ||
-                options.DesignIntent.VisualStyle == PowerPointVisualStyle.Minimal ||
-                sections.Count >= 4) {
+                options.DesignIntent.VisualStyle == PowerPointVisualStyle.Minimal) {
                 return PowerPointCaseStudyLayoutVariant.EditorialSplit;
             }
             if (metrics.Count > 0 && sections.Count <= 3) {
@@ -293,14 +313,24 @@ namespace OfficeIMO.PowerPoint {
                 return options.Variant;
             }
 
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.Compact ||
+                cards.Count > 4) {
+                return PowerPointCardGridLayoutVariant.AccentTop;
+            }
             if (string.IsNullOrWhiteSpace(options.DesignIntent.Seed)) {
                 return PowerPointCardGridLayoutVariant.AccentTop;
+            }
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.DesignFirst ||
+                options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.VisualFirst) {
+                return options.DesignIntent.Pick(2, "card-grid") == 0
+                    ? PowerPointCardGridLayoutVariant.AccentTop
+                    : PowerPointCardGridLayoutVariant.SoftTiles;
             }
             if (options.DesignIntent.VisualStyle == PowerPointVisualStyle.Soft ||
                 options.DesignIntent.VisualStyle == PowerPointVisualStyle.Minimal) {
                 return PowerPointCardGridLayoutVariant.SoftTiles;
             }
-            if (options.DesignIntent.Density == PowerPointSlideDensity.Compact || cards.Count > 4) {
+            if (options.DesignIntent.Density == PowerPointSlideDensity.Compact) {
                 return PowerPointCardGridLayoutVariant.AccentTop;
             }
 
@@ -315,19 +345,25 @@ namespace OfficeIMO.PowerPoint {
                 return options.Variant;
             }
 
+            if (steps.Count > PowerPointDeckPlanLimits.DenseProcessSteps ||
+                options.DesignIntent.VisualStyle == PowerPointVisualStyle.Minimal) {
+                return PowerPointProcessLayoutVariant.Rail;
+            }
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.Compact) {
+                return PowerPointProcessLayoutVariant.NumberedColumns;
+            }
             if (string.IsNullOrWhiteSpace(options.DesignIntent.Seed)) {
                 return PowerPointProcessLayoutVariant.Rail;
             }
-            if (steps.Count >= 6 || options.DesignIntent.VisualStyle == PowerPointVisualStyle.Minimal) {
-                return PowerPointProcessLayoutVariant.Rail;
-            }
-            if (options.DesignIntent.Density == PowerPointSlideDensity.Compact) {
-                return PowerPointProcessLayoutVariant.NumberedColumns;
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.DesignFirst ||
+                options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.VisualFirst ||
+                options.DesignIntent.Density != PowerPointSlideDensity.Compact) {
+                return options.DesignIntent.Pick(2, "process") == 0
+                    ? PowerPointProcessLayoutVariant.Rail
+                    : PowerPointProcessLayoutVariant.NumberedColumns;
             }
 
-            return options.DesignIntent.Pick(2, "process") == 0
-                ? PowerPointProcessLayoutVariant.Rail
-                : PowerPointProcessLayoutVariant.NumberedColumns;
+            return PowerPointProcessLayoutVariant.NumberedColumns;
         }
 
         private static void AddSectionGeometricCover(PowerPointSlide slide, PowerPointDesignTheme theme,

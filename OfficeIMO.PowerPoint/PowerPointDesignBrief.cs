@@ -121,6 +121,11 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointPaletteStyle? PaletteStyle { get; private set; }
 
         /// <summary>
+        ///     Optional Auto layout strategy applied to generated design alternatives.
+        /// </summary>
+        public PowerPointAutoLayoutStrategy? LayoutStrategy { get; private set; }
+
+        /// <summary>
         ///     Controls how far generated alternatives should move from the selected recipe or preferred direction.
         /// </summary>
         public PowerPointDesignVariety Variety { get; private set; } = PowerPointDesignVariety.Balanced;
@@ -209,6 +214,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Chooses how Auto slide variants should balance content fit, design variety, and compactness.
+        /// </summary>
+        public PowerPointDesignBrief WithLayoutStrategy(PowerPointAutoLayoutStrategy layoutStrategy) {
+            LayoutStrategy = layoutStrategy;
+            return this;
+        }
+
+        /// <summary>
         ///     Sets how broad generated alternatives should be.
         /// </summary>
         public PowerPointDesignBrief WithVariety(PowerPointDesignVariety variety) {
@@ -291,7 +304,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (_directions.Count > 0) {
-                return ApplyPaletteOverrides(CreateDirectionAlternatives(count));
+                return ApplyBriefOverrides(CreateDirectionAlternatives(count));
             }
 
             PowerPointDesignRecipe recipe = Recipe
@@ -302,7 +315,7 @@ namespace OfficeIMO.PowerPoint {
                     recipe.DefaultEyebrow, recipe.Description, recipe.Keywords);
             }
 
-            return ApplyPaletteOverrides(recipe.CreateAlternativesFromBrand(AccentColor, Seed, count, Name,
+            return ApplyBriefOverrides(recipe.CreateAlternativesFromBrand(AccentColor, Seed, count, Name,
                 Eyebrow, FooterLeft, FooterRight, HeadingFontName, BodyFontName));
         }
 
@@ -570,14 +583,18 @@ namespace OfficeIMO.PowerPoint {
             return new PowerPointDeckPlanContentFit(score, reasons.AsReadOnly());
         }
 
-        private IReadOnlyList<PowerPointDeckDesign> ApplyPaletteOverrides(
+        private IReadOnlyList<PowerPointDeckDesign> ApplyBriefOverrides(
             IReadOnlyList<PowerPointDeckDesign> alternatives) {
-            if (PaletteStyle == null && SecondaryAccentColor == null && TertiaryAccentColor == null &&
-                WarmAccentColor == null && SurfaceColor == null && PanelBorderColor == null) {
+            if (LayoutStrategy == null && PaletteStyle == null && SecondaryAccentColor == null &&
+                TertiaryAccentColor == null && WarmAccentColor == null && SurfaceColor == null &&
+                PanelBorderColor == null) {
                 return alternatives;
             }
 
             foreach (PowerPointDeckDesign design in alternatives) {
+                if (LayoutStrategy != null) {
+                    design.BaseIntent.LayoutStrategy = LayoutStrategy.Value;
+                }
                 if (PaletteStyle != null) {
                     design.Theme.ApplyPaletteStyle(PaletteStyle.Value, design.Seed);
                 }

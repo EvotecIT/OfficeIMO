@@ -98,6 +98,7 @@ var brief = PowerPointDesignBrief
     .WithIdentity("Client Theme", footerLeft: "CLIENT", footerRight: "Service deck")
     .WithPaletteStyle(PowerPointPaletteStyle.SplitComplementary)
     .WithPalette(secondaryAccentColor: "#6D5BD0", warmAccentColor: "#FFB000")
+    .WithLayoutStrategy(PowerPointAutoLayoutStrategy.ContentFirst)
     .WithVariety(PowerPointDesignVariety.Exploratory)
     .WithPreferredMoods(PowerPointDesignMood.Energetic)
     .WithPreferredVisualStyles(PowerPointVisualStyle.Geometric);
@@ -149,6 +150,7 @@ var uniqueBrief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
     .WithIdentity("Client Theme", footerLeft: "CLIENT")
     .WithDirections(clientDirections)
     .WithPaletteStyle(PowerPointPaletteStyle.CoolNeutral)
+    .WithLayoutStrategy(PowerPointAutoLayoutStrategy.Compact)
     .WithPreferredDensities(PowerPointSlideDensity.Compact);
 
 deck.AddSectionSlide("Case Study", "Project portfolio", "cover",
@@ -257,6 +259,9 @@ moods get softer cards, long processes stay readable, proof slides emphasize sup
 locations become list-plus-map slides, section-heavy capability slides stack into readable panels, and content-rich
 case studies choose stronger structure. Use `PowerPointDeckDesign.CreateAlternativesFromBrand(...)` with either a count,
 custom directions, or a recipe when you want stable choices from the same brand before choosing the deck personality.
+
+Use `PowerPointDesignBrief.WithLayoutStrategy(...)` when `Auto` variants should lean toward content fit, seeded design
+variety, compact business layouts, or more visual hero/proof compositions without hardcoding every slide variant.
 Use explicit layout variants when a deck needs a controlled art direction, or use `ComposeDesignerSlide` and
 `PowerPointLayoutBox` regions when the slide needs a custom composition while still reusing cards, metrics, process
 steps, logo walls, coverage maps, and callout bands.

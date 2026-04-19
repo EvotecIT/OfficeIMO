@@ -539,6 +539,72 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDesignBrief_CanChooseAutoLayoutStrategy() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
+                .WithLayoutStrategy(PowerPointAutoLayoutStrategy.Compact);
+            PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                .AddSection("Opening", "Compact introduction", "cover")
+                .AddCaseStudy("Client",
+                    new[] {
+                        new PowerPointCaseStudySection("Client", "One story block."),
+                        new PowerPointCaseStudySection("Challenge", "Second story block."),
+                        new PowerPointCaseStudySection("Result", "Third story block.")
+                    },
+                    seed: "case")
+                .AddProcess("Delivery", null,
+                    new[] {
+                        new PowerPointProcessStep("One", "Assess."),
+                        new PowerPointProcessStep("Two", "Plan."),
+                        new PowerPointProcessStep("Three", "Deliver.")
+                    },
+                    seed: "process")
+                .AddCardGrid("Areas", null,
+                    new[] {
+                        new PowerPointCardContent("One"),
+                        new PowerPointCardContent("Two"),
+                        new PowerPointCardContent("Three")
+                    },
+                    seed: "cards");
+
+            PowerPointDeckDesign design = brief.CreateDesign();
+            IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> summaries = brief.DescribeDeckPlan(plan);
+
+            Assert.Equal(PowerPointAutoLayoutStrategy.Compact, brief.LayoutStrategy);
+            Assert.Equal(PowerPointAutoLayoutStrategy.Compact, design.BaseIntent.LayoutStrategy);
+            Assert.Equal(PowerPointAutoLayoutStrategy.Compact, design.Describe().LayoutStrategy);
+            Assert.Equal("EditorialRail", summaries[0].LayoutVariant);
+            Assert.Equal("EditorialSplit", summaries[1].LayoutVariant);
+            Assert.Equal("NumberedColumns", summaries[2].LayoutVariant);
+            Assert.Equal("AccentTop", summaries[3].LayoutVariant);
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_VisualLayoutStrategyPrefersHeroVariants() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
+                .WithLayoutStrategy(PowerPointAutoLayoutStrategy.VisualFirst);
+            PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                .AddSection("Opening", "Visual introduction", "cover")
+                .AddCaseStudy("Client",
+                    new[] {
+                        new PowerPointCaseStudySection("Client", "One story block."),
+                        new PowerPointCaseStudySection("Result", "Second story block.")
+                    },
+                    seed: "case")
+                .AddCoverage("Coverage", null,
+                    new[] {
+                        new PowerPointCoverageLocation("Warsaw", 0.54, 0.42),
+                        new PowerPointCoverageLocation("Krakow", 0.56, 0.72)
+                    },
+                    seed: "coverage");
+
+            IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> summaries = brief.DescribeDeckPlan(plan);
+
+            Assert.Equal("Poster", summaries[0].LayoutVariant);
+            Assert.Equal("VisualHero", summaries[1].LayoutVariant);
+            Assert.Equal("PinBoard", summaries[2].LayoutVariant);
+        }
+
+        [Fact]
         public void DesignerDeckComposer_CanStartFromBriefWithCustomDirections() {
             string filePath = CreateTempPresentationPath();
 

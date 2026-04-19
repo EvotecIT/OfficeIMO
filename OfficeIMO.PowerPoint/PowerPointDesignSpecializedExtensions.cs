@@ -748,6 +748,14 @@ namespace OfficeIMO.PowerPoint {
 
             bool hasFeaturedProof = !string.IsNullOrWhiteSpace(options.FeaturedImagePath) ||
                 !string.IsNullOrWhiteSpace(options.FeatureTitle);
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.Compact ||
+                logos.Count > PowerPointDeckPlanLimits.DenseLogoWallItems) {
+                return PowerPointLogoWallLayoutVariant.LogoMosaic;
+            }
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.VisualFirst &&
+                logos.Count <= PowerPointDeckPlanLimits.DenseLogoWallItems) {
+                return PowerPointLogoWallLayoutVariant.CertificateFeature;
+            }
             if (hasFeaturedProof && logos.Count <= 12) {
                 return PowerPointLogoWallLayoutVariant.CertificateFeature;
             }
@@ -772,6 +780,13 @@ namespace OfficeIMO.PowerPoint {
                 return options.Variant;
             }
 
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.Compact) {
+                return PowerPointCoverageLayoutVariant.ListMap;
+            }
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.VisualFirst &&
+                locations.Count <= 6 && string.IsNullOrWhiteSpace(options.SupportingText)) {
+                return PowerPointCoverageLayoutVariant.PinBoard;
+            }
             if (locations.Count > 6 ||
                 !string.IsNullOrWhiteSpace(options.SupportingText) ||
                 options.DesignIntent.VisualStyle == PowerPointVisualStyle.Soft ||
@@ -801,6 +816,15 @@ namespace OfficeIMO.PowerPoint {
             bool hasImageVisual = !string.IsNullOrWhiteSpace(options.VisualImagePath);
             bool hasVisualEvidence = hasCoverageVisual || hasLogoVisual || hasImageVisual;
 
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.Compact) {
+                return PowerPointCapabilityLayoutVariant.Stacked;
+            }
+            if (options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.VisualFirst &&
+                hasVisualEvidence && sections.Count <= 3) {
+                return options.DesignIntent.Mood == PowerPointDesignMood.Editorial
+                    ? PowerPointCapabilityLayoutVariant.VisualText
+                    : PowerPointCapabilityLayoutVariant.TextVisual;
+            }
             if (sections.Count >= 4) {
                 return PowerPointCapabilityLayoutVariant.Stacked;
             }

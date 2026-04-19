@@ -10,6 +10,7 @@ namespace OfficeIMO.PowerPoint {
             Mood = design.BaseIntent.Mood;
             Density = design.BaseIntent.Density;
             VisualStyle = design.BaseIntent.VisualStyle;
+            LayoutStrategy = design.BaseIntent.LayoutStrategy;
             HeadingFontName = design.Theme.HeadingFontName;
             BodyFontName = design.Theme.BodyFontName;
             AccentColor = design.Theme.AccentColor;
@@ -49,6 +50,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Preferred visual style.
         /// </summary>
         public PowerPointVisualStyle VisualStyle { get; }
+
+        /// <summary>
+        ///     Strategy used by Auto slide variants.
+        /// </summary>
+        public PowerPointAutoLayoutStrategy LayoutStrategy { get; }
 
         /// <summary>
         ///     Heading font used by this alternative.
