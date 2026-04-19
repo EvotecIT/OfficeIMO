@@ -119,7 +119,7 @@ var plan = new PowerPointDeckPlan()
     }, seed: "custom-detail");
 var plannedSlides = plan.DescribeSlides(); // kind, title, seed, and content count
 var planDiagnostics = plan.ValidateSlides(); // density, clipping, and bounds issues before rendering
-var renderPreview = brief.DescribeDeckPlan(plan, alternativeIndex: 1); // resolved variants, direction, fonts, and design seeds
+var renderPreview = brief.DescribeDeckPlan(plan, alternativeIndex: 1); // variants, layout reasons, fonts, and seeds
 var planChoices = brief.DescribeDeckPlanAlternatives(plan, 3); // includes content-fit score and reasons
 briefDeck.AddSlides(plan); // validates errors before rendering and keeps warnings inspectable
 

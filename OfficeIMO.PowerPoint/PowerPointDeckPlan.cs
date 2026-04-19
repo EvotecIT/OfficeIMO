@@ -214,6 +214,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal PowerPointDeckPlanSlideRenderSummary DescribeRender(int index, PowerPointDeckDesign design) {
             string slideSeed = ResolveSeed(index);
+            string? layoutVariant = ResolveLayoutVariant(design, slideSeed);
             return new PowerPointDeckPlanSlideRenderSummary(
                 index,
                 Kind,
@@ -223,7 +224,8 @@ namespace OfficeIMO.PowerPoint {
                 slideSeed,
                 design.Seed + "/" + slideSeed,
                 ContentItemCount,
-                ResolveLayoutVariant(design, slideSeed),
+                layoutVariant,
+                ResolveLayoutReasons(design, layoutVariant),
                 design.Direction.Name,
                 design.BaseIntent.Mood,
                 design.BaseIntent.Density,
@@ -242,6 +244,21 @@ namespace OfficeIMO.PowerPoint {
 
         private protected virtual string? ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             return null;
+        }
+
+        private protected virtual IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
+            string? layoutVariant) {
+            List<string> reasons = new();
+            if (!string.IsNullOrWhiteSpace(layoutVariant)) {
+                reasons.Add("Uses " + layoutVariant + " for " + Kind + " content.");
+            }
+            if (design.BaseIntent.Density == PowerPointSlideDensity.Compact) {
+                reasons.Add("Compact density keeps the slide content tighter.");
+            } else if (design.BaseIntent.Density == PowerPointSlideDensity.Relaxed) {
+                reasons.Add("Relaxed density leaves more whitespace around the slide content.");
+            }
+
+            return reasons.AsReadOnly();
         }
 
         private protected static T ConfigurePreview<T>(PowerPointDeckDesign design, string slideSeed,
@@ -299,6 +316,20 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDesignerSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
             return PowerPointDesignExtensions.ResolveSectionVariant(options).ToString();
         }
+
+        private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
+            string? layoutVariant) {
+            List<string> reasons = new() {
+                "Section slides use " + layoutVariant + " to establish the deck rhythm before detailed content."
+            };
+            if (design.ShowDirectionMotif) {
+                reasons.Add("Direction motifs are enabled for stronger opening-slide movement.");
+            } else {
+                reasons.Add("Direction motifs are disabled for a quieter opening slide.");
+            }
+
+            return reasons.AsReadOnly();
+        }
     }
 
     /// <summary>
@@ -341,6 +372,24 @@ namespace OfficeIMO.PowerPoint {
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointCaseStudySlideOptions options = ConfigurePreview(design, slideSeed, _configure);
             return PowerPointDesignExtensions.ResolveCaseStudyVariant(options, Sections, Metrics).ToString();
+        }
+
+        private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
+            string? layoutVariant) {
+            List<string> reasons = new();
+            if (Sections.Count >= 4) {
+                reasons.Add("Four narrative sections favor an editorial split to keep each story block readable.");
+            } else if (Metrics.Count > 0) {
+                reasons.Add("Metrics are present, so the case study can reserve stronger visual emphasis.");
+            } else {
+                reasons.Add("Case-study content is balanced across narrative sections.");
+            }
+            if (design.BaseIntent.VisualStyle == PowerPointVisualStyle.Soft ||
+                design.BaseIntent.VisualStyle == PowerPointVisualStyle.Minimal) {
+                reasons.Add("Softer visual styles reduce decoration around narrative-heavy content.");
+            }
+            reasons.Add("Resolved case-study layout: " + layoutVariant + ".");
+            return reasons.AsReadOnly();
         }
 
         internal override void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {
@@ -390,6 +439,23 @@ namespace OfficeIMO.PowerPoint {
             return PowerPointDesignExtensions.ResolveProcessVariant(options, Steps).ToString();
         }
 
+        private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
+            string? layoutVariant) {
+            List<string> reasons = new();
+            if (Steps.Count >= 6) {
+                reasons.Add("Six or more process steps use a rail so the sequence stays connected.");
+            } else if (design.BaseIntent.Density == PowerPointSlideDensity.Compact) {
+                reasons.Add("Compact density can use numbered columns for short step-by-step flows.");
+            } else {
+                reasons.Add("Shorter process flows can vary between rail and numbered columns.");
+            }
+            if (design.BaseIntent.VisualStyle == PowerPointVisualStyle.Minimal) {
+                reasons.Add("Minimal style favors a rail over heavier process decoration.");
+            }
+            reasons.Add("Resolved process layout: " + layoutVariant + ".");
+            return reasons.AsReadOnly();
+        }
+
         internal override void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {
             if (Steps.Count > 8) {
                 AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Error,
@@ -435,6 +501,21 @@ namespace OfficeIMO.PowerPoint {
             PowerPointCardGridSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
             return PowerPointDesignExtensions.ResolveCardGridVariant(options, Cards).ToString();
         }
+
+        private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
+            string? layoutVariant) {
+            List<string> reasons = new();
+            if (Cards.Count > 4) {
+                reasons.Add("More than four cards favor the accent-top grid for compact scanning.");
+            } else if (design.BaseIntent.VisualStyle == PowerPointVisualStyle.Soft ||
+                       design.BaseIntent.VisualStyle == PowerPointVisualStyle.Minimal) {
+                reasons.Add("Softer visual styles favor quieter card tiles.");
+            } else {
+                reasons.Add("The card count leaves room for visual variation.");
+            }
+            reasons.Add("Resolved card-grid layout: " + layoutVariant + ".");
+            return reasons.AsReadOnly();
+        }
     }
 
     /// <summary>
@@ -470,6 +551,18 @@ namespace OfficeIMO.PowerPoint {
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointLogoWallSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
             return PowerPointDesignExtensions.ResolveLogoWallVariant(options, Logos).ToString();
+        }
+
+        private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
+            string? layoutVariant) {
+            List<string> reasons = new();
+            if (Logos.Count > 12) {
+                reasons.Add("Large proof walls become compact, so the layout keeps logos in a readable system.");
+            } else {
+                reasons.Add("Logo-wall content can choose between proof mosaic and featured certificate layouts.");
+            }
+            reasons.Add("Resolved logo-wall layout: " + layoutVariant + ".");
+            return reasons.AsReadOnly();
         }
 
         internal override void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {
@@ -516,6 +609,21 @@ namespace OfficeIMO.PowerPoint {
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             PowerPointCoverageSlideOptions options = ConfigurePreview(design, slideSeed, _configure);
             return PowerPointDesignExtensions.ResolveCoverageVariant(options, Locations).ToString();
+        }
+
+        private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
+            string? layoutVariant) {
+            List<string> reasons = new();
+            if (Locations.Count > 18) {
+                reasons.Add("Many locations favor list support because map pins may become dense.");
+            } else {
+                reasons.Add("Coverage slides balance map-like visual proof with readable location labels.");
+            }
+            if (design.BaseIntent.VisualStyle == PowerPointVisualStyle.Geometric) {
+                reasons.Add("Geometric style supports map and coverage structure.");
+            }
+            reasons.Add("Resolved coverage layout: " + layoutVariant + ".");
+            return reasons.AsReadOnly();
         }
 
         internal override void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {
@@ -573,6 +681,20 @@ namespace OfficeIMO.PowerPoint {
             return PowerPointDesignExtensions.ResolveCapabilityVariant(options, Sections).ToString();
         }
 
+        private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
+            string? layoutVariant) {
+            List<string> reasons = new();
+            if (Sections.Count > 4) {
+                reasons.Add("Many capability sections favor stacked panels to avoid cramped columns.");
+            } else if (design.BaseIntent.VisualStyle == PowerPointVisualStyle.Minimal) {
+                reasons.Add("Minimal style keeps capability content quieter and more editorial.");
+            } else {
+                reasons.Add("Capability content can use a text-and-visual split.");
+            }
+            reasons.Add("Resolved capability layout: " + layoutVariant + ".");
+            return reasons.AsReadOnly();
+        }
+
         internal override void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {
             if (Sections.Count > 6) {
                 AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Error,
@@ -618,6 +740,20 @@ namespace OfficeIMO.PowerPoint {
 
         private protected override string ResolveLayoutVariant(PowerPointDeckDesign design, string slideSeed) {
             return Dark ? "CustomDark" : "Custom";
+        }
+
+        private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
+            string? layoutVariant) {
+            List<string> reasons = new() {
+                "Custom slides keep raw composition control while still using deck identity and theme defaults."
+            };
+            if (Dark) {
+                reasons.Add("The custom slide requests the dark designer surface.");
+            } else {
+                reasons.Add("The custom slide requests the light designer surface.");
+            }
+
+            return reasons.AsReadOnly();
         }
     }
 
@@ -750,9 +886,9 @@ namespace OfficeIMO.PowerPoint {
     public sealed class PowerPointDeckPlanSlideRenderSummary {
         internal PowerPointDeckPlanSlideRenderSummary(int index, PowerPointDeckPlanSlideKind kind,
             string title, string? subtitle, string? seed, string resolvedSeed, string designSeed,
-            int contentItemCount, string? layoutVariant, string directionName, PowerPointDesignMood mood,
-            PowerPointSlideDensity density, PowerPointVisualStyle visualStyle, string headingFontName,
-            string bodyFontName) {
+            int contentItemCount, string? layoutVariant, IReadOnlyList<string> layoutReasons,
+            string directionName, PowerPointDesignMood mood, PowerPointSlideDensity density,
+            PowerPointVisualStyle visualStyle, string headingFontName, string bodyFontName) {
             Index = index;
             Kind = kind;
             Title = title;
@@ -762,6 +898,7 @@ namespace OfficeIMO.PowerPoint {
             DesignSeed = designSeed;
             ContentItemCount = contentItemCount;
             LayoutVariant = layoutVariant;
+            LayoutReasons = layoutReasons;
             DirectionName = directionName;
             Mood = mood;
             Density = density;
@@ -814,6 +951,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Resolved layout variant name for semantic slides, or custom surface name for raw composition slides.
         /// </summary>
         public string? LayoutVariant { get; }
+
+        /// <summary>
+        ///     Short explanations for why this layout variant was selected for the planned slide.
+        /// </summary>
+        public IReadOnlyList<string> LayoutReasons { get; }
 
         /// <summary>
         ///     Creative direction name used by the deck design.

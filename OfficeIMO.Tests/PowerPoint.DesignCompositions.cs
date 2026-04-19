@@ -944,6 +944,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("ListMap", summaries[5].LayoutVariant);
             Assert.Equal("Stacked", summaries[6].LayoutVariant);
             Assert.Equal("CustomDark", summaries[7].LayoutVariant);
+            Assert.Contains("Resolved process layout: NumberedColumns.", summaries[2].LayoutReasons);
+            Assert.Contains("Resolved capability layout: Stacked.", summaries[6].LayoutReasons);
+            Assert.Contains("The custom slide requests the dark designer surface.", summaries[7].LayoutReasons);
             Assert.Contains("Appendix", summaries[7].ToString());
         }
 
@@ -972,6 +975,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("brief-render-preview/technical-proposal-runbook-2/cover", summaries[0].DesignSeed);
             Assert.Equal("Rail", summaries[1].LayoutVariant);
             Assert.Equal(2, summaries[1].ContentItemCount);
+            Assert.Contains("Minimal style favors a rail over heavier process decoration.",
+                summaries[1].LayoutReasons);
         }
 
         [Fact]
@@ -1009,6 +1014,8 @@ namespace OfficeIMO.Tests {
             Assert.True(alternatives[1].ContentFitScore > alternatives[0].ContentFitScore);
             Assert.Contains("Compact density fits denser planned slides without manual placement.",
                 alternatives[1].ContentFitReasons);
+            Assert.Contains("Six or more process steps use a rail so the sequence stays connected.",
+                alternatives[1].Slides[1].LayoutReasons);
             Assert.True(alternatives[2].ContentFitScore > alternatives[1].ContentFitScore);
             Assert.Contains("Architecture Map", alternatives[0].ToString());
             Assert.Contains("Balanced", alternatives[0].ToString());
