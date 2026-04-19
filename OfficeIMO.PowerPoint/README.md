@@ -131,6 +131,7 @@ var plannedSlides = plan.DescribeSlides(); // kind, title, seed, and content cou
 var planDiagnostics = plan.ValidateSlides(); // density, clipping, and bounds issues before rendering
 var renderPreview = brief.DescribeDeckPlan(plan, alternativeIndex: 1); // variants, layout reasons, fonts, and seeds
 var planChoices = brief.DescribeDeckPlanAlternatives(plan, 3); // includes content-fit score and reasons
+var livePreview = briefDeck.DescribeSlides(plan); // seed preview accounts for slides already composed in this deck
 briefDeck.AddSlides(plan); // validates errors before rendering and keeps warnings inspectable
 
 // Or supply your own creative directions so decks do not all share the same house style.

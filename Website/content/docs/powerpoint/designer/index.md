@@ -83,6 +83,14 @@ deck.AddSlides(plan);
 
 ![PowerPoint deck plan process slide](/images/powerpoint/examples/deck-plan-process.png)
 
+When a deck already contains slides, preview through the active composer so fallback seeds line up with the render path:
+
+```csharp
+PowerPointDeckComposer deck = presentation.UseDesigner(brief, selectedPlan.Index);
+var livePreview = deck.DescribeSlides(plan);
+deck.AddSlides(plan);
+```
+
 ## Raw composition still matters
 
 Semantic plans are not meant to remove control. Use `ComposeSlide` when a slide needs custom structure, then reuse the same design primitives for title, cards, metric strips, callout bands, coverage maps, and visual frames.

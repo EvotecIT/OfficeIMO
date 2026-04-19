@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -439,27 +440,14 @@ namespace OfficeIMO.PowerPoint {
 
         private IReadOnlyList<PowerPointDesignDirection> RankDirections(
             IEnumerable<PowerPointDesignDirection> directions) {
-            List<PowerPointDesignDirection> source = new();
-            foreach (PowerPointDesignDirection direction in directions) {
-                source.Add(direction);
-            }
+            List<PowerPointDesignDirection> source = directions.ToList();
 
             if (!HasDirectionPreferences) {
                 return source.AsReadOnly();
             }
 
-            List<PowerPointDesignDirection> ranked = new(source.Count);
-            foreach (PowerPointDesignDirection direction in source) {
-                if (MatchesDirectionPreferences(direction)) {
-                    ranked.Add(direction);
-                }
-            }
-
-            foreach (PowerPointDesignDirection direction in source) {
-                if (!MatchesDirectionPreferences(direction)) {
-                    ranked.Add(direction);
-                }
-            }
+            List<PowerPointDesignDirection> ranked = source.Where(MatchesDirectionPreferences).ToList();
+            ranked.AddRange(source.Where(direction => !MatchesDirectionPreferences(direction)));
 
             return ranked.AsReadOnly();
         }
@@ -625,34 +613,16 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool HasSlideKind(IEnumerable<PowerPointDeckPlanSlideRenderSummary> slides,
             PowerPointDeckPlanSlideKind kind) {
-            foreach (PowerPointDeckPlanSlideRenderSummary slide in slides) {
-                if (slide.Kind == kind) {
-                    return true;
-                }
-            }
-
-            return false;
+            return slides.Any(slide => slide.Kind == kind);
         }
 
         private static bool HasDenseSlide(IEnumerable<PowerPointDeckPlanSlideRenderSummary> slides) {
-            foreach (PowerPointDeckPlanSlideRenderSummary slide in slides) {
-                if (slide.ContentItemCount > 5) {
-                    return true;
-                }
-            }
-
-            return false;
+            return slides.Any(slide => slide.ContentItemCount > PowerPointDeckPlanLimits.DenseProcessSteps);
         }
 
         private static bool HasDiagnosticSeverity(IEnumerable<PowerPointDeckPlanDiagnostic> diagnostics,
             PowerPointDeckPlanDiagnosticSeverity severity) {
-            foreach (PowerPointDeckPlanDiagnostic diagnostic in diagnostics) {
-                if (diagnostic.Severity == severity) {
-                    return true;
-                }
-            }
-
-            return false;
+            return diagnostics.Any(diagnostic => diagnostic.Severity == severity);
         }
 
         private static void ReplacePreferences<T>(List<T> target, IEnumerable<T> values, string name) {
@@ -661,11 +631,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             target.Clear();
-            foreach (T value in values) {
-                if (!target.Contains(value)) {
-                    target.Add(value);
-                }
-            }
+            target.AddRange(values.Distinct());
         }
 
         private sealed class PowerPointDeckPlanContentFit {

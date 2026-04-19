@@ -977,11 +977,40 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("slide-2", composerPreview[0].ResolvedSeed);
                 Assert.Equal("slide-3", composerPreview[1].ResolvedSeed);
                 Assert.Equal("seed-preview/slide-2", composerPreview[0].DesignSeed);
+
+                IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> explicitOffsetPreview =
+                    plan.DescribeSlides(design, slideIndexOffset: 1);
+                Assert.Equal(composerPreview[0].ResolvedSeed, explicitOffsetPreview[0].ResolvedSeed);
+                Assert.Equal(composerPreview[1].DesignSeed, explicitOffsetPreview[1].DesignSeed);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        [Fact]
+        public void DesignerDeckPlan_RejectsNegativePreviewOffset() {
+            PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "seed-preview",
+                PowerPointDesignDirection.Executive);
+            PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                .AddSection("Planned cover");
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => plan.DescribeSlides(design, -1));
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_CanDescribeDeckPlanWithSlideOffset() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-offset-preview", "technical rollout proposal");
+            PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                .AddSection("Planned cover", seed: " ");
+
+            IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> summaries =
+                brief.DescribeDeckPlan(plan, alternativeIndex: 0, slideIndexOffset: 3);
+
+            Assert.Equal("slide-4", summaries[0].ResolvedSeed);
+            Assert.Contains("/slide-4", summaries[0].DesignSeed);
         }
 
         [Fact]
