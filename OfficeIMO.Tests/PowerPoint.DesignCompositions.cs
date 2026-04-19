@@ -208,11 +208,15 @@ namespace OfficeIMO.Tests {
 
             PowerPointDesignTheme variation = theme.WithVariation("client-b");
             PowerPointDesignTheme corporate = theme.WithMood(PowerPointDesignMood.Corporate);
+            PowerPointDesignTheme editorial = theme.WithMood(PowerPointDesignMood.Editorial);
+            PowerPointDesignTheme energetic = theme.WithMood(PowerPointDesignMood.Energetic);
             PowerPointDesignTheme mood = theme.WithMood(PowerPointDesignMood.Minimal);
 
             Assert.Equal(PowerPointPaletteStyle.SplitComplementary, theme.PaletteStyle);
             Assert.Equal(PowerPointPaletteStyle.Auto, variation.PaletteStyle);
             Assert.Equal(PowerPointPaletteStyle.SplitComplementary, corporate.PaletteStyle);
+            Assert.Equal(PowerPointPaletteStyle.Auto, editorial.PaletteStyle);
+            Assert.Equal(PowerPointPaletteStyle.Auto, energetic.PaletteStyle);
             Assert.Equal(PowerPointPaletteStyle.Auto, mood.PaletteStyle);
             Assert.Equal(theme.AccentColor, variation.AccentColor);
             Assert.Equal(theme.Accent2Color, corporate.Accent2Color);

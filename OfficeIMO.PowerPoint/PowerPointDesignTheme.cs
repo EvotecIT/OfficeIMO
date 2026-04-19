@@ -125,6 +125,7 @@ namespace OfficeIMO.PowerPoint {
                     clone.SurfaceColor = Shade(clone.Accent3Color, 0.91);
                     clone.PanelColor = "FFFFFF";
                     clone.PanelBorderColor = Shade(clone.Accent3Color, 0.68);
+                    clone.PaletteStyle = PowerPointPaletteStyle.Auto;
                     clone.HeadingFontName = "Aptos Display";
                     clone.BodyFontName = "Aptos";
                     break;
@@ -132,6 +133,7 @@ namespace OfficeIMO.PowerPoint {
                     clone.SurfaceColor = Shade(clone.WarningColor, 0.88);
                     clone.PanelBorderColor = Shade(clone.Accent2Color, 0.62);
                     clone.AccentLightColor = Shade(clone.AccentColor, 0.70);
+                    clone.PaletteStyle = PowerPointPaletteStyle.Auto;
                     clone.HeadingFontName = "Poppins";
                     clone.BodyFontName = "Aptos";
                     break;
