@@ -814,6 +814,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDesignBrief_CanCompareDeckPlanAlternativesBeforeRendering() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-plan-alternatives", "technical rollout proposal")
+                .WithIdentity("Client", footerLeft: "CLIENT");
+            PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                .AddSection("Cover", "Opening", "cover")
+                .AddProcess("Path", null,
+                    Enumerable.Range(1, 6)
+                        .Select(index => new PowerPointProcessStep("Step " + index, "Body")),
+                    "path");
+
+            IReadOnlyList<PowerPointDeckPlanAlternativeSummary> alternatives =
+                brief.DescribeDeckPlanAlternatives(plan, 3);
+
+            Assert.Equal(3, alternatives.Count);
+            Assert.Equal("Architecture Map", alternatives[0].Design.DirectionName);
+            Assert.Equal("Runbook", alternatives[1].Design.DirectionName);
+            Assert.Equal("Delivery Signal", alternatives[2].Design.DirectionName);
+            Assert.NotEqual(alternatives[0].Design.Accent2Color, alternatives[1].Design.Accent2Color);
+            Assert.Equal(2, alternatives[0].Slides.Count);
+            Assert.Equal("cover", alternatives[0].Slides[0].ResolvedSeed);
+            Assert.NotEqual(alternatives[0].Slides[0].DesignSeed, alternatives[1].Slides[0].DesignSeed);
+            Assert.Contains(alternatives[0].Diagnostics,
+                diagnostic => diagnostic.Code == "Process.DenseSteps");
+            Assert.True(alternatives[0].HasWarnings);
+            Assert.False(alternatives[0].HasErrors);
+            Assert.Contains("Architecture Map", alternatives[0].ToString());
+        }
+
+        [Fact]
         public void DesignerDeckComposer_SameContentCanUseDifferentDeckPersonalities() {
             string corporatePath = CreateTempPresentationPath();
             string minimalPath = CreateTempPresentationPath();

@@ -114,6 +114,7 @@ var plan = new PowerPointDeckPlan()
 var plannedSlides = plan.DescribeSlides(); // kind, title, seed, and content count
 var planDiagnostics = plan.ValidateSlides(); // density, clipping, and bounds issues before rendering
 var renderPreview = brief.DescribeDeckPlan(plan, alternativeIndex: 1); // resolved variants, direction, fonts, and design seeds
+var planChoices = brief.DescribeDeckPlanAlternatives(plan, 3); // compare the same content across design directions
 briefDeck.AddSlides(plan);
 
 // Or supply your own creative directions so decks do not all share the same house style.

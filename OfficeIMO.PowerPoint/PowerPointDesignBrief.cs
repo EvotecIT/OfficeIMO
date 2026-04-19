@@ -249,6 +249,32 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Creates lightweight descriptions of how a deck plan would resolve across several design alternatives.
+        /// </summary>
+        public IReadOnlyList<PowerPointDeckPlanAlternativeSummary> DescribeDeckPlanAlternatives(
+            PowerPointDeckPlan plan, int count = 0) {
+            if (plan == null) {
+                throw new ArgumentNullException(nameof(plan));
+            }
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = CreateAlternatives(count);
+            IReadOnlyList<PowerPointDeckPlanDiagnostic> diagnostics = plan.ValidateSlides();
+            PowerPointDeckPlanAlternativeSummary[] summaries =
+                new PowerPointDeckPlanAlternativeSummary[alternatives.Count];
+
+            for (int i = 0; i < alternatives.Count; i++) {
+                PowerPointDeckDesign design = alternatives[i];
+                summaries[i] = new PowerPointDeckPlanAlternativeSummary(
+                    i,
+                    design.Describe(i),
+                    plan.DescribeSlides(design),
+                    diagnostics);
+            }
+
+            return summaries;
+        }
+
+        /// <summary>
         ///     Creates one deterministic deck design from this brief.
         /// </summary>
         public PowerPointDeckDesign CreateDesign(int alternativeIndex = 0) {
