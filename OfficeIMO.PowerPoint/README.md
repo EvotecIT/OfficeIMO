@@ -24,6 +24,16 @@ dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- 
 The sample writes `Modern PowerPoint Deck.pptx` to the examples `Documents` output folder and validates the generated Open
 XML package before reporting success.
 
+To generate the designer examples used by the website screenshots:
+
+```powershell
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint-design-brief
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint-deck-plan
+```
+
+The first sample demonstrates explainable design recommendations. The second demonstrates semantic deck-plan scoring
+before rendering editable slides.
+
 To run the full PowerPoint examples set without opening PowerPoint and validate every generated deck:
 
 ```powershell

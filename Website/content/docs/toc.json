@@ -31,7 +31,8 @@
     "title": "PowerPoint",
     "items": [
       { "title": "PowerPoint Overview", "path": "powerpoint/index.md", "href": "/docs/powerpoint/" },
-      { "title": "Slides", "path": "powerpoint/slides/index.md", "href": "/docs/powerpoint/slides/" }
+      { "title": "Slides", "path": "powerpoint/slides/index.md", "href": "/docs/powerpoint/slides/" },
+      { "title": "Designer Decks", "path": "powerpoint/designer/index.md", "href": "/docs/powerpoint/designer/" }
     ]
   },
   {

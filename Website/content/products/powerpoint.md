@@ -24,6 +24,7 @@ OfficeIMO.PowerPoint lets you create polished `.pptx` presentations from code. A
 - **Charts with formatting** -- bar, column, pie, line, and area charts with data labels, legends, and axis configuration
 - **Slide sections & transitions** -- organize slides into sections and apply transition animations
 - **Themes & layouts** -- apply built-in or custom themes and choose from standard slide layouts
+- **Designer decks** -- generate distinct visual directions from a brand brief, score semantic deck plans, and keep output editable
 - **Speaker notes** -- attach presenter notes to any slide
 - **Slide copying & importing** -- copy slides within a presentation or import from another `.pptx` file
 
@@ -92,5 +93,6 @@ OfficeIMO.PowerPoint runs on Windows, Linux, and macOS. It generates standard `.
 |-------|-------------|
 | [PowerPoint documentation](/docs/powerpoint/) | Start with the package overview and supported presentation workflow. |
 | [Slides guide](/docs/powerpoint/slides/) | Build title slides, content slides, charts, and slide layouts. |
+| [Designer Decks](/docs/powerpoint/designer/) | Create visually structured, editable decks from briefs, recommendations, and semantic plans. |
 | [Getting Started](/docs/getting-started/) | Set up the package family and choose the right companion libraries for reporting pipelines. |
 | [PSWriteOffice](/products/pswriteoffice/) | Use PowerShell to automate the same presentation scenarios from scripts. |
