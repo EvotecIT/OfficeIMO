@@ -241,6 +241,102 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerSlideComposer_CompositionVariantsChangeRegionsWithoutLeavingContent() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointCompositionLayout? standard = null;
+                PowerPointCompositionLayout? mirrored = null;
+                PowerPointCompositionLayout? visualLead = null;
+                PowerPointCompositionLayout? evidenceLead = null;
+                var dashboardLayouts = new List<PowerPointCompositionLayout>();
+
+                presentation.ComposeDesignerSlide(composer => {
+                    standard = composer.UsePreset(PowerPointCompositionPreset.MetricStory,
+                        PowerPointCompositionVariant.Standard);
+                    mirrored = composer.UsePreset(PowerPointCompositionPreset.MetricStory,
+                        PowerPointCompositionVariant.Mirrored);
+                    visualLead = composer.UsePreset(PowerPointCompositionPreset.MetricStory,
+                        PowerPointCompositionVariant.VisualLead);
+                    evidenceLead = composer.UsePreset(PowerPointCompositionPreset.MetricStory,
+                        PowerPointCompositionVariant.EvidenceLead);
+
+                    foreach (PowerPointCompositionVariant variant in new[] {
+                        PowerPointCompositionVariant.Standard,
+                        PowerPointCompositionVariant.Mirrored,
+                        PowerPointCompositionVariant.VisualLead,
+                        PowerPointCompositionVariant.EvidenceLead
+                    }) {
+                        dashboardLayouts.Add(composer.UsePreset(PowerPointCompositionPreset.DashboardGrid, variant));
+                    }
+                });
+
+                Assert.NotNull(standard);
+                Assert.NotNull(mirrored);
+                Assert.NotNull(visualLead);
+                Assert.NotNull(evidenceLead);
+                Assert.Equal(PowerPointCompositionVariant.Standard, standard!.Variant);
+                Assert.Equal(PowerPointCompositionVariant.Mirrored, mirrored!.Variant);
+                Assert.Equal(PowerPointCompositionVariant.VisualLead, visualLead!.Variant);
+                Assert.Equal(PowerPointCompositionVariant.EvidenceLead, evidenceLead!.Variant);
+                Assert.True(standard.Visual.LeftCm > standard.Primary.LeftCm);
+                Assert.True(mirrored.Visual.LeftCm < mirrored.Primary.LeftCm);
+                Assert.True(visualLead.Visual.WidthCm > standard.Visual.WidthCm);
+                Assert.Equal(evidenceLead.Content.TopCm, evidenceLead.Metrics.TopCm);
+
+                foreach (PowerPointCompositionLayout layout in new[] { standard, mirrored, visualLead, evidenceLead }) {
+                    Assert.True(layout.Primary.Left >= layout.Content.Left);
+                    Assert.True(layout.Primary.Right <= layout.Content.Right);
+                    Assert.True(layout.Visual.Left >= layout.Content.Left);
+                    Assert.True(layout.Visual.Right <= layout.Content.Right);
+                    Assert.True(layout.Metrics.Top >= layout.Content.Top);
+                    Assert.True(layout.Metrics.Bottom <= layout.Content.Bottom);
+                }
+
+                foreach (PowerPointCompositionLayout layout in dashboardLayouts) {
+                    Assert.Equal(4, layout.Grid.Distinct().Count());
+                    Assert.Contains(layout.Primary, layout.Grid);
+                    Assert.Contains(layout.Secondary, layout.Grid);
+                    Assert.Contains(layout.Visual, layout.Grid);
+                    Assert.Contains(layout.Metrics, layout.Grid);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerSlideComposer_AutoCompositionVariantIsStableAndSeeded() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointCompositionVariant first = ResolveVariantForSeed(presentation, "same-seed");
+                PowerPointCompositionVariant second = ResolveVariantForSeed(presentation, "same-seed");
+                PowerPointCompositionVariant[] seededVariants = {
+                    ResolveVariantForSeed(presentation, "variant-a"),
+                    ResolveVariantForSeed(presentation, "variant-b"),
+                    ResolveVariantForSeed(presentation, "variant-c"),
+                    ResolveVariantForSeed(presentation, "variant-d")
+                };
+
+                Assert.Equal(first, second);
+                Assert.True(seededVariants.Distinct().Count() > 1);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void DesignerTheme_UsesPresentationGradeFontsByDefault() {
             PowerPointDesignTheme theme = PowerPointDesignTheme.ModernBlue;
 
@@ -2324,6 +2420,18 @@ namespace OfficeIMO.Tests {
                     $"ErrorType: {error.ErrorType}\n" +
                     $"Part: {error.Part?.Uri}\n" +
                     $"Path: {error.Path?.XPath}"));
+        }
+
+        private static PowerPointCompositionVariant ResolveVariantForSeed(PowerPointPresentation presentation,
+            string seed) {
+            PowerPointCompositionVariant variant = PowerPointCompositionVariant.Auto;
+            presentation.ComposeDesignerSlide(composer => {
+                variant = composer.UsePreset(PowerPointCompositionPreset.MetricStory).Variant;
+            }, options: new PowerPointDesignerSlideOptions {
+                DesignIntent = new PowerPointDesignIntent { Seed = seed }
+            });
+
+            return variant;
         }
 
         private static string CreateTempPresentationPath() {

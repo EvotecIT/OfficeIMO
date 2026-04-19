@@ -39,7 +39,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             deck.AddSlides(plan);
             deck.ComposeSlide(composer => {
                 composer.AddTitle("Why this alternative wins", selected.Design.DirectionName);
-                PowerPointCompositionLayout layout = composer.UsePreset(PowerPointCompositionPreset.MetricStory);
+                PowerPointCompositionLayout layout = composer.UsePreset(PowerPointCompositionPreset.MetricStory,
+                    PowerPointCompositionVariant.VisualLead);
 
                 composer.AddCardGrid(selected.ContentFitReasons.Take(4).Select((reason, index) =>
                         new PowerPointCardContent("Fit signal " + (index + 1), new[] { reason })),

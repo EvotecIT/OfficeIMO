@@ -132,11 +132,14 @@ Semantic plans are not meant to remove control. Use `ComposeSlide` when a slide 
 
 Named composition presets sit between manual coordinates and full semantic slides. `UsePreset(...)` returns reusable regions such as `Primary`, `Visual`, `Metrics`, and `Grid`, so a custom slide can keep designed spacing without becoming a hardcoded template.
 
+Variants keep those presets from becoming one fixed look. Use `Standard` for the baseline arrangement, `Mirrored` or `VisualLead` when the visual should move, `EvidenceLead` when metrics should lead, or `Auto` when the design intent and seed should pick a stable variation.
+
 ```csharp
 deck.ComposeSlide(composer => {
     composer.AddTitle("Why this alternative wins", selectedPlan.Design.DirectionName);
 
-    PowerPointCompositionLayout layout = composer.UsePreset(PowerPointCompositionPreset.MetricStory);
+    PowerPointCompositionLayout layout = composer.UsePreset(PowerPointCompositionPreset.MetricStory,
+        PowerPointCompositionVariant.VisualLead);
     composer.AddCardGrid(
         selectedPlan.ContentFitReasons.Take(4)
             .Select((reason, index) => new PowerPointCardContent(

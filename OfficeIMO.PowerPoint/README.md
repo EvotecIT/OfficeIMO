@@ -140,10 +140,11 @@ var recommendedDeck = ppt.UseDesigner(brief, plan, alternativeCount: 3); // choo
 var livePreview = recommendedDeck.DescribeSlides(plan); // seed preview accounts for slides already composed in this deck
 recommendedDeck.AddSlides(plan); // validates errors before rendering and keeps warnings inspectable
 
-// Raw composition can use named presets instead of hand-picked coordinates.
+// Raw composition can use named presets and variants instead of hand-picked coordinates.
 recommendedDeck.ComposeSlide(composer => {
     composer.AddTitle("Advisor summary", "The preset gives structure; the content remains yours.");
-    var layout = composer.UsePreset(PowerPointCompositionPreset.MetricStory);
+    var layout = composer.UsePreset(PowerPointCompositionPreset.MetricStory,
+        PowerPointCompositionVariant.VisualLead);
     composer.AddCardGrid(recommendedPlan.ContentFitReasons.Take(3)
         .Select((reason, index) => new PowerPointCardContent("Signal " + (index + 1), new[] { reason })),
         layout.Primary);
