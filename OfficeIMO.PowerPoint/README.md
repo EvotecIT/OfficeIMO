@@ -84,6 +84,7 @@ var quickDeck = ppt.UseDesigner("#008C95", "client-demo", "technical rollout pro
 var brief = PowerPointDesignBrief
     .FromBrand("#008C95", "client-demo", "technical rollout proposal")
     .WithIdentity("Client Theme", footerLeft: "CLIENT", footerRight: "Service deck");
+var choices = brief.DescribeAlternatives(3); // direction, mood, fonts, and palette preview
 var briefDeck = ppt.UseDesigner(brief, alternativeIndex: 1);
 
 // Or supply your own creative directions so decks do not all share the same house style.

@@ -185,6 +185,19 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Creates lightweight descriptions of generated alternatives without requiring callers to inspect the deck objects.
+        /// </summary>
+        public IReadOnlyList<PowerPointDeckDesignSummary> DescribeAlternatives(int count = 0) {
+            IReadOnlyList<PowerPointDeckDesign> alternatives = CreateAlternatives(count);
+            PowerPointDeckDesignSummary[] summaries = new PowerPointDeckDesignSummary[alternatives.Count];
+            for (int i = 0; i < alternatives.Count; i++) {
+                summaries[i] = alternatives[i].Describe(i);
+            }
+
+            return summaries;
+        }
+
+        /// <summary>
         ///     Creates one deterministic deck design from this brief.
         /// </summary>
         public PowerPointDeckDesign CreateDesign(int alternativeIndex = 0) {

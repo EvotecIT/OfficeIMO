@@ -243,6 +243,13 @@ namespace OfficeIMO.PowerPoint {
         public bool ShowDirectionMotif { get; set; }
 
         /// <summary>
+        ///     Creates a lightweight description that can be used to display or log a design choice.
+        /// </summary>
+        public PowerPointDeckDesignSummary Describe(int index = 0) {
+            return new PowerPointDeckDesignSummary(index, this);
+        }
+
+        /// <summary>
         ///     Applies the deck theme to the presentation.
         /// </summary>
         public PowerPointPresentation ApplyTo(PowerPointPresentation presentation) {

@@ -342,6 +342,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDesignBrief_CanDescribeAlternativesBeforeChoosing() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-preview", "technical rollout proposal")
+                .WithIdentity("Client")
+                .WithFonts(bodyFontName: "Segoe UI");
+
+            IReadOnlyList<PowerPointDeckDesignSummary> summaries = brief.DescribeAlternatives(3);
+
+            Assert.Equal(3, summaries.Count);
+            Assert.Equal(0, summaries[0].Index);
+            Assert.Equal("Architecture Map", summaries[0].DirectionName);
+            Assert.Equal("Runbook", summaries[1].DirectionName);
+            Assert.Equal(PowerPointDesignMood.Minimal, summaries[1].Mood);
+            Assert.Equal("008C95", summaries[2].AccentColor);
+            Assert.Equal("Segoe UI", summaries[2].BodyFontName);
+            Assert.NotEqual(summaries[0].Accent2Color, summaries[1].Accent2Color);
+            Assert.Contains("Delivery Signal", summaries[2].ToString());
+        }
+
+        [Fact]
         public void DesignerDeckComposer_CanStartFromBriefWithCustomDirections() {
             string filePath = CreateTempPresentationPath();
 
