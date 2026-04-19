@@ -305,6 +305,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerRecipe_CanCreateAlternativesDirectlyAndMatchPurpose() {
+            PowerPointDesignRecipe? recipe = PowerPointDesignRecipe.FindBuiltIn("board decision brief");
+
+            Assert.Same(PowerPointDesignRecipe.ExecutiveBrief, recipe);
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = recipe!.CreateAlternativesFromBrand("#1F6FEB",
+                "board-pack", count: 2, name: "Board Pack", footerLeft: "BOARD");
+
+            Assert.Equal(2, alternatives.Count);
+            Assert.Equal("Decision Pack", alternatives[0].Direction.Name);
+            Assert.Equal("Investment Memo", alternatives[1].Direction.Name);
+            Assert.Equal("Executive summary", alternatives[0].Options("cover").Eyebrow);
+            Assert.Equal("BOARD", alternatives[1].Options("cover").FooterLeft);
+            Assert.Equal("board-pack/executive-brief-investment-memo-2/cover",
+                alternatives[1].Options("cover").DesignIntent.Seed);
+        }
+
+        [Fact]
         public void DesignerDeckDesign_MinimalProfileSuppressesDirectionMotifs() {
             string filePath = CreateTempPresentationPath();
 

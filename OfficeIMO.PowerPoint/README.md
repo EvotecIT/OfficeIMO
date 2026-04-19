@@ -68,10 +68,13 @@ var design = alternatives[1]; // pick the stable Editorial creative direction fo
 var deck = ppt.UseDesigner(design);
 
 // Or use a recipe when you want a scenario-specific family of distinct directions.
-var portfolioAlternatives = PowerPointDeckDesign.CreateAlternativesFromBrand("#008C95", "client-demo",
-    PowerPointDesignRecipe.ConsultingPortfolio,
+var portfolioAlternatives = PowerPointDesignRecipe.ConsultingPortfolio.CreateAlternativesFromBrand("#008C95", "client-demo",
     name: "Client Theme", footerLeft: "CLIENT", footerRight: "Service deck");
 var portfolioDesign = portfolioAlternatives[0]; // Board Story, Field Proof, Quiet Appendix, ...
+
+// Recipes can also be selected from plain-language purpose text.
+var recipe = PowerPointDesignRecipe.FindBuiltIn("technical rollout proposal")
+    ?? PowerPointDesignRecipe.ConsultingPortfolio;
 
 // Or supply your own creative directions so decks do not all share the same house style.
 var clientDirections = new[] {
