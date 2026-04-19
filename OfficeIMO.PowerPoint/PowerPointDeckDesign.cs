@@ -110,6 +110,50 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Creates deterministic design alternatives from a curated scenario recipe.
+        /// </summary>
+        public static IReadOnlyList<PowerPointDeckDesign> CreateAlternativesFromBrand(string accentColor, string seed,
+            PowerPointDesignRecipe recipe, int count = 0, string? name = null, string? eyebrow = null,
+            string? footerLeft = null, string? footerRight = null, string? headingFontName = null,
+            string? bodyFontName = null) {
+            if (string.IsNullOrWhiteSpace(seed)) {
+                throw new ArgumentException("Deck design seed cannot be null or empty.", nameof(seed));
+            }
+            if (recipe == null) {
+                throw new ArgumentNullException(nameof(recipe));
+            }
+            if (count < 0) {
+                throw new ArgumentOutOfRangeException(nameof(count), "Design alternative count cannot be negative.");
+            }
+
+            int designCount = count == 0 ? recipe.Directions.Count : count;
+            PowerPointDeckDesign[] designs = new PowerPointDeckDesign[designCount];
+            string recipeSeed = NormalizeSeedPart(recipe.Name);
+            string? resolvedEyebrow = string.IsNullOrWhiteSpace(eyebrow) ? recipe.DefaultEyebrow : eyebrow;
+
+            for (int i = 0; i < designCount; i++) {
+                PowerPointDesignDirection direction = recipe.DirectionAt(i);
+                string candidateSeed = seed + "/" + recipeSeed + "-" + NormalizeSeedPart(direction.Name) + "-" + (i + 1);
+                string candidateName = string.IsNullOrWhiteSpace(name)
+                    ? recipe.Name + " " + direction.Name
+                    : name + " " + direction.Name;
+                string candidateHeadingFont = string.IsNullOrWhiteSpace(headingFontName)
+                    ? direction.HeadingFontName
+                    : headingFontName!;
+                string candidateBodyFont = string.IsNullOrWhiteSpace(bodyFontName)
+                    ? direction.BodyFontName
+                    : bodyFontName!;
+                PowerPointDesignDirection candidateDirection = new(direction.Name, direction.Mood,
+                    direction.Density, direction.VisualStyle, candidateHeadingFont, candidateBodyFont,
+                    direction.ShowDirectionMotif);
+                designs[i] = FromBrand(accentColor, candidateSeed, candidateDirection, candidateName,
+                    resolvedEyebrow, footerLeft, footerRight);
+            }
+
+            return designs;
+        }
+
+        /// <summary>
         ///     Creates deterministic design alternatives from caller-supplied creative directions.
         /// </summary>
         public static IReadOnlyList<PowerPointDeckDesign> CreateAlternativesFromBrand(string accentColor, string seed,

@@ -67,6 +67,12 @@ var alternatives = PowerPointDeckDesign.CreateAlternativesFromBrand("#008C95", "
 var design = alternatives[1]; // pick the stable Editorial creative direction for this deck
 var deck = ppt.UseDesigner(design);
 
+// Or use a recipe when you want a scenario-specific family of distinct directions.
+var portfolioAlternatives = PowerPointDeckDesign.CreateAlternativesFromBrand("#008C95", "client-demo",
+    PowerPointDesignRecipe.ConsultingPortfolio,
+    name: "Client Theme", footerLeft: "CLIENT", footerRight: "Service deck");
+var portfolioDesign = portfolioAlternatives[0]; // Board Story, Field Proof, Quiet Appendix, ...
+
 // Or supply your own creative directions so decks do not all share the same house style.
 var clientDirections = new[] {
     new PowerPointDesignDirection("Board Brief", PowerPointDesignMood.Corporate,
@@ -174,16 +180,18 @@ dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- 
 The helpers are intentionally not fixed templates. Start with `PowerPointDeckDesign.FromBrand(...)` to define the
 deck personality once, including brand color, stable seed, mood, fonts, and chrome. Use a named
 `PowerPointDesignDirection` such as `Structured`, `Editorial`, `Quiet`, `Signal`, or `Executive` when you want a
-recognizable creative direction without hand-tuning every slide. The deck design configures per-slide
+recognizable creative direction without hand-tuning every slide. Use `PowerPointDesignRecipe` values such as
+`ConsultingPortfolio`, `ExecutiveBrief`, or `TechnicalProposal` when you want a scenario-specific family of alternatives
+instead of one house style repeated across every client deck. The deck design configures per-slide
 `PowerPointDesignIntent` values so repeated content can receive stable but different accents, motifs, and automatic
 layout choices. Auto variants use both the design intent and the content shape: dense card grids stay compact, softer
 moods get softer cards, long processes stay readable, proof slides emphasize supplied certificate details, many
 locations become list-plus-map slides, section-heavy capability slides stack into readable panels, and content-rich
-case studies choose stronger structure. Use
-`PowerPointDeckDesign.CreateAlternativesFromBrand(...)` when you want a few stable directions from the same brand before
-choosing the deck personality. Use explicit layout variants when a deck needs a controlled art direction, or use
-`ComposeDesignerSlide` and `PowerPointLayoutBox` regions when the slide needs a custom composition while still reusing
-cards, metrics, process steps, logo walls, coverage maps, and callout bands.
+case studies choose stronger structure. Use `PowerPointDeckDesign.CreateAlternativesFromBrand(...)` with either a count,
+custom directions, or a recipe when you want stable choices from the same brand before choosing the deck personality.
+Use explicit layout variants when a deck needs a controlled art direction, or use `ComposeDesignerSlide` and
+`PowerPointLayoutBox` regions when the slide needs a custom composition while still reusing cards, metrics, process
+steps, logo walls, coverage maps, and callout bands.
 
 ## Common Tasks by Example
 

@@ -260,6 +260,51 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDeckDesign_CanCreateAlternativesFromRecipe() {
+            IReadOnlyList<PowerPointDeckDesign> alternatives =
+                PowerPointDeckDesign.CreateAlternativesFromBrand("#008C95", "service-client",
+                    PowerPointDesignRecipe.ConsultingPortfolio, name: "Client", footerLeft: "CLIENT");
+
+            Assert.Equal(3, alternatives.Count);
+            Assert.Equal("Consulting Portfolio", PowerPointDesignRecipe.ConsultingPortfolio.Name);
+            Assert.Equal("Board Story", alternatives[0].Direction.Name);
+            Assert.Equal(PowerPointDesignMood.Corporate, alternatives[0].BaseIntent.Mood);
+            Assert.Equal(PowerPointVisualStyle.Soft, alternatives[0].BaseIntent.VisualStyle);
+            Assert.Equal("Georgia", alternatives[0].Theme.HeadingFontName);
+            Assert.False(alternatives[0].ShowDirectionMotif);
+            Assert.Equal("Project portfolio", alternatives[0].Options("cover").Eyebrow);
+            Assert.Equal("service-client/consulting-portfolio-board-story-1/cover",
+                alternatives[0].Options("cover").DesignIntent.Seed);
+
+            Assert.Equal("Field Proof", alternatives[1].Direction.Name);
+            Assert.Equal(PowerPointDesignMood.Energetic, alternatives[1].BaseIntent.Mood);
+            Assert.Equal(PowerPointVisualStyle.Geometric, alternatives[1].BaseIntent.VisualStyle);
+            Assert.True(alternatives[1].ShowDirectionMotif);
+
+            Assert.Equal("Quiet Appendix", alternatives[2].Direction.Name);
+            Assert.Equal(PowerPointDesignMood.Minimal, alternatives[2].BaseIntent.Mood);
+            Assert.Equal(PowerPointVisualStyle.Minimal, alternatives[2].BaseIntent.VisualStyle);
+            Assert.Equal("CLIENT", alternatives[2].Options("cover").FooterLeft);
+        }
+
+        [Fact]
+        public void DesignerDeckDesign_RecipeAlternativesCanCycleAndOverrideFonts() {
+            IReadOnlyList<PowerPointDeckDesign> alternatives =
+                PowerPointDeckDesign.CreateAlternativesFromBrand("#008C95", "technical-client",
+                    PowerPointDesignRecipe.TechnicalProposal, count: 4, name: "Client",
+                    headingFontName: "Aptos Display", bodyFontName: "Aptos");
+
+            Assert.Equal(4, alternatives.Count);
+            Assert.Equal("Architecture Map", alternatives[0].Direction.Name);
+            Assert.Equal("Architecture Map", alternatives[3].Direction.Name);
+            Assert.NotEqual(alternatives[0].Options("cover").DesignIntent.Seed,
+                alternatives[3].Options("cover").DesignIntent.Seed);
+            Assert.All(alternatives, design => Assert.Equal("Aptos Display", design.Theme.HeadingFontName));
+            Assert.All(alternatives, design => Assert.Equal("Aptos", design.Theme.BodyFontName));
+            Assert.Equal("Technical proposal", alternatives[1].Options("cover").Eyebrow);
+        }
+
+        [Fact]
         public void DesignerDeckDesign_MinimalProfileSuppressesDirectionMotifs() {
             string filePath = CreateTempPresentationPath();
 
