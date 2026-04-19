@@ -396,7 +396,7 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointDeckDesignSummary designSummary = design.Describe(i);
                 IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> slides =
                     plan.DescribeSlides(design, slideIndexOffset);
-                PowerPointDeckPlanContentFit fit = RecommendDeckPlanAlternative(designSummary, slides, diagnostics);
+                PowerPointDeckPlanContentFit fit = ScoreDeckPlanAlternative(designSummary, slides, diagnostics);
                 summaries[i] = new PowerPointDeckPlanAlternativeSummary(
                     i,
                     Variety,
@@ -408,6 +408,42 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return summaries;
+        }
+
+        /// <summary>
+        ///     Creates content-fit recommendations for a deck plan, ordered with the strongest match first.
+        /// </summary>
+        public IReadOnlyList<PowerPointDeckPlanAlternativeSummary> RecommendDeckPlanAlternatives(
+            PowerPointDeckPlan plan, int count = 0) {
+            return RecommendDeckPlanAlternatives(plan, count, slideIndexOffset: 0);
+        }
+
+        /// <summary>
+        ///     Creates content-fit recommendations for a deck plan, ordered with the strongest match first,
+        ///     using an existing composer slide count for fallback seed generation.
+        /// </summary>
+        public IReadOnlyList<PowerPointDeckPlanAlternativeSummary> RecommendDeckPlanAlternatives(
+            PowerPointDeckPlan plan, int count, int slideIndexOffset) {
+            return OrderDeckPlanAlternatives(DescribeDeckPlanAlternatives(plan, count, slideIndexOffset));
+        }
+
+        /// <summary>
+        ///     Selects the strongest content-fit recommendation for a deck plan.
+        /// </summary>
+        public PowerPointDeckPlanAlternativeSummary RecommendDeckPlanAlternative(PowerPointDeckPlan plan,
+            int count = 0) {
+            return RecommendDeckPlanAlternative(plan, count, slideIndexOffset: 0);
+        }
+
+        /// <summary>
+        ///     Selects the strongest content-fit recommendation for a deck plan,
+        ///     using an existing composer slide count for fallback seed generation.
+        /// </summary>
+        public PowerPointDeckPlanAlternativeSummary RecommendDeckPlanAlternative(PowerPointDeckPlan plan,
+            int count, int slideIndexOffset) {
+            IReadOnlyList<PowerPointDeckPlanAlternativeSummary> recommendations =
+                RecommendDeckPlanAlternatives(plan, count, slideIndexOffset);
+            return recommendations[0];
         }
 
         /// <summary>
@@ -526,7 +562,7 @@ namespace OfficeIMO.PowerPoint {
             return new PowerPointDeckDesignRecommendation(design, score, reasons.AsReadOnly());
         }
 
-        private static PowerPointDeckPlanContentFit RecommendDeckPlanAlternative(
+        private static PowerPointDeckPlanContentFit ScoreDeckPlanAlternative(
             PowerPointDeckDesignSummary design,
             IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> slides,
             IReadOnlyList<PowerPointDeckPlanDiagnostic> diagnostics) {
@@ -581,6 +617,17 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return new PowerPointDeckPlanContentFit(score, reasons.AsReadOnly());
+        }
+
+        private static IReadOnlyList<PowerPointDeckPlanAlternativeSummary> OrderDeckPlanAlternatives(
+            IEnumerable<PowerPointDeckPlanAlternativeSummary> alternatives) {
+            return alternatives
+                .OrderBy(alternative => alternative.HasErrors)
+                .ThenByDescending(alternative => alternative.ContentFitScore)
+                .ThenBy(alternative => alternative.HasWarnings)
+                .ThenBy(alternative => alternative.Index)
+                .ToList()
+                .AsReadOnly();
         }
 
         private IReadOnlyList<PowerPointDeckDesign> ApplyBriefOverrides(

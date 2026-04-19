@@ -607,6 +607,68 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDesignBrief_CanRecommendDeckPlanAlternative() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                PowerPointDesignBrief brief = PowerPointDesignBrief
+                    .FromBrand("#008C95", "recommended-plan", "technical rollout proposal")
+                    .WithVariety(PowerPointDesignVariety.Exploratory);
+                PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                    .AddProcess("Rollout path", "Six steps should prefer compact geometric options.",
+                        new[] {
+                            new PowerPointProcessStep("Discover", "Inventory the current state."),
+                            new PowerPointProcessStep("Design", "Define the target model."),
+                            new PowerPointProcessStep("Pilot", "Validate the first rollout group."),
+                            new PowerPointProcessStep("Deploy", "Move through controlled batches."),
+                            new PowerPointProcessStep("Stabilize", "Watch early support signals."),
+                            new PowerPointProcessStep("Optimize", "Tune the operating model.")
+                        },
+                        seed: "process")
+                    .AddCoverage("Delivery coverage", null,
+                        new[] {
+                            new PowerPointCoverageLocation("Warsaw", 0.58, 0.43),
+                            new PowerPointCoverageLocation("Gdansk", 0.55, 0.18),
+                            new PowerPointCoverageLocation("Krakow", 0.58, 0.78)
+                        },
+                        seed: "coverage")
+                    .AddCustom("Raw proof", composer => {
+                        composer.AddTitle("Raw proof", "The recommendation still allows custom composition.");
+                        composer.AddMetricStrip(new[] {
+                            new PowerPointMetric("6", "steps"),
+                            new PowerPointMetric("3", "regions")
+                        }, composer.ContentArea().TakeTopCm(1.8));
+                    }, seed: "raw-proof");
+
+                IReadOnlyList<PowerPointDeckPlanAlternativeSummary> described =
+                    brief.DescribeDeckPlanAlternatives(plan, 5);
+                IReadOnlyList<PowerPointDeckPlanAlternativeSummary> recommended =
+                    brief.RecommendDeckPlanAlternatives(plan, 5);
+                PowerPointDeckPlanAlternativeSummary selected = brief.RecommendDeckPlanAlternative(plan, 5);
+
+                Assert.Equal(described.Count, recommended.Count);
+                Assert.Equal(recommended[0].Index, selected.Index);
+                Assert.Equal(recommended.Max(alternative => alternative.ContentFitScore), selected.ContentFitScore);
+                Assert.True(recommended[0].ContentFitScore >= recommended[recommended.Count - 1].ContentFitScore);
+                Assert.Contains(selected.ContentFitReasons, reason => reason.Length > 0);
+                Assert.Contains(selected.Slides, slide => slide.Kind == PowerPointDeckPlanSlideKind.Custom);
+
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+                PowerPointDeckComposer deck = presentation.UseDesigner(brief, selected.Index);
+                deck.AddSlides(plan);
+
+                Assert.Equal(selected.Design.DirectionName, deck.Design.Direction.Name);
+                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void DesignerDeckComposer_CanStartFromBriefWithCustomDirections() {
             string filePath = CreateTempPresentationPath();
 

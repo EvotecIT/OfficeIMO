@@ -133,6 +133,7 @@ var plannedSlides = plan.DescribeSlides(); // kind, title, seed, and content cou
 var planDiagnostics = plan.ValidateSlides(); // density, clipping, and bounds issues before rendering
 var renderPreview = brief.DescribeDeckPlan(plan, alternativeIndex: 1); // variants, layout reasons, fonts, and seeds
 var planChoices = brief.DescribeDeckPlanAlternatives(plan, 3); // includes content-fit score and reasons
+var recommendedPlan = brief.RecommendDeckPlanAlternative(plan, 3); // strongest content-fit choice first
 var livePreview = briefDeck.DescribeSlides(plan); // seed preview accounts for slides already composed in this deck
 briefDeck.AddSlides(plan); // validates errors before rendering and keeps warnings inspectable
 
@@ -263,6 +264,8 @@ custom directions, or a recipe when you want stable choices from the same brand 
 
 Use `PowerPointDesignBrief.WithLayoutStrategy(...)` when `Auto` variants should lean toward content fit, seeded design
 variety, compact business layouts, or more visual hero/proof compositions without hardcoding every slide variant.
+Use `RecommendDeckPlanAlternative(...)` when callers want the library to pick the strongest content-fit alternative
+from the same plan while still returning the selected design index and reasons.
 Run the layout strategy sample when you want to compare the same semantic `PowerPointDeckPlan` rendered through
 different brief-level palette and layout choices.
 Use explicit layout variants when a deck needs a controlled art direction, or use `ComposeDesignerSlide` and
