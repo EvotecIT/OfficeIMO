@@ -39,26 +39,22 @@ namespace OfficeIMO.Examples.PowerPoint {
             deck.AddSlides(plan);
             deck.ComposeSlide(composer => {
                 composer.AddTitle("Why this alternative wins", selected.Design.DirectionName);
-                PowerPointLayoutBox[] columns = composer.ContentColumns(2, 0.8, topCm: 3.85);
+                PowerPointCompositionLayout layout = composer.UsePreset(PowerPointCompositionPreset.MetricStory);
 
                 composer.AddCardGrid(selected.ContentFitReasons.Take(4).Select((reason, index) =>
                         new PowerPointCardContent("Fit signal " + (index + 1), new[] { reason })),
-                    columns[0],
+                    layout.Primary,
                     new PowerPointCardGridSlideOptions {
                         MaxColumns = 1,
                         Variant = PowerPointCardGridLayoutVariant.SoftTiles
                     });
 
+                composer.AddVisualFrame(layout.Visual);
                 composer.AddMetricStrip(new[] {
                     new PowerPointMetric(selected.ContentFitScore.ToString(), "fit score"),
                     new PowerPointMetric(selected.Slides.Count.ToString(), "planned slides"),
                     new PowerPointMetric(selected.Diagnostics.Count.ToString(), "diagnostics")
-                }, columns[1].TakeTopCm(2.2));
-
-                composer.AddCalloutBand(
-                    $"{selected.Design.Mood} mood with {selected.Design.VisualStyle} visuals. " +
-                    "Slide-level reasons stay available for logs, UI previews, or custom diagnostics.",
-                    columns[1].InsetCm(0, 2.75, 0, 0).TakeTopCm(1.75));
+                }, layout.Metrics);
             }, "advisor-summary", options => options.FooterRight = "Fit score " + selected.ContentFitScore);
 
             presentation.Save();

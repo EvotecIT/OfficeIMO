@@ -126,8 +126,10 @@ var plan = new PowerPointDeckPlan()
         seed: "process")
     .AddCustom("Custom detail", composer => {
         composer.AddTitle("Custom detail", "Use raw composition when a planned slide needs something special.");
+        var layout = composer.UsePreset(PowerPointCompositionPreset.Auto);
+        composer.AddVisualFrame(layout.Visual);
         composer.AddMetricStrip(new[] { new PowerPointMetric("2", "modes") },
-            composer.ContentArea().TakeTopCm(1.5));
+            layout.Metrics);
     }, seed: "custom-detail");
 var plannedSlides = plan.DescribeSlides(); // kind, title, seed, and content count
 var planDiagnostics = plan.ValidateSlides(); // density, clipping, and bounds issues before rendering
@@ -137,6 +139,20 @@ var recommendedPlan = brief.RecommendDeckPlanAlternative(plan, 3); // strongest 
 var recommendedDeck = ppt.UseDesigner(brief, plan, alternativeCount: 3); // choose the recommended design
 var livePreview = recommendedDeck.DescribeSlides(plan); // seed preview accounts for slides already composed in this deck
 recommendedDeck.AddSlides(plan); // validates errors before rendering and keeps warnings inspectable
+
+// Raw composition can use named presets instead of hand-picked coordinates.
+recommendedDeck.ComposeSlide(composer => {
+    composer.AddTitle("Advisor summary", "The preset gives structure; the content remains yours.");
+    var layout = composer.UsePreset(PowerPointCompositionPreset.MetricStory);
+    composer.AddCardGrid(recommendedPlan.ContentFitReasons.Take(3)
+        .Select((reason, index) => new PowerPointCardContent("Signal " + (index + 1), new[] { reason })),
+        layout.Primary);
+    composer.AddVisualFrame(layout.Visual);
+    composer.AddMetricStrip(new[] {
+        new PowerPointMetric(recommendedPlan.ContentFitScore.ToString(), "fit score"),
+        new PowerPointMetric(recommendedPlan.Slides.Count.ToString(), "slides")
+    }, layout.Metrics);
+}, seed: "advisor-summary");
 
 // Or supply your own creative directions so decks do not all share the same house style.
 var clientDirections = new[] {

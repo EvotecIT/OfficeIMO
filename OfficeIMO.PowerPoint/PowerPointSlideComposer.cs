@@ -81,6 +81,16 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Resolves a named composition preset into reusable regions for a raw designer slide.
+        /// </summary>
+        public PowerPointCompositionLayout UsePreset(PowerPointCompositionPreset preset = PowerPointCompositionPreset.Auto,
+            double topCm = 3.65, double bottomMarginCm = 1.65, double horizontalMarginCm = 1.5) {
+            PowerPointCompositionPreset resolvedPreset = ResolveCompositionPreset(preset);
+            return PowerPointCompositionLayout.Create(resolvedPreset,
+                ContentArea(topCm, bottomMarginCm, horizontalMarginCm), _options.DesignIntent.Density);
+        }
+
+        /// <summary>
         ///     Adds a standard title block using the active theme and slide surface.
         /// </summary>
         public void AddTitle(string title, string? subtitle = null) {
@@ -249,6 +259,49 @@ namespace OfficeIMO.PowerPoint {
                 childOptions.DesignIntent.Density == PowerPointSlideDensity.Balanced &&
                 childOptions.DesignIntent.VisualStyle == PowerPointVisualStyle.Geometric) {
                 childOptions.DesignIntent = _options.DesignIntent;
+            }
+        }
+
+        private PowerPointCompositionPreset ResolveCompositionPreset(PowerPointCompositionPreset preset) {
+            if (preset != PowerPointCompositionPreset.Auto) {
+                return preset;
+            }
+
+            if (_options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.Compact) {
+                return PowerPointCompositionPreset.DashboardGrid;
+            }
+            if (_options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.VisualFirst) {
+                return StablePick(_options.DesignIntent.Seed ?? "visual", 2) == 0
+                    ? PowerPointCompositionPreset.VisualSplit
+                    : PowerPointCompositionPreset.MetricStory;
+            }
+            if (_options.DesignIntent.VisualStyle == PowerPointVisualStyle.Minimal) {
+                return PowerPointCompositionPreset.BalancedColumns;
+            }
+            if (_options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.DesignFirst) {
+                PowerPointCompositionPreset[] choices = {
+                    PowerPointCompositionPreset.BalancedColumns,
+                    PowerPointCompositionPreset.VisualSplit,
+                    PowerPointCompositionPreset.MetricStory,
+                    PowerPointCompositionPreset.DashboardGrid
+                };
+                return choices[StablePick(_options.DesignIntent.Seed ?? "composition", choices.Length)];
+            }
+
+            return _options.DesignIntent.Mood == PowerPointDesignMood.Energetic
+                ? PowerPointCompositionPreset.MetricStory
+                : PowerPointCompositionPreset.BalancedColumns;
+        }
+
+        private static int StablePick(string value, int choices) {
+            unchecked {
+                int hash = (int)2166136261;
+                for (int i = 0; i < value.Length; i++) {
+                    hash ^= value[i];
+                    hash *= 16777619;
+                }
+
+                return (hash & int.MaxValue) % choices;
             }
         }
     }
