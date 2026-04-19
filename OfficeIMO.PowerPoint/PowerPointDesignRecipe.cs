@@ -162,6 +162,44 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Creates a lightweight description of this recipe and its creative directions.
+        /// </summary>
+        public PowerPointDesignRecipeSummary Describe(int index = 0) {
+            return new PowerPointDesignRecipeSummary(index, this);
+        }
+
+        /// <summary>
+        ///     Creates lightweight descriptions of all built-in recipes.
+        /// </summary>
+        public static IReadOnlyList<PowerPointDesignRecipeSummary> DescribeBuiltIns() {
+            PowerPointDesignRecipeSummary[] summaries = new PowerPointDesignRecipeSummary[BuiltIn.Count];
+            for (int i = 0; i < BuiltIn.Count; i++) {
+                summaries[i] = BuiltIn[i].Describe(i);
+            }
+
+            return summaries;
+        }
+
+        /// <summary>
+        ///     Creates lightweight descriptions of built-in recipes matching a plain-language purpose.
+        /// </summary>
+        public static IReadOnlyList<PowerPointDesignRecipeSummary> DescribeMatches(string purpose) {
+            if (string.IsNullOrWhiteSpace(purpose)) {
+                return Array.Empty<PowerPointDesignRecipeSummary>();
+            }
+
+            List<PowerPointDesignRecipeSummary> summaries = new();
+            for (int i = 0; i < BuiltIn.Count; i++) {
+                PowerPointDesignRecipe recipe = BuiltIn[i];
+                if (recipe.Matches(purpose)) {
+                    summaries.Add(recipe.Describe(i));
+                }
+            }
+
+            return summaries.AsReadOnly();
+        }
+
+        /// <summary>
         ///     Finds a built-in recipe that matches a plain-language purpose such as "executive brief".
         /// </summary>
         public static PowerPointDesignRecipe? FindBuiltIn(string purpose) {

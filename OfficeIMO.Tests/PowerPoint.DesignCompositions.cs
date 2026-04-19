@@ -350,6 +350,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerRecipe_CanDescribeBuiltInsAndMatches() {
+            IReadOnlyList<PowerPointDesignRecipeSummary> recipes = PowerPointDesignRecipe.DescribeBuiltIns();
+            IReadOnlyList<PowerPointDesignRecipeSummary> matches =
+                PowerPointDesignRecipe.DescribeMatches("roadmap program");
+
+            Assert.Equal(4, recipes.Count);
+            Assert.Equal("Consulting Portfolio", recipes[0].Name);
+            Assert.Equal("Transformation Roadmap", recipes[3].Name);
+            Assert.Equal("Roadmap", recipes[3].DefaultEyebrow);
+            Assert.Contains("journey", recipes[3].Keywords);
+            Assert.Equal(3, recipes[3].DirectionCount);
+            Assert.Equal("Momentum Map", recipes[3].Directions[1].Name);
+            Assert.Equal(PowerPointDesignMood.Energetic, recipes[3].Directions[1].Mood);
+            Assert.Equal("Poppins", recipes[3].Directions[1].HeadingFontName);
+            Assert.Contains("Transformation Roadmap", recipes[3].ToString());
+            Assert.Contains("Momentum Map", recipes[3].Directions[1].ToString());
+
+            PowerPointDesignRecipeSummary match = Assert.Single(matches);
+            Assert.Equal("Transformation Roadmap", match.Name);
+            Assert.Empty(PowerPointDesignRecipe.DescribeMatches(""));
+        }
+
+        [Fact]
         public void DesignerDesignBrief_CreatesAlternativesFromPurposeAndIdentity() {
             PowerPointDesignBrief brief = PowerPointDesignBrief
                 .FromBrand("#008C95", "brief-client", "technical rollout proposal")

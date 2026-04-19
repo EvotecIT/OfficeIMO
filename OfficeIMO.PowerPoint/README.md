@@ -73,6 +73,8 @@ var portfolioAlternatives = PowerPointDesignRecipe.ConsultingPortfolio.CreateAlt
 var portfolioDesign = portfolioAlternatives[0]; // Board Story, Field Proof, Quiet Appendix, ...
 
 // Recipes can also be selected from plain-language purpose text.
+var recipeChoices = PowerPointDesignRecipe.DescribeBuiltIns(); // names, keywords, directions, fonts, and moods
+var purposeMatches = PowerPointDesignRecipe.DescribeMatches("technical rollout proposal");
 var recipe = PowerPointDesignRecipe.FindBuiltIn("technical rollout proposal")
     ?? PowerPointDesignRecipe.ConsultingPortfolio;
 
