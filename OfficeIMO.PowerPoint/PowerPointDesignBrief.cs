@@ -116,6 +116,11 @@ namespace OfficeIMO.PowerPoint {
         public string? PanelBorderColor { get; private set; }
 
         /// <summary>
+        ///     Optional supporting palette strategy applied before explicit palette color overrides.
+        /// </summary>
+        public PowerPointPaletteStyle? PaletteStyle { get; private set; }
+
+        /// <summary>
         ///     Controls how far generated alternatives should move from the selected recipe or preferred direction.
         /// </summary>
         public PowerPointDesignVariety Variety { get; private set; } = PowerPointDesignVariety.Balanced;
@@ -192,6 +197,14 @@ namespace OfficeIMO.PowerPoint {
             WarmAccentColor = NormalizeOptionalColor(warmAccentColor, nameof(warmAccentColor));
             SurfaceColor = NormalizeOptionalColor(surfaceColor, nameof(surfaceColor));
             PanelBorderColor = NormalizeOptionalColor(panelBorderColor, nameof(panelBorderColor));
+            return this;
+        }
+
+        /// <summary>
+        ///     Chooses a supporting palette strategy while preserving the primary brand accent.
+        /// </summary>
+        public PowerPointDesignBrief WithPaletteStyle(PowerPointPaletteStyle paletteStyle) {
+            PaletteStyle = paletteStyle;
             return this;
         }
 
@@ -559,12 +572,15 @@ namespace OfficeIMO.PowerPoint {
 
         private IReadOnlyList<PowerPointDeckDesign> ApplyPaletteOverrides(
             IReadOnlyList<PowerPointDeckDesign> alternatives) {
-            if (SecondaryAccentColor == null && TertiaryAccentColor == null && WarmAccentColor == null &&
-                SurfaceColor == null && PanelBorderColor == null) {
+            if (PaletteStyle == null && SecondaryAccentColor == null && TertiaryAccentColor == null &&
+                WarmAccentColor == null && SurfaceColor == null && PanelBorderColor == null) {
                 return alternatives;
             }
 
             foreach (PowerPointDeckDesign design in alternatives) {
+                if (PaletteStyle != null) {
+                    design.Theme.ApplyPaletteStyle(PaletteStyle.Value, design.Seed);
+                }
                 if (SecondaryAccentColor != null) {
                     design.Theme.Accent2Color = SecondaryAccentColor;
                 }

@@ -16,6 +16,7 @@ namespace OfficeIMO.PowerPoint {
             Accent2Color = design.Theme.Accent2Color;
             Accent3Color = design.Theme.Accent3Color;
             WarningColor = design.Theme.WarningColor;
+            PaletteStyle = design.Theme.PaletteStyle;
             ShowsDirectionMotif = design.ShowDirectionMotif;
         }
 
@@ -78,6 +79,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Warm accent used for markers and highlights.
         /// </summary>
         public string WarningColor { get; }
+
+        /// <summary>
+        ///     Supporting palette strategy used by this alternative.
+        /// </summary>
+        public PowerPointPaletteStyle PaletteStyle { get; }
 
         /// <summary>
         ///     Whether this alternative uses repeated direction markers by default.

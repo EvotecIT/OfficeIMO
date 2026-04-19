@@ -54,6 +54,26 @@ namespace OfficeIMO.PowerPoint {
     }
 
     /// <summary>
+    ///     Supporting palette strategy used to move generated alternatives away from a single house style.
+    /// </summary>
+    public enum PowerPointPaletteStyle {
+        /// <summary>Choose a deterministic supporting palette from the design seed.</summary>
+        Auto,
+        /// <summary>Use nearby hues for a calm brand-led palette.</summary>
+        Analogous,
+        /// <summary>Use a contrasting hue for stronger visual separation.</summary>
+        Complementary,
+        /// <summary>Use two contrasting hues around the brand accent complement.</summary>
+        SplitComplementary,
+        /// <summary>Use mostly tints and shades of the brand accent.</summary>
+        Monochrome,
+        /// <summary>Pair the brand accent with warmer neutral surfaces and markers.</summary>
+        WarmNeutral,
+        /// <summary>Pair the brand accent with cooler neutral surfaces and markers.</summary>
+        CoolNeutral
+    }
+
+    /// <summary>
     ///     Section/title slide layout variants. Auto uses the design intent seed to pick a stable variant.
     /// </summary>
     public enum PowerPointSectionLayoutVariant {

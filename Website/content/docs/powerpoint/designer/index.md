@@ -21,6 +21,7 @@ PowerPointDesignBrief brief = PowerPointDesignBrief
     .FromBrand("#008C95", "design-brief-recommendations", "technical rollout proposal")
     .WithIdentity("Client Theme", eyebrow: "OfficeIMO.PowerPoint",
         footerLeft: "OFFICEIMO", footerRight: "Design brief")
+    .WithPaletteStyle(PowerPointPaletteStyle.SplitComplementary)
     .WithPalette(secondaryAccentColor: "#6D5BD0", warmAccentColor: "#FFB000")
     .WithVariety(PowerPointDesignVariety.Exploratory)
     .WithPreferredMoods(PowerPointDesignMood.Energetic, PowerPointDesignMood.Editorial)

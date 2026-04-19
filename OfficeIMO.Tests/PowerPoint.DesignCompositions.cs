@@ -174,6 +174,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerTheme_CanApplyNamedPaletteStyle() {
+            PowerPointDesignTheme theme = PowerPointDesignTheme.FromBrand("#008C95", "Brand Theme");
+
+            PowerPointDesignTheme styled =
+                theme.WithPaletteStyle(PowerPointPaletteStyle.SplitComplementary, "client-a");
+
+            Assert.Equal("008C95", styled.AccentColor);
+            Assert.Equal(PowerPointPaletteStyle.SplitComplementary, styled.PaletteStyle);
+            Assert.NotEqual(styled.AccentColor, styled.Accent2Color);
+            Assert.NotEqual(styled.Accent2Color, styled.Accent3Color);
+            Assert.NotEqual(theme.SurfaceColor, styled.SurfaceColor);
+        }
+
+        [Fact]
+        public void DesignerTheme_AutoPaletteStyleIsDeterministic() {
+            PowerPointDesignTheme theme = PowerPointDesignTheme.FromBrand("#008C95", "Brand Theme");
+
+            PowerPointDesignTheme first = theme.WithPaletteStyle(PowerPointPaletteStyle.Auto, "client-a");
+            PowerPointDesignTheme second = theme.WithPaletteStyle(PowerPointPaletteStyle.Auto, "client-a");
+
+            Assert.Equal(first.PaletteStyle, second.PaletteStyle);
+            Assert.NotEqual(PowerPointPaletteStyle.Auto, first.PaletteStyle);
+            Assert.Equal(first.Accent2Color, second.Accent2Color);
+            Assert.Equal(first.Accent3Color, second.Accent3Color);
+        }
+
+        [Fact]
         public void DesignerDeckDesign_ConfiguresThemeIntentAndChromeFromOnePlace() {
             PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "client-a",
                 PowerPointDesignMood.Editorial, name: "Client A", eyebrow: "Portfolio",
@@ -492,6 +519,23 @@ namespace OfficeIMO.Tests {
             Assert.Equal("6D5BD0", alternatives[1].Theme.Accent2Color);
             Assert.Equal("6D5BD0", summaries[0].Accent2Color);
             Assert.Equal("FFB000", summaries[0].WarningColor);
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_CanChoosePaletteStyleBeforeManualOverrides() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
+                .WithPaletteStyle(PowerPointPaletteStyle.Monochrome)
+                .WithPalette(secondaryAccentColor: "#6D5BD0");
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(2);
+            IReadOnlyList<PowerPointDeckDesignSummary> summaries = brief.DescribeAlternatives(1);
+
+            Assert.Equal(PowerPointPaletteStyle.Monochrome, brief.PaletteStyle);
+            Assert.All(alternatives, design => Assert.Equal(PowerPointPaletteStyle.Monochrome,
+                design.Theme.PaletteStyle));
+            Assert.All(alternatives, design => Assert.Equal("6D5BD0", design.Theme.Accent2Color));
+            Assert.Equal(PowerPointPaletteStyle.Monochrome, summaries[0].PaletteStyle);
+            Assert.Equal("6D5BD0", summaries[0].Accent2Color);
         }
 
         [Fact]

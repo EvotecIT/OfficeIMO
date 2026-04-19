@@ -96,6 +96,7 @@ var quickDeck = ppt.UseDesigner("#008C95", "client-demo", "technical rollout pro
 var brief = PowerPointDesignBrief
     .FromBrand("#008C95", "client-demo", "technical rollout proposal")
     .WithIdentity("Client Theme", footerLeft: "CLIENT", footerRight: "Service deck")
+    .WithPaletteStyle(PowerPointPaletteStyle.SplitComplementary)
     .WithPalette(secondaryAccentColor: "#6D5BD0", warmAccentColor: "#FFB000")
     .WithVariety(PowerPointDesignVariety.Exploratory)
     .WithPreferredMoods(PowerPointDesignMood.Energetic)
@@ -147,6 +148,7 @@ var clientAlternatives = PowerPointDeckDesign.CreateAlternativesFromBrand("#008C
 var uniqueBrief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
     .WithIdentity("Client Theme", footerLeft: "CLIENT")
     .WithDirections(clientDirections)
+    .WithPaletteStyle(PowerPointPaletteStyle.CoolNeutral)
     .WithPreferredDensities(PowerPointSlideDensity.Compact);
 
 deck.AddSectionSlide("Case Study", "Project portfolio", "cover",

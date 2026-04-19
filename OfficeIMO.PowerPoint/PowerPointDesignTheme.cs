@@ -24,6 +24,7 @@ namespace OfficeIMO.PowerPoint {
             Accent2Color = "00B7C9",
             Accent3Color = "6F6AA6",
             WarningColor = "F4A100",
+            PaletteStyle = PowerPointPaletteStyle.Auto,
             HeadingFontName = "Poppins",
             BodyFontName = "Lato"
         };
@@ -42,6 +43,7 @@ namespace OfficeIMO.PowerPoint {
                 Accent2Color = Shade(accent, 0.18),
                 Accent3Color = Shade(RotateAccent(accent), 0.1),
                 WarningColor = "F4A100",
+                PaletteStyle = PowerPointPaletteStyle.Auto,
                 HeadingFontName = headingFontName,
                 BodyFontName = bodyFontName
             };
@@ -67,6 +69,7 @@ namespace OfficeIMO.PowerPoint {
                 Accent2Color = Accent2Color,
                 Accent3Color = Accent3Color,
                 WarningColor = WarningColor,
+                PaletteStyle = PaletteStyle,
                 HeadingFontName = HeadingFontName,
                 BodyFontName = BodyFontName
             };
@@ -92,6 +95,19 @@ namespace OfficeIMO.PowerPoint {
             clone.SurfaceColor = Shade(clone.Accent2Color, 0.91);
             clone.PanelBorderColor = Shade(clone.Accent3Color, 0.72);
             clone.Validate();
+            return clone;
+        }
+
+        /// <summary>
+        ///     Creates a copy with a specific supporting palette strategy while preserving the primary brand accent.
+        /// </summary>
+        public PowerPointDesignTheme WithPaletteStyle(PowerPointPaletteStyle paletteStyle, string seed) {
+            if (string.IsNullOrWhiteSpace(seed)) {
+                throw new ArgumentException("Palette seed cannot be null or empty.", nameof(seed));
+            }
+
+            PowerPointDesignTheme clone = Clone();
+            clone.ApplyPaletteStyle(paletteStyle, seed);
             return clone;
         }
 
@@ -211,6 +227,11 @@ namespace OfficeIMO.PowerPoint {
         public string WarningColor { get; set; } = "F4A100";
 
         /// <summary>
+        ///     Supporting palette strategy used to generate secondary accents and surfaces.
+        /// </summary>
+        public PowerPointPaletteStyle PaletteStyle { get; private set; } = PowerPointPaletteStyle.Auto;
+
+        /// <summary>
         ///     Font used for headings.
         /// </summary>
         public string HeadingFontName { get; set; } = "Poppins";
@@ -242,6 +263,71 @@ namespace OfficeIMO.PowerPoint {
             if (string.IsNullOrWhiteSpace(BodyFontName)) {
                 throw new ArgumentException("Body font cannot be null or empty.", nameof(BodyFontName));
             }
+        }
+
+        internal void ApplyPaletteStyle(PowerPointPaletteStyle paletteStyle, string seed) {
+            if (string.IsNullOrWhiteSpace(seed)) {
+                throw new ArgumentException("Palette seed cannot be null or empty.", nameof(seed));
+            }
+
+            PowerPointPaletteStyle resolvedStyle = ResolvePaletteStyle(paletteStyle, seed);
+            int pick = StablePick(seed + "/" + resolvedStyle, 7);
+            PaletteStyle = resolvedStyle;
+
+            switch (resolvedStyle) {
+                case PowerPointPaletteStyle.Analogous:
+                    Accent2Color = ShiftHue(AccentColor, 18d + pick * 3d, saturationScale: 0.92,
+                        lightnessShift: 0.03);
+                    Accent3Color = ShiftHue(AccentColor, -28d - pick * 3d, saturationScale: 0.78,
+                        lightnessShift: 0.04);
+                    WarningColor = WarmAccent(pick);
+                    SurfaceColor = Shade(Accent2Color, 0.90);
+                    PanelBorderColor = Shade(Accent3Color, 0.70);
+                    break;
+                case PowerPointPaletteStyle.Complementary:
+                    Accent2Color = ShiftHue(AccentColor, 174d + pick, saturationScale: 0.72,
+                        lightnessShift: 0.02);
+                    Accent3Color = ShiftHue(AccentColor, 42d + pick * 2d, saturationScale: 0.82,
+                        lightnessShift: 0.05);
+                    WarningColor = WarmAccent(pick + 1);
+                    SurfaceColor = Shade(Accent2Color, 0.91);
+                    PanelBorderColor = Shade(Accent2Color, 0.68);
+                    break;
+                case PowerPointPaletteStyle.SplitComplementary:
+                    Accent2Color = ShiftHue(AccentColor, 146d + pick * 2d, saturationScale: 0.74,
+                        lightnessShift: 0.02);
+                    Accent3Color = ShiftHue(AccentColor, -148d - pick * 2d, saturationScale: 0.78,
+                        lightnessShift: 0.03);
+                    WarningColor = WarmAccent(pick + 2);
+                    SurfaceColor = Shade(Accent3Color, 0.91);
+                    PanelBorderColor = Shade(Accent2Color, 0.68);
+                    break;
+                case PowerPointPaletteStyle.Monochrome:
+                    Accent2Color = Shade(AccentColor, 0.28);
+                    Accent3Color = Shade(AccentDarkColor, 0.45);
+                    WarningColor = Shade(AccentColor, 0.52);
+                    SurfaceColor = Shade(AccentColor, 0.93);
+                    PanelBorderColor = Shade(AccentColor, 0.72);
+                    break;
+                case PowerPointPaletteStyle.WarmNeutral:
+                    Accent2Color = WarmAccent(pick);
+                    Accent3Color = ShiftHue(AccentColor, -38d, saturationScale: 0.62, lightnessShift: 0.03);
+                    WarningColor = WarmAccent(pick + 3);
+                    SurfaceColor = "F8F5F0";
+                    PanelBorderColor = "E4DDD2";
+                    break;
+                case PowerPointPaletteStyle.CoolNeutral:
+                    Accent2Color = ShiftHue(AccentColor, -32d, saturationScale: 0.60, lightnessShift: 0.06);
+                    Accent3Color = ShiftHue(AccentColor, 68d, saturationScale: 0.48, lightnessShift: 0.05);
+                    WarningColor = WarmAccent(pick + 4);
+                    SurfaceColor = "F4F7FA";
+                    PanelBorderColor = "D9E2EA";
+                    break;
+                default:
+                    break;
+            }
+
+            Validate();
         }
 
         private static string NormalizeHex(string value, string name) {
@@ -296,6 +382,22 @@ namespace OfficeIMO.PowerPoint {
                 }
                 return (hash & int.MaxValue) % choices;
             }
+        }
+
+        private static PowerPointPaletteStyle ResolvePaletteStyle(PowerPointPaletteStyle paletteStyle, string seed) {
+            if (paletteStyle != PowerPointPaletteStyle.Auto) {
+                return paletteStyle;
+            }
+
+            PowerPointPaletteStyle[] styles = {
+                PowerPointPaletteStyle.Analogous,
+                PowerPointPaletteStyle.Complementary,
+                PowerPointPaletteStyle.SplitComplementary,
+                PowerPointPaletteStyle.Monochrome,
+                PowerPointPaletteStyle.WarmNeutral,
+                PowerPointPaletteStyle.CoolNeutral
+            };
+            return styles[StablePick(seed + "/palette", styles.Length)];
         }
 
         private static string ShiftHue(string value, double degrees, double saturationScale, double lightnessShift) {
