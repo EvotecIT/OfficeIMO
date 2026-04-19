@@ -671,7 +671,7 @@ namespace OfficeIMO.Tests {
 
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-                PowerPointDeckComposer deck = presentation.UseDesigner(brief, selected.Index);
+                PowerPointDeckComposer deck = presentation.UseDesigner(brief, plan, alternativeCount: 5);
                 deck.AddSlides(plan);
 
                 Assert.Equal(selected.Design.DirectionName, deck.Design.Direction.Name);

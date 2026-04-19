@@ -201,6 +201,23 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Creates a designer facade from the brief alternative that best fits the supplied deck plan.
+        /// </summary>
+        public static PowerPointDeckComposer UseDesigner(this PowerPointPresentation presentation,
+            PowerPointDesignBrief brief, PowerPointDeckPlan plan, int alternativeCount = 0, bool applyTheme = true) {
+            if (brief == null) {
+                throw new ArgumentNullException(nameof(brief));
+            }
+            if (plan == null) {
+                throw new ArgumentNullException(nameof(plan));
+            }
+
+            PowerPointDeckPlanAlternativeSummary recommendation =
+                brief.RecommendDeckPlanAlternative(plan, alternativeCount);
+            return new PowerPointDeckComposer(presentation, brief.CreateDesign(recommendation.Index), applyTheme);
+        }
+
+        /// <summary>
         ///     Creates a designer facade directly from a brand accent and scenario recipe.
         /// </summary>
         public static PowerPointDeckComposer UseDesigner(this PowerPointPresentation presentation,

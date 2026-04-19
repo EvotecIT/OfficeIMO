@@ -110,12 +110,9 @@ PowerPointDeckPlan plan = new PowerPointDeckPlan()
         });
 
 var alternatives = brief.DescribeDeckPlanAlternatives(plan, 4);
-var selectedPlan = alternatives
-    .OrderByDescending(alternative => alternative.ContentFitScore)
-    .ThenBy(alternative => alternative.Index)
-    .First();
+var selectedPlan = brief.RecommendDeckPlanAlternative(plan, 4);
 
-PowerPointDeckComposer deck = presentation.UseDesigner(brief, selectedPlan.Index);
+PowerPointDeckComposer deck = presentation.UseDesigner(brief, plan, alternativeCount: 4);
 deck.AddSlides(plan);
 ```
 
@@ -124,7 +121,7 @@ deck.AddSlides(plan);
 When a deck already contains slides, preview through the active composer so fallback seeds line up with the render path:
 
 ```csharp
-PowerPointDeckComposer deck = presentation.UseDesigner(brief, selectedPlan.Index);
+PowerPointDeckComposer deck = presentation.UseDesigner(brief, plan, alternativeCount: 4);
 var livePreview = deck.DescribeSlides(plan);
 deck.AddSlides(plan);
 ```
