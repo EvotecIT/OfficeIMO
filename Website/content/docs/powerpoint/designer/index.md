@@ -107,6 +107,10 @@ PowerPointDeckPlan plan = new PowerPointDeckPlan()
             new PowerPointProcessStep("Pilot", "Validate the model with a controlled user group."),
             new PowerPointProcessStep("Roll out", "Deliver in waves with clear reporting."),
             new PowerPointProcessStep("Operate", "Move into repeatable support and optimization.")
+        },
+        configure: options => {
+            options.Variant = PowerPointProcessLayoutVariant.Rail;
+            options.ConnectorStyle = PowerPointProcessConnectorStyle.StepDots;
         });
 
 var alternatives = brief.DescribeDeckPlanAlternatives(plan, 4);
@@ -117,6 +121,8 @@ deck.AddSlides(plan);
 ```
 
 ![PowerPoint deck plan process slide](/images/powerpoint/examples/deck-plan-process.png)
+
+Rail process slides can keep the same semantic steps while switching connector treatment. Use `ContinuousRail` for a quiet line, `SegmentArrows` for compact directional flow, `StepDots` for a softer editorial rhythm, or `None` when the numbered nodes should stand alone.
 
 When a deck already contains slides, preview through the active composer so fallback seeds line up with the render path:
 

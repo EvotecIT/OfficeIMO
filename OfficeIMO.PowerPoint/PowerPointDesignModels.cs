@@ -146,6 +146,22 @@ namespace OfficeIMO.PowerPoint {
     }
 
     /// <summary>
+    ///     Connector treatment used between process steps on rail-based process slides.
+    /// </summary>
+    public enum PowerPointProcessConnectorStyle {
+        /// <summary>Choose a connector treatment from the design intent.</summary>
+        Auto,
+        /// <summary>Single quiet line running through all process nodes.</summary>
+        ContinuousRail,
+        /// <summary>Short arrowed line segments between adjacent steps.</summary>
+        SegmentArrows,
+        /// <summary>Small dotted markers between adjacent steps.</summary>
+        StepDots,
+        /// <summary>Use no visible connector between process steps.</summary>
+        None
+    }
+
+    /// <summary>
     ///     Card grid layout variants. Auto uses the design intent seed to pick a stable variant.
     /// </summary>
     public enum PowerPointCardGridLayoutVariant {
@@ -436,6 +452,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Process layout variant. Auto uses the design intent seed.
         /// </summary>
         public PowerPointProcessLayoutVariant Variant { get; set; } = PowerPointProcessLayoutVariant.Auto;
+
+        /// <summary>
+        ///     Connector treatment for rail-based process slides. Auto uses the design intent.
+        /// </summary>
+        public PowerPointProcessConnectorStyle ConnectorStyle { get; set; } = PowerPointProcessConnectorStyle.Auto;
     }
 
     /// <summary>

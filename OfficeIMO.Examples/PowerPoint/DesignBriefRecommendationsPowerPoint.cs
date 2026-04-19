@@ -63,7 +63,10 @@ namespace OfficeIMO.Examples.PowerPoint {
                     new PowerPointProcessStep("Compose", "Mix semantic slides with raw composition primitives.")
                 },
                 "brief-workflow",
-                options => options.Variant = PowerPointProcessLayoutVariant.Rail);
+                options => {
+                    options.Variant = PowerPointProcessLayoutVariant.Rail;
+                    options.ConnectorStyle = PowerPointProcessConnectorStyle.SegmentArrows;
+                });
 
             deck.ComposeSlide(composer => {
                 composer.AddTitle("Selected direction", selected.Design.DirectionName);

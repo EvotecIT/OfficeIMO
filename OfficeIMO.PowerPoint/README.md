@@ -121,7 +121,11 @@ var plan = new PowerPointDeckPlan()
             new PowerPointProcessStep("Discovery", "Review configuration and dependencies."),
             new PowerPointProcessStep("Delivery", "Implement changes in controlled stages.")
         },
-        seed: "process")
+        seed: "process",
+        configure: options => {
+            options.Variant = PowerPointProcessLayoutVariant.Rail;
+            options.ConnectorStyle = PowerPointProcessConnectorStyle.SegmentArrows;
+        })
     .AddCustom("Custom detail", composer => {
         composer.AddTitle("Custom detail", "Use raw composition when a planned slide needs something special.");
         var layout = composer.UsePreset(PowerPointCompositionPreset.Auto);
@@ -137,6 +141,18 @@ var recommendedPlan = brief.RecommendDeckPlanAlternative(plan, 3); // strongest 
 var recommendedDeck = ppt.UseDesigner(brief, plan, alternativeCount: 3); // choose the recommended design
 var livePreview = recommendedDeck.DescribeSlides(plan); // seed preview accounts for slides already composed in this deck
 recommendedDeck.AddSlides(plan); // validates errors before rendering and keeps warnings inspectable
+
+// Process slides can keep the same semantic steps while changing only the connector treatment.
+recommendedDeck.AddProcessSlide("Delivery path", null,
+    new[] {
+        new PowerPointProcessStep("Assess", "Map the current state."),
+        new PowerPointProcessStep("Pilot", "Validate with a small group."),
+        new PowerPointProcessStep("Rollout", "Move in controlled waves.")
+    },
+    configure: options => {
+        options.Variant = PowerPointProcessLayoutVariant.Rail;
+        options.ConnectorStyle = PowerPointProcessConnectorStyle.StepDots;
+    });
 
 // Raw composition can use named presets and surface variants instead of hand-picked coordinates.
 recommendedDeck.ComposeSlide(composer => {

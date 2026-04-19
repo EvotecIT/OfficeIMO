@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.Tests {
     public class PowerPointDesignCompositions {
@@ -2010,6 +2012,88 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(slide.GetShape("Process Column Rule 1"));
                 Assert.Null(slide.GetShape("Process Rail"));
                 Assert.Null(slide.GetShape("Process Node 1"));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerProcessSlide_CanUseSegmentArrowConnectors() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                    PowerPointSlide slide = presentation.AddDesignerProcessSlide("Process", null,
+                        new[] {
+                            new PowerPointProcessStep("One", "Start here."),
+                            new PowerPointProcessStep("Two", "Then continue."),
+                            new PowerPointProcessStep("Three", "Finish cleanly.")
+                        },
+                        options: new PowerPointProcessSlideOptions {
+                            Variant = PowerPointProcessLayoutVariant.Rail,
+                            ConnectorStyle = PowerPointProcessConnectorStyle.SegmentArrows
+                        });
+
+                    PowerPointAutoShape connector = Assert.IsAssignableFrom<PowerPointAutoShape>(
+                        slide.GetShape("Process Connector 1"));
+                    Assert.Equal(A.ShapeTypeValues.Line, connector.ShapeType);
+                    Assert.NotNull(slide.GetShape("Process Connector 2"));
+                    Assert.Null(slide.GetShape("Process Rail"));
+
+                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+                    presentation.Save();
+                }
+
+                using PresentationDocument document = PresentationDocument.Open(filePath, false);
+                SlidePart slidePart = document.PresentationPart!.SlideParts.First();
+                P.Shape connectorShape = slidePart.Slide.CommonSlideData!.ShapeTree!
+                    .Elements<P.Shape>()
+                    .First(shape =>
+                        shape.NonVisualShapeProperties?.NonVisualDrawingProperties?.Name?.Value ==
+                        "Process Connector 1");
+                A.Outline outline = connectorShape.ShapeProperties!.GetFirstChild<A.Outline>()!;
+                A.TailEnd? tail = outline.GetFirstChild<A.TailEnd>();
+                Assert.Equal(A.LineEndValues.Triangle, tail?.Type?.Value);
+                Assert.Equal(A.LineEndWidthValues.Small, tail?.Width?.Value);
+                Assert.Equal(A.LineEndLengthValues.Small, tail?.Length?.Value);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerProcessSlide_AutoConnectorStyleUsesDotsForEditorialFlows() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointSlide slide = presentation.AddDesignerProcessSlide("Process", null,
+                    new[] {
+                        new PowerPointProcessStep("One", "Start here."),
+                        new PowerPointProcessStep("Two", "Then continue."),
+                        new PowerPointProcessStep("Three", "Finish cleanly.")
+                    },
+                    options: new PowerPointProcessSlideOptions {
+                        Variant = PowerPointProcessLayoutVariant.Rail,
+                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Editorial, "editorial-process")
+                    });
+
+                Assert.NotNull(slide.GetShape("Process Connector Dot 1-1"));
+                Assert.NotNull(slide.GetShape("Process Connector Dot 2-4"));
+                Assert.Null(slide.GetShape("Process Connector 1"));
+                Assert.Null(slide.GetShape("Process Rail"));
+
+                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

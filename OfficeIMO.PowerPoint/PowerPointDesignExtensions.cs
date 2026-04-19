@@ -366,6 +366,32 @@ namespace OfficeIMO.PowerPoint {
             return PowerPointProcessLayoutVariant.NumberedColumns;
         }
 
+        internal static PowerPointProcessConnectorStyle ResolveProcessConnectorStyle(PowerPointProcessSlideOptions options,
+            IReadOnlyList<PowerPointProcessStep> steps) {
+            if (options.ConnectorStyle != PowerPointProcessConnectorStyle.Auto) {
+                return options.ConnectorStyle;
+            }
+
+            if (options.DesignIntent.VisualStyle == PowerPointVisualStyle.Minimal) {
+                return PowerPointProcessConnectorStyle.None;
+            }
+
+            if (options.DesignIntent.Density == PowerPointSlideDensity.Compact || steps.Count > 5) {
+                return PowerPointProcessConnectorStyle.ContinuousRail;
+            }
+
+            if (options.DesignIntent.Mood == PowerPointDesignMood.Energetic) {
+                return PowerPointProcessConnectorStyle.SegmentArrows;
+            }
+
+            if (options.DesignIntent.Mood == PowerPointDesignMood.Editorial ||
+                options.DesignIntent.VisualStyle == PowerPointVisualStyle.Soft) {
+                return PowerPointProcessConnectorStyle.StepDots;
+            }
+
+            return PowerPointProcessConnectorStyle.ContinuousRail;
+        }
+
         private static void AddSectionGeometricCover(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointDesignerSlideOptions options, string title, string? subtitle, double slideWidthCm,
             double slideHeightCm) {
@@ -996,7 +1022,8 @@ namespace OfficeIMO.PowerPoint {
             double top = slideHeightCm * 0.47;
             double width = slideWidthCm - 4.2;
             double height = 4.7;
-            AddProcessRailTimeline(slide, theme, steps, PowerPointLayoutBox.FromCentimeters(left, top, width, height));
+            AddProcessRailTimeline(slide, theme, steps, options,
+                PowerPointLayoutBox.FromCentimeters(left, top, width, height));
         }
 
         internal static void AddProcessTimeline(PowerPointSlide slide, PowerPointDesignTheme theme,
@@ -1008,11 +1035,12 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            AddProcessRailTimeline(slide, theme, steps, bounds);
+            AddProcessRailTimeline(slide, theme, steps, options, bounds);
         }
 
         private static void AddProcessRailTimeline(PowerPointSlide slide, PowerPointDesignTheme theme,
-            IReadOnlyList<PowerPointProcessStep> steps, PowerPointLayoutBox bounds) {
+            IReadOnlyList<PowerPointProcessStep> steps, PowerPointProcessSlideOptions options,
+            PowerPointLayoutBox bounds) {
             int count = steps.Count;
             PowerPointLayoutBox[] boxes = PowerPointLayoutBox
                 .FromCentimeters(bounds.LeftCm, bounds.TopCm, bounds.WidthCm, bounds.HeightCm)
@@ -1022,7 +1050,8 @@ namespace OfficeIMO.PowerPoint {
             double railY = bounds.TopCm + nodeSize / 2;
             double railStart = boxes[0].LeftCm + nodeSize / 2;
             double railEnd = boxes[count - 1].LeftCm + nodeSize / 2;
-            AddProcessRail(slide, theme, railStart, railEnd, railY);
+            PowerPointProcessConnectorStyle connectorStyle = ResolveProcessConnectorStyle(options, steps);
+            AddProcessConnectors(slide, theme, boxes, nodeSize, railY, railStart, railEnd, connectorStyle);
 
             for (int i = 0; i < count; i++) {
                 PowerPointLayoutBox box = boxes[i];
@@ -1143,6 +1172,58 @@ namespace OfficeIMO.PowerPoint {
             PowerPointAutoShape rail = slide.AddLineCm(startXCm, yCm, endXCm, yCm, "Process Rail");
             rail.OutlineColor = theme.AccentLightColor;
             rail.OutlineWidthPoints = 1.1;
+        }
+
+        private static void AddProcessConnectors(PowerPointSlide slide, PowerPointDesignTheme theme,
+            IReadOnlyList<PowerPointLayoutBox> boxes, double nodeSize, double yCm, double railStartCm,
+            double railEndCm, PowerPointProcessConnectorStyle style) {
+            if (style == PowerPointProcessConnectorStyle.None) {
+                return;
+            }
+
+            if (style == PowerPointProcessConnectorStyle.ContinuousRail) {
+                AddProcessRail(slide, theme, railStartCm, railEndCm, yCm);
+                return;
+            }
+
+            for (int i = 0; i < boxes.Count - 1; i++) {
+                double start = boxes[i].LeftCm + nodeSize + 0.16;
+                double end = boxes[i + 1].LeftCm - 0.16;
+                if (end <= start) {
+                    continue;
+                }
+
+                if (style == PowerPointProcessConnectorStyle.StepDots) {
+                    AddProcessConnectorDots(slide, theme, i, start, end, yCm);
+                } else {
+                    AddProcessConnectorArrow(slide, theme, i, start, end, yCm);
+                }
+            }
+        }
+
+        private static void AddProcessConnectorArrow(PowerPointSlide slide, PowerPointDesignTheme theme, int index,
+            double startXCm, double endXCm, double yCm) {
+            PowerPointAutoShape connector = slide.AddLineCm(startXCm, yCm, endXCm, yCm,
+                "Process Connector " + (index + 1));
+            connector.OutlineColor = GetAccent(theme, index);
+            connector.OutlineWidthPoints = 1.2;
+            connector.SetLineEnds(null, A.LineEndValues.Triangle, A.LineEndWidthValues.Small,
+                A.LineEndLengthValues.Small);
+        }
+
+        private static void AddProcessConnectorDots(PowerPointSlide slide, PowerPointDesignTheme theme, int index,
+            double startXCm, double endXCm, double yCm) {
+            const int dotCount = 4;
+            double spacing = (endXCm - startXCm) / (dotCount + 1);
+            for (int dot = 0; dot < dotCount; dot++) {
+                double center = startXCm + spacing * (dot + 1);
+                PowerPointAutoShape marker = slide.AddEllipseCm(center - 0.055, yCm - 0.055, 0.11, 0.11,
+                    "Process Connector Dot " + (index + 1) + "-" + (dot + 1));
+                marker.FillColor = GetAccent(theme, index);
+                marker.FillTransparency = 12 + dot * 8;
+                marker.OutlineColor = marker.FillColor;
+                marker.OutlineWidthPoints = 0;
+            }
         }
 
         private static void AddProcessNode(PowerPointSlide slide, PowerPointDesignTheme theme, int index,
