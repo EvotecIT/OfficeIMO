@@ -392,6 +392,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDesignBrief_CanRankRecipeDirectionsByPreferences() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-preferred", "technical rollout proposal")
+                .WithPreferredMoods(PowerPointDesignMood.Energetic)
+                .WithPreferredVisualStyles(PowerPointVisualStyle.Geometric);
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(3);
+            IReadOnlyList<PowerPointDeckDesignSummary> summaries = brief.DescribeAlternatives(1);
+
+            Assert.Equal("Delivery Signal", alternatives[0].Direction.Name);
+            Assert.Equal("Architecture Map", alternatives[1].Direction.Name);
+            Assert.Equal("Runbook", alternatives[2].Direction.Name);
+            Assert.Equal("Technical proposal", alternatives[0].Options("cover").Eyebrow);
+            Assert.Equal(PowerPointDesignMood.Energetic, summaries[0].Mood);
+            Assert.Equal(PowerPointVisualStyle.Geometric, summaries[0].VisualStyle);
+            Assert.Equal(PowerPointDesignMood.Energetic, brief.PreferredMoods[0]);
+            Assert.Equal(PowerPointVisualStyle.Geometric, brief.PreferredVisualStyles[0]);
+
+            brief.ClearDesignPreferences();
+            Assert.Empty(brief.PreferredMoods);
+            Assert.Equal("Architecture Map", brief.CreateAlternatives(1)[0].Direction.Name);
+        }
+
+        [Fact]
         public void DesignerDesignBrief_CanDescribeAlternativesBeforeChoosing() {
             PowerPointDesignBrief brief = PowerPointDesignBrief
                 .FromBrand("#008C95", "brief-preview", "technical rollout proposal")

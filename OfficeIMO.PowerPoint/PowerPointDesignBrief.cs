@@ -8,6 +8,9 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public sealed class PowerPointDesignBrief {
         private readonly List<PowerPointDesignDirection> _directions = new();
+        private readonly List<PowerPointDesignMood> _preferredMoods = new();
+        private readonly List<PowerPointSlideDensity> _preferredDensities = new();
+        private readonly List<PowerPointVisualStyle> _preferredVisualStyles = new();
 
         /// <summary>
         ///     Creates a brief from a brand accent and stable seed.
@@ -117,6 +120,21 @@ namespace OfficeIMO.PowerPoint {
         public IReadOnlyList<PowerPointDesignDirection> Directions => _directions;
 
         /// <summary>
+        ///     Preferred moods used to rank recipe or custom directions before alternatives are created.
+        /// </summary>
+        public IReadOnlyList<PowerPointDesignMood> PreferredMoods => _preferredMoods;
+
+        /// <summary>
+        ///     Preferred slide densities used to rank recipe or custom directions before alternatives are created.
+        /// </summary>
+        public IReadOnlyList<PowerPointSlideDensity> PreferredDensities => _preferredDensities;
+
+        /// <summary>
+        ///     Preferred visual styles used to rank recipe or custom directions before alternatives are created.
+        /// </summary>
+        public IReadOnlyList<PowerPointVisualStyle> PreferredVisualStyles => _preferredVisualStyles;
+
+        /// <summary>
         ///     Sets the plain-language deck purpose used for recipe matching.
         /// </summary>
         public PowerPointDesignBrief ForPurpose(string purpose) {
@@ -192,6 +210,40 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Prefers one or more moods when ordering recipe or custom directions.
+        /// </summary>
+        public PowerPointDesignBrief WithPreferredMoods(params PowerPointDesignMood[] moods) {
+            ReplacePreferences(_preferredMoods, moods, nameof(moods));
+            return this;
+        }
+
+        /// <summary>
+        ///     Prefers one or more slide densities when ordering recipe or custom directions.
+        /// </summary>
+        public PowerPointDesignBrief WithPreferredDensities(params PowerPointSlideDensity[] densities) {
+            ReplacePreferences(_preferredDensities, densities, nameof(densities));
+            return this;
+        }
+
+        /// <summary>
+        ///     Prefers one or more visual styles when ordering recipe or custom directions.
+        /// </summary>
+        public PowerPointDesignBrief WithPreferredVisualStyles(params PowerPointVisualStyle[] visualStyles) {
+            ReplacePreferences(_preferredVisualStyles, visualStyles, nameof(visualStyles));
+            return this;
+        }
+
+        /// <summary>
+        ///     Clears direction ordering preferences.
+        /// </summary>
+        public PowerPointDesignBrief ClearDesignPreferences() {
+            _preferredMoods.Clear();
+            _preferredDensities.Clear();
+            _preferredVisualStyles.Clear();
+            return this;
+        }
+
+        /// <summary>
         ///     Adds one caller-supplied creative direction.
         /// </summary>
         public PowerPointDesignBrief AddDirection(PowerPointDesignDirection direction) {
@@ -218,6 +270,10 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDesignRecipe recipe = Recipe
                 ?? (!string.IsNullOrWhiteSpace(Purpose) ? PowerPointDesignRecipe.FindBuiltIn(Purpose!) : null)
                 ?? PowerPointDesignRecipe.ConsultingPortfolio;
+            if (HasDirectionPreferences) {
+                recipe = new PowerPointDesignRecipe(recipe.Name, RankDirections(recipe.Directions),
+                    recipe.DefaultEyebrow, recipe.Description, recipe.Keywords);
+            }
 
             return ApplyPaletteOverrides(recipe.CreateAlternativesFromBrand(AccentColor, Seed, count, Name,
                 Eyebrow, FooterLeft, FooterRight, HeadingFontName, BodyFontName));
@@ -288,14 +344,59 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private IReadOnlyList<PowerPointDeckDesign> CreateDirectionAlternatives(int count) {
-            int designCount = count == 0 ? _directions.Count : count;
+            IReadOnlyList<PowerPointDesignDirection> rankedDirections = RankDirections(_directions);
+            int designCount = count == 0 ? rankedDirections.Count : count;
             List<PowerPointDesignDirection> selectedDirections = new(designCount);
             for (int i = 0; i < designCount; i++) {
-                selectedDirections.Add(_directions[i % _directions.Count]);
+                selectedDirections.Add(rankedDirections[i % rankedDirections.Count]);
             }
 
             return PowerPointDeckDesign.CreateAlternativesFromBrand(AccentColor, Seed, selectedDirections, Name,
                 Eyebrow, FooterLeft, FooterRight, HeadingFontName, BodyFontName);
+        }
+
+        private bool HasDirectionPreferences =>
+            _preferredMoods.Count > 0 || _preferredDensities.Count > 0 || _preferredVisualStyles.Count > 0;
+
+        private IReadOnlyList<PowerPointDesignDirection> RankDirections(
+            IEnumerable<PowerPointDesignDirection> directions) {
+            List<PowerPointDesignDirection> source = new();
+            foreach (PowerPointDesignDirection direction in directions) {
+                source.Add(direction);
+            }
+
+            if (!HasDirectionPreferences) {
+                return source.AsReadOnly();
+            }
+
+            List<PowerPointDesignDirection> ranked = new(source.Count);
+            foreach (PowerPointDesignDirection direction in source) {
+                if (MatchesDirectionPreferences(direction)) {
+                    ranked.Add(direction);
+                }
+            }
+
+            foreach (PowerPointDesignDirection direction in source) {
+                if (!MatchesDirectionPreferences(direction)) {
+                    ranked.Add(direction);
+                }
+            }
+
+            return ranked.AsReadOnly();
+        }
+
+        private bool MatchesDirectionPreferences(PowerPointDesignDirection direction) {
+            if (_preferredMoods.Count > 0 && !_preferredMoods.Contains(direction.Mood)) {
+                return false;
+            }
+            if (_preferredDensities.Count > 0 && !_preferredDensities.Contains(direction.Density)) {
+                return false;
+            }
+            if (_preferredVisualStyles.Count > 0 && !_preferredVisualStyles.Contains(direction.VisualStyle)) {
+                return false;
+            }
+
+            return true;
         }
 
         private IReadOnlyList<PowerPointDeckDesign> ApplyPaletteOverrides(
@@ -350,6 +451,19 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return color.ToUpperInvariant();
+        }
+
+        private static void ReplacePreferences<T>(List<T> target, IEnumerable<T> values, string name) {
+            if (values == null) {
+                throw new ArgumentNullException(name);
+            }
+
+            target.Clear();
+            foreach (T value in values) {
+                if (!target.Contains(value)) {
+                    target.Add(value);
+                }
+            }
         }
     }
 }

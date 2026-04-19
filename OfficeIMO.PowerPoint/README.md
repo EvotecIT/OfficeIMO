@@ -86,7 +86,9 @@ var quickDeck = ppt.UseDesigner("#008C95", "client-demo", "technical rollout pro
 var brief = PowerPointDesignBrief
     .FromBrand("#008C95", "client-demo", "technical rollout proposal")
     .WithIdentity("Client Theme", footerLeft: "CLIENT", footerRight: "Service deck")
-    .WithPalette(secondaryAccentColor: "#6D5BD0", warmAccentColor: "#FFB000");
+    .WithPalette(secondaryAccentColor: "#6D5BD0", warmAccentColor: "#FFB000")
+    .WithPreferredMoods(PowerPointDesignMood.Energetic)
+    .WithPreferredVisualStyles(PowerPointVisualStyle.Geometric);
 var choices = brief.DescribeAlternatives(3); // direction, mood, fonts, and palette preview
 var briefDeck = ppt.UseDesigner(brief, alternativeIndex: 1);
 
@@ -131,7 +133,8 @@ var clientAlternatives = PowerPointDeckDesign.CreateAlternativesFromBrand("#008C
     clientDirections, name: "Client Theme", footerLeft: "CLIENT");
 var uniqueBrief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
     .WithIdentity("Client Theme", footerLeft: "CLIENT")
-    .WithDirections(clientDirections);
+    .WithDirections(clientDirections)
+    .WithPreferredDensities(PowerPointSlideDensity.Compact);
 
 deck.AddSectionSlide("Case Study", "Project portfolio", "cover",
     options => options.SectionVariant = PowerPointSectionLayoutVariant.EditorialRail);
