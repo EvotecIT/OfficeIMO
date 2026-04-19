@@ -48,6 +48,38 @@ or `VisualFirst` when visual proof and hero compositions should win when the con
 
 ![PowerPoint selected direction slide](/images/powerpoint/examples/design-brief-selected.png)
 
+## Variation controls
+
+The same `PowerPointDeckPlan` can be reused with several briefs. Change the layout strategy and palette style to get a
+different rhythm without changing slide coordinates or duplicating every slide recipe.
+
+```csharp
+PowerPointDeckPlan plan = CreateReusablePlan();
+
+foreach (PowerPointAutoLayoutStrategy strategy in new[] {
+    PowerPointAutoLayoutStrategy.ContentFirst,
+    PowerPointAutoLayoutStrategy.Compact,
+    PowerPointAutoLayoutStrategy.VisualFirst
+}) {
+    PowerPointDesignBrief variant = PowerPointDesignBrief
+        .FromBrand("#008C95", "layout-strategy-comparison", "service proposal")
+        .WithPaletteStyle(PowerPointPaletteStyle.SplitComplementary)
+        .WithLayoutStrategy(strategy);
+
+    var preview = variant.DescribeDeckPlan(plan);
+    PowerPointDeckComposer deck = presentation.UseDesigner(variant);
+    deck.AddSlides(plan);
+}
+```
+
+Run the comparison deck from the examples project:
+
+```powershell
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint-layout-strategy
+```
+
+![PowerPoint layout strategy comparison](/images/powerpoint/examples/layout-strategy-comparison.png)
+
 ## Semantic deck plan
 
 A `PowerPointDeckPlan` describes the story: section, case study, process, cards, coverage, capability, or custom slides. The plan can be scored across design alternatives before rendering.

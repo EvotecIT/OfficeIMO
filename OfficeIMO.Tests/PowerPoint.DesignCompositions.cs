@@ -573,6 +573,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(PowerPointAutoLayoutStrategy.Compact, design.BaseIntent.LayoutStrategy);
             Assert.Equal(PowerPointAutoLayoutStrategy.Compact, design.Describe().LayoutStrategy);
             Assert.Equal("EditorialRail", summaries[0].LayoutVariant);
+            Assert.Equal(PowerPointAutoLayoutStrategy.Compact, summaries[0].LayoutStrategy);
             Assert.Equal("EditorialSplit", summaries[1].LayoutVariant);
             Assert.Equal("NumberedColumns", summaries[2].LayoutVariant);
             Assert.Equal("AccentTop", summaries[3].LayoutVariant);
@@ -600,6 +601,7 @@ namespace OfficeIMO.Tests {
             IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> summaries = brief.DescribeDeckPlan(plan);
 
             Assert.Equal("Poster", summaries[0].LayoutVariant);
+            Assert.Equal(PowerPointAutoLayoutStrategy.VisualFirst, summaries[0].LayoutStrategy);
             Assert.Equal("VisualHero", summaries[1].LayoutVariant);
             Assert.Equal("PinBoard", summaries[2].LayoutVariant);
         }

@@ -244,6 +244,7 @@ Runnable sample:
 
 ```powershell
 dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --designer-powerpoint
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint-layout-strategy
 ```
 
 The helpers are intentionally not fixed templates. Start with `PowerPointDeckDesign.FromBrand(...)` to define the
@@ -262,6 +263,8 @@ custom directions, or a recipe when you want stable choices from the same brand 
 
 Use `PowerPointDesignBrief.WithLayoutStrategy(...)` when `Auto` variants should lean toward content fit, seeded design
 variety, compact business layouts, or more visual hero/proof compositions without hardcoding every slide variant.
+Run the layout strategy sample when you want to compare the same semantic `PowerPointDeckPlan` rendered through
+different brief-level palette and layout choices.
 Use explicit layout variants when a deck needs a controlled art direction, or use `ComposeDesignerSlide` and
 `PowerPointLayoutBox` regions when the slide needs a custom composition while still reusing cards, metrics, process
 steps, logo walls, coverage maps, and callout bands.

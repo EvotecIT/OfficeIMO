@@ -272,6 +272,7 @@ namespace OfficeIMO.PowerPoint {
                 design.BaseIntent.Mood,
                 design.BaseIntent.Density,
                 design.BaseIntent.VisualStyle,
+                design.BaseIntent.LayoutStrategy,
                 design.Theme.HeadingFontName,
                 design.Theme.BodyFontName);
         }
@@ -941,7 +942,8 @@ namespace OfficeIMO.PowerPoint {
             string title, string? subtitle, string? seed, string resolvedSeed, string designSeed,
             int contentItemCount, string? layoutVariant, IReadOnlyList<string> layoutReasons,
             string directionName, PowerPointDesignMood mood, PowerPointSlideDensity density,
-            PowerPointVisualStyle visualStyle, string headingFontName, string bodyFontName) {
+            PowerPointVisualStyle visualStyle, PowerPointAutoLayoutStrategy layoutStrategy, string headingFontName,
+            string bodyFontName) {
             Index = index;
             Kind = kind;
             Title = title;
@@ -956,6 +958,7 @@ namespace OfficeIMO.PowerPoint {
             Mood = mood;
             Density = density;
             VisualStyle = visualStyle;
+            LayoutStrategy = layoutStrategy;
             HeadingFontName = headingFontName;
             BodyFontName = bodyFontName;
         }
@@ -1029,6 +1032,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Preferred visual style used by the deck design.
         /// </summary>
         public PowerPointVisualStyle VisualStyle { get; }
+
+        /// <summary>
+        ///     Auto layout strategy used when resolving this planned slide.
+        /// </summary>
+        public PowerPointAutoLayoutStrategy LayoutStrategy { get; }
 
         /// <summary>
         ///     Heading font used by the deck design.
