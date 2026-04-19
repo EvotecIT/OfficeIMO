@@ -323,6 +323,63 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDesignBrief_CreatesAlternativesFromPurposeAndIdentity() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-client", "technical rollout proposal")
+                .WithIdentity("Client", footerLeft: "CLIENT")
+                .WithFonts(bodyFontName: "Segoe UI");
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(2);
+
+            Assert.Equal(2, alternatives.Count);
+            Assert.Equal("Architecture Map", alternatives[0].Direction.Name);
+            Assert.Equal("Runbook", alternatives[1].Direction.Name);
+            Assert.Equal("Technical proposal", alternatives[0].Options("cover").Eyebrow);
+            Assert.Equal("CLIENT", alternatives[1].Options("cover").FooterLeft);
+            Assert.Equal("Segoe UI", alternatives[0].Theme.BodyFontName);
+            Assert.Equal("Segoe UI", alternatives[1].Theme.BodyFontName);
+            Assert.NotEqual(alternatives[0].Theme.Accent2Color, alternatives[1].Theme.Accent2Color);
+        }
+
+        [Fact]
+        public void DesignerDeckComposer_CanStartFromBriefWithCustomDirections() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                PowerPointDesignBrief brief = PowerPointDesignBrief
+                    .FromBrand("#008C95", "custom-brief", "executive brief")
+                    .WithIdentity("Client Brief", eyebrow: "Unique deck", footerLeft: "CLIENT")
+                    .WithDirections(new[] {
+                        new PowerPointDesignDirection("Local Proof", PowerPointDesignMood.Editorial,
+                            PowerPointSlideDensity.Relaxed, PowerPointVisualStyle.Soft, "Georgia", "Aptos",
+                            showDirectionMotif: false),
+                        new PowerPointDesignDirection("Operational Signal", PowerPointDesignMood.Energetic,
+                            PowerPointSlideDensity.Compact, PowerPointVisualStyle.Geometric, "Poppins", "Segoe UI")
+                    });
+
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointDeckComposer deck = presentation.UseDesigner(brief, alternativeIndex: 1);
+                deck.AddSectionSlide("Custom brief", "Caller directions beat matched recipes.", "cover");
+
+                Assert.Equal("Operational Signal", deck.Design.Direction.Name);
+                Assert.Equal(PowerPointDesignMood.Energetic, deck.Design.BaseIntent.Mood);
+                Assert.Equal("Unique deck", deck.Design.Options("cover").Eyebrow);
+                Assert.Equal("CLIENT", deck.Design.Options("cover").FooterLeft);
+                Assert.Equal(deck.Design.Theme.Name, presentation.ThemeName);
+                Assert.NotNull(presentation.Slides[0].GetShape("Designer Direction 1"));
+
+                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void DesignerDeckDesign_MinimalProfileSuppressesDirectionMotifs() {
             string filePath = CreateTempPresentationPath();
 

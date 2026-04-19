@@ -80,6 +80,12 @@ var recipe = PowerPointDesignRecipe.FindBuiltIn("technical rollout proposal")
 var quickDeck = ppt.UseDesigner("#008C95", "client-demo", "technical rollout proposal",
     name: "Client Theme", footerLeft: "CLIENT", footerRight: "Service deck");
 
+// Use a design brief when brand, purpose, identity, and custom directions should travel together.
+var brief = PowerPointDesignBrief
+    .FromBrand("#008C95", "client-demo", "technical rollout proposal")
+    .WithIdentity("Client Theme", footerLeft: "CLIENT", footerRight: "Service deck");
+var briefDeck = ppt.UseDesigner(brief, alternativeIndex: 1);
+
 // Or supply your own creative directions so decks do not all share the same house style.
 var clientDirections = new[] {
     new PowerPointDesignDirection("Board Brief", PowerPointDesignMood.Corporate,
@@ -90,6 +96,9 @@ var clientDirections = new[] {
 };
 var clientAlternatives = PowerPointDeckDesign.CreateAlternativesFromBrand("#008C95", "client-demo",
     clientDirections, name: "Client Theme", footerLeft: "CLIENT");
+var uniqueBrief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
+    .WithIdentity("Client Theme", footerLeft: "CLIENT")
+    .WithDirections(clientDirections);
 
 deck.AddSectionSlide("Case Study", "Project portfolio", "cover",
     options => options.SectionVariant = PowerPointSectionLayoutVariant.EditorialRail);

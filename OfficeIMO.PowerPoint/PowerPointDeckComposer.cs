@@ -141,6 +141,18 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Creates a designer facade from a reusable design brief.
+        /// </summary>
+        public static PowerPointDeckComposer UseDesigner(this PowerPointPresentation presentation,
+            PowerPointDesignBrief brief, int alternativeIndex = 0, bool applyTheme = true) {
+            if (brief == null) {
+                throw new ArgumentNullException(nameof(brief));
+            }
+
+            return new PowerPointDeckComposer(presentation, brief.CreateDesign(alternativeIndex), applyTheme);
+        }
+
+        /// <summary>
         ///     Creates a designer facade directly from a brand accent and scenario recipe.
         /// </summary>
         public static PowerPointDeckComposer UseDesigner(this PowerPointPresentation presentation,
