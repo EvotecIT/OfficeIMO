@@ -485,6 +485,74 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDeckComposer_CanApplySemanticDeckPlan() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointDesignBrief brief = PowerPointDesignBrief
+                    .FromBrand("#008C95", "plan-client", "technical rollout proposal")
+                    .WithIdentity("Plan Client", footerLeft: "PLAN", footerRight: "Proposal");
+                PowerPointDeckComposer deck = presentation.UseDesigner(brief, alternativeIndex: 0);
+
+                PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                    .AddSection("Rollout proposal", "Structured from a semantic plan.", "cover",
+                        options => options.SectionVariant = PowerPointSectionLayoutVariant.EditorialRail)
+                    .AddCaseStudy("Example client",
+                        new[] {
+                            new PowerPointCaseStudySection("Client", "A client needed clear rollout structure."),
+                            new PowerPointCaseStudySection("Challenge", "The source story mixed operations and proof."),
+                            new PowerPointCaseStudySection("Solution", "The plan chooses a case-study composition."),
+                            new PowerPointCaseStudySection("Result", "The output remains editable.")
+                        },
+                        new[] {
+                            new PowerPointMetric("150", "devices")
+                        },
+                        "case-study")
+                    .AddProcess("Delivery path", "A readable rollout flow.",
+                        new[] {
+                            new PowerPointProcessStep("Discover", "Map constraints."),
+                            new PowerPointProcessStep("Pilot", "Validate with a small group."),
+                            new PowerPointProcessStep("Rollout", "Move in controlled waves.")
+                        },
+                        "process",
+                        options => options.Variant = PowerPointProcessLayoutVariant.NumberedColumns)
+                    .AddCardGrid("Scope", "Grouped workstreams.",
+                        new[] {
+                            new PowerPointCardContent("Deployments", new[] { "Intune", "Autopilot" }),
+                            new PowerPointCardContent("Care", new[] { "Monitoring", "Reporting" })
+                        },
+                        "scope");
+
+                IReadOnlyList<PowerPointSlide> slides = deck.AddSlides(plan);
+
+                Assert.Equal(4, slides.Count);
+                Assert.Equal(4, presentation.Slides.Count);
+                Assert.NotNull(slides[0].GetShape("Section Editorial Rail"));
+                Assert.NotNull(slides[2].GetShape("Process Column 1"));
+                Assert.Contains(slides[3].TextBoxes, textBox => textBox.Text == "PLAN");
+
+                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerDeckPlan_RejectsEmptySemanticContent() {
+            Assert.Throws<ArgumentException>(() =>
+                new PowerPointDeckPlan().AddProcess("Empty process", null, Array.Empty<PowerPointProcessStep>()));
+
+            Assert.Throws<ArgumentNullException>(() =>
+                new PowerPointDeckPlan().Add(null!));
+        }
+
+        [Fact]
         public void DesignerDeckComposer_SameContentCanUseDifferentDeckPersonalities() {
             string corporatePath = CreateTempPresentationPath();
             string minimalPath = CreateTempPresentationPath();

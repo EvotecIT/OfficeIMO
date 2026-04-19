@@ -113,6 +113,22 @@ namespace OfficeIMO.PowerPoint {
             return _presentation.ComposeDesignerSlide(compose, _design.Theme, options, dark);
         }
 
+        /// <summary>
+        ///     Adds all slides described by a semantic deck plan using the active deck design.
+        /// </summary>
+        public IReadOnlyList<PowerPointSlide> AddSlides(PowerPointDeckPlan plan) {
+            if (plan == null) {
+                throw new ArgumentNullException(nameof(plan));
+            }
+
+            List<PowerPointSlide> slides = new();
+            foreach (PowerPointDeckPlanSlide slide in plan.Slides) {
+                slides.Add(slide.AddTo(this));
+            }
+
+            return slides.AsReadOnly();
+        }
+
         private T Configure<T>(T options, string seed, Action<T>? configure)
             where T : PowerPointDesignerSlideOptions {
             string resolvedSeed = ResolveSeed(seed);

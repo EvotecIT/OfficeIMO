@@ -87,6 +87,26 @@ var brief = PowerPointDesignBrief
 var choices = brief.DescribeAlternatives(3); // direction, mood, fonts, and palette preview
 var briefDeck = ppt.UseDesigner(brief, alternativeIndex: 1);
 
+// A deck plan lets callers describe the story while the designer chooses the slide compositions.
+var plan = new PowerPointDeckPlan()
+    .AddSection("Case Study", "Project portfolio", "cover")
+    .AddCaseStudy("Example client",
+        new[] {
+            new PowerPointCaseStudySection("Client", "A concise customer story."),
+            new PowerPointCaseStudySection("Challenge", "Many details needed structure."),
+            new PowerPointCaseStudySection("Solution", "Separate story, evidence, and outcome."),
+            new PowerPointCaseStudySection("Result", "Keep the output editable and readable.")
+        },
+        seed: "case-study")
+    .AddProcess("How we work", "Transparent phases reduce risk",
+        new[] {
+            new PowerPointProcessStep("Analysis", "Understand the environment and constraints."),
+            new PowerPointProcessStep("Discovery", "Review configuration and dependencies."),
+            new PowerPointProcessStep("Delivery", "Implement changes in controlled stages.")
+        },
+        seed: "process");
+briefDeck.AddSlides(plan);
+
 // Or supply your own creative directions so decks do not all share the same house style.
 var clientDirections = new[] {
     new PowerPointDesignDirection("Board Brief", PowerPointDesignMood.Corporate,
