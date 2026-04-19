@@ -339,6 +339,38 @@ namespace OfficeIMO.PowerPoint {
                 : PowerPointCardGridLayoutVariant.SoftTiles;
         }
 
+        internal static PowerPointCardSurfaceStyle ResolveCardSurfaceStyle(PowerPointCardGridSlideOptions options,
+            PowerPointCardGridLayoutVariant variant) {
+            if (options.SurfaceStyle != PowerPointCardSurfaceStyle.Auto) {
+                return options.SurfaceStyle;
+            }
+
+            PowerPointDesignIntent intent = options.DesignIntent;
+            if (string.IsNullOrWhiteSpace(intent.Seed)) {
+                return PowerPointCardSurfaceStyle.Elevated;
+            }
+            if (intent.VisualStyle == PowerPointVisualStyle.Minimal) {
+                return PowerPointCardSurfaceStyle.Flat;
+            }
+            if (intent.Mood == PowerPointDesignMood.Editorial) {
+                return PowerPointCardSurfaceStyle.Hairline;
+            }
+            if (intent.Mood == PowerPointDesignMood.Energetic ||
+                intent.LayoutStrategy == PowerPointAutoLayoutStrategy.DesignFirst) {
+                return PowerPointCardSurfaceStyle.AccentWash;
+            }
+            if (variant == PowerPointCardGridLayoutVariant.SoftTiles) {
+                return PowerPointCardSurfaceStyle.Flat;
+            }
+
+            return intent.Pick(4, "card-surface") switch {
+                0 => PowerPointCardSurfaceStyle.Elevated,
+                1 => PowerPointCardSurfaceStyle.Flat,
+                2 => PowerPointCardSurfaceStyle.Hairline,
+                _ => PowerPointCardSurfaceStyle.AccentWash
+            };
+        }
+
         internal static PowerPointProcessLayoutVariant ResolveProcessVariant(PowerPointProcessSlideOptions options,
             IReadOnlyList<PowerPointProcessStep> steps) {
             if (options.Variant != PowerPointProcessLayoutVariant.Auto) {
@@ -1036,28 +1068,24 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutBox[,] grid = PowerPointLayoutBox
                 .FromCentimeters(bounds.LeftCm, bounds.TopCm, bounds.WidthCm, bounds.HeightCm)
                 .SplitGridCm(rows, columns, rowGap, columnGap);
+            PowerPointCardSurfaceStyle surfaceStyle = ResolveCardSurfaceStyle(options, variant);
 
             for (int i = 0; i < cards.Count; i++) {
                 int row = i / columns;
                 int column = i % columns;
-                AddDesignerCard(slide, theme, cards[i], grid[row, column], i, variant);
+                AddDesignerCard(slide, theme, cards[i], grid[row, column], i, variant, surfaceStyle);
             }
         }
 
         private static void AddDesignerCard(PowerPointSlide slide, PowerPointDesignTheme theme, PowerPointCardContent card,
-            PowerPointLayoutBox box, int index, PowerPointCardGridLayoutVariant variant) {
+            PowerPointLayoutBox box, int index, PowerPointCardGridLayoutVariant variant,
+            PowerPointCardSurfaceStyle surfaceStyle) {
             string accent = card.AccentColor ?? GetAccent(theme, index);
             PowerPointAutoShape panel = slide.AddRectangleCm(box.LeftCm, box.TopCm, box.WidthCm, box.HeightCm,
                 "Designer Card " + (index + 1));
-            panel.FillColor = theme.PanelColor;
-            panel.OutlineColor = theme.PanelBorderColor;
-            panel.OutlineWidthPoints = variant == PowerPointCardGridLayoutVariant.SoftTiles ? 0.35 : 0.8;
-            panel.SetShadow("000000", blurPoints: variant == PowerPointCardGridLayoutVariant.SoftTiles ? 3 : 5,
-                distancePoints: variant == PowerPointCardGridLayoutVariant.SoftTiles ? 0.8 : 1.5,
-                angleDegrees: 90, transparencyPercent: 88);
+            ApplyDesignerCardSurface(panel, theme, accent, variant, surfaceStyle);
 
             if (variant == PowerPointCardGridLayoutVariant.SoftTiles) {
-                panel.FillColor = theme.SurfaceColor;
                 PowerPointAutoShape accentStrip = slide.AddRectangleCm(box.LeftCm, box.TopCm, 0.13, box.HeightCm,
                     "Designer Card Accent " + (index + 1));
                 accentStrip.FillColor = accent;
@@ -1098,6 +1126,39 @@ namespace OfficeIMO.PowerPoint {
                     .SetSpaceAfterPoints(bulletSpaceAfter)
                     .SetBulletSizePercent(70);
             });
+        }
+
+        private static void ApplyDesignerCardSurface(PowerPointAutoShape panel, PowerPointDesignTheme theme,
+            string accent, PowerPointCardGridLayoutVariant variant, PowerPointCardSurfaceStyle surfaceStyle) {
+            panel.FillColor = variant == PowerPointCardGridLayoutVariant.SoftTiles
+                ? theme.SurfaceColor
+                : theme.PanelColor;
+            panel.FillTransparency = 0;
+            panel.OutlineColor = theme.PanelBorderColor;
+            panel.OutlineWidthPoints = variant == PowerPointCardGridLayoutVariant.SoftTiles ? 0.35 : 0.8;
+
+            switch (surfaceStyle) {
+                case PowerPointCardSurfaceStyle.Flat:
+                    panel.FillColor = theme.SurfaceColor;
+                    panel.OutlineWidthPoints = 0.25;
+                    break;
+                case PowerPointCardSurfaceStyle.Hairline:
+                    panel.FillColor = theme.SurfaceColor;
+                    panel.OutlineColor = theme.PanelBorderColor;
+                    panel.OutlineWidthPoints = 0.35;
+                    break;
+                case PowerPointCardSurfaceStyle.AccentWash:
+                    panel.FillColor = accent;
+                    panel.FillTransparency = 88;
+                    panel.OutlineColor = accent;
+                    panel.OutlineWidthPoints = 0.25;
+                    break;
+                default:
+                    panel.SetShadow("000000", blurPoints: variant == PowerPointCardGridLayoutVariant.SoftTiles ? 3 : 5,
+                        distancePoints: variant == PowerPointCardGridLayoutVariant.SoftTiles ? 0.8 : 1.5,
+                        angleDegrees: 90, transparencyPercent: 88);
+                    break;
+            }
         }
 
         private static int ResolveCardTitleFontSize(string title, double widthCm) {

@@ -210,6 +210,22 @@ namespace OfficeIMO.PowerPoint {
     }
 
     /// <summary>
+    ///     Card panel treatment used independently from the grid layout.
+    /// </summary>
+    public enum PowerPointCardSurfaceStyle {
+        /// <summary>Choose a deterministic surface treatment from the design intent.</summary>
+        Auto,
+        /// <summary>Use a quiet elevated card with a subtle shadow.</summary>
+        Elevated,
+        /// <summary>Use a flat card with minimal outline and no shadow.</summary>
+        Flat,
+        /// <summary>Use a precise hairline card for editorial or formal layouts.</summary>
+        Hairline,
+        /// <summary>Use a very light accent-tinted card surface.</summary>
+        AccentWash
+    }
+
+    /// <summary>
     ///     Metric strip surface variants for raw designer compositions.
     /// </summary>
     public enum PowerPointMetricStripVariant {
@@ -482,6 +498,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Card layout variant. Auto uses the design intent seed.
         /// </summary>
         public PowerPointCardGridLayoutVariant Variant { get; set; } = PowerPointCardGridLayoutVariant.Auto;
+
+        /// <summary>
+        ///     Card panel treatment. Auto uses the design intent seed and mood.
+        /// </summary>
+        public PowerPointCardSurfaceStyle SurfaceStyle { get; set; } = PowerPointCardSurfaceStyle.Auto;
 
         /// <summary>
         ///     Optional supporting text block displayed below the cards.

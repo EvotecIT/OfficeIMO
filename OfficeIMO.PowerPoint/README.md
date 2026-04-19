@@ -161,7 +161,8 @@ recommendedDeck.ComposeSlide(composer => {
         PowerPointCompositionVariant.VisualLead);
     composer.AddCardGrid(recommendedPlan.ContentFitReasons.Take(3)
         .Select((reason, index) => new PowerPointCardContent("Signal " + (index + 1), new[] { reason })),
-        layout.Primary);
+        layout.Primary,
+        new PowerPointCardGridSlideOptions { SurfaceStyle = PowerPointCardSurfaceStyle.Hairline });
     composer.AddVisualFrame(layout.Visual, PowerPointVisualFrameVariant.ProofBoard);
     composer.AddMetricStrip(new[] {
         new PowerPointMetric(recommendedPlan.ContentFitScore.ToString(), "fit score"),
@@ -310,6 +311,8 @@ Use `PowerPointDesignBrief.WithLayoutStrategy(...)` when `Auto` variants should 
 variety, compact business layouts, or more visual hero/proof compositions without hardcoding every slide variant.
 Use `WithTypographyStyle(...)` when the same brand and slide plan should feel more editorial, executive, technical, or
 friendly without rewriting every creative direction.
+Use `SurfaceStyle` on card-grid options when cards should be elevated, flat, hairline, or accent-washed without
+changing the card content or layout.
 Use `DirectionMotifStyle` on slide options when the small movement markers should be triangles, chevrons, dots, bars,
 or hidden entirely for quieter slides.
 Use `RecommendDeckPlanAlternative(...)` when callers want the library to pick the strongest content-fit alternative

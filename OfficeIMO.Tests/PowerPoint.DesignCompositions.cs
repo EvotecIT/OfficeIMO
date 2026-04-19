@@ -2300,6 +2300,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerCardGrid_CanUseAlternateSurfaceStyles() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointSlide flatSlide = presentation.AddDesignerCardGridSlide("Flat", null,
+                    new[] {
+                        new PowerPointCardContent("Deployments", new[] { "Intune" })
+                    },
+                    options: new PowerPointCardGridSlideOptions {
+                        SurfaceStyle = PowerPointCardSurfaceStyle.Flat
+                    });
+                PowerPointSlide washSlide = presentation.AddDesignerCardGridSlide("Accent wash", null,
+                    new[] {
+                        new PowerPointCardContent("Care", new[] { "Monitoring" }, "F26A3D")
+                    },
+                    options: new PowerPointCardGridSlideOptions {
+                        SurfaceStyle = PowerPointCardSurfaceStyle.AccentWash
+                    });
+
+                PowerPointAutoShape flatCard = Assert.IsAssignableFrom<PowerPointAutoShape>(
+                    flatSlide.GetShape("Designer Card 1"));
+                PowerPointAutoShape washCard = Assert.IsAssignableFrom<PowerPointAutoShape>(
+                    washSlide.GetShape("Designer Card 1"));
+
+                Assert.True(flatCard.OutlineWidthPoints <= 0.25);
+                Assert.True(flatCard.FillTransparency is null or 0);
+                Assert.Equal("F26A3D", washCard.FillColor);
+                Assert.True(washCard.FillTransparency >= 80);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Composer_CreatesValidCustomSlideFromReusablePrimitives() {
             string filePath = CreateTempPresentationPath();
 
