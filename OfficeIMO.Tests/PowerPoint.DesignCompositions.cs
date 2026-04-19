@@ -416,6 +416,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDesignBrief_CanControlAlternativeVariety() {
+            PowerPointDesignBrief focused = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-focused", "technical rollout proposal")
+                .WithPreferredMoods(PowerPointDesignMood.Energetic)
+                .WithVariety(PowerPointDesignVariety.Focused);
+            PowerPointDesignBrief exploratory = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-exploratory", "technical rollout proposal")
+                .WithVariety(PowerPointDesignVariety.Exploratory);
+
+            IReadOnlyList<PowerPointDeckDesign> focusedAlternatives = focused.CreateAlternatives(3);
+            IReadOnlyList<PowerPointDeckDesignSummary> exploratorySummaries = exploratory.DescribeAlternatives(5);
+
+            Assert.Equal(PowerPointDesignVariety.Focused, focused.Variety);
+            Assert.All(focusedAlternatives,
+                design => Assert.Equal("Delivery Signal", design.Direction.Name));
+            Assert.NotEqual(focusedAlternatives[0].Seed, focusedAlternatives[1].Seed);
+            Assert.Equal("Architecture Map", exploratorySummaries[0].DirectionName);
+            Assert.Equal("Runbook", exploratorySummaries[1].DirectionName);
+            Assert.Equal("Delivery Signal", exploratorySummaries[2].DirectionName);
+            Assert.Equal("Structured", exploratorySummaries[3].DirectionName);
+            Assert.Equal("Editorial", exploratorySummaries[4].DirectionName);
+        }
+
+        [Fact]
         public void DesignerDesignBrief_CanDescribeAlternativesBeforeChoosing() {
             PowerPointDesignBrief brief = PowerPointDesignBrief
                 .FromBrand("#008C95", "brief-preview", "technical rollout proposal")

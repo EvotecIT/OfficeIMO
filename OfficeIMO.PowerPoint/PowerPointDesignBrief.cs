@@ -115,6 +115,11 @@ namespace OfficeIMO.PowerPoint {
         public string? PanelBorderColor { get; private set; }
 
         /// <summary>
+        ///     Controls how far generated alternatives should move from the selected recipe or preferred direction.
+        /// </summary>
+        public PowerPointDesignVariety Variety { get; private set; } = PowerPointDesignVariety.Balanced;
+
+        /// <summary>
         ///     Caller-supplied creative directions. When present, these take precedence over recipes.
         /// </summary>
         public IReadOnlyList<PowerPointDesignDirection> Directions => _directions;
@@ -186,6 +191,14 @@ namespace OfficeIMO.PowerPoint {
             WarmAccentColor = NormalizeOptionalColor(warmAccentColor, nameof(warmAccentColor));
             SurfaceColor = NormalizeOptionalColor(surfaceColor, nameof(surfaceColor));
             PanelBorderColor = NormalizeOptionalColor(panelBorderColor, nameof(panelBorderColor));
+            return this;
+        }
+
+        /// <summary>
+        ///     Sets how broad generated alternatives should be.
+        /// </summary>
+        public PowerPointDesignBrief WithVariety(PowerPointDesignVariety variety) {
+            Variety = variety;
             return this;
         }
 
@@ -270,8 +283,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDesignRecipe recipe = Recipe
                 ?? (!string.IsNullOrWhiteSpace(Purpose) ? PowerPointDesignRecipe.FindBuiltIn(Purpose!) : null)
                 ?? PowerPointDesignRecipe.ConsultingPortfolio;
-            if (HasDirectionPreferences) {
-                recipe = new PowerPointDesignRecipe(recipe.Name, RankDirections(recipe.Directions),
+            if (HasDirectionPreferences || Variety != PowerPointDesignVariety.Balanced) {
+                recipe = new PowerPointDesignRecipe(recipe.Name, ResolveDirectionSet(recipe.Directions, true),
                     recipe.DefaultEyebrow, recipe.Description, recipe.Keywords);
             }
 
@@ -344,11 +357,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private IReadOnlyList<PowerPointDeckDesign> CreateDirectionAlternatives(int count) {
-            IReadOnlyList<PowerPointDesignDirection> rankedDirections = RankDirections(_directions);
-            int designCount = count == 0 ? rankedDirections.Count : count;
+            IReadOnlyList<PowerPointDesignDirection> resolvedDirections = ResolveDirectionSet(_directions, false);
+            int designCount = count == 0 ? resolvedDirections.Count : count;
             List<PowerPointDesignDirection> selectedDirections = new(designCount);
             for (int i = 0; i < designCount; i++) {
-                selectedDirections.Add(rankedDirections[i % rankedDirections.Count]);
+                selectedDirections.Add(resolvedDirections[i % resolvedDirections.Count]);
             }
 
             return PowerPointDeckDesign.CreateAlternativesFromBrand(AccentColor, Seed, selectedDirections, Name,
@@ -357,6 +370,27 @@ namespace OfficeIMO.PowerPoint {
 
         private bool HasDirectionPreferences =>
             _preferredMoods.Count > 0 || _preferredDensities.Count > 0 || _preferredVisualStyles.Count > 0;
+
+        private IReadOnlyList<PowerPointDesignDirection> ResolveDirectionSet(
+            IEnumerable<PowerPointDesignDirection> directions, bool allowExploratoryExpansion) {
+            IReadOnlyList<PowerPointDesignDirection> ranked = RankDirections(directions);
+            if (Variety == PowerPointDesignVariety.Focused && ranked.Count > 0) {
+                return new[] { ranked[0] };
+            }
+
+            if (Variety != PowerPointDesignVariety.Exploratory || !allowExploratoryExpansion) {
+                return ranked;
+            }
+
+            List<PowerPointDesignDirection> expanded = new(ranked);
+            foreach (PowerPointDesignDirection direction in PowerPointDesignDirection.BuiltIn) {
+                if (!ContainsDirection(expanded, direction.Name)) {
+                    expanded.Add(direction);
+                }
+            }
+
+            return expanded.AsReadOnly();
+        }
 
         private IReadOnlyList<PowerPointDesignDirection> RankDirections(
             IEnumerable<PowerPointDesignDirection> directions) {
@@ -397,6 +431,16 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return true;
+        }
+
+        private static bool ContainsDirection(IEnumerable<PowerPointDesignDirection> directions, string name) {
+            foreach (PowerPointDesignDirection direction in directions) {
+                if (string.Equals(direction.Name, name, StringComparison.OrdinalIgnoreCase)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private IReadOnlyList<PowerPointDeckDesign> ApplyPaletteOverrides(

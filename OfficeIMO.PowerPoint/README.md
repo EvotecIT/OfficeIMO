@@ -87,6 +87,7 @@ var brief = PowerPointDesignBrief
     .FromBrand("#008C95", "client-demo", "technical rollout proposal")
     .WithIdentity("Client Theme", footerLeft: "CLIENT", footerRight: "Service deck")
     .WithPalette(secondaryAccentColor: "#6D5BD0", warmAccentColor: "#FFB000")
+    .WithVariety(PowerPointDesignVariety.Exploratory)
     .WithPreferredMoods(PowerPointDesignMood.Energetic)
     .WithPreferredVisualStyles(PowerPointVisualStyle.Geometric);
 var choices = brief.DescribeAlternatives(3); // direction, mood, fonts, and palette preview
