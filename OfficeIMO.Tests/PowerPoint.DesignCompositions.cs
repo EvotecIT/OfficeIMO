@@ -2117,6 +2117,49 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDirectionMotif_CanUseAlternativeEditableStyles() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointSlide dotSlide = presentation.AddDesignerSectionSlide("Dots", "Quiet rhythm",
+                    options: new PowerPointDesignerSlideOptions {
+                        DirectionMotifStyle = PowerPointDirectionMotifStyle.Dots
+                    });
+                PowerPointSlide barSlide = presentation.AddDesignerSectionSlide("Bars", "Editorial rhythm",
+                    options: new PowerPointDesignerSlideOptions {
+                        DirectionMotifStyle = PowerPointDirectionMotifStyle.Bars
+                    });
+                PowerPointSlide chevronSlide = presentation.AddDesignerSectionSlide("Chevrons", "Directional rhythm",
+                    options: new PowerPointDesignerSlideOptions {
+                        DirectionMotifStyle = PowerPointDirectionMotifStyle.Chevrons
+                    });
+                PowerPointSlide hiddenSlide = presentation.AddDesignerSectionSlide("None", "No motif",
+                    options: new PowerPointDesignerSlideOptions {
+                        DirectionMotifStyle = PowerPointDirectionMotifStyle.None
+                    });
+
+                PowerPointAutoShape dot = Assert.IsAssignableFrom<PowerPointAutoShape>(
+                    dotSlide.GetShape("Designer Direction 1"));
+                Assert.Equal(A.ShapeTypeValues.Ellipse, dot.ShapeType);
+
+                PowerPointAutoShape bar = Assert.IsAssignableFrom<PowerPointAutoShape>(
+                    barSlide.GetShape("Designer Direction 1"));
+                Assert.Equal(A.ShapeTypeValues.Rectangle, bar.ShapeType);
+
+                Assert.NotNull(chevronSlide.GetShape("Designer Direction 1"));
+                Assert.NotNull(chevronSlide.GetShape("Designer Direction Chevron 1B"));
+                Assert.Null(hiddenSlide.GetShape("Designer Direction 1"));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void DesignerProcessSlide_AutoConnectorStyleUsesDotsForEditorialFlows() {
             string filePath = CreateTempPresentationPath();
 

@@ -408,7 +408,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (ShouldShowDirectionMotif(options)) {
-                AddDirectionMotif(slide, 1.95, slideHeightCm * 0.67, 11, 0.46, theme.WarningColor);
+                AddDirectionMotif(slide, options, 1.95, slideHeightCm * 0.67, 11, 0.46, theme.WarningColor);
             }
         }
 
@@ -444,7 +444,8 @@ namespace OfficeIMO.PowerPoint {
             accentPanel.OutlineColor = theme.AccentLightColor;
 
             if (ShouldShowDirectionMotif(options)) {
-                AddDirectionMotif(slide, slideWidthCm - 5.25, 2.05, 10, 0.36, theme.AccentColor, flip: true);
+                AddDirectionMotif(slide, options, slideWidthCm - 5.25, 2.05, 10, 0.36, theme.AccentColor,
+                    flip: true);
             }
         }
 
@@ -479,7 +480,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (ShouldShowDirectionMotif(options)) {
-                AddDirectionMotif(slide, slideWidthCm * 0.39, slideHeightCm * 0.68, 12, 0.4, theme.WarningColor);
+                AddDirectionMotif(slide, options, slideWidthCm * 0.39, slideHeightCm * 0.68, 12, 0.4,
+                    theme.WarningColor);
             }
         }
 
@@ -1312,12 +1314,15 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (ShouldShowDirectionMotif(options) && !dark) {
-                AddDirectionMotif(slide, slideWidthCm - 4.9, 1.48, 12, 0.35, theme.AccentColor, flip: true);
+                AddDirectionMotif(slide, options, slideWidthCm - 4.9, 1.48, 12, 0.35, theme.AccentColor,
+                    flip: true);
             }
         }
 
         private static bool ShouldShowDirectionMotif(PowerPointDesignerSlideOptions options) {
-            return options.ShowDirectionMotif && options.DesignIntent.VisualStyle != PowerPointVisualStyle.Minimal;
+            return options.ShowDirectionMotif &&
+                   options.DesignIntent.VisualStyle != PowerPointVisualStyle.Minimal &&
+                   ResolveDirectionMotifStyle(options) != PowerPointDirectionMotifStyle.None;
         }
 
         private static void AddProcessRail(PowerPointSlide slide, PowerPointDesignTheme theme,
@@ -1400,16 +1405,109 @@ namespace OfficeIMO.PowerPoint {
             CenterText(numberBox);
         }
 
-        private static void AddDirectionMotif(PowerPointSlide slide, double leftCm, double topCm, int count,
-            double spacingCm, string color, bool flip = false) {
-            for (int i = 0; i < count; i++) {
-                PowerPointAutoShape arrow = slide.AddShapeCm(A.ShapeTypeValues.Triangle,
-                    leftCm + i * spacingCm, topCm, 0.22, 0.24, "Designer Direction " + (i + 1));
-                arrow.FillColor = color;
-                arrow.FillTransparency = Math.Min(45, i * 3);
-                arrow.OutlineColor = color;
-                arrow.Rotation = flip ? 270 : 90;
+        private static PowerPointDirectionMotifStyle ResolveDirectionMotifStyle(
+            PowerPointDesignerSlideOptions options) {
+            if (options.DirectionMotifStyle != PowerPointDirectionMotifStyle.Auto) {
+                return options.DirectionMotifStyle;
             }
+
+            PowerPointDesignIntent intent = options.DesignIntent;
+            if (intent.VisualStyle == PowerPointVisualStyle.Minimal) {
+                return PowerPointDirectionMotifStyle.None;
+            }
+            if (string.IsNullOrWhiteSpace(intent.Seed)) {
+                return PowerPointDirectionMotifStyle.Triangles;
+            }
+            if (intent.Mood == PowerPointDesignMood.Energetic) {
+                return PowerPointDirectionMotifStyle.Chevrons;
+            }
+            if (intent.Mood == PowerPointDesignMood.Editorial) {
+                return PowerPointDirectionMotifStyle.Bars;
+            }
+            if (intent.VisualStyle == PowerPointVisualStyle.Soft) {
+                return PowerPointDirectionMotifStyle.Dots;
+            }
+
+            return intent.Pick(4, "direction-motif") switch {
+                0 => PowerPointDirectionMotifStyle.Triangles,
+                1 => PowerPointDirectionMotifStyle.Chevrons,
+                2 => PowerPointDirectionMotifStyle.Dots,
+                _ => PowerPointDirectionMotifStyle.Bars
+            };
+        }
+
+        private static void AddDirectionMotif(PowerPointSlide slide, PowerPointDesignerSlideOptions options,
+            double leftCm, double topCm, int count, double spacingCm, string color, bool flip = false) {
+            PowerPointDirectionMotifStyle style = ResolveDirectionMotifStyle(options);
+            if (style == PowerPointDirectionMotifStyle.None) {
+                return;
+            }
+
+            for (int i = 0; i < count; i++) {
+                double left = leftCm + i * spacingCm;
+                int transparency = Math.Min(45, i * 3);
+                switch (style) {
+                    case PowerPointDirectionMotifStyle.Chevrons:
+                        AddDirectionChevron(slide, left, topCm, i, color, transparency, flip);
+                        break;
+                    case PowerPointDirectionMotifStyle.Dots:
+                        AddDirectionDot(slide, left, topCm, i, color, transparency);
+                        break;
+                    case PowerPointDirectionMotifStyle.Bars:
+                        AddDirectionBar(slide, left, topCm, i, color, transparency);
+                        break;
+                    default:
+                        AddDirectionTriangle(slide, left, topCm, i, color, transparency, flip);
+                        break;
+                }
+            }
+        }
+
+        private static void AddDirectionTriangle(PowerPointSlide slide, double leftCm, double topCm, int index,
+            string color, int transparency, bool flip) {
+            PowerPointAutoShape arrow = slide.AddShapeCm(A.ShapeTypeValues.Triangle,
+                leftCm, topCm, 0.22, 0.24, "Designer Direction " + (index + 1));
+            arrow.FillColor = color;
+            arrow.FillTransparency = transparency;
+            arrow.OutlineColor = color;
+            arrow.Rotation = flip ? 270 : 90;
+        }
+
+        private static void AddDirectionDot(PowerPointSlide slide, double leftCm, double topCm, int index,
+            string color, int transparency) {
+            PowerPointAutoShape dot = slide.AddEllipseCm(leftCm, topCm + 0.04, 0.16, 0.16,
+                "Designer Direction " + (index + 1));
+            dot.FillColor = color;
+            dot.FillTransparency = transparency;
+            dot.OutlineColor = color;
+            dot.OutlineWidthPoints = 0;
+        }
+
+        private static void AddDirectionBar(PowerPointSlide slide, double leftCm, double topCm, int index,
+            string color, int transparency) {
+            PowerPointAutoShape bar = slide.AddRectangleCm(leftCm, topCm + 0.08, 0.24, 0.07,
+                "Designer Direction " + (index + 1));
+            bar.FillColor = color;
+            bar.FillTransparency = transparency;
+            bar.OutlineColor = color;
+            bar.OutlineWidthPoints = 0;
+        }
+
+        private static void AddDirectionChevron(PowerPointSlide slide, double leftCm, double topCm, int index,
+            string color, int transparency, bool flip) {
+            double tip = flip ? leftCm : leftCm + 0.22;
+            double back = flip ? leftCm + 0.22 : leftCm;
+            double middleY = topCm + 0.12;
+
+            PowerPointAutoShape upper = slide.AddLineCm(back, topCm + 0.02, tip, middleY,
+                "Designer Direction " + (index + 1));
+            upper.OutlineColor = color;
+            upper.OutlineWidthPoints = Math.Max(0.55, 1.0 - transparency / 100d);
+
+            PowerPointAutoShape lower = slide.AddLineCm(back, topCm + 0.22, tip, middleY,
+                "Designer Direction Chevron " + (index + 1) + "B");
+            lower.OutlineColor = color;
+            lower.OutlineWidthPoints = Math.Max(0.55, 1.0 - transparency / 100d);
         }
 
         internal static PowerPointTextBox AddText(PowerPointSlide slide, string text, double leftCm, double topCm,

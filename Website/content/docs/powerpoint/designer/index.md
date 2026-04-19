@@ -52,6 +52,8 @@ or `VisualFirst` when visual proof and hero compositions should win when the con
 
 The same `PowerPointDeckPlan` can be reused with several briefs. Change the layout strategy, palette style, and typography
 style to get a different rhythm without changing slide coordinates or duplicating every slide recipe.
+Small direction motifs can also vary per slide with `PowerPointDirectionMotifStyle`: `Triangles`, `Chevrons`, `Dots`,
+`Bars`, or `None`.
 
 ```csharp
 PowerPointDeckPlan plan = CreateReusablePlan();
@@ -70,6 +72,8 @@ foreach (PowerPointAutoLayoutStrategy strategy in new[] {
     var preview = variant.DescribeDeckPlan(plan);
     PowerPointDeckComposer deck = presentation.UseDesigner(variant);
     deck.AddSlides(plan);
+    deck.AddSectionSlide("Approach", "A calmer opening rhythm", "approach",
+        configure: options => options.DirectionMotifStyle = PowerPointDirectionMotifStyle.Dots);
 }
 ```
 

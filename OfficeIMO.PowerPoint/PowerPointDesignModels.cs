@@ -92,6 +92,24 @@ namespace OfficeIMO.PowerPoint {
     }
 
     /// <summary>
+    ///     Decorative direction marker treatment used by designer slide chrome and section slides.
+    /// </summary>
+    public enum PowerPointDirectionMotifStyle {
+        /// <summary>Choose a deterministic motif style from the design intent.</summary>
+        Auto,
+        /// <summary>Use the original editable triangle markers.</summary>
+        Triangles,
+        /// <summary>Use line-drawn chevrons for a cleaner directional cue.</summary>
+        Chevrons,
+        /// <summary>Use quiet dot markers.</summary>
+        Dots,
+        /// <summary>Use compact bar markers.</summary>
+        Bars,
+        /// <summary>Do not render direction markers.</summary>
+        None
+    }
+
+    /// <summary>
     ///     Higher-level creative starting points that combine recipe, palette, layout, and ranking preferences.
     /// </summary>
     public enum PowerPointCreativeDirectionPack {
@@ -391,9 +409,14 @@ namespace OfficeIMO.PowerPoint {
         public string? FooterRight { get; set; }
 
         /// <summary>
-        ///     Adds a row of editable triangle markers for movement and visual rhythm.
+        ///     Adds a row of editable direction markers for movement and visual rhythm.
         /// </summary>
         public bool ShowDirectionMotif { get; set; } = true;
+
+        /// <summary>
+        ///     Direction marker treatment used when ShowDirectionMotif is enabled.
+        /// </summary>
+        public PowerPointDirectionMotifStyle DirectionMotifStyle { get; set; } = PowerPointDirectionMotifStyle.Auto;
 
         /// <summary>
         ///     Design intent used for deterministic visual variation.

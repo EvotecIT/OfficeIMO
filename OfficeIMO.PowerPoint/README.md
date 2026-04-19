@@ -176,6 +176,10 @@ recommendedDeck.AddCapabilitySlide("Evidence", "Choose visual support without ha
     },
     configure: options => options.VisualFrameVariant = PowerPointVisualFrameVariant.DeviceMockup);
 
+// Direction motifs can be explicit too: triangles, chevrons, dots, bars, or none.
+recommendedDeck.AddSectionSlide("Approach", "A calmer opening rhythm", "approach",
+    configure: options => options.DirectionMotifStyle = PowerPointDirectionMotifStyle.Dots);
+
 // Or supply your own creative directions so decks do not all share the same house style.
 var clientDirections = new[] {
     new PowerPointDesignDirection("Board Brief", PowerPointDesignMood.Corporate,
@@ -306,6 +310,8 @@ Use `PowerPointDesignBrief.WithLayoutStrategy(...)` when `Auto` variants should 
 variety, compact business layouts, or more visual hero/proof compositions without hardcoding every slide variant.
 Use `WithTypographyStyle(...)` when the same brand and slide plan should feel more editorial, executive, technical, or
 friendly without rewriting every creative direction.
+Use `DirectionMotifStyle` on slide options when the small movement markers should be triangles, chevrons, dots, bars,
+or hidden entirely for quieter slides.
 Use `RecommendDeckPlanAlternative(...)` when callers want the library to pick the strongest content-fit alternative
 from the same plan while still returning the selected design index and reasons.
 Use `presentation.UseDesigner(brief, plan, alternativeCount: ...)` when the caller wants to skip manual ranking and
