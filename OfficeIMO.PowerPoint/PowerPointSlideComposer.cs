@@ -85,8 +85,19 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointCompositionLayout UsePreset(PowerPointCompositionPreset preset = PowerPointCompositionPreset.Auto,
             double topCm = 3.65, double bottomMarginCm = 1.65, double horizontalMarginCm = 1.5) {
+            return UsePreset(preset, PowerPointCompositionVariant.Auto, topCm, bottomMarginCm, horizontalMarginCm);
+        }
+
+        /// <summary>
+        ///     Resolves a named composition preset and variant into reusable regions for a raw designer slide.
+        /// </summary>
+        public PowerPointCompositionLayout UsePreset(PowerPointCompositionPreset preset,
+            PowerPointCompositionVariant variant, double topCm = 3.65, double bottomMarginCm = 1.65,
+            double horizontalMarginCm = 1.5) {
             PowerPointCompositionPreset resolvedPreset = ResolveCompositionPreset(preset);
+            PowerPointCompositionVariant resolvedVariant = ResolveCompositionVariant(resolvedPreset, variant);
             return PowerPointCompositionLayout.Create(resolvedPreset,
+                resolvedVariant,
                 ContentArea(topCm, bottomMarginCm, horizontalMarginCm), _options.DesignIntent.Density);
         }
 
@@ -291,6 +302,33 @@ namespace OfficeIMO.PowerPoint {
             return _options.DesignIntent.Mood == PowerPointDesignMood.Energetic
                 ? PowerPointCompositionPreset.MetricStory
                 : PowerPointCompositionPreset.BalancedColumns;
+        }
+
+        private PowerPointCompositionVariant ResolveCompositionVariant(PowerPointCompositionPreset preset,
+            PowerPointCompositionVariant variant) {
+            if (variant != PowerPointCompositionVariant.Auto) {
+                return variant;
+            }
+
+            if (_options.DesignIntent.VisualStyle == PowerPointVisualStyle.Minimal) {
+                return PowerPointCompositionVariant.Standard;
+            }
+            if (_options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.VisualFirst) {
+                return PowerPointCompositionVariant.VisualLead;
+            }
+            if (_options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.Compact ||
+                preset == PowerPointCompositionPreset.DashboardGrid) {
+                return PowerPointCompositionVariant.EvidenceLead;
+            }
+
+            PowerPointCompositionVariant[] choices = {
+                PowerPointCompositionVariant.Standard,
+                PowerPointCompositionVariant.Mirrored,
+                PowerPointCompositionVariant.VisualLead,
+                PowerPointCompositionVariant.EvidenceLead
+            };
+            string seed = _options.DesignIntent.Seed ?? preset.ToString();
+            return choices[StablePick(seed + ":variant", choices.Length)];
         }
 
         private static int StablePick(string value, int choices) {
