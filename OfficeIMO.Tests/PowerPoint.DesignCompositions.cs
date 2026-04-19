@@ -382,6 +382,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDeckComposer_CanStartDirectlyFromPurposeText() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointDeckComposer deck = presentation.UseDesigner("#008C95", "proposal-client",
+                    "technical rollout proposal", alternativeIndex: 1, name: "Proposal Client",
+                    footerLeft: "PROPOSAL");
+                deck.AddSectionSlide("Rollout plan", "Purpose-selected recipe", "cover");
+
+                Assert.Equal("Runbook", deck.Design.Direction.Name);
+                Assert.Equal(PowerPointDesignMood.Minimal, deck.Design.BaseIntent.Mood);
+                Assert.Equal("Technical proposal", deck.Design.Options("cover").Eyebrow);
+                Assert.Equal("PROPOSAL", deck.Design.Options("cover").FooterLeft);
+                Assert.Equal(deck.Design.Theme.Name, presentation.ThemeName);
+                Assert.Null(presentation.Slides[0].GetShape("Designer Direction 1"));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void DesignerDeckComposer_SameContentCanUseDifferentDeckPersonalities() {
             string corporatePath = CreateTempPresentationPath();
             string minimalPath = CreateTempPresentationPath();

@@ -76,6 +76,10 @@ var portfolioDesign = portfolioAlternatives[0]; // Board Story, Field Proof, Qui
 var recipe = PowerPointDesignRecipe.FindBuiltIn("technical rollout proposal")
     ?? PowerPointDesignRecipe.ConsultingPortfolio;
 
+// For the shortest path, start the deck composer directly from brand and purpose text.
+var quickDeck = ppt.UseDesigner("#008C95", "client-demo", "technical rollout proposal",
+    name: "Client Theme", footerLeft: "CLIENT", footerRight: "Service deck");
+
 // Or supply your own creative directions so decks do not all share the same house style.
 var clientDirections = new[] {
     new PowerPointDesignDirection("Board Brief", PowerPointDesignMood.Corporate,

@@ -139,5 +139,39 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDeckDesign design, bool applyTheme = true) {
             return new PowerPointDeckComposer(presentation, design, applyTheme);
         }
+
+        /// <summary>
+        ///     Creates a designer facade directly from a brand accent and scenario recipe.
+        /// </summary>
+        public static PowerPointDeckComposer UseDesigner(this PowerPointPresentation presentation,
+            string accentColor, string seed, PowerPointDesignRecipe recipe, int alternativeIndex = 0,
+            string? name = null, string? eyebrow = null, string? footerLeft = null, string? footerRight = null,
+            bool applyTheme = true) {
+            if (recipe == null) {
+                throw new ArgumentNullException(nameof(recipe));
+            }
+            if (alternativeIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(alternativeIndex),
+                    "Design alternative index cannot be negative.");
+            }
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = recipe.CreateAlternativesFromBrand(accentColor, seed,
+                count: alternativeIndex + 1, name: name, eyebrow: eyebrow, footerLeft: footerLeft,
+                footerRight: footerRight);
+            return new PowerPointDeckComposer(presentation, alternatives[alternativeIndex], applyTheme);
+        }
+
+        /// <summary>
+        ///     Creates a designer facade from a brand accent and plain-language deck purpose.
+        /// </summary>
+        public static PowerPointDeckComposer UseDesigner(this PowerPointPresentation presentation,
+            string accentColor, string seed, string purpose, int alternativeIndex = 0,
+            string? name = null, string? eyebrow = null, string? footerLeft = null, string? footerRight = null,
+            bool applyTheme = true) {
+            PowerPointDesignRecipe recipe = PowerPointDesignRecipe.FindBuiltIn(purpose)
+                ?? PowerPointDesignRecipe.ConsultingPortfolio;
+            return presentation.UseDesigner(accentColor, seed, recipe, alternativeIndex, name, eyebrow,
+                footerLeft, footerRight, applyTheme);
+        }
     }
 }
