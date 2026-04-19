@@ -263,6 +263,11 @@ namespace OfficeIMO.PowerPoint {
             CreativeDirectionPack = pack;
 
             if (pack == PowerPointCreativeDirectionPack.Auto) {
+                Recipe = null;
+                PaletteStyle = null;
+                LayoutStrategy = null;
+                Variety = PowerPointDesignVariety.Balanced;
+                ClearDesignPreferences();
                 return this;
             }
 
@@ -777,7 +782,7 @@ namespace OfficeIMO.PowerPoint {
                     index,
                     PowerPointCreativeDirectionPack.Auto,
                     "Auto",
-                    "Use purpose matching and explicit brief settings without applying a curated pack.",
+                    "Clear curated pack settings and let purpose matching or later explicit brief settings choose the design.",
                     null,
                     null,
                     null,

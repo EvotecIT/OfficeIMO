@@ -915,6 +915,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDesignBrief_AutoCreativeDirectionPackClearsPackOverrides() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-pack-auto", "technical rollout proposal")
+                .WithCreativeDirectionPack(PowerPointCreativeDirectionPack.FieldProof)
+                .WithCreativeDirectionPack(PowerPointCreativeDirectionPack.Auto);
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(1);
+
+            Assert.Equal(PowerPointCreativeDirectionPack.Auto, brief.CreativeDirectionPack);
+            Assert.Null(brief.Recipe);
+            Assert.Null(brief.PaletteStyle);
+            Assert.Null(brief.LayoutStrategy);
+            Assert.Equal(PowerPointDesignVariety.Balanced, brief.Variety);
+            Assert.Empty(brief.PreferredMoods);
+            Assert.Empty(brief.PreferredDensities);
+            Assert.Empty(brief.PreferredVisualStyles);
+            Assert.Equal("Architecture Map", alternatives[0].Direction.Name);
+            Assert.Equal(PowerPointAutoLayoutStrategy.ContentFirst, alternatives[0].BaseIntent.LayoutStrategy);
+            Assert.Equal(PowerPointPaletteStyle.Auto, alternatives[0].Theme.PaletteStyle);
+        }
+
+        [Fact]
         public void DesignerDesignBrief_CreativeDirectionPacksKeepAlternativesDistinct() {
             PowerPointDesignBrief brief = PowerPointDesignBrief
                 .FromBrand("#008C95", "brief-pack-distinct", "technical rollout proposal")
