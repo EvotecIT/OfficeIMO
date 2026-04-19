@@ -188,8 +188,31 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a themed metric strip inside explicit bounds.
         /// </summary>
         public void AddMetricStrip(IEnumerable<PowerPointMetric> metrics, PowerPointLayoutBox bounds) {
+            AddMetricStrip(metrics, bounds, PowerPointMetricStripVariant.SolidBand);
+        }
+
+        /// <summary>
+        ///     Adds a themed metric strip inside explicit bounds using a selected surface variant.
+        /// </summary>
+        public void AddMetricStrip(IEnumerable<PowerPointMetric> metrics, PowerPointLayoutBox bounds,
+            PowerPointMetricStripVariant variant) {
             if (metrics == null) {
                 throw new ArgumentNullException(nameof(metrics));
+            }
+
+            List<PowerPointMetric> metricList = metrics.Where(metric => metric != null).ToList();
+            if (metricList.Count == 0) {
+                return;
+            }
+
+            PowerPointMetricStripVariant resolvedVariant = ResolveMetricStripVariant(variant);
+            if (resolvedVariant == PowerPointMetricStripVariant.SeparatedTiles) {
+                AddMetricTiles(metricList, bounds);
+                return;
+            }
+            if (resolvedVariant == PowerPointMetricStripVariant.Underlined) {
+                AddUnderlinedMetrics(metricList, bounds);
+                return;
             }
 
             PowerPointAutoShape band = _slide.AddRectangleCm(bounds.LeftCm, bounds.TopCm, bounds.WidthCm,
@@ -200,16 +223,30 @@ namespace OfficeIMO.PowerPoint {
             band.OutlineWidthPoints = 0.45;
             band.SetShadow("000000", blurPoints: 3, distancePoints: 0.8, angleDegrees: 90, transparencyPercent: 90);
 
-            PowerPointDesignExtensions.AddMetrics(_slide, _theme, metrics.Where(metric => metric != null).ToList(),
-                bounds.LeftCm, bounds.TopCm, bounds.WidthCm, bounds.HeightCm);
+            PowerPointDesignExtensions.AddMetrics(_slide, _theme, metricList, bounds.LeftCm, bounds.TopCm,
+                bounds.WidthCm, bounds.HeightCm);
         }
 
         /// <summary>
         ///     Adds a polished image or editable placeholder surface inside explicit bounds.
         /// </summary>
         public void AddVisualFrame(PowerPointLayoutBox bounds, string? imagePath = null) {
+            AddVisualFrame(bounds, imagePath, PowerPointVisualFrameVariant.Auto);
+        }
+
+        /// <summary>
+        ///     Adds a polished editable placeholder surface inside explicit bounds using a selected visual variant.
+        /// </summary>
+        public void AddVisualFrame(PowerPointLayoutBox bounds, PowerPointVisualFrameVariant variant) {
+            AddVisualFrame(bounds, null, variant);
+        }
+
+        /// <summary>
+        ///     Adds a polished image or editable placeholder surface inside explicit bounds using a selected visual variant.
+        /// </summary>
+        public void AddVisualFrame(PowerPointLayoutBox bounds, string? imagePath, PowerPointVisualFrameVariant variant) {
             PowerPointDesignExtensions.AddVisualFrame(_slide, _theme, imagePath, bounds.LeftCm, bounds.TopCm,
-                bounds.WidthCm, bounds.HeightCm, _options.DesignIntent);
+                bounds.WidthCm, bounds.HeightCm, variant, _options.DesignIntent);
         }
 
         /// <summary>
@@ -329,6 +366,108 @@ namespace OfficeIMO.PowerPoint {
             };
             string seed = _options.DesignIntent.Seed ?? preset.ToString();
             return choices[StablePick(seed + ":variant", choices.Length)];
+        }
+
+        private PowerPointMetricStripVariant ResolveMetricStripVariant(PowerPointMetricStripVariant variant) {
+            if (variant != PowerPointMetricStripVariant.Auto) {
+                return variant;
+            }
+            if (_options.DesignIntent.VisualStyle == PowerPointVisualStyle.Minimal) {
+                return PowerPointMetricStripVariant.Underlined;
+            }
+            if (_options.DesignIntent.VisualStyle == PowerPointVisualStyle.Soft ||
+                _options.DesignIntent.Mood == PowerPointDesignMood.Editorial ||
+                _options.DesignIntent.LayoutStrategy == PowerPointAutoLayoutStrategy.Compact) {
+                return PowerPointMetricStripVariant.SeparatedTiles;
+            }
+
+            PowerPointMetricStripVariant[] choices = {
+                PowerPointMetricStripVariant.SolidBand,
+                PowerPointMetricStripVariant.SeparatedTiles,
+                PowerPointMetricStripVariant.Underlined
+            };
+            string seed = _options.DesignIntent.Seed ?? "metric-strip";
+            return choices[StablePick(seed + ":metric-surface", choices.Length)];
+        }
+
+        private void AddMetricTiles(IReadOnlyList<PowerPointMetric> metrics, PowerPointLayoutBox bounds) {
+            int count = Math.Min(metrics.Count, 3);
+            PowerPointLayoutBox[] boxes = bounds.SplitColumnsCm(count, 0.34);
+            for (int i = 0; i < count; i++) {
+                PowerPointLayoutBox box = boxes[i];
+                string accent = GetComposerAccent(i);
+                PowerPointAutoShape tile = _slide.AddRectangleCm(box.LeftCm, box.TopCm, box.WidthCm, box.HeightCm,
+                    "Composer Metric Tile " + (i + 1));
+                tile.FillColor = accent;
+                tile.FillTransparency = _dark ? 55 : 8;
+                tile.OutlineColor = accent;
+                tile.OutlineWidthPoints = 0.45;
+                tile.SetShadow("000000", blurPoints: 2.8, distancePoints: 0.7, angleDegrees: 90, transparencyPercent: 90);
+            }
+
+            PowerPointDesignExtensions.AddMetrics(_slide, _theme, metrics, bounds.LeftCm, bounds.TopCm,
+                bounds.WidthCm, bounds.HeightCm);
+        }
+
+        private void AddUnderlinedMetrics(IReadOnlyList<PowerPointMetric> metrics, PowerPointLayoutBox bounds) {
+            int count = Math.Min(metrics.Count, 3);
+            PowerPointLayoutBox[] boxes = bounds.SplitColumnsCm(count, 0.45);
+            for (int i = 0; i < count; i++) {
+                PowerPointLayoutBox box = boxes[i];
+                PowerPointMetric metric = metrics[i];
+                string valueColor = _dark ? _theme.AccentContrastColor : _theme.AccentDarkColor;
+                string labelColor = _dark ? _theme.AccentLightColor : _theme.SecondaryTextColor;
+                int valueFontSize = ResolveComposerMetricFontSize(metric.Value, box.WidthCm, box.HeightCm < 1.4 ? 21 : 25);
+                int labelFontSize = ResolveComposerMetricFontSize(metric.Label, box.WidthCm, 9);
+
+                PowerPointTextBox value = PowerPointDesignExtensions.AddText(_slide, metric.Value,
+                    box.LeftCm, box.TopCm + Math.Max(0.05, box.HeightCm * 0.08), box.WidthCm,
+                    Math.Max(0.46, box.HeightCm * 0.42), valueFontSize, valueColor, _theme.HeadingFontName, bold: true);
+                CenterComposerText(value);
+
+                double underlineWidth = Math.Min(box.WidthCm * 0.46, 1.4);
+                PowerPointAutoShape underline = _slide.AddRectangleCm(
+                    box.LeftCm + (box.WidthCm - underlineWidth) / 2,
+                    box.TopCm + box.HeightCm * 0.54, underlineWidth, 0.05,
+                    "Composer Metric Underline " + (i + 1));
+                underline.FillColor = GetComposerAccent(i);
+                underline.OutlineColor = underline.FillColor;
+
+                PowerPointTextBox label = PowerPointDesignExtensions.AddText(_slide, metric.Label,
+                    box.LeftCm + 0.08, box.TopCm + box.HeightCm * 0.62, box.WidthCm - 0.16,
+                    Math.Max(0.35, box.HeightCm * 0.28), labelFontSize, labelColor, _theme.BodyFontName, bold: true);
+                CenterComposerText(label);
+            }
+        }
+
+        private string GetComposerAccent(int index) {
+            switch (index % 4) {
+                case 1:
+                    return _theme.Accent3Color;
+                case 2:
+                    return _theme.Accent2Color;
+                case 3:
+                    return _theme.WarningColor;
+                default:
+                    return _theme.AccentColor;
+            }
+        }
+
+        private static int ResolveComposerMetricFontSize(string text, double widthCm, int preferredFontSize) {
+            int length = string.IsNullOrWhiteSpace(text) ? 0 : text.Trim().Length;
+            if (length <= 4) {
+                return preferredFontSize;
+            }
+
+            int estimate = (int)Math.Floor(widthCm * 7.0 / Math.Max(1, length));
+            return Math.Max(8, Math.Min(preferredFontSize, estimate));
+        }
+
+        private static void CenterComposerText(PowerPointTextBox textBox) {
+            foreach (PowerPointParagraph paragraph in textBox.Paragraphs) {
+                paragraph.Alignment = A.TextAlignmentTypeValues.Center;
+            }
+            textBox.TextVerticalAlignment = A.TextAnchoringTypeValues.Center;
         }
 
         private static int StablePick(string value, int choices) {

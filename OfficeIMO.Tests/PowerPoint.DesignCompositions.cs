@@ -337,6 +337,61 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerSlideComposer_SurfaceVariantsCreateDistinctEditablePrimitives() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+                    PowerPointMetric[] metrics = {
+                        new("12", "teams"),
+                        new("8", "locations"),
+                        new("4", "workstreams")
+                    };
+
+                    PowerPointSlide metricSlide = presentation.ComposeDesignerSlide(composer => {
+                        PowerPointLayoutBox[] rows = composer.ContentRows(3, 0.35, topCm: 3.3, bottomMarginCm: 1.6);
+                        composer.AddMetricStrip(metrics, rows[0], PowerPointMetricStripVariant.SolidBand);
+                        composer.AddMetricStrip(metrics, rows[1], PowerPointMetricStripVariant.SeparatedTiles);
+                        composer.AddMetricStrip(metrics, rows[2], PowerPointMetricStripVariant.Underlined);
+                    }, options: new PowerPointDesignerSlideOptions {
+                        DesignIntent = new PowerPointDesignIntent { Seed = "surface-metrics" }
+                    });
+
+                    PowerPointSlide visualSlide = presentation.ComposeDesignerSlide(composer => {
+                        PowerPointLayoutBox[] columns = composer.ContentColumns(3, 0.35, topCm: 3.8, bottomMarginCm: 2.0);
+                        composer.AddVisualFrame(columns[0], PowerPointVisualFrameVariant.Dashboard);
+                        composer.AddVisualFrame(columns[1], PowerPointVisualFrameVariant.Collage);
+                        composer.AddVisualFrame(columns[2], PowerPointVisualFrameVariant.Diagram);
+                    }, options: new PowerPointDesignerSlideOptions {
+                        DesignIntent = new PowerPointDesignIntent { Seed = "surface-visuals" }
+                    });
+
+                    Assert.Contains(metricSlide.Shapes, shape => shape.Name == "Composer Metric Band");
+                    Assert.Contains(metricSlide.Shapes, shape => shape.Name == "Composer Metric Tile 1");
+                    Assert.Contains(metricSlide.Shapes, shape => shape.Name == "Composer Metric Underline 1");
+                    Assert.Contains(visualSlide.Shapes, shape => shape.Name == "Case Study Visual Content Panel");
+                    Assert.Contains(visualSlide.Shapes, shape => shape.Name == "Visual Collage Tile 1");
+                    Assert.Contains(visualSlide.Shapes, shape => shape.Name == "Visual Diagram Node 1");
+
+                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+                    presentation.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    Assert.Equal(2, presentation.Slides.Count);
+                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void DesignerTheme_UsesPresentationGradeFontsByDefault() {
             PowerPointDesignTheme theme = PowerPointDesignTheme.ModernBlue;
 

@@ -50,12 +50,12 @@ namespace OfficeIMO.Examples.PowerPoint {
                         Variant = PowerPointCardGridLayoutVariant.SoftTiles
                     });
 
-                composer.AddVisualFrame(layout.Visual);
+                composer.AddVisualFrame(layout.Visual, PowerPointVisualFrameVariant.Collage);
                 composer.AddMetricStrip(new[] {
                     new PowerPointMetric(selected.ContentFitScore.ToString(), "fit score"),
                     new PowerPointMetric(selected.Slides.Count.ToString(), "planned slides"),
                     new PowerPointMetric(selected.Diagnostics.Count.ToString(), "diagnostics")
-                }, layout.Metrics);
+                }, layout.Metrics, PowerPointMetricStripVariant.SeparatedTiles);
             }, "advisor-summary", options => options.FooterRight = "Fit score " + selected.ContentFitScore);
 
             presentation.Save();

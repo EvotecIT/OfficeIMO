@@ -140,6 +140,34 @@ namespace OfficeIMO.PowerPoint {
     }
 
     /// <summary>
+    ///     Metric strip surface variants for raw designer compositions.
+    /// </summary>
+    public enum PowerPointMetricStripVariant {
+        /// <summary>Choose a deterministic surface from the active design intent.</summary>
+        Auto,
+        /// <summary>Single accent band behind the metrics.</summary>
+        SolidBand,
+        /// <summary>Separate metric tiles with individual accent surfaces.</summary>
+        SeparatedTiles,
+        /// <summary>Quiet text metrics with accent underlines and no filled panel.</summary>
+        Underlined
+    }
+
+    /// <summary>
+    ///     Visual frame placeholder variants for raw designer compositions.
+    /// </summary>
+    public enum PowerPointVisualFrameVariant {
+        /// <summary>Choose a deterministic visual placeholder from the active design intent.</summary>
+        Auto,
+        /// <summary>Dashboard-like placeholder with panels and content lines.</summary>
+        Dashboard,
+        /// <summary>Layered collage placeholder with overlapping proof tiles.</summary>
+        Collage,
+        /// <summary>Diagram placeholder with editable nodes and connectors.</summary>
+        Diagram
+    }
+
+    /// <summary>
     ///     Logo/certification wall layout variants. Auto uses the design intent seed to pick a stable variant.
     /// </summary>
     public enum PowerPointLogoWallLayoutVariant {
