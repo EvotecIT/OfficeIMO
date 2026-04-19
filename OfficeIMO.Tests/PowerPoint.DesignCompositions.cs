@@ -697,11 +697,13 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Boardroom", packs[0].ToString());
 
             Assert.Equal("Field Proof", fieldProof.Name);
+            Assert.Equal(packs[1].Index, fieldProof.Index);
             Assert.Equal("Consulting Portfolio", fieldProof.RecipeName);
             Assert.Equal(PowerPointDesignVariety.Exploratory, fieldProof.Variety);
             Assert.Contains(PowerPointVisualStyle.Geometric, fieldProof.PreferredVisualStyles);
 
             Assert.Equal(PowerPointCreativeDirectionPack.Auto, auto.Pack);
+            Assert.Equal(-1, auto.Index);
             Assert.Null(auto.RecipeName);
             Assert.Null(auto.PaletteStyle);
             Assert.Empty(auto.PreferredMoods);

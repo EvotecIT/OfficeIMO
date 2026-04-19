@@ -12,6 +12,13 @@ namespace OfficeIMO.PowerPoint {
         private readonly List<PowerPointDesignMood> _preferredMoods = new();
         private readonly List<PowerPointSlideDensity> _preferredDensities = new();
         private readonly List<PowerPointVisualStyle> _preferredVisualStyles = new();
+        private static readonly PowerPointCreativeDirectionPack[] BuiltInCreativeDirectionPacks = {
+            PowerPointCreativeDirectionPack.Boardroom,
+            PowerPointCreativeDirectionPack.FieldProof,
+            PowerPointCreativeDirectionPack.EditorialCaseStudy,
+            PowerPointCreativeDirectionPack.TechnicalMap,
+            PowerPointCreativeDirectionPack.QuietAppendix
+        };
 
         /// <summary>
         ///     Creates a brief from a brand accent and stable seed.
@@ -29,18 +36,10 @@ namespace OfficeIMO.PowerPoint {
         ///     Describes the built-in creative direction packs that can be applied to a design brief.
         /// </summary>
         public static IReadOnlyList<PowerPointCreativeDirectionPackSummary> DescribeCreativeDirectionPacks() {
-            PowerPointCreativeDirectionPack[] packs = {
-                PowerPointCreativeDirectionPack.Boardroom,
-                PowerPointCreativeDirectionPack.FieldProof,
-                PowerPointCreativeDirectionPack.EditorialCaseStudy,
-                PowerPointCreativeDirectionPack.TechnicalMap,
-                PowerPointCreativeDirectionPack.QuietAppendix
-            };
-
             PowerPointCreativeDirectionPackSummary[] summaries =
-                new PowerPointCreativeDirectionPackSummary[packs.Length];
-            for (int i = 0; i < packs.Length; i++) {
-                summaries[i] = DescribeCreativeDirectionPack(packs[i], i);
+                new PowerPointCreativeDirectionPackSummary[BuiltInCreativeDirectionPacks.Length];
+            for (int i = 0; i < BuiltInCreativeDirectionPacks.Length; i++) {
+                summaries[i] = DescribeCreativeDirectionPack(BuiltInCreativeDirectionPacks[i], i);
             }
 
             return summaries;
@@ -51,7 +50,11 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public static PowerPointCreativeDirectionPackSummary DescribeCreativeDirectionPack(
             PowerPointCreativeDirectionPack pack) {
-            return DescribeCreativeDirectionPack(pack, pack == PowerPointCreativeDirectionPack.Auto ? -1 : 0);
+            int index = pack == PowerPointCreativeDirectionPack.Auto
+                ? -1
+                : Array.IndexOf(BuiltInCreativeDirectionPacks, pack);
+
+            return DescribeCreativeDirectionPack(pack, index);
         }
 
         /// <summary>
