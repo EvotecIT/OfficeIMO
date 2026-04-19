@@ -87,6 +87,31 @@ namespace OfficeIMO.PowerPoint {
         public string? BodyFontName { get; private set; }
 
         /// <summary>
+        ///     Optional secondary accent override applied after recipe variations.
+        /// </summary>
+        public string? SecondaryAccentColor { get; private set; }
+
+        /// <summary>
+        ///     Optional tertiary accent override applied after recipe variations.
+        /// </summary>
+        public string? TertiaryAccentColor { get; private set; }
+
+        /// <summary>
+        ///     Optional warm accent override applied after recipe variations.
+        /// </summary>
+        public string? WarmAccentColor { get; private set; }
+
+        /// <summary>
+        ///     Optional surface color override applied after recipe variations.
+        /// </summary>
+        public string? SurfaceColor { get; private set; }
+
+        /// <summary>
+        ///     Optional panel border color override applied after recipe variations.
+        /// </summary>
+        public string? PanelBorderColor { get; private set; }
+
+        /// <summary>
         ///     Caller-supplied creative directions. When present, these take precedence over recipes.
         /// </summary>
         public IReadOnlyList<PowerPointDesignDirection> Directions => _directions;
@@ -133,6 +158,20 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Applies optional supporting palette overrides while preserving the primary brand accent.
+        /// </summary>
+        public PowerPointDesignBrief WithPalette(string? secondaryAccentColor = null,
+            string? tertiaryAccentColor = null, string? warmAccentColor = null, string? surfaceColor = null,
+            string? panelBorderColor = null) {
+            SecondaryAccentColor = NormalizeOptionalColor(secondaryAccentColor, nameof(secondaryAccentColor));
+            TertiaryAccentColor = NormalizeOptionalColor(tertiaryAccentColor, nameof(tertiaryAccentColor));
+            WarmAccentColor = NormalizeOptionalColor(warmAccentColor, nameof(warmAccentColor));
+            SurfaceColor = NormalizeOptionalColor(surfaceColor, nameof(surfaceColor));
+            PanelBorderColor = NormalizeOptionalColor(panelBorderColor, nameof(panelBorderColor));
+            return this;
+        }
+
+        /// <summary>
         ///     Replaces recipe-based alternatives with caller-supplied creative directions.
         /// </summary>
         public PowerPointDesignBrief WithDirections(IEnumerable<PowerPointDesignDirection> directions) {
@@ -173,15 +212,15 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (_directions.Count > 0) {
-                return CreateDirectionAlternatives(count);
+                return ApplyPaletteOverrides(CreateDirectionAlternatives(count));
             }
 
             PowerPointDesignRecipe recipe = Recipe
                 ?? (!string.IsNullOrWhiteSpace(Purpose) ? PowerPointDesignRecipe.FindBuiltIn(Purpose!) : null)
                 ?? PowerPointDesignRecipe.ConsultingPortfolio;
 
-            return recipe.CreateAlternativesFromBrand(AccentColor, Seed, count, Name, Eyebrow, FooterLeft,
-                FooterRight, HeadingFontName, BodyFontName);
+            return ApplyPaletteOverrides(recipe.CreateAlternativesFromBrand(AccentColor, Seed, count, Name,
+                Eyebrow, FooterLeft, FooterRight, HeadingFontName, BodyFontName));
         }
 
         /// <summary>
@@ -219,6 +258,60 @@ namespace OfficeIMO.PowerPoint {
 
             return PowerPointDeckDesign.CreateAlternativesFromBrand(AccentColor, Seed, selectedDirections, Name,
                 Eyebrow, FooterLeft, FooterRight, HeadingFontName, BodyFontName);
+        }
+
+        private IReadOnlyList<PowerPointDeckDesign> ApplyPaletteOverrides(
+            IReadOnlyList<PowerPointDeckDesign> alternatives) {
+            if (SecondaryAccentColor == null && TertiaryAccentColor == null && WarmAccentColor == null &&
+                SurfaceColor == null && PanelBorderColor == null) {
+                return alternatives;
+            }
+
+            foreach (PowerPointDeckDesign design in alternatives) {
+                if (SecondaryAccentColor != null) {
+                    design.Theme.Accent2Color = SecondaryAccentColor;
+                }
+                if (TertiaryAccentColor != null) {
+                    design.Theme.Accent3Color = TertiaryAccentColor;
+                }
+                if (WarmAccentColor != null) {
+                    design.Theme.WarningColor = WarmAccentColor;
+                }
+                if (SurfaceColor != null) {
+                    design.Theme.SurfaceColor = SurfaceColor;
+                }
+                if (PanelBorderColor != null) {
+                    design.Theme.PanelBorderColor = PanelBorderColor;
+                }
+
+                design.Theme.Validate();
+            }
+
+            return alternatives;
+        }
+
+        private static string? NormalizeOptionalColor(string? value, string name) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                return null;
+            }
+
+            string color = value!.Trim();
+            if (color.StartsWith("#", StringComparison.Ordinal)) {
+                color = color.Substring(1);
+            }
+            if (color.Length != 6) {
+                throw new ArgumentException("Color must be a six-character RGB hex value.", name);
+            }
+
+            for (int i = 0; i < color.Length; i++) {
+                char c = color[i];
+                bool valid = c is >= '0' and <= '9' or >= 'A' and <= 'F' or >= 'a' and <= 'f';
+                if (!valid) {
+                    throw new ArgumentException("Color must be a six-character RGB hex value.", name);
+                }
+            }
+
+            return color.ToUpperInvariant();
         }
     }
 }

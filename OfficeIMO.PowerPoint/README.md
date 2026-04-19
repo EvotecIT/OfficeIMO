@@ -83,7 +83,8 @@ var quickDeck = ppt.UseDesigner("#008C95", "client-demo", "technical rollout pro
 // Use a design brief when brand, purpose, identity, and custom directions should travel together.
 var brief = PowerPointDesignBrief
     .FromBrand("#008C95", "client-demo", "technical rollout proposal")
-    .WithIdentity("Client Theme", footerLeft: "CLIENT", footerRight: "Service deck");
+    .WithIdentity("Client Theme", footerLeft: "CLIENT", footerRight: "Service deck")
+    .WithPalette(secondaryAccentColor: "#6D5BD0", warmAccentColor: "#FFB000");
 var choices = brief.DescribeAlternatives(3); // direction, mood, fonts, and palette preview
 var briefDeck = ppt.UseDesigner(brief, alternativeIndex: 1);
 

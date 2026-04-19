@@ -362,6 +362,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDesignBrief_CanOverrideSupportingPaletteWithoutCustomTheme() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-palette", "technical rollout proposal")
+                .WithPalette(
+                    secondaryAccentColor: "#6D5BD0",
+                    tertiaryAccentColor: "24A148",
+                    warmAccentColor: "#FFB000",
+                    surfaceColor: "F2F6F8",
+                    panelBorderColor: "#B8C7D3");
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(2);
+            IReadOnlyList<PowerPointDeckDesignSummary> summaries = brief.DescribeAlternatives(1);
+
+            Assert.Equal("008C95", alternatives[0].Theme.AccentColor);
+            Assert.Equal("6D5BD0", alternatives[0].Theme.Accent2Color);
+            Assert.Equal("24A148", alternatives[0].Theme.Accent3Color);
+            Assert.Equal("FFB000", alternatives[0].Theme.WarningColor);
+            Assert.Equal("F2F6F8", alternatives[0].Theme.SurfaceColor);
+            Assert.Equal("B8C7D3", alternatives[0].Theme.PanelBorderColor);
+            Assert.Equal("6D5BD0", alternatives[1].Theme.Accent2Color);
+            Assert.Equal("6D5BD0", summaries[0].Accent2Color);
+            Assert.Equal("FFB000", summaries[0].WarningColor);
+        }
+
+        [Fact]
         public void DesignerDeckComposer_CanStartFromBriefWithCustomDirections() {
             string filePath = CreateTempPresentationPath();
 
