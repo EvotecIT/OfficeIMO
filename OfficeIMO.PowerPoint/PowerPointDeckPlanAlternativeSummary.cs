@@ -9,12 +9,16 @@ namespace OfficeIMO.PowerPoint {
         internal PowerPointDeckPlanAlternativeSummary(int index, PowerPointDesignVariety variety,
             PowerPointDeckDesignSummary design,
             IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> slides,
-            IReadOnlyList<PowerPointDeckPlanDiagnostic> diagnostics) {
+            IReadOnlyList<PowerPointDeckPlanDiagnostic> diagnostics,
+            int contentFitScore,
+            IReadOnlyList<string> contentFitReasons) {
             Index = index;
             Variety = variety;
             Design = design;
             Slides = slides;
             Diagnostics = diagnostics;
+            ContentFitScore = contentFitScore;
+            ContentFitReasons = contentFitReasons;
         }
 
         /// <summary>
@@ -43,6 +47,21 @@ namespace OfficeIMO.PowerPoint {
         public IReadOnlyList<PowerPointDeckPlanDiagnostic> Diagnostics { get; }
 
         /// <summary>
+        ///     Lightweight score describing how well this design alternative fits the planned slide content.
+        /// </summary>
+        public int ContentFitScore { get; }
+
+        /// <summary>
+        ///     Short explanations for why this design alternative fits the planned slide content.
+        /// </summary>
+        public IReadOnlyList<string> ContentFitReasons { get; }
+
+        /// <summary>
+        ///     Whether this alternative has at least one positive content-fit signal.
+        /// </summary>
+        public bool MatchesContent => ContentFitScore > 0;
+
+        /// <summary>
         ///     Whether the plan has any diagnostics that would prevent semantic rendering.
         /// </summary>
         public bool HasErrors => Diagnostics.Any(diagnostic =>
@@ -56,7 +75,8 @@ namespace OfficeIMO.PowerPoint {
 
         /// <inheritdoc />
         public override string ToString() {
-            return Index + ": " + Design.DirectionName + " (" + Variety + ") - " + Slides.Count + " slides";
+            return Index + ": " + Design.DirectionName + " (" + Variety + ") - " + Slides.Count +
+                   " slides, fit " + ContentFitScore;
         }
     }
 }

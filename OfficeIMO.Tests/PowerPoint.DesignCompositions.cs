@@ -1002,8 +1002,17 @@ namespace OfficeIMO.Tests {
                 diagnostic => diagnostic.Code == "Process.DenseSteps");
             Assert.True(alternatives[0].HasWarnings);
             Assert.False(alternatives[0].HasErrors);
+            Assert.True(alternatives[0].MatchesContent);
+            Assert.Equal(2, alternatives[0].ContentFitScore);
+            Assert.Contains("Geometric visual style supports process, timeline, and coverage slides.",
+                alternatives[0].ContentFitReasons);
+            Assert.True(alternatives[1].ContentFitScore > alternatives[0].ContentFitScore);
+            Assert.Contains("Compact density fits denser planned slides without manual placement.",
+                alternatives[1].ContentFitReasons);
+            Assert.True(alternatives[2].ContentFitScore > alternatives[1].ContentFitScore);
             Assert.Contains("Architecture Map", alternatives[0].ToString());
             Assert.Contains("Balanced", alternatives[0].ToString());
+            Assert.Contains("fit 2", alternatives[0].ToString());
         }
 
         [Fact]

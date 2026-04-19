@@ -348,12 +348,17 @@ namespace OfficeIMO.PowerPoint {
 
             for (int i = 0; i < alternatives.Count; i++) {
                 PowerPointDeckDesign design = alternatives[i];
+                PowerPointDeckDesignSummary designSummary = design.Describe(i);
+                IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> slides = plan.DescribeSlides(design);
+                PowerPointDeckPlanContentFit fit = RecommendDeckPlanAlternative(designSummary, slides, diagnostics);
                 summaries[i] = new PowerPointDeckPlanAlternativeSummary(
                     i,
                     Variety,
-                    design.Describe(i),
-                    plan.DescribeSlides(design),
-                    diagnostics);
+                    designSummary,
+                    slides,
+                    diagnostics,
+                    fit.Score,
+                    fit.Reasons);
             }
 
             return summaries;
@@ -483,6 +488,63 @@ namespace OfficeIMO.PowerPoint {
             return new PowerPointDeckDesignRecommendation(design, score, reasons.AsReadOnly());
         }
 
+        private static PowerPointDeckPlanContentFit RecommendDeckPlanAlternative(
+            PowerPointDeckDesignSummary design,
+            IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> slides,
+            IReadOnlyList<PowerPointDeckPlanDiagnostic> diagnostics) {
+            List<string> reasons = new();
+            int score = 0;
+
+            bool hasCaseStudy = HasSlideKind(slides, PowerPointDeckPlanSlideKind.CaseStudy);
+            bool hasProcess = HasSlideKind(slides, PowerPointDeckPlanSlideKind.Process);
+            bool hasCardGrid = HasSlideKind(slides, PowerPointDeckPlanSlideKind.CardGrid);
+            bool hasLogoWall = HasSlideKind(slides, PowerPointDeckPlanSlideKind.LogoWall);
+            bool hasCoverage = HasSlideKind(slides, PowerPointDeckPlanSlideKind.Coverage);
+            bool hasCapability = HasSlideKind(slides, PowerPointDeckPlanSlideKind.Capability);
+            bool hasCustom = HasSlideKind(slides, PowerPointDeckPlanSlideKind.Custom);
+            bool hasDenseSlide = HasDenseSlide(slides);
+            bool hasWarning = HasDiagnosticSeverity(diagnostics, PowerPointDeckPlanDiagnosticSeverity.Warning);
+
+            if ((hasProcess || hasCoverage) && design.VisualStyle == PowerPointVisualStyle.Geometric) {
+                score += 2;
+                reasons.Add("Geometric visual style supports process, timeline, and coverage slides.");
+            }
+
+            if ((hasCaseStudy || hasCapability) && design.Density != PowerPointSlideDensity.Compact) {
+                score += 2;
+                reasons.Add("Balanced or relaxed density gives narrative sections more breathing room.");
+            }
+
+            if ((hasCardGrid || hasLogoWall) && design.VisualStyle != PowerPointVisualStyle.Minimal) {
+                score += 1;
+                reasons.Add("Decorative visual styles give reusable cards and proof walls clearer rhythm.");
+            }
+
+            if (hasDenseSlide && design.Density == PowerPointSlideDensity.Compact) {
+                score += 2;
+                reasons.Add("Compact density fits denser planned slides without manual placement.");
+            } else if (!hasDenseSlide && slides.Count > 0 && design.Density == PowerPointSlideDensity.Relaxed) {
+                score += 1;
+                reasons.Add("Relaxed density suits lighter slide plans with more whitespace.");
+            }
+
+            if (hasWarning && design.Density == PowerPointSlideDensity.Compact) {
+                score += 1;
+                reasons.Add("Compact density can help warning-level dense content stay inspectable before rendering.");
+            }
+
+            if (hasCustom && !design.ShowsDirectionMotif) {
+                score += 1;
+                reasons.Add("A quieter motif leaves raw-composition slides more neutral.");
+            }
+
+            if (reasons.Count == 0) {
+                reasons.Add("Uses the selected design direction without a strong content-fit signal.");
+            }
+
+            return new PowerPointDeckPlanContentFit(score, reasons.AsReadOnly());
+        }
+
         private static bool ContainsDirection(IEnumerable<PowerPointDesignDirection> directions, string name) {
             foreach (PowerPointDesignDirection direction in directions) {
                 if (string.Equals(direction.Name, name, StringComparison.OrdinalIgnoreCase)) {
@@ -547,6 +609,38 @@ namespace OfficeIMO.PowerPoint {
             return color.ToUpperInvariant();
         }
 
+        private static bool HasSlideKind(IEnumerable<PowerPointDeckPlanSlideRenderSummary> slides,
+            PowerPointDeckPlanSlideKind kind) {
+            foreach (PowerPointDeckPlanSlideRenderSummary slide in slides) {
+                if (slide.Kind == kind) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool HasDenseSlide(IEnumerable<PowerPointDeckPlanSlideRenderSummary> slides) {
+            foreach (PowerPointDeckPlanSlideRenderSummary slide in slides) {
+                if (slide.ContentItemCount > 5) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool HasDiagnosticSeverity(IEnumerable<PowerPointDeckPlanDiagnostic> diagnostics,
+            PowerPointDeckPlanDiagnosticSeverity severity) {
+            foreach (PowerPointDeckPlanDiagnostic diagnostic in diagnostics) {
+                if (diagnostic.Severity == severity) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private static void ReplacePreferences<T>(List<T> target, IEnumerable<T> values, string name) {
             if (values == null) {
                 throw new ArgumentNullException(name);
@@ -558,6 +652,17 @@ namespace OfficeIMO.PowerPoint {
                     target.Add(value);
                 }
             }
+        }
+
+        private sealed class PowerPointDeckPlanContentFit {
+            internal PowerPointDeckPlanContentFit(int score, IReadOnlyList<string> reasons) {
+                Score = score;
+                Reasons = reasons;
+            }
+
+            internal int Score { get; }
+
+            internal IReadOnlyList<string> Reasons { get; }
         }
     }
 }
