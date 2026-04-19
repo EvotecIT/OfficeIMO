@@ -228,8 +228,9 @@ The helpers are intentionally not fixed templates. Start with `PowerPointDeckDes
 deck personality once, including brand color, stable seed, mood, fonts, and chrome. Use a named
 `PowerPointDesignDirection` such as `Structured`, `Editorial`, `Quiet`, `Signal`, or `Executive` when you want a
 recognizable creative direction without hand-tuning every slide. Use `PowerPointDesignRecipe` values such as
-`ConsultingPortfolio`, `ExecutiveBrief`, or `TechnicalProposal` when you want a scenario-specific family of alternatives
-instead of one house style repeated across every client deck. The deck design configures per-slide
+`ConsultingPortfolio`, `ExecutiveBrief`, `TechnicalProposal`, or `TransformationRoadmap` when you want a
+scenario-specific family of alternatives instead of one house style repeated across every client deck. The deck design
+configures per-slide
 `PowerPointDesignIntent` values so repeated content can receive stable but different accents, motifs, and automatic
 layout choices. Auto variants use both the design intent and the content shape: dense card grids stay compact, softer
 moods get softer cards, long processes stay readable, proof slides emphasize supplied certificate details, many

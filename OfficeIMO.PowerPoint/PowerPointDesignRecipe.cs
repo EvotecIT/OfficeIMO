@@ -67,12 +67,33 @@ namespace OfficeIMO.PowerPoint {
             new[] { "technical", "proposal", "architecture", "rollout", "operations" });
 
         /// <summary>
+        ///     Transformation roadmap recipe for change programs, milestones, and phased plans.
+        /// </summary>
+        public static PowerPointDesignRecipe TransformationRoadmap { get; } = new(
+            "Transformation Roadmap",
+            new[] {
+                new PowerPointDesignDirection("North Star", PowerPointDesignMood.Editorial,
+                    PowerPointSlideDensity.Relaxed, PowerPointVisualStyle.Soft, "Georgia", "Aptos",
+                    showDirectionMotif: false),
+                new PowerPointDesignDirection("Momentum Map", PowerPointDesignMood.Energetic,
+                    PowerPointSlideDensity.Balanced, PowerPointVisualStyle.Geometric, "Poppins", "Lato",
+                    showDirectionMotif: true),
+                new PowerPointDesignDirection("Operating Plan", PowerPointDesignMood.Corporate,
+                    PowerPointSlideDensity.Compact, PowerPointVisualStyle.Minimal, "Segoe UI Semibold", "Segoe UI",
+                    showDirectionMotif: false)
+            },
+            "Roadmap",
+            "Change and transformation decks that need phases, decisions, and implementation rhythm.",
+            new[] { "roadmap", "transformation", "change", "program", "journey", "milestone" });
+
+        /// <summary>
         ///     Built-in recipes suitable for generating varied deck alternatives.
         /// </summary>
         public static IReadOnlyList<PowerPointDesignRecipe> BuiltIn { get; } = new[] {
             ConsultingPortfolio,
             ExecutiveBrief,
-            TechnicalProposal
+            TechnicalProposal,
+            TransformationRoadmap
         };
 
         /// <summary>

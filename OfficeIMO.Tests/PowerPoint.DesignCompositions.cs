@@ -323,6 +323,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerRecipe_CanMatchTransformationRoadmaps() {
+            PowerPointDesignRecipe? recipe = PowerPointDesignRecipe.FindBuiltIn("transformation roadmap");
+
+            Assert.Same(PowerPointDesignRecipe.TransformationRoadmap, recipe);
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = recipe!.CreateAlternativesFromBrand("#008C95",
+                "roadmap-client", count: 3, name: "Roadmap Client", footerLeft: "ROADMAP");
+
+            Assert.Equal(3, alternatives.Count);
+            Assert.Equal("North Star", alternatives[0].Direction.Name);
+            Assert.Equal(PowerPointDesignMood.Editorial, alternatives[0].BaseIntent.Mood);
+            Assert.Equal("Georgia", alternatives[0].Theme.HeadingFontName);
+            Assert.False(alternatives[0].ShowDirectionMotif);
+
+            Assert.Equal("Momentum Map", alternatives[1].Direction.Name);
+            Assert.Equal(PowerPointVisualStyle.Geometric, alternatives[1].BaseIntent.VisualStyle);
+            Assert.True(alternatives[1].ShowDirectionMotif);
+
+            Assert.Equal("Operating Plan", alternatives[2].Direction.Name);
+            Assert.Equal(PowerPointSlideDensity.Compact, alternatives[2].BaseIntent.Density);
+            Assert.Equal("Roadmap", alternatives[2].Options("cover").Eyebrow);
+            Assert.Equal("ROADMAP", alternatives[2].Options("cover").FooterLeft);
+            Assert.Equal("roadmap-client/transformation-roadmap-operating-plan-3/cover",
+                alternatives[2].Options("cover").DesignIntent.Seed);
+        }
+
+        [Fact]
         public void DesignerDesignBrief_CreatesAlternativesFromPurposeAndIdentity() {
             PowerPointDesignBrief brief = PowerPointDesignBrief
                 .FromBrand("#008C95", "brief-client", "technical rollout proposal")
