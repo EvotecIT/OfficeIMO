@@ -325,11 +325,20 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> DescribeDeckPlan(
             PowerPointDeckPlan plan, int alternativeIndex = 0) {
+            return DescribeDeckPlan(plan, alternativeIndex, slideIndexOffset: 0);
+        }
+
+        /// <summary>
+        ///     Creates lightweight descriptions of how a deck plan would resolve under one design alternative,
+        ///     using an existing composer slide count for fallback seed generation.
+        /// </summary>
+        public IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> DescribeDeckPlan(
+            PowerPointDeckPlan plan, int alternativeIndex, int slideIndexOffset) {
             if (plan == null) {
                 throw new ArgumentNullException(nameof(plan));
             }
 
-            return plan.DescribeSlides(CreateDesign(alternativeIndex));
+            return plan.DescribeSlides(CreateDesign(alternativeIndex), slideIndexOffset);
         }
 
         /// <summary>
@@ -337,6 +346,15 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointDeckPlanAlternativeSummary> DescribeDeckPlanAlternatives(
             PowerPointDeckPlan plan, int count = 0) {
+            return DescribeDeckPlanAlternatives(plan, count, slideIndexOffset: 0);
+        }
+
+        /// <summary>
+        ///     Creates lightweight descriptions of how a deck plan would resolve across several design alternatives,
+        ///     using an existing composer slide count for fallback seed generation.
+        /// </summary>
+        public IReadOnlyList<PowerPointDeckPlanAlternativeSummary> DescribeDeckPlanAlternatives(
+            PowerPointDeckPlan plan, int count, int slideIndexOffset) {
             if (plan == null) {
                 throw new ArgumentNullException(nameof(plan));
             }
@@ -349,7 +367,8 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < alternatives.Count; i++) {
                 PowerPointDeckDesign design = alternatives[i];
                 PowerPointDeckDesignSummary designSummary = design.Describe(i);
-                IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> slides = plan.DescribeSlides(design);
+                IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> slides =
+                    plan.DescribeSlides(design, slideIndexOffset);
                 PowerPointDeckPlanContentFit fit = RecommendDeckPlanAlternative(designSummary, slides, diagnostics);
                 summaries[i] = new PowerPointDeckPlanAlternativeSummary(
                     i,
@@ -404,8 +423,13 @@ namespace OfficeIMO.PowerPoint {
             }
 
             List<PowerPointDesignDirection> expanded = new(ranked);
+            HashSet<string> directionNames = new(StringComparer.OrdinalIgnoreCase);
+            foreach (PowerPointDesignDirection direction in expanded) {
+                directionNames.Add(direction.Name);
+            }
+
             foreach (PowerPointDesignDirection direction in PowerPointDesignDirection.BuiltIn) {
-                if (!ContainsDirection(expanded, direction.Name)) {
+                if (directionNames.Add(direction.Name)) {
                     expanded.Add(direction);
                 }
             }
@@ -543,16 +567,6 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return new PowerPointDeckPlanContentFit(score, reasons.AsReadOnly());
-        }
-
-        private static bool ContainsDirection(IEnumerable<PowerPointDesignDirection> directions, string name) {
-            foreach (PowerPointDesignDirection direction in directions) {
-                if (string.Equals(direction.Name, name, StringComparison.OrdinalIgnoreCase)) {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         private IReadOnlyList<PowerPointDeckDesign> ApplyPaletteOverrides(

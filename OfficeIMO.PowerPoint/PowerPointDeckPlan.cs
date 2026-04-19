@@ -4,6 +4,34 @@ using System.Linq;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
+    ///     Shared content limits used by semantic PowerPoint deck plans.
+    /// </summary>
+    public static class PowerPointDeckPlanLimits {
+        /// <summary>Maximum narrative sections rendered by a case-study slide.</summary>
+        public const int MaxCaseStudySections = 4;
+        /// <summary>Maximum metrics visibly rendered by a case-study slide.</summary>
+        public const int MaxCaseStudyMetrics = 3;
+        /// <summary>Maximum steps supported by a process slide.</summary>
+        public const int MaxProcessSteps = 8;
+        /// <summary>Process steps above this count are considered dense.</summary>
+        public const int DenseProcessSteps = 5;
+        /// <summary>Card counts above this value favor compact grid layouts.</summary>
+        public const int ComfortableCardGridCards = 4;
+        /// <summary>Maximum items supported by a logo/proof wall slide.</summary>
+        public const int MaxLogoWallItems = 24;
+        /// <summary>Logo/proof wall items above this count are considered dense.</summary>
+        public const int DenseLogoWallItems = 12;
+        /// <summary>Maximum locations supported by a coverage slide.</summary>
+        public const int MaxCoverageLocations = 24;
+        /// <summary>Maximum pins shown by map-like coverage variants before text-only overflow.</summary>
+        public const int VisibleCoveragePins = 18;
+        /// <summary>Maximum sections supported by a capability slide.</summary>
+        public const int MaxCapabilitySections = 6;
+        /// <summary>Capability sections above this count are considered dense.</summary>
+        public const int DenseCapabilitySections = 4;
+    }
+
+    /// <summary>
     ///     Semantic kind of a planned designer slide.
     /// </summary>
     public enum PowerPointDeckPlanSlideKind {
@@ -144,14 +172,27 @@ namespace OfficeIMO.PowerPoint {
         ///     Creates lightweight descriptions of how the planned slide sequence resolves under a deck design.
         /// </summary>
         public IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> DescribeSlides(PowerPointDeckDesign design) {
+            return DescribeSlides(design, slideIndexOffset: 0);
+        }
+
+        /// <summary>
+        ///     Creates lightweight descriptions of how the planned slide sequence resolves under a deck design,
+        ///     using an existing composer slide count for fallback seed generation.
+        /// </summary>
+        public IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> DescribeSlides(PowerPointDeckDesign design,
+            int slideIndexOffset) {
             if (design == null) {
                 throw new ArgumentNullException(nameof(design));
+            }
+            if (slideIndexOffset < 0) {
+                throw new ArgumentOutOfRangeException(nameof(slideIndexOffset),
+                    "Slide index offset cannot be negative.");
             }
 
             PowerPointDeckPlanSlideRenderSummary[] summaries =
                 new PowerPointDeckPlanSlideRenderSummary[_slides.Count];
             for (int i = 0; i < _slides.Count; i++) {
-                summaries[i] = _slides[i].DescribeRender(i, design);
+                summaries[i] = _slides[i].DescribeRender(i, design, slideIndexOffset);
             }
 
             return summaries;
@@ -212,8 +253,9 @@ namespace OfficeIMO.PowerPoint {
             return new PowerPointDeckPlanSlideSummary(index, Kind, Title, Subtitle, Seed, ContentItemCount);
         }
 
-        internal PowerPointDeckPlanSlideRenderSummary DescribeRender(int index, PowerPointDeckDesign design) {
-            string slideSeed = ResolveSeed(index);
+        internal PowerPointDeckPlanSlideRenderSummary DescribeRender(int index, PowerPointDeckDesign design,
+            int slideIndexOffset = 0) {
+            string slideSeed = ResolveSeed(index, slideIndexOffset);
             string? layoutVariant = ResolveLayoutVariant(design, slideSeed);
             return new PowerPointDeckPlanSlideRenderSummary(
                 index,
@@ -268,13 +310,9 @@ namespace OfficeIMO.PowerPoint {
             return options;
         }
 
-        private string ResolveSeed(int index) {
+        private string ResolveSeed(int index, int slideIndexOffset) {
             string seed = Seed ?? Title;
-            if (string.IsNullOrWhiteSpace(seed)) {
-                return "slide-" + (index + 1);
-            }
-
-            return seed.Trim();
+            return PowerPointDeckComposer.ResolveSeed(seed, slideIndexOffset + index + 1);
         }
 
         private protected static IReadOnlyList<T> Materialize<T>(IEnumerable<T> values, string name) {
@@ -377,7 +415,7 @@ namespace OfficeIMO.PowerPoint {
         private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
             string? layoutVariant) {
             List<string> reasons = new();
-            if (Sections.Count >= 4) {
+            if (Sections.Count >= PowerPointDeckPlanLimits.MaxCaseStudySections) {
                 reasons.Add("Four narrative sections favor an editorial split to keep each story block readable.");
             } else if (Metrics.Count > 0) {
                 reasons.Add("Metrics are present, so the case study can reserve stronger visual emphasis.");
@@ -393,13 +431,17 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal override void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {
-            if (Sections.Count > 4) {
+            if (Sections.Count > PowerPointDeckPlanLimits.MaxCaseStudySections) {
                 AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Error,
-                    "CaseStudy.TooManySections", "Case-study slides support up to 4 narrative sections.");
+                    "CaseStudy.TooManySections", "Case-study slides support up to " +
+                                                  PowerPointDeckPlanLimits.MaxCaseStudySections +
+                                                  " narrative sections.");
             }
-            if (Metrics.Count > 3) {
+            if (Metrics.Count > PowerPointDeckPlanLimits.MaxCaseStudyMetrics) {
                 AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Warning,
-                    "CaseStudy.HiddenMetrics", "Case-study slides display up to 3 metrics; extra metrics are ignored.");
+                    "CaseStudy.HiddenMetrics", "Case-study slides display up to " +
+                                               PowerPointDeckPlanLimits.MaxCaseStudyMetrics +
+                                               " metrics; extra metrics are ignored.");
             }
         }
     }
@@ -442,7 +484,7 @@ namespace OfficeIMO.PowerPoint {
         private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
             string? layoutVariant) {
             List<string> reasons = new();
-            if (Steps.Count >= 6) {
+            if (Steps.Count > PowerPointDeckPlanLimits.DenseProcessSteps) {
                 reasons.Add("Six or more process steps use a rail so the sequence stays connected.");
             } else if (design.BaseIntent.Density == PowerPointSlideDensity.Compact) {
                 reasons.Add("Compact density can use numbered columns for short step-by-step flows.");
@@ -457,12 +499,15 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal override void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {
-            if (Steps.Count > 8) {
+            if (Steps.Count > PowerPointDeckPlanLimits.MaxProcessSteps) {
                 AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Error,
-                    "Process.TooManySteps", "Process slides support up to 8 steps.");
-            } else if (Steps.Count > 5) {
+                    "Process.TooManySteps", "Process slides support up to " +
+                                            PowerPointDeckPlanLimits.MaxProcessSteps + " steps.");
+            } else if (Steps.Count > PowerPointDeckPlanLimits.DenseProcessSteps) {
                 AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Warning,
-                    "Process.DenseSteps", "Process slides with more than 5 steps are dense; consider splitting the flow.");
+                    "Process.DenseSteps", "Process slides with more than " +
+                                          PowerPointDeckPlanLimits.DenseProcessSteps +
+                                          " steps are dense; consider splitting the flow.");
             }
         }
     }
@@ -505,7 +550,7 @@ namespace OfficeIMO.PowerPoint {
         private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
             string? layoutVariant) {
             List<string> reasons = new();
-            if (Cards.Count > 4) {
+            if (Cards.Count > PowerPointDeckPlanLimits.ComfortableCardGridCards) {
                 reasons.Add("More than four cards favor the accent-top grid for compact scanning.");
             } else if (design.BaseIntent.VisualStyle == PowerPointVisualStyle.Soft ||
                        design.BaseIntent.VisualStyle == PowerPointVisualStyle.Minimal) {
@@ -556,7 +601,7 @@ namespace OfficeIMO.PowerPoint {
         private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
             string? layoutVariant) {
             List<string> reasons = new();
-            if (Logos.Count > 12) {
+            if (Logos.Count > PowerPointDeckPlanLimits.DenseLogoWallItems) {
                 reasons.Add("Large proof walls become compact, so the layout keeps logos in a readable system.");
             } else {
                 reasons.Add("Logo-wall content can choose between proof mosaic and featured certificate layouts.");
@@ -566,12 +611,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal override void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {
-            if (Logos.Count > 24) {
+            if (Logos.Count > PowerPointDeckPlanLimits.MaxLogoWallItems) {
                 AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Error,
-                    "LogoWall.TooManyItems", "Logo wall slides support up to 24 items.");
-            } else if (Logos.Count > 12) {
+                    "LogoWall.TooManyItems", "Logo wall slides support up to " +
+                                             PowerPointDeckPlanLimits.MaxLogoWallItems + " items.");
+            } else if (Logos.Count > PowerPointDeckPlanLimits.DenseLogoWallItems) {
                 AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Warning,
-                    "LogoWall.DenseItems", "Logo wall slides with more than 12 items become compact.");
+                    "LogoWall.DenseItems", "Logo wall slides with more than " +
+                                           PowerPointDeckPlanLimits.DenseLogoWallItems + " items become compact.");
             }
         }
     }
@@ -614,7 +661,7 @@ namespace OfficeIMO.PowerPoint {
         private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
             string? layoutVariant) {
             List<string> reasons = new();
-            if (Locations.Count > 18) {
+            if (Locations.Count > PowerPointDeckPlanLimits.VisibleCoveragePins) {
                 reasons.Add("Many locations favor list support because map pins may become dense.");
             } else {
                 reasons.Add("Coverage slides balance map-like visual proof with readable location labels.");
@@ -627,12 +674,15 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal override void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {
-            if (Locations.Count > 24) {
+            if (Locations.Count > PowerPointDeckPlanLimits.MaxCoverageLocations) {
                 AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Error,
-                    "Coverage.TooManyLocations", "Coverage slides support up to 24 locations.");
-            } else if (Locations.Count > 18) {
+                    "Coverage.TooManyLocations", "Coverage slides support up to " +
+                                                 PowerPointDeckPlanLimits.MaxCoverageLocations + " locations.");
+            } else if (Locations.Count > PowerPointDeckPlanLimits.VisibleCoveragePins) {
                 AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Warning,
-                    "Coverage.HiddenPins", "Coverage map variants show up to 18 pins; extra locations may appear only in text.");
+                    "Coverage.HiddenPins", "Coverage map variants show up to " +
+                                           PowerPointDeckPlanLimits.VisibleCoveragePins +
+                                           " pins; extra locations may appear only in text.");
             }
 
             for (int i = 0; i < Locations.Count; i++) {
@@ -684,7 +734,7 @@ namespace OfficeIMO.PowerPoint {
         private protected override IReadOnlyList<string> ResolveLayoutReasons(PowerPointDeckDesign design,
             string? layoutVariant) {
             List<string> reasons = new();
-            if (Sections.Count > 4) {
+            if (Sections.Count > PowerPointDeckPlanLimits.DenseCapabilitySections) {
                 reasons.Add("Many capability sections favor stacked panels to avoid cramped columns.");
             } else if (design.BaseIntent.VisualStyle == PowerPointVisualStyle.Minimal) {
                 reasons.Add("Minimal style keeps capability content quieter and more editorial.");
@@ -696,12 +746,15 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal override void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {
-            if (Sections.Count > 6) {
+            if (Sections.Count > PowerPointDeckPlanLimits.MaxCapabilitySections) {
                 AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Error,
-                    "Capability.TooManySections", "Capability slides support up to 6 sections.");
-            } else if (Sections.Count > 4) {
+                    "Capability.TooManySections", "Capability slides support up to " +
+                                                  PowerPointDeckPlanLimits.MaxCapabilitySections + " sections.");
+            } else if (Sections.Count > PowerPointDeckPlanLimits.DenseCapabilitySections) {
                 AddDiagnostic(diagnostics, index, PowerPointDeckPlanDiagnosticSeverity.Warning,
-                    "Capability.DenseSections", "Capability slides with more than 4 sections are dense.");
+                    "Capability.DenseSections", "Capability slides with more than " +
+                                                PowerPointDeckPlanLimits.DenseCapabilitySections +
+                                                " sections are dense.");
             }
         }
     }

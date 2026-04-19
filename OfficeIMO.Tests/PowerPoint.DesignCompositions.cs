@@ -951,6 +951,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDeckComposer_PreviewsPlanSeedsFromCurrentSlidePosition() {
+            string filePath = CreateTempPresentationPath();
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+                PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "seed-preview",
+                    PowerPointDesignDirection.Executive);
+                PowerPointDeckComposer deck = presentation.UseDesigner(design);
+                deck.AddSectionSlide("Already rendered");
+
+                PowerPointDeckPlan plan = new PowerPointDeckPlan()
+                    .AddSection("Planned cover", seed: " ")
+                    .AddProcess("Planned path", null,
+                        new[] {
+                            new PowerPointProcessStep("One", "Start."),
+                            new PowerPointProcessStep("Two", "Finish.")
+                        },
+                        seed: " ");
+
+                IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> neutralPreview = plan.DescribeSlides(design);
+                IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> composerPreview = deck.DescribeSlides(plan);
+
+                Assert.Equal("slide-1", neutralPreview[0].ResolvedSeed);
+                Assert.Equal("slide-2", composerPreview[0].ResolvedSeed);
+                Assert.Equal("slide-3", composerPreview[1].ResolvedSeed);
+                Assert.Equal("seed-preview/slide-2", composerPreview[0].DesignSeed);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void DesignerDesignBrief_CanDescribeDeckPlanBeforeRendering() {
             PowerPointDesignBrief brief = PowerPointDesignBrief
                 .FromBrand("#008C95", "brief-render-preview", "technical rollout proposal")

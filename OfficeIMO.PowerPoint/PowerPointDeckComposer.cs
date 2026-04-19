@@ -145,6 +145,18 @@ namespace OfficeIMO.PowerPoint {
             return slides.AsReadOnly();
         }
 
+        /// <summary>
+        ///     Previews how a semantic deck plan resolves against the active deck design from the composer's
+        ///     current slide position.
+        /// </summary>
+        public IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> DescribeSlides(PowerPointDeckPlan plan) {
+            if (plan == null) {
+                throw new ArgumentNullException(nameof(plan));
+            }
+
+            return plan.DescribeSlides(_design, _slideIndex);
+        }
+
         private T Configure<T>(T options, string seed, Action<T>? configure)
             where T : PowerPointDesignerSlideOptions {
             string resolvedSeed = ResolveSeed(seed);
@@ -155,11 +167,15 @@ namespace OfficeIMO.PowerPoint {
 
         private string ResolveSeed(string seed) {
             _slideIndex++;
+            return ResolveSeed(seed, _slideIndex);
+        }
+
+        internal static string ResolveSeed(string? seed, int slideIndex) {
             if (string.IsNullOrWhiteSpace(seed)) {
-                return "slide-" + _slideIndex;
+                return "slide-" + slideIndex;
             }
 
-            return seed.Trim();
+            return seed!.Trim();
         }
     }
 

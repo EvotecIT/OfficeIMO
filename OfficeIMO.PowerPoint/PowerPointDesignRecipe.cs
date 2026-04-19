@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -207,13 +208,7 @@ namespace OfficeIMO.PowerPoint {
                 return null;
             }
 
-            foreach (PowerPointDesignRecipe recipe in BuiltIn) {
-                if (recipe.Matches(purpose)) {
-                    return recipe;
-                }
-            }
-
-            return null;
+            return BuiltIn.FirstOrDefault(recipe => recipe.Matches(purpose));
         }
 
         /// <summary>
@@ -233,16 +228,12 @@ namespace OfficeIMO.PowerPoint {
                 return true;
             }
 
-            foreach (string keyword in Keywords) {
-                if (Contains(purpose, keyword) || Contains(keyword, purpose)) {
-                    return true;
-                }
+            if (Keywords.Any(keyword => Contains(purpose, keyword) || Contains(keyword, purpose))) {
+                return true;
             }
 
-            foreach (PowerPointDesignDirection direction in Directions) {
-                if (Contains(purpose, direction.Name) || Contains(direction.Name, purpose)) {
-                    return true;
-                }
+            if (Directions.Any(direction => Contains(purpose, direction.Name) || Contains(direction.Name, purpose))) {
+                return true;
             }
 
             return false;
