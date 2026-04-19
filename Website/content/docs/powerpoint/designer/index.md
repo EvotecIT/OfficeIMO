@@ -130,22 +130,26 @@ deck.AddSlides(plan);
 
 Semantic plans are not meant to remove control. Use `ComposeSlide` when a slide needs custom structure, then reuse the same design primitives for title, cards, metric strips, callout bands, coverage maps, and visual frames.
 
+Named composition presets sit between manual coordinates and full semantic slides. `UsePreset(...)` returns reusable regions such as `Primary`, `Visual`, `Metrics`, and `Grid`, so a custom slide can keep designed spacing without becoming a hardcoded template.
+
 ```csharp
 deck.ComposeSlide(composer => {
     composer.AddTitle("Why this alternative wins", selectedPlan.Design.DirectionName);
 
-    PowerPointLayoutBox[] columns = composer.ContentColumns(2, 0.8, topCm: 3.85);
+    PowerPointCompositionLayout layout = composer.UsePreset(PowerPointCompositionPreset.MetricStory);
     composer.AddCardGrid(
         selectedPlan.ContentFitReasons.Take(4)
             .Select((reason, index) => new PowerPointCardContent(
                 "Fit signal " + (index + 1), new[] { reason })),
-        columns[0]);
+        layout.Primary);
+
+    composer.AddVisualFrame(layout.Visual);
 
     composer.AddMetricStrip(new[] {
         new PowerPointMetric(selectedPlan.ContentFitScore.ToString(), "fit score"),
         new PowerPointMetric(selectedPlan.Slides.Count.ToString(), "planned slides"),
         new PowerPointMetric(selectedPlan.Diagnostics.Count.ToString(), "diagnostics")
-    }, columns[1].TakeTopCm(2.2));
+    }, layout.Metrics);
 }, "advisor-summary");
 ```
 
@@ -167,6 +171,7 @@ Use `--powerpoint` to run the full PowerPoint example set and validate every gen
 | Level | Use it when | Main API |
 |-------|-------------|----------|
 | Raw slide | Exact placement or low-level Open XML behavior matters | `PowerPointSlide` |
+| Composer presets | One slide needs custom structure but should not start from manual coordinates | `PowerPointCompositionPreset` |
 | Composer primitives | One slide needs custom structure but should share deck styling | `PowerPointSlideComposer` |
 | Semantic slide | The content has a known shape such as process, case study, or card grid | `PowerPointDeckComposer` |
 | Deck plan | The caller wants to describe the whole story and choose a fitting design | `PowerPointDeckPlan` |

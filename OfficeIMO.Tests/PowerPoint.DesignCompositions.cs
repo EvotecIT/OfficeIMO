@@ -138,6 +138,109 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerSlideComposer_CanUseCompositionPresetForRawSlide() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                PowerPointCompositionLayout? resolvedLayout = null;
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+                    PowerPointDeckComposer deck = presentation.UseDesigner(
+                        PowerPointDeckDesign.FromBrand("#008C95", "composition-demo",
+                            PowerPointDesignMood.Editorial, footerLeft: "OFFICEIMO"));
+
+                    deck.ComposeSlide(composer => {
+                        PowerPointCompositionLayout layout =
+                            composer.UsePreset(PowerPointCompositionPreset.MetricStory);
+                        resolvedLayout = layout;
+
+                        composer.AddTitle("Reusable composition", "Raw slides can still use planned regions.");
+                        composer.AddCardGrid(new[] {
+                            new PowerPointCardContent("Narrative", new[] { "Problem", "Decision", "Outcome" }),
+                            new PowerPointCardContent("Delivery", new[] { "Scope", "Cadence", "Controls" })
+                        }, layout.Primary);
+                        composer.AddVisualFrame(layout.Visual);
+                        composer.AddMetricStrip(new[] {
+                            new PowerPointMetric("3", "regions"),
+                            new PowerPointMetric("0", "manual coordinates")
+                        }, layout.Metrics);
+                    }, seed: "composition");
+
+                    Assert.NotNull(resolvedLayout);
+                    Assert.Equal(PowerPointCompositionPreset.MetricStory, resolvedLayout!.Preset);
+                    Assert.True(resolvedLayout.Primary.Right <= resolvedLayout.Content.Right);
+                    Assert.True(resolvedLayout.Visual.Right <= resolvedLayout.Content.Right);
+                    Assert.True(resolvedLayout.Metrics.Bottom <= resolvedLayout.Content.Bottom);
+
+                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+                    presentation.Save();
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    Assert.Single(presentation.Slides);
+                    Assert.Contains(presentation.Slides[0].TextBoxes,
+                        textBox => textBox.Text == "Reusable composition");
+                    Assert.Contains(presentation.Slides[0].Shapes,
+                        shape => shape.Name == "Case Study Visual Frame");
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerSlideComposer_AutoCompositionPresetFollowsDesignIntent() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointCompositionPreset compactPreset = PowerPointCompositionPreset.Auto;
+                presentation.ComposeDesignerSlide(composer => {
+                    compactPreset = composer.UsePreset().Preset;
+                }, options: new PowerPointDesignerSlideOptions {
+                    DesignIntent = new PowerPointDesignIntent {
+                        LayoutStrategy = PowerPointAutoLayoutStrategy.Compact,
+                        Seed = "compact"
+                    }
+                });
+
+                PowerPointCompositionPreset minimalPreset = PowerPointCompositionPreset.Auto;
+                presentation.ComposeDesignerSlide(composer => {
+                    minimalPreset = composer.UsePreset().Preset;
+                }, options: new PowerPointDesignerSlideOptions {
+                    DesignIntent = new PowerPointDesignIntent {
+                        VisualStyle = PowerPointVisualStyle.Minimal,
+                        Seed = "minimal"
+                    }
+                });
+
+                PowerPointCompositionPreset energeticPreset = PowerPointCompositionPreset.Auto;
+                presentation.ComposeDesignerSlide(composer => {
+                    energeticPreset = composer.UsePreset().Preset;
+                }, options: new PowerPointDesignerSlideOptions {
+                    DesignIntent = new PowerPointDesignIntent {
+                        Mood = PowerPointDesignMood.Energetic,
+                        Seed = "energetic"
+                    }
+                });
+
+                Assert.Equal(PowerPointCompositionPreset.DashboardGrid, compactPreset);
+                Assert.Equal(PowerPointCompositionPreset.BalancedColumns, minimalPreset);
+                Assert.Equal(PowerPointCompositionPreset.MetricStory, energeticPreset);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void DesignerTheme_UsesPresentationGradeFontsByDefault() {
             PowerPointDesignTheme theme = PowerPointDesignTheme.ModernBlue;
 
