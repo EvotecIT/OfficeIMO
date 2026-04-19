@@ -618,6 +618,13 @@ namespace OfficeIMO.PowerPoint {
 
         internal static void AddVisualFrame(PowerPointSlide slide, PowerPointDesignTheme theme, string? imagePath,
             double leftCm, double topCm, double widthCm, double heightCm, PowerPointDesignIntent? intent = null) {
+            AddVisualFrame(slide, theme, imagePath, leftCm, topCm, widthCm, heightCm,
+                PowerPointVisualFrameVariant.Auto, intent);
+        }
+
+        internal static void AddVisualFrame(PowerPointSlide slide, PowerPointDesignTheme theme, string? imagePath,
+            double leftCm, double topCm, double widthCm, double heightCm, PowerPointVisualFrameVariant variant,
+            PowerPointDesignIntent? intent = null) {
             PowerPointAutoShape frame = slide.AddRectangleCm(leftCm, topCm, widthCm, heightCm, "Case Study Visual Frame");
             frame.FillColor = theme.AccentDarkColor;
             frame.OutlineColor = theme.AccentDarkColor;
@@ -629,22 +636,24 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            AddVisualPlaceholder(slide, theme, leftCm + 0.08, topCm + 0.08, widthCm - 0.16, heightCm - 0.16, intent);
+            AddVisualPlaceholder(slide, theme, leftCm + 0.08, topCm + 0.08, widthCm - 0.16, heightCm - 0.16,
+                variant, intent);
         }
 
         private static void AddVisualPlaceholder(PowerPointSlide slide, PowerPointDesignTheme theme,
-            double leftCm, double topCm, double widthCm, double heightCm, PowerPointDesignIntent? intent) {
+            double leftCm, double topCm, double widthCm, double heightCm, PowerPointVisualFrameVariant variant,
+            PowerPointDesignIntent? intent) {
             PowerPointAutoShape surface = slide.AddRectangleCm(leftCm, topCm, widthCm, heightCm,
                 "Case Study Visual Surface");
             surface.FillColor = theme.AccentDarkColor;
             surface.OutlineColor = theme.AccentDarkColor;
 
-            VisualPlaceholderVariant variant = ResolveVisualPlaceholderVariant(intent);
-            if (variant == VisualPlaceholderVariant.Collage) {
+            PowerPointVisualFrameVariant resolvedVariant = ResolveVisualPlaceholderVariant(variant, intent);
+            if (resolvedVariant == PowerPointVisualFrameVariant.Collage) {
                 AddVisualCollagePlaceholder(slide, theme, leftCm, topCm, widthCm, heightCm);
                 return;
             }
-            if (variant == VisualPlaceholderVariant.Diagram) {
+            if (resolvedVariant == PowerPointVisualFrameVariant.Diagram) {
                 AddVisualDiagramPlaceholder(slide, theme, leftCm, topCm, widthCm, heightCm);
                 return;
             }
@@ -760,27 +769,31 @@ namespace OfficeIMO.PowerPoint {
             tile.OutlineWidthPoints = 0.45;
         }
 
-        private static VisualPlaceholderVariant ResolveVisualPlaceholderVariant(PowerPointDesignIntent? intent) {
+        private static PowerPointVisualFrameVariant ResolveVisualPlaceholderVariant(PowerPointVisualFrameVariant variant,
+            PowerPointDesignIntent? intent) {
+            if (variant != PowerPointVisualFrameVariant.Auto) {
+                return variant;
+            }
             if (intent == null) {
-                return VisualPlaceholderVariant.Dashboard;
+                return PowerPointVisualFrameVariant.Dashboard;
             }
             if (string.IsNullOrWhiteSpace(intent.Seed) &&
                 intent.Mood == PowerPointDesignMood.Corporate &&
                 intent.Density == PowerPointSlideDensity.Balanced &&
                 intent.VisualStyle == PowerPointVisualStyle.Geometric) {
-                return VisualPlaceholderVariant.Dashboard;
+                return PowerPointVisualFrameVariant.Dashboard;
             }
             if (intent.VisualStyle == PowerPointVisualStyle.Soft) {
-                return VisualPlaceholderVariant.Collage;
+                return PowerPointVisualFrameVariant.Collage;
             }
             if (intent.VisualStyle == PowerPointVisualStyle.Minimal) {
-                return VisualPlaceholderVariant.Diagram;
+                return PowerPointVisualFrameVariant.Diagram;
             }
 
             return intent.Pick(3, "visual-placeholder") switch {
-                0 => VisualPlaceholderVariant.Dashboard,
-                1 => VisualPlaceholderVariant.Collage,
-                _ => VisualPlaceholderVariant.Diagram
+                0 => PowerPointVisualFrameVariant.Dashboard,
+                1 => PowerPointVisualFrameVariant.Collage,
+                _ => PowerPointVisualFrameVariant.Diagram
             };
         }
 
@@ -1123,12 +1136,6 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool ShouldShowDirectionMotif(PowerPointDesignerSlideOptions options) {
             return options.ShowDirectionMotif && options.DesignIntent.VisualStyle != PowerPointVisualStyle.Minimal;
-        }
-
-        private enum VisualPlaceholderVariant {
-            Dashboard,
-            Collage,
-            Diagram
         }
 
         private static void AddProcessRail(PowerPointSlide slide, PowerPointDesignTheme theme,

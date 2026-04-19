@@ -134,6 +134,8 @@ Named composition presets sit between manual coordinates and full semantic slide
 
 Variants keep those presets from becoming one fixed look. Use `Standard` for the baseline arrangement, `Mirrored` or `VisualLead` when the visual should move, `EvidenceLead` when metrics should lead, or `Auto` when the design intent and seed should pick a stable variation.
 
+Surface variants keep repeated regions from looking identical. A visual frame can use `Dashboard`, `Collage`, or `Diagram` placeholders, and a metric strip can use a `SolidBand`, `SeparatedTiles`, or `Underlined` treatment.
+
 ```csharp
 deck.ComposeSlide(composer => {
     composer.AddTitle("Why this alternative wins", selectedPlan.Design.DirectionName);
@@ -146,13 +148,13 @@ deck.ComposeSlide(composer => {
                 "Fit signal " + (index + 1), new[] { reason })),
         layout.Primary);
 
-    composer.AddVisualFrame(layout.Visual);
+    composer.AddVisualFrame(layout.Visual, PowerPointVisualFrameVariant.Collage);
 
     composer.AddMetricStrip(new[] {
         new PowerPointMetric(selectedPlan.ContentFitScore.ToString(), "fit score"),
         new PowerPointMetric(selectedPlan.Slides.Count.ToString(), "planned slides"),
         new PowerPointMetric(selectedPlan.Diagnostics.Count.ToString(), "diagnostics")
-    }, layout.Metrics);
+    }, layout.Metrics, PowerPointMetricStripVariant.SeparatedTiles);
 }, "advisor-summary");
 ```
 
