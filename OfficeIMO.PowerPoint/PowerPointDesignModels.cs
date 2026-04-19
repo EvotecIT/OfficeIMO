@@ -74,6 +74,24 @@ namespace OfficeIMO.PowerPoint {
     }
 
     /// <summary>
+    ///     Typography strategy used to give generated decks a distinct typographic personality.
+    /// </summary>
+    public enum PowerPointTypographyStyle {
+        /// <summary>Choose a deterministic typography pair from the design seed.</summary>
+        Auto,
+        /// <summary>Friendly presentation typography with rounded headings and readable body text.</summary>
+        FriendlySans,
+        /// <summary>Modern Office-native typography for clean business decks.</summary>
+        ModernSans,
+        /// <summary>System-safe executive typography for formal decision decks.</summary>
+        ExecutiveSans,
+        /// <summary>Editorial heading typography paired with a clean sans body.</summary>
+        EditorialSerif,
+        /// <summary>Compact technical typography for diagrams, runbooks, and operational decks.</summary>
+        TechnicalSans
+    }
+
+    /// <summary>
     ///     Higher-level creative starting points that combine recipe, palette, layout, and ranking preferences.
     /// </summary>
     public enum PowerPointCreativeDirectionPack {

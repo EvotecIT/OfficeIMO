@@ -190,6 +190,7 @@ var uniqueBrief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
     .WithIdentity("Client Theme", footerLeft: "CLIENT")
     .WithDirections(clientDirections)
     .WithPaletteStyle(PowerPointPaletteStyle.CoolNeutral)
+    .WithTypographyStyle(PowerPointTypographyStyle.EditorialSerif)
     .WithLayoutStrategy(PowerPointAutoLayoutStrategy.Compact)
     .WithPreferredDensities(PowerPointSlideDensity.Compact);
 
@@ -303,6 +304,8 @@ custom directions, or a recipe when you want stable choices from the same brand 
 
 Use `PowerPointDesignBrief.WithLayoutStrategy(...)` when `Auto` variants should lean toward content fit, seeded design
 variety, compact business layouts, or more visual hero/proof compositions without hardcoding every slide variant.
+Use `WithTypographyStyle(...)` when the same brand and slide plan should feel more editorial, executive, technical, or
+friendly without rewriting every creative direction.
 Use `RecommendDeckPlanAlternative(...)` when callers want the library to pick the strongest content-fit alternative
 from the same plan while still returning the selected design index and reasons.
 Use `presentation.UseDesigner(brief, plan, alternativeCount: ...)` when the caller wants to skip manual ranking and

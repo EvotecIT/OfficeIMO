@@ -153,6 +153,11 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointPaletteStyle? PaletteStyle { get; private set; }
 
         /// <summary>
+        ///     Optional typography strategy applied before explicit font overrides.
+        /// </summary>
+        public PowerPointTypographyStyle? TypographyStyle { get; private set; }
+
+        /// <summary>
         ///     Optional Auto layout strategy applied to generated design alternatives.
         /// </summary>
         public PowerPointAutoLayoutStrategy? LayoutStrategy { get; private set; }
@@ -252,6 +257,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Chooses a typography strategy while preserving the selected recipe or creative direction.
+        /// </summary>
+        public PowerPointDesignBrief WithTypographyStyle(PowerPointTypographyStyle typographyStyle) {
+            TypographyStyle = typographyStyle;
+            return this;
+        }
+
+        /// <summary>
         ///     Chooses how Auto slide variants should balance content fit, design variety, and compactness.
         /// </summary>
         public PowerPointDesignBrief WithLayoutStrategy(PowerPointAutoLayoutStrategy layoutStrategy) {
@@ -268,6 +281,7 @@ namespace OfficeIMO.PowerPoint {
             if (pack == PowerPointCreativeDirectionPack.Auto) {
                 Recipe = null;
                 PaletteStyle = null;
+                TypographyStyle = null;
                 LayoutStrategy = null;
                 Variety = PowerPointDesignVariety.Balanced;
                 ClearDesignPreferences();
@@ -696,9 +710,10 @@ namespace OfficeIMO.PowerPoint {
 
         private IReadOnlyList<PowerPointDeckDesign> ApplyBriefOverrides(
             IReadOnlyList<PowerPointDeckDesign> alternatives) {
-            if (LayoutStrategy == null && PaletteStyle == null && SecondaryAccentColor == null &&
+            if (LayoutStrategy == null && PaletteStyle == null && TypographyStyle == null &&
+                SecondaryAccentColor == null &&
                 TertiaryAccentColor == null && WarmAccentColor == null && SurfaceColor == null &&
-                PanelBorderColor == null) {
+                PanelBorderColor == null && HeadingFontName == null && BodyFontName == null) {
                 return alternatives;
             }
 
@@ -708,6 +723,9 @@ namespace OfficeIMO.PowerPoint {
                 }
                 if (PaletteStyle != null) {
                     design.Theme.ApplyPaletteStyle(PaletteStyle.Value, design.Seed);
+                }
+                if (TypographyStyle != null) {
+                    design.Theme.ApplyTypographyStyle(TypographyStyle.Value, design.Seed);
                 }
                 if (SecondaryAccentColor != null) {
                     design.Theme.Accent2Color = SecondaryAccentColor;
@@ -723,6 +741,12 @@ namespace OfficeIMO.PowerPoint {
                 }
                 if (PanelBorderColor != null) {
                     design.Theme.PanelBorderColor = PanelBorderColor;
+                }
+                if (!string.IsNullOrWhiteSpace(HeadingFontName)) {
+                    design.Theme.HeadingFontName = HeadingFontName!;
+                }
+                if (!string.IsNullOrWhiteSpace(BodyFontName)) {
+                    design.Theme.BodyFontName = BodyFontName!;
                 }
 
                 design.Theme.Validate();

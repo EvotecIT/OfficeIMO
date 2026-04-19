@@ -461,6 +461,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerTheme_CanApplyTypographyStyle() {
+            PowerPointDesignTheme theme = PowerPointDesignTheme.FromBrand("#008C95", "Brand Theme");
+
+            PowerPointDesignTheme styled =
+                theme.WithTypographyStyle(PowerPointTypographyStyle.EditorialSerif, "client-a");
+
+            Assert.Equal(PowerPointTypographyStyle.EditorialSerif, styled.TypographyStyle);
+            Assert.Equal("Georgia", styled.HeadingFontName);
+            Assert.Equal("Aptos", styled.BodyFontName);
+        }
+
+        [Fact]
+        public void DesignerTheme_AutoTypographyStyleIsDeterministic() {
+            PowerPointDesignTheme theme = PowerPointDesignTheme.FromBrand("#008C95", "Brand Theme");
+
+            PowerPointDesignTheme first = theme.WithTypographyStyle(PowerPointTypographyStyle.Auto, "client-a");
+            PowerPointDesignTheme second = theme.WithTypographyStyle(PowerPointTypographyStyle.Auto, "client-a");
+
+            Assert.Equal(first.TypographyStyle, second.TypographyStyle);
+            Assert.NotEqual(PowerPointTypographyStyle.Auto, first.TypographyStyle);
+            Assert.Equal(first.HeadingFontName, second.HeadingFontName);
+            Assert.Equal(first.BodyFontName, second.BodyFontName);
+        }
+
+        [Fact]
         public void DesignerTheme_DerivedVariantsResetPaletteStyleMetadata() {
             PowerPointDesignTheme theme = PowerPointDesignTheme
                 .FromBrand("#008C95", "Brand Theme")
@@ -856,6 +881,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDesignBrief_CanChooseTypographyStyleBeforeManualFontOverrides() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
+                .WithTypographyStyle(PowerPointTypographyStyle.EditorialSerif)
+                .WithFonts(bodyFontName: "Segoe UI");
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(2);
+            IReadOnlyList<PowerPointDeckDesignSummary> summaries = brief.DescribeAlternatives(1);
+
+            Assert.Equal(PowerPointTypographyStyle.EditorialSerif, brief.TypographyStyle);
+            Assert.All(alternatives, design => Assert.Equal(PowerPointTypographyStyle.EditorialSerif,
+                design.Theme.TypographyStyle));
+            Assert.All(alternatives, design => Assert.Equal("Georgia", design.Theme.HeadingFontName));
+            Assert.All(alternatives, design => Assert.Equal("Segoe UI", design.Theme.BodyFontName));
+            Assert.Equal(PowerPointTypographyStyle.EditorialSerif, summaries[0].TypographyStyle);
+            Assert.Equal("Segoe UI", summaries[0].BodyFontName);
+        }
+
+        [Fact]
         public void DesignerDesignBrief_CanChooseAutoLayoutStrategy() {
             PowerPointDesignBrief brief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
                 .WithLayoutStrategy(PowerPointAutoLayoutStrategy.Compact);
@@ -934,6 +977,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(PowerPointCreativeDirectionPack.Auto, brief.CreativeDirectionPack);
             Assert.Null(brief.Recipe);
             Assert.Null(brief.PaletteStyle);
+            Assert.Null(brief.TypographyStyle);
             Assert.Null(brief.LayoutStrategy);
             Assert.Equal(PowerPointDesignVariety.Balanced, brief.Variety);
             Assert.Empty(brief.PreferredMoods);

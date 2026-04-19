@@ -70,6 +70,7 @@ namespace OfficeIMO.PowerPoint {
                 Accent3Color = Accent3Color,
                 WarningColor = WarningColor,
                 PaletteStyle = PaletteStyle,
+                TypographyStyle = TypographyStyle,
                 HeadingFontName = HeadingFontName,
                 BodyFontName = BodyFontName
             };
@@ -100,6 +101,19 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Creates a copy with a specific typography strategy.
+        /// </summary>
+        public PowerPointDesignTheme WithTypographyStyle(PowerPointTypographyStyle typographyStyle, string seed) {
+            if (string.IsNullOrWhiteSpace(seed)) {
+                throw new ArgumentException("Typography seed cannot be null or empty.", nameof(seed));
+            }
+
+            PowerPointDesignTheme clone = Clone();
+            clone.ApplyTypographyStyle(typographyStyle, seed);
+            return clone;
+        }
+
+        /// <summary>
         ///     Creates a copy with a specific supporting palette strategy while preserving the primary brand accent.
         /// </summary>
         public PowerPointDesignTheme WithPaletteStyle(PowerPointPaletteStyle paletteStyle, string seed) {
@@ -126,6 +140,7 @@ namespace OfficeIMO.PowerPoint {
                     clone.PanelColor = "FFFFFF";
                     clone.PanelBorderColor = Shade(clone.Accent3Color, 0.68);
                     clone.PaletteStyle = PowerPointPaletteStyle.Auto;
+                    clone.TypographyStyle = PowerPointTypographyStyle.ModernSans;
                     clone.HeadingFontName = "Aptos Display";
                     clone.BodyFontName = "Aptos";
                     break;
@@ -134,6 +149,7 @@ namespace OfficeIMO.PowerPoint {
                     clone.PanelBorderColor = Shade(clone.Accent2Color, 0.62);
                     clone.AccentLightColor = Shade(clone.AccentColor, 0.70);
                     clone.PaletteStyle = PowerPointPaletteStyle.Auto;
+                    clone.TypographyStyle = PowerPointTypographyStyle.FriendlySans;
                     clone.HeadingFontName = "Poppins";
                     clone.BodyFontName = "Aptos";
                     break;
@@ -144,6 +160,7 @@ namespace OfficeIMO.PowerPoint {
                     clone.Accent3Color = Shade(clone.AccentDarkColor, 0.50);
                     clone.WarningColor = clone.Accent2Color;
                     clone.PaletteStyle = PowerPointPaletteStyle.Auto;
+                    clone.TypographyStyle = PowerPointTypographyStyle.ModernSans;
                     clone.HeadingFontName = "Aptos Display";
                     clone.BodyFontName = "Aptos";
                     break;
@@ -234,6 +251,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Supporting palette strategy used to generate secondary accents and surfaces.
         /// </summary>
         public PowerPointPaletteStyle PaletteStyle { get; private set; } = PowerPointPaletteStyle.Auto;
+
+        /// <summary>
+        ///     Typography strategy used to resolve the heading and body font pair.
+        /// </summary>
+        public PowerPointTypographyStyle TypographyStyle { get; private set; } = PowerPointTypographyStyle.Auto;
 
         /// <summary>
         ///     Font used for headings.
@@ -334,6 +356,42 @@ namespace OfficeIMO.PowerPoint {
             Validate();
         }
 
+        internal void ApplyTypographyStyle(PowerPointTypographyStyle typographyStyle, string seed) {
+            if (string.IsNullOrWhiteSpace(seed)) {
+                throw new ArgumentException("Typography seed cannot be null or empty.", nameof(seed));
+            }
+
+            PowerPointTypographyStyle resolvedStyle = ResolveTypographyStyle(typographyStyle, seed);
+            TypographyStyle = resolvedStyle;
+
+            switch (resolvedStyle) {
+                case PowerPointTypographyStyle.FriendlySans:
+                    HeadingFontName = "Poppins";
+                    BodyFontName = "Lato";
+                    break;
+                case PowerPointTypographyStyle.ModernSans:
+                    HeadingFontName = "Aptos Display";
+                    BodyFontName = "Aptos";
+                    break;
+                case PowerPointTypographyStyle.ExecutiveSans:
+                    HeadingFontName = "Segoe UI Semibold";
+                    BodyFontName = "Segoe UI";
+                    break;
+                case PowerPointTypographyStyle.EditorialSerif:
+                    HeadingFontName = "Georgia";
+                    BodyFontName = "Aptos";
+                    break;
+                case PowerPointTypographyStyle.TechnicalSans:
+                    HeadingFontName = "Bahnschrift";
+                    BodyFontName = "Aptos";
+                    break;
+                default:
+                    break;
+            }
+
+            Validate();
+        }
+
         private static string NormalizeHex(string value, string name) {
             if (string.IsNullOrWhiteSpace(value)) {
                 throw new ArgumentException("Color cannot be null or empty.", name);
@@ -402,6 +460,22 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointPaletteStyle.CoolNeutral
             };
             return styles[StablePick(seed + "/palette", styles.Length)];
+        }
+
+        private static PowerPointTypographyStyle ResolveTypographyStyle(PowerPointTypographyStyle typographyStyle,
+            string seed) {
+            if (typographyStyle != PowerPointTypographyStyle.Auto) {
+                return typographyStyle;
+            }
+
+            PowerPointTypographyStyle[] styles = {
+                PowerPointTypographyStyle.FriendlySans,
+                PowerPointTypographyStyle.ModernSans,
+                PowerPointTypographyStyle.ExecutiveSans,
+                PowerPointTypographyStyle.EditorialSerif,
+                PowerPointTypographyStyle.TechnicalSans
+            };
+            return styles[StablePick(seed + "/typography", styles.Length)];
         }
 
         private static string ShiftHue(string value, double degrees, double saturationScale, double lightnessShift) {

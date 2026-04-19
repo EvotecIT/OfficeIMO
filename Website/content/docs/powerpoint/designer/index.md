@@ -50,8 +50,8 @@ or `VisualFirst` when visual proof and hero compositions should win when the con
 
 ## Variation controls
 
-The same `PowerPointDeckPlan` can be reused with several briefs. Change the layout strategy and palette style to get a
-different rhythm without changing slide coordinates or duplicating every slide recipe.
+The same `PowerPointDeckPlan` can be reused with several briefs. Change the layout strategy, palette style, and typography
+style to get a different rhythm without changing slide coordinates or duplicating every slide recipe.
 
 ```csharp
 PowerPointDeckPlan plan = CreateReusablePlan();
@@ -64,6 +64,7 @@ foreach (PowerPointAutoLayoutStrategy strategy in new[] {
     PowerPointDesignBrief variant = PowerPointDesignBrief
         .FromBrand("#008C95", "layout-strategy-comparison", "service proposal")
         .WithPaletteStyle(PowerPointPaletteStyle.SplitComplementary)
+        .WithTypographyStyle(PowerPointTypographyStyle.Auto)
         .WithLayoutStrategy(strategy);
 
     var preview = variant.DescribeDeckPlan(plan);
