@@ -473,6 +473,16 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerTheme_EnergeticMoodMatchesFriendlySansFonts() {
+            PowerPointDesignTheme energetic = PowerPointDesignTheme.FromBrand("#008C95", "Brand Theme")
+                .WithMood(PowerPointDesignMood.Energetic);
+
+            Assert.Equal(PowerPointTypographyStyle.FriendlySans, energetic.TypographyStyle);
+            Assert.Equal("Poppins", energetic.HeadingFontName);
+            Assert.Equal("Lato", energetic.BodyFontName);
+        }
+
+        [Fact]
         public void DesignerTheme_AutoTypographyStyleIsDeterministic() {
             PowerPointDesignTheme theme = PowerPointDesignTheme.FromBrand("#008C95", "Brand Theme");
 
@@ -966,6 +976,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDesignBrief_ApplyingCreativeDirectionPackClearsStaleManualThemeOverrides() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-pack-stale", "technical rollout proposal")
+                .WithPalette(secondaryAccentColor: "#6D5BD0", surfaceColor: "#F2F6F8")
+                .WithFonts("Segoe UI Semibold", "Segoe UI")
+                .WithCreativeDirectionPack(PowerPointCreativeDirectionPack.FieldProof);
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(1);
+
+            Assert.Null(brief.SecondaryAccentColor);
+            Assert.Null(brief.SurfaceColor);
+            Assert.Null(brief.HeadingFontName);
+            Assert.Null(brief.BodyFontName);
+            Assert.Equal(PowerPointPaletteStyle.SplitComplementary, alternatives[0].Theme.PaletteStyle);
+            Assert.NotEqual("6D5BD0", alternatives[0].Theme.Accent2Color);
+            Assert.NotEqual("F2F6F8", alternatives[0].Theme.SurfaceColor);
+            Assert.NotEqual("Segoe UI Semibold", alternatives[0].Theme.HeadingFontName);
+            Assert.NotEqual("Segoe UI", alternatives[0].Theme.BodyFontName);
+        }
+
+        [Fact]
         public void DesignerDesignBrief_AutoCreativeDirectionPackClearsPackOverrides() {
             PowerPointDesignBrief brief = PowerPointDesignBrief
                 .FromBrand("#008C95", "brief-pack-auto", "technical rollout proposal")
@@ -986,6 +1017,21 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Architecture Map", alternatives[0].Direction.Name);
             Assert.Equal(PowerPointAutoLayoutStrategy.ContentFirst, alternatives[0].BaseIntent.LayoutStrategy);
             Assert.Equal(PowerPointPaletteStyle.Auto, alternatives[0].Theme.PaletteStyle);
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_AutoCreativeDirectionPackPreservesExplicitTypography() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-pack-typography", "technical rollout proposal")
+                .WithTypographyStyle(PowerPointTypographyStyle.EditorialSerif)
+                .WithCreativeDirectionPack(PowerPointCreativeDirectionPack.FieldProof)
+                .WithCreativeDirectionPack(PowerPointCreativeDirectionPack.Auto);
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(1);
+
+            Assert.Equal(PowerPointTypographyStyle.EditorialSerif, brief.TypographyStyle);
+            Assert.Equal(PowerPointTypographyStyle.EditorialSerif, alternatives[0].Theme.TypographyStyle);
+            Assert.Equal("Georgia", alternatives[0].Theme.HeadingFontName);
         }
 
         [Fact]
@@ -2152,6 +2198,31 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(chevronSlide.GetShape("Designer Direction 1"));
                 Assert.NotNull(chevronSlide.GetShape("Designer Direction Chevron 1B"));
                 Assert.Null(hiddenSlide.GetShape("Designer Direction 1"));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerDirectionMotif_ExplicitStyleCanOverrideMinimalIntent() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointSlide slide = presentation.AddDesignerSectionSlide("Minimal", "Forced motif",
+                    options: new PowerPointDesignerSlideOptions {
+                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Minimal, "forced-motif"),
+                        DirectionMotifStyle = PowerPointDirectionMotifStyle.Dots
+                    });
+
+                Assert.NotNull(slide.GetShape("Designer Direction 1"));
+
+                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

@@ -1467,7 +1467,6 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool ShouldShowDirectionMotif(PowerPointDesignerSlideOptions options) {
             return options.ShowDirectionMotif &&
-                   options.DesignIntent.VisualStyle != PowerPointVisualStyle.Minimal &&
                    ResolveDirectionMotifStyle(options) != PowerPointDirectionMotifStyle.None;
         }
 

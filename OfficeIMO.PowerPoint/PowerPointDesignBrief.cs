@@ -281,13 +281,13 @@ namespace OfficeIMO.PowerPoint {
             if (pack == PowerPointCreativeDirectionPack.Auto) {
                 Recipe = null;
                 PaletteStyle = null;
-                TypographyStyle = null;
                 LayoutStrategy = null;
                 Variety = PowerPointDesignVariety.Balanced;
                 ClearDesignPreferences();
                 return this;
             }
 
+            ClearManualThemeOverrides();
             PowerPointCreativeDirectionPackSummary summary = DescribeCreativeDirectionPack(pack);
             Recipe = summary.Recipe;
             PaletteStyle = summary.PaletteStyle;
@@ -753,6 +753,17 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return alternatives;
+        }
+
+        private PowerPointDesignBrief ClearManualThemeOverrides() {
+            SecondaryAccentColor = null;
+            TertiaryAccentColor = null;
+            WarmAccentColor = null;
+            SurfaceColor = null;
+            PanelBorderColor = null;
+            HeadingFontName = null;
+            BodyFontName = null;
+            return this;
         }
 
         private static string? NormalizeOptionalColor(string? value, string name) {

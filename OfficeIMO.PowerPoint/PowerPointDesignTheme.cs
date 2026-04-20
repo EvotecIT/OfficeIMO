@@ -151,7 +151,7 @@ namespace OfficeIMO.PowerPoint {
                     clone.PaletteStyle = PowerPointPaletteStyle.Auto;
                     clone.TypographyStyle = PowerPointTypographyStyle.FriendlySans;
                     clone.HeadingFontName = "Poppins";
-                    clone.BodyFontName = "Aptos";
+                    clone.BodyFontName = "Lato";
                     break;
                 case PowerPointDesignMood.Minimal:
                     clone.SurfaceColor = "F5F7F9";
