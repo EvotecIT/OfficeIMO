@@ -179,7 +179,7 @@ namespace OfficeIMO.PowerPoint {
                 legend.Append(new C.Layout());
             }
             legend.RemoveAllChildren<C.Overlay>();
-            legend.Append(new C.Overlay { Val = overlay });
+            InsertLegendOverlay(legend, new C.Overlay { Val = overlay });
 
             if (chart.GetFirstChild<C.Legend>() == null) {
                 C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -3841,6 +3841,18 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return runProps;
+        }
+
+        private static void InsertLegendOverlay(C.Legend legend, C.Overlay overlay) {
+            OpenXmlElement? insertBefore = legend.GetFirstChild<C.ChartShapeProperties>();
+            insertBefore ??= legend.GetFirstChild<C.TextProperties>();
+            insertBefore ??= legend.GetFirstChild<C.ExtensionList>();
+
+            if (insertBefore != null) {
+                legend.InsertBefore(overlay, insertBefore);
+            } else {
+                legend.Append(overlay);
+            }
         }
 
         private static void InsertAxisTitle(OpenXmlCompositeElement axis, C.Title title) {

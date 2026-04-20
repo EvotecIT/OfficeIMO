@@ -57,6 +57,11 @@ slide.AddTitle("Hello PowerPoint");
 var box = slide.AddTextBox("Generated with OfficeIMO.PowerPoint");
 box.SetPositionCm(2, 2);
 box.SetSizeCm(6, 2);
+slide.Transition = SlideTransition.Fade;
+slide.TransitionSpeed = SlideTransitionSpeed.Fast;
+slide.TransitionDurationSeconds = 0.6;
+slide.TransitionAdvanceOnClick = false;
+slide.TransitionAdvanceAfterSeconds = 4;
 ppt.Save();
 ```
 
@@ -359,6 +364,12 @@ using (var ppt = PowerPointPresentation.Open(stream, readOnly: false, autoSave: 
 ### Background image
 ```csharp
 slide.SetBackgroundImage("hero.png");
+```
+
+### Background gradient
+```csharp
+slide.SetBackgroundGradient("0F172A", "2563EB");
+slide.SetBackgroundGradient("0F172A", "2563EB", 45d);
 ```
 
 ### Simple shapes

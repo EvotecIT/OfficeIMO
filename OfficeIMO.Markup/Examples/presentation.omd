@@ -1,0 +1,73 @@
+---
+profile: presentation
+title: OfficeIMO Markup Demo
+author: Przemyslaw Klys
+theme: evotec-modern
+size: 16:9
+---
+
+# Quarterly Review
+
+@slide {
+  layout: title-and-content
+  transition: fade duration=0.6
+}
+
+- Revenue grew 18%
+- Churn improved
+- Enterprise pipeline expanded
+
+::notes
+Open with the top-line result.
+
+---
+
+# Architecture Overview
+
+@slide {
+  layout: blank
+  background: solid(#FFFFFF)
+}
+
+::textbox x=6% y=8% w=70% h=10% style=hero-title
+Pipeline: From Text to PPTX
+
+::mermaid x=8% y=23% w=84% h=24% fit=contain
+flowchart LR
+  Markdown[Markdown] --> AST[Semantic AST]
+  AST --> Emitters[Emitters]
+  Emitters --> Office[Office files]
+
+::columns x=6% y=56% w=88% h=26% gap=4%
+
+::column width=48%
+## Notes
+- Parser builds a semantic AST
+- Emitters generate C# and PowerShell
+- Renderers produce native Office files
+
+::column width=48%
+::card title="Fast path" style=callout
+Start with Markdown, then add layout blocks only when the slide needs them.
+
+---
+
+# Data Example
+
+@slide {
+  layout: blank
+  transition: wipe direction=up duration=0.5
+}
+
+::textbox x=6% y=8% w=70% h=10% style=hero-title
+Quarterly Revenue
+
+::chart type=column title="Quarterly Revenue" x=8% y=24% w=84% h=58% category-title=Quarter value-title=Amount value-format="#,##0" legend=right labels=true label-position=outside-end label-format="#,##0" gridlines=true
+Quarter,Revenue,Costs
+Q1,120,85
+Q2,180,94
+Q3,260,132
+Q4,320,150
+
+::notes
+This chart exports as a native editable PowerPoint chart from inline CSV data.

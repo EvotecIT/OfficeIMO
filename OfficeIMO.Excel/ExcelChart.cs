@@ -2134,12 +2134,12 @@ namespace OfficeIMO.Excel {
             if (italic != null) {
                 runProps.Italic = italic.Value;
             }
+            if (color != null) {
+                ApplyTextSolidFill(runProps, NormalizeHexColor(color));
+            }
             if (fontName != null) {
                 runProps.RemoveAllChildren<A.LatinFont>();
                 runProps.Append(new A.LatinFont { Typeface = fontName });
-            }
-            if (color != null) {
-                ApplySolidFill(runProps, NormalizeHexColor(color));
             }
         }
 
@@ -3048,9 +3048,20 @@ namespace OfficeIMO.Excel {
 
         private static C.ChartShapeProperties EnsureChartShapeProperties(OpenXmlCompositeElement series) {
             C.ChartShapeProperties props = series.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
-            if (props.Parent == null) {
-                series.Append(props);
+            if (props.Parent != null) {
+                props.Remove();
             }
+
+            OpenXmlElement? anchor = series.Elements<C.SeriesText>().LastOrDefault();
+            anchor ??= series.Elements<C.Order>().LastOrDefault();
+            anchor ??= series.Elements<C.Index>().LastOrDefault();
+
+            if (anchor != null) {
+                series.InsertAfter(props, anchor);
+            } else {
+                series.PrependChild(props);
+            }
+
             return props;
         }
 
@@ -3060,6 +3071,29 @@ namespace OfficeIMO.Excel {
             props.RemoveAllChildren<A.GradientFill>();
             props.RemoveAllChildren<A.PatternFill>();
             props.Append(new A.SolidFill(new A.RgbColorModelHex { Val = color }));
+        }
+
+        private static void ApplyTextSolidFill(A.TextCharacterPropertiesType props, string color) {
+            props.RemoveAllChildren<A.SolidFill>();
+            props.RemoveAllChildren<A.NoFill>();
+            props.RemoveAllChildren<A.GradientFill>();
+            props.RemoveAllChildren<A.PatternFill>();
+
+            var fill = new A.SolidFill(new A.RgbColorModelHex { Val = color });
+            OpenXmlElement? insertBefore = props.ChildElements.FirstOrDefault(child =>
+                child is A.LatinFont
+                || child is A.EastAsianFont
+                || child is A.ComplexScriptFont
+                || child is A.SymbolFont
+                || child is A.HyperlinkOnClick
+                || child is A.HyperlinkOnMouseOver
+                || child is A.ExtensionList);
+
+            if (insertBefore != null) {
+                props.InsertBefore(fill, insertBefore);
+            } else {
+                props.Append(fill);
+            }
         }
 
         private static void ApplyLine(OpenXmlCompositeElement props, string color, double? widthPoints) {

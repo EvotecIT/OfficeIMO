@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <Description>Word document renderer for OfficeIMO Markup semantic AST.</Description>
+        <AssemblyName>OfficeIMO.Markup.Word</AssemblyName>
+        <AssemblyTitle>OfficeIMO.Markup.Word</AssemblyTitle>
+        <VersionPrefix>0.1.0</VersionPrefix>
+        <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+        <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+        <Company>Evotec</Company>
+        <Authors>Przemyslaw Klys</Authors>
+        <PackageId>OfficeIMO.Markup.Word</PackageId>
+        <PackageTags>officeimo;markup;markdown;docx;word;document</PackageTags>
+        <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <DebugType>portable</DebugType>
+        <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+        <IsPublishable>True</IsPublishable>
+        <SignAssembly>False</SignAssembly>
+        <GenerateDocumentationFile>True</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);1591</NoWarn>
+        <LangVersion>Latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <EnableTrimmingPolyfills>false</EnableTrimmingPolyfills>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\OfficeIMO.Markup\OfficeIMO.Markup.csproj" />
+        <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.Net.Http" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="System" />
+        <Using Include="System.Collections.Generic" />
+        <Using Include="System.Globalization" />
+        <Using Include="System.IO" />
+        <Using Include="System.Linq" />
+    </ItemGroup>
+
+</Project>
