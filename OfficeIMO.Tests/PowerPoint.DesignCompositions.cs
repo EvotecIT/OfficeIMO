@@ -579,6 +579,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDeckDesign_SummaryUsesActualTypographyMetadataForCustomDirectionFonts() {
+            PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "signal-client",
+                PowerPointDesignDirection.Signal, name: "Signal Client");
+
+            PowerPointDeckDesignSummary summary = design.Describe();
+
+            Assert.Equal("Poppins", summary.HeadingFontName);
+            Assert.Equal("Aptos", summary.BodyFontName);
+            Assert.Equal(PowerPointTypographyStyle.Auto, summary.TypographyStyle);
+        }
+
+        [Fact]
         public void DesignerDeckDesign_CanCreateAlternativesFromCustomDirections() {
             PowerPointDesignDirection boardBrief = new("Board Brief", PowerPointDesignMood.Corporate,
                 PowerPointSlideDensity.Relaxed, PowerPointVisualStyle.Soft, "Georgia", "Aptos",
@@ -1032,6 +1044,21 @@ namespace OfficeIMO.Tests {
             Assert.Equal(PowerPointTypographyStyle.EditorialSerif, brief.TypographyStyle);
             Assert.Equal(PowerPointTypographyStyle.EditorialSerif, alternatives[0].Theme.TypographyStyle);
             Assert.Equal("Georgia", alternatives[0].Theme.HeadingFontName);
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_ManualFontOverridesUpdateTypographyMetadata() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-font-sync", "technical rollout proposal")
+                .WithFonts("Poppins", "Aptos");
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(1);
+            PowerPointDeckDesignSummary summary = brief.DescribeAlternatives(1)[0];
+
+            Assert.Equal("Poppins", alternatives[0].Theme.HeadingFontName);
+            Assert.Equal("Aptos", alternatives[0].Theme.BodyFontName);
+            Assert.Equal(PowerPointTypographyStyle.Auto, alternatives[0].Theme.TypographyStyle);
+            Assert.Equal(PowerPointTypographyStyle.Auto, summary.TypographyStyle);
         }
 
         [Fact]

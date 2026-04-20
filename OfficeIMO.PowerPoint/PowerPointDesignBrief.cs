@@ -749,6 +749,11 @@ namespace OfficeIMO.PowerPoint {
                     design.Theme.BodyFontName = BodyFontName!;
                 }
 
+                if (TypographyStyle == null &&
+                    (!string.IsNullOrWhiteSpace(HeadingFontName) || !string.IsNullOrWhiteSpace(BodyFontName))) {
+                    design.Theme.SyncTypographyStyleToFonts();
+                }
+
                 design.Theme.Validate();
             }
 

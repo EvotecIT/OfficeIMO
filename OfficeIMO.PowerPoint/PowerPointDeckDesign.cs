@@ -62,6 +62,7 @@ namespace OfficeIMO.PowerPoint {
                 .WithMood(direction.Mood);
             theme.HeadingFontName = direction.HeadingFontName;
             theme.BodyFontName = direction.BodyFontName;
+            theme.SyncTypographyStyleToFonts();
             theme.Validate();
 
             PowerPointDesignIntent intent = PowerPointDesignIntent.FromMood(direction.Mood, seed);

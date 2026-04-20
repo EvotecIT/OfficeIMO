@@ -392,6 +392,10 @@ namespace OfficeIMO.PowerPoint {
             Validate();
         }
 
+        internal void SyncTypographyStyleToFonts() {
+            TypographyStyle = InferTypographyStyle(HeadingFontName, BodyFontName);
+        }
+
         private static string NormalizeHex(string value, string name) {
             if (string.IsNullOrWhiteSpace(value)) {
                 throw new ArgumentException("Color cannot be null or empty.", name);
@@ -476,6 +480,32 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointTypographyStyle.TechnicalSans
             };
             return styles[StablePick(seed + "/typography", styles.Length)];
+        }
+
+        private static PowerPointTypographyStyle InferTypographyStyle(string headingFontName, string bodyFontName) {
+            if (MatchesTypographyPair(headingFontName, bodyFontName, "Poppins", "Lato")) {
+                return PowerPointTypographyStyle.FriendlySans;
+            }
+            if (MatchesTypographyPair(headingFontName, bodyFontName, "Aptos Display", "Aptos")) {
+                return PowerPointTypographyStyle.ModernSans;
+            }
+            if (MatchesTypographyPair(headingFontName, bodyFontName, "Segoe UI Semibold", "Segoe UI")) {
+                return PowerPointTypographyStyle.ExecutiveSans;
+            }
+            if (MatchesTypographyPair(headingFontName, bodyFontName, "Georgia", "Aptos")) {
+                return PowerPointTypographyStyle.EditorialSerif;
+            }
+            if (MatchesTypographyPair(headingFontName, bodyFontName, "Bahnschrift", "Aptos")) {
+                return PowerPointTypographyStyle.TechnicalSans;
+            }
+
+            return PowerPointTypographyStyle.Auto;
+        }
+
+        private static bool MatchesTypographyPair(string headingFontName, string bodyFontName,
+            string expectedHeadingFontName, string expectedBodyFontName) {
+            return string.Equals(headingFontName, expectedHeadingFontName, StringComparison.OrdinalIgnoreCase) &&
+                   string.Equals(bodyFontName, expectedBodyFontName, StringComparison.OrdinalIgnoreCase);
         }
 
         private static string ShiftHue(string value, double degrees, double saturationScale, double lightnessShift) {
