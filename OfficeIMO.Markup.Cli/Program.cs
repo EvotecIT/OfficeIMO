@@ -66,7 +66,8 @@ internal static class Program {
         };
 
         if (!string.IsNullOrWhiteSpace(options.OutputPath)) {
-            await File.WriteAllTextAsync(options.OutputPath!, text).ConfigureAwait(false);
+            var outputPath = NormalizeWritableFilePath(options.OutputPath!);
+            await File.WriteAllTextAsync(outputPath, text).ConfigureAwait(false);
         } else {
             Console.WriteLine(text);
         }
@@ -85,16 +86,19 @@ internal static class Program {
             case "pptx":
             case "powerpoint":
             case "presentation":
+                var inputPath = ResolveInputFilePath(options);
                 var outputPath = options.OutputPath;
                 if (string.IsNullOrWhiteSpace(outputPath)) {
                     throw new InvalidOperationException("Export target 'pptx' requires --output <file.pptx>.");
                 }
 
+                outputPath = NormalizeWritableFilePath(outputPath);
+
                 new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
                     OutputPath = outputPath!,
-                    BaseDirectory = string.IsNullOrWhiteSpace(options.InputPath) || options.UseStdin || string.Equals(options.InputPath, "-", StringComparison.Ordinal)
+                    BaseDirectory = inputPath == null
                         ? Directory.GetCurrentDirectory()
-                        : Path.GetDirectoryName(Path.GetFullPath(options.InputPath!)),
+                        : Path.GetDirectoryName(inputPath),
                     MermaidRendererPath = options.MermaidRendererPath,
                     RenderMermaidDiagrams = options.RenderMermaidDiagrams
                 });
@@ -108,6 +112,8 @@ internal static class Program {
                     throw new InvalidOperationException("Export target 'xlsx' requires --output <file.xlsx>.");
                 }
 
+                workbookOutputPath = NormalizeWritableFilePath(workbookOutputPath);
+
                 new OfficeMarkupExcelExporter().Export(result.Document, new OfficeMarkupExcelExportOptions {
                     OutputPath = workbookOutputPath!,
                     SafePreflight = options.WorkbookSafePreflight,
@@ -119,16 +125,19 @@ internal static class Program {
             case "docx":
             case "word":
             case "document":
+                var documentInputPath = ResolveInputFilePath(options);
                 var documentOutputPath = options.OutputPath;
                 if (string.IsNullOrWhiteSpace(documentOutputPath)) {
                     throw new InvalidOperationException("Export target 'docx' requires --output <file.docx>.");
                 }
 
+                documentOutputPath = NormalizeWritableFilePath(documentOutputPath);
+
                 new OfficeMarkupWordExporter().Export(result.Document, new OfficeMarkupWordExportOptions {
                     OutputPath = documentOutputPath!,
-                    BaseDirectory = string.IsNullOrWhiteSpace(options.InputPath) || options.UseStdin || string.Equals(options.InputPath, "-", StringComparison.Ordinal)
+                    BaseDirectory = documentInputPath == null
                         ? Environment.CurrentDirectory
-                        : Path.GetDirectoryName(Path.GetFullPath(options.InputPath!))
+                        : Path.GetDirectoryName(documentInputPath)
                 });
                 WriteJson(new ExportEnvelope(documentOutputPath!, target));
                 return 0;
@@ -143,7 +152,8 @@ internal static class Program {
         }
 
         if (!string.IsNullOrWhiteSpace(options.InputPath)) {
-            return await File.ReadAllTextAsync(options.InputPath!).ConfigureAwait(false);
+            var inputPath = NormalizeExistingFilePath(options.InputPath!);
+            return await File.ReadAllTextAsync(inputPath).ConfigureAwait(false);
         }
 
         if (Console.IsInputRedirected) {
@@ -151,6 +161,38 @@ internal static class Program {
         }
 
         throw new InvalidOperationException("Input path is required. Use '-' or --stdin to read from standard input.");
+    }
+
+    private static string? ResolveInputFilePath(CliOptions options) {
+        if (options.UseStdin || string.Equals(options.InputPath, "-", StringComparison.Ordinal)) {
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(options.InputPath)) {
+            return null;
+        }
+
+        return NormalizeExistingFilePath(options.InputPath!);
+    }
+
+    private static string NormalizeExistingFilePath(string path) {
+        var fullPath = Path.GetFullPath(path);
+        if (!File.Exists(fullPath)) {
+            throw new FileNotFoundException($"The provided file path does not exist: {fullPath}", fullPath);
+        }
+
+        return fullPath;
+    }
+
+    private static string NormalizeWritableFilePath(string path) {
+        var fullPath = Path.GetFullPath(path);
+        var directory = Path.GetDirectoryName(fullPath);
+        if (string.IsNullOrWhiteSpace(directory)) {
+            throw new InvalidOperationException($"Unable to resolve an output directory for path '{path}'.");
+        }
+
+        Directory.CreateDirectory(directory);
+        return fullPath;
     }
 
     private static void WriteJson<T>(T value, TextWriter? writer = null) {

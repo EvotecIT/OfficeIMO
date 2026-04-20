@@ -301,7 +301,7 @@
         "officeimoMarkup.cliPath": {
           "type": "string",
           "default": "",
-          "description": "Optional path to OfficeIMO.Markup.Cli executable, DLL, or csproj. Empty uses the bundled CLI, then source-tree fallbacks."
+          "description": "Optional path to an OfficeIMO.Markup.Cli executable, DLL, or csproj. Empty uses the bundled CLI, then source-tree fallbacks."
         },
         "officeimoMarkup.defaultProfile": {
           "type": "string",

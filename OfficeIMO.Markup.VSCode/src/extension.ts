@@ -3,6 +3,15 @@ import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
+const allowedCliArtifactNames = new Set([
+  'officeimo.markup.cli',
+  'officeimo.markup.cli.csproj',
+  'officeimo.markup.cli.dll',
+  'officeimo.markup.cli.exe'
+]);
+
+let warnedAboutInvalidCliPath = false;
+
 type CliResult = {
   stdout: string;
   stderr: string;
@@ -1056,7 +1065,7 @@ function localMermaidInstallRoot(context: vscode.ExtensionContext): string {
 
 function resolveCliInvocation(context: vscode.ExtensionContext, command: string, args: string[]): { executable: string; args: string[] } {
   const configPath = vscode.workspace.getConfiguration('officeimoMarkup').get<string>('cliPath', '').trim();
-  const cliPath = configPath && fs.existsSync(configPath) ? configPath : resolveDefaultCliPath(context);
+  const cliPath = resolveConfiguredCliPath(configPath) ?? resolveDefaultCliPath(context);
   const commandArgs = [command, ...args];
 
   if (cliPath.endsWith('.csproj')) {
@@ -1073,6 +1082,30 @@ function resolveCliInvocation(context: vscode.ExtensionContext, command: string,
   }
 
   return { executable: cliPath, args: commandArgs };
+}
+
+function resolveConfiguredCliPath(configPath: string): string | undefined {
+  if (!configPath) {
+    return undefined;
+  }
+
+  const resolvedPath = resolveRealPath(path.resolve(configPath));
+  if (!fs.existsSync(resolvedPath)) {
+    return undefined;
+  }
+
+  if (isAllowedCliArtifact(resolvedPath)) {
+    return resolvedPath;
+  }
+
+  if (!warnedAboutInvalidCliPath) {
+    warnedAboutInvalidCliPath = true;
+    void vscode.window.showWarningMessage(
+      'officeimoMarkup.cliPath must point to an OfficeIMO.Markup.Cli executable, DLL, or csproj. Falling back to the bundled CLI.'
+    );
+  }
+
+  return undefined;
 }
 
 function resolveDefaultCliPath(context: vscode.ExtensionContext): string {
@@ -1095,6 +1128,10 @@ function findBuiltCliDll(csprojPath: string): string | undefined {
   ];
 
   return candidates.find((candidate) => fs.existsSync(candidate));
+}
+
+function isAllowedCliArtifact(cliPath: string): boolean {
+  return allowedCliArtifactNames.has(path.basename(cliPath).toLowerCase());
 }
 
 function workspaceRoot(context: vscode.ExtensionContext): string {
