@@ -345,8 +345,27 @@ public static class OfficeMarkupParser {
 
     private static bool ExtractAtDirective(ref string markup, string command, IDictionary<string, string> attributes) {
         var lines = markup.Split('\n').ToList();
+        var inFence = false;
+        char fenceMarker = default;
+        var fenceLength = 0;
+
         for (int i = 0; i < lines.Count; i++) {
-            if (!lines[i].TrimStart().StartsWith("@" + command, StringComparison.OrdinalIgnoreCase)) {
+            var trimmed = lines[i].TrimStart();
+            if (TryGetFenceInfo(trimmed, out var currentFenceMarker, out var currentFenceLength)) {
+                if (inFence && currentFenceMarker == fenceMarker && currentFenceLength >= fenceLength) {
+                    inFence = false;
+                    fenceMarker = default;
+                    fenceLength = 0;
+                } else if (!inFence) {
+                    inFence = true;
+                    fenceMarker = currentFenceMarker;
+                    fenceLength = currentFenceLength;
+                }
+
+                continue;
+            }
+
+            if (inFence || !trimmed.StartsWith("@" + command, StringComparison.OrdinalIgnoreCase)) {
                 continue;
             }
 

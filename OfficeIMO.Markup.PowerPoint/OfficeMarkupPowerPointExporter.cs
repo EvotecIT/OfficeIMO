@@ -1067,7 +1067,7 @@ public sealed class OfficeMarkupPowerPointExporter {
             return source;
         }
 
-        return Path.Combine(options.BaseDirectory!, source);
+        return Path.Join(options.BaseDirectory!, source);
     }
 
     private static string? TryExtractFunctionArgument(string value, string functionName) {
@@ -1705,10 +1705,7 @@ public sealed class OfficeMarkupPowerPointExporter {
         LayoutCursor cursor,
         OfficeMarkupPowerPointExportOptions options,
         SlideCanvasMetrics metrics) {
-        var path = ResolvePath(options, image.Source);
-        path = Path.GetFullPath(path);
-
-        if (File.Exists(path)) {
+        if (TryResolveFilePath(options, image.Source, out var path) && File.Exists(path)) {
             var box = ResolveBox(image.Placement, image.Attributes, cursor, Math.Min(2.2, cursor.RemainingHeight), metrics);
             if (ShouldAddVisualPanel(image.Attributes, defaultValue: false)) {
                 AddVisualPanel(slide, box, metrics, "OfficeIMO Markup Image Panel");
@@ -1720,6 +1717,33 @@ public sealed class OfficeMarkupPowerPointExporter {
             }
         } else if (options.IncludeUnsupportedBlocksAsText) {
             AddText(slide, $"Image: {image.Source}", cursor, height: 0.4);
+        }
+    }
+
+    private static bool TryResolveFilePath(
+        OfficeMarkupPowerPointExportOptions? options,
+        string source,
+        out string path) {
+        path = source;
+        if (string.IsNullOrWhiteSpace(source)) {
+            return false;
+        }
+
+        if (Uri.TryCreate(source, UriKind.Absolute, out var uri)) {
+            if (!uri.IsFile) {
+                return false;
+            }
+
+            path = uri.LocalPath;
+        } else {
+            path = ResolvePath(options, source);
+        }
+
+        try {
+            path = Path.GetFullPath(path);
+            return true;
+        } catch (Exception) when (!Debugger.IsAttached) {
+            return false;
         }
     }
 

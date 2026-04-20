@@ -309,7 +309,7 @@ public sealed class OfficeMarkupWordExporter {
             return source;
         }
 
-        return Path.Combine(options.BaseDirectory!, source);
+        return Path.Join(options.BaseDirectory!, source);
     }
 
     private static int? GetInt(IDictionary<string, string> attributes, string name) {

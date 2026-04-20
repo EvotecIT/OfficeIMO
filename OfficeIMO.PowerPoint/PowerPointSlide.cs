@@ -638,8 +638,14 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            slide.AddNamespaceDeclaration("mc", MarkupCompatibilityNamespace);
-            slide.AddNamespaceDeclaration(prefix, uri);
+            if (!string.Equals(slide.LookupNamespace("mc"), MarkupCompatibilityNamespace, StringComparison.Ordinal)) {
+                slide.AddNamespaceDeclaration("mc", MarkupCompatibilityNamespace);
+            }
+
+            if (!string.Equals(slide.LookupNamespace(prefix), uri, StringComparison.Ordinal)) {
+                slide.AddNamespaceDeclaration(prefix, uri);
+            }
+
             slide.MCAttributes = MergeIgnorableNamespace(slide.MCAttributes, prefix);
         }
 

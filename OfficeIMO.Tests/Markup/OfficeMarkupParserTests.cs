@@ -228,6 +228,36 @@ name: sample
     }
 
     [Fact]
+    public void Parse_PresentationProfile_DoesNotConsumeFencedSlideExamplesAsSlideMetadata() {
+        var markup = """
+---
+profile: presentation
+---
+
+# Demo
+
+@slide {
+  layout: blank
+}
+
+```bat
+@slide {
+  layout: section
+}
+```
+""";
+
+        var result = OfficeMarkupParser.Parse(markup);
+
+        Assert.False(result.HasErrors);
+        var slide = Assert.IsType<OfficeMarkupSlideBlock>(Assert.Single(result.Document.Blocks));
+        Assert.Equal("blank", slide.Layout);
+        var code = Assert.IsType<OfficeMarkupCodeBlock>(Assert.Single(slide.Blocks));
+        Assert.Contains("@slide {", code.Content, StringComparison.Ordinal);
+        Assert.Contains("layout: section", code.Content, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Parse_WorkbookProfile_MapsAtSheetAndColonRangeFormula() {
         var markup = """
 ---
@@ -1336,6 +1366,44 @@ profile: presentation
         } finally {
             if (Directory.Exists(tempDirectory)) {
                 Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void PowerPointExporter_DoesNotThrowForUrlImageSources() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+        var markup = """
+---
+profile: presentation
+---
+
+# Demo
+
+@slide {
+  layout: blank
+}
+
+::image src=https://example.com/logo.png
+""";
+
+        try {
+            var result = OfficeMarkupParser.Parse(markup);
+
+            Assert.False(result.HasErrors);
+
+            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
+                OutputPath = path,
+                IncludeUnsupportedBlocksAsText = true,
+                RenderMermaidDiagrams = false
+            });
+
+            using var presentation = PresentationDocument.Open(path, false);
+            var slidePart = Assert.Single(presentation.PresentationPart!.SlideParts);
+            Assert.Contains("Image: https://example.com/logo.png", slidePart.Slide.OuterXml, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(path)) {
+                File.Delete(path);
             }
         }
     }

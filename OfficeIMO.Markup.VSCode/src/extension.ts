@@ -1013,8 +1013,9 @@ function toDiagnosticSeverity(value?: string): vscode.DiagnosticSeverity {
 async function runCli(context: vscode.ExtensionContext, document: vscode.TextDocument, command: string, extraArgs: string[] = []): Promise<CliResult> {
   const profile = inferProfile(document);
   const invocation = resolveCliInvocation(context, command, ['--stdin', '--profile', profile, ...extraArgs]);
+  const cwd = documentWorkingDirectory(context, document);
 
-  const result = await runProcess(invocation.executable, invocation.args, workspaceRoot(context), document.getText());
+  const result = await runProcess(invocation.executable, invocation.args, cwd, document.getText());
   return result;
 }
 
@@ -1136,6 +1137,14 @@ function isAllowedCliArtifact(cliPath: string): boolean {
 
 function workspaceRoot(context: vscode.ExtensionContext): string {
   return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? path.resolve(resolveRealPath(context.extensionUri.fsPath), '..');
+}
+
+function documentWorkingDirectory(context: vscode.ExtensionContext, document: vscode.TextDocument): string {
+  if (document.uri.scheme === 'file' && document.uri.fsPath) {
+    return path.dirname(resolveRealPath(document.uri.fsPath));
+  }
+
+  return workspaceRoot(context);
 }
 
 function resolveRealPath(value: string): string {
