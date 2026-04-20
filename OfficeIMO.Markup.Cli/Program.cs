@@ -46,8 +46,23 @@ internal static class Program {
                     WriteHelp();
                     return 1;
             }
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             Console.Error.WriteLine(ex.Message);
+            return 1;
+        } catch (UnauthorizedAccessException ex) {
+            Console.Error.WriteLine(ex.Message);
+            return 1;
+        } catch (JsonException ex) {
+            Console.Error.WriteLine(ex.Message);
+            return 1;
+        } catch (InvalidOperationException ex) {
+            Console.Error.WriteLine(ex.Message);
+            return 1;
+        } catch (ArgumentException ex) {
+            Console.Error.WriteLine(ex.Message);
+            return 1;
+        } catch (Exception ex) {
+            Console.Error.WriteLine(ex.ToString());
             return 1;
         }
     }

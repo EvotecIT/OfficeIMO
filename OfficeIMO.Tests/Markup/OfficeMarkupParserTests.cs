@@ -168,6 +168,37 @@ graph LR
     }
 
     [Fact]
+    public void Parse_PresentationProfile_PreservesDirectiveLikeLinesInsideFencedCodeBlocks() {
+        var markup = """
+---
+profile: presentation
+---
+
+# Demo
+
+@slide {
+  layout: blank
+}
+
+```bat
+@echo off
+::chart type=column
+echo done
+```
+""";
+
+        var result = OfficeMarkupParser.Parse(markup);
+
+        Assert.False(result.HasErrors);
+        var slide = Assert.IsType<OfficeMarkupSlideBlock>(Assert.Single(result.Document.Blocks));
+        var code = Assert.IsType<OfficeMarkupCodeBlock>(Assert.Single(slide.Blocks));
+        Assert.Equal("bat", code.Language);
+        Assert.Contains("@echo off", code.Content, StringComparison.Ordinal);
+        Assert.Contains("::chart type=column", code.Content, StringComparison.Ordinal);
+        Assert.DoesNotContain(slide.Blocks, block => block is OfficeMarkupChartBlock or OfficeMarkupExtensionBlock);
+    }
+
+    [Fact]
     public void Parse_WorkbookProfile_MapsAtSheetAndColonRangeFormula() {
         var markup = """
 ---
@@ -1243,6 +1274,51 @@ profile: presentation
         } finally {
             if (Directory.Exists(tempDirectory)) {
                 Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void PowerPointExporter_HonorsCustomSlideSizeOptionsForPercentPlacement() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+        var markup = """
+---
+profile: presentation
+---
+
+# Custom Size
+
+@slide {
+  layout: blank
+}
+
+::textbox x=80% y=10% w=15% h=10%
+Scaled textbox
+""";
+
+        try {
+            var result = OfficeMarkupParser.Parse(markup);
+
+            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
+                OutputPath = path,
+                SlideWidthInches = 13.333,
+                SlideHeightInches = 7.5,
+                RenderMermaidDiagrams = false
+            });
+
+            using var presentation = PowerPointPresentation.Open(path);
+            Assert.Equal(13.333, presentation.SlideSize.WidthInches, 3);
+            Assert.Equal(7.5, presentation.SlideSize.HeightInches, 3);
+
+            var slide = Assert.Single(presentation.Slides);
+            var textBox = Assert.Single(slide.Shapes.OfType<PowerPointTextBox>(), box => box.Text.Contains("Scaled textbox", StringComparison.Ordinal));
+            Assert.Equal(13.333 * 0.80, textBox.LeftInches, 3);
+            Assert.Equal(7.5 * 0.10, textBox.TopInches, 3);
+            Assert.Equal(13.333 * 0.15, textBox.WidthInches, 3);
+            Assert.Equal(7.5 * 0.10, textBox.HeightInches, 3);
+        } finally {
+            if (File.Exists(path)) {
+                File.Delete(path);
             }
         }
     }

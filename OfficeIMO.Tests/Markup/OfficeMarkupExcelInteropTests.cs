@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 #if NET5_0_OR_GREATER
 using System.Runtime.Versioning;
 #endif
+using System.Reflection;
 using System.Threading;
 using OfficeIMO.Markup;
 using OfficeIMO.Markup.Excel;
@@ -108,7 +109,15 @@ Q4,320,150
                 if (Marshal.IsComObject(workbooks)) {
                     Marshal.FinalReleaseComObject(workbooks);
                 }
-            } catch (Exception ex) {
+            } catch (COMException ex) {
+                failure = ex;
+            } catch (InvalidOperationException ex) {
+                failure = ex;
+            } catch (MissingMethodException ex) {
+                failure = ex;
+            } catch (TargetInvocationException ex) {
+                failure = ex;
+            } catch (InvalidCastException ex) {
                 failure = ex;
             } finally {
                 try {
@@ -119,14 +128,20 @@ Q4,320,150
                             workbook,
                             new object[] { false });
                     }
-                } catch {
+                } catch (COMException) {
+                } catch (MissingMethodException) {
+                } catch (TargetInvocationException) {
+                } catch (InvalidOperationException) {
                 }
 
                 try {
                     if (excel != null) {
                         excel.GetType().InvokeMember("Quit", System.Reflection.BindingFlags.InvokeMethod, null, excel, null);
                     }
-                } catch {
+                } catch (COMException) {
+                } catch (MissingMethodException) {
+                } catch (TargetInvocationException) {
+                } catch (InvalidOperationException) {
                 }
 
                 if (workbook != null && Marshal.IsComObject(workbook)) {
@@ -136,9 +151,6 @@ Q4,320,150
                 if (excel != null && Marshal.IsComObject(excel)) {
                     Marshal.FinalReleaseComObject(excel);
                 }
-
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
             }
         });
 

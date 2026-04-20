@@ -398,9 +398,11 @@ public sealed class OfficeMarkupCSharpEmitter {
     }
 
     private static void EmitRangeValues(OfficeMarkupRangeBlock range, StringBuilder sb, string sheetExpression, string address) {
-        var startRow = 1;
-        var startColumn = 1;
+        int startRow;
+        int startColumn;
         if (!TryParseCellAddress(address, out startRow, out startColumn)) {
+            startRow = 1;
+            startColumn = 1;
             sb.AppendLine($"// Could not parse range start {CsString(range.Address)}. Values are emitted from row 1, column 1.");
         }
 

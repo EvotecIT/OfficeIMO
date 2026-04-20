@@ -23,6 +23,21 @@ public sealed class OfficeMarkupPowerPointExporter {
     private const double DesignerBodyWidth = 8.55;
     private const double DesignerBodyHeight = 2.95;
 
+    private readonly struct SlideCanvasMetrics {
+        public SlideCanvasMetrics(double width, double height) {
+            Width = width > 0 ? width : SlideWidth;
+            Height = height > 0 ? height : SlideHeight;
+        }
+
+        public double Width { get; }
+        public double Height { get; }
+        private double ScaleX => Width / SlideWidth;
+        private double ScaleY => Height / SlideHeight;
+
+        public double Horizontal(double value) => value * ScaleX;
+        public double Vertical(double value) => value * ScaleY;
+    }
+
     public void Export(OfficeMarkupDocument document, OfficeMarkupPowerPointExportOptions options) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
@@ -46,11 +61,13 @@ public sealed class OfficeMarkupPowerPointExporter {
         }
 
         var styleResolver = OfficeMarkupStyleResolver.Create(document);
+        var metrics = new SlideCanvasMetrics(options.SlideWidthInches, options.SlideHeightInches);
         using PowerPointPresentation presentation = PowerPointPresentation.Create(options.OutputPath);
+        presentation.SlideSize.SetSizeInches(metrics.Width, metrics.Height);
         var deck = presentation.UseDesigner(CreateDeckDesign(document), applyTheme: true);
         string? activeSection = null;
         foreach (var slideBlock in GetSlides(document)) {
-            ExportSlide(presentation, deck, slideBlock, options, styleResolver);
+            ExportSlide(presentation, deck, slideBlock, options, metrics, styleResolver);
             var section = NormalizeSectionName(slideBlock.Section);
             if (section != null && !string.Equals(activeSection, section, StringComparison.Ordinal)) {
                 presentation.AddSection(section, presentation.Slides.Count - 1);
@@ -74,10 +91,11 @@ public sealed class OfficeMarkupPowerPointExporter {
         PowerPointDeckComposer deck,
         OfficeMarkupSlideBlock slideBlock,
         OfficeMarkupPowerPointExportOptions options,
+        SlideCanvasMetrics metrics,
         OfficeMarkupStyleResolver styleResolver) {
-        if (TryExportDesignerSlide(presentation, deck, slideBlock, styleResolver, out var designedSlide)) {
+        if (TryExportDesignerSlide(presentation, deck, slideBlock, styleResolver, metrics, out var designedSlide)) {
             ApplyTransition(designedSlide!, slideBlock.Transition);
-            ApplyBackground(designedSlide!, slideBlock.Background, deck.Design.Theme, options);
+            ApplyBackground(designedSlide!, slideBlock.Background, deck.Design.Theme, options, metrics);
             if (!string.IsNullOrWhiteSpace(slideBlock.Notes)) {
                 designedSlide!.Notes.Text = slideBlock.Notes!;
             }
@@ -95,31 +113,44 @@ public sealed class OfficeMarkupPowerPointExporter {
             : presentation.AddSlide();
 
         ApplyTransition(slide, slideBlock.Transition);
-        ApplyBackground(slide, slideBlock.Background, deck.Design.Theme, options);
+        ApplyBackground(slide, slideBlock.Background, deck.Design.Theme, options, metrics);
 
         if (!useDesignerCanvas && !HasExplicitBackground(slideBlock)) {
-            AddMarkupCanvas(slide, deck.Design.Theme, slideBlock);
+            AddMarkupCanvas(slide, deck.Design.Theme, slideBlock, metrics);
         }
 
         if (!useDesignerCanvas && ShouldRenderSlideTitle(slideBlock)) {
-            var title = slide.AddTitleInches(slideBlock.Title!, TitleLeft, TitleTop, TitleWidth, TitleHeight);
+            var title = slide.AddTitleInches(
+                slideBlock.Title!,
+                metrics.Horizontal(TitleLeft),
+                metrics.Vertical(TitleTop),
+                metrics.Horizontal(TitleWidth),
+                metrics.Vertical(TitleHeight));
             ApplyTextStyle(title, styleResolver.Resolve("slide-title"));
         }
 
         var cursor = useDesignerCanvas
-            ? new LayoutCursor(DesignerBodyLeft, DesignerBodyTop, DesignerBodyWidth, DesignerBodyHeight)
-            : new LayoutCursor(BodyLeft, BodyTop, BodyWidth, BodyHeight);
+            ? new LayoutCursor(
+                metrics.Horizontal(DesignerBodyLeft),
+                metrics.Vertical(DesignerBodyTop),
+                metrics.Horizontal(DesignerBodyWidth),
+                metrics.Vertical(DesignerBodyHeight))
+            : new LayoutCursor(
+                metrics.Horizontal(BodyLeft),
+                metrics.Vertical(BodyTop),
+                metrics.Horizontal(BodyWidth),
+                metrics.Vertical(BodyHeight));
         for (int index = 0; index < slideBlock.Blocks.Count; index++) {
             var block = slideBlock.Blocks[index];
             if (IsColumns(block)) {
-                index = ExportColumns(slide, slideBlock.Blocks, index, options, cursor, styleResolver);
+                index = ExportColumns(slide, slideBlock.Blocks, index, options, metrics, cursor, styleResolver);
                 if (!HasExplicitPlacement(block)) {
                     cursor.MoveToBottom();
                 }
                 continue;
             }
 
-            ExportBlock(slide, block, options, cursor, styleResolver);
+            ExportBlock(slide, block, options, metrics, cursor, styleResolver);
         }
 
         if (!string.IsNullOrWhiteSpace(slideBlock.Notes)) {
@@ -132,8 +163,9 @@ public sealed class OfficeMarkupPowerPointExporter {
         PowerPointDeckComposer deck,
         OfficeMarkupSlideBlock slideBlock,
         OfficeMarkupStyleResolver styleResolver,
+        SlideCanvasMetrics metrics,
         out PowerPointSlide? slide) {
-        if (TryExportMarkupSummarySlide(presentation, deck.Design.Theme, slideBlock, styleResolver, out slide)
+        if (TryExportMarkupSummarySlide(presentation, deck.Design.Theme, slideBlock, styleResolver, metrics, out slide)
             || TryExportDesignerSectionSlide(deck, slideBlock, out slide)
             || TryExportDesignerProcessSlide(deck, slideBlock, out slide)
             || TryExportDesignerTwoColumnSlide(deck, slideBlock, styleResolver, out slide)
@@ -149,6 +181,7 @@ public sealed class OfficeMarkupPowerPointExporter {
         PowerPointDesignTheme theme,
         OfficeMarkupSlideBlock slideBlock,
         OfficeMarkupStyleResolver styleResolver,
+        SlideCanvasMetrics metrics,
         out PowerPointSlide? slide) {
         slide = null;
         var layout = Normalize(slideBlock.Layout ?? string.Empty);
@@ -176,9 +209,9 @@ public sealed class OfficeMarkupPowerPointExporter {
         }
 
         slide = presentation.AddSlide();
-        AddMarkupCanvas(slide, theme, slideBlock, strong: true);
+        AddMarkupCanvas(slide, theme, slideBlock, metrics, strong: true);
 
-        var eyebrow = slide.AddTextBoxInches("OfficeIMO Markup", 0.72, 0.42, 2.2, 0.28);
+        var eyebrow = slide.AddTextBoxInches("OfficeIMO Markup", metrics.Horizontal(0.72), metrics.Vertical(0.42), metrics.Horizontal(2.2), metrics.Vertical(0.28));
         ApplyTextStyle(eyebrow, new OfficeMarkupResolvedStyle {
             FontName = theme.BodyFontName,
             FontSize = 9,
@@ -186,7 +219,7 @@ public sealed class OfficeMarkupPowerPointExporter {
             TextColor = theme.AccentColor
         });
 
-        var title = slide.AddTitleInches(slideBlock.Title ?? "Summary", 0.72, 0.72, 5.7, 0.78);
+        var title = slide.AddTitleInches(slideBlock.Title ?? "Summary", metrics.Horizontal(0.72), metrics.Vertical(0.72), metrics.Horizontal(5.7), metrics.Vertical(0.78));
         ApplyTextStyle(title, new OfficeMarkupResolvedStyle {
             FontName = theme.HeadingFontName,
             FontSize = 30,
@@ -196,11 +229,11 @@ public sealed class OfficeMarkupPowerPointExporter {
 
         var paragraph = slideBlock.Blocks.OfType<OfficeMarkupParagraphBlock>().FirstOrDefault();
         if (paragraph != null && !string.IsNullOrWhiteSpace(paragraph.Text)) {
-            var subtitle = slide.AddTextBoxInches(paragraph.Text.Trim(), 0.76, 1.48, 5.4, 0.52);
+            var subtitle = slide.AddTextBoxInches(paragraph.Text.Trim(), metrics.Horizontal(0.76), metrics.Vertical(1.48), metrics.Horizontal(5.4), metrics.Vertical(0.52));
             ApplyTextStyle(subtitle, styleResolver.Resolve("lead"));
         }
 
-        AddSummaryCards(slide, theme, items);
+        AddSummaryCards(slide, theme, items, metrics);
         return true;
     }
 
@@ -317,6 +350,7 @@ public sealed class OfficeMarkupPowerPointExporter {
         IList<OfficeMarkupBlock> blocks,
         int startIndex,
         OfficeMarkupPowerPointExportOptions options,
+        SlideCanvasMetrics metrics,
         LayoutCursor cursor,
         OfficeMarkupStyleResolver styleResolver) {
         var columnsBlock = blocks[startIndex];
@@ -347,8 +381,8 @@ public sealed class OfficeMarkupPowerPointExporter {
             return startIndex;
         }
 
-        var region = ResolveBox(GetPlacement(columnsBlock), columnsBlock.Attributes, cursor, cursor.Height);
-        var gap = ResolveGap(columnsBlock);
+        var region = ResolveBox(GetPlacement(columnsBlock), columnsBlock.Attributes, cursor, cursor.Height, metrics);
+        var gap = ResolveGap(columnsBlock, metrics);
         var columnWidth = (region.Width - (gap * (columns.Count - 1))) / columns.Count;
         for (int columnIndex = 0; columnIndex < columns.Count; columnIndex++) {
             var columnCursor = new LayoutCursor(
@@ -357,7 +391,7 @@ public sealed class OfficeMarkupPowerPointExporter {
                 columnWidth,
                 region.Height);
             foreach (var block in columns[columnIndex]) {
-                ExportBlock(slide, block, options, columnCursor, styleResolver);
+                ExportBlock(slide, block, options, metrics, columnCursor, styleResolver);
             }
         }
 
@@ -368,6 +402,7 @@ public sealed class OfficeMarkupPowerPointExporter {
         PowerPointSlide slide,
         OfficeMarkupBlock block,
         OfficeMarkupPowerPointExportOptions options,
+        SlideCanvasMetrics metrics,
         LayoutCursor cursor,
         OfficeMarkupStyleResolver styleResolver) {
         switch (block) {
@@ -381,28 +416,28 @@ public sealed class OfficeMarkupPowerPointExporter {
                 AddList(slide, list, cursor, styleResolver.Resolve("body"));
                 break;
             case OfficeMarkupImageBlock image:
-                AddImage(slide, image, cursor, options);
+                AddImage(slide, image, cursor, options, metrics);
                 break;
             case OfficeMarkupTableBlock table:
                 AddTable(slide, table, cursor);
                 break;
             case OfficeMarkupDiagramBlock diagram:
-                AddDiagram(slide, diagram, cursor, options, styleResolver);
+                AddDiagram(slide, diagram, cursor, options, metrics, styleResolver);
                 break;
             case OfficeMarkupChartBlock chart:
-                AddChart(slide, chart, cursor, options);
+                AddChart(slide, chart, cursor, options, metrics);
                 break;
             case OfficeMarkupTextBoxBlock textBox:
-                AddTextBox(slide, textBox, cursor, styleResolver);
+                AddTextBox(slide, textBox, cursor, metrics, styleResolver);
                 break;
             case OfficeMarkupCardBlock card:
-                AddCard(slide, card, cursor, styleResolver);
+                AddCard(slide, card, cursor, metrics, styleResolver);
                 break;
             case OfficeMarkupColumnsBlock:
             case OfficeMarkupColumnBlock:
                 break;
             case OfficeMarkupExtensionBlock extension:
-                ExportExtension(slide, extension, options, cursor, styleResolver);
+                ExportExtension(slide, extension, options, metrics, cursor, styleResolver);
                 break;
             default:
                 if (options.IncludeUnsupportedBlocksAsText) {
@@ -417,14 +452,15 @@ public sealed class OfficeMarkupPowerPointExporter {
         PowerPointSlide slide,
         OfficeMarkupExtensionBlock extension,
         OfficeMarkupPowerPointExportOptions options,
+        SlideCanvasMetrics metrics,
         LayoutCursor cursor,
         OfficeMarkupStyleResolver styleResolver) {
         switch (Normalize(extension.Command)) {
             case "textbox":
-                AddTextBox(slide, extension.Body, null, extension.Attributes, cursor, styleResolver.Resolve(extension));
+                AddTextBox(slide, extension.Body, null, extension.Attributes, cursor, metrics, styleResolver.Resolve(extension));
                 break;
             case "card":
-                AddCard(slide, GetAttribute(extension.Attributes, "title"), extension.Body, null, extension.Attributes, cursor, styleResolver.Resolve(extension));
+                AddCard(slide, GetAttribute(extension.Attributes, "title"), extension.Body, null, extension.Attributes, cursor, metrics, styleResolver.Resolve(extension));
                 break;
             case "column":
             case "left":
@@ -451,8 +487,8 @@ public sealed class OfficeMarkupPowerPointExporter {
         cursor.Advance(actualHeight);
     }
 
-    private static void AddTextBox(PowerPointSlide slide, OfficeMarkupTextBoxBlock textBox, LayoutCursor cursor, OfficeMarkupStyleResolver styleResolver) =>
-        AddTextBox(slide, textBox.Text, textBox.Placement, textBox.Attributes, cursor, styleResolver.Resolve(textBox));
+    private static void AddTextBox(PowerPointSlide slide, OfficeMarkupTextBoxBlock textBox, LayoutCursor cursor, SlideCanvasMetrics metrics, OfficeMarkupStyleResolver styleResolver) =>
+        AddTextBox(slide, textBox.Text, textBox.Placement, textBox.Attributes, cursor, metrics, styleResolver.Resolve(textBox));
 
     private static void AddTextBox(
         PowerPointSlide slide,
@@ -460,8 +496,9 @@ public sealed class OfficeMarkupPowerPointExporter {
         OfficeMarkupPlacement? placement,
         IDictionary<string, string> attributes,
         LayoutCursor cursor,
+        SlideCanvasMetrics metrics,
         OfficeMarkupResolvedStyle? style) {
-        var box = ResolveBox(placement, attributes, cursor, 0.62);
+        var box = ResolveBox(placement, attributes, cursor, 0.62, metrics);
         var textBox = slide.AddTextBoxInches(text.Trim(), box.Left, box.Top, box.Width, box.Height);
         ApplyTextStyle(textBox, style);
         if (!HasExplicitPlacement(placement, attributes)) {
@@ -469,8 +506,8 @@ public sealed class OfficeMarkupPowerPointExporter {
         }
     }
 
-    private static void AddCard(PowerPointSlide slide, OfficeMarkupCardBlock card, LayoutCursor cursor, OfficeMarkupStyleResolver styleResolver) =>
-        AddCard(slide, card.Title, card.Body, card.Placement, card.Attributes, cursor, styleResolver.Resolve(card));
+    private static void AddCard(PowerPointSlide slide, OfficeMarkupCardBlock card, LayoutCursor cursor, SlideCanvasMetrics metrics, OfficeMarkupStyleResolver styleResolver) =>
+        AddCard(slide, card.Title, card.Body, card.Placement, card.Attributes, cursor, metrics, styleResolver.Resolve(card));
 
     private static void AddCard(
         PowerPointSlide slide,
@@ -479,6 +516,7 @@ public sealed class OfficeMarkupPowerPointExporter {
         OfficeMarkupPlacement? placement,
         IDictionary<string, string> attributes,
         LayoutCursor cursor,
+        SlideCanvasMetrics metrics,
         OfficeMarkupResolvedStyle? style) {
         var text = string.IsNullOrWhiteSpace(title)
             ? body.Trim()
@@ -487,7 +525,7 @@ public sealed class OfficeMarkupPowerPointExporter {
             return;
         }
 
-        var box = ResolveBox(placement, attributes, cursor, Math.Min(1.25, cursor.RemainingHeight));
+        var box = ResolveBox(placement, attributes, cursor, Math.Min(1.25, cursor.RemainingHeight), metrics);
         AddPanel(slide, box, style, "OfficeIMO Markup Card Panel");
         var textBox = slide.AddTextBoxInches(text, box.Left, box.Top, box.Width, box.Height);
         ApplyTextStyle(textBox, style);
@@ -520,10 +558,11 @@ public sealed class OfficeMarkupPowerPointExporter {
         OfficeMarkupDiagramBlock diagram,
         LayoutCursor cursor,
         OfficeMarkupPowerPointExportOptions options,
+        SlideCanvasMetrics metrics,
         OfficeMarkupStyleResolver styleResolver) {
-        var box = ResolveBox(diagram.Placement, diagram.Attributes, cursor, Math.Min(2.4, cursor.RemainingHeight));
+        var box = ResolveBox(diagram.Placement, diagram.Attributes, cursor, Math.Min(2.4, cursor.RemainingHeight), metrics);
         if (ShouldAddVisualPanel(diagram.Attributes, defaultValue: true)) {
-            AddVisualPanel(slide, box, "OfficeIMO Markup Diagram Panel");
+            AddVisualPanel(slide, box, metrics, "OfficeIMO Markup Diagram Panel");
         }
 
         if (OfficeMarkupMermaidRenderer.TryRenderPng(diagram, options, out var imagePath)) {
@@ -745,6 +784,7 @@ public sealed class OfficeMarkupPowerPointExporter {
         PowerPointSlide slide,
         PowerPointDesignTheme theme,
         OfficeMarkupSlideBlock slideBlock,
+        SlideCanvasMetrics metrics,
         bool strong = false) {
         if (!HasExplicitBackground(slideBlock)) {
             slide.BackgroundColor = strong ? theme.SurfaceColor : theme.BackgroundColor;
@@ -752,10 +792,10 @@ public sealed class OfficeMarkupPowerPointExporter {
 
         var wash = slide.AddShapeInches(
             A.ShapeTypeValues.Parallelogram,
-            strong ? 6.95 : 8.18,
-            -0.12,
-            strong ? 2.95 : 1.96,
-            SlideHeight + 0.34,
+            metrics.Horizontal(strong ? 6.95 : 8.18),
+            metrics.Vertical(-0.12),
+            metrics.Horizontal(strong ? 2.95 : 1.96),
+            metrics.Vertical(SlideHeight + 0.34),
             "OfficeIMO Markup Canvas Wash");
         wash.FillColor = theme.AccentLightColor;
         wash.FillTransparency = strong ? 8 : 24;
@@ -764,10 +804,10 @@ public sealed class OfficeMarkupPowerPointExporter {
 
         var rail = slide.AddShapeInches(
             A.ShapeTypeValues.Rectangle,
-            strong ? 9.72 : 9.82,
+            metrics.Horizontal(strong ? 9.72 : 9.82),
             0,
-            strong ? 0.12 : 0.08,
-            SlideHeight,
+            metrics.Horizontal(strong ? 0.12 : 0.08),
+            metrics.Height,
             "OfficeIMO Markup Canvas Rail");
         rail.FillColor = theme.AccentColor;
         rail.FillTransparency = strong ? 0 : 16;
@@ -776,24 +816,24 @@ public sealed class OfficeMarkupPowerPointExporter {
 
         var rule = slide.AddShapeInches(
             A.ShapeTypeValues.Rectangle,
-            0.72,
-            strong ? 1.78 : 0.98,
-            strong ? 1.2 : 0.82,
-            0.035,
+            metrics.Horizontal(0.72),
+            metrics.Vertical(strong ? 1.78 : 0.98),
+            metrics.Horizontal(strong ? 1.2 : 0.82),
+            metrics.Vertical(0.035),
             "OfficeIMO Markup Canvas Rule");
         rule.FillColor = theme.AccentColor;
         rule.OutlineColor = theme.AccentColor;
         rule.OutlineWidthPoints = 0;
     }
 
-    private static void AddSummaryCards(PowerPointSlide slide, PowerPointDesignTheme theme, IReadOnlyList<string> items) {
+    private static void AddSummaryCards(PowerPointSlide slide, PowerPointDesignTheme theme, IReadOnlyList<string> items, SlideCanvasMetrics metrics) {
         var count = Math.Min(4, items.Count);
-        var gap = 0.22;
-        var left = 0.72;
-        var top = 2.28;
-        var totalWidth = 8.28;
+        var gap = metrics.Horizontal(0.22);
+        var left = metrics.Horizontal(0.72);
+        var top = metrics.Vertical(2.28);
+        var totalWidth = metrics.Horizontal(8.28);
         var cardWidth = (totalWidth - (gap * (count - 1))) / count;
-        var cardHeight = 1.62;
+        var cardHeight = metrics.Vertical(1.62);
 
         for (var index = 0; index < count; index++) {
             var x = left + index * (cardWidth + gap);
@@ -813,13 +853,13 @@ public sealed class OfficeMarkupPowerPointExporter {
                 x,
                 top,
                 cardWidth,
-                0.08,
+                metrics.Vertical(0.08),
                 "OfficeIMO Markup Summary Card Accent");
             accent.FillColor = index % 2 == 0 ? theme.AccentColor : theme.WarningColor;
             accent.OutlineColor = accent.FillColor;
             accent.OutlineWidthPoints = 0;
 
-            var number = slide.AddTextBoxInches((index + 1).ToString("00", CultureInfo.InvariantCulture), x + 0.18, top + 0.25, 0.52, 0.3);
+            var number = slide.AddTextBoxInches((index + 1).ToString("00", CultureInfo.InvariantCulture), x + metrics.Horizontal(0.18), top + metrics.Vertical(0.25), metrics.Horizontal(0.52), metrics.Vertical(0.3));
             ApplyTextStyle(number, new OfficeMarkupResolvedStyle {
                 FontName = theme.HeadingFontName,
                 FontSize = 10,
@@ -827,7 +867,7 @@ public sealed class OfficeMarkupPowerPointExporter {
                 TextColor = theme.AccentColor
             });
 
-            var text = slide.AddTextBoxInches(items[index], x + 0.18, top + 0.65, cardWidth - 0.36, 0.68);
+            var text = slide.AddTextBoxInches(items[index], x + metrics.Horizontal(0.18), top + metrics.Vertical(0.65), cardWidth - metrics.Horizontal(0.36), metrics.Vertical(0.68));
             ApplyTextStyle(text, new OfficeMarkupResolvedStyle {
                 FontName = theme.BodyFontName,
                 FontSize = 14,
@@ -917,11 +957,11 @@ public sealed class OfficeMarkupPowerPointExporter {
         }
 
         for (var index = startIndex; index < blocks.Count; index++) {
-            ExportBlock(slide, blocks[index], textOnlyOptions, cursor, styleResolver);
+            ExportBlock(slide, blocks[index], textOnlyOptions, new SlideCanvasMetrics(SlideWidth, SlideHeight), cursor, styleResolver);
         }
     }
 
-    private static void ApplyBackground(PowerPointSlide slide, string? background, PowerPointDesignTheme theme, OfficeMarkupPowerPointExportOptions options) {
+    private static void ApplyBackground(PowerPointSlide slide, string? background, PowerPointDesignTheme theme, OfficeMarkupPowerPointExportOptions options, SlideCanvasMetrics metrics) {
         var spec = ParseBackground(background, theme, options);
         if (!string.IsNullOrWhiteSpace(spec.GradientStartColor) && !string.IsNullOrWhiteSpace(spec.GradientEndColor)) {
             slide.SetBackgroundGradient(
@@ -941,8 +981,8 @@ public sealed class OfficeMarkupPowerPointExporter {
                 A.ShapeTypeValues.Rectangle,
                 0,
                 0,
-                SlideWidth,
-                SlideHeight,
+                metrics.Width,
+                metrics.Height,
                 "OfficeIMO Markup Background Overlay");
             overlay.FillColor = spec.OverlayColor;
             overlay.FillTransparency = spec.OverlayTransparency;
@@ -1256,12 +1296,12 @@ public sealed class OfficeMarkupPowerPointExporter {
     private static bool ShouldAddChartPanel(OfficeMarkupChartBlock chart) =>
         !chart.Attributes.TryGetValue("panel", out var value) || !TryParseBool(value, out var parsed) || parsed;
 
-    private static void AddChartPanel(PowerPointSlide slide, LayoutCursor box) {
+    private static void AddChartPanel(PowerPointSlide slide, LayoutCursor box, SlideCanvasMetrics metrics) {
         const double padding = 0.12;
-        var left = Math.Max(0.25, box.Left - padding);
-        var top = Math.Max(0.25, box.Top - padding);
-        var right = Math.Min(SlideWidth - 0.25, box.Left + box.Width + padding);
-        var bottom = Math.Min(SlideHeight - 0.25, box.Top + box.Height + padding);
+        var left = Math.Max(metrics.Horizontal(0.25), box.Left - metrics.Horizontal(padding));
+        var top = Math.Max(metrics.Vertical(0.25), box.Top - metrics.Vertical(padding));
+        var right = Math.Min(metrics.Width - metrics.Horizontal(0.25), box.Left + box.Width + metrics.Horizontal(padding));
+        var bottom = Math.Min(metrics.Height - metrics.Vertical(0.25), box.Top + box.Height + metrics.Vertical(padding));
 
         var panel = slide.AddShapeInches(
             A.ShapeTypeValues.Rectangle,
@@ -1531,7 +1571,8 @@ public sealed class OfficeMarkupPowerPointExporter {
         PowerPointSlide slide,
         OfficeMarkupChartBlock chart,
         LayoutCursor cursor,
-        OfficeMarkupPowerPointExportOptions options) {
+        OfficeMarkupPowerPointExportOptions options,
+        SlideCanvasMetrics metrics) {
         if (!TryCreateChartData(chart, out var data)) {
             if (options.IncludeUnsupportedBlocksAsText) {
                 AddText(slide, $"Chart: {chart.Title ?? chart.ChartType}", cursor, height: 0.55);
@@ -1540,9 +1581,9 @@ public sealed class OfficeMarkupPowerPointExporter {
             return;
         }
 
-        var box = ResolveBox(chart.Placement, chart.Attributes, cursor, Math.Min(2.4, cursor.RemainingHeight));
+        var box = ResolveBox(chart.Placement, chart.Attributes, cursor, Math.Min(2.4, cursor.RemainingHeight), metrics);
         if (ShouldAddChartPanel(chart)) {
-            AddChartPanel(slide, box);
+            AddChartPanel(slide, box, metrics);
         }
 
         var nativeChart = AddNativeChart(slide, chart.ChartType, data, box);
@@ -1634,14 +1675,15 @@ public sealed class OfficeMarkupPowerPointExporter {
         PowerPointSlide slide,
         OfficeMarkupImageBlock image,
         LayoutCursor cursor,
-        OfficeMarkupPowerPointExportOptions options) {
+        OfficeMarkupPowerPointExportOptions options,
+        SlideCanvasMetrics metrics) {
         var path = ResolvePath(options, image.Source);
         path = Path.GetFullPath(path);
 
         if (File.Exists(path)) {
-            var box = ResolveBox(image.Placement, image.Attributes, cursor, Math.Min(2.2, cursor.RemainingHeight));
+            var box = ResolveBox(image.Placement, image.Attributes, cursor, Math.Min(2.2, cursor.RemainingHeight), metrics);
             if (ShouldAddVisualPanel(image.Attributes, defaultValue: false)) {
-                AddVisualPanel(slide, box, "OfficeIMO Markup Image Panel");
+                AddVisualPanel(slide, box, metrics, "OfficeIMO Markup Image Panel");
             }
 
             AddPicture(slide, path, box, GetAttribute(image.Attributes, "fit"));
@@ -1682,12 +1724,12 @@ public sealed class OfficeMarkupPowerPointExporter {
         return string.IsNullOrWhiteSpace(value) ? defaultValue : IsTruthy(value!);
     }
 
-    private static void AddVisualPanel(PowerPointSlide slide, LayoutCursor box, string name) {
+    private static void AddVisualPanel(PowerPointSlide slide, LayoutCursor box, SlideCanvasMetrics metrics, string name) {
         const double padding = 0.08;
-        var left = Math.Max(0.18, box.Left - padding);
-        var top = Math.Max(0.18, box.Top - padding);
-        var right = Math.Min(SlideWidth - 0.18, box.Left + box.Width + padding);
-        var bottom = Math.Min(SlideHeight - 0.18, box.Top + box.Height + padding);
+        var left = Math.Max(metrics.Horizontal(0.18), box.Left - metrics.Horizontal(padding));
+        var top = Math.Max(metrics.Vertical(0.18), box.Top - metrics.Vertical(padding));
+        var right = Math.Min(metrics.Width - metrics.Horizontal(0.18), box.Left + box.Width + metrics.Horizontal(padding));
+        var bottom = Math.Min(metrics.Height - metrics.Vertical(0.18), box.Top + box.Height + metrics.Vertical(padding));
         var panel = slide.AddShapeInches(
             A.ShapeTypeValues.Rectangle,
             left,
@@ -1774,20 +1816,21 @@ public sealed class OfficeMarkupPowerPointExporter {
         OfficeMarkupPlacement? placement,
         IDictionary<string, string> attributes,
         LayoutCursor fallback,
-        double defaultHeight) {
+        double defaultHeight,
+        SlideCanvasMetrics metrics) {
         if (!HasExplicitPlacement(placement, attributes)) {
-            return new LayoutCursor(fallback.Left, fallback.Top, fallback.Width, Math.Min(defaultHeight, fallback.RemainingHeight));
+            return new LayoutCursor(fallback.Left, fallback.Top, fallback.Width, Math.Min(metrics.Vertical(defaultHeight), fallback.RemainingHeight));
         }
 
-        var left = ParsePercentOrInches(PlacementValue(placement, attributes, "x"), fallback.Left, 10.0);
-        var top = ParsePercentOrInches(PlacementValue(placement, attributes, "y"), fallback.Top, 5.625);
-        var width = ParsePercentOrInches(PlacementValue(placement, attributes, "w"), fallback.Width, 10.0);
-        var height = ParsePercentOrInches(PlacementValue(placement, attributes, "h"), defaultHeight, 5.625);
+        var left = ParsePercentOrInches(PlacementValue(placement, attributes, "x"), fallback.Left, metrics.Width);
+        var top = ParsePercentOrInches(PlacementValue(placement, attributes, "y"), fallback.Top, metrics.Height);
+        var width = ParsePercentOrInches(PlacementValue(placement, attributes, "w"), fallback.Width, metrics.Width);
+        var height = ParsePercentOrInches(PlacementValue(placement, attributes, "h"), Math.Min(metrics.Vertical(defaultHeight), fallback.RemainingHeight), metrics.Height);
         return new LayoutCursor(left, top, width, height);
     }
 
-    private static LayoutCursor ResolveBox(IDictionary<string, string> attributes, LayoutCursor fallback, double defaultHeight) =>
-        ResolveBox(null, attributes, fallback, defaultHeight);
+    private static LayoutCursor ResolveBox(IDictionary<string, string> attributes, LayoutCursor fallback, double defaultHeight, SlideCanvasMetrics metrics) =>
+        ResolveBox(null, attributes, fallback, defaultHeight, metrics);
 
     private static bool HasExplicitPlacement(OfficeMarkupBlock block) =>
         HasExplicitPlacement(GetPlacement(block), block.Attributes);
@@ -2031,7 +2074,7 @@ public sealed class OfficeMarkupPowerPointExporter {
         }
     }
 
-    private static double ResolveGap(OfficeMarkupBlock block) {
+    private static double ResolveGap(OfficeMarkupBlock block, SlideCanvasMetrics metrics) {
         string? value = null;
         if (block is OfficeMarkupColumnsBlock columns) {
             value = columns.Gap;
@@ -2041,7 +2084,7 @@ public sealed class OfficeMarkupPowerPointExporter {
             value = GetAttribute(block.Attributes, "gap");
         }
 
-        return ParsePercentOrInches(value, 0.28, 10.0);
+        return ParsePercentOrInches(value, metrics.Horizontal(0.28), metrics.Width);
     }
 
     private static string? GetAttribute(IDictionary<string, string> attributes, string name) =>

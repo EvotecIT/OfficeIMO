@@ -106,10 +106,9 @@ public sealed class OfficeMarkupStyleResolver {
             style.FontName = value;
         }
 
-        if (TryGetAttribute(attributes, "font-size", out value) || TryGetAttribute(attributes, "fontsize", out value) || TryGetAttribute(attributes, "size", out value)) {
-            if (int.TryParse(TrimUnit(value), out var fontSize)) {
-                style.FontSize = fontSize;
-            }
+        if ((TryGetAttribute(attributes, "font-size", out value) || TryGetAttribute(attributes, "fontsize", out value) || TryGetAttribute(attributes, "size", out value))
+            && int.TryParse(TrimUnit(value), out var fontSize)) {
+            style.FontSize = fontSize;
         }
 
         if (TryGetAttribute(attributes, "bold", out value) && TryParseBool(value, out var bold)) {

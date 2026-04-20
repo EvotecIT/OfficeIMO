@@ -355,9 +355,11 @@ public sealed class OfficeMarkupPowerShellEmitter {
                 case OfficeMarkupRangeBlock range:
                     var (rangeWorksheetExpression, rangeAddress) = ResolveWorkbookTarget(range.Sheet, range.Address);
                     sb.AppendLine($"# Range {range.Address}");
-                    var startRow = 1;
-                    var startColumn = 1;
+                    int startRow;
+                    int startColumn;
                     if (!TryParseCellAddress(rangeAddress, out startRow, out startColumn)) {
+                        startRow = 1;
+                        startColumn = 1;
                         sb.AppendLine("# Could not parse range start. Values are emitted from row 1, column 1.");
                     }
 

@@ -192,6 +192,9 @@ public static class OfficeMarkupParser {
         OfficeMarkupSlideBlock? slideContext) {
         var lines = markup.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         var markdownLines = new List<string>();
+        var inFence = false;
+        char fenceMarker = default;
+        var fenceLength = 0;
 
         void FlushMarkdown() {
             var markdown = string.Join("\n", markdownLines).Trim('\n');
@@ -206,6 +209,28 @@ public static class OfficeMarkupParser {
 
         for (int i = 0; i < lines.Length; i++) {
             var trimmed = lines[i].TrimStart();
+            if (TryGetFenceInfo(trimmed, out var currentFenceMarker, out var currentFenceLength)) {
+                markdownLines.Add(lines[i]);
+                if (inFence) {
+                    if (currentFenceMarker == fenceMarker && currentFenceLength >= fenceLength) {
+                        inFence = false;
+                        fenceMarker = default;
+                        fenceLength = 0;
+                    }
+                } else {
+                    inFence = true;
+                    fenceMarker = currentFenceMarker;
+                    fenceLength = currentFenceLength;
+                }
+
+                continue;
+            }
+
+            if (inFence) {
+                markdownLines.Add(lines[i]);
+                continue;
+            }
+
             if (trimmed.StartsWith("::", StringComparison.Ordinal)) {
                 FlushMarkdown();
                 var directive = ReadColonDirective(lines, ref i);
@@ -238,6 +263,32 @@ public static class OfficeMarkupParser {
         }
 
         FlushMarkdown();
+    }
+
+    private static bool TryGetFenceInfo(string line, out char marker, out int length) {
+        marker = default;
+        length = 0;
+        if (string.IsNullOrWhiteSpace(line)) {
+            return false;
+        }
+
+        char candidate = line[0];
+        if (candidate != '`' && candidate != '~') {
+            return false;
+        }
+
+        var index = 0;
+        while (index < line.Length && line[index] == candidate) {
+            index++;
+        }
+
+        if (index < 3) {
+            return false;
+        }
+
+        marker = candidate;
+        length = index;
+        return true;
     }
 
     private static string AppendBlockText(string? current, string value) {
