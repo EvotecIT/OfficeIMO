@@ -1067,7 +1067,7 @@ public sealed class OfficeMarkupPowerPointExporter {
             return source;
         }
 
-        return Path.Join(options.BaseDirectory!, source);
+        return Path.Combine(options.BaseDirectory!, source);
     }
 
     private static string? TryExtractFunctionArgument(string value, string functionName) {
@@ -1814,7 +1814,7 @@ public sealed class OfficeMarkupPowerPointExporter {
         var width = box.Width;
         var height = box.Height;
 
-        if (TryReadPngSize(path, out var pixelWidth, out var pixelHeight) && pixelWidth > 0 && pixelHeight > 0) {
+        if (TryReadImageSize(path, out var pixelWidth, out var pixelHeight) && pixelWidth > 0 && pixelHeight > 0) {
             var imageAspect = pixelWidth / (double)pixelHeight;
             var boxAspect = box.Width / box.Height;
             if (imageAspect > boxAspect) {
@@ -1829,25 +1829,93 @@ public sealed class OfficeMarkupPowerPointExporter {
         slide.AddPictureInches(path, left, top, width, height);
     }
 
-    private static bool TryReadPngSize(string path, out int width, out int height) {
+    private static bool TryReadImageSize(string path, out int width, out int height) {
         width = 0;
         height = 0;
 
         try {
             using var stream = File.OpenRead(path);
-            var header = new byte[24];
-            if (stream.Read(header, 0, header.Length) != header.Length || !IsPngHeader(header)) {
-                return false;
+            if (TryReadPngSize(stream, out width, out height)) {
+                return true;
             }
 
-            width = ReadBigEndianInt32(header, 16);
-            height = ReadBigEndianInt32(header, 20);
-            return true;
+            stream.Position = 0;
+            return TryReadJpegSize(stream, out width, out height);
         } catch (IOException) {
             return false;
         } catch (UnauthorizedAccessException) {
             return false;
         }
+    }
+
+    private static bool TryReadPngSize(Stream stream, out int width, out int height) {
+        width = 0;
+        height = 0;
+
+        var header = new byte[24];
+        if (stream.Read(header, 0, header.Length) != header.Length || !IsPngHeader(header)) {
+            return false;
+        }
+
+        width = ReadBigEndianInt32(header, 16);
+        height = ReadBigEndianInt32(header, 20);
+        return true;
+    }
+
+    private static bool TryReadJpegSize(Stream stream, out int width, out int height) {
+        width = 0;
+        height = 0;
+
+        if (stream.ReadByte() != 0xFF || stream.ReadByte() != 0xD8) {
+            return false;
+        }
+
+        while (stream.Position < stream.Length) {
+            int prefix;
+            do {
+                prefix = stream.ReadByte();
+            } while (prefix != -1 && prefix != 0xFF);
+
+            if (prefix == -1) {
+                return false;
+            }
+
+            int marker;
+            do {
+                marker = stream.ReadByte();
+            } while (marker == 0xFF);
+
+            if (marker == -1) {
+                return false;
+            }
+
+            if (marker == 0xD8 || marker == 0xD9 || (marker >= 0xD0 && marker <= 0xD7) || marker == 0x01) {
+                continue;
+            }
+
+            var segmentLength = ReadBigEndianUInt16(stream);
+            if (segmentLength < 2) {
+                return false;
+            }
+
+            if (IsJpegStartOfFrame(marker)) {
+                if (segmentLength < 7) {
+                    return false;
+                }
+
+                if (stream.ReadByte() == -1) {
+                    return false;
+                }
+
+                height = ReadBigEndianUInt16(stream);
+                width = ReadBigEndianUInt16(stream);
+                return width > 0 && height > 0;
+            }
+
+            stream.Seek(segmentLength - 2, SeekOrigin.Current);
+        }
+
+        return false;
     }
 
     private static bool IsPngHeader(byte[] header) =>
@@ -1863,6 +1931,15 @@ public sealed class OfficeMarkupPowerPointExporter {
 
     private static int ReadBigEndianInt32(byte[] value, int offset) =>
         (value[offset] << 24) | (value[offset + 1] << 16) | (value[offset + 2] << 8) | value[offset + 3];
+
+    private static int ReadBigEndianUInt16(Stream stream) {
+        var high = stream.ReadByte();
+        var low = stream.ReadByte();
+        return high < 0 || low < 0 ? -1 : (high << 8) | low;
+    }
+
+    private static bool IsJpegStartOfFrame(int marker) =>
+        marker is 0xC0 or 0xC1 or 0xC2 or 0xC3 or 0xC5 or 0xC6 or 0xC7 or 0xC9 or 0xCA or 0xCB or 0xCD or 0xCE or 0xCF;
 
     private static LayoutCursor ResolveBox(
         OfficeMarkupPlacement? placement,

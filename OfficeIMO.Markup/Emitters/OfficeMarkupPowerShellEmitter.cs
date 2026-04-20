@@ -38,56 +38,87 @@ public sealed class OfficeMarkupPowerShellEmitter {
         var index = 0;
         var chartIndex = 0;
         string? activeSection = null;
-        foreach (var block in document.Blocks) {
-            if (block is OfficeMarkupSlideBlock slide) {
-                index++;
-                sb.AppendLine($"$slide{index} = Add-OfficePowerPointSlide -Presentation $presentation");
-                if (!string.IsNullOrWhiteSpace(slide.Section)) {
-                    var section = slide.Section!.Trim();
-                    sb.AppendLine($"# Section: {section}");
-                    if (!string.Equals(activeSection, section, StringComparison.Ordinal)) {
-                        sb.AppendLine($"$null = $presentation.AddSection({PsString(section)}, {index - 1})");
-                        activeSection = section;
-                    }
+        foreach (var slide in GetPresentationSlides(document)) {
+            index++;
+            sb.AppendLine($"$slide{index} = Add-OfficePowerPointSlide -Presentation $presentation");
+            if (!string.IsNullOrWhiteSpace(slide.Section)) {
+                var section = slide.Section!.Trim();
+                sb.AppendLine($"# Section: {section}");
+                if (!string.Equals(activeSection, section, StringComparison.Ordinal)) {
+                    sb.AppendLine($"$null = $presentation.AddSection({PsString(section)}, {index - 1})");
+                    activeSection = section;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(slide.Layout)) {
+                sb.AppendLine($"# Layout: {slide.Layout}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(slide.Transition)) {
+                var resolvedTransition = OfficeMarkupTransitionResolver.Parse(slide.Transition);
+                if (!string.IsNullOrWhiteSpace(resolvedTransition.ResolvedIdentifier)) {
+                    sb.AppendLine($"$slide{index}.Transition = [OfficeIMO.PowerPoint.SlideTransition]::{resolvedTransition.ResolvedIdentifier}");
+                    EmitTransitionAssignments(sb, $"$slide{index}", resolvedTransition);
                 }
 
-                if (!string.IsNullOrWhiteSpace(slide.Layout)) {
-                    sb.AppendLine($"# Layout: {slide.Layout}");
+                if (resolvedTransition.HasArguments || string.IsNullOrWhiteSpace(resolvedTransition.ResolvedIdentifier)) {
+                    EmitTransitionComments(sb, resolvedTransition);
                 }
+            }
 
-                if (!string.IsNullOrWhiteSpace(slide.Transition)) {
-                    var resolvedTransition = OfficeMarkupTransitionResolver.Parse(slide.Transition);
-                    if (!string.IsNullOrWhiteSpace(resolvedTransition.ResolvedIdentifier)) {
-                        sb.AppendLine($"$slide{index}.Transition = [OfficeIMO.PowerPoint.SlideTransition]::{resolvedTransition.ResolvedIdentifier}");
-                        EmitTransitionAssignments(sb, $"$slide{index}", resolvedTransition);
-                    }
+            if (!string.IsNullOrWhiteSpace(slide.Background)) {
+                sb.AppendLine($"# Background: {slide.Background}");
+            }
 
-                    if (resolvedTransition.HasArguments || string.IsNullOrWhiteSpace(resolvedTransition.ResolvedIdentifier)) {
-                        EmitTransitionComments(sb, resolvedTransition);
-                    }
-                }
+            if (!string.IsNullOrWhiteSpace(slide.Title)) {
+                sb.AppendLine($"Add-OfficePowerPointText -Slide $slide{index} -Text {PsString(slide.Title!)}");
+            }
 
-                if (!string.IsNullOrWhiteSpace(slide.Background)) {
-                    sb.AppendLine($"# Background: {slide.Background}");
-                }
+            foreach (var child in slide.Blocks) {
+                EmitSlideChild(child, $"$slide{index}", sb, ref chartIndex);
+            }
 
-                if (!string.IsNullOrWhiteSpace(slide.Title)) {
-                    sb.AppendLine($"Add-OfficePowerPointText -Slide $slide{index} -Text {PsString(slide.Title!)}");
-                }
-
-                foreach (var child in slide.Blocks) {
-                    EmitSlideChild(child, $"$slide{index}", sb, ref chartIndex);
-                }
-
-                if (!string.IsNullOrWhiteSpace(slide.Notes)) {
-                    sb.AppendLine($"Set-OfficePowerPointNotes -Slide $slide{index} -Text {PsString(slide.Notes!)}");
-                }
-            } else {
-                sb.AppendLine($"# {block.Kind}: {Describe(block)}");
+            if (!string.IsNullOrWhiteSpace(slide.Notes)) {
+                sb.AppendLine($"Set-OfficePowerPointNotes -Slide $slide{index} -Text {PsString(slide.Notes!)}");
             }
         }
 
         sb.AppendLine("Save-OfficePowerPoint -Presentation $presentation");
+    }
+
+    private static IEnumerable<OfficeMarkupSlideBlock> GetPresentationSlides(OfficeMarkupDocument document) {
+        var pendingBlocks = new List<OfficeMarkupBlock>();
+        foreach (var block in document.Blocks) {
+            if (block is OfficeMarkupSlideBlock slide) {
+                if (pendingBlocks.Count > 0) {
+                    yield return CreateImplicitSlide(pendingBlocks);
+                    pendingBlocks.Clear();
+                }
+
+                yield return slide;
+            } else {
+                pendingBlocks.Add(block);
+            }
+        }
+
+        if (pendingBlocks.Count > 0) {
+            yield return CreateImplicitSlide(pendingBlocks);
+        }
+    }
+
+    private static OfficeMarkupSlideBlock CreateImplicitSlide(IReadOnlyList<OfficeMarkupBlock> blocks) {
+        var slide = new OfficeMarkupSlideBlock();
+        var startIndex = 0;
+        if (blocks.Count > 0 && blocks[0] is OfficeMarkupHeadingBlock heading && heading.Level == 1) {
+            slide.Title = heading.Text;
+            startIndex = 1;
+        }
+
+        for (var index = startIndex; index < blocks.Count; index++) {
+            slide.Blocks.Add(blocks[index]);
+        }
+
+        return slide;
     }
 
     private static void EmitSlideChild(OfficeMarkupBlock block, string slideVariable, StringBuilder sb, ref int chartIndex) {

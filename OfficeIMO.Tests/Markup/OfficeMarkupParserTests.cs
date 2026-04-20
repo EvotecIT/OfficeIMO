@@ -541,6 +541,50 @@ sheet name="Revenue"
     }
 
     [Fact]
+    public void CSharpEmitter_PresentationWrapsTopLevelMarkdownAsImplicitSlides() {
+        var result = OfficeMarkupParser.Parse("""
+---
+profile: presentation
+---
+
+# Quarterly Review
+
+- Revenue grew 18%
+- Churn improved
+""");
+
+        var code = new OfficeMarkupCSharpEmitter().Emit(result.Document);
+
+        Assert.Contains("PowerPointSlide slide1 = presentation.AddSlide();", code, StringComparison.Ordinal);
+        Assert.Contains("slide1.AddTextBox(@\"Quarterly Review\");", code, StringComparison.Ordinal);
+        Assert.Contains("Revenue grew 18%", code, StringComparison.Ordinal);
+        Assert.DoesNotContain("Presentation-level Heading", code, StringComparison.Ordinal);
+        Assert.DoesNotContain("Presentation-level List", code, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PowerShellEmitter_PresentationWrapsTopLevelMarkdownAsImplicitSlides() {
+        var result = OfficeMarkupParser.Parse("""
+---
+profile: presentation
+---
+
+# Quarterly Review
+
+- Revenue grew 18%
+- Churn improved
+""");
+
+        var code = new OfficeMarkupPowerShellEmitter().Emit(result.Document);
+
+        Assert.Contains("$slide1 = Add-OfficePowerPointSlide -Presentation $presentation", code, StringComparison.Ordinal);
+        Assert.Contains("Add-OfficePowerPointText -Slide $slide1 -Text 'Quarterly Review'", code, StringComparison.Ordinal);
+        Assert.Contains("Revenue grew 18%", code, StringComparison.Ordinal);
+        Assert.DoesNotContain("# Heading:", code, StringComparison.Ordinal);
+        Assert.DoesNotContain("# List:", code, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CSharpEmitter_PresentationPreservesChartsNotesAndTransitionDetails() {
         var result = OfficeMarkupParser.Parse("""
 ---
@@ -1363,6 +1407,50 @@ profile: presentation
             var slidePart = Assert.Single(package.PresentationPart!.SlideParts);
             Assert.NotEmpty(slidePart.ImageParts);
             Assert.DoesNotContain("Image: EvotecLogo.png", slidePart.Slide.OuterXml, StringComparison.Ordinal);
+        } finally {
+            if (Directory.Exists(tempDirectory)) {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void PowerPointExporter_PreservesJpegAspectRatioForContainedImages() {
+        var tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
+        var imageSource = Path.Combine(AppContext.BaseDirectory, "Images", "Kulek.jpg");
+        var localImage = Path.Combine(tempDirectory, "Kulek.jpg");
+        File.Copy(imageSource, localImage, overwrite: true);
+
+        var markup = """
+---
+profile: presentation
+---
+
+# Visual
+
+@slide {
+  layout: blank
+}
+
+::image src=Kulek.jpg x=10% y=20% w=30% h=20% fit=contain
+""";
+        var path = Path.Combine(tempDirectory, "contained-jpeg-slide.pptx");
+
+        try {
+            var result = OfficeMarkupParser.Parse(markup);
+
+            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
+                OutputPath = path,
+                BaseDirectory = tempDirectory,
+                RenderMermaidDiagrams = false
+            });
+
+            using var presentation = PowerPointPresentation.Open(path);
+            var slide = Assert.Single(presentation.Slides);
+            var picture = Assert.Single(slide.Pictures);
+            Assert.True(picture.WidthInches < 3.0, "Contained JPEG should not stretch to the full placement width.");
+            Assert.InRange(picture.HeightInches, 1.12, 1.13);
         } finally {
             if (Directory.Exists(tempDirectory)) {
                 Directory.Delete(tempDirectory, recursive: true);

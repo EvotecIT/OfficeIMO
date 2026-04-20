@@ -41,55 +41,86 @@ public sealed class OfficeMarkupCSharpEmitter {
         var slideIndex = 0;
         var chartIndex = 0;
         string? activeSection = null;
-        foreach (var block in document.Blocks) {
-            if (block is OfficeMarkupSlideBlock slide) {
-                slideIndex++;
-                sb.AppendLine($"PowerPointSlide slide{slideIndex} = presentation.AddSlide();");
-                if (!string.IsNullOrWhiteSpace(slide.Section)) {
-                    var section = slide.Section!.Trim();
-                    sb.AppendLine($"// slide{slideIndex}: section {CsString(section)}");
-                    if (!string.Equals(activeSection, section, StringComparison.Ordinal)) {
-                        sb.AppendLine($"presentation.AddSection({CsString(section)}, startSlideIndex: {slideIndex - 1});");
-                        activeSection = section;
-                    }
+        foreach (var slide in GetPresentationSlides(document)) {
+            slideIndex++;
+            sb.AppendLine($"PowerPointSlide slide{slideIndex} = presentation.AddSlide();");
+            if (!string.IsNullOrWhiteSpace(slide.Section)) {
+                var section = slide.Section!.Trim();
+                sb.AppendLine($"// slide{slideIndex}: section {CsString(section)}");
+                if (!string.Equals(activeSection, section, StringComparison.Ordinal)) {
+                    sb.AppendLine($"presentation.AddSection({CsString(section)}, startSlideIndex: {slideIndex - 1});");
+                    activeSection = section;
                 }
-
-                if (!string.IsNullOrWhiteSpace(slide.Transition)) {
-                    var resolvedTransition = OfficeMarkupTransitionResolver.Parse(slide.Transition);
-                    if (!string.IsNullOrWhiteSpace(resolvedTransition.ResolvedIdentifier)) {
-                        sb.AppendLine($"slide{slideIndex}.Transition = SlideTransition.{resolvedTransition.ResolvedIdentifier};");
-                        EmitTransitionAssignments(sb, $"slide{slideIndex}", resolvedTransition);
-                    }
-
-                    if (resolvedTransition.HasArguments || string.IsNullOrWhiteSpace(resolvedTransition.ResolvedIdentifier)) {
-                        EmitTransitionComments(sb, resolvedTransition);
-                    }
-                }
-
-                if (!string.IsNullOrWhiteSpace(slide.Background)) {
-                    sb.AppendLine($"// slide{slideIndex}: background {CsString(slide.Background!)}");
-                }
-
-                if (!string.IsNullOrWhiteSpace(slide.Layout)) {
-                    sb.AppendLine($"// slide{slideIndex}: layout {CsString(slide.Layout!)}");
-                }
-
-                if (!string.IsNullOrWhiteSpace(slide.Title)) {
-                    sb.AppendLine($"slide{slideIndex}.AddTextBox({CsString(slide.Title!)});");
-                }
-
-                EmitContentBlocksForSlide(slide.Blocks, $"slide{slideIndex}", sb, ref chartIndex);
-                if (!string.IsNullOrWhiteSpace(slide.Notes)) {
-                    sb.AppendLine($"slide{slideIndex}.Notes.Text = {CsString(slide.Notes!)};");
-                }
-
-                sb.AppendLine();
-            } else {
-                sb.AppendLine($"// Presentation-level {block.Kind}: {CsString(Describe(block))}");
             }
+
+            if (!string.IsNullOrWhiteSpace(slide.Transition)) {
+                var resolvedTransition = OfficeMarkupTransitionResolver.Parse(slide.Transition);
+                if (!string.IsNullOrWhiteSpace(resolvedTransition.ResolvedIdentifier)) {
+                    sb.AppendLine($"slide{slideIndex}.Transition = SlideTransition.{resolvedTransition.ResolvedIdentifier};");
+                    EmitTransitionAssignments(sb, $"slide{slideIndex}", resolvedTransition);
+                }
+
+                if (resolvedTransition.HasArguments || string.IsNullOrWhiteSpace(resolvedTransition.ResolvedIdentifier)) {
+                    EmitTransitionComments(sb, resolvedTransition);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(slide.Background)) {
+                sb.AppendLine($"// slide{slideIndex}: background {CsString(slide.Background!)}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(slide.Layout)) {
+                sb.AppendLine($"// slide{slideIndex}: layout {CsString(slide.Layout!)}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(slide.Title)) {
+                sb.AppendLine($"slide{slideIndex}.AddTextBox({CsString(slide.Title!)});");
+            }
+
+            EmitContentBlocksForSlide(slide.Blocks, $"slide{slideIndex}", sb, ref chartIndex);
+            if (!string.IsNullOrWhiteSpace(slide.Notes)) {
+                sb.AppendLine($"slide{slideIndex}.Notes.Text = {CsString(slide.Notes!)};");
+            }
+
+            sb.AppendLine();
         }
 
         sb.AppendLine("presentation.Save();");
+    }
+
+    private static IEnumerable<OfficeMarkupSlideBlock> GetPresentationSlides(OfficeMarkupDocument document) {
+        var pendingBlocks = new List<OfficeMarkupBlock>();
+        foreach (var block in document.Blocks) {
+            if (block is OfficeMarkupSlideBlock slide) {
+                if (pendingBlocks.Count > 0) {
+                    yield return CreateImplicitSlide(pendingBlocks);
+                    pendingBlocks.Clear();
+                }
+
+                yield return slide;
+            } else {
+                pendingBlocks.Add(block);
+            }
+        }
+
+        if (pendingBlocks.Count > 0) {
+            yield return CreateImplicitSlide(pendingBlocks);
+        }
+    }
+
+    private static OfficeMarkupSlideBlock CreateImplicitSlide(IReadOnlyList<OfficeMarkupBlock> blocks) {
+        var slide = new OfficeMarkupSlideBlock();
+        var startIndex = 0;
+        if (blocks.Count > 0 && blocks[0] is OfficeMarkupHeadingBlock heading && heading.Level == 1) {
+            slide.Title = heading.Text;
+            startIndex = 1;
+        }
+
+        for (var index = startIndex; index < blocks.Count; index++) {
+            slide.Blocks.Add(blocks[index]);
+        }
+
+        return slide;
     }
 
     private static void EmitContentBlocksForSlide(IEnumerable<OfficeMarkupBlock> blocks, string slideVariable, StringBuilder sb, ref int chartIndex) {

@@ -29,9 +29,9 @@ internal static class OfficeMarkupMermaidRenderer {
         Directory.CreateDirectory(tempDirectory);
 
         var stem = "officeimo-mermaid-" + Guid.NewGuid().ToString("N");
-        var inputPath = Path.Join(tempDirectory, stem + ".mmd");
-        var configPath = Path.Join(tempDirectory, stem + ".json");
-        outputPath = Path.Join(tempDirectory, stem + ".png");
+        var inputPath = Path.Combine(tempDirectory, stem + ".mmd");
+        var configPath = Path.Combine(tempDirectory, stem + ".json");
+        outputPath = Path.Combine(tempDirectory, stem + ".png");
         File.WriteAllText(inputPath, diagram.Content, Encoding.UTF8);
         File.WriteAllText(configPath, MermaidConfigJson, Encoding.UTF8);
 
@@ -122,7 +122,7 @@ internal static class OfficeMarkupMermaidRenderer {
     }
 
     private static string? FindBundledRenderer() {
-        var installRoot = Path.Join(Path.GetTempPath(), "OfficeIMO.Markup.Mermaid", "node_modules", ".bin");
+        var installRoot = Path.Combine(Path.GetTempPath(), "OfficeIMO.Markup.Mermaid", "node_modules", ".bin");
         return FindExecutableInDirectory(installRoot, "mmdc");
     }
 
@@ -154,7 +154,7 @@ internal static class OfficeMarkupMermaidRenderer {
             return options.TemporaryDirectory!;
         }
 
-        return Path.Join(Path.GetTempPath(), "OfficeIMO.Markup");
+        return Path.Combine(Path.GetTempPath(), "OfficeIMO.Markup");
     }
 
     private static string? FindExecutableInPath(string command) {
@@ -187,7 +187,7 @@ internal static class OfficeMarkupMermaidRenderer {
             : new[] { string.Empty };
 
         foreach (var extension in extensions) {
-            var candidate = Path.Join(directory, safeCommand + extension);
+            var candidate = Path.Combine(directory, safeCommand + extension);
             if (File.Exists(candidate)) {
                 return candidate;
             }
