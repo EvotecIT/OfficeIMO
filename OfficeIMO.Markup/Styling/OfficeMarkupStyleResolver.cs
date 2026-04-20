@@ -40,13 +40,11 @@ public sealed class OfficeMarkupStyleResolver {
     public OfficeMarkupResolvedStyle? Resolve(string? styleName, IDictionary<string, string>? attributes = null) {
         OfficeMarkupResolvedStyle? style = null;
         if (!string.IsNullOrWhiteSpace(styleName)) {
-            if (_styles.TryGetValue(Normalize(styleName!), out var knownStyle)) {
-                style = knownStyle.Clone();
-            } else {
-                style = new OfficeMarkupResolvedStyle {
+            style = _styles.TryGetValue(Normalize(styleName!), out var knownStyle)
+                ? knownStyle.Clone()
+                : new OfficeMarkupResolvedStyle {
                     Name = styleName!.Trim()
                 };
-            }
         }
 
         if (attributes != null) {

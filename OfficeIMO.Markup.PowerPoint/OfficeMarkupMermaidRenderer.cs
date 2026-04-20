@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Markup.PowerPoint;
 
@@ -67,16 +68,21 @@ internal static class OfficeMarkupMermaidRenderer {
             return false;
         }
 
+        var standardOutputTask = process.StandardOutput.ReadToEndAsync();
+        var standardErrorTask = process.StandardError.ReadToEndAsync();
         var timeout = Math.Max(1000, options.MermaidRenderTimeoutMilliseconds);
         if (!process.WaitForExit(timeout)) {
             try {
                 process.Kill();
-            } catch (InvalidOperationException) {
+            } catch (InvalidOperationException ex) {
+                Debug.WriteLine($"OfficeIMO.Markup.Mermaid renderer already exited while being terminated: {ex.Message}");
             }
 
             return false;
         }
 
+        process.WaitForExit();
+        Task.WaitAll(new Task[] { standardOutputTask, standardErrorTask }, timeout);
         return process.ExitCode == 0 && File.Exists(outputPath);
     }
 
@@ -195,8 +201,10 @@ internal static class OfficeMarkupMermaidRenderer {
             if (File.Exists(path)) {
                 File.Delete(path);
             }
-        } catch (IOException) {
-        } catch (UnauthorizedAccessException) {
+        } catch (IOException ex) {
+            Trace.TraceWarning($"OfficeIMO.Markup.Mermaid could not delete temporary file '{path}': {ex.Message}");
+        } catch (UnauthorizedAccessException ex) {
+            Trace.TraceWarning($"OfficeIMO.Markup.Mermaid could not delete temporary file '{path}': {ex.Message}");
         }
     }
 }

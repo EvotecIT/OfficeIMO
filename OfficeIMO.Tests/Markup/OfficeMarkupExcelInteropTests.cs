@@ -128,20 +128,28 @@ Q4,320,150
                             workbook,
                             new object[] { false });
                     }
-                } catch (COMException) {
-                } catch (MissingMethodException) {
-                } catch (TargetInvocationException) {
-                } catch (InvalidOperationException) {
+                } catch (COMException ex) {
+                    failure ??= ex;
+                } catch (MissingMethodException ex) {
+                    failure ??= ex;
+                } catch (TargetInvocationException ex) {
+                    failure ??= ex;
+                } catch (InvalidOperationException ex) {
+                    failure ??= ex;
                 }
 
                 try {
                     if (excel != null) {
                         excel.GetType().InvokeMember("Quit", System.Reflection.BindingFlags.InvokeMethod, null, excel, null);
                     }
-                } catch (COMException) {
-                } catch (MissingMethodException) {
-                } catch (TargetInvocationException) {
-                } catch (InvalidOperationException) {
+                } catch (COMException ex) {
+                    failure ??= ex;
+                } catch (MissingMethodException ex) {
+                    failure ??= ex;
+                } catch (TargetInvocationException ex) {
+                    failure ??= ex;
+                } catch (InvalidOperationException ex) {
+                    failure ??= ex;
                 }
 
                 if (workbook != null && Marshal.IsComObject(workbook)) {

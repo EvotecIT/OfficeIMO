@@ -199,6 +199,35 @@ echo done
     }
 
     [Fact]
+    public void Parse_PresentationProfile_DoesNotSplitSlidesOnFencedSeparatorContent() {
+        var markup = """
+---
+profile: presentation
+---
+
+# Demo
+
+@slide {
+  layout: blank
+}
+
+```yaml
+---
+name: sample
+---
+```
+""";
+
+        var result = OfficeMarkupParser.Parse(markup);
+
+        Assert.False(result.HasErrors);
+        var slide = Assert.IsType<OfficeMarkupSlideBlock>(Assert.Single(result.Document.Blocks));
+        var code = Assert.IsType<OfficeMarkupCodeBlock>(Assert.Single(slide.Blocks));
+        Assert.Equal("yaml", code.Language);
+        Assert.Contains("name: sample", code.Content, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Parse_WorkbookProfile_MapsAtSheetAndColonRangeFormula() {
         var markup = """
 ---
@@ -963,6 +992,39 @@ Q3,260
     }
 
     [Fact]
+    public void PowerPointExporter_WrapsPresentationMarkdownWithoutExplicitSlides() {
+        var markup = """
+---
+profile: presentation
+---
+
+# Quarterly Review
+
+- Revenue grew 18%
+- Churn improved
+""";
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+        try {
+            var result = OfficeMarkupParser.Parse(markup);
+
+            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
+                OutputPath = path,
+                RenderMermaidDiagrams = false
+            });
+
+            Assert.True(File.Exists(path));
+            using var presentation = PowerPointPresentation.Open(path);
+            Assert.Single(presentation.Slides);
+            Assert.Contains(presentation.Slides[0].Shapes.OfType<PowerPointTextBox>(), box => box.Text.Contains("Quarterly Review", StringComparison.Ordinal));
+        } finally {
+            if (File.Exists(path)) {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
     public void PowerPointExporter_ComposesSemanticTwoColumnSlidesWithDesignerPanels() {
         var markup = """
 ---
@@ -1556,6 +1618,52 @@ flowchart LR
     }
 
     [Fact]
+    public void PowerPointExporter_RendersMermaidWhenRendererWritesLargeRedirectedOutput() {
+        if (Path.DirectorySeparatorChar != '\\') {
+            return;
+        }
+
+        var directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Markup.Tests", Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(directory, "diagram-noisy.pptx");
+        Directory.CreateDirectory(directory);
+
+        try {
+            var rendererPath = CreateNoisyFakeMermaidRenderer(directory);
+            var result = OfficeMarkupParser.Parse("""
+---
+profile: presentation
+---
+
+# Architecture
+
+@slide {
+  layout: blank
+}
+
+::mermaid x=8% y=20% w=70% h=40% fit=contain
+flowchart LR
+  Markdown --> AST
+  AST --> Office
+""");
+
+            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
+                OutputPath = path,
+                MermaidRendererPath = rendererPath,
+                TemporaryDirectory = directory
+            });
+
+            using var package = PresentationDocument.Open(path, false);
+            var slideParts = package.PresentationPart!.SlideParts.ToList();
+            Assert.Contains(slideParts.SelectMany(part => part.ImageParts), part =>
+                string.Equals(part.ContentType, "image/png", StringComparison.OrdinalIgnoreCase));
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void ExcelExporter_CreatesOpenableWorkbookWithRangeTableFormulaAndChart() {
         var markup = """
 ---
@@ -2019,6 +2127,31 @@ shift
 goto args
 :run
 if "%out%"=="" exit /b 2
+powershell -NoProfile -ExecutionPolicy Bypass -Command "[IO.File]::WriteAllBytes($env:out,[Convert]::FromBase64String('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII='))"
+exit /b %ERRORLEVEL%
+""");
+        return rendererPath;
+    }
+
+    private static string CreateNoisyFakeMermaidRenderer(string directory) {
+        var rendererPath = Path.Combine(directory, "fake-mmdc-noisy.cmd");
+        File.WriteAllText(rendererPath, """
+@echo off
+set "out="
+:args
+if "%~1"=="" goto run
+if /I "%~1"=="-o" goto output
+shift
+goto args
+:output
+shift
+set "out=%~1"
+shift
+goto args
+:run
+if "%out%"=="" exit /b 2
+for /L %%I in (1,1,8000) do <nul set /p ="x"
+echo noisy stderr 1>&2
 powershell -NoProfile -ExecutionPolicy Bypass -Command "[IO.File]::WriteAllBytes($env:out,[Convert]::FromBase64String('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII='))"
 exit /b %ERRORLEVEL%
 """);

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using OfficeIMO.PowerPoint;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
@@ -79,11 +80,38 @@ public sealed class OfficeMarkupPowerPointExporter {
     }
 
     private static IEnumerable<OfficeMarkupSlideBlock> GetSlides(OfficeMarkupDocument document) {
+        var pendingBlocks = new List<OfficeMarkupBlock>();
         foreach (var block in document.Blocks) {
             if (block is OfficeMarkupSlideBlock slide) {
+                if (pendingBlocks.Count > 0) {
+                    yield return CreateImplicitSlide(pendingBlocks);
+                    pendingBlocks.Clear();
+                }
+
                 yield return slide;
+            } else {
+                pendingBlocks.Add(block);
             }
         }
+
+        if (pendingBlocks.Count > 0) {
+            yield return CreateImplicitSlide(pendingBlocks);
+        }
+    }
+
+    private static OfficeMarkupSlideBlock CreateImplicitSlide(IReadOnlyList<OfficeMarkupBlock> blocks) {
+        var slide = new OfficeMarkupSlideBlock();
+        var startIndex = 0;
+        if (blocks.Count > 0 && blocks[0] is OfficeMarkupHeadingBlock heading && heading.Level == 1) {
+            slide.Title = heading.Text;
+            startIndex = 1;
+        }
+
+        for (int index = startIndex; index < blocks.Count; index++) {
+            slide.Blocks.Add(blocks[index]);
+        }
+
+        return slide;
     }
 
     private static void ExportSlide(
@@ -2120,8 +2148,10 @@ public sealed class OfficeMarkupPowerPointExporter {
             if (File.Exists(path)) {
                 File.Delete(path);
             }
-        } catch (IOException) {
-        } catch (UnauthorizedAccessException) {
+        } catch (IOException ex) {
+            Trace.TraceWarning($"OfficeIMO.Markup.PowerPoint could not delete temporary file '{path}': {ex.Message}");
+        } catch (UnauthorizedAccessException ex) {
+            Trace.TraceWarning($"OfficeIMO.Markup.PowerPoint could not delete temporary file '{path}': {ex.Message}");
         }
     }
 

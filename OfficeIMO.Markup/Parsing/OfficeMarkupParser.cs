@@ -119,8 +119,33 @@ public static class OfficeMarkupParser {
         return false;
     }
 
-    private static bool HasSlideSeparators(string markup) =>
-        markup.Split('\n').Any(line => string.Equals(line.Trim(), "---", StringComparison.Ordinal));
+    private static bool HasSlideSeparators(string markup) {
+        var inFence = false;
+        char fenceMarker = default;
+        var fenceLength = 0;
+        foreach (var line in markup.Split('\n')) {
+            var trimmed = line.TrimStart();
+            if (TryGetFenceInfo(trimmed, out var currentFenceMarker, out var currentFenceLength)) {
+                if (inFence && currentFenceMarker == fenceMarker && currentFenceLength >= fenceLength) {
+                    inFence = false;
+                    fenceMarker = default;
+                    fenceLength = 0;
+                } else if (!inFence) {
+                    inFence = true;
+                    fenceMarker = currentFenceMarker;
+                    fenceLength = currentFenceLength;
+                }
+
+                continue;
+            }
+
+            if (!inFence && string.Equals(trimmed, "---", StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static void MapPresentationSyntax(
         string markup,
@@ -147,8 +172,27 @@ public static class OfficeMarkupParser {
 
     private static IEnumerable<string> SplitSlideSegments(string markup) {
         var builder = new StringBuilder();
+        var inFence = false;
+        char fenceMarker = default;
+        var fenceLength = 0;
         foreach (var line in markup.Split('\n')) {
-            if (string.Equals(line.Trim(), "---", StringComparison.Ordinal)) {
+            var trimmed = line.TrimStart();
+            if (TryGetFenceInfo(trimmed, out var currentFenceMarker, out var currentFenceLength)) {
+                if (inFence && currentFenceMarker == fenceMarker && currentFenceLength >= fenceLength) {
+                    inFence = false;
+                    fenceMarker = default;
+                    fenceLength = 0;
+                } else if (!inFence) {
+                    inFence = true;
+                    fenceMarker = currentFenceMarker;
+                    fenceLength = currentFenceLength;
+                }
+
+                builder.AppendLine(line);
+                continue;
+            }
+
+            if (!inFence && string.Equals(trimmed, "---", StringComparison.Ordinal)) {
                 yield return builder.ToString();
                 builder.Clear();
                 continue;

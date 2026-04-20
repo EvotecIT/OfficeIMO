@@ -61,7 +61,13 @@ internal static class Program {
         } catch (ArgumentException ex) {
             Console.Error.WriteLine(ex.Message);
             return 1;
-        } catch (Exception ex) {
+        } catch (Exception ex) when (ex is not OutOfMemoryException
+                                     and not StackOverflowException
+                                     and not AccessViolationException
+                                     and not AppDomainUnloadedException
+                                     and not BadImageFormatException
+                                     and not CannotUnloadAppDomainException
+                                     and not InvalidProgramException) {
             Console.Error.WriteLine(ex.ToString());
             return 1;
         }
