@@ -1,5 +1,7 @@
 using System.Runtime.InteropServices;
+#if NET5_0_OR_GREATER
 using System.Runtime.Versioning;
+#endif
 using System.Threading;
 using OfficeIMO.Markup;
 using OfficeIMO.Markup.Excel;
@@ -10,11 +12,11 @@ namespace OfficeIMO.Tests.Markup;
 public class OfficeMarkupExcelInteropTests {
     [Fact]
     public void ExcelExporter_OpensMarkupWorkbookThroughExcelCom_WhenExcelIsAvailable() {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+        if (!IsWindowsPlatform()) {
             return;
         }
 
-        if (Type.GetTypeFromProgID("Excel.Application") == null) {
+        if (!IsExcelComAvailable()) {
             return;
         }
 
@@ -55,7 +57,21 @@ Q4,320,150
         }
     }
 
+#if NET5_0_OR_GREATER
+    [SupportedOSPlatformGuard("windows")]
+#endif
+    private static bool IsWindowsPlatform() =>
+        RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+
+#if NET5_0_OR_GREATER
     [SupportedOSPlatform("windows")]
+#endif
+    private static bool IsExcelComAvailable() =>
+        Type.GetTypeFromProgID("Excel.Application") != null;
+
+#if NET5_0_OR_GREATER
+    [SupportedOSPlatform("windows")]
+#endif
     private static int OpenWorkbookViaExcelCom(string path) {
         Exception? failure = null;
         var worksheetCount = 0;

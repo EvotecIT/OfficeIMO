@@ -466,10 +466,11 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 if (value.HasValue) {
-                    EnsureTransitionNamespace(transition, "p14", P14Namespace);
+                    EnsureTransitionCompatibilityNamespace(transition, "p14", P14Namespace);
+                    transition.Duration = ToMillisecondsString(value);
+                } else {
+                    RemoveTransitionAttribute(transition, "dur", P14Namespace);
                 }
-
-                transition.Duration = ToMillisecondsString(value);
             }
         }
 
@@ -486,7 +487,11 @@ namespace OfficeIMO.PowerPoint {
                     return;
                 }
 
-                transition.AdvanceOnClick = value;
+                if (value.HasValue) {
+                    transition.AdvanceOnClick = value;
+                } else {
+                    RemoveTransitionAttribute(transition, "advClick", string.Empty);
+                }
             }
         }
 
@@ -508,7 +513,11 @@ namespace OfficeIMO.PowerPoint {
                     return;
                 }
 
-                transition.AdvanceAfterTime = ToMillisecondsString(value);
+                if (value.HasValue) {
+                    transition.AdvanceAfterTime = ToMillisecondsString(value);
+                } else {
+                    RemoveTransitionAttribute(transition, "advTm", string.Empty);
+                }
             }
         }
 
@@ -600,17 +609,48 @@ namespace OfficeIMO.PowerPoint {
             };
 
             if (durationSeconds.HasValue) {
-                EnsureTransitionNamespace(transition, "p14", P14Namespace);
+                EnsureTransitionCompatibilityNamespace(transition, "p14", P14Namespace);
+                transition.Duration = ToMillisecondsString(durationSeconds);
+            } else {
+                RemoveTransitionAttribute(transition, "dur", P14Namespace);
             }
 
-            transition.Duration = ToMillisecondsString(durationSeconds);
-            transition.AdvanceOnClick = advanceOnClick;
-            transition.AdvanceAfterTime = ToMillisecondsString(advanceAfterSeconds);
+            if (advanceOnClick.HasValue) {
+                transition.AdvanceOnClick = advanceOnClick;
+            } else {
+                RemoveTransitionAttribute(transition, "advClick", string.Empty);
+            }
+
+            if (advanceAfterSeconds.HasValue) {
+                transition.AdvanceAfterTime = ToMillisecondsString(advanceAfterSeconds);
+            } else {
+                RemoveTransitionAttribute(transition, "advTm", string.Empty);
+            }
         }
 
-        private static void EnsureTransitionNamespace(Transition transition, string prefix, string uri) {
+        private static void EnsureTransitionCompatibilityNamespace(Transition transition, string prefix, string uri) {
             if (!string.Equals(transition.LookupNamespace(prefix), uri, StringComparison.Ordinal)) {
                 transition.AddNamespaceDeclaration(prefix, uri);
+            }
+
+            Slide? slide = transition.Ancestors<Slide>().FirstOrDefault();
+            if (slide == null) {
+                return;
+            }
+
+            slide.AddNamespaceDeclaration("mc", MarkupCompatibilityNamespace);
+            slide.AddNamespaceDeclaration(prefix, uri);
+            slide.MCAttributes = MergeIgnorableNamespace(slide.MCAttributes, prefix);
+        }
+
+        private static void RemoveTransitionAttribute(Transition transition, string localName, string namespaceUri) {
+            bool hasAttribute = transition.GetAttributes()
+                .Any(attribute =>
+                    string.Equals(attribute.LocalName, localName, StringComparison.Ordinal) &&
+                    string.Equals(attribute.NamespaceUri, namespaceUri, StringComparison.Ordinal));
+
+            if (hasAttribute) {
+                transition.RemoveAttribute(localName, namespaceUri);
             }
         }
 

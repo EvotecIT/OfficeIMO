@@ -810,7 +810,7 @@ public sealed class OfficeMarkupCSharpEmitter {
             return ($"GetOrAddSheet({CsString(explicitSheet!.Trim())})", (reference ?? string.Empty).Trim());
         }
 
-        return ("sheet!", (reference ?? string.Empty).Trim());
+        return ($"GetOrAddSheet({CsString("Sheet1")})", (reference ?? string.Empty).Trim());
     }
 
     private static bool TrySplitSheetQualifiedReference(string? reference, out string sheetName, out string localReference) {

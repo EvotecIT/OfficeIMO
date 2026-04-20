@@ -99,8 +99,10 @@ public sealed class OfficeMarkupWordExporter {
 
     private static void AddList(WordExportContext context, OfficeMarkupListBlock list) {
         if (context.CurrentSection != null) {
-            foreach (var item in list.Items) {
-                context.CurrentSection.AddParagraph((list.Ordered ? "1. " : "- ") + item.Text);
+            for (var index = 0; index < list.Items.Count; index++) {
+                var item = list.Items[index];
+                var prefix = list.Ordered ? $"{list.Start + index}. " : "- ";
+                context.CurrentSection.AddParagraph(prefix + item.Text);
             }
 
             return;

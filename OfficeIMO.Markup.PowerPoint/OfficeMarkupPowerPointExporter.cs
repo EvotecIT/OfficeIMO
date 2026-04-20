@@ -1635,10 +1635,8 @@ public sealed class OfficeMarkupPowerPointExporter {
         OfficeMarkupImageBlock image,
         LayoutCursor cursor,
         OfficeMarkupPowerPointExportOptions options) {
-        var path = image.Source;
-        if (!Path.IsPathRooted(path)) {
-            path = Path.GetFullPath(path);
-        }
+        var path = ResolvePath(options, image.Source);
+        path = Path.GetFullPath(path);
 
         if (File.Exists(path)) {
             var box = ResolveBox(image.Placement, image.Attributes, cursor, Math.Min(2.2, cursor.RemainingHeight));

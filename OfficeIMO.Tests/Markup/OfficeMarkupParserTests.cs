@@ -567,10 +567,10 @@ A,120
 
         var code = new OfficeMarkupCSharpEmitter().Emit(result.Document);
 
-        Assert.Contains("sheet!.CellValue(3, 2, @\"Product\")", code, StringComparison.Ordinal);
-        Assert.Contains("sheet!.CellValue(4, 3, @\"120\")", code, StringComparison.Ordinal);
-        Assert.Contains("sheet!.CellFormula(4, 4, @\"=C4-B4\")", code, StringComparison.Ordinal);
-        Assert.Contains("var chart1 = sheet!.AddChartFromRange(@\"B3:C4\", row: 2, column: 6", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Sheet1"").CellValue(3, 2, @""Product"")", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Sheet1"").CellValue(4, 3, @""120"")", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Sheet1"").CellFormula(4, 4, @""=C4-B4"")", code, StringComparison.Ordinal);
+        Assert.Contains(@"var chart1 = GetOrAddSheet(@""Sheet1"").AddChartFromRange(@""B3:C4"", row: 2, column: 6", code, StringComparison.Ordinal);
         Assert.Contains("ExcelChartType.ColumnClustered", code, StringComparison.Ordinal);
         Assert.Contains("chart1.SetCategoryAxisTitle(@\"Product\")", code, StringComparison.Ordinal);
         Assert.Contains("chart1.SetValueAxisTitle(@\"Revenue\")", code, StringComparison.Ordinal);
@@ -579,6 +579,28 @@ A,120
         Assert.Contains("chart1.SetDataLabels(showValue: true", code, StringComparison.Ordinal);
         Assert.Contains("C.DataLabelPositionValues.OutsideEnd", code, StringComparison.Ordinal);
         Assert.Contains("chart1.SetValueAxisGridlines(showMajor: true", code, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CSharpEmitter_WorkbookCreatesDefaultSheetForUnqualifiedTargetsBeforeAnySheetDirective() {
+        var result = OfficeMarkupParser.Parse("""
+---
+profile: workbook
+---
+
+::range address=A1
+Metric,Value
+Revenue,120
+
+::formula cell=C2
+=B2*2
+""");
+
+        var code = new OfficeMarkupCSharpEmitter().Emit(result.Document);
+
+        Assert.Contains(@"GetOrAddSheet(@""Sheet1"").CellValue(1, 1, @""Metric"")", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Sheet1"").CellFormula(2, 3, @""=B2*2"")", code, StringComparison.Ordinal);
+        Assert.DoesNotContain("sheet!", code, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -661,6 +683,28 @@ Revenue,120,
         Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').CellBorder(2, 2, [DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues]::Thin, '#445566')", code, StringComparison.Ordinal);
         Assert.Contains("Add-OfficeExcelTable -Worksheet (Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data') -Range 'A1:C2' -Name 'DataTable'", code, StringComparison.Ordinal);
         Assert.Contains("Add-OfficeExcelChart -Worksheet (Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Dashboard') -Type 'column' -Source 'Data!DataTable' -Row 2 -Column 2", code, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PowerShellEmitter_WorkbookCreatesDefaultSheetForUnqualifiedTargetsBeforeAnySheetDirective() {
+        var result = OfficeMarkupParser.Parse("""
+---
+profile: workbook
+---
+
+::range address=A1
+Metric,Value
+Revenue,120
+
+::formula cell=C2
+=B2*2
+""");
+
+        var code = new OfficeMarkupPowerShellEmitter().Emit(result.Document);
+
+        Assert.Contains("Set-OfficeExcelCell -Worksheet (Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Sheet1') -Row 1 -Column 1 -Value 'Metric'", code, StringComparison.Ordinal);
+        Assert.Contains("Set-OfficeExcelFormula -Worksheet (Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Sheet1') -Cell 'C2' -Formula '=B2*2'", code, StringComparison.Ordinal);
+        Assert.DoesNotContain("-Worksheet $sheet", code, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1153,6 +1197,49 @@ Background image slide
                 var blipFill = slidePart.Slide.CommonSlideData?.Background?.BackgroundProperties?.GetFirstChild<DocumentFormat.OpenXml.Drawing.BlipFill>();
                 Assert.NotNull(blipFill);
             }
+        } finally {
+            if (Directory.Exists(tempDirectory)) {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void PowerPointExporter_ResolvesRelativeSlideImagesFromBaseDirectory() {
+        var tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDirectory);
+        var imageSource = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+        var localImage = Path.Combine(tempDirectory, "EvotecLogo.png");
+        File.Copy(imageSource, localImage, overwrite: true);
+
+        var markup = """
+---
+profile: presentation
+---
+
+# Visual
+
+@slide {
+  layout: blank
+}
+
+![Logo](EvotecLogo.png)
+""";
+        var path = Path.Combine(tempDirectory, "relative-image-slide.pptx");
+
+        try {
+            var result = OfficeMarkupParser.Parse(markup);
+
+            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
+                OutputPath = path,
+                BaseDirectory = tempDirectory,
+                RenderMermaidDiagrams = false
+            });
+
+            using var package = PresentationDocument.Open(path, false);
+            var slidePart = Assert.Single(package.PresentationPart!.SlideParts);
+            Assert.NotEmpty(slidePart.ImageParts);
+            Assert.DoesNotContain("Image: EvotecLogo.png", slidePart.Slide.OuterXml, StringComparison.Ordinal);
         } finally {
             if (Directory.Exists(tempDirectory)) {
                 Directory.Delete(tempDirectory, recursive: true);
@@ -1785,6 +1872,35 @@ Q2,180
             using (var package = WordprocessingDocument.Open(path, false)) {
                 Assert.True(package.MainDocumentPart!.ChartParts.Any());
             }
+        } finally {
+            if (File.Exists(path)) {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void WordExporter_IncrementsOrderedListNumbersInsideSections() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".docx");
+
+        try {
+            var documentModel = new OfficeMarkupDocument(OfficeMarkupProfile.Document);
+            var section = new OfficeMarkupSectionBlock("Appendix");
+            var list = new OfficeMarkupListBlock(ordered: true, start: 1);
+            list.Items.Add(new OfficeMarkupListItem("First"));
+            list.Items.Add(new OfficeMarkupListItem("Second"));
+            list.Items.Add(new OfficeMarkupListItem("Third"));
+            section.Blocks.Add(list);
+            documentModel.Blocks.Add(section);
+
+            new OfficeMarkupWordExporter().Export(documentModel, new OfficeMarkupWordExportOptions {
+                OutputPath = path
+            });
+
+            using var document = OfficeIMO.Word.WordDocument.Load(path, readOnly: true);
+            Assert.Contains(document.Paragraphs, paragraph => string.Equals(paragraph.Text, "1. First", StringComparison.Ordinal));
+            Assert.Contains(document.Paragraphs, paragraph => string.Equals(paragraph.Text, "2. Second", StringComparison.Ordinal));
+            Assert.Contains(document.Paragraphs, paragraph => string.Equals(paragraph.Text, "3. Third", StringComparison.Ordinal));
         } finally {
             if (File.Exists(path)) {
                 File.Delete(path);

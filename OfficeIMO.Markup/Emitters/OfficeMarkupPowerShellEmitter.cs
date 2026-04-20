@@ -483,7 +483,7 @@ public sealed class OfficeMarkupPowerShellEmitter {
             return (GetWorksheetExpression(explicitSheet!), reference ?? string.Empty);
         }
 
-        return ("$sheet", reference ?? string.Empty);
+        return (GetWorksheetExpression("Sheet1"), reference ?? string.Empty);
     }
 
     private static string GetWorksheetExpression(string sheetName) =>
