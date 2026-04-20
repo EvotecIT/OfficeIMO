@@ -752,8 +752,10 @@ namespace OfficeIMO.PowerPoint {
             double leftCm, double topCm, double widthCm, double heightCm, PowerPointVisualFrameVariant variant) {
             if (variant == PowerPointVisualFrameVariant.DeviceMockup) {
                 AddVisualDeviceChrome(slide, theme, leftCm, topCm, widthCm, heightCm);
-                AddPictureIfExists(slide, imagePath, leftCm + 0.18, topCm + 0.55, widthCm - 0.36,
-                    heightCm - 0.78, crop: true);
+                GetVisualDeviceContentBounds(leftCm, topCm, widthCm, heightCm, out double contentLeft,
+                    out double contentTop, out double contentWidth, out double contentHeight);
+                AddPictureIfExists(slide, imagePath, contentLeft, contentTop, contentWidth, contentHeight,
+                    crop: true);
                 return;
             }
 
@@ -898,10 +900,8 @@ namespace OfficeIMO.PowerPoint {
             double leftCm, double topCm, double widthCm, double heightCm) {
             AddVisualDeviceChrome(slide, theme, leftCm, topCm, widthCm, heightCm);
 
-            double contentTop = topCm + 0.65;
-            double contentLeft = leftCm + widthCm * 0.11;
-            double contentWidth = widthCm * 0.78;
-            double contentHeight = heightCm * 0.58;
+            GetVisualDeviceContentBounds(leftCm, topCm, widthCm, heightCm, out double contentLeft,
+                out double contentTop, out double contentWidth, out double contentHeight);
 
             PowerPointAutoShape hero = slide.AddRectangleCm(contentLeft, contentTop, contentWidth, contentHeight,
                 "Visual Device Hero Area");
@@ -960,6 +960,20 @@ namespace OfficeIMO.PowerPoint {
                 leftCm + widthCm * 0.82, topCm + heightCm * 0.89, "Visual Device Base");
             baseLine.OutlineColor = theme.AccentLightColor;
             baseLine.OutlineWidthPoints = 1.1;
+        }
+
+        private static void GetVisualDeviceContentBounds(double leftCm, double topCm, double widthCm,
+            double heightCm, out double contentLeft, out double contentTop, out double contentWidth,
+            out double contentHeight) {
+            double screenLeft = leftCm + widthCm * 0.06;
+            double screenTop = topCm + heightCm * 0.08;
+            double screenWidth = widthCm * 0.88;
+            double screenHeight = heightCm * 0.76;
+
+            contentLeft = screenLeft + widthCm * 0.05;
+            contentTop = screenTop + 0.46;
+            contentWidth = screenWidth - widthCm * 0.10;
+            contentHeight = Math.Max(0.8, screenHeight - 0.54);
         }
 
         private static void AddVisualProofBoardPlaceholder(PowerPointSlide slide, PowerPointDesignTheme theme,

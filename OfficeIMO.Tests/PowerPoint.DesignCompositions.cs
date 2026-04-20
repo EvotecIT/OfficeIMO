@@ -2553,6 +2553,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Composer_DeviceMockupVisualFrameFitsImageInsideScreenChrome() {
+            string filePath = CreateTempPresentationPath();
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..",
+                "Assets", "OfficeIMO.png"));
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointSlide slide = presentation.ComposeDesignerSlide(composer => {
+                    composer.AddVisualFrame(PowerPointLayoutBox.FromCentimeters(20.5, 9.6, 5.6, 3.0), imagePath,
+                        PowerPointVisualFrameVariant.DeviceMockup);
+                }, PowerPointDesignTheme.FromBrand("#008C95", "Device Test"));
+
+                PowerPointShape? screen = slide.GetShape("Visual Device Screen");
+                PowerPointPicture picture = Assert.Single(slide.Pictures);
+
+                Assert.NotNull(screen);
+                Assert.True(picture.LeftCm >= screen!.LeftCm);
+                Assert.True(picture.TopCm >= screen.TopCm);
+                Assert.True(picture.RightCm <= screen.RightCm);
+                Assert.True(picture.BottomCm <= screen.BottomCm);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Composer_CanPlacePrimitivesInsideSemanticContentRegions() {
             string filePath = CreateTempPresentationPath();
 
