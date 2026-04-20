@@ -125,6 +125,32 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Applies italic font styling to a single cell.
+        /// </summary>
+        /// <param name="row">The 1-based row index of the cell to modify.</param>
+        /// <param name="column">The 1-based column index of the cell to modify.</param>
+        /// <param name="italic">Whether the font should be italic (true) or regular (false).</param>
+        public void CellItalic(int row, int column, bool italic = true) {
+            WriteLockConditional(() => {
+                var cell = GetCell(row, column);
+                ApplyFontItalic(cell, italic);
+            });
+        }
+
+        /// <summary>
+        /// Applies underline font styling to a single cell.
+        /// </summary>
+        /// <param name="row">The 1-based row index of the cell to modify.</param>
+        /// <param name="column">The 1-based column index of the cell to modify.</param>
+        /// <param name="underline">Whether the font should be underlined (true) or not (false).</param>
+        public void CellUnderline(int row, int column, bool underline = true) {
+            WriteLockConditional(() => {
+                var cell = GetCell(row, column);
+                ApplyFontUnderline(cell, underline);
+            });
+        }
+
+        /// <summary>
         /// Applies solid background to a single cell. Accepts #RRGGBB or #AARRGGBB.
         /// </summary>
         /// <param name="row">The 1-based row index of the cell to fill.</param>
@@ -336,46 +362,69 @@ namespace OfficeIMO.Excel {
                 var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
                 EnsureDefaultStylePrimitives(stylesheet);
 
-                uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-                var cfEl = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
-                var cfs = cfEl.Elements<CellFormat>().ToList();
-                var baseFormat = cfs.ElementAtOrDefault((int)baseIndex) ?? new CellFormat {
-                    NumberFormatId = 0U,
-                    FontId = 0U,
-                    FillId = 0U,
-                    BorderId = 0U,
-                    FormatId = 0U
-                };
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    var existingAlignment = format.Alignment != null
+                        ? (Alignment)format.Alignment.CloneNode(true)
+                        : new Alignment();
+                    existingAlignment.Horizontal = alignment;
+                    format.Alignment = existingAlignment;
+                    format.ApplyAlignment = true;
+                });
 
-                // Try to reuse an existing format with same base ids and requested alignment
-                int found = -1;
-                for (int i = 0; i < cfs.Count; i++) {
-                    var cf = cfs[i];
-                    var a = cf.Alignment;
-                    if (a != null && a.Horizontal != null && a.Horizontal.Value == alignment
-                        && cf.NumberFormatId?.Value == baseFormat.NumberFormatId?.Value
-                        && cf.FontId?.Value == baseFormat.FontId?.Value
-                        && cf.FillId?.Value == baseFormat.FillId?.Value
-                        && cf.BorderId?.Value == baseFormat.BorderId?.Value) {
-                        found = i; break;
-                    }
-                }
-                if (found == -1) {
-                    var newFormat = new CellFormat {
-                        NumberFormatId = baseFormat.NumberFormatId ?? 0U,
-                        FontId = baseFormat.FontId ?? 0U,
-                        FillId = baseFormat.FillId ?? 0U,
-                        BorderId = baseFormat.BorderId ?? 0U,
-                        FormatId = baseFormat.FormatId ?? 0U,
-                        ApplyAlignment = true,
-                        Alignment = new Alignment { Horizontal = alignment }
-                    };
-                    cfEl.Append(newFormat);
-                    cfEl.Count = (uint)cfEl.Count();
-                    stylesPart.Stylesheet.Save();
-                    found = (int)cfEl.Count.Value - 1;
-                }
-                cell.StyleIndex = (uint)found;
+                stylesPart.Stylesheet.Save();
+            });
+        }
+
+        /// <summary>
+        /// Applies a vertical alignment to a single cell.
+        /// </summary>
+        /// <param name="row">The 1-based row index of the cell to align.</param>
+        /// <param name="column">The 1-based column index of the cell to align.</param>
+        /// <param name="alignment">The vertical alignment value to apply.</param>
+        public void CellVerticalAlign(int row, int column, VerticalAlignmentValues alignment) {
+            WriteLockConditional(() => {
+                var cell = GetCell(row, column);
+                var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+                var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+                var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+                EnsureDefaultStylePrimitives(stylesheet);
+
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    var existingAlignment = format.Alignment != null
+                        ? (Alignment)format.Alignment.CloneNode(true)
+                        : new Alignment();
+                    existingAlignment.Vertical = alignment;
+                    format.Alignment = existingAlignment;
+                    format.ApplyAlignment = true;
+                });
+
+                stylesPart.Stylesheet.Save();
+            });
+        }
+
+        /// <summary>
+        /// Applies the same border style to all sides of a single cell.
+        /// </summary>
+        /// <param name="row">The 1-based row index of the cell to style.</param>
+        /// <param name="column">The 1-based column index of the cell to style.</param>
+        /// <param name="style">The border style to apply on all four sides.</param>
+        /// <param name="hexColor">Optional border color expressed as ARGB or RGB hex.</param>
+        public void CellBorder(int row, int column, BorderStyleValues style, string? hexColor = null) {
+            WriteLockConditional(() => {
+                var cell = GetCell(row, column);
+                var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+                var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+                var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+                EnsureDefaultStylePrimitives(stylesheet);
+
+                var baseFormat = GetBaseCellFormat(stylesheet, cell.StyleIndex?.Value ?? 0U);
+                var borderId = GetOrCreateBorderVariant(stylesheet, GetOptionalValue(baseFormat.BorderId), border => SetUniformBorder(border, style, hexColor));
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    format.BorderId = borderId;
+                    format.ApplyBorder = true;
+                });
+
+                stylesPart.Stylesheet.Save();
             });
         }
 
@@ -396,43 +445,14 @@ namespace OfficeIMO.Excel {
 
                 string argb = NormalizeHexColor(hexColor);
 
-                // Ensure a Font with this color exists
-                var fontsEl = stylesheet.Fonts ??= new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font());
-                var fonts = fontsEl.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ToList();
-                int fontId = -1;
-                for (int i = 0; i < fonts.Count; i++) {
-                    var c = fonts[i].Color?.Rgb?.Value;
-                    var b = fonts[i].Bold != null ? true : false;
-                    if (c == argb && !b) { fontId = i; break; }
-                }
-                if (fontId == -1) {
-                    var f = new DocumentFormat.OpenXml.Spreadsheet.Font();
-                    f.Color = new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = argb };
-                    fontsEl.Append(f);
-                    fontsEl.Count = (uint)fontsEl.Count();
-                    fontId = (int)fontsEl.Count.Value - 1;
-                }
-
                 uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-                var cellFormatsEl2 = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
-                var cellFormats = cellFormatsEl2.Elements<CellFormat>().ToList();
-                var baseFormat = cellFormats.ElementAtOrDefault((int)baseIndex) ?? new CellFormat {
-                    NumberFormatId = 0U,
-                    FontId = 0U,
-                    FillId = 0U,
-                    BorderId = 0U,
-                    FormatId = 0U,
-                };
-                var newFormat2 = new CellFormat {
-                    NumberFormatId = baseFormat.NumberFormatId ?? 0U,
-                    FontId = (uint)fontId,
-                    FillId = baseFormat.FillId ?? 0U,
-                    BorderId = baseFormat.BorderId ?? 0U,
-                    FormatId = baseFormat.FormatId ?? 0U,
-                };
-                cellFormatsEl2.Append(newFormat2);
-                cellFormatsEl2.Count = (uint)cellFormatsEl2.Count();
-                cell.StyleIndex = (uint)cellFormatsEl2.Count.Value - 1;
+                var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
+                var fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetFontColor(font, argb));
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    format.FontId = fontId;
+                    format.ApplyFont = true;
+                });
+
                 stylesPart.Stylesheet.Save();
             });
         }
@@ -446,48 +466,51 @@ namespace OfficeIMO.Excel {
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            // Ensure we have a bold font entry
-            int boldFontId = -1;
-            var fontsEl = stylesheet.Fonts ??= new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font());
-            var fonts = fontsEl.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ToList();
-            for (int i = 0; i < fonts.Count; i++) {
-                bool hasBold = fonts[i].Bold != null;
-                if (hasBold == bold) {
-                    boldFontId = i;
-                    break;
-                }
-            }
-            if (boldFontId == -1) {
-                var f = new DocumentFormat.OpenXml.Spreadsheet.Font();
-                if (bold) f.Bold = new Bold();
-                fontsEl.Append(f);
-                fontsEl.Count = (uint)fontsEl.Count();
-                boldFontId = (int)fontsEl.Count.Value - 1;
-            }
+            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+            var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
+            var boldFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetBold(font, bold));
+            ApplyCellFormatOverride(stylesheet, cell, format => {
+                format.FontId = boldFontId;
+                format.ApplyFont = true;
+            });
+            stylesPart.Stylesheet.Save();
+        }
+
+        private void ApplyFontItalic(Cell cell, bool italic) {
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+            var stylesPart = workbookPart.WorkbookStylesPart;
+            if (stylesPart == null)
+                stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
+
+            var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            EnsureDefaultStylePrimitives(stylesheet);
 
             uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-            var cellFormatsEl3 = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
-            var cellFormats = cellFormatsEl3.Elements<CellFormat>().ToList();
-            var baseFormat = cellFormats.ElementAtOrDefault((int)baseIndex) ?? new CellFormat {
-                NumberFormatId = 0U,
-                FontId = 0U,
-                FillId = 0U,
-                BorderId = 0U,
-                FormatId = 0U,
-            };
+            var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
+            var italicFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetItalic(font, italic));
+            ApplyCellFormatOverride(stylesheet, cell, format => {
+                format.FontId = italicFontId;
+                format.ApplyFont = true;
+            });
+            stylesPart.Stylesheet.Save();
+        }
 
-            // Create a new CellFormat using the bold font, preserving other IDs
-            var newFormat = new CellFormat {
-                NumberFormatId = baseFormat.NumberFormatId ?? 0U,
-                FontId = (uint)boldFontId,
-                FillId = baseFormat.FillId ?? 0U,
-                BorderId = baseFormat.BorderId ?? 0U,
-                FormatId = baseFormat.FormatId ?? 0U,
-                ApplyFont = true
-            };
-            cellFormatsEl3.Append(newFormat);
-            cellFormatsEl3.Count = (uint)cellFormatsEl3.Count();
-            cell.StyleIndex = (uint)cellFormatsEl3.Count.Value - 1;
+        private void ApplyFontUnderline(Cell cell, bool underline) {
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+            var stylesPart = workbookPart.WorkbookStylesPart;
+            if (stylesPart == null)
+                stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
+
+            var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            EnsureDefaultStylePrimitives(stylesheet);
+
+            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+            var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
+            var underlineFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetUnderline(font, underline));
+            ApplyCellFormatOverride(stylesheet, cell, format => {
+                format.FontId = underlineFontId;
+                format.ApplyFont = true;
+            });
             stylesPart.Stylesheet.Save();
         }
 
@@ -516,33 +539,11 @@ namespace OfficeIMO.Excel {
                 ForegroundColor = new ForegroundColor { Rgb = argb },
                 BackgroundColor = new BackgroundColor { Rgb = argb }
             });
-            var fillsEl = stylesheet.Fills ??= new Fills();
-            fillsEl.Append(fill);
-            fillsEl.Count = (uint)fillsEl.Count();
-            int fillId = (int)fillsEl.Count.Value - 1;
-
-            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
-            var cellFormatsEl = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
-            var cellFormats = cellFormatsEl.Elements<CellFormat>().ToList();
-            var baseFormat = cellFormats.ElementAtOrDefault((int)baseIndex) ?? new CellFormat {
-                NumberFormatId = 0U,
-                FontId = 0U,
-                FillId = 0U,
-                BorderId = 0U,
-                FormatId = 0U,
-            };
-
-            var newFormat = new CellFormat {
-                NumberFormatId = baseFormat.NumberFormatId ?? 0U,
-                FontId = baseFormat.FontId ?? 0U,
-                FillId = (uint)fillId,
-                BorderId = baseFormat.BorderId ?? 0U,
-                FormatId = baseFormat.FormatId ?? 0U,
-                ApplyFill = true
-            };
-            stylesheet.CellFormats.Append(newFormat);
-            stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
-            cell.StyleIndex = (uint)stylesheet.CellFormats.Count.Value - 1;
+            var fillId = GetOrCreateFill(stylesheet, fill);
+            ApplyCellFormatOverride(stylesheet, cell, format => {
+                format.FillId = fillId;
+                format.ApplyFill = true;
+            });
             stylesPart.Stylesheet.Save();
         }
 
@@ -561,24 +562,10 @@ namespace OfficeIMO.Excel {
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            var cellFormatsEl = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
-            var cellFormats = cellFormatsEl.Elements<CellFormat>().ToList();
-            int formatIndex = cellFormats.FindIndex(cf => cf.NumberFormatId != null && cf.NumberFormatId.Value == builtInFormatId && cf.ApplyNumberFormat != null && cf.ApplyNumberFormat.Value);
-            if (formatIndex == -1) {
-                CellFormat cellFormat = new CellFormat {
-                    NumberFormatId = builtInFormatId,
-                    FontId = 0,
-                    FillId = 0,
-                    BorderId = 0,
-                    FormatId = 0,
-                    ApplyNumberFormat = true
-                };
-                stylesheet.CellFormats.Append(cellFormat);
-                stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
-                formatIndex = cellFormats.Count;
-            }
-
-            cell.StyleIndex = (uint)formatIndex;
+            ApplyCellFormatOverride(stylesheet, cell, format => {
+                format.NumberFormatId = builtInFormatId;
+                format.ApplyNumberFormat = true;
+            });
             stylesPart.Stylesheet.Save();
         }
 
@@ -613,25 +600,147 @@ namespace OfficeIMO.Excel {
                 stylesheet.NumberingFormats.Count = (uint)stylesheet.NumberingFormats.Count();
             }
 
-            var cellFormatsEl4 = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
-            var cellFormats = cellFormatsEl4.Elements<CellFormat>().ToList();
-            int formatIndex = cellFormats.FindIndex(cf => cf.NumberFormatId != null && cf.NumberFormatId.Value == numberFormatId && cf.ApplyNumberFormat != null && cf.ApplyNumberFormat.Value);
-            if (formatIndex == -1) {
-                CellFormat cellFormat = new CellFormat {
-                    NumberFormatId = numberFormatId,
-                    FontId = 0,
-                    FillId = 0,
-                    BorderId = 0,
-                    FormatId = 0,
-                    ApplyNumberFormat = true
-                };
-                cellFormatsEl4.Append(cellFormat);
-                cellFormatsEl4.Count = (uint)cellFormatsEl4.Count();
-                formatIndex = cellFormats.Count;
+            ApplyCellFormatOverride(stylesheet, cell, format => {
+                format.NumberFormatId = numberFormatId;
+                format.ApplyNumberFormat = true;
+            });
+            stylesPart.Stylesheet.Save();
+        }
+
+        private static CellFormat GetBaseCellFormat(Stylesheet stylesheet, uint styleIndex) {
+            var cellFormats = stylesheet.CellFormats?.Elements<CellFormat>().ToList();
+            var baseFormat = cellFormats?.ElementAtOrDefault((int)styleIndex);
+            if (baseFormat != null) {
+                return (CellFormat)baseFormat.CloneNode(true);
             }
 
-            cell.StyleIndex = (uint)formatIndex;
-            stylesPart.Stylesheet.Save();
+            return new CellFormat {
+                NumberFormatId = 0U,
+                FontId = 0U,
+                FillId = 0U,
+                BorderId = 0U,
+                FormatId = 0U
+            };
+        }
+
+        private static void ApplyCellFormatOverride(Stylesheet stylesheet, Cell cell, Action<CellFormat> mutate) {
+            var baseFormat = GetBaseCellFormat(stylesheet, cell.StyleIndex?.Value ?? 0U);
+            mutate(baseFormat);
+            cell.StyleIndex = AppendOrReuseCellFormat(stylesheet, baseFormat);
+        }
+
+        private static uint AppendOrReuseCellFormat(Stylesheet stylesheet, CellFormat candidate) {
+            var cellFormats = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+            var existing = cellFormats.Elements<CellFormat>()
+                .Select((format, index) => new { format, index })
+                .FirstOrDefault(entry => string.Equals(entry.format.OuterXml, candidate.OuterXml, StringComparison.Ordinal));
+            if (existing != null) {
+                return (uint)existing.index;
+            }
+
+            cellFormats.Append(candidate);
+            cellFormats.Count = (uint)cellFormats.Count();
+            return cellFormats.Count!.Value - 1;
+        }
+
+        private static uint GetOrCreateFill(Stylesheet stylesheet, Fill candidate) {
+            var fills = stylesheet.Fills ??= new Fills();
+            var existing = fills.Elements<Fill>()
+                .Select((fill, index) => new { fill, index })
+                .FirstOrDefault(entry => string.Equals(entry.fill.OuterXml, candidate.OuterXml, StringComparison.Ordinal));
+            if (existing != null) {
+                return (uint)existing.index;
+            }
+
+            fills.Append(candidate);
+            fills.Count = (uint)fills.Count();
+            return fills.Count!.Value - 1;
+        }
+
+        private static uint GetOrCreateBorderVariant(Stylesheet stylesheet, uint? baseBorderId, Action<Border> mutate) {
+            var borders = stylesheet.Borders ??= new Borders(new Border());
+            var baseBorder = borders.Elements<Border>().ElementAtOrDefault((int)(baseBorderId ?? 0U));
+            var candidate = baseBorder != null
+                ? (Border)baseBorder.CloneNode(true)
+                : new Border();
+
+            mutate(candidate);
+
+            var existing = borders.Elements<Border>()
+                .Select((border, index) => new { border, index })
+                .FirstOrDefault(entry => string.Equals(entry.border.OuterXml, candidate.OuterXml, StringComparison.Ordinal));
+            if (existing != null) {
+                return (uint)existing.index;
+            }
+
+            borders.Append(candidate);
+            borders.Count = (uint)borders.Count();
+            return borders.Count!.Value - 1;
+        }
+
+        private static uint GetOrCreateFontVariant(Stylesheet stylesheet, uint? baseFontId, Action<DocumentFormat.OpenXml.Spreadsheet.Font> mutate) {
+            var fonts = stylesheet.Fonts ??= new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font());
+            var baseFont = fonts.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ElementAtOrDefault((int)(baseFontId ?? 0U));
+            var candidate = baseFont != null
+                ? (DocumentFormat.OpenXml.Spreadsheet.Font)baseFont.CloneNode(true)
+                : new DocumentFormat.OpenXml.Spreadsheet.Font();
+
+            mutate(candidate);
+
+            var existing = fonts.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>()
+                .Select((font, index) => new { font, index })
+                .FirstOrDefault(entry => string.Equals(entry.font.OuterXml, candidate.OuterXml, StringComparison.Ordinal));
+            if (existing != null) {
+                return (uint)existing.index;
+            }
+
+            fonts.Append(candidate);
+            fonts.Count = (uint)fonts.Count();
+            return fonts.Count!.Value - 1;
+        }
+
+        private static uint? GetOptionalValue(UInt32Value? value) {
+            return value != null ? value.Value : (uint?)null;
+        }
+
+        private static void SetBold(DocumentFormat.OpenXml.Spreadsheet.Font font, bool bold) {
+            font.Bold = bold ? new Bold() : null;
+        }
+
+        private static void SetItalic(DocumentFormat.OpenXml.Spreadsheet.Font font, bool italic) {
+            font.Italic = italic ? new Italic() : null;
+        }
+
+        private static void SetUnderline(DocumentFormat.OpenXml.Spreadsheet.Font font, bool underline) {
+            font.Underline = underline ? new Underline() : null;
+        }
+
+        private static void SetFontColor(DocumentFormat.OpenXml.Spreadsheet.Font font, string argb) {
+            font.Color = new DocumentFormat.OpenXml.Spreadsheet.Color {
+                Rgb = argb
+            };
+        }
+
+        private static void SetUniformBorder(Border border, BorderStyleValues style, string? hexColor) {
+            var argb = string.IsNullOrWhiteSpace(hexColor) ? null : NormalizeHexColor(hexColor!);
+            border.LeftBorder = CreateBorderSide<LeftBorder>(style, argb);
+            border.RightBorder = CreateBorderSide<RightBorder>(style, argb);
+            border.TopBorder = CreateBorderSide<TopBorder>(style, argb);
+            border.BottomBorder = CreateBorderSide<BottomBorder>(style, argb);
+        }
+
+        private static T CreateBorderSide<T>(BorderStyleValues style, string? argb) where T : BorderPropertiesType, new() {
+            var side = new T {
+                Style = style
+            };
+
+            if (!string.IsNullOrWhiteSpace(argb)) {
+                side.Append(new Color {
+                    Rgb = argb
+                });
+            }
+
+            return side;
         }
 
         /// <summary>

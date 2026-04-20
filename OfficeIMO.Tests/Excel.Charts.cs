@@ -50,6 +50,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelCharts_SeriesStyling_Validates() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SeriesStyling.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Summary");
+                var data = new ExcelChartData(
+                    new[] { "Q1", "Q2", "Q3", "Q4" },
+                    new[] {
+                        new ExcelChartSeries("Revenue", new[] { 120d, 180d, 260d, 320d }),
+                        new ExcelChartSeries("Costs", new[] { 85d, 94d, 132d, 150d })
+                    });
+
+                var chart = sheet.AddChart(data, row: 1, column: 6, widthPixels: 480, heightPixels: 320,
+                    type: ExcelChartType.ColumnClustered, title: "Quarterly");
+                chart.SetSeriesFillColor(0, "2563EB")
+                    .SetSeriesLineColor(1, "F97316", widthPoints: 0.5);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var chartPart = wsPart.DrawingsPart!.ChartParts.First();
+                var barSeries = chartPart.ChartSpace.Descendants<C.BarChartSeries>().First();
+                var children = barSeries.ChildElements.Select(child => child.GetType()).ToList();
+
+                Assert.True(
+                    children.IndexOf(typeof(C.ChartShapeProperties)) < children.IndexOf(typeof(C.CategoryAxisData)),
+                    "Series shape properties must be emitted before category/value data to satisfy the chart schema.");
+                Assert.Contains("2563EB", chartPart.ChartSpace.OuterXml, StringComparison.OrdinalIgnoreCase);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void Test_ExcelCharts_UpdateData() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Update.xlsx");
 

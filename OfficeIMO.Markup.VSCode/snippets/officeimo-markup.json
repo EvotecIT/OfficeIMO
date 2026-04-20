@@ -1,0 +1,92 @@
+{
+  "Presentation front matter": {
+    "prefix": "omd-presentation",
+    "body": [
+      "---",
+      "profile: presentation",
+      "title: ${1:Deck Title}",
+      "theme: ${2:evotec-modern}",
+      "size: 16:9",
+      "---",
+      "",
+      "# ${3:Slide Title}",
+      "",
+      "@slide {",
+      "  layout: ${4:title-and-content}",
+      "  transition: ${5:fade}",
+      "}",
+      "",
+      "${0}"
+    ]
+  },
+  "Slide": {
+    "prefix": "omd-slide",
+    "body": [
+      "---",
+      "",
+      "# ${1:Slide Title}",
+      "",
+      "@slide {",
+      "  layout: ${2:title-and-content}",
+      "}",
+      "",
+      "${0}"
+    ]
+  },
+  "Notes": {
+    "prefix": "omd-notes",
+    "body": [
+      "::notes",
+      "${0:Speaker notes}"
+    ]
+  },
+  "Mermaid": {
+    "prefix": "omd-mermaid",
+    "body": [
+      "::mermaid",
+      "graph LR",
+      "  ${1:A} --> ${2:B}"
+    ]
+  },
+  "Chart": {
+    "prefix": "omd-chart",
+    "body": [
+      "::chart type=${1:column} title=\"${2:Chart Title}\" category-title=${3:Quarter} value-title=${4:Amount} value-format=\"${5:#,##0}\" legend=${6:right} labels=${7:true} label-position=${8:outside-end} gridlines=${9:true}",
+      "${10:Quarter},${11:Revenue}",
+      "Q1,120",
+      "Q2,180"
+    ]
+  },
+  "Workbook": {
+    "prefix": "omd-workbook",
+    "body": [
+      "---",
+      "profile: workbook",
+      "title: ${1:Workbook Title}",
+      "---",
+      "",
+      "@sheet {",
+      "  name: ${2:Summary}",
+      "}",
+      "",
+      "::range address=A1",
+      "${3:Name},${4:Value}",
+      "A,1"
+    ]
+  },
+  "Document": {
+    "prefix": "omd-document",
+    "body": [
+      "---",
+      "profile: document",
+      "title: ${1:Document Title}",
+      "---",
+      "",
+      "# ${1:Document Title}",
+      "",
+      "::toc min=1 max=3",
+      "",
+      "${0}"
+    ]
+  }
+}

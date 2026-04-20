@@ -119,6 +119,81 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void TransitionTimingAndAdvanceSettings_RoundTripAndValidatePackage() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    slide.Transition = SlideTransition.Fade;
+                    slide.TransitionSpeed = SlideTransitionSpeed.Fast;
+                    slide.TransitionDurationSeconds = 0.6;
+                    slide.TransitionAdvanceOnClick = false;
+                    slide.TransitionAdvanceAfterSeconds = 4.25;
+
+                    presentation.Save();
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointSlide slide = presentation.Slides.Single();
+                    Assert.Equal(SlideTransition.Fade, slide.Transition);
+                    Assert.Equal(SlideTransitionSpeed.Fast, slide.TransitionSpeed);
+                    Assert.Equal(0.6, slide.TransitionDurationSeconds);
+                    Assert.False(slide.TransitionAdvanceOnClick);
+                    Assert.Equal(4.25, slide.TransitionAdvanceAfterSeconds);
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.Single();
+                    Transition transition = Assert.IsType<Transition>(slidePart.Slide.Transition);
+
+                    Assert.Equal(TransitionSpeedValues.Fast, transition.Speed?.Value);
+                    Assert.Equal("600", transition.Duration?.Value);
+                    Assert.False(transition.AdvanceOnClick?.Value);
+                    Assert.Equal("4250", transition.AdvanceAfterTime?.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void TransitionMutation_PreservesTimingSettingsAcrossTransitionChanges() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    slide.Transition = SlideTransition.Fade;
+                    slide.TransitionSpeed = SlideTransitionSpeed.Slow;
+                    slide.TransitionDurationSeconds = 0.75;
+                    slide.TransitionAdvanceAfterSeconds = 3.5;
+
+                    slide.Transition = SlideTransition.PushLeft;
+
+                    presentation.Save();
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+
+                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                    PowerPointSlide slide = presentation.Slides.Single();
+                    Assert.Equal(SlideTransition.PushLeft, slide.Transition);
+                    Assert.Equal(SlideTransitionSpeed.Slow, slide.TransitionSpeed);
+                    Assert.Equal(0.75, slide.TransitionDurationSeconds);
+                    Assert.Equal(3.5, slide.TransitionAdvanceAfterSeconds);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void TransitionBackgroundAndNotesMutationsValidatePackage() {
             string filePath = CreateTempFilePath(".pptx");
             string imagesDirectory = AppendPathSegment(AppDomain.CurrentDomain.BaseDirectory, "Images");
@@ -263,6 +338,74 @@ namespace OfficeIMO.Tests {
 
                     Assert.Null(properties.GetFirstChild<A.BlipFill>());
                     Assert.Equal("112233", properties.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val?.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void BackgroundGradient_ReplacesSolidFillAndValidatesPackage() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    slide.BackgroundColor = "112233";
+                    slide.SetBackgroundGradient("112233", "445566");
+
+                    presentation.Save();
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.First();
+                    DocumentFormat.OpenXml.Presentation.BackgroundProperties properties =
+                        slidePart.Slide.CommonSlideData!.Background!.BackgroundProperties!;
+
+                    Assert.Null(properties.GetFirstChild<A.SolidFill>());
+                    A.GradientFill gradient = Assert.IsType<A.GradientFill>(properties.GetFirstChild<A.GradientFill>());
+                    A.GradientStop[] stops = gradient.GetFirstChild<A.GradientStopList>()!.Elements<A.GradientStop>().ToArray();
+                    Assert.Equal(2, stops.Length);
+                    Assert.Equal("112233", stops[0].GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                    Assert.Equal("445566", stops[1].GetFirstChild<A.RgbColorModelHex>()?.Val?.Value);
+                    Assert.Equal(8100000, gradient.GetFirstChild<A.LinearGradientFill>()?.Angle?.Value);
+
+                    OpenXmlValidator validator = new(FileFormatVersions.Microsoft365);
+                    Assert.Empty(validator.Validate(document));
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void BackgroundGradient_UsesProvidedAngleAndValidatesPackage() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointSlide slide = presentation.AddSlide();
+                    slide.SetBackgroundGradient("112233", "445566", 45d);
+
+                    presentation.Save();
+                    Assert.Empty(presentation.ValidateDocument());
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    SlidePart slidePart = document.PresentationPart!.SlideParts.First();
+                    DocumentFormat.OpenXml.Presentation.BackgroundProperties properties =
+                        slidePart.Slide.CommonSlideData!.Background!.BackgroundProperties!;
+
+                    A.GradientFill gradient = Assert.IsType<A.GradientFill>(properties.GetFirstChild<A.GradientFill>());
+                    Assert.Equal(2700000, gradient.GetFirstChild<A.LinearGradientFill>()?.Angle?.Value);
+
+                    OpenXmlValidator validator = new(FileFormatVersions.Microsoft365);
+                    Assert.Empty(validator.Validate(document));
                 }
             } finally {
                 if (File.Exists(filePath)) {

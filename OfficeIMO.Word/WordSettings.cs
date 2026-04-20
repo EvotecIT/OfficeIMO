@@ -212,7 +212,7 @@ namespace OfficeIMO.Word {
                 var updateFieldsOnOpen = settings.GetFirstChild<UpdateFieldsOnOpen>();
                 if (updateFieldsOnOpen == null) {
                     updateFieldsOnOpen = new UpdateFieldsOnOpen();
-                    settings.PrependChild(updateFieldsOnOpen);
+                    settings.AddChild(updateFieldsOnOpen, true);
                 }
                 updateFieldsOnOpen.Val = value;
             }

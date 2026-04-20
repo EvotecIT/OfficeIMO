@@ -1,0 +1,46 @@
+---
+profile: document
+title: Architecture Note
+author: OfficeIMO
+---
+
+# Architecture Note
+
+@section {
+  orientation: portrait
+}
+
+::toc min=1 max=3
+
+This document starts as normal Markdown.
+
+## Overview
+
+- Markdown remains readable
+- Office-specific constructs are explicit
+- Generated C# and PowerShell are escape hatches
+
+| Area | Status |
+| --- | --- |
+| Parser | Ready |
+| Exporters | Growing |
+
+::chart type=column title="Quarterly Revenue" width=480 height=320
+Quarter,Revenue
+Q1,120
+Q2,180
+Q3,260
+Q4,320
+
+::header text="OfficeIMO Markup"
+
+::page-break
+
+@section {
+  name: Appendix
+  orientation: landscape
+}
+
+## Appendix
+
+More Markdown can flow after the section directive.

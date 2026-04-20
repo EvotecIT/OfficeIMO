@@ -187,6 +187,48 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Sets a linear gradient background for the slide using two 6-digit hex colors.
+        /// </summary>
+        public void SetBackgroundGradient(string startColor, string endColor, double angleDegrees = 135d) {
+            if (string.IsNullOrWhiteSpace(startColor)) {
+                throw new ArgumentException("Gradient start color cannot be null or empty.", nameof(startColor));
+            }
+
+            if (string.IsNullOrWhiteSpace(endColor)) {
+                throw new ArgumentException("Gradient end color cannot be null or empty.", nameof(endColor));
+            }
+
+            string normalizedStart = NormalizeHexColor(startColor);
+            string normalizedEnd = NormalizeHexColor(endColor);
+
+            CommonSlideData common = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
+            Background background = common.Background ?? new Background();
+            BackgroundProperties props = background.BackgroundProperties ?? new BackgroundProperties();
+
+            RemoveBackgroundFillChildren(props);
+
+            A.GradientFill gradient = new() { RotateWithShape = true };
+            A.GradientStopList stops = new();
+            stops.Append(
+                new A.GradientStop(new A.RgbColorModelHex { Val = normalizedStart }) {
+                    Position = 0
+                });
+            stops.Append(
+                new A.GradientStop(new A.RgbColorModelHex { Val = normalizedEnd }) {
+                    Position = 100000
+                });
+            gradient.Append(stops);
+            gradient.Append(new A.LinearGradientFill {
+                Angle = ToOpenXmlAngle(angleDegrees),
+                Scaled = false
+            });
+
+            props.Append(gradient);
+            background.BackgroundProperties = props;
+            common.Background = background;
+        }
+
+        /// <summary>
         ///     Clears any background image from the slide.
         /// </summary>
         public void ClearBackgroundImage() {
@@ -288,6 +330,11 @@ namespace OfficeIMO.PowerPoint {
                 return SlideTransition.None;
             }
             set {
+                SlideTransitionSpeed? speed = TransitionSpeed;
+                double? durationSeconds = TransitionDurationSeconds;
+                bool? advanceOnClick = TransitionAdvanceOnClick;
+                double? advanceAfterSeconds = TransitionAdvanceAfterSeconds;
+
                 RemoveTransitionMarkup();
                 if (value == SlideTransition.None) {
                     return;
@@ -360,6 +407,108 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 SlideRoot.Transition = transition;
+                ApplyTransitionSettings(GetTransitionElement(), speed, durationSeconds, advanceOnClick, advanceAfterSeconds);
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the optional transition playback speed.
+        /// </summary>
+        public SlideTransitionSpeed? TransitionSpeed {
+            get {
+                Transition? transition = GetTransitionElement();
+                if (transition?.Speed?.Value == null) {
+                    return null;
+                }
+
+                var speedValue = transition.Speed.Value;
+                if (speedValue == TransitionSpeedValues.Slow) {
+                    return SlideTransitionSpeed.Slow;
+                }
+
+                if (speedValue == TransitionSpeedValues.Fast) {
+                    return SlideTransitionSpeed.Fast;
+                }
+
+                return SlideTransitionSpeed.Medium;
+            }
+            set {
+                Transition? transition = GetTransitionElement();
+                if (transition == null) {
+                    return;
+                }
+
+                transition.Speed = value switch {
+                    SlideTransitionSpeed.Slow => TransitionSpeedValues.Slow,
+                    SlideTransitionSpeed.Fast => TransitionSpeedValues.Fast,
+                    SlideTransitionSpeed.Medium => TransitionSpeedValues.Medium,
+                    _ => null
+                };
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the optional transition duration in seconds.
+        /// </summary>
+        public double? TransitionDurationSeconds {
+            get {
+                uint? milliseconds = ParseTransitionMilliseconds(GetTransitionElement()?.Duration?.Value);
+                if (milliseconds == null) {
+                    return null;
+                }
+
+                return milliseconds.Value / 1000.0;
+            }
+            set {
+                Transition? transition = GetTransitionElement();
+                if (transition == null) {
+                    return;
+                }
+
+                if (value.HasValue) {
+                    EnsureTransitionNamespace(transition, "p14", P14Namespace);
+                }
+
+                transition.Duration = ToMillisecondsString(value);
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets whether clicking advances the slide.
+        /// </summary>
+        public bool? TransitionAdvanceOnClick {
+            get {
+                return GetTransitionElement()?.AdvanceOnClick?.Value;
+            }
+            set {
+                Transition? transition = GetTransitionElement();
+                if (transition == null) {
+                    return;
+                }
+
+                transition.AdvanceOnClick = value;
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the optional automatic-advance time in seconds.
+        /// </summary>
+        public double? TransitionAdvanceAfterSeconds {
+            get {
+                uint? milliseconds = ParseTransitionMilliseconds(GetTransitionElement()?.AdvanceAfterTime?.Value);
+                if (milliseconds == null) {
+                    return null;
+                }
+
+                return milliseconds.Value / 1000.0;
+            }
+            set {
+                Transition? transition = GetTransitionElement();
+                if (transition == null) {
+                    return;
+                }
+
+                transition.AdvanceAfterTime = ToMillisecondsString(value);
             }
         }
 
@@ -409,6 +558,60 @@ namespace OfficeIMO.PowerPoint {
             morph.AddNamespaceDeclaration("p159", P159Namespace);
             morph.SetAttribute(new OpenXmlAttribute("option", string.Empty, "byObject"));
             return morph;
+        }
+
+        private static uint? ToMilliseconds(double? seconds) {
+            if (!seconds.HasValue) {
+                return null;
+            }
+
+            if (seconds.Value < 0) {
+                return 0;
+            }
+
+            return (uint)Math.Round(seconds.Value * 1000.0, MidpointRounding.AwayFromZero);
+        }
+
+        private static string? ToMillisecondsString(double? seconds) {
+            uint? milliseconds = ToMilliseconds(seconds);
+            return milliseconds?.ToString();
+        }
+
+        private static uint? ParseTransitionMilliseconds(string? value) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                return null;
+            }
+
+            return uint.TryParse(value, out uint parsed)
+                ? parsed
+                : null;
+        }
+
+        private static void ApplyTransitionSettings(Transition? transition, SlideTransitionSpeed? speed, double? durationSeconds, bool? advanceOnClick, double? advanceAfterSeconds) {
+            if (transition == null) {
+                return;
+            }
+
+            transition.Speed = speed switch {
+                SlideTransitionSpeed.Slow => TransitionSpeedValues.Slow,
+                SlideTransitionSpeed.Fast => TransitionSpeedValues.Fast,
+                SlideTransitionSpeed.Medium => TransitionSpeedValues.Medium,
+                _ => null
+            };
+
+            if (durationSeconds.HasValue) {
+                EnsureTransitionNamespace(transition, "p14", P14Namespace);
+            }
+
+            transition.Duration = ToMillisecondsString(durationSeconds);
+            transition.AdvanceOnClick = advanceOnClick;
+            transition.AdvanceAfterTime = ToMillisecondsString(advanceAfterSeconds);
+        }
+
+        private static void EnsureTransitionNamespace(Transition transition, string prefix, string uri) {
+            if (!string.Equals(transition.LookupNamespace(prefix), uri, StringComparison.Ordinal)) {
+                transition.AddNamespaceDeclaration(prefix, uri);
+            }
         }
 
         private Transition? GetTransitionElement() {
@@ -512,6 +715,28 @@ namespace OfficeIMO.PowerPoint {
             properties.RemoveAllChildren<A.NoFill>();
             properties.RemoveAllChildren<A.PatternFill>();
             properties.RemoveAllChildren<A.SolidFill>();
+        }
+
+        private static string NormalizeHexColor(string value) {
+            string normalized = value.Trim();
+            if (normalized.StartsWith("#", StringComparison.Ordinal)) {
+                normalized = normalized.Substring(1);
+            }
+
+            if (normalized.Length != 6 || normalized.Any(c => !Uri.IsHexDigit(c))) {
+                throw new ArgumentException("Color must be a 6-digit hex value.", nameof(value));
+            }
+
+            return normalized.ToUpperInvariant();
+        }
+
+        private static int ToOpenXmlAngle(double degrees) {
+            double normalized = degrees % 360d;
+            if (normalized < 0) {
+                normalized += 360d;
+            }
+
+            return (int)Math.Round(normalized * 60000d);
         }
 
         private A.Blip? GetBackgroundBlip() {

@@ -1,0 +1,30 @@
+---
+profile: workbook
+title: Revenue Workbook
+author: OfficeIMO
+---
+
+@sheet {
+  name: Revenue
+}
+
+# Revenue Workbook
+
+::range address=A1
+Product,2024,2025
+A,100,120
+B,80,92
+C,60,77
+
+::table name="RevenueTable" range=A1:C4 header=true
+
+::formula cell=D2
+=C2-B2
+
+@sheet {
+  name: Dashboard
+}
+
+# Revenue Dashboard
+
+::chart type=column title="Revenue" source=Revenue!RevenueTable cell=B3 width=640 height=360 category-title=Product value-title=Revenue value-format="#,##0" legend=right labels=true label-position=outside-end label-format="#,##0" gridlines=true
