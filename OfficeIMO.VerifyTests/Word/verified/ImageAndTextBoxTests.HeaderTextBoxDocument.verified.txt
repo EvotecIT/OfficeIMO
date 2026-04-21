@@ -10893,7 +10893,6 @@
                             <w:rPr />
                           </w:pPr>
                           <w:r>
-                            <w:rPr />
                             <w:t>Header textbox</w:t>
                             <w:br />
                           </w:r>

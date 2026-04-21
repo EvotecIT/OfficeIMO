@@ -162,6 +162,10 @@ public abstract class VerifyTestBase {
         NormalizeDrawingReferences(rootElement);
         NormalizeSectionProperties(rootElement);
         NormalizeRevisionMetadata(rootElement);
+        NormalizeStructuredDocumentTagIds(rootElement);
+        NormalizeEmptyRunProperties(rootElement);
+        NormalizeTableGrid(rootElement);
+        NormalizeSettings(rootElement);
     }
 
     private static void NormalizeDocumentReferences(Document document) {
@@ -241,6 +245,20 @@ public abstract class VerifyTestBase {
         }
     }
 
+    private static void NormalizeStructuredDocumentTagIds(DocumentFormat.OpenXml.OpenXmlElement rootElement) {
+        var i = 1;
+        foreach (var element in rootElement
+                     .Descendants()
+                     .Where(x => x.LocalName == "id"
+                                 && x.NamespaceUri == "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+                                 && x.Parent?.LocalName == "sdtPr")) {
+            element.SetAttribute(new OpenXmlAttribute("w", "val",
+                "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
+                i.ToString(CultureInfo.InvariantCulture)));
+            i++;
+        }
+    }
+
     private static void NormalizeSectionProperties(DocumentFormat.OpenXml.OpenXmlElement rootElement) {
         var i = 1;
         foreach (var sectionProperties in rootElement.Descendants<SectionProperties>()) {
@@ -256,6 +274,8 @@ public abstract class VerifyTestBase {
                 sectionProperties.RsidDel = "R" + i.ToString("X8");
                 i++;
             }
+
+            EnsureDefaultSectionLayout(sectionProperties);
         }
     }
 
@@ -300,9 +320,122 @@ public abstract class VerifyTestBase {
         }
     }
 
+    private static void NormalizeEmptyRunProperties(DocumentFormat.OpenXml.OpenXmlElement rootElement) {
+        foreach (var runProperties in rootElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.RunProperties>().ToList()) {
+            if (!runProperties.HasChildren && !runProperties.GetAttributes().Any()) {
+                runProperties.Remove();
+            }
+        }
+    }
+
+    private static void NormalizeTableGrid(DocumentFormat.OpenXml.OpenXmlElement rootElement) {
+        foreach (var tableGrid in rootElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.TableGrid>()) {
+            var columns = tableGrid.Elements<DocumentFormat.OpenXml.Wordprocessing.GridColumn>().ToList();
+            if (columns.Count == 0) {
+                continue;
+            }
+
+            var widths = columns
+                .Select(static column => column.Width?.Value)
+                .Where(static width => !string.IsNullOrWhiteSpace(width))
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+
+            if (widths.Count == 0 && TryGetGridWidthsFromFirstRow(tableGrid, columns.Count, out var inferredWidths)) {
+                for (var index = 0; index < columns.Count; index++) {
+                    columns[index].Width = inferredWidths[index];
+                }
+                continue;
+            }
+
+            if (widths.Count == 1) {
+                foreach (var column in columns) {
+                    column.Width = widths[0];
+                }
+            }
+        }
+    }
+
+    private static void NormalizeSettings(DocumentFormat.OpenXml.OpenXmlElement rootElement) {
+        if (rootElement is not Settings settings) {
+            return;
+        }
+
+        var updateFields = settings.Elements<UpdateFieldsOnOpen>().FirstOrDefault();
+        var zoom = settings.Elements<Zoom>().FirstOrDefault();
+
+        if (updateFields != null && zoom != null && !ReferenceEquals(updateFields.NextSibling<DocumentFormat.OpenXml.OpenXmlElement>(), zoom)) {
+            updateFields.Remove();
+            settings.InsertBefore(updateFields, zoom);
+        }
+    }
+
+    private static void EnsureDefaultSectionLayout(SectionProperties sectionProperties) {
+        var pageSize = sectionProperties.Elements<PageSize>().FirstOrDefault();
+        if (pageSize == null) {
+            pageSize = new PageSize {
+                Width = 12240U,
+                Height = 15840U,
+                Code = (UInt16Value)1U
+            };
+
+            var anchor = sectionProperties.Elements<FooterReference>().Cast<DocumentFormat.OpenXml.OpenXmlElement>().LastOrDefault()
+                         ?? sectionProperties.Elements<HeaderReference>().Cast<DocumentFormat.OpenXml.OpenXmlElement>().LastOrDefault();
+
+            if (anchor != null) {
+                sectionProperties.InsertAfter(pageSize, anchor);
+            } else {
+                sectionProperties.PrependChild(pageSize);
+            }
+        }
+
+        var pageMargin = sectionProperties.Elements<PageMargin>().FirstOrDefault();
+        if (pageMargin == null) {
+            pageMargin = new PageMargin {
+                Top = 1440,
+                Right = 1440U,
+                Bottom = 1440,
+                Left = 1440U,
+                Header = 720U,
+                Footer = 720U,
+                Gutter = 0U
+            };
+
+            sectionProperties.InsertAfter(pageMargin, pageSize);
+        }
+    }
+
+    private static bool TryGetGridWidthsFromFirstRow(
+        DocumentFormat.OpenXml.Wordprocessing.TableGrid tableGrid,
+        int expectedColumns,
+        out string[] widths) {
+        widths = Array.Empty<string>();
+
+        if (tableGrid.Parent is not DocumentFormat.OpenXml.Wordprocessing.Table table) {
+            return false;
+        }
+
+        var firstRow = table.Elements<DocumentFormat.OpenXml.Wordprocessing.TableRow>().FirstOrDefault();
+        if (firstRow == null) {
+            return false;
+        }
+
+        var cellWidths = firstRow.Elements<DocumentFormat.OpenXml.Wordprocessing.TableCell>()
+            .Select(static cell => cell.Elements<DocumentFormat.OpenXml.Wordprocessing.TableCellProperties>().FirstOrDefault()?.Elements<TableCellWidth>().FirstOrDefault()?.Width?.Value)
+            .ToList();
+
+        if (cellWidths.Count != expectedColumns || cellWidths.Any(string.IsNullOrWhiteSpace)) {
+            return false;
+        }
+
+        widths = cellWidths.Select(static width => width!).ToArray();
+        return true;
+    }
+
     private static void NormalizeCustomFilePropertiesPart(CustomFilePropertiesPart? part) {
-        var fileTime = part?.Properties
-            .FirstOrDefault(x => ((CustomDocumentProperty?)x)?.VTFileTime != null);
+        var fileTime = part?.Properties?
+            .Elements<CustomDocumentProperty>()
+            .FirstOrDefault(x => x.VTFileTime != null);
         if (fileTime is CustomDocumentProperty property) {
             property.VTFileTime!.Text = LastTime;
         }
