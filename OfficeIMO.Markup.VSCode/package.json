@@ -1,0 +1,376 @@
+{
+  "name": "officeimo-markup",
+  "displayName": "OfficeIMO Markup",
+  "description": "Author OfficeIMO presentations, documents, and workbooks from Markdown-inspired markup.",
+  "version": "0.1.11",
+  "publisher": "evotec-services",
+  "author": "Evotec Services sp. z o.o.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EvotecIT/OfficeIMO.git"
+  },
+  "engines": {
+    "vscode": "^1.107.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Visualization",
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:officeimo-markup",
+    "onLanguage:markdown",
+    "onCommand:officeimoMarkup.preview",
+    "onCommand:officeimoMarkup.validate",
+    "onCommand:officeimoMarkup.emitCSharp",
+    "onCommand:officeimoMarkup.emitPowerShell",
+    "onCommand:officeimoMarkup.emitCSharpToFile",
+    "onCommand:officeimoMarkup.emitPowerShellToFile",
+    "onCommand:officeimoMarkup.generateArtifacts",
+    "onCommand:officeimoMarkup.exportOffice",
+    "onCommand:officeimoMarkup.exportOfficeAndOpen",
+    "onCommand:officeimoMarkup.exportPowerPoint",
+    "onCommand:officeimoMarkup.exportExcel",
+    "onCommand:officeimoMarkup.exportWord",
+    "onCommand:officeimoMarkup.openOutputFolder",
+    "onCommand:officeimoMarkup.openGeneratedCSharp",
+    "onCommand:officeimoMarkup.openGeneratedPowerShell",
+    "onCommand:officeimoMarkup.installMermaidRenderer"
+  ],
+  "main": "./out/extension.js",
+  "files": [
+    "out/extension.js",
+    "out/extension.js.map",
+    "out/mermaidPreview.js",
+    "out/mermaidPreview.js.map",
+    "syntaxes/**",
+    "snippets/**",
+    "tools/**",
+    "language-configuration.json",
+    "LICENSE",
+    "README.md",
+    "package.json"
+  ],
+  "scripts": {
+    "compile": "node scripts/bundle.cjs",
+    "watch": "node scripts/bundle.cjs --watch",
+    "package": "vsce package --allow-missing-repository"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "officeimo-markup",
+        "aliases": [
+          "OfficeIMO Markup",
+          "officeimo-markup"
+        ],
+        "extensions": [
+          ".omd",
+          ".office.md"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "officeimo-markup",
+        "scopeName": "source.officeimo-markup",
+        "path": "./syntaxes/officeimo-markup.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "officeimo-markup",
+        "path": "./snippets/officeimo-markup.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "officeimoMarkup.preview",
+        "title": "Open Preview",
+        "category": "OfficeIMO Markup",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "officeimoMarkup.validate",
+        "title": "Validate",
+        "category": "OfficeIMO Markup"
+      },
+      {
+        "command": "officeimoMarkup.emitCSharp",
+        "title": "Generate C#",
+        "category": "OfficeIMO Markup"
+      },
+      {
+        "command": "officeimoMarkup.emitPowerShell",
+        "title": "Generate PowerShell",
+        "category": "OfficeIMO Markup"
+      },
+      {
+        "command": "officeimoMarkup.emitCSharpToFile",
+        "title": "Generate C# File",
+        "category": "OfficeIMO Markup"
+      },
+      {
+        "command": "officeimoMarkup.emitPowerShellToFile",
+        "title": "Generate PowerShell File",
+        "category": "OfficeIMO Markup"
+      },
+      {
+        "command": "officeimoMarkup.generateArtifacts",
+        "title": "Generate Artifacts",
+        "category": "OfficeIMO Markup"
+      },
+      {
+        "command": "officeimoMarkup.exportOffice",
+        "title": "Export Office Document",
+        "category": "OfficeIMO Markup"
+      },
+      {
+        "command": "officeimoMarkup.exportOfficeAndOpen",
+        "title": "Export and Open Office Document",
+        "category": "OfficeIMO Markup"
+      },
+      {
+        "command": "officeimoMarkup.exportPowerPoint",
+        "title": "Export PowerPoint",
+        "category": "OfficeIMO Markup"
+      },
+      {
+        "command": "officeimoMarkup.exportExcel",
+        "title": "Export Excel Workbook",
+        "category": "OfficeIMO Markup"
+      },
+      {
+        "command": "officeimoMarkup.exportWord",
+        "title": "Export Word Document",
+        "category": "OfficeIMO Markup"
+      },
+      {
+        "command": "officeimoMarkup.openOutputFolder",
+        "title": "Open Output Folder",
+        "category": "OfficeIMO Markup"
+      },
+      {
+        "command": "officeimoMarkup.openGeneratedCSharp",
+        "title": "Open Generated C#",
+        "category": "OfficeIMO Markup"
+      },
+      {
+        "command": "officeimoMarkup.openGeneratedPowerShell",
+        "title": "Open Generated PowerShell",
+        "category": "OfficeIMO Markup"
+      },
+      {
+        "command": "officeimoMarkup.installMermaidRenderer",
+        "title": "Install Mermaid Renderer",
+        "category": "OfficeIMO Markup"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "officeimoMarkup.preview",
+        "key": "shift+ctrl+v",
+        "mac": "shift+cmd+v",
+        "when": "editorLangId == officeimo-markup && !notebookEditorFocused"
+      },
+      {
+        "command": "officeimoMarkup.preview",
+        "key": "ctrl+k v",
+        "mac": "cmd+k v",
+        "when": "editorLangId == officeimo-markup && !notebookEditorFocused"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "officeimoMarkup.preview",
+          "when": "editorLangId == officeimo-markup && !notebookEditorFocused",
+          "group": "navigation"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "officeimoMarkup.preview",
+          "when": "resourceExtname == .omd || resourceFilename =~ /.*\\.office\\.md$/",
+          "group": "1_open"
+        },
+        {
+          "submenu": "officeimoMarkup.contextMenu",
+          "when": "resourceExtname == .omd || resourceFilename =~ /.*\\.office\\.md$/",
+          "group": "1_open@20"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "officeimoMarkup.preview",
+          "when": "resourceExtname == .omd || resourceFilename =~ /.*\\.office\\.md$/",
+          "group": "navigation@10"
+        },
+        {
+          "submenu": "officeimoMarkup.contextMenu",
+          "when": "resourceExtname == .omd || resourceFilename =~ /.*\\.office\\.md$/",
+          "group": "1_modification@20"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "officeimoMarkup.preview",
+          "when": "resourceExtname == .omd || resourceFilename =~ /.*\\.office\\.md$/",
+          "group": "navigation@10"
+        },
+        {
+          "submenu": "officeimoMarkup.contextMenu",
+          "when": "resourceExtname == .omd || resourceFilename =~ /.*\\.office\\.md$/",
+          "group": "1_modification@20"
+        }
+      ],
+      "officeimoMarkup.contextMenu": [
+        {
+          "command": "officeimoMarkup.validate",
+          "group": "1_authoring@10"
+        },
+        {
+          "command": "officeimoMarkup.emitCSharp",
+          "group": "2_generate@10"
+        },
+        {
+          "command": "officeimoMarkup.emitPowerShell",
+          "group": "2_generate@20"
+        },
+        {
+          "command": "officeimoMarkup.emitCSharpToFile",
+          "group": "2_generate@30"
+        },
+        {
+          "command": "officeimoMarkup.emitPowerShellToFile",
+          "group": "2_generate@40"
+        },
+        {
+          "command": "officeimoMarkup.generateArtifacts",
+          "group": "2_generate@50"
+        },
+        {
+          "command": "officeimoMarkup.openGeneratedCSharp",
+          "group": "2_generate@60"
+        },
+        {
+          "command": "officeimoMarkup.openGeneratedPowerShell",
+          "group": "2_generate@70"
+        },
+        {
+          "command": "officeimoMarkup.exportOffice",
+          "group": "3_export@5"
+        },
+        {
+          "command": "officeimoMarkup.exportOfficeAndOpen",
+          "group": "3_export@6"
+        },
+        {
+          "command": "officeimoMarkup.exportPowerPoint",
+          "group": "3_export@10"
+        },
+        {
+          "command": "officeimoMarkup.exportExcel",
+          "group": "3_export@20"
+        },
+        {
+          "command": "officeimoMarkup.exportWord",
+          "group": "3_export@30"
+        },
+        {
+          "command": "officeimoMarkup.openOutputFolder",
+          "group": "3_export@40"
+        },
+        {
+          "command": "officeimoMarkup.installMermaidRenderer",
+          "group": "4_tools@10"
+        }
+      ]
+    },
+    "submenus": [
+      {
+        "id": "officeimoMarkup.contextMenu",
+        "label": "OfficeIMO Markup"
+      }
+    ],
+    "configuration": {
+      "title": "OfficeIMO Markup",
+      "properties": {
+        "officeimoMarkup.cliPath": {
+          "type": "string",
+          "default": "",
+          "description": "Optional path to an OfficeIMO.Markup.Cli executable, DLL, or csproj. Empty uses the bundled CLI, then source-tree fallbacks."
+        },
+        "officeimoMarkup.defaultProfile": {
+          "type": "string",
+          "enum": [
+            "presentation",
+            "document",
+            "workbook",
+            "common"
+          ],
+          "default": "presentation",
+          "description": "Profile used when the file does not include front matter."
+        },
+        "officeimoMarkup.validateDebounceMs": {
+          "type": "number",
+          "default": 650,
+          "minimum": 100,
+          "description": "Delay before validating after edits."
+        },
+        "officeimoMarkup.previewAutoRefresh": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically refresh an open preview panel while editing."
+        },
+        "officeimoMarkup.previewDebounceMs": {
+          "type": "number",
+          "default": 350,
+          "minimum": 100,
+          "description": "Delay before refreshing an open preview after edits."
+        },
+        "officeimoMarkup.outputDirectoryMode": {
+          "type": "string",
+          "enum": [
+            "sourceDirectory",
+            "generatedSubfolder"
+          ],
+          "default": "sourceDirectory",
+          "description": "Controls whether generated code and export dialogs default beside the markup file or in a generated subfolder."
+        },
+        "officeimoMarkup.outputSubfolderName": {
+          "type": "string",
+          "default": "generated",
+          "description": "Subfolder name used when outputDirectoryMode is set to generatedSubfolder."
+        },
+        "officeimoMarkup.renderMermaidOnExport": {
+          "type": "boolean",
+          "default": true,
+          "description": "Render Mermaid diagrams to images during PowerPoint export when Mermaid CLI is available."
+        },
+        "officeimoMarkup.renderMermaidInPreview": {
+          "type": "boolean",
+          "default": true,
+          "description": "Render Mermaid diagrams in the live preview through the webview browser renderer when available. Raw source remains visible when rendering is unavailable."
+        },
+        "officeimoMarkup.mermaidCliPath": {
+          "type": "string",
+          "default": "",
+          "description": "Optional path to Mermaid CLI (mmdc). Empty searches PATH and OFFICEIMO_MARKUP_MERMAID_CLI."
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "mermaid": "^11.14.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@types/vscode": "^1.107.0",
+    "@vscode/vsce": "^3.6.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.9.0"
+  }
+}

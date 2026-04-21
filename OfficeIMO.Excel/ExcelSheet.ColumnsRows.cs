@@ -371,7 +371,11 @@ namespace OfficeIMO.Excel {
                 column.Remove();
             }
 
-            ReorderColumns(columns);
+            if (columns.Elements<Column>().Any()) {
+                ReorderColumns(columns);
+            } else {
+                columns.Remove();
+            }
         }
 
         private double GetDefaultRowHeightPoints() {

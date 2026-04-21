@@ -164,6 +164,22 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Gets the A1 range covered by a table on this worksheet.
+        /// </summary>
+        /// <param name="tableName">Table name or display name.</param>
+        /// <returns>The table reference, or <c>null</c> when no matching table exists.</returns>
+        public string? GetTableRange(string tableName) {
+            if (string.IsNullOrWhiteSpace(tableName)) {
+                return null;
+            }
+
+            return _worksheetPart.TableDefinitionParts
+                .Select(part => part.Table)
+                .FirstOrDefault(table => string.Equals(table?.Name?.Value ?? table?.DisplayName?.Value, tableName, StringComparison.OrdinalIgnoreCase))
+                ?.Reference?.Value;
+        }
+
+        /// <summary>
         /// Adds an Excel table to the worksheet over the specified range with optional AutoFilter and name validation behavior.
         /// </summary>
         /// <param name="range">Cell range (e.g. "A1:B3") defining the table area.</param>
@@ -308,14 +324,19 @@ namespace OfficeIMO.Excel {
                         candidate = $"{baseName} ({suffix++})";
                     }
                     tableColumns.Append(new TableColumn { Id = i + 1, Name = candidate });
+
+                    if (hasHeader) {
+                        CellValueCore(startRowIndex, startColumnIndex + (int)i, candidate);
+                    }
                 }
 
                 // SMART AUTOFILTER HANDLING
                 // Check if there's already a worksheet-level AutoFilter on this range
                 AutoFilter? existingWorksheetAutoFilter = WorksheetRoot.Elements<AutoFilter>().FirstOrDefault();
                 bool hasExistingFilter = existingWorksheetAutoFilter?.Reference?.Value == range;
+                bool shouldIncludeAutoFilter = includeAutoFilter && hasHeader;
 
-                if (includeAutoFilter) {
+                if (shouldIncludeAutoFilter) {
                     // User wants AutoFilter on the table
                     if (hasExistingFilter && existingWorksheetAutoFilter != null) {
                         // MIGRATE: Move the existing worksheet AutoFilter to the table (preserving filter criteria)

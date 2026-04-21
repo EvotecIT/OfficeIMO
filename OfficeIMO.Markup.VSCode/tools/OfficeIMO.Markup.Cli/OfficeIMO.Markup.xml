@@ -1,0 +1,105 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>OfficeIMO.Markup</name>
+    </assembly>
+    <members>
+        <member name="T:OfficeIMO.Shared.ObjectDataHelpers">
+            <summary>
+            Shared helpers for projecting object data into tabular structures.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.Shared.ObjectDataHelpers.GetColumnNames(System.Object)">
+            <summary>
+            Resolves column names from a dictionary or public readable properties.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.Shared.ObjectDataHelpers.GetValue(System.Object,System.String)">
+            <summary>
+            Retrieves a value for the specified column from a dictionary or property.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.Shared.NonDisposingMemoryStream">
+            <summary>
+            MemoryStream that suppresses disposal so OpenXml packages can close without losing the buffer.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.Markup.OfficeMarkupCSharpEmitter">
+            <summary>
+            Emits starter C# code from the semantic OfficeIMO markup AST.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.Markup.OfficeMarkupEmitterOptions">
+            <summary>
+            Options shared by target-specific code emitters.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.Markup.OfficeMarkupPowerShellEmitter">
+            <summary>
+            Emits starter PowerShell code from the semantic OfficeIMO markup AST.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.Markup.OfficeMarkupProfile">
+            <summary>
+            Office authoring profile used to validate profile-specific markup nodes.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.Markup.OfficeMarkupProfile.Common">
+            <summary>Common Markdown-compatible content without Office-specific extensions.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markup.OfficeMarkupProfile.Presentation">
+            <summary>PowerPoint presentation authoring profile.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markup.OfficeMarkupProfile.Document">
+            <summary>Word document authoring profile.</summary>
+        </member>
+        <member name="F:OfficeIMO.Markup.OfficeMarkupProfile.Workbook">
+            <summary>Excel workbook authoring profile.</summary>
+        </member>
+        <member name="T:OfficeIMO.Markup.OfficeMarkupNodeKind">
+            <summary>
+            Semantic node categories exposed by the unified OfficeIMO markup AST.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.Markup.OfficeMarkupDiagnosticSeverity">
+            <summary>
+            Severity of parser or validation diagnostics.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.Markup.OfficeMarkupDiagnostic">
+            <summary>
+            Parser or validation diagnostic.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.Markup.OfficeMarkupNode">
+            <summary>
+            Base semantic AST node. Nodes describe office intent, not a C# or PowerShell API call.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.Markup.OfficeMarkupBlock">
+            <summary>
+            Base class for block-level semantic nodes.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.Markup.OfficeMarkupDocument">
+            <summary>
+            Root semantic document produced by the markup parser.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.Markup.OfficeMarkupParser">
+            <summary>
+            Parses Markdown plus explicit OfficeIMO semantic fenced blocks into a profile-aware AST.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.Markup.OfficeMarkupParserOptions">
+            <summary>
+            Options for parsing Markdown-inspired OfficeIMO markup into the semantic AST.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.Markup.OfficeMarkupValidator">
+            <summary>
+            Validates that profile-specific AST nodes are only used in compatible authoring profiles.
+            </summary>
+        </member>
+    </members>
+</doc>

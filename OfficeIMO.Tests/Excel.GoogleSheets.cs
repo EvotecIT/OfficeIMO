@@ -174,6 +174,68 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelCellStyleComposition_PreservesCombinedFontFillAlignmentWrapEmphasisBorderAndVerticalSettings() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelStyleComposition.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Summary");
+
+                    sheet.CellValue(2, 1, 12.34d);
+                    sheet.CellBackground(2, 1, "#D9EAD3");
+                    sheet.CellFontColor(2, 1, "#112233");
+                    sheet.CellBold(2, 1, true);
+                    sheet.CellItalic(2, 1, true);
+                    sheet.CellUnderline(2, 1, true);
+                    sheet.CellAlign(2, 1, HorizontalAlignmentValues.Center);
+                    sheet.CellVerticalAlign(2, 1, VerticalAlignmentValues.Center);
+                    sheet.CellBorder(2, 1, BorderStyleValues.Thin, "#445566");
+                    sheet.FormatCell(2, 1, "0.00%");
+
+                    sheet.CellValue(3, 1, "First line\nSecond line");
+                    sheet.WrapCells(3, 3, 1, 20);
+                    sheet.CellFontColor(3, 1, "#445566");
+                    sheet.CellBold(3, 1, true);
+                    sheet.CellAlign(3, 1, HorizontalAlignmentValues.Left);
+
+                    document.Save();
+                }
+
+                using var reloadedDocument = ExcelDocument.Load(filePath);
+                var snapshot = reloadedDocument.CreateInspectionSnapshot();
+                var summarySheet = Assert.Single(snapshot.Worksheets, w => w.Name == "Summary");
+
+                var numericCell = Assert.Single(summarySheet.Cells, c => c.Row == 2 && c.Column == 1);
+                Assert.NotNull(numericCell.Style);
+                Assert.Equal("0.00%", numericCell.Style!.NumberFormatCode);
+                Assert.True(numericCell.Style.Bold);
+                Assert.True(numericCell.Style.Italic);
+                Assert.True(numericCell.Style.Underline);
+                Assert.Equal("FF112233", numericCell.Style.FontColorArgb);
+                Assert.Equal("FFD9EAD3", numericCell.Style.FillColorArgb);
+                Assert.Equal("center", numericCell.Style.HorizontalAlignment);
+                Assert.Equal("center", numericCell.Style.VerticalAlignment);
+                Assert.NotNull(numericCell.Style.Border);
+                Assert.Equal("thin", numericCell.Style.Border!.Left!.Style);
+                Assert.Equal("FF445566", numericCell.Style.Border.Left.ColorArgb);
+                Assert.Equal("thin", numericCell.Style.Border.Right!.Style);
+                Assert.Equal("thin", numericCell.Style.Border.Top!.Style);
+                Assert.Equal("thin", numericCell.Style.Border.Bottom!.Style);
+
+                var wrappedCell = Assert.Single(summarySheet.Cells, c => c.Row == 3 && c.Column == 1);
+                Assert.NotNull(wrappedCell.Style);
+                Assert.True(wrappedCell.Style!.Bold);
+                Assert.Equal("FF445566", wrappedCell.Style.FontColorArgb);
+                Assert.True(wrappedCell.Style.WrapText);
+                Assert.Equal("left", wrappedCell.Style.HorizontalAlignment);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Test_GoogleSheetsBatchCompiler_EmitsWorkbookStructureAndCellRequests() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsBatchCompiler.xlsx");
 

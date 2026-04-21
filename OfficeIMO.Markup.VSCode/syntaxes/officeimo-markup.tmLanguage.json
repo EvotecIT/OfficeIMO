@@ -1,0 +1,43 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "OfficeIMO Markup",
+  "scopeName": "source.officeimo-markup",
+  "patterns": [
+    {
+      "name": "meta.frontmatter.officeimo-markup",
+      "begin": "\\A---\\s*$",
+      "end": "^---\\s*$",
+      "patterns": [
+        {
+          "name": "support.type.property-name.officeimo-markup",
+          "match": "^\\s*[A-Za-z_][\\w-]*(?=\\s*:)"
+        }
+      ]
+    },
+    {
+      "name": "entity.name.section.slide.officeimo-markup",
+      "match": "^\\s*---\\s*$"
+    },
+    {
+      "name": "keyword.control.container.officeimo-markup",
+      "match": "^\\s*@(?:slide|section|sheet|document|workbook)\\b"
+    },
+    {
+      "name": "keyword.other.block.officeimo-markup",
+      "match": "^\\s*::(?:notes|textbox|image|chart|mermaid|columns|column|left|right|card|range|formula|toc|page-break|header|footer)\\b"
+    },
+    {
+      "name": "markup.heading.officeimo-markup",
+      "match": "^\\s{0,3}#{1,6}\\s+.*$"
+    },
+    {
+      "name": "string.quoted.double.officeimo-markup",
+      "begin": "\"",
+      "end": "\""
+    },
+    {
+      "name": "constant.numeric.officeimo-markup",
+      "match": "\\b\\d+(?:\\.\\d+)?%?\\b"
+    }
+  ]
+}

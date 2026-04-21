@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+        <AssemblyName>OfficeIMO.Markup.Cli</AssemblyName>
+        <AssemblyTitle>OfficeIMO.Markup.Cli</AssemblyTitle>
+        <Description>Command-line tooling for OfficeIMO Markup parsing, validation, preview JSON, and code emission.</Description>
+        <Company>Evotec</Company>
+        <Authors>Przemyslaw Klys</Authors>
+        <Nullable>enable</Nullable>
+        <LangVersion>Latest</LangVersion>
+        <NoWarn>$(NoWarn);1591</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\OfficeIMO.Markup\OfficeIMO.Markup.csproj" />
+        <ProjectReference Include="..\OfficeIMO.Markup.Excel\OfficeIMO.Markup.Excel.csproj" />
+        <ProjectReference Include="..\OfficeIMO.Markup.PowerPoint\OfficeIMO.Markup.PowerPoint.csproj" />
+        <ProjectReference Include="..\OfficeIMO.Markup.Word\OfficeIMO.Markup.Word.csproj" />
+    </ItemGroup>
+
+</Project>

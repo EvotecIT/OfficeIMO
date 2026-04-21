@@ -34,6 +34,65 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AddTableConvertsHeaderCellsToTableColumnText() {
+            string filePath = Path.Combine(_directoryWithFiles, "Table.NumericHeaders.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Product");
+                sheet.CellValue(1, 2, 2024d);
+                sheet.CellValue(1, 3, 2025d);
+                sheet.CellValue(2, 1, "A");
+                sheet.CellValue(2, 2, 100d);
+                sheet.CellValue(2, 3, 120d);
+                sheet.AddTable("A1:C2", true, "RevenueTable", TableStyle.TableStyleMedium9);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                TableDefinitionPart tablePart = wsPart.TableDefinitionParts.First();
+                var columns = tablePart.Table.TableColumns!.Elements<TableColumn>().ToList();
+                Assert.Equal("2024", columns[1].Name!.Value);
+                Assert.Equal("2025", columns[2].Name!.Value);
+
+                Assert.Equal("2024", GetCellText(spreadsheet, wsPart, "B1"));
+                Assert.Equal("2025", GetCellText(spreadsheet, wsPart, "C1"));
+                var b1 = wsPart.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>()
+                    .First(cell => cell.CellReference?.Value == "B1");
+                Assert.Equal(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString, b1.DataType!.Value);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_AddTableWithoutHeaderDoesNotWriteAutoFilter() {
+            string filePath = Path.Combine(_directoryWithFiles, "Table.NoHeader.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Product");
+                sheet.CellValue(1, 2, 2024d);
+                sheet.CellValue(2, 1, "A");
+                sheet.CellValue(2, 2, 100d);
+                sheet.AddTable("A1:B2", false, "RevenueTable", TableStyle.TableStyleMedium9);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                TableDefinitionPart tablePart = wsPart.TableDefinitionParts.First();
+                Assert.Equal((uint)0, tablePart.Table.HeaderRowCount!.Value);
+                Assert.Null(tablePart.Table.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.AutoFilter>());
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void Test_AddTablePopulatesMissingCells() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.MissingCells.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
@@ -182,6 +241,19 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(TotalsRowFunctionValues.Sum, columns[1].TotalsRowFunction?.Value);
                 Assert.Equal(TotalsRowFunctionValues.Sum, columns[2].TotalsRowFunction?.Value);
             }
+        }
+
+        private static string GetCellText(SpreadsheetDocument document, WorksheetPart worksheetPart, string cellReference) {
+            var cell = worksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>()
+                .First(item => item.CellReference?.Value == cellReference);
+            var value = cell.CellValue?.Text ?? string.Empty;
+            if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString
+                && int.TryParse(value, out var sharedStringId)) {
+                var table = document.WorkbookPart?.SharedStringTablePart?.SharedStringTable;
+                return table?.ChildElements[sharedStringId].InnerText ?? string.Empty;
+            }
+
+            return value;
         }
     }
 }

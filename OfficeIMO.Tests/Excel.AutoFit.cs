@@ -120,6 +120,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AutoFitColumns_DoesNotLeaveEmptyColumnsElementForFormulaOnlySheet() {
+            string filePath = Path.Combine(_directoryWithFiles, "AutoFit.FormulaOnly.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellFormula(1, 8, "=1+1");
+                sheet.AutoFitColumns();
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var columns = wsPart.Worksheet.GetFirstChild<Columns>();
+                Assert.True(columns == null || columns.Elements<Column>().Any());
+
+                OpenXmlValidator validator = new();
+                Assert.Empty(validator.Validate(spreadsheet));
+            }
+        }
+
+        [Fact]
         public void Test_AutoFitSingleColumn_DoesNotAffectOthers() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.SingleColumn.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {

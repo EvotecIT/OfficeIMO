@@ -1,0 +1,241 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "OfficeIMO.Markup.Cli/1.0.0": {
+        "dependencies": {
+          "OfficeIMO.Markup": "0.1.0",
+          "OfficeIMO.Markup.Excel": "0.1.0",
+          "OfficeIMO.Markup.PowerPoint": "0.1.0",
+          "OfficeIMO.Markup.Word": "0.1.0"
+        },
+        "runtime": {
+          "OfficeIMO.Markup.Cli.dll": {}
+        }
+      },
+      "DocumentFormat.OpenXml/3.5.1": {
+        "dependencies": {
+          "DocumentFormat.OpenXml.Framework": "3.5.1"
+        },
+        "runtime": {
+          "lib/net8.0/DocumentFormat.OpenXml.dll": {
+            "assemblyVersion": "3.5.1.0",
+            "fileVersion": "3.5.1.0"
+          }
+        }
+      },
+      "DocumentFormat.OpenXml.Framework/3.5.1": {
+        "dependencies": {
+          "System.IO.Packaging": "8.0.1"
+        },
+        "runtime": {
+          "lib/net8.0/DocumentFormat.OpenXml.Framework.dll": {
+            "assemblyVersion": "3.5.1.0",
+            "fileVersion": "3.5.1.0"
+          }
+        }
+      },
+      "SixLabors.Fonts/1.0.1": {
+        "runtime": {
+          "lib/netcoreapp3.1/SixLabors.Fonts.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.1.0"
+          }
+        }
+      },
+      "SixLabors.ImageSharp/2.1.11": {
+        "runtime": {
+          "lib/netcoreapp3.1/SixLabors.ImageSharp.dll": {
+            "assemblyVersion": "2.0.0.0",
+            "fileVersion": "2.1.11.0"
+          }
+        }
+      },
+      "System.IO.Packaging/8.0.1": {
+        "runtime": {
+          "lib/net8.0/System.IO.Packaging.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.1024.46610"
+          }
+        }
+      },
+      "OfficeIMO.Excel/0.6.23": {
+        "dependencies": {
+          "DocumentFormat.OpenXml": "3.5.1",
+          "SixLabors.Fonts": "1.0.1",
+          "SixLabors.ImageSharp": "2.1.11"
+        },
+        "runtime": {
+          "OfficeIMO.Excel.dll": {
+            "assemblyVersion": "0.6.23.0",
+            "fileVersion": "0.6.23.0"
+          }
+        }
+      },
+      "OfficeIMO.Markdown/0.6.10": {
+        "runtime": {
+          "OfficeIMO.Markdown.dll": {
+            "assemblyVersion": "0.6.10.0",
+            "fileVersion": "0.6.10.0"
+          }
+        }
+      },
+      "OfficeIMO.Markup/0.1.0": {
+        "dependencies": {
+          "OfficeIMO.Markdown": "0.6.10"
+        },
+        "runtime": {
+          "OfficeIMO.Markup.dll": {
+            "assemblyVersion": "0.1.0.0",
+            "fileVersion": "0.1.0.0"
+          }
+        }
+      },
+      "OfficeIMO.Markup.Excel/0.1.0": {
+        "dependencies": {
+          "OfficeIMO.Excel": "0.6.23",
+          "OfficeIMO.Markup": "0.1.0"
+        },
+        "runtime": {
+          "OfficeIMO.Markup.Excel.dll": {
+            "assemblyVersion": "0.1.0.0",
+            "fileVersion": "0.1.0.0"
+          }
+        }
+      },
+      "OfficeIMO.Markup.PowerPoint/0.1.0": {
+        "dependencies": {
+          "OfficeIMO.Markup": "0.1.0",
+          "OfficeIMO.PowerPoint": "1.0.18"
+        },
+        "runtime": {
+          "OfficeIMO.Markup.PowerPoint.dll": {
+            "assemblyVersion": "0.1.0.0",
+            "fileVersion": "0.1.0.0"
+          }
+        }
+      },
+      "OfficeIMO.Markup.Word/0.1.0": {
+        "dependencies": {
+          "OfficeIMO.Markup": "0.1.0",
+          "OfficeIMO.Word": "1.0.43"
+        },
+        "runtime": {
+          "OfficeIMO.Markup.Word.dll": {
+            "assemblyVersion": "0.1.0.0",
+            "fileVersion": "0.1.0.0"
+          }
+        }
+      },
+      "OfficeIMO.PowerPoint/1.0.18": {
+        "dependencies": {
+          "DocumentFormat.OpenXml": "3.5.1"
+        },
+        "runtime": {
+          "OfficeIMO.PowerPoint.dll": {
+            "assemblyVersion": "1.0.18.0",
+            "fileVersion": "1.0.18.0"
+          }
+        }
+      },
+      "OfficeIMO.Word/1.0.43": {
+        "dependencies": {
+          "DocumentFormat.OpenXml": "3.5.1",
+          "SixLabors.ImageSharp": "2.1.11"
+        },
+        "runtime": {
+          "OfficeIMO.Word.dll": {
+            "assemblyVersion": "1.0.43.0",
+            "fileVersion": "1.0.43.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "OfficeIMO.Markup.Cli/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "DocumentFormat.OpenXml/3.5.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-zxdOf5VVCe/uNklbRhj8dVBzQGj3DoqkUuqOp9cAZVuN8mNYDjof1lvSQA2OQNr8Ptc9d7pbA7Azq/ReaI3FpA==",
+      "path": "documentformat.openxml/3.5.1",
+      "hashPath": "documentformat.openxml.3.5.1.nupkg.sha512"
+    },
+    "DocumentFormat.OpenXml.Framework/3.5.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-U5txtc3ORno73xQx9Lf2gWzfaSZnZwKHfLkTAslhlew9lxe5XbUiCt0dY1fHeAf8yRqszUAe5i/+xLC9R/Xfsw==",
+      "path": "documentformat.openxml.framework/3.5.1",
+      "hashPath": "documentformat.openxml.framework.3.5.1.nupkg.sha512"
+    },
+    "SixLabors.Fonts/1.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-ljezRHWc7N0azdQViib7Aa5v+DagRVkKI2/93kEbtjVczLs+yTkSq6gtGmvOcx4IqyNbO3GjLt7SAQTpLkySNw==",
+      "path": "sixlabors.fonts/1.0.1",
+      "hashPath": "sixlabors.fonts.1.0.1.nupkg.sha512"
+    },
+    "SixLabors.ImageSharp/2.1.11": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-tUvsejgzUmEbES114yLseRxmFiYlQbH5RyaYXUQsEL7ksDo1/kW+ZL1EfD6iSUfxj7LHU8p110oFvSrRfsaWSQ==",
+      "path": "sixlabors.imagesharp/2.1.11",
+      "hashPath": "sixlabors.imagesharp.2.1.11.nupkg.sha512"
+    },
+    "System.IO.Packaging/8.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-KYkIOAvPexQOLDxPO2g0BVoWInnQhPpkFzRqvNrNrMhVT6kqhVr0zEb6KCHlptLFukxnZrjuMVAnxK7pOGUYrw==",
+      "path": "system.io.packaging/8.0.1",
+      "hashPath": "system.io.packaging.8.0.1.nupkg.sha512"
+    },
+    "OfficeIMO.Excel/0.6.23": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "OfficeIMO.Markdown/0.6.10": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "OfficeIMO.Markup/0.1.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "OfficeIMO.Markup.Excel/0.1.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "OfficeIMO.Markup.PowerPoint/0.1.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "OfficeIMO.Markup.Word/0.1.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "OfficeIMO.PowerPoint/1.0.18": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "OfficeIMO.Word/1.0.43": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
