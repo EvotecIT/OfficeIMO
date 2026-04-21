@@ -81,7 +81,6 @@
                               <w:rPr />
                             </w:pPr>
                             <w:r>
-                              <w:rPr />
                               <w:t>Hello from textbox</w:t>
                               <w:br />
                             </w:r>
