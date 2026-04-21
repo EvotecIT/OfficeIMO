@@ -18,11 +18,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                 .FromBrand("#008C95", "design-brief-recommendations", "technical rollout proposal")
                 .WithIdentity("Client Theme", eyebrow: "OfficeIMO.PowerPoint", footerLeft: "OFFICEIMO",
                     footerRight: "Design brief")
-                .WithPalette(secondaryAccentColor: "#6D5BD0", tertiaryAccentColor: "#0E7490",
-                    warmAccentColor: "#FFB000", surfaceColor: "#F6FAFC", panelBorderColor: "#D5E3EA")
-                .WithVariety(PowerPointDesignVariety.Exploratory)
-                .WithPreferredMoods(PowerPointDesignMood.Energetic, PowerPointDesignMood.Editorial)
-                .WithPreferredVisualStyles(PowerPointVisualStyle.Geometric, PowerPointVisualStyle.Soft);
+                .WithCreativeDirectionPack(PowerPointCreativeDirectionPack.FieldProof)
+                .WithPalette(surfaceColor: "#F6FAFC", panelBorderColor: "#D5E3EA");
 
             IReadOnlyList<PowerPointDeckDesignRecommendation> recommendations = brief.RecommendAlternatives(4);
             PowerPointDeckDesignRecommendation selected = recommendations
@@ -45,6 +42,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     recommendation.Design.DirectionName,
                     new[] {
                         $"Score: {recommendation.PreferenceScore}",
+                        $"{recommendation.Design.PaletteStyle} / {recommendation.Design.LayoutStrategy}",
                         $"{recommendation.Design.Mood} / {recommendation.Design.VisualStyle}",
                         $"{recommendation.Design.HeadingFontName} + {recommendation.Design.BodyFontName}"
                     },
@@ -65,7 +63,10 @@ namespace OfficeIMO.Examples.PowerPoint {
                     new PowerPointProcessStep("Compose", "Mix semantic slides with raw composition primitives.")
                 },
                 "brief-workflow",
-                options => options.Variant = PowerPointProcessLayoutVariant.Rail);
+                options => {
+                    options.Variant = PowerPointProcessLayoutVariant.Rail;
+                    options.ConnectorStyle = PowerPointProcessConnectorStyle.SegmentArrows;
+                });
 
             deck.ComposeSlide(composer => {
                 composer.AddTitle("Selected direction", selected.Design.DirectionName);
@@ -85,10 +86,13 @@ namespace OfficeIMO.Examples.PowerPoint {
                     new PowerPointMetric(selected.Reasons.Count.ToString(), "reasons")
                 }, columns[1].TakeTopCm(2.2));
 
+                composer.AddVisualFrame(columns[1].InsetCm(0, 2.55, 0, 2.25).TakeTopCm(2.0),
+                    PowerPointVisualFrameVariant.ProofBoard);
+
                 composer.AddCalloutBand(
                     $"{selected.Design.Mood} mood, {selected.Design.VisualStyle} visuals, " +
                     $"{selected.Design.HeadingFontName} headings. Change only the alternative index to render a different direction.",
-                    columns[1].InsetCm(0, 2.75, 0, 0).TakeTopCm(1.75));
+                    columns[1].InsetCm(0, 4.85, 0, 0).TakeTopCm(1.45));
             }, "selected-direction", options => options.FooterRight = "Recommended");
 
             presentation.Save();

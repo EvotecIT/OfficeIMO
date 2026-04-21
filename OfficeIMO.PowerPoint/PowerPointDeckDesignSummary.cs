@@ -18,6 +18,7 @@ namespace OfficeIMO.PowerPoint {
             Accent3Color = design.Theme.Accent3Color;
             WarningColor = design.Theme.WarningColor;
             PaletteStyle = design.Theme.PaletteStyle;
+            TypographyStyle = design.Theme.TypographyStyle;
             ShowsDirectionMotif = design.ShowDirectionMotif;
         }
 
@@ -90,6 +91,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Supporting palette strategy used by this alternative.
         /// </summary>
         public PowerPointPaletteStyle PaletteStyle { get; }
+
+        /// <summary>
+        ///     Typography strategy used by this alternative.
+        /// </summary>
+        public PowerPointTypographyStyle TypographyStyle { get; }
 
         /// <summary>
         ///     Whether this alternative uses repeated direction markers by default.

@@ -74,6 +74,60 @@ namespace OfficeIMO.PowerPoint {
     }
 
     /// <summary>
+    ///     Typography strategy used to give generated decks a distinct typographic personality.
+    /// </summary>
+    public enum PowerPointTypographyStyle {
+        /// <summary>Choose a deterministic typography pair from the design seed.</summary>
+        Auto,
+        /// <summary>Friendly presentation typography with rounded headings and readable body text.</summary>
+        FriendlySans,
+        /// <summary>Modern Office-native typography for clean business decks.</summary>
+        ModernSans,
+        /// <summary>System-safe executive typography for formal decision decks.</summary>
+        ExecutiveSans,
+        /// <summary>Editorial heading typography paired with a clean sans body.</summary>
+        EditorialSerif,
+        /// <summary>Compact technical typography for diagrams, runbooks, and operational decks.</summary>
+        TechnicalSans
+    }
+
+    /// <summary>
+    ///     Decorative direction marker treatment used by designer slide chrome and section slides.
+    /// </summary>
+    public enum PowerPointDirectionMotifStyle {
+        /// <summary>Choose a deterministic motif style from the design intent.</summary>
+        Auto,
+        /// <summary>Use the original editable triangle markers.</summary>
+        Triangles,
+        /// <summary>Use line-drawn chevrons for a cleaner directional cue.</summary>
+        Chevrons,
+        /// <summary>Use quiet dot markers.</summary>
+        Dots,
+        /// <summary>Use compact bar markers.</summary>
+        Bars,
+        /// <summary>Do not render direction markers.</summary>
+        None
+    }
+
+    /// <summary>
+    ///     Higher-level creative starting points that combine recipe, palette, layout, and ranking preferences.
+    /// </summary>
+    public enum PowerPointCreativeDirectionPack {
+        /// <summary>Let the purpose text and explicit brief settings choose the design direction.</summary>
+        Auto,
+        /// <summary>Restrained, board-ready hierarchy for executive and decision decks.</summary>
+        Boardroom,
+        /// <summary>Visual proof and stronger contrast for case studies, portfolios, and service stories.</summary>
+        FieldProof,
+        /// <summary>Editorial spacing and softer surfaces for narrative-heavy customer stories.</summary>
+        EditorialCaseStudy,
+        /// <summary>Compact geometric structure for architecture, rollout, and operational decks.</summary>
+        TechnicalMap,
+        /// <summary>Quiet, dense appendix treatment for supporting detail and reference slides.</summary>
+        QuietAppendix
+    }
+
+    /// <summary>
     ///     Controls how Auto slide variants balance content fit against visual variety.
     /// </summary>
     public enum PowerPointAutoLayoutStrategy {
@@ -99,6 +153,22 @@ namespace OfficeIMO.PowerPoint {
         EditorialRail,
         /// <summary>Poster-style dark title slide with a large centered title area.</summary>
         Poster
+    }
+
+    /// <summary>
+    ///     Title accent treatment used by section/title slides.
+    /// </summary>
+    public enum PowerPointTitleAccentStyle {
+        /// <summary>Choose a deterministic title accent from the design intent.</summary>
+        Auto,
+        /// <summary>Do not draw an additional title accent.</summary>
+        None,
+        /// <summary>Draw a short accent underline near the section title.</summary>
+        Underline,
+        /// <summary>Draw a compact vertical accent rule beside the section title.</summary>
+        SideRule,
+        /// <summary>Draw a small editorial kicker rule above the section title.</summary>
+        KickerRule
     }
 
     /// <summary>
@@ -128,6 +198,22 @@ namespace OfficeIMO.PowerPoint {
     }
 
     /// <summary>
+    ///     Connector treatment used between process steps on rail-based process slides.
+    /// </summary>
+    public enum PowerPointProcessConnectorStyle {
+        /// <summary>Choose a connector treatment from the design intent.</summary>
+        Auto,
+        /// <summary>Single quiet line running through all process nodes.</summary>
+        ContinuousRail,
+        /// <summary>Short arrowed line segments between adjacent steps.</summary>
+        SegmentArrows,
+        /// <summary>Small dotted markers between adjacent steps.</summary>
+        StepDots,
+        /// <summary>Use no visible connector between process steps.</summary>
+        None
+    }
+
+    /// <summary>
     ///     Card grid layout variants. Auto uses the design intent seed to pick a stable variant.
     /// </summary>
     public enum PowerPointCardGridLayoutVariant {
@@ -137,6 +223,22 @@ namespace OfficeIMO.PowerPoint {
         AccentTop,
         /// <summary>Softer cards with a vertical accent strip.</summary>
         SoftTiles
+    }
+
+    /// <summary>
+    ///     Card panel treatment used independently from the grid layout.
+    /// </summary>
+    public enum PowerPointCardSurfaceStyle {
+        /// <summary>Choose a deterministic surface treatment from the design intent.</summary>
+        Auto,
+        /// <summary>Use a quiet elevated card with a subtle shadow.</summary>
+        Elevated,
+        /// <summary>Use a flat card with minimal outline and no shadow.</summary>
+        Flat,
+        /// <summary>Use a precise hairline card for editorial or formal layouts.</summary>
+        Hairline,
+        /// <summary>Use a very light accent-tinted card surface.</summary>
+        AccentWash
     }
 
     /// <summary>
@@ -164,7 +266,11 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Layered collage placeholder with overlapping proof tiles.</summary>
         Collage,
         /// <summary>Diagram placeholder with editable nodes and connectors.</summary>
-        Diagram
+        Diagram,
+        /// <summary>Screen or laptop-like visual treatment for product, app, or screenshot content.</summary>
+        DeviceMockup,
+        /// <summary>Editorial proof board with image, certificate, or evidence panels.</summary>
+        ProofBoard
     }
 
     /// <summary>
@@ -335,9 +441,14 @@ namespace OfficeIMO.PowerPoint {
         public string? FooterRight { get; set; }
 
         /// <summary>
-        ///     Adds a row of editable triangle markers for movement and visual rhythm.
+        ///     Adds a row of editable direction markers for movement and visual rhythm.
         /// </summary>
         public bool ShowDirectionMotif { get; set; } = true;
+
+        /// <summary>
+        ///     Direction marker treatment used when ShowDirectionMotif is enabled.
+        /// </summary>
+        public PowerPointDirectionMotifStyle DirectionMotifStyle { get; set; } = PowerPointDirectionMotifStyle.Auto;
 
         /// <summary>
         ///     Design intent used for deterministic visual variation.
@@ -348,6 +459,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Section slide layout variant. Used by section/title slide helpers.
         /// </summary>
         public PowerPointSectionLayoutVariant SectionVariant { get; set; } = PowerPointSectionLayoutVariant.Auto;
+
+        /// <summary>
+        ///     Optional title accent for section/title slide helpers.
+        /// </summary>
+        public PowerPointTitleAccentStyle TitleAccentStyle { get; set; } = PowerPointTitleAccentStyle.Auto;
     }
 
     /// <summary>
@@ -363,6 +479,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Optional supporting image displayed in the bottom visual area.
         /// </summary>
         public string? VisualImagePath { get; set; }
+
+        /// <summary>
+        ///     Visual frame treatment for the supporting image or editable placeholder.
+        /// </summary>
+        public PowerPointVisualFrameVariant VisualFrameVariant { get; set; } = PowerPointVisualFrameVariant.Auto;
 
         /// <summary>
         ///     Optional person or product cutout displayed in the bottom brand band.
@@ -400,6 +521,11 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointCardGridLayoutVariant Variant { get; set; } = PowerPointCardGridLayoutVariant.Auto;
 
         /// <summary>
+        ///     Card panel treatment. Auto uses the design intent seed and mood.
+        /// </summary>
+        public PowerPointCardSurfaceStyle SurfaceStyle { get; set; } = PowerPointCardSurfaceStyle.Auto;
+
+        /// <summary>
         ///     Optional supporting text block displayed below the cards.
         /// </summary>
         public string? SupportingText { get; set; }
@@ -418,6 +544,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Process layout variant. Auto uses the design intent seed.
         /// </summary>
         public PowerPointProcessLayoutVariant Variant { get; set; } = PowerPointProcessLayoutVariant.Auto;
+
+        /// <summary>
+        ///     Connector treatment for rail-based process slides. Auto uses the design intent.
+        /// </summary>
+        public PowerPointProcessConnectorStyle ConnectorStyle { get; set; } = PowerPointProcessConnectorStyle.Auto;
     }
 
     /// <summary>
@@ -488,6 +619,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Optional image path for the visual frame.
         /// </summary>
         public string? VisualImagePath { get; set; }
+
+        /// <summary>
+        ///     Visual frame treatment used when VisualKind is VisualFrame.
+        /// </summary>
+        public PowerPointVisualFrameVariant VisualFrameVariant { get; set; } = PowerPointVisualFrameVariant.Auto;
 
         /// <summary>
         ///     Optional label displayed with the visual support area.

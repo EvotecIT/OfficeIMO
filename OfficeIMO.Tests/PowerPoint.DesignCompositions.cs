@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.Tests {
     public class PowerPointDesignCompositions {
@@ -359,10 +361,12 @@ namespace OfficeIMO.Tests {
                     });
 
                     PowerPointSlide visualSlide = presentation.ComposeDesignerSlide(composer => {
-                        PowerPointLayoutBox[] columns = composer.ContentColumns(3, 0.35, topCm: 3.8, bottomMarginCm: 2.0);
+                        PowerPointLayoutBox[] columns = composer.ContentColumns(5, 0.35, topCm: 3.8, bottomMarginCm: 2.0);
                         composer.AddVisualFrame(columns[0], PowerPointVisualFrameVariant.Dashboard);
                         composer.AddVisualFrame(columns[1], PowerPointVisualFrameVariant.Collage);
                         composer.AddVisualFrame(columns[2], PowerPointVisualFrameVariant.Diagram);
+                        composer.AddVisualFrame(columns[3], PowerPointVisualFrameVariant.DeviceMockup);
+                        composer.AddVisualFrame(columns[4], PowerPointVisualFrameVariant.ProofBoard);
                     }, options: new PowerPointDesignerSlideOptions {
                         DesignIntent = new PowerPointDesignIntent { Seed = "surface-visuals" }
                     });
@@ -373,6 +377,8 @@ namespace OfficeIMO.Tests {
                     Assert.Contains(visualSlide.Shapes, shape => shape.Name == "Case Study Visual Content Panel");
                     Assert.Contains(visualSlide.Shapes, shape => shape.Name == "Visual Collage Tile 1");
                     Assert.Contains(visualSlide.Shapes, shape => shape.Name == "Visual Diagram Node 1");
+                    Assert.Contains(visualSlide.Shapes, shape => shape.Name == "Visual Device Screen");
+                    Assert.Contains(visualSlide.Shapes, shape => shape.Name == "Visual Proof Mat");
 
                     List<ValidationErrorInfo> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
@@ -452,6 +458,41 @@ namespace OfficeIMO.Tests {
             Assert.NotEqual(PowerPointPaletteStyle.Auto, first.PaletteStyle);
             Assert.Equal(first.Accent2Color, second.Accent2Color);
             Assert.Equal(first.Accent3Color, second.Accent3Color);
+        }
+
+        [Fact]
+        public void DesignerTheme_CanApplyTypographyStyle() {
+            PowerPointDesignTheme theme = PowerPointDesignTheme.FromBrand("#008C95", "Brand Theme");
+
+            PowerPointDesignTheme styled =
+                theme.WithTypographyStyle(PowerPointTypographyStyle.EditorialSerif, "client-a");
+
+            Assert.Equal(PowerPointTypographyStyle.EditorialSerif, styled.TypographyStyle);
+            Assert.Equal("Georgia", styled.HeadingFontName);
+            Assert.Equal("Aptos", styled.BodyFontName);
+        }
+
+        [Fact]
+        public void DesignerTheme_EnergeticMoodMatchesFriendlySansFonts() {
+            PowerPointDesignTheme energetic = PowerPointDesignTheme.FromBrand("#008C95", "Brand Theme")
+                .WithMood(PowerPointDesignMood.Energetic);
+
+            Assert.Equal(PowerPointTypographyStyle.FriendlySans, energetic.TypographyStyle);
+            Assert.Equal("Poppins", energetic.HeadingFontName);
+            Assert.Equal("Lato", energetic.BodyFontName);
+        }
+
+        [Fact]
+        public void DesignerTheme_AutoTypographyStyleIsDeterministic() {
+            PowerPointDesignTheme theme = PowerPointDesignTheme.FromBrand("#008C95", "Brand Theme");
+
+            PowerPointDesignTheme first = theme.WithTypographyStyle(PowerPointTypographyStyle.Auto, "client-a");
+            PowerPointDesignTheme second = theme.WithTypographyStyle(PowerPointTypographyStyle.Auto, "client-a");
+
+            Assert.Equal(first.TypographyStyle, second.TypographyStyle);
+            Assert.NotEqual(PowerPointTypographyStyle.Auto, first.TypographyStyle);
+            Assert.Equal(first.HeadingFontName, second.HeadingFontName);
+            Assert.Equal(first.BodyFontName, second.BodyFontName);
         }
 
         [Fact]
@@ -535,6 +576,18 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Segoe UI", design.Theme.BodyFontName);
             Assert.False(design.ShowDirectionMotif);
             Assert.Equal("CLIENT", design.Options("cover").FooterLeft);
+        }
+
+        [Fact]
+        public void DesignerDeckDesign_SummaryUsesActualTypographyMetadataForCustomDirectionFonts() {
+            PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "signal-client",
+                PowerPointDesignDirection.Signal, name: "Signal Client");
+
+            PowerPointDeckDesignSummary summary = design.Describe();
+
+            Assert.Equal("Poppins", summary.HeadingFontName);
+            Assert.Equal("Aptos", summary.BodyFontName);
+            Assert.Equal(PowerPointTypographyStyle.Auto, summary.TypographyStyle);
         }
 
         [Fact]
@@ -677,6 +730,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDesignBrief_CanDescribeCreativeDirectionPacks() {
+            IReadOnlyList<PowerPointCreativeDirectionPackSummary> packs =
+                PowerPointDesignBrief.DescribeCreativeDirectionPacks();
+            PowerPointCreativeDirectionPackSummary fieldProof =
+                PowerPointDesignBrief.DescribeCreativeDirectionPack(PowerPointCreativeDirectionPack.FieldProof);
+            PowerPointCreativeDirectionPackSummary auto =
+                PowerPointDesignBrief.DescribeCreativeDirectionPack(PowerPointCreativeDirectionPack.Auto);
+
+            Assert.Equal(5, packs.Count);
+            Assert.Equal(0, packs[0].Index);
+            Assert.Equal(PowerPointCreativeDirectionPack.Boardroom, packs[0].Pack);
+            Assert.Equal("Boardroom", packs[0].Name);
+            Assert.Equal("Executive Brief", packs[0].RecipeName);
+            Assert.Equal(PowerPointPaletteStyle.CoolNeutral, packs[0].PaletteStyle);
+            Assert.Equal(PowerPointAutoLayoutStrategy.ContentFirst, packs[0].LayoutStrategy);
+            Assert.Equal(PowerPointDesignVariety.Balanced, packs[0].Variety);
+            Assert.Contains(PowerPointDesignMood.Corporate, packs[0].PreferredMoods);
+            Assert.Contains("Boardroom", packs[0].ToString());
+
+            Assert.Equal("Field Proof", fieldProof.Name);
+            Assert.Equal(packs[1].Index, fieldProof.Index);
+            Assert.Equal("Consulting Portfolio", fieldProof.RecipeName);
+            Assert.Equal(PowerPointDesignVariety.Exploratory, fieldProof.Variety);
+            Assert.Contains(PowerPointVisualStyle.Geometric, fieldProof.PreferredVisualStyles);
+
+            Assert.Equal(PowerPointCreativeDirectionPack.Auto, auto.Pack);
+            Assert.Equal(-1, auto.Index);
+            Assert.Null(auto.RecipeName);
+            Assert.Null(auto.PaletteStyle);
+            Assert.Empty(auto.PreferredMoods);
+            Assert.Contains("Purpose matched", auto.ToString());
+        }
+
+        [Fact]
         public void DesignerDesignBrief_CreatesAlternativesFromPurposeAndIdentity() {
             PowerPointDesignBrief brief = PowerPointDesignBrief
                 .FromBrand("#008C95", "brief-client", "technical rollout proposal")
@@ -816,6 +903,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerDesignBrief_CanChooseTypographyStyleBeforeManualFontOverrides() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
+                .WithTypographyStyle(PowerPointTypographyStyle.EditorialSerif)
+                .WithFonts(bodyFontName: "Segoe UI");
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(2);
+            IReadOnlyList<PowerPointDeckDesignSummary> summaries = brief.DescribeAlternatives(1);
+
+            Assert.Equal(PowerPointTypographyStyle.EditorialSerif, brief.TypographyStyle);
+            Assert.All(alternatives, design => Assert.Equal(PowerPointTypographyStyle.EditorialSerif,
+                design.Theme.TypographyStyle));
+            Assert.All(alternatives, design => Assert.Equal("Georgia", design.Theme.HeadingFontName));
+            Assert.All(alternatives, design => Assert.Equal("Segoe UI", design.Theme.BodyFontName));
+            Assert.Equal(PowerPointTypographyStyle.EditorialSerif, summaries[0].TypographyStyle);
+            Assert.Equal("Segoe UI", summaries[0].BodyFontName);
+        }
+
+        [Fact]
         public void DesignerDesignBrief_CanChooseAutoLayoutStrategy() {
             PowerPointDesignBrief brief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
                 .WithLayoutStrategy(PowerPointAutoLayoutStrategy.Compact);
@@ -854,6 +959,124 @@ namespace OfficeIMO.Tests {
             Assert.Equal("EditorialSplit", summaries[1].LayoutVariant);
             Assert.Equal("NumberedColumns", summaries[2].LayoutVariant);
             Assert.Equal("AccentTop", summaries[3].LayoutVariant);
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_CanApplyCreativeDirectionPack() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-pack", "technical rollout proposal")
+                .WithCreativeDirectionPack(PowerPointCreativeDirectionPack.FieldProof);
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(3);
+            IReadOnlyList<PowerPointDeckDesignSummary> summaries = brief.DescribeAlternatives(1);
+            IReadOnlyList<PowerPointDeckDesignRecommendation> recommendations =
+                brief.RecommendAlternatives(2);
+
+            Assert.Equal(PowerPointCreativeDirectionPack.FieldProof, brief.CreativeDirectionPack);
+            Assert.Same(PowerPointDesignRecipe.ConsultingPortfolio, brief.Recipe);
+            Assert.Equal(PowerPointPaletteStyle.SplitComplementary, brief.PaletteStyle);
+            Assert.Equal(PowerPointAutoLayoutStrategy.VisualFirst, brief.LayoutStrategy);
+            Assert.Equal(PowerPointDesignVariety.Exploratory, brief.Variety);
+            Assert.Equal("Field Proof", alternatives[0].Direction.Name);
+            Assert.Equal("Board Story", alternatives[1].Direction.Name);
+            Assert.Equal(PowerPointAutoLayoutStrategy.VisualFirst, alternatives[0].BaseIntent.LayoutStrategy);
+            Assert.Equal(PowerPointPaletteStyle.SplitComplementary, alternatives[0].Theme.PaletteStyle);
+            Assert.Equal(PowerPointDesignMood.Energetic, summaries[0].Mood);
+            Assert.Equal(PowerPointVisualStyle.Geometric, summaries[0].VisualStyle);
+            Assert.True(recommendations[0].MatchesPreferences);
+            Assert.Contains("Matches preferred mood: Energetic.", recommendations[0].Reasons);
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_ApplyingCreativeDirectionPackClearsStaleManualThemeOverrides() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-pack-stale", "technical rollout proposal")
+                .WithPalette(secondaryAccentColor: "#6D5BD0", surfaceColor: "#F2F6F8")
+                .WithFonts("Segoe UI Semibold", "Segoe UI")
+                .WithCreativeDirectionPack(PowerPointCreativeDirectionPack.FieldProof);
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(1);
+
+            Assert.Null(brief.SecondaryAccentColor);
+            Assert.Null(brief.SurfaceColor);
+            Assert.Null(brief.HeadingFontName);
+            Assert.Null(brief.BodyFontName);
+            Assert.Equal(PowerPointPaletteStyle.SplitComplementary, alternatives[0].Theme.PaletteStyle);
+            Assert.NotEqual("6D5BD0", alternatives[0].Theme.Accent2Color);
+            Assert.NotEqual("F2F6F8", alternatives[0].Theme.SurfaceColor);
+            Assert.NotEqual("Segoe UI Semibold", alternatives[0].Theme.HeadingFontName);
+            Assert.NotEqual("Segoe UI", alternatives[0].Theme.BodyFontName);
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_AutoCreativeDirectionPackClearsPackOverrides() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-pack-auto", "technical rollout proposal")
+                .WithCreativeDirectionPack(PowerPointCreativeDirectionPack.FieldProof)
+                .WithCreativeDirectionPack(PowerPointCreativeDirectionPack.Auto);
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(1);
+
+            Assert.Equal(PowerPointCreativeDirectionPack.Auto, brief.CreativeDirectionPack);
+            Assert.Null(brief.Recipe);
+            Assert.Null(brief.PaletteStyle);
+            Assert.Null(brief.TypographyStyle);
+            Assert.Null(brief.LayoutStrategy);
+            Assert.Equal(PowerPointDesignVariety.Balanced, brief.Variety);
+            Assert.Empty(brief.PreferredMoods);
+            Assert.Empty(brief.PreferredDensities);
+            Assert.Empty(brief.PreferredVisualStyles);
+            Assert.Equal("Architecture Map", alternatives[0].Direction.Name);
+            Assert.Equal(PowerPointAutoLayoutStrategy.ContentFirst, alternatives[0].BaseIntent.LayoutStrategy);
+            Assert.Equal(PowerPointPaletteStyle.Auto, alternatives[0].Theme.PaletteStyle);
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_AutoCreativeDirectionPackPreservesExplicitTypography() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-pack-typography", "technical rollout proposal")
+                .WithTypographyStyle(PowerPointTypographyStyle.EditorialSerif)
+                .WithCreativeDirectionPack(PowerPointCreativeDirectionPack.FieldProof)
+                .WithCreativeDirectionPack(PowerPointCreativeDirectionPack.Auto);
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(1);
+
+            Assert.Equal(PowerPointTypographyStyle.EditorialSerif, brief.TypographyStyle);
+            Assert.Equal(PowerPointTypographyStyle.EditorialSerif, alternatives[0].Theme.TypographyStyle);
+            Assert.Equal("Georgia", alternatives[0].Theme.HeadingFontName);
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_ManualFontOverridesUpdateTypographyMetadata() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-font-sync", "technical rollout proposal")
+                .WithFonts("Poppins", "Aptos");
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(1);
+            PowerPointDeckDesignSummary summary = brief.DescribeAlternatives(1)[0];
+
+            Assert.Equal("Poppins", alternatives[0].Theme.HeadingFontName);
+            Assert.Equal("Aptos", alternatives[0].Theme.BodyFontName);
+            Assert.Equal(PowerPointTypographyStyle.Auto, alternatives[0].Theme.TypographyStyle);
+            Assert.Equal(PowerPointTypographyStyle.Auto, summary.TypographyStyle);
+        }
+
+        [Fact]
+        public void DesignerDesignBrief_CreativeDirectionPacksKeepAlternativesDistinct() {
+            PowerPointDesignBrief brief = PowerPointDesignBrief
+                .FromBrand("#008C95", "brief-pack-distinct", "technical rollout proposal")
+                .WithCreativeDirectionPack(PowerPointCreativeDirectionPack.TechnicalMap);
+
+            IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(3);
+
+            Assert.Equal(PowerPointCreativeDirectionPack.TechnicalMap, brief.CreativeDirectionPack);
+            Assert.Equal(PowerPointPaletteStyle.Complementary, brief.PaletteStyle);
+            Assert.Equal(PowerPointAutoLayoutStrategy.Compact, alternatives[0].BaseIntent.LayoutStrategy);
+            Assert.Equal("Architecture Map", alternatives[0].Direction.Name);
+            Assert.Equal("Delivery Signal", alternatives[1].Direction.Name);
+            Assert.NotEqual(alternatives[0].Seed, alternatives[1].Seed);
+            Assert.NotEqual(alternatives[0].Theme.Accent2Color, alternatives[1].Theme.Accent2Color);
+            Assert.NotEqual(alternatives[1].Theme.Accent2Color, alternatives[2].Theme.Accent2Color);
         }
 
         [Fact]
@@ -1724,13 +1947,13 @@ namespace OfficeIMO.Tests {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
-                PowerPointSlide softSlide = presentation.AddDesignerCaseStudySlide("Soft client",
+                PowerPointSlide editorialSlide = presentation.AddDesignerCaseStudySlide("Editorial client",
                     new[] {
                         new PowerPointCaseStudySection("Client", "Short story."),
                         new PowerPointCaseStudySection("Challenge", "Needs a clean visual support area.")
                     },
                     options: new PowerPointCaseStudySlideOptions {
-                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Editorial, "soft-case")
+                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Editorial, "editorial-case")
                     });
 
                 PowerPointSlide minimalSlide = presentation.AddDesignerCaseStudySlide("Minimal client",
@@ -1742,8 +1965,8 @@ namespace OfficeIMO.Tests {
                         DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Minimal, "minimal-case")
                     });
 
-                Assert.NotNull(softSlide.GetShape("Visual Collage Tile 1"));
-                Assert.Null(softSlide.GetShape("Case Study Visual Content Panel"));
+                Assert.NotNull(editorialSlide.GetShape("Visual Proof Mat"));
+                Assert.Null(editorialSlide.GetShape("Case Study Visual Content Panel"));
                 Assert.NotNull(minimalSlide.GetShape("Visual Diagram Node 1"));
                 Assert.Null(minimalSlide.GetShape("Case Study Visual Content Panel"));
             } finally {
@@ -1918,6 +2141,229 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerProcessSlide_CanUseSegmentArrowConnectors() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                    PowerPointSlide slide = presentation.AddDesignerProcessSlide("Process", null,
+                        new[] {
+                            new PowerPointProcessStep("One", "Start here."),
+                            new PowerPointProcessStep("Two", "Then continue."),
+                            new PowerPointProcessStep("Three", "Finish cleanly.")
+                        },
+                        options: new PowerPointProcessSlideOptions {
+                            Variant = PowerPointProcessLayoutVariant.Rail,
+                            ConnectorStyle = PowerPointProcessConnectorStyle.SegmentArrows
+                        });
+
+                    PowerPointAutoShape connector = Assert.IsAssignableFrom<PowerPointAutoShape>(
+                        slide.GetShape("Process Connector 1"));
+                    Assert.Equal(A.ShapeTypeValues.Line, connector.ShapeType);
+                    Assert.NotNull(slide.GetShape("Process Connector 2"));
+                    Assert.Null(slide.GetShape("Process Rail"));
+
+                    List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                    Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+                    presentation.Save();
+                }
+
+                using PresentationDocument document = PresentationDocument.Open(filePath, false);
+                SlidePart slidePart = document.PresentationPart!.SlideParts.First();
+                P.Shape connectorShape = slidePart.Slide.CommonSlideData!.ShapeTree!
+                    .Elements<P.Shape>()
+                    .First(shape =>
+                        shape.NonVisualShapeProperties?.NonVisualDrawingProperties?.Name?.Value ==
+                        "Process Connector 1");
+                A.Outline outline = connectorShape.ShapeProperties!.GetFirstChild<A.Outline>()!;
+                A.TailEnd? tail = outline.GetFirstChild<A.TailEnd>();
+                Assert.Equal(A.LineEndValues.Triangle, tail?.Type?.Value);
+                Assert.Equal(A.LineEndWidthValues.Small, tail?.Width?.Value);
+                Assert.Equal(A.LineEndLengthValues.Small, tail?.Length?.Value);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerDirectionMotif_CanUseAlternativeEditableStyles() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointSlide dotSlide = presentation.AddDesignerSectionSlide("Dots", "Quiet rhythm",
+                    options: new PowerPointDesignerSlideOptions {
+                        DirectionMotifStyle = PowerPointDirectionMotifStyle.Dots
+                    });
+                PowerPointSlide barSlide = presentation.AddDesignerSectionSlide("Bars", "Editorial rhythm",
+                    options: new PowerPointDesignerSlideOptions {
+                        DirectionMotifStyle = PowerPointDirectionMotifStyle.Bars
+                    });
+                PowerPointSlide chevronSlide = presentation.AddDesignerSectionSlide("Chevrons", "Directional rhythm",
+                    options: new PowerPointDesignerSlideOptions {
+                        DirectionMotifStyle = PowerPointDirectionMotifStyle.Chevrons
+                    });
+                PowerPointSlide hiddenSlide = presentation.AddDesignerSectionSlide("None", "No motif",
+                    options: new PowerPointDesignerSlideOptions {
+                        DirectionMotifStyle = PowerPointDirectionMotifStyle.None
+                    });
+
+                PowerPointAutoShape dot = Assert.IsAssignableFrom<PowerPointAutoShape>(
+                    dotSlide.GetShape("Designer Direction 1"));
+                Assert.Equal(A.ShapeTypeValues.Ellipse, dot.ShapeType);
+
+                PowerPointAutoShape bar = Assert.IsAssignableFrom<PowerPointAutoShape>(
+                    barSlide.GetShape("Designer Direction 1"));
+                Assert.Equal(A.ShapeTypeValues.Rectangle, bar.ShapeType);
+
+                Assert.NotNull(chevronSlide.GetShape("Designer Direction 1"));
+                Assert.NotNull(chevronSlide.GetShape("Designer Direction Chevron 1B"));
+                Assert.Null(hiddenSlide.GetShape("Designer Direction 1"));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerDirectionMotif_ExplicitStyleCanOverrideMinimalIntent() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointSlide slide = presentation.AddDesignerSectionSlide("Minimal", "Forced motif",
+                    options: new PowerPointDesignerSlideOptions {
+                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Minimal, "forced-motif"),
+                        DirectionMotifStyle = PowerPointDirectionMotifStyle.Dots
+                    });
+
+                Assert.NotNull(slide.GetShape("Designer Direction 1"));
+
+                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerSectionSlide_CanUseEditableTitleAccentStyles() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointSlide underlineSlide = presentation.AddDesignerSectionSlide("Underline", "Accent",
+                    options: new PowerPointDesignerSlideOptions {
+                        TitleAccentStyle = PowerPointTitleAccentStyle.Underline
+                    });
+                PowerPointSlide sideRuleSlide = presentation.AddDesignerSectionSlide("Side rule", "Accent",
+                    options: new PowerPointDesignerSlideOptions {
+                        SectionVariant = PowerPointSectionLayoutVariant.EditorialRail,
+                        TitleAccentStyle = PowerPointTitleAccentStyle.SideRule
+                    });
+                PowerPointSlide kickerSlide = presentation.AddDesignerSectionSlide("Kicker", "Accent",
+                    options: new PowerPointDesignerSlideOptions {
+                        SectionVariant = PowerPointSectionLayoutVariant.Poster,
+                        TitleAccentStyle = PowerPointTitleAccentStyle.KickerRule
+                    });
+                PowerPointSlide quietSlide = presentation.AddDesignerSectionSlide("Quiet", "No accent",
+                    options: new PowerPointDesignerSlideOptions {
+                        TitleAccentStyle = PowerPointTitleAccentStyle.None
+                    });
+
+                Assert.NotNull(underlineSlide.GetShape("Section Title Accent Underline"));
+                Assert.NotNull(sideRuleSlide.GetShape("Section Title Accent Side Rule"));
+                Assert.NotNull(kickerSlide.GetShape("Section Title Accent Kicker Rule"));
+                Assert.Null(quietSlide.GetShape("Section Title Accent Underline"));
+                Assert.Null(quietSlide.GetShape("Section Title Accent Side Rule"));
+                Assert.Null(quietSlide.GetShape("Section Title Accent Kicker Rule"));
+
+                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerSectionSlide_AutoTitleAccentUsesDesignIntent() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointSlide editorialSlide = presentation.AddDesignerSectionSlide("Editorial", "Seeded",
+                    options: new PowerPointDesignerSlideOptions {
+                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Editorial,
+                            "editorial-section")
+                    });
+                PowerPointSlide minimalSlide = presentation.AddDesignerSectionSlide("Minimal", "Quiet",
+                    options: new PowerPointDesignerSlideOptions {
+                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Minimal,
+                            "minimal-section")
+                    });
+
+                Assert.NotNull(editorialSlide.GetShape("Section Title Accent Kicker Rule"));
+                Assert.Null(minimalSlide.GetShape("Section Title Accent Underline"));
+                Assert.Null(minimalSlide.GetShape("Section Title Accent Side Rule"));
+                Assert.Null(minimalSlide.GetShape("Section Title Accent Kicker Rule"));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void DesignerProcessSlide_AutoConnectorStyleUsesDotsForEditorialFlows() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointSlide slide = presentation.AddDesignerProcessSlide("Process", null,
+                    new[] {
+                        new PowerPointProcessStep("One", "Start here."),
+                        new PowerPointProcessStep("Two", "Then continue."),
+                        new PowerPointProcessStep("Three", "Finish cleanly.")
+                    },
+                    options: new PowerPointProcessSlideOptions {
+                        Variant = PowerPointProcessLayoutVariant.Rail,
+                        DesignIntent = PowerPointDesignIntent.FromMood(PowerPointDesignMood.Editorial, "editorial-process")
+                    });
+
+                Assert.NotNull(slide.GetShape("Process Connector Dot 1-1"));
+                Assert.NotNull(slide.GetShape("Process Connector Dot 2-4"));
+                Assert.Null(slide.GetShape("Process Connector 1"));
+                Assert.Null(slide.GetShape("Process Rail"));
+
+                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void DesignerProcessSlide_AutoUsesRailForLongFlows() {
             string filePath = CreateTempPresentationPath();
 
@@ -2025,6 +2471,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerCardGrid_CanUseAlternateSurfaceStyles() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointSlide flatSlide = presentation.AddDesignerCardGridSlide("Flat", null,
+                    new[] {
+                        new PowerPointCardContent("Deployments", new[] { "Intune" })
+                    },
+                    options: new PowerPointCardGridSlideOptions {
+                        SurfaceStyle = PowerPointCardSurfaceStyle.Flat
+                    });
+                PowerPointSlide washSlide = presentation.AddDesignerCardGridSlide("Accent wash", null,
+                    new[] {
+                        new PowerPointCardContent("Care", new[] { "Monitoring" }, "F26A3D")
+                    },
+                    options: new PowerPointCardGridSlideOptions {
+                        SurfaceStyle = PowerPointCardSurfaceStyle.AccentWash
+                    });
+
+                PowerPointAutoShape flatCard = Assert.IsAssignableFrom<PowerPointAutoShape>(
+                    flatSlide.GetShape("Designer Card 1"));
+                PowerPointAutoShape washCard = Assert.IsAssignableFrom<PowerPointAutoShape>(
+                    washSlide.GetShape("Designer Card 1"));
+
+                Assert.True(flatCard.OutlineWidthPoints <= 0.25);
+                Assert.True(flatCard.FillTransparency is null or 0);
+                Assert.Equal("F26A3D", washCard.FillColor);
+                Assert.True(washCard.FillTransparency >= 80);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Composer_CreatesValidCustomSlideFromReusablePrimitives() {
             string filePath = CreateTempPresentationPath();
 
@@ -2060,6 +2545,64 @@ namespace OfficeIMO.Tests {
                     Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes),
                         textBox => textBox.Text == "Custom story");
                 }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Composer_DeviceMockupVisualFrameFitsImageInsideScreenChrome() {
+            string filePath = CreateTempPresentationPath();
+            string imagePath = GetTestAssetPath("OfficeIMO.png");
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointSlide slide = presentation.ComposeDesignerSlide(composer => {
+                    composer.AddVisualFrame(PowerPointLayoutBox.FromCentimeters(20.5, 9.6, 5.6, 3.0), imagePath,
+                        PowerPointVisualFrameVariant.DeviceMockup);
+                }, PowerPointDesignTheme.FromBrand("#008C95", "Device Test"));
+
+                PowerPointShape? screen = slide.GetShape("Visual Device Screen");
+                PowerPointPicture picture = Assert.Single(slide.Pictures);
+
+                Assert.NotNull(screen);
+                Assert.True(picture.LeftCm >= screen!.LeftCm);
+                Assert.True(picture.TopCm >= screen.TopCm);
+                Assert.True(picture.RightCm <= screen.RightCm);
+                Assert.True(picture.BottomCm <= screen.BottomCm);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Composer_DeviceMockupVisualFrameClampsImageInsideShortScreenChrome() {
+            string filePath = CreateTempPresentationPath();
+            string imagePath = GetTestAssetPath("OfficeIMO.png");
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointSlide slide = presentation.ComposeDesignerSlide(composer => {
+                    composer.AddVisualFrame(PowerPointLayoutBox.FromCentimeters(20.5, 10.8, 5.6, 1.2), imagePath,
+                        PowerPointVisualFrameVariant.DeviceMockup);
+                }, PowerPointDesignTheme.FromBrand("#008C95", "Device Test"));
+
+                PowerPointShape? screen = slide.GetShape("Visual Device Screen");
+                PowerPointPicture picture = Assert.Single(slide.Pictures);
+
+                Assert.NotNull(screen);
+                Assert.True(picture.LeftCm >= screen!.LeftCm);
+                Assert.True(picture.TopCm >= screen.TopCm);
+                Assert.True(picture.RightCm <= screen.RightCm);
+                Assert.True(picture.BottomCm <= screen.BottomCm);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -2387,6 +2930,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DesignerCapabilitySlide_CanUseProofBoardVisualFrame() {
+            string filePath = CreateTempPresentationPath();
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointSlide slide = presentation.AddDesignerCapabilitySlide("Evidence",
+                    "Visual support can use an editorial proof-board treatment.",
+                    new[] {
+                        new PowerPointCapabilitySection("Certified service",
+                            "Proof-led content stays structured.", new[] { "Partner evidence", "Audit trail" }),
+                        new PowerPointCapabilitySection("Operational record",
+                            "Support details stay editable.", new[] { "Locations", "Metrics" })
+                    },
+                    options: new PowerPointCapabilitySlideOptions {
+                        Variant = PowerPointCapabilityLayoutVariant.TextVisual,
+                        VisualKind = PowerPointCapabilityVisualKind.VisualFrame,
+                        VisualFrameVariant = PowerPointVisualFrameVariant.ProofBoard
+                    });
+
+                Assert.NotNull(slide.GetShape("Visual Proof Mat"));
+                Assert.NotNull(slide.GetShape("Visual Proof Primary Panel"));
+                Assert.Null(slide.GetShape("Visual Device Screen"));
+
+                List<ValidationErrorInfo> errors = presentation.ValidateDocument();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void DesignerCapabilitySlide_AutoUsesStackedLayoutForSectionHeavySlides() {
             string filePath = CreateTempPresentationPath();
 
@@ -2494,6 +3072,19 @@ namespace OfficeIMO.Tests {
             string presentationPath = Path.ChangeExtension(tempFilePath, ".pptx");
             File.Delete(tempFilePath);
             return presentationPath;
+        }
+
+        private static string GetTestAssetPath(string fileName) {
+            DirectoryInfo directory = new DirectoryInfo(AppContext.BaseDirectory);
+            for (int i = 0; i < 4; i++) {
+                DirectoryInfo? parent = directory.Parent;
+                Assert.NotNull(parent);
+                directory = parent;
+            }
+
+            return directory.FullName.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) +
+                   Path.DirectorySeparatorChar + "Assets" +
+                   Path.DirectorySeparatorChar + fileName;
         }
     }
 }

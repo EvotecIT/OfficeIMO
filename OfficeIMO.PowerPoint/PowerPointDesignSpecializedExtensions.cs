@@ -348,7 +348,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             AddVisualFrame(slide, theme, options.VisualImagePath, bounds.LeftCm, bounds.TopCm, bounds.WidthCm,
-                bounds.HeightCm, options.DesignIntent);
+                bounds.HeightCm, options.VisualFrameVariant, options.DesignIntent);
             if (!string.IsNullOrWhiteSpace(options.VisualLabel)) {
                 AddText(slide, options.VisualLabel!, bounds.LeftCm + 0.35, bounds.BottomCm - 0.55,
                     bounds.WidthCm - 0.7, 0.35, 9, theme.AccentContrastColor, theme.BodyFontName, bold: true);
@@ -371,7 +371,7 @@ namespace OfficeIMO.PowerPoint {
             double visualWidth = slideWidthCm * 0.48;
             double visualHeight = slideHeightCm - 5.35;
             AddVisualFrame(slide, theme, options.VisualImagePath, visualLeft, visualTop, visualWidth, visualHeight,
-                options.DesignIntent);
+                options.VisualFrameVariant, options.DesignIntent);
 
             PowerPointLayoutBox right = PowerPointLayoutBox.FromCentimeters(
                 visualLeft + visualWidth + 0.85,

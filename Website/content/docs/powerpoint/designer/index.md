@@ -12,7 +12,7 @@ Use this when a generated deck should feel designed without forcing every caller
 
 ## Design brief recommendations
 
-A `PowerPointDesignBrief` packages brand color, stable seed, purpose, identity, palette preferences, and creative preferences. Callers can inspect alternatives before choosing one.
+A `PowerPointDesignBrief` packages brand color, stable seed, purpose, identity, and creative direction. Start with a pack when you want a strong direction quickly, then override individual palette or layout knobs only where needed. Callers can inspect alternatives before choosing one.
 
 ![PowerPoint design brief alternatives](/images/powerpoint/examples/design-brief-alternatives.png)
 
@@ -21,12 +21,8 @@ PowerPointDesignBrief brief = PowerPointDesignBrief
     .FromBrand("#008C95", "design-brief-recommendations", "technical rollout proposal")
     .WithIdentity("Client Theme", eyebrow: "OfficeIMO.PowerPoint",
         footerLeft: "OFFICEIMO", footerRight: "Design brief")
-    .WithPaletteStyle(PowerPointPaletteStyle.SplitComplementary)
-    .WithPalette(secondaryAccentColor: "#6D5BD0", warmAccentColor: "#FFB000")
-    .WithLayoutStrategy(PowerPointAutoLayoutStrategy.ContentFirst)
-    .WithVariety(PowerPointDesignVariety.Exploratory)
-    .WithPreferredMoods(PowerPointDesignMood.Energetic, PowerPointDesignMood.Editorial)
-    .WithPreferredVisualStyles(PowerPointVisualStyle.Geometric, PowerPointVisualStyle.Soft);
+    .WithCreativeDirectionPack(PowerPointCreativeDirectionPack.FieldProof)
+    .WithPalette(surfaceColor: "#F6FAFC", panelBorderColor: "#D5E3EA");
 
 var recommendations = brief.RecommendAlternatives(4);
 var selected = recommendations
@@ -42,6 +38,10 @@ PowerPointDeckComposer deck = presentation.UseDesigner(brief, selected.Design.In
 
 The recommendation object keeps the choice explainable: score, direction, mood, visual style, fonts, palette, and human-readable reasons are all available before slides are rendered.
 
+Built-in packs include `Boardroom`, `FieldProof`, `EditorialCaseStudy`, `TechnicalMap`, and `QuietAppendix`. They combine recipe, palette style, layout strategy, variety, and ranking preferences without freezing exact slide coordinates.
+
+Use `PowerPointDesignBrief.DescribeCreativeDirectionPacks()` to list pack names, descriptions, recipes, palette styles, layout strategies, and preferred moods before asking a user or workflow to choose one.
+
 `WithLayoutStrategy(...)` lets a brief steer `Auto` slide variants without turning the deck into a fixed template.
 Use `ContentFirst` for content-fit defaults, `DesignFirst` for more seeded variation, `Compact` for denser business decks,
 or `VisualFirst` when visual proof and hero compositions should win when the content allows it.
@@ -50,8 +50,14 @@ or `VisualFirst` when visual proof and hero compositions should win when the con
 
 ## Variation controls
 
-The same `PowerPointDeckPlan` can be reused with several briefs. Change the layout strategy and palette style to get a
-different rhythm without changing slide coordinates or duplicating every slide recipe.
+The same `PowerPointDeckPlan` can be reused with several briefs. Change the layout strategy, palette style, and typography
+style to get a different rhythm without changing slide coordinates or duplicating every slide recipe.
+Small direction motifs can also vary per slide with `PowerPointDirectionMotifStyle`: `Triangles`, `Chevrons`, `Dots`,
+`Bars`, or `None`.
+Section titles can vary their emphasis with `PowerPointTitleAccentStyle`: `Underline`, `SideRule`, `KickerRule`, or
+`None`.
+Card grids can keep the same content while changing panel treatment with `PowerPointCardSurfaceStyle`: `Elevated`,
+`Flat`, `Hairline`, or `AccentWash`.
 
 ```csharp
 PowerPointDeckPlan plan = CreateReusablePlan();
@@ -64,11 +70,23 @@ foreach (PowerPointAutoLayoutStrategy strategy in new[] {
     PowerPointDesignBrief variant = PowerPointDesignBrief
         .FromBrand("#008C95", "layout-strategy-comparison", "service proposal")
         .WithPaletteStyle(PowerPointPaletteStyle.SplitComplementary)
+        .WithTypographyStyle(PowerPointTypographyStyle.Auto)
         .WithLayoutStrategy(strategy);
 
     var preview = variant.DescribeDeckPlan(plan);
     PowerPointDeckComposer deck = presentation.UseDesigner(variant);
     deck.AddSlides(plan);
+    deck.AddSectionSlide("Approach", "A calmer opening rhythm", "approach",
+        configure: options => {
+            options.DirectionMotifStyle = PowerPointDirectionMotifStyle.Dots;
+            options.TitleAccentStyle = PowerPointTitleAccentStyle.KickerRule;
+        });
+    deck.AddCardGridSlide("Scope", "Same cards, quieter surface.",
+        new[] {
+            new PowerPointCardContent("Deployments", new[] { "Intune", "Autopilot" }),
+            new PowerPointCardContent("Care", new[] { "Monitoring", "Reporting" })
+        },
+        configure: options => options.SurfaceStyle = PowerPointCardSurfaceStyle.Hairline);
 }
 ```
 
@@ -107,6 +125,10 @@ PowerPointDeckPlan plan = new PowerPointDeckPlan()
             new PowerPointProcessStep("Pilot", "Validate the model with a controlled user group."),
             new PowerPointProcessStep("Roll out", "Deliver in waves with clear reporting."),
             new PowerPointProcessStep("Operate", "Move into repeatable support and optimization.")
+        },
+        configure: options => {
+            options.Variant = PowerPointProcessLayoutVariant.Rail;
+            options.ConnectorStyle = PowerPointProcessConnectorStyle.StepDots;
         });
 
 var alternatives = brief.DescribeDeckPlanAlternatives(plan, 4);
@@ -117,6 +139,8 @@ deck.AddSlides(plan);
 ```
 
 ![PowerPoint deck plan process slide](/images/powerpoint/examples/deck-plan-process.png)
+
+Rail process slides can keep the same semantic steps while switching connector treatment. Use `ContinuousRail` for a quiet line, `SegmentArrows` for compact directional flow, `StepDots` for a softer editorial rhythm, or `None` when the numbered nodes should stand alone.
 
 When a deck already contains slides, preview through the active composer so fallback seeds line up with the render path:
 
@@ -134,7 +158,17 @@ Named composition presets sit between manual coordinates and full semantic slide
 
 Variants keep those presets from becoming one fixed look. Use `Standard` for the baseline arrangement, `Mirrored` or `VisualLead` when the visual should move, `EvidenceLead` when metrics should lead, or `Auto` when the design intent and seed should pick a stable variation.
 
-Surface variants keep repeated regions from looking identical. A visual frame can use `Dashboard`, `Collage`, or `Diagram` placeholders, and a metric strip can use a `SolidBand`, `SeparatedTiles`, or `Underlined` treatment.
+Surface variants keep repeated regions from looking identical. A visual frame can use `Dashboard`, `Collage`, `Diagram`, `DeviceMockup`, or `ProofBoard` treatments, and a metric strip can use a `SolidBand`, `SeparatedTiles`, or `Underlined` treatment.
+
+Semantic slides expose the same visual-frame choice through options, so screenshot-heavy and proof-heavy slides do not need a custom layout just to avoid the default placeholder:
+
+```csharp
+deck.AddCapabilitySlide("Evidence", "Choose visual support without hand-drawing a frame.",
+    new[] {
+        new PowerPointCapabilitySection("Proof", "Editable evidence area.", new[] { "Screenshot", "Certificate" })
+    },
+    configure: options => options.VisualFrameVariant = PowerPointVisualFrameVariant.DeviceMockup);
+```
 
 ```csharp
 deck.ComposeSlide(composer => {
@@ -148,7 +182,7 @@ deck.ComposeSlide(composer => {
                 "Fit signal " + (index + 1), new[] { reason })),
         layout.Primary);
 
-    composer.AddVisualFrame(layout.Visual, PowerPointVisualFrameVariant.Collage);
+    composer.AddVisualFrame(layout.Visual, PowerPointVisualFrameVariant.ProofBoard);
 
     composer.AddMetricStrip(new[] {
         new PowerPointMetric(selectedPlan.ContentFitScore.ToString(), "fit score"),

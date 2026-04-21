@@ -268,6 +268,36 @@ namespace OfficeIMO.PowerPoint {
             };
         }
 
+        internal static PowerPointTitleAccentStyle ResolveTitleAccentStyle(PowerPointDesignerSlideOptions options,
+            PowerPointSectionLayoutVariant variant) {
+            if (options.TitleAccentStyle != PowerPointTitleAccentStyle.Auto) {
+                return options.TitleAccentStyle;
+            }
+
+            PowerPointDesignIntent intent = options.DesignIntent;
+            if (string.IsNullOrWhiteSpace(intent.Seed) ||
+                intent.VisualStyle == PowerPointVisualStyle.Minimal) {
+                return PowerPointTitleAccentStyle.None;
+            }
+            if (intent.Mood == PowerPointDesignMood.Editorial) {
+                return PowerPointTitleAccentStyle.KickerRule;
+            }
+            if (intent.Mood == PowerPointDesignMood.Energetic ||
+                intent.LayoutStrategy == PowerPointAutoLayoutStrategy.VisualFirst ||
+                variant == PowerPointSectionLayoutVariant.Poster) {
+                return PowerPointTitleAccentStyle.Underline;
+            }
+            if (intent.VisualStyle == PowerPointVisualStyle.Soft) {
+                return PowerPointTitleAccentStyle.SideRule;
+            }
+
+            return intent.Pick(3, "title-accent") switch {
+                0 => PowerPointTitleAccentStyle.Underline,
+                1 => PowerPointTitleAccentStyle.SideRule,
+                _ => PowerPointTitleAccentStyle.KickerRule
+            };
+        }
+
         internal static PowerPointCaseStudyLayoutVariant ResolveCaseStudyVariant(PowerPointCaseStudySlideOptions options,
             IReadOnlyList<PowerPointCaseStudySection> sections, IReadOnlyList<PowerPointMetric> metrics) {
             if (options.Variant != PowerPointCaseStudyLayoutVariant.Auto) {
@@ -339,6 +369,38 @@ namespace OfficeIMO.PowerPoint {
                 : PowerPointCardGridLayoutVariant.SoftTiles;
         }
 
+        internal static PowerPointCardSurfaceStyle ResolveCardSurfaceStyle(PowerPointCardGridSlideOptions options,
+            PowerPointCardGridLayoutVariant variant) {
+            if (options.SurfaceStyle != PowerPointCardSurfaceStyle.Auto) {
+                return options.SurfaceStyle;
+            }
+
+            PowerPointDesignIntent intent = options.DesignIntent;
+            if (string.IsNullOrWhiteSpace(intent.Seed)) {
+                return PowerPointCardSurfaceStyle.Elevated;
+            }
+            if (intent.VisualStyle == PowerPointVisualStyle.Minimal) {
+                return PowerPointCardSurfaceStyle.Flat;
+            }
+            if (intent.Mood == PowerPointDesignMood.Editorial) {
+                return PowerPointCardSurfaceStyle.Hairline;
+            }
+            if (intent.Mood == PowerPointDesignMood.Energetic ||
+                intent.LayoutStrategy == PowerPointAutoLayoutStrategy.DesignFirst) {
+                return PowerPointCardSurfaceStyle.AccentWash;
+            }
+            if (variant == PowerPointCardGridLayoutVariant.SoftTiles) {
+                return PowerPointCardSurfaceStyle.Flat;
+            }
+
+            return intent.Pick(4, "card-surface") switch {
+                0 => PowerPointCardSurfaceStyle.Elevated,
+                1 => PowerPointCardSurfaceStyle.Flat,
+                2 => PowerPointCardSurfaceStyle.Hairline,
+                _ => PowerPointCardSurfaceStyle.AccentWash
+            };
+        }
+
         internal static PowerPointProcessLayoutVariant ResolveProcessVariant(PowerPointProcessSlideOptions options,
             IReadOnlyList<PowerPointProcessStep> steps) {
             if (options.Variant != PowerPointProcessLayoutVariant.Auto) {
@@ -366,6 +428,32 @@ namespace OfficeIMO.PowerPoint {
             return PowerPointProcessLayoutVariant.NumberedColumns;
         }
 
+        internal static PowerPointProcessConnectorStyle ResolveProcessConnectorStyle(PowerPointProcessSlideOptions options,
+            IReadOnlyList<PowerPointProcessStep> steps) {
+            if (options.ConnectorStyle != PowerPointProcessConnectorStyle.Auto) {
+                return options.ConnectorStyle;
+            }
+
+            if (options.DesignIntent.VisualStyle == PowerPointVisualStyle.Minimal) {
+                return PowerPointProcessConnectorStyle.None;
+            }
+
+            if (options.DesignIntent.Density == PowerPointSlideDensity.Compact || steps.Count > 5) {
+                return PowerPointProcessConnectorStyle.ContinuousRail;
+            }
+
+            if (options.DesignIntent.Mood == PowerPointDesignMood.Energetic) {
+                return PowerPointProcessConnectorStyle.SegmentArrows;
+            }
+
+            if (options.DesignIntent.Mood == PowerPointDesignMood.Editorial ||
+                options.DesignIntent.VisualStyle == PowerPointVisualStyle.Soft) {
+                return PowerPointProcessConnectorStyle.StepDots;
+            }
+
+            return PowerPointProcessConnectorStyle.ContinuousRail;
+        }
+
         private static void AddSectionGeometricCover(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointDesignerSlideOptions options, string title, string? subtitle, double slideWidthCm,
             double slideHeightCm) {
@@ -373,8 +461,14 @@ namespace OfficeIMO.PowerPoint {
             AddDiagonalPlanes(slide, theme, slideWidthCm, slideHeightCm, dark: true);
             AddChrome(slide, theme, slideWidthCm, slideHeightCm, dark: true, options);
 
-            AddText(slide, title, 1.85, slideHeightCm * 0.47, slideWidthCm * 0.58, 1.35, 40,
+            PowerPointTitleAccentStyle titleAccent = ResolveTitleAccentStyle(options,
+                PowerPointSectionLayoutVariant.GeometricCover);
+            double titleLeft = 1.85;
+            double titleTop = slideHeightCm * 0.47;
+            double titleWidth = slideWidthCm * 0.58;
+            AddText(slide, title, titleLeft, titleTop, titleWidth, 1.35, 40,
                 theme.AccentContrastColor, theme.HeadingFontName, bold: true);
+            AddSectionTitleAccent(slide, theme, titleAccent, titleLeft, titleTop, titleWidth, 1.35, dark: true);
 
             if (!string.IsNullOrWhiteSpace(subtitle)) {
                 AddText(slide, subtitle!, 1.9, slideHeightCm * 0.59, slideWidthCm * 0.52, 0.8, 15,
@@ -382,7 +476,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (ShouldShowDirectionMotif(options)) {
-                AddDirectionMotif(slide, 1.95, slideHeightCm * 0.67, 11, 0.46, theme.WarningColor);
+                AddDirectionMotif(slide, options, 1.95, slideHeightCm * 0.67, 11, 0.46, theme.WarningColor);
             }
         }
 
@@ -403,8 +497,14 @@ namespace OfficeIMO.PowerPoint {
             block.FillColor = theme.WarningColor;
             block.OutlineColor = theme.WarningColor;
 
-            AddText(slide, title, 1.9, 2.15, slideWidthCm * 0.55, 1.2, 38,
+            PowerPointTitleAccentStyle titleAccent = ResolveTitleAccentStyle(options,
+                PowerPointSectionLayoutVariant.EditorialRail);
+            double titleLeft = 1.9;
+            double titleTop = 2.15;
+            double titleWidth = slideWidthCm * 0.55;
+            AddText(slide, title, titleLeft, titleTop, titleWidth, 1.2, 38,
                 theme.PrimaryTextColor, theme.HeadingFontName, bold: true);
+            AddSectionTitleAccent(slide, theme, titleAccent, titleLeft, titleTop, titleWidth, 1.2, dark: false);
 
             if (!string.IsNullOrWhiteSpace(subtitle)) {
                 AddText(slide, subtitle!, 1.95, 4.15, slideWidthCm * 0.47, 0.8, 14,
@@ -418,7 +518,8 @@ namespace OfficeIMO.PowerPoint {
             accentPanel.OutlineColor = theme.AccentLightColor;
 
             if (ShouldShowDirectionMotif(options)) {
-                AddDirectionMotif(slide, slideWidthCm - 5.25, 2.05, 10, 0.36, theme.AccentColor, flip: true);
+                AddDirectionMotif(slide, options, slideWidthCm - 5.25, 2.05, 10, 0.36, theme.AccentColor,
+                    flip: true);
             }
         }
 
@@ -442,9 +543,13 @@ namespace OfficeIMO.PowerPoint {
             frame.OutlineColor = theme.AccentLightColor;
             frame.OutlineWidthPoints = 0.7;
 
+            PowerPointTitleAccentStyle titleAccent = ResolveTitleAccentStyle(options,
+                PowerPointSectionLayoutVariant.Poster);
             PowerPointTextBox titleBox = AddText(slide, title, 2.4, slideHeightCm * 0.42, slideWidthCm - 4.8, 1.4,
                 42, theme.AccentContrastColor, theme.HeadingFontName, bold: true);
             CenterText(titleBox);
+            AddSectionTitleAccent(slide, theme, titleAccent, 2.4, slideHeightCm * 0.42, slideWidthCm - 4.8, 1.4,
+                dark: true, centered: true);
 
             if (!string.IsNullOrWhiteSpace(subtitle)) {
                 PowerPointTextBox subtitleBox = AddText(slide, subtitle!, 4.1, slideHeightCm * 0.58,
@@ -453,7 +558,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (ShouldShowDirectionMotif(options)) {
-                AddDirectionMotif(slide, slideWidthCm * 0.39, slideHeightCm * 0.68, 12, 0.4, theme.WarningColor);
+                AddDirectionMotif(slide, options, slideWidthCm * 0.39, slideHeightCm * 0.68, 12, 0.4,
+                    theme.WarningColor);
             }
         }
 
@@ -535,7 +641,7 @@ namespace OfficeIMO.PowerPoint {
             double visualWidth = slideWidthCm - visualLeft - 1.45;
             double visualHeight = 4.75;
             AddVisualFrame(slide, theme, options.VisualImagePath, visualLeft, visualTop, visualWidth, visualHeight,
-                options.DesignIntent);
+                options.VisualFrameVariant, options.DesignIntent);
 
             if (metrics.Count > 0) {
                 PowerPointAutoShape metricBand = slide.AddRectangleCm(visualLeft, visualTop + visualHeight + 0.55,
@@ -581,7 +687,7 @@ namespace OfficeIMO.PowerPoint {
 
             AddMetrics(slide, theme, metrics, slideWidthCm * 0.46, bandTop + 1.75, slideWidthCm * 0.22, 1.65);
             AddVisualFrame(slide, theme, options.VisualImagePath, slideWidthCm - 8.6, bandTop + 0.9, 6.8, bandHeight - 1.5,
-                options.DesignIntent);
+                options.VisualFrameVariant, options.DesignIntent);
             AddTags(slide, theme, options.Tags, 9.4, bandTop + bandHeight - 1.15, slideWidthCm - 12.6, 0.7);
         }
 
@@ -631,13 +737,36 @@ namespace OfficeIMO.PowerPoint {
             frame.OutlineWidthPoints = 0;
             frame.SetShadow("000000", blurPoints: 5, distancePoints: 1.5, angleDegrees: 90, transparencyPercent: 82);
 
+            PowerPointVisualFrameVariant resolvedVariant = ResolveVisualPlaceholderVariant(variant, intent);
             if (!string.IsNullOrWhiteSpace(imagePath) && File.Exists(imagePath)) {
-                AddPictureIfExists(slide, imagePath!, leftCm + 0.08, topCm + 0.08, widthCm - 0.16, heightCm - 0.16, crop: true);
+                AddVisualPicture(slide, theme, imagePath!, leftCm + 0.08, topCm + 0.08,
+                    widthCm - 0.16, heightCm - 0.16, resolvedVariant);
                 return;
             }
 
             AddVisualPlaceholder(slide, theme, leftCm + 0.08, topCm + 0.08, widthCm - 0.16, heightCm - 0.16,
-                variant, intent);
+                resolvedVariant, intent);
+        }
+
+        private static void AddVisualPicture(PowerPointSlide slide, PowerPointDesignTheme theme, string imagePath,
+            double leftCm, double topCm, double widthCm, double heightCm, PowerPointVisualFrameVariant variant) {
+            if (variant == PowerPointVisualFrameVariant.DeviceMockup) {
+                AddVisualDeviceChrome(slide, theme, leftCm, topCm, widthCm, heightCm);
+                GetVisualDeviceContentBounds(leftCm, topCm, widthCm, heightCm, out double contentLeft,
+                    out double contentTop, out double contentWidth, out double contentHeight);
+                AddPictureIfExists(slide, imagePath, contentLeft, contentTop, contentWidth, contentHeight,
+                    crop: true);
+                return;
+            }
+
+            if (variant == PowerPointVisualFrameVariant.ProofBoard) {
+                AddVisualProofMat(slide, theme, leftCm, topCm, widthCm, heightCm);
+                AddPictureIfExists(slide, imagePath, leftCm + widthCm * 0.10, topCm + heightCm * 0.14,
+                    widthCm * 0.78, heightCm * 0.68, crop: true);
+                return;
+            }
+
+            AddPictureIfExists(slide, imagePath, leftCm, topCm, widthCm, heightCm, crop: true);
         }
 
         private static void AddVisualPlaceholder(PowerPointSlide slide, PowerPointDesignTheme theme,
@@ -655,6 +784,14 @@ namespace OfficeIMO.PowerPoint {
             }
             if (resolvedVariant == PowerPointVisualFrameVariant.Diagram) {
                 AddVisualDiagramPlaceholder(slide, theme, leftCm, topCm, widthCm, heightCm);
+                return;
+            }
+            if (resolvedVariant == PowerPointVisualFrameVariant.DeviceMockup) {
+                AddVisualDeviceMockupPlaceholder(slide, theme, leftCm, topCm, widthCm, heightCm);
+                return;
+            }
+            if (resolvedVariant == PowerPointVisualFrameVariant.ProofBoard) {
+                AddVisualProofBoardPlaceholder(slide, theme, leftCm, topCm, widthCm, heightCm);
                 return;
             }
 
@@ -759,6 +896,136 @@ namespace OfficeIMO.PowerPoint {
             plate.OutlineWidthPoints = 0.45;
         }
 
+        private static void AddVisualDeviceMockupPlaceholder(PowerPointSlide slide, PowerPointDesignTheme theme,
+            double leftCm, double topCm, double widthCm, double heightCm) {
+            AddVisualDeviceChrome(slide, theme, leftCm, topCm, widthCm, heightCm);
+
+            GetVisualDeviceContentBounds(leftCm, topCm, widthCm, heightCm, out double contentLeft,
+                out double contentTop, out double contentWidth, out double contentHeight);
+
+            PowerPointAutoShape hero = slide.AddRectangleCm(contentLeft, contentTop, contentWidth, contentHeight,
+                "Visual Device Hero Area");
+            hero.FillColor = theme.AccentColor;
+            hero.FillTransparency = 34;
+            hero.OutlineColor = theme.AccentColor;
+            hero.OutlineWidthPoints = 0;
+
+            for (int i = 0; i < 3; i++) {
+                PowerPointAutoShape bar = slide.AddRectangleCm(contentLeft + contentWidth * 0.09,
+                    contentTop + contentHeight * (0.22 + i * 0.18),
+                    contentWidth * (i == 0 ? 0.38 : 0.25), 0.06, "Visual Device Content Line " + (i + 1));
+                bar.FillColor = theme.AccentLightColor;
+                bar.FillTransparency = i == 0 ? 12 : 42;
+                bar.OutlineColor = theme.AccentLightColor;
+                bar.OutlineWidthPoints = 0;
+            }
+
+            for (int i = 0; i < 3; i++) {
+                PowerPointAutoShape tile = slide.AddRectangleCm(contentLeft + contentWidth * (0.58 + i * 0.11),
+                    contentTop + contentHeight * 0.22, contentWidth * 0.08, contentHeight * 0.46,
+                    "Visual Device Metric Tile " + (i + 1));
+                tile.FillColor = GetAccent(theme, i);
+                tile.FillTransparency = 18 + i * 10;
+                tile.OutlineColor = theme.AccentLightColor;
+                tile.OutlineWidthPoints = 0.35;
+            }
+        }
+
+        private static void AddVisualDeviceChrome(PowerPointSlide slide, PowerPointDesignTheme theme,
+            double leftCm, double topCm, double widthCm, double heightCm) {
+            PowerPointAutoShape screen = slide.AddRectangleCm(leftCm + widthCm * 0.06, topCm + heightCm * 0.08,
+                widthCm * 0.88, heightCm * 0.76, "Visual Device Screen");
+            screen.FillColor = theme.AccentDarkColor;
+            screen.FillTransparency = 18;
+            screen.OutlineColor = theme.AccentLightColor;
+            screen.OutlineWidthPoints = 0.45;
+
+            PowerPointAutoShape topBar = slide.AddRectangleCm(leftCm + widthCm * 0.06, topCm + heightCm * 0.08,
+                widthCm * 0.88, 0.38, "Visual Device Chrome Bar");
+            topBar.FillColor = theme.AccentLightColor;
+            topBar.FillTransparency = 8;
+            topBar.OutlineColor = theme.AccentLightColor;
+            topBar.OutlineWidthPoints = 0;
+
+            for (int i = 0; i < 3; i++) {
+                PowerPointAutoShape dot = slide.AddEllipseCm(leftCm + widthCm * 0.10 + i * 0.18,
+                    topCm + heightCm * 0.08 + 0.12, 0.09, 0.09, "Visual Device Chrome Dot " + (i + 1));
+                dot.FillColor = GetAccent(theme, i);
+                dot.FillTransparency = i == 0 ? 0 : 18;
+                dot.OutlineColor = dot.FillColor;
+                dot.OutlineWidthPoints = 0;
+            }
+
+            PowerPointAutoShape baseLine = slide.AddLineCm(leftCm + widthCm * 0.18, topCm + heightCm * 0.89,
+                leftCm + widthCm * 0.82, topCm + heightCm * 0.89, "Visual Device Base");
+            baseLine.OutlineColor = theme.AccentLightColor;
+            baseLine.OutlineWidthPoints = 1.1;
+        }
+
+        private static void GetVisualDeviceContentBounds(double leftCm, double topCm, double widthCm,
+            double heightCm, out double contentLeft, out double contentTop, out double contentWidth,
+            out double contentHeight) {
+            double screenLeft = leftCm + widthCm * 0.06;
+            double screenTop = topCm + heightCm * 0.08;
+            double screenWidth = widthCm * 0.88;
+            double screenHeight = heightCm * 0.76;
+            double topInset = Math.Min(0.46, Math.Max(0.12, screenHeight * 0.34));
+            double bottomInset = Math.Min(0.08, Math.Max(0.04, screenHeight * 0.06));
+
+            contentLeft = screenLeft + widthCm * 0.05;
+            contentTop = screenTop + topInset;
+            contentWidth = screenWidth - widthCm * 0.10;
+            contentHeight = Math.Max(0.18, screenHeight - topInset - bottomInset);
+        }
+
+        private static void AddVisualProofBoardPlaceholder(PowerPointSlide slide, PowerPointDesignTheme theme,
+            double leftCm, double topCm, double widthCm, double heightCm) {
+            AddVisualProofMat(slide, theme, leftCm, topCm, widthCm, heightCm);
+
+            AddVisualProofPanel(slide, theme, leftCm + widthCm * 0.10, topCm + heightCm * 0.15,
+                widthCm * 0.36, heightCm * 0.55, "Visual Proof Primary Panel", theme.PanelColor, 0);
+            AddVisualProofPanel(slide, theme, leftCm + widthCm * 0.53, topCm + heightCm * 0.18,
+                widthCm * 0.34, heightCm * 0.24, "Visual Proof Detail Panel 1", theme.AccentLightColor, 10);
+            AddVisualProofPanel(slide, theme, leftCm + widthCm * 0.58, topCm + heightCm * 0.48,
+                widthCm * 0.28, heightCm * 0.22, "Visual Proof Detail Panel 2", theme.AccentLightColor, 24);
+
+            for (int i = 0; i < 3; i++) {
+                PowerPointAutoShape rule = slide.AddRectangleCm(leftCm + widthCm * 0.15,
+                    topCm + heightCm * (0.78 + i * 0.055), widthCm * (0.46 - i * 0.06), 0.045,
+                    "Visual Proof Caption Line " + (i + 1));
+                rule.FillColor = theme.AccentLightColor;
+                rule.FillTransparency = 18 + i * 18;
+                rule.OutlineColor = theme.AccentLightColor;
+                rule.OutlineWidthPoints = 0;
+            }
+        }
+
+        private static void AddVisualProofMat(PowerPointSlide slide, PowerPointDesignTheme theme,
+            double leftCm, double topCm, double widthCm, double heightCm) {
+            PowerPointAutoShape mat = slide.AddRectangleCm(leftCm + widthCm * 0.05, topCm + heightCm * 0.08,
+                widthCm * 0.90, heightCm * 0.78, "Visual Proof Mat");
+            mat.FillColor = theme.AccentContrastColor;
+            mat.FillTransparency = 8;
+            mat.OutlineColor = theme.AccentLightColor;
+            mat.OutlineWidthPoints = 0.4;
+
+            PowerPointAutoShape accent = slide.AddRectangleCm(leftCm + widthCm * 0.05, topCm + heightCm * 0.08,
+                widthCm * 0.90, 0.08, "Visual Proof Mat Accent");
+            accent.FillColor = theme.Accent2Color;
+            accent.OutlineColor = theme.Accent2Color;
+            accent.OutlineWidthPoints = 0;
+        }
+
+        private static void AddVisualProofPanel(PowerPointSlide slide, PowerPointDesignTheme theme,
+            double leftCm, double topCm, double widthCm, double heightCm, string name, string fillColor,
+            int fillTransparency) {
+            PowerPointAutoShape panel = slide.AddRectangleCm(leftCm, topCm, widthCm, heightCm, name);
+            panel.FillColor = fillColor;
+            panel.FillTransparency = fillTransparency;
+            panel.OutlineColor = theme.PanelBorderColor;
+            panel.OutlineWidthPoints = 0.35;
+        }
+
         private static void AddVisualTile(PowerPointSlide slide, PowerPointDesignTheme theme,
             double leftCm, double topCm, double widthCm, double heightCm, string name, string fillColor,
             int fillTransparency) {
@@ -783,6 +1050,12 @@ namespace OfficeIMO.PowerPoint {
                 intent.VisualStyle == PowerPointVisualStyle.Geometric) {
                 return PowerPointVisualFrameVariant.Dashboard;
             }
+            if (intent.Mood == PowerPointDesignMood.Energetic) {
+                return PowerPointVisualFrameVariant.DeviceMockup;
+            }
+            if (intent.Mood == PowerPointDesignMood.Editorial) {
+                return PowerPointVisualFrameVariant.ProofBoard;
+            }
             if (intent.VisualStyle == PowerPointVisualStyle.Soft) {
                 return PowerPointVisualFrameVariant.Collage;
             }
@@ -790,10 +1063,12 @@ namespace OfficeIMO.PowerPoint {
                 return PowerPointVisualFrameVariant.Diagram;
             }
 
-            return intent.Pick(3, "visual-placeholder") switch {
+            return intent.Pick(5, "visual-placeholder") switch {
                 0 => PowerPointVisualFrameVariant.Dashboard,
                 1 => PowerPointVisualFrameVariant.Collage,
-                _ => PowerPointVisualFrameVariant.Diagram
+                2 => PowerPointVisualFrameVariant.Diagram,
+                3 => PowerPointVisualFrameVariant.DeviceMockup,
+                _ => PowerPointVisualFrameVariant.ProofBoard
             };
         }
 
@@ -855,28 +1130,24 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutBox[,] grid = PowerPointLayoutBox
                 .FromCentimeters(bounds.LeftCm, bounds.TopCm, bounds.WidthCm, bounds.HeightCm)
                 .SplitGridCm(rows, columns, rowGap, columnGap);
+            PowerPointCardSurfaceStyle surfaceStyle = ResolveCardSurfaceStyle(options, variant);
 
             for (int i = 0; i < cards.Count; i++) {
                 int row = i / columns;
                 int column = i % columns;
-                AddDesignerCard(slide, theme, cards[i], grid[row, column], i, variant);
+                AddDesignerCard(slide, theme, cards[i], grid[row, column], i, variant, surfaceStyle);
             }
         }
 
         private static void AddDesignerCard(PowerPointSlide slide, PowerPointDesignTheme theme, PowerPointCardContent card,
-            PowerPointLayoutBox box, int index, PowerPointCardGridLayoutVariant variant) {
+            PowerPointLayoutBox box, int index, PowerPointCardGridLayoutVariant variant,
+            PowerPointCardSurfaceStyle surfaceStyle) {
             string accent = card.AccentColor ?? GetAccent(theme, index);
             PowerPointAutoShape panel = slide.AddRectangleCm(box.LeftCm, box.TopCm, box.WidthCm, box.HeightCm,
                 "Designer Card " + (index + 1));
-            panel.FillColor = theme.PanelColor;
-            panel.OutlineColor = theme.PanelBorderColor;
-            panel.OutlineWidthPoints = variant == PowerPointCardGridLayoutVariant.SoftTiles ? 0.35 : 0.8;
-            panel.SetShadow("000000", blurPoints: variant == PowerPointCardGridLayoutVariant.SoftTiles ? 3 : 5,
-                distancePoints: variant == PowerPointCardGridLayoutVariant.SoftTiles ? 0.8 : 1.5,
-                angleDegrees: 90, transparencyPercent: 88);
+            ApplyDesignerCardSurface(panel, theme, accent, variant, surfaceStyle);
 
             if (variant == PowerPointCardGridLayoutVariant.SoftTiles) {
-                panel.FillColor = theme.SurfaceColor;
                 PowerPointAutoShape accentStrip = slide.AddRectangleCm(box.LeftCm, box.TopCm, 0.13, box.HeightCm,
                     "Designer Card Accent " + (index + 1));
                 accentStrip.FillColor = accent;
@@ -917,6 +1188,39 @@ namespace OfficeIMO.PowerPoint {
                     .SetSpaceAfterPoints(bulletSpaceAfter)
                     .SetBulletSizePercent(70);
             });
+        }
+
+        private static void ApplyDesignerCardSurface(PowerPointAutoShape panel, PowerPointDesignTheme theme,
+            string accent, PowerPointCardGridLayoutVariant variant, PowerPointCardSurfaceStyle surfaceStyle) {
+            panel.FillColor = variant == PowerPointCardGridLayoutVariant.SoftTiles
+                ? theme.SurfaceColor
+                : theme.PanelColor;
+            panel.FillTransparency = 0;
+            panel.OutlineColor = theme.PanelBorderColor;
+            panel.OutlineWidthPoints = variant == PowerPointCardGridLayoutVariant.SoftTiles ? 0.35 : 0.8;
+
+            switch (surfaceStyle) {
+                case PowerPointCardSurfaceStyle.Flat:
+                    panel.FillColor = theme.SurfaceColor;
+                    panel.OutlineWidthPoints = 0.25;
+                    break;
+                case PowerPointCardSurfaceStyle.Hairline:
+                    panel.FillColor = theme.SurfaceColor;
+                    panel.OutlineColor = theme.PanelBorderColor;
+                    panel.OutlineWidthPoints = 0.35;
+                    break;
+                case PowerPointCardSurfaceStyle.AccentWash:
+                    panel.FillColor = accent;
+                    panel.FillTransparency = 88;
+                    panel.OutlineColor = accent;
+                    panel.OutlineWidthPoints = 0.25;
+                    break;
+                default:
+                    panel.SetShadow("000000", blurPoints: variant == PowerPointCardGridLayoutVariant.SoftTiles ? 3 : 5,
+                        distancePoints: variant == PowerPointCardGridLayoutVariant.SoftTiles ? 0.8 : 1.5,
+                        angleDegrees: 90, transparencyPercent: 88);
+                    break;
+            }
         }
 
         private static int ResolveCardTitleFontSize(string title, double widthCm) {
@@ -996,7 +1300,8 @@ namespace OfficeIMO.PowerPoint {
             double top = slideHeightCm * 0.47;
             double width = slideWidthCm - 4.2;
             double height = 4.7;
-            AddProcessRailTimeline(slide, theme, steps, PowerPointLayoutBox.FromCentimeters(left, top, width, height));
+            AddProcessRailTimeline(slide, theme, steps, options,
+                PowerPointLayoutBox.FromCentimeters(left, top, width, height));
         }
 
         internal static void AddProcessTimeline(PowerPointSlide slide, PowerPointDesignTheme theme,
@@ -1008,11 +1313,12 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            AddProcessRailTimeline(slide, theme, steps, bounds);
+            AddProcessRailTimeline(slide, theme, steps, options, bounds);
         }
 
         private static void AddProcessRailTimeline(PowerPointSlide slide, PowerPointDesignTheme theme,
-            IReadOnlyList<PowerPointProcessStep> steps, PowerPointLayoutBox bounds) {
+            IReadOnlyList<PowerPointProcessStep> steps, PowerPointProcessSlideOptions options,
+            PowerPointLayoutBox bounds) {
             int count = steps.Count;
             PowerPointLayoutBox[] boxes = PowerPointLayoutBox
                 .FromCentimeters(bounds.LeftCm, bounds.TopCm, bounds.WidthCm, bounds.HeightCm)
@@ -1022,7 +1328,8 @@ namespace OfficeIMO.PowerPoint {
             double railY = bounds.TopCm + nodeSize / 2;
             double railStart = boxes[0].LeftCm + nodeSize / 2;
             double railEnd = boxes[count - 1].LeftCm + nodeSize / 2;
-            AddProcessRail(slide, theme, railStart, railEnd, railY);
+            PowerPointProcessConnectorStyle connectorStyle = ResolveProcessConnectorStyle(options, steps);
+            AddProcessConnectors(slide, theme, boxes, nodeSize, railY, railStart, railEnd, connectorStyle);
 
             for (int i = 0; i < count; i++) {
                 PowerPointLayoutBox box = boxes[i];
@@ -1109,6 +1416,45 @@ namespace OfficeIMO.PowerPoint {
             middle.OutlineColor = second;
         }
 
+        private static void AddSectionTitleAccent(PowerPointSlide slide, PowerPointDesignTheme theme,
+            PowerPointTitleAccentStyle style, double titleLeftCm, double titleTopCm, double titleWidthCm,
+            double titleHeightCm, bool dark, bool centered = false) {
+            if (style == PowerPointTitleAccentStyle.None) {
+                return;
+            }
+
+            string accent = dark ? theme.WarningColor : theme.AccentColor;
+            string secondary = dark ? theme.AccentLightColor : theme.WarningColor;
+            switch (style) {
+                case PowerPointTitleAccentStyle.SideRule:
+                    PowerPointAutoShape sideRule = slide.AddRectangleCm(titleLeftCm - 0.28, titleTopCm + 0.16,
+                        0.08, Math.Max(0.82, titleHeightCm * 0.7), "Section Title Accent Side Rule");
+                    sideRule.FillColor = accent;
+                    sideRule.OutlineColor = accent;
+                    sideRule.OutlineWidthPoints = 0;
+                    break;
+                case PowerPointTitleAccentStyle.KickerRule:
+                    double kickerWidth = Math.Min(3.2, titleWidthCm * 0.28);
+                    double kickerLeft = centered ? titleLeftCm + (titleWidthCm - kickerWidth) / 2d : titleLeftCm;
+                    PowerPointAutoShape kicker = slide.AddLineCm(kickerLeft, Math.Max(0.65, titleTopCm - 0.22),
+                        kickerLeft + kickerWidth, Math.Max(0.65, titleTopCm - 0.22),
+                        "Section Title Accent Kicker Rule");
+                    kicker.OutlineColor = secondary;
+                    kicker.OutlineWidthPoints = 1.4;
+                    break;
+                case PowerPointTitleAccentStyle.Underline:
+                    double underlineWidth = Math.Min(4.2, titleWidthCm * 0.36);
+                    double underlineLeft = centered ? titleLeftCm + (titleWidthCm - underlineWidth) / 2d : titleLeftCm;
+                    double underlineTop = titleTopCm + Math.Min(0.86, Math.Max(0.52, titleHeightCm * 0.62));
+                    PowerPointAutoShape underline = slide.AddRectangleCm(underlineLeft, underlineTop, underlineWidth,
+                        0.08, "Section Title Accent Underline");
+                    underline.FillColor = accent;
+                    underline.OutlineColor = accent;
+                    underline.OutlineWidthPoints = 0;
+                    break;
+            }
+        }
+
         private static void AddChrome(PowerPointSlide slide, PowerPointDesignTheme theme, double slideWidthCm,
             double slideHeightCm, bool dark, PowerPointDesignerSlideOptions options) {
             string text = dark ? theme.AccentLightColor : theme.MutedTextColor;
@@ -1130,12 +1476,14 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (ShouldShowDirectionMotif(options) && !dark) {
-                AddDirectionMotif(slide, slideWidthCm - 4.9, 1.48, 12, 0.35, theme.AccentColor, flip: true);
+                AddDirectionMotif(slide, options, slideWidthCm - 4.9, 1.48, 12, 0.35, theme.AccentColor,
+                    flip: true);
             }
         }
 
         private static bool ShouldShowDirectionMotif(PowerPointDesignerSlideOptions options) {
-            return options.ShowDirectionMotif && options.DesignIntent.VisualStyle != PowerPointVisualStyle.Minimal;
+            return options.ShowDirectionMotif &&
+                   ResolveDirectionMotifStyle(options) != PowerPointDirectionMotifStyle.None;
         }
 
         private static void AddProcessRail(PowerPointSlide slide, PowerPointDesignTheme theme,
@@ -1143,6 +1491,58 @@ namespace OfficeIMO.PowerPoint {
             PowerPointAutoShape rail = slide.AddLineCm(startXCm, yCm, endXCm, yCm, "Process Rail");
             rail.OutlineColor = theme.AccentLightColor;
             rail.OutlineWidthPoints = 1.1;
+        }
+
+        private static void AddProcessConnectors(PowerPointSlide slide, PowerPointDesignTheme theme,
+            IReadOnlyList<PowerPointLayoutBox> boxes, double nodeSize, double yCm, double railStartCm,
+            double railEndCm, PowerPointProcessConnectorStyle style) {
+            if (style == PowerPointProcessConnectorStyle.None) {
+                return;
+            }
+
+            if (style == PowerPointProcessConnectorStyle.ContinuousRail) {
+                AddProcessRail(slide, theme, railStartCm, railEndCm, yCm);
+                return;
+            }
+
+            for (int i = 0; i < boxes.Count - 1; i++) {
+                double start = boxes[i].LeftCm + nodeSize + 0.16;
+                double end = boxes[i + 1].LeftCm - 0.16;
+                if (end <= start) {
+                    continue;
+                }
+
+                if (style == PowerPointProcessConnectorStyle.StepDots) {
+                    AddProcessConnectorDots(slide, theme, i, start, end, yCm);
+                } else {
+                    AddProcessConnectorArrow(slide, theme, i, start, end, yCm);
+                }
+            }
+        }
+
+        private static void AddProcessConnectorArrow(PowerPointSlide slide, PowerPointDesignTheme theme, int index,
+            double startXCm, double endXCm, double yCm) {
+            PowerPointAutoShape connector = slide.AddLineCm(startXCm, yCm, endXCm, yCm,
+                "Process Connector " + (index + 1));
+            connector.OutlineColor = GetAccent(theme, index);
+            connector.OutlineWidthPoints = 1.2;
+            connector.SetLineEnds(null, A.LineEndValues.Triangle, A.LineEndWidthValues.Small,
+                A.LineEndLengthValues.Small);
+        }
+
+        private static void AddProcessConnectorDots(PowerPointSlide slide, PowerPointDesignTheme theme, int index,
+            double startXCm, double endXCm, double yCm) {
+            const int dotCount = 4;
+            double spacing = (endXCm - startXCm) / (dotCount + 1);
+            for (int dot = 0; dot < dotCount; dot++) {
+                double center = startXCm + spacing * (dot + 1);
+                PowerPointAutoShape marker = slide.AddEllipseCm(center - 0.055, yCm - 0.055, 0.11, 0.11,
+                    "Process Connector Dot " + (index + 1) + "-" + (dot + 1));
+                marker.FillColor = GetAccent(theme, index);
+                marker.FillTransparency = 12 + dot * 8;
+                marker.OutlineColor = marker.FillColor;
+                marker.OutlineWidthPoints = 0;
+            }
         }
 
         private static void AddProcessNode(PowerPointSlide slide, PowerPointDesignTheme theme, int index,
@@ -1166,16 +1566,109 @@ namespace OfficeIMO.PowerPoint {
             CenterText(numberBox);
         }
 
-        private static void AddDirectionMotif(PowerPointSlide slide, double leftCm, double topCm, int count,
-            double spacingCm, string color, bool flip = false) {
-            for (int i = 0; i < count; i++) {
-                PowerPointAutoShape arrow = slide.AddShapeCm(A.ShapeTypeValues.Triangle,
-                    leftCm + i * spacingCm, topCm, 0.22, 0.24, "Designer Direction " + (i + 1));
-                arrow.FillColor = color;
-                arrow.FillTransparency = Math.Min(45, i * 3);
-                arrow.OutlineColor = color;
-                arrow.Rotation = flip ? 270 : 90;
+        private static PowerPointDirectionMotifStyle ResolveDirectionMotifStyle(
+            PowerPointDesignerSlideOptions options) {
+            if (options.DirectionMotifStyle != PowerPointDirectionMotifStyle.Auto) {
+                return options.DirectionMotifStyle;
             }
+
+            PowerPointDesignIntent intent = options.DesignIntent;
+            if (intent.VisualStyle == PowerPointVisualStyle.Minimal) {
+                return PowerPointDirectionMotifStyle.None;
+            }
+            if (string.IsNullOrWhiteSpace(intent.Seed)) {
+                return PowerPointDirectionMotifStyle.Triangles;
+            }
+            if (intent.Mood == PowerPointDesignMood.Energetic) {
+                return PowerPointDirectionMotifStyle.Chevrons;
+            }
+            if (intent.Mood == PowerPointDesignMood.Editorial) {
+                return PowerPointDirectionMotifStyle.Bars;
+            }
+            if (intent.VisualStyle == PowerPointVisualStyle.Soft) {
+                return PowerPointDirectionMotifStyle.Dots;
+            }
+
+            return intent.Pick(4, "direction-motif") switch {
+                0 => PowerPointDirectionMotifStyle.Triangles,
+                1 => PowerPointDirectionMotifStyle.Chevrons,
+                2 => PowerPointDirectionMotifStyle.Dots,
+                _ => PowerPointDirectionMotifStyle.Bars
+            };
+        }
+
+        private static void AddDirectionMotif(PowerPointSlide slide, PowerPointDesignerSlideOptions options,
+            double leftCm, double topCm, int count, double spacingCm, string color, bool flip = false) {
+            PowerPointDirectionMotifStyle style = ResolveDirectionMotifStyle(options);
+            if (style == PowerPointDirectionMotifStyle.None) {
+                return;
+            }
+
+            for (int i = 0; i < count; i++) {
+                double left = leftCm + i * spacingCm;
+                int transparency = Math.Min(45, i * 3);
+                switch (style) {
+                    case PowerPointDirectionMotifStyle.Chevrons:
+                        AddDirectionChevron(slide, left, topCm, i, color, transparency, flip);
+                        break;
+                    case PowerPointDirectionMotifStyle.Dots:
+                        AddDirectionDot(slide, left, topCm, i, color, transparency);
+                        break;
+                    case PowerPointDirectionMotifStyle.Bars:
+                        AddDirectionBar(slide, left, topCm, i, color, transparency);
+                        break;
+                    default:
+                        AddDirectionTriangle(slide, left, topCm, i, color, transparency, flip);
+                        break;
+                }
+            }
+        }
+
+        private static void AddDirectionTriangle(PowerPointSlide slide, double leftCm, double topCm, int index,
+            string color, int transparency, bool flip) {
+            PowerPointAutoShape arrow = slide.AddShapeCm(A.ShapeTypeValues.Triangle,
+                leftCm, topCm, 0.22, 0.24, "Designer Direction " + (index + 1));
+            arrow.FillColor = color;
+            arrow.FillTransparency = transparency;
+            arrow.OutlineColor = color;
+            arrow.Rotation = flip ? 270 : 90;
+        }
+
+        private static void AddDirectionDot(PowerPointSlide slide, double leftCm, double topCm, int index,
+            string color, int transparency) {
+            PowerPointAutoShape dot = slide.AddEllipseCm(leftCm, topCm + 0.04, 0.16, 0.16,
+                "Designer Direction " + (index + 1));
+            dot.FillColor = color;
+            dot.FillTransparency = transparency;
+            dot.OutlineColor = color;
+            dot.OutlineWidthPoints = 0;
+        }
+
+        private static void AddDirectionBar(PowerPointSlide slide, double leftCm, double topCm, int index,
+            string color, int transparency) {
+            PowerPointAutoShape bar = slide.AddRectangleCm(leftCm, topCm + 0.08, 0.24, 0.07,
+                "Designer Direction " + (index + 1));
+            bar.FillColor = color;
+            bar.FillTransparency = transparency;
+            bar.OutlineColor = color;
+            bar.OutlineWidthPoints = 0;
+        }
+
+        private static void AddDirectionChevron(PowerPointSlide slide, double leftCm, double topCm, int index,
+            string color, int transparency, bool flip) {
+            double tip = flip ? leftCm : leftCm + 0.22;
+            double back = flip ? leftCm + 0.22 : leftCm;
+            double middleY = topCm + 0.12;
+
+            PowerPointAutoShape upper = slide.AddLineCm(back, topCm + 0.02, tip, middleY,
+                "Designer Direction " + (index + 1));
+            upper.OutlineColor = color;
+            upper.OutlineWidthPoints = Math.Max(0.55, 1.0 - transparency / 100d);
+
+            PowerPointAutoShape lower = slide.AddLineCm(back, topCm + 0.22, tip, middleY,
+                "Designer Direction Chevron " + (index + 1) + "B");
+            lower.OutlineColor = color;
+            lower.OutlineWidthPoints = Math.Max(0.55, 1.0 - transparency / 100d);
         }
 
         internal static PowerPointTextBox AddText(PowerPointSlide slide, string text, double leftCm, double topCm,
