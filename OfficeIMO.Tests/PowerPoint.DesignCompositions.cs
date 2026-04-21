@@ -2555,8 +2555,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Composer_DeviceMockupVisualFrameFitsImageInsideScreenChrome() {
             string filePath = CreateTempPresentationPath();
-            string projectRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
-            string imagePath = Path.Combine(projectRoot, "Assets", "OfficeIMO.png");
+            string projectRoot = Path.GetFullPath(Path.Combine("..", "..", "..", ".."), AppContext.BaseDirectory);
+            string imagePath = Path.Join(projectRoot, "Assets", "OfficeIMO.png");
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
