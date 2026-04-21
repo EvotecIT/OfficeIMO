@@ -2555,8 +2555,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Composer_DeviceMockupVisualFrameFitsImageInsideScreenChrome() {
             string filePath = CreateTempPresentationPath();
-            string projectRoot = Path.GetFullPath(Path.Combine("..", "..", "..", ".."), AppContext.BaseDirectory);
-            string imagePath = Path.Join(projectRoot, "Assets", "OfficeIMO.png");
+            string imagePath = GetTestAssetPath("OfficeIMO.png");
 
             try {
                 using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
@@ -2564,6 +2563,35 @@ namespace OfficeIMO.Tests {
 
                 PowerPointSlide slide = presentation.ComposeDesignerSlide(composer => {
                     composer.AddVisualFrame(PowerPointLayoutBox.FromCentimeters(20.5, 9.6, 5.6, 3.0), imagePath,
+                        PowerPointVisualFrameVariant.DeviceMockup);
+                }, PowerPointDesignTheme.FromBrand("#008C95", "Device Test"));
+
+                PowerPointShape? screen = slide.GetShape("Visual Device Screen");
+                PowerPointPicture picture = Assert.Single(slide.Pictures);
+
+                Assert.NotNull(screen);
+                Assert.True(picture.LeftCm >= screen!.LeftCm);
+                Assert.True(picture.TopCm >= screen.TopCm);
+                Assert.True(picture.RightCm <= screen.RightCm);
+                Assert.True(picture.BottomCm <= screen.BottomCm);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Composer_DeviceMockupVisualFrameClampsImageInsideShortScreenChrome() {
+            string filePath = CreateTempPresentationPath();
+            string imagePath = GetTestAssetPath("OfficeIMO.png");
+
+            try {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+                PowerPointSlide slide = presentation.ComposeDesignerSlide(composer => {
+                    composer.AddVisualFrame(PowerPointLayoutBox.FromCentimeters(20.5, 10.8, 5.6, 1.2), imagePath,
                         PowerPointVisualFrameVariant.DeviceMockup);
                 }, PowerPointDesignTheme.FromBrand("#008C95", "Device Test"));
 
@@ -3044,6 +3072,19 @@ namespace OfficeIMO.Tests {
             string presentationPath = Path.ChangeExtension(tempFilePath, ".pptx");
             File.Delete(tempFilePath);
             return presentationPath;
+        }
+
+        private static string GetTestAssetPath(string fileName) {
+            DirectoryInfo directory = new DirectoryInfo(AppContext.BaseDirectory);
+            for (int i = 0; i < 4; i++) {
+                DirectoryInfo? parent = directory.Parent;
+                Assert.NotNull(parent);
+                directory = parent;
+            }
+
+            return directory.FullName.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) +
+                   Path.DirectorySeparatorChar + "Assets" +
+                   Path.DirectorySeparatorChar + fileName;
         }
     }
 }

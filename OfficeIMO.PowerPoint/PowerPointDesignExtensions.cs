@@ -969,11 +969,13 @@ namespace OfficeIMO.PowerPoint {
             double screenTop = topCm + heightCm * 0.08;
             double screenWidth = widthCm * 0.88;
             double screenHeight = heightCm * 0.76;
+            double topInset = Math.Min(0.46, Math.Max(0.12, screenHeight * 0.34));
+            double bottomInset = Math.Min(0.08, Math.Max(0.04, screenHeight * 0.06));
 
             contentLeft = screenLeft + widthCm * 0.05;
-            contentTop = screenTop + 0.46;
+            contentTop = screenTop + topInset;
             contentWidth = screenWidth - widthCm * 0.10;
-            contentHeight = Math.Max(0.8, screenHeight - 0.54);
+            contentHeight = Math.Max(0.18, screenHeight - topInset - bottomInset);
         }
 
         private static void AddVisualProofBoardPlaceholder(PowerPointSlide slide, PowerPointDesignTheme theme,
