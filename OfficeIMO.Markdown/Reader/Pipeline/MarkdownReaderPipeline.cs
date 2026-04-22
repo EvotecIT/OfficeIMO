@@ -44,14 +44,13 @@ public sealed class MarkdownReaderPipeline {
         MarkdownReaderOptions options,
         MarkdownBlockParserPlacement placement) {
         var extensions = options.BlockParserExtensions;
-        if (extensions == null || extensions.Count == 0) {
+        if (extensions.Count == 0) {
             return;
         }
 
         for (int i = 0; i < extensions.Count; i++) {
             var extension = extensions[i];
-            if (extension == null
-                || extension.Placement != placement
+            if (extension.Placement != placement
                 || !extension.AppliesTo(options)) {
                 continue;
             }

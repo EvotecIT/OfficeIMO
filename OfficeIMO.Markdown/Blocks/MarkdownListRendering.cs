@@ -81,11 +81,11 @@ internal static class MarkdownListRendering {
                 }
                 currentLevel = level;
             } else if (level < currentLevel) {
-                if (liOpen) { sb.Append("</li>"); liOpen = false; }
+                if (liOpen) { sb.Append("</li>"); }
                 for (int k = currentLevel; k > level; k--) { sb.Append("</").Append(listTag).Append("></li>"); }
                 currentLevel = level;
             } else {
-                if (liOpen) { sb.Append("</li>"); liOpen = false; }
+                if (liOpen) { sb.Append("</li>"); }
             }
 
             int scopeStart = scopeStartByLevel[level];

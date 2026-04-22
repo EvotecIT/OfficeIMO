@@ -152,13 +152,13 @@ internal static class HtmlRenderer {
 
     private static string? TryRenderBlockOverride(IMarkdownBlock block, MarkdownBodyRenderContext context) {
         var extensions = context.Options.BlockRenderExtensions;
-        if (extensions == null || extensions.Count == 0) {
+        if (extensions.Count == 0) {
             return null;
         }
 
         for (int i = extensions.Count - 1; i >= 0; i--) {
             var extension = extensions[i];
-            if (extension == null || !extension.Matches(block)) {
+            if (!extension.Matches(block)) {
                 continue;
             }
 

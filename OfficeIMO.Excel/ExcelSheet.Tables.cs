@@ -18,7 +18,8 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 foreach (var tdp in _worksheetPart.TableDefinitionParts) {
                     var table = tdp.Table;
-                    if (table?.Reference?.Value != range) continue;
+                    if (table is null) continue;
+                    if (table.Reference?.Value != range) continue;
                     table.TotalsRowShown = true;
                     var tableColumns = table.TableColumns ?? throw new InvalidOperationException("Table columns are missing.");
                     var headerNames = tableColumns.Elements<TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList();
@@ -58,7 +59,7 @@ namespace OfficeIMO.Excel {
                 // If there is, we'll add the AutoFilter to the table instead of the worksheet
                 foreach (var tableDefinitionPart in _worksheetPart.TableDefinitionParts) {
                     var table = tableDefinitionPart.Table;
-                    if (table?.Reference?.Value == range) {
+                    if (table is not null && table.Reference?.Value == range) {
                         // Found a table on the same range - add/update its AutoFilter
 
                         // First, remove any worksheet-level AutoFilter to avoid conflicts
@@ -254,13 +255,11 @@ namespace OfficeIMO.Excel {
                     // Get max existing table ID across all sheets to ensure uniqueness when opening existing files
                     uint maxExistingId = 0;
                     var wbPart = WorkbookPartRoot;
-                    if (wbPart != null) {
-                        foreach (var ws in wbPart.WorksheetParts) {
-                            foreach (var part in ws.TableDefinitionParts) {
-                                var idv = part.Table?.Id?.Value;
-                                if (idv != null && idv.Value > maxExistingId)
-                                    maxExistingId = idv.Value;
-                            }
+                    foreach (var ws in wbPart.WorksheetParts) {
+                        foreach (var part in ws.TableDefinitionParts) {
+                            var idv = part.Table?.Id?.Value;
+                            if (idv != null && idv.Value > maxExistingId)
+                                maxExistingId = idv.Value;
                         }
                     }
                     // Ensure _nextTableId always advances beyond any seen IDs
@@ -421,7 +420,7 @@ namespace OfficeIMO.Excel {
                     sanitized.Append(ch);
                 } else if (char.IsWhiteSpace(ch)) {
                     sanitized.Append('_');
-                    if (ch != '_') changed = true;
+                    changed = true;
                 } else {
                     sanitized.Append('_');
                     changed = true;

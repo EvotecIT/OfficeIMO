@@ -577,7 +577,7 @@ public static class DocumentReader {
                     yield return EnrichChunk(
                         BuildFolderWarningChunk(
                         file,
-                        warningIndex++,
+                        warningIndex,
                         limitWarning),
                         source,
                         opt.ComputeHashes);
@@ -627,14 +627,21 @@ public static class DocumentReader {
                 continue;
             }
 
-            foreach (var chunk in fileChunks!) {
+            if (fileChunks == null) {
+                state.FilesSkipped++;
+                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, "File parsing produced no chunks.", fileChunkCount: 0);
+                yield return EnrichChunk(BuildFolderWarningChunk(file, warningIndex++, "File parsing produced no chunks."), source, opt.ComputeHashes);
+                continue;
+            }
+
+            foreach (var chunk in fileChunks) {
                 cancellationToken.ThrowIfCancellationRequested();
                 yield return chunk;
             }
 
             state.FilesParsed++;
             state.BytesRead += lengthValue;
-            state.ChunksProduced += fileChunks!.Count;
+            state.ChunksProduced += fileChunks.Count;
             NotifyProgress(onProgress, ReaderProgressEventKind.FileCompleted, state, source, null, fileChunks.Count);
         }
 
@@ -729,9 +736,16 @@ public static class DocumentReader {
                 continue;
             }
 
+            if (fileChunks == null) {
+                state.FilesSkipped++;
+                NotifyProgress(onProgress, ReaderProgressEventKind.FileSkipped, state, source, "File parsing produced no chunks.", fileChunkCount: 0);
+                yield return BuildSourceDocument(source, parsed: false, chunks: null, sourceWarnings: new[] { "File parsing produced no chunks." });
+                continue;
+            }
+
             state.FilesParsed++;
             state.BytesRead += lengthValue;
-            state.ChunksProduced += fileChunks!.Count;
+            state.ChunksProduced += fileChunks.Count;
             NotifyProgress(onProgress, ReaderProgressEventKind.FileCompleted, state, source, null, fileChunks.Count);
 
             yield return BuildSourceDocument(source, parsed: true, chunks: fileChunks, sourceWarnings: null);

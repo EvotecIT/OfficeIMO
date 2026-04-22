@@ -46,11 +46,9 @@ namespace OfficeIMO.Word {
                 for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
                     var element = elements[elementIndex];
                     if (element is WordParagraph paragraphPart) {
-                        var group = new List<WordParagraph> { paragraphPart };
                         while (elementIndex + 1 < elements.Count
                                && elements[elementIndex + 1] is WordParagraph nextParagraph
                                && ReferenceEquals(nextParagraph._paragraph, paragraphPart._paragraph)) {
-                            group.Add(nextParagraph);
                             elementIndex++;
                         }
 

@@ -83,29 +83,27 @@ namespace OfficeIMO.Word {
             header.Save(headerPart);
             var headerElement = headerPart.Header ?? throw new InvalidOperationException("Header element is missing.");
 
-            if (headerPart != null) {
-                var id = document._wordprocessingDocument.MainDocumentPart!.GetIdOfPart(headerPart);
-                //var id1 = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(part.HeaderParts.FirstOrDefault());
+            var id = document._wordprocessingDocument.MainDocumentPart!.GetIdOfPart(headerPart);
+            //var id1 = document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(part.HeaderParts.FirstOrDefault());
 
-                if (id != null) {
-                    var headerReference = new HeaderReference() {
-                        Type = headerFooterValue,
-                        Id = id
-                    };
+            if (id != null) {
+                var headerReference = new HeaderReference() {
+                    Type = headerFooterValue,
+                    Id = id
+                };
 
-                    // Header/footer references must appear before other section
-                    // properties (such as pgSz/pgMar) to satisfy the Open XML
-                    // schema content model.
-                    var lastHdrFtrRef = sectionProperties
-                        .ChildElements
-                        .Where(e => e is HeaderReference || e is FooterReference)
-                        .LastOrDefault();
+                // Header/footer references must appear before other section
+                // properties (such as pgSz/pgMar) to satisfy the Open XML
+                // schema content model.
+                var lastHdrFtrRef = sectionProperties
+                    .ChildElements
+                    .Where(e => e is HeaderReference || e is FooterReference)
+                    .LastOrDefault();
 
-                    if (lastHdrFtrRef != null) {
-                        sectionProperties.InsertAfter(headerReference, lastHdrFtrRef);
-                    } else {
-                        sectionProperties.InsertAt(headerReference, 0);
-                    }
+                if (lastHdrFtrRef != null) {
+                    sectionProperties.InsertAfter(headerReference, lastHdrFtrRef);
+                } else {
+                    sectionProperties.InsertAt(headerReference, 0);
                 }
             }
 
@@ -140,26 +138,24 @@ namespace OfficeIMO.Word {
             footer.Save(footerPart);
             var footerElement = footerPart.Footer ?? throw new InvalidOperationException("Footer element is missing.");
 
-            if (footerPart != null) {
-                var id = document._wordprocessingDocument.MainDocumentPart!.GetIdOfPart(footerPart);
-                if (id != null) {
-                    var footerReference = new FooterReference() {
-                        Type = headerFooterValue,
-                        Id = id
-                    };
+            var id = document._wordprocessingDocument.MainDocumentPart!.GetIdOfPart(footerPart);
+            if (id != null) {
+                var footerReference = new FooterReference() {
+                    Type = headerFooterValue,
+                    Id = id
+                };
 
-                    // Footer references must live in the same leading group as
-                    // header references inside sectPr.
-                    var lastHdrFtrRef = sectionProperties
-                        .ChildElements
-                        .Where(e => e is HeaderReference || e is FooterReference)
-                        .LastOrDefault();
+                // Footer references must live in the same leading group as
+                // header references inside sectPr.
+                var lastHdrFtrRef = sectionProperties
+                    .ChildElements
+                    .Where(e => e is HeaderReference || e is FooterReference)
+                    .LastOrDefault();
 
-                    if (lastHdrFtrRef != null) {
-                        sectionProperties.InsertAfter(footerReference, lastHdrFtrRef);
-                    } else {
-                        sectionProperties.InsertAt(footerReference, 0);
-                    }
+                if (lastHdrFtrRef != null) {
+                    sectionProperties.InsertAfter(footerReference, lastHdrFtrRef);
+                } else {
+                    sectionProperties.InsertAt(footerReference, 0);
                 }
             }
 

@@ -400,7 +400,6 @@ namespace OfficeIMO.Excel {
 
             // 3) PinnedLast moved to the end in the given order
             var pinnedLastMatches = new List<string>();
-            var pinLastSet = new HashSet<string>(opts.PinnedLast ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
             foreach (var pin in opts.PinnedLast ?? Array.Empty<string>()) {
                 var match = prioritized.FirstOrDefault(p => string.Equals(p, pin, StringComparison.OrdinalIgnoreCase) ||
                                                             string.Equals(LastSegment(p), pin, StringComparison.OrdinalIgnoreCase));

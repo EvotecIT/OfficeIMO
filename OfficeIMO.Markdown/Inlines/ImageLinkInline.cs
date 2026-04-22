@@ -46,10 +46,10 @@ public sealed class ImageLinkInline : MarkdownInline, IRenderableMarkdownInline,
         var extra = linkAllowed ? LinkHtmlAttributes.BuildExternalLinkAttributes(o, LinkUrl) : string.Empty;
 
         if (!linkAllowed && !imageAllowed) return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt);
-        if (!imageAllowed && linkAllowed) {
+        if (!imageAllowed) {
             return $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl)}\"{linkTitle}{extra}>{System.Net.WebUtility.HtmlEncode(PlainAlt)}</a>";
         }
-        if (imageAllowed && !linkAllowed) {
+        if (!linkAllowed) {
             return $"<img src=\"{HtmlAttributeUrlEncoder.Encode(ImageUrl)}\" alt=\"{System.Net.WebUtility.HtmlEncode(PlainAlt)}\"{title}{imgExtra} />";
         }
 

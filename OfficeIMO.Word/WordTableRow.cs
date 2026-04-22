@@ -178,7 +178,7 @@ namespace OfficeIMO.Word {
 
             if (initializeCells) {
                 foreach (TableCell cell in row.ChildElements.OfType<TableCell>()) {
-                    _ = new WordTableCell(document, wordTable, this, cell);
+                    new WordTableCell(document, wordTable, this, cell);
                 }
             }
         }

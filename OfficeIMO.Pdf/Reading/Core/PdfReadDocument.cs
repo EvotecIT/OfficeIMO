@@ -113,7 +113,7 @@ public sealed class PdfReadDocument {
             foreach (var kid in kids.Items) {
                 var d = ResolveDict(kid);
                 if (d is null) { continue; }
-                if (d is not null) TraversePagesNode(d, outList);
+                TraversePagesNode(d, outList);
             }
         }
     }

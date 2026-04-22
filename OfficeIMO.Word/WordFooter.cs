@@ -104,18 +104,20 @@ namespace OfficeIMO.Word {
             }
 
             var partsToDelete = new HashSet<FooterPart>();
-            var footersToRemove = (document ?? throw new InvalidOperationException("Main document is missing.")).Descendants<FooterReference>()
+            var documentRoot = document ?? throw new InvalidOperationException("Main document is missing.");
+            var mainDocumentPart = docPart ?? throw new InvalidOperationException("Main document part is missing.");
+            var footersToRemove = documentRoot.Descendants<FooterReference>()
                 .Where(f => f.Type != null && types.Contains(WordSection.GetType(f.Type))).ToList();
             foreach (var footer in footersToRemove) {
-                if (footer.Id == null || docPart == null) continue;
-                var part = docPart.GetPartById(footer.Id.Value!) as FooterPart;
+                if (footer.Id == null) continue;
+                var part = mainDocumentPart.GetPartById(footer.Id.Value!) as FooterPart;
                 if (part != null) {
                     partsToDelete.Add(part);
                 }
                 footer.Remove();
             }
             foreach (var part in partsToDelete) {
-                docPart!.DeletePart(part);
+                mainDocumentPart.DeletePart(part);
             }
         }
         /// <summary>

@@ -62,12 +62,19 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
+          config-file: ./.github/codeql/codeql-config.yml
 
       - name: Restore and Build
         if: matrix.build-mode == 'manual'
         run: |
-          dotnet restore
-          dotnet build --configuration Release
+          $projects = Get-ChildItem -Recurse -Filter *.csproj | Where-Object {
+            $_.FullName -notmatch '\\(OfficeIMO\.Examples|OfficeIMO\.Tests|OfficeIMO\.CSV\.Tests|OfficeIMO\.VerifyTests|OfficeIMO\.Markdown\.Benchmarks|OfficeIMO\.Excel\.Benchmarks|OfficeIMO\.MarkdownRenderer\.Wpf\.Tests)\\'
+          } | Sort-Object FullName
+
+          dotnet restore OfficeIMO.sln
+          foreach ($project in $projects) {
+            dotnet build $project.FullName --configuration Release --no-restore
+          }
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3

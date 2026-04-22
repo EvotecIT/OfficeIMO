@@ -13,7 +13,6 @@ public static partial class MarkdownReader {
                 state);
 
             // Collect contiguous quote lines as callout body, stripping one leading ">" level.
-            var inner = new System.Collections.Generic.List<string>();
             var innerSourceLines = new System.Collections.Generic.List<MarkdownSourceLineSlice>();
             int j = i + 1;
             while (j < lines.Length) {
@@ -22,7 +21,6 @@ public static partial class MarkdownReader {
                 if (!t.StartsWith(">")) break;
 
                 var bodyLine = t.Length >= 2 && t[1] == ' ' ? t.Substring(2) : t.Substring(1);
-                inner.Add(bodyLine);
                 innerSourceLines.Add(new MarkdownSourceLineSlice(
                     bodyLine,
                     state.SourceLineOffset + j + 1,

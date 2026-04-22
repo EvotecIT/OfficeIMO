@@ -186,7 +186,7 @@ namespace OfficeIMO.Word {
 
         internal void QueueUpdateOnOpen(bool force = false) {
             if (force) {
-                _ = MarkFieldsAsDirty();
+                MarkFieldsAsDirty();
             } else if (!MarkFieldsAsDirty()) {
                 return;
             }

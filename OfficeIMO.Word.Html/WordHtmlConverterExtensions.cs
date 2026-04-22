@@ -200,7 +200,7 @@ namespace OfficeIMO.Word.Html {
             var targetSection = doc.Sections.LastOrDefault() ?? throw new System.InvalidOperationException("The document does not contain any sections to append HTML to the footer.");
             doc.AddHeadersAndFooters();
             var footers = targetSection.Footer ?? throw new System.InvalidOperationException("The target section does not have any footers defined. Call AddHeadersAndFooters() before appending HTML to the footer.");
-            _ = GetOrCreateFooter(doc, targetSection, footers, footerType);
+            GetOrCreateFooter(doc, targetSection, footers, footerType);
 
             doc.AddHtmlToFooterAsync(html, footerType, options).GetAwaiter().GetResult();
         }

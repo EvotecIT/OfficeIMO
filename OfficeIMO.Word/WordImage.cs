@@ -1064,32 +1064,35 @@ namespace OfficeIMO.Word {
                 if (blip == null) return;
 
                 var extList = blip.GetFirstChild<BlipExtensionList>();
-                if (extList == null && value != null) {
+                if (extList == null) {
+                    if (value == null) {
+                        return;
+                    }
                     extList = new BlipExtensionList();
                     blip.Append(extList);
                 }
 
-                if (extList != null) {
-                    var extension = extList
-                        .OfType<BlipExtension>()
-                        .FirstOrDefault(e => e.Uri == "{28A0092B-C50C-407E-A947-70E740481C1C}");
-                    if (extension == null && value != null) {
-                        extension = new BlipExtension { Uri = "{28A0092B-C50C-407E-A947-70E740481C1C}" };
-                        extList.Append(extension);
+                var extension = extList
+                    .OfType<BlipExtension>()
+                    .FirstOrDefault(e => e.Uri == "{28A0092B-C50C-407E-A947-70E740481C1C}");
+                if (extension == null) {
+                    if (value == null) {
+                        return;
                     }
-                    if (extension != null) {
-                        var useLocalDpiElement = extension.GetFirstChild<DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi>();
-                        if (value == null) {
-                            useLocalDpiElement?.Remove();
-                        } else {
-                            if (useLocalDpiElement == null) {
-                                useLocalDpiElement = new DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi();
-                                useLocalDpiElement.AddNamespaceDeclaration("a14", "http://schemas.microsoft.com/office/drawing/2010/main");
-                                extension.Append(useLocalDpiElement);
-                            }
-                            useLocalDpiElement.Val = value.Value;
-                        }
+                    extension = new BlipExtension { Uri = "{28A0092B-C50C-407E-A947-70E740481C1C}" };
+                    extList.Append(extension);
+                }
+
+                var useLocalDpiElement = extension.GetFirstChild<DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi>();
+                if (value == null) {
+                    useLocalDpiElement?.Remove();
+                } else {
+                    if (useLocalDpiElement == null) {
+                        useLocalDpiElement = new DocumentFormat.OpenXml.Office2010.Drawing.UseLocalDpi();
+                        useLocalDpiElement.AddNamespaceDeclaration("a14", "http://schemas.microsoft.com/office/drawing/2010/main");
+                        extension.Append(useLocalDpiElement);
                     }
+                    useLocalDpiElement.Val = value.Value;
                 }
             }
         }
@@ -1135,13 +1138,14 @@ namespace OfficeIMO.Word {
                 if (pic == null) return;
                 var nvp = pic.NonVisualPictureProperties ?? (pic.NonVisualPictureProperties = new Pic.NonVisualPictureProperties());
                 var nv = nvp.NonVisualPictureDrawingProperties;
-                if (nv == null && value != null) {
+                if (nv == null) {
+                    if (value == null) {
+                        return;
+                    }
                     nv = new Pic.NonVisualPictureDrawingProperties();
                     nvp.Append(nv);
                 }
-                if (nv != null) {
-                    nv.PreferRelativeResize = value;
-                }
+                nv.PreferRelativeResize = value;
             }
         }
 

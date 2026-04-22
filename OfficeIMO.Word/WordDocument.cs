@@ -11,9 +11,9 @@ namespace OfficeIMO.Word {
     /// Provides functionality for creating, loading and manipulating Word documents.
     /// </summary>
     public partial class WordDocument : IDisposable {
-        internal List<int> _listNumbersUsed = new List<int>();
         internal int? _tableOfContentIndex;
         internal TableOfContentStyle? _tableOfContentStyle;
+        private MemoryStream? _ownedPackageStream;
         private bool _tableOfContentUpdateQueued;
         private bool _disposed;
 
@@ -1018,7 +1018,8 @@ namespace OfficeIMO.Word {
         public static WordDocument Create(string filePath = "", bool autoSave = false) {
             if (!string.IsNullOrEmpty(filePath)) {
                 // Ensure the file exists
-                using var _ = new FileStream(filePath, FileMode.Create);
+                using (new FileStream(filePath, FileMode.Create)) {
+                }
             }
 
             var documentType = GetDocumentType(filePath);
@@ -1046,7 +1047,8 @@ namespace OfficeIMO.Word {
                 word.OriginalStream = stream;
             }
 
-            WordprocessingDocument wordDocument = WordprocessingDocument.Create(new MemoryStream(), documentType, autoSave);
+            var packageStream = new MemoryStream();
+            WordprocessingDocument wordDocument = WordprocessingDocument.Create(packageStream, documentType, autoSave);
 
             wordDocument.AddMainDocumentPart();
             var mainPart = wordDocument.MainDocumentPart!;
@@ -1090,6 +1092,7 @@ namespace OfficeIMO.Word {
             mainPart.Document.Body = new DocumentFormat.OpenXml.Wordprocessing.Body();
 
             word.FilePath = filePath ?? string.Empty;
+            word._ownedPackageStream = packageStream;
             word._wordprocessingDocument = wordDocument;
             word._document = mainPart.Document;
             word.InitializeSdtIdState();
@@ -1115,13 +1118,13 @@ namespace OfficeIMO.Word {
             ThemePart themePart1 = mainPart.AddNewPart<ThemePart>("rId7");
             GenerateThemePart1Content(themePart1);
 
-            WordSettings wordSettings = new WordSettings(word);
-            WordCompatibilitySettings compatibilitySettings = new WordCompatibilitySettings(word);
-            ApplicationProperties applicationProperties = new ApplicationProperties(word);
-            BuiltinDocumentProperties builtinDocumentProperties = new BuiltinDocumentProperties(word);
-            WordSection wordSection = new WordSection(word, null!);
-            WordBackground wordBackground = new WordBackground(word);
-            WordDocumentStatistics statistics = new WordDocumentStatistics(word);
+            new WordSettings(word);
+            new WordCompatibilitySettings(word);
+            new ApplicationProperties(word);
+            new BuiltinDocumentProperties(word);
+            new WordSection(word, null!);
+            new WordBackground(word);
+            new WordDocumentStatistics(word);
 
             WordListStyles.InitializeAbstractNumberId(word._wordprocessingDocument);
 
@@ -1169,15 +1172,15 @@ namespace OfficeIMO.Word {
             Sections.Clear();
             InitializeSdtIdState();
             // add settings if not existing
-            var wordSettings = new WordSettings(this);
-            var applicationProperties = new ApplicationProperties(this);
-            var builtinDocumentProperties = new BuiltinDocumentProperties(this);
-            var wordCustomProperties = new WordCustomProperties(this);
-            var wordDocumentVariables = new WordDocumentVariables(this);
-            var bibliography = new WordBibliography(this);
-            var wordBackground = new WordBackground(this);
-            var statistics = new WordDocumentStatistics(this);
-            var compatibilitySettings = new WordCompatibilitySettings(this);
+            new WordSettings(this);
+            new ApplicationProperties(this);
+            new BuiltinDocumentProperties(this);
+            new WordCustomProperties(this);
+            new WordDocumentVariables(this);
+            new WordBibliography(this);
+            new WordBackground(this);
+            new WordDocumentStatistics(this);
+            new WordCompatibilitySettings(this);
             //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(this);
             // add a section that's assigned to top of the document
             var wordSection = new WordSection(this, null!, null!);
@@ -1191,9 +1194,9 @@ namespace OfficeIMO.Word {
                     }
                 } else if (element is Table) {
                     // WordTable wordTable = new WordTable(this, wordSection, (Table)element);
-                } else if (element is SectionProperties sectionProperties) {
+                } else if (element is SectionProperties) {
                     // we don't do anything as we already created it above - i think
-                } else if (element is SdtBlock sdtBlock) {
+                } else if (element is SdtBlock) {
                     // we don't do anything as we load stuff with get on demand
                 } else if (element is OpenXmlUnknownElement) {
                     // this happens when adding dirty element - mainly during TOC Update() function
@@ -1274,6 +1277,7 @@ namespace OfficeIMO.Word {
                 InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
 
                 word.FilePath = filePath;
+                word._ownedPackageStream = memoryStream;
                 word._wordprocessingDocument = wordDocument;
                 word._document = wordDocument.MainDocumentPart?.Document ?? throw new InvalidOperationException("Document is missing.");
                 word.LoadDocument();
@@ -1323,6 +1327,7 @@ namespace OfficeIMO.Word {
 
             var word = new WordDocument {
                 FilePath = filePath,
+                _ownedPackageStream = memoryStream,
                 _wordprocessingDocument = wordDocument,
                 _document = wordDocument.MainDocumentPart?.Document ?? throw new InvalidOperationException("Document is missing.")
             };
@@ -1764,6 +1769,17 @@ namespace OfficeIMO.Word {
                 this._wordprocessingDocument = null!;
             }
 
+            var ownedPackageStream = _ownedPackageStream;
+            if (ownedPackageStream != null) {
+                try {
+                    ownedPackageStream.Dispose();
+                } catch {
+                    // ignored
+                }
+
+                _ownedPackageStream = null;
+            }
+
             if (this.OriginalStream != null) {
                 // Original stream is owned by the caller and should remain open.
             }
@@ -1793,6 +1809,17 @@ namespace OfficeIMO.Word {
                 }
 
                 this._wordprocessingDocument = null!;
+            }
+
+            var ownedPackageStream = _ownedPackageStream;
+            if (ownedPackageStream != null) {
+                try {
+                    await Task.Run(() => ownedPackageStream.Dispose()).ConfigureAwait(false);
+                } catch {
+                    // ignored
+                }
+
+                _ownedPackageStream = null;
             }
 
             if (this.OriginalStream != null) {
@@ -1956,13 +1983,13 @@ namespace OfficeIMO.Word {
             if (AutoUpdateToc && TableOfContent != null) {
                 TableOfContent.Update();
             }
-            _ = new WordCustomProperties(this, true);
+            new WordCustomProperties(this, true);
             var settingsPart = _wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart;
             bool hasVariables = settingsPart?.Settings?.GetFirstChild<DocumentVariables>() != null;
             if (hasVariables || DocumentVariables.Count > 0) {
-                _ = new WordDocumentVariables(this, true);
+                new WordDocumentVariables(this, true);
             }
-            _ = new WordBibliography(this, true);
+            new WordBibliography(this, true);
         }
     }
 }
