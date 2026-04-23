@@ -13,7 +13,6 @@ internal static partial class PdfWriter {
         // Reserve IDs (1-based). We'll assign as we add to `objects`.
         int infoId = 0, catalogId = 0, pagesId = 0;
         var pageIds = new List<int>();
-        var contentIds = new List<int>();
 
         // Collect fonts used across pages
         var fontObjectIds = new Dictionary<PdfStandardFont, int>();
@@ -50,7 +49,7 @@ internal static partial class PdfWriter {
             }
 
             var normalFont = ChooseNormal(pageOpts.DefaultFont);
-            _ = EnsurePageFontResource(normalFont, "F1");
+            EnsurePageFontResource(normalFont, "F1");
             if (page.UsedBold) {
                 var boldFont = ChooseBold(normalFont);
                 EnsurePageFontResource(boldFont, "F2");
@@ -112,8 +111,6 @@ internal static partial class PdfWriter {
                 content,
                 Encoding.ASCII.GetBytes("\nendstream\nendobj\n")
             );
-            contentIds.Add(contentId);
-
             // Annotations (link URIs)
             var pageAnnotIds = new List<int>();
             if (page.Annotations.Count > 0) {
@@ -173,7 +170,7 @@ internal static partial class PdfWriter {
         }
 
         long xrefPos = ms.Position;
-        var sw = new StreamWriter(ms, Encoding.ASCII, 1024, leaveOpen: true) { NewLine = "\n" };
+        using var sw = new StreamWriter(ms, Encoding.ASCII, 1024, leaveOpen: true) { NewLine = "\n" };
         sw.WriteLine("xref");
         sw.WriteLine("0 " + (objects.Count + 1).ToString(CultureInfo.InvariantCulture));
         sw.WriteLine("0000000000 65535 f ");

@@ -5,12 +5,13 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IReadOnlyList<ExcelPivotTableInfo> GetPivotTables() {
             return Locking.ExecuteRead(EnsureLock(), () => {
-                using var _ = Locking.EnterNoLockScope();
-                var list = new List<ExcelPivotTableInfo>();
-                foreach (var sheet in Sheets) {
-                    list.AddRange(sheet.GetPivotTables());
+                using (Locking.EnterNoLockScope()) {
+                    var list = new List<ExcelPivotTableInfo>();
+                    foreach (var sheet in Sheets) {
+                        list.AddRange(sheet.GetPivotTables());
+                    }
+                    return list;
                 }
-                return list;
             });
         }
     }

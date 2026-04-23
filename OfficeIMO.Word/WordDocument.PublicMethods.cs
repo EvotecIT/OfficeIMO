@@ -1098,9 +1098,7 @@ namespace OfficeIMO.Word {
                             } else
                                 candCharPos = 0;
                         }
-
                     }
-                    textPos++;
                 }
 
 

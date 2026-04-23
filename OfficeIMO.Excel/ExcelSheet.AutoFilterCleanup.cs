@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                var tableAutoFilter = table?.Elements<AutoFilter>().FirstOrDefault();
+                var tableAutoFilter = table!.Elements<AutoFilter>().FirstOrDefault();
                 if (!A1.TryParseRange(tableRange!, out _, out int c1, out _, out int c2)) {
                     tableAutoFilter?.Remove();
                     tableDefinitionPart.Table?.Save();

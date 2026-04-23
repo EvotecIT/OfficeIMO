@@ -214,7 +214,7 @@ namespace OfficeIMO.Word {
         public void AddScatter(string name, List<double> xValues, List<double> yValues, SixLabors.ImageSharp.Color color) {
             EnsureChartExistsScatter();
             if (_chart != null) {
-                var scatterChart = _chart?.PlotArea?.GetFirstChild<ScatterChart>();
+                var scatterChart = _chart.PlotArea?.GetFirstChild<ScatterChart>();
                 if (scatterChart != null) {
                     var series = AddScatterChartSeries(this._index, name, color, xValues, yValues);
                     InsertSeries(scatterChart, series);

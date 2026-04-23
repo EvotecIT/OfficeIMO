@@ -102,7 +102,7 @@ namespace OfficeIMO.Excel {
         /// Forces rebuilding the header map for the current UsedRange and options.
         /// </summary>
         public void RefreshHeaderCache(ExcelReadOptions? options = null) {
-            var _ = GetHeaderMap(options);
+            GetHeaderMap(options);
         }
     }
 }

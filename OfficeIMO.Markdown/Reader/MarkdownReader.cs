@@ -926,12 +926,8 @@ public static partial class MarkdownReader {
     }
 
     private static void CopyFencedBlockExtensions(MarkdownReaderOptions source, MarkdownReaderOptions target) {
-        if (source == null || target == null) {
-            return;
-        }
-
         var extensions = source.FencedBlockExtensions;
-        if (extensions == null || extensions.Count == 0) {
+        if (extensions.Count == 0) {
             return;
         }
 
@@ -950,7 +946,7 @@ public static partial class MarkdownReader {
 
         var extensions = source.BlockParserExtensions;
         target.BlockParserExtensions.Clear();
-        if (extensions == null || extensions.Count == 0) {
+        if (extensions.Count == 0) {
             return;
         }
 
@@ -969,7 +965,7 @@ public static partial class MarkdownReader {
 
         var extensions = source.InlineParserExtensions;
         target.InlineParserExtensions.Clear();
-        if (extensions == null || extensions.Count == 0) {
+        if (extensions.Count == 0) {
             return;
         }
 
@@ -987,15 +983,13 @@ public static partial class MarkdownReader {
         }
 
         var transforms = source.DocumentTransforms;
-        if (transforms == null || transforms.Count == 0) {
+        if (transforms.Count == 0) {
             return;
         }
 
         for (int i = 0; i < transforms.Count; i++) {
             var transform = transforms[i];
-            if (transform != null) {
-                target.DocumentTransforms.Add(transform);
-            }
+            target.DocumentTransforms.Add(transform);
         }
     }
 

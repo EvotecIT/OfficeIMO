@@ -277,8 +277,8 @@ namespace OfficeIMO.PowerPoint {
 
             for (int columns = min; columns <= max; columns++) {
                 int rows = (int)Math.Ceiling(count / (double)columns);
-                double availableWidth = bounds.Width - gutterX * (columns - 1);
-                double availableHeight = bounds.Height - gutterY * (rows - 1);
+                double availableWidth = bounds.Width - (double)gutterX * (columns - 1);
+                double availableHeight = bounds.Height - (double)gutterY * (rows - 1);
                 if (availableWidth <= 0 || availableHeight <= 0) {
                     continue;
                 }

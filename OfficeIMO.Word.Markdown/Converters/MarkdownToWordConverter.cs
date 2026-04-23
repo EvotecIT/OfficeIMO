@@ -184,7 +184,7 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private static void CopyFencedBlockExtensions(Omd.MarkdownReaderOptions source, Omd.MarkdownReaderOptions target) {
-            if (source.FencedBlockExtensions == null || source.FencedBlockExtensions.Count == 0) {
+            if (source.FencedBlockExtensions.Count == 0) {
                 return;
             }
 
@@ -198,7 +198,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private static void CopyBlockParserExtensions(Omd.MarkdownReaderOptions source, Omd.MarkdownReaderOptions target) {
             target.BlockParserExtensions.Clear();
-            if (source.BlockParserExtensions == null || source.BlockParserExtensions.Count == 0) {
+            if (source.BlockParserExtensions.Count == 0) {
                 return;
             }
 
@@ -211,15 +211,13 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private static void CopyDocumentTransforms(Omd.MarkdownReaderOptions source, Omd.MarkdownReaderOptions target) {
-            if (source.DocumentTransforms == null || source.DocumentTransforms.Count == 0) {
+            if (source.DocumentTransforms.Count == 0) {
                 return;
             }
 
             for (var i = 0; i < source.DocumentTransforms.Count; i++) {
                 var transform = source.DocumentTransforms[i];
-                if (transform != null) {
-                    target.DocumentTransforms.Add(transform);
-                }
+                target.DocumentTransforms.Add(transform);
             }
         }
 
@@ -1311,7 +1309,6 @@ namespace OfficeIMO.Word.Markdown {
             int quoteDepth = 0,
             double pageContentWidthPixels = 0,
             Omd.ColumnAlignment alignment = Omd.ColumnAlignment.None) {
-            _ = currentList;
             new BlockRenderer(host, options, document, listLevel, quoteDepth, pageContentWidthPixels, alignment).Render(block);
         }
 

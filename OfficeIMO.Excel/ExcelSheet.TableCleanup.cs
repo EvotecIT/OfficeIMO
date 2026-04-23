@@ -222,10 +222,6 @@ namespace OfficeIMO.Excel {
         private HashSet<uint> CollectUsedTableIds(WorksheetPart excludeWorksheetPart) {
             var usedIds = new HashSet<uint>();
             var workbookPart = WorkbookPartRoot;
-            if (workbookPart == null) {
-                return usedIds;
-            }
-
             foreach (var worksheetPart in workbookPart.WorksheetParts) {
                 if (worksheetPart == excludeWorksheetPart) {
                     continue;
@@ -245,10 +241,6 @@ namespace OfficeIMO.Excel {
         private HashSet<string> CollectUsedTableNames(WorksheetPart excludeWorksheetPart) {
             var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var workbookPart = WorkbookPartRoot;
-            if (workbookPart == null) {
-                return usedNames;
-            }
-
             foreach (var worksheetPart in workbookPart.WorksheetParts) {
                 if (worksheetPart == excludeWorksheetPart) {
                     continue;
@@ -270,10 +262,6 @@ namespace OfficeIMO.Excel {
             cache.Clear();
 
             var workbookPart = WorkbookPartRoot;
-            if (workbookPart == null) {
-                return;
-            }
-
             foreach (var worksheetPart in workbookPart.WorksheetParts) {
                 foreach (var tableDefinitionPart in worksheetPart.TableDefinitionParts) {
                     string? name = tableDefinitionPart.Table?.Name?.Value;

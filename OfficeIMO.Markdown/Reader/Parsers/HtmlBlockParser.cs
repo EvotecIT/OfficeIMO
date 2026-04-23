@@ -348,7 +348,6 @@ public static partial class MarkdownReader {
                         quoteChar = current;
                     } else if (current == '>') {
                         endIndex = idx;
-                        idx++;
                         break;
                     } else if (current == '<') {
                         return false;

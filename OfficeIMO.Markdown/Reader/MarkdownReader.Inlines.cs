@@ -2165,7 +2165,7 @@ public static partial class MarkdownReader {
         ParseInlines(text ?? string.Empty, options ?? new MarkdownReaderOptions(), state);
 
     private static IReadOnlyList<MarkdownInlineParserExtension> BuildEffectiveInlineParserExtensions(MarkdownReaderOptions options) {
-        if (options?.InlineParserExtensions == null || options.InlineParserExtensions.Count == 0) {
+        if (options.InlineParserExtensions.Count == 0) {
             return Array.Empty<MarkdownInlineParserExtension>();
         }
 
@@ -2192,7 +2192,7 @@ public static partial class MarkdownReader {
         Func<int, int, bool, bool, InlineSequence> parseNestedInlineSegment,
         out MarkdownInlineParseResult result) {
         result = default;
-        if (inlineParserExtensions == null || inlineParserExtensions.Count == 0) {
+        if (inlineParserExtensions.Count == 0) {
             return false;
         }
 
@@ -2208,10 +2208,6 @@ public static partial class MarkdownReader {
 
         for (var i = 0; i < inlineParserExtensions.Count; i++) {
             var extension = inlineParserExtensions[i];
-            if (extension == null) {
-                continue;
-            }
-
             if (!extension.Parser(context, out result)) {
                 continue;
             }

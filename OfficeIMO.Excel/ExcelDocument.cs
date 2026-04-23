@@ -368,19 +368,15 @@ namespace OfficeIMO.Excel {
 
             // Initialize without taking a new lock if we're already in a write scope
             if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld)) {
-                if (_tableNameCache == null) {
-                    var set = new HashSet<string>(_tableNameComparer);
-                    var wb = WorkbookPartRoot;
-                    if (wb != null) {
-                        foreach (var ws in wb.WorksheetParts) {
-                            foreach (var tdp in ws.TableDefinitionParts) {
-                                var n = tdp.Table?.Name?.Value;
-                                if (!string.IsNullOrEmpty(n)) set.Add(n!);
-                            }
-                        }
+                var set = new HashSet<string>(_tableNameComparer);
+                var wb = WorkbookPartRoot;
+                foreach (var ws in wb.WorksheetParts) {
+                    foreach (var tdp in ws.TableDefinitionParts) {
+                        var n = tdp.Table?.Name?.Value;
+                        if (!string.IsNullOrEmpty(n)) set.Add(n!);
                     }
-                    _tableNameCache = set;
                 }
+                _tableNameCache = set;
                 return _tableNameCache!;
             }
 
@@ -389,12 +385,10 @@ namespace OfficeIMO.Excel {
                 if (_tableNameCache != null) return _tableNameCache;
                 var set = new HashSet<string>(_tableNameComparer);
                 var wb = WorkbookPartRoot;
-                if (wb != null) {
-                    foreach (var ws in wb.WorksheetParts) {
-                        foreach (var tdp in ws.TableDefinitionParts) {
-                            var n = tdp.Table?.Name?.Value;
-                            if (!string.IsNullOrEmpty(n)) set.Add(n!);
-                        }
+                foreach (var ws in wb.WorksheetParts) {
+                    foreach (var tdp in ws.TableDefinitionParts) {
+                        var n = tdp.Table?.Name?.Value;
+                        if (!string.IsNullOrEmpty(n)) set.Add(n!);
                     }
                 }
                 _tableNameCache = set;
@@ -444,15 +438,13 @@ namespace OfficeIMO.Excel {
 
                 // Check if we're in a NoLock scope or already have a lock - if so, initialize without locking
                 if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld)) {
-                    if (_sharedStringTablePart == null) {
-                        if (_workBookPart.GetPartsOfType<SharedStringTablePart>().Any()) {
-                            _sharedStringTablePart = _workBookPart.GetPartsOfType<SharedStringTablePart>().First();
-                        } else {
-                            _sharedStringTablePart = _workBookPart.AddNewPart<SharedStringTablePart>();
-                            _sharedStringTablePart.SharedStringTable = new SharedStringTable();
-                        }
+                    if (_workBookPart.GetPartsOfType<SharedStringTablePart>().Any()) {
+                        _sharedStringTablePart = _workBookPart.GetPartsOfType<SharedStringTablePart>().First();
+                    } else {
+                        _sharedStringTablePart = _workBookPart.AddNewPart<SharedStringTablePart>();
+                        _sharedStringTablePart.SharedStringTable = new SharedStringTable();
                     }
-                    return _sharedStringTablePart;
+                    return _sharedStringTablePart!;
                 }
 
                 // Use write lock for initialization when no lock is held
@@ -1346,7 +1338,7 @@ namespace OfficeIMO.Excel {
 
             PackagePropertiesSnapshot propertiesSnapshot = PackagePropertiesSnapshot.Capture(_spreadSheetDocument);
 
-            var snapshot = new MemoryStream();
+            using var snapshot = new MemoryStream();
             using (_spreadSheetDocument.Clone(snapshot)) { }
             snapshot.Position = 0;
 
@@ -1629,7 +1621,7 @@ namespace OfficeIMO.Excel {
                 if (packageBytes.Length == 0) return packageBytes;
 
                 try {
-                    var working = new MemoryStream(packageBytes.Length + StreamBufferSize);
+                    using var working = new MemoryStream(packageBytes.Length + StreamBufferSize);
                     working.Write(packageBytes, 0, packageBytes.Length);
                     working.Position = 0;
 

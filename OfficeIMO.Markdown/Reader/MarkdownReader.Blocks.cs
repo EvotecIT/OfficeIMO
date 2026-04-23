@@ -1644,7 +1644,7 @@ public static partial class MarkdownReader {
                         trailingSyntax = ParseBlockSyntaxNodesFromSourceLines(sourceLines.GetRange(headingLineCount, lines.Count - headingLineCount), options, state);
                     } else {
                         var nestedSyntax = new List<MarkdownSyntaxNode>();
-                        _ = ParseBlocksFromLines(trailingLines.ToArray(), options, state ?? new MarkdownReaderState(), nestedSyntax, lineOffset: lineOffset + headingLineCount);
+                        ParseBlocksFromLines(trailingLines.ToArray(), options, state ?? new MarkdownReaderState(), nestedSyntax, lineOffset: lineOffset + headingLineCount);
                         trailingSyntax = nestedSyntax;
                     }
 
@@ -1672,7 +1672,7 @@ public static partial class MarkdownReader {
                         trailingSyntax = ParseBlockSyntaxNodesFromSourceLines(sourceLines.GetRange(firstBlank + 1, lines.Count - firstBlank - 1), options, state);
                     } else {
                         var nestedSyntax = new List<MarkdownSyntaxNode>();
-                        _ = ParseBlocksFromLines(trailingLines.ToArray(), options, state ?? new MarkdownReaderState(), nestedSyntax, lineOffset: lineOffset + firstBlank + 1);
+                        ParseBlocksFromLines(trailingLines.ToArray(), options, state ?? new MarkdownReaderState(), nestedSyntax, lineOffset: lineOffset + firstBlank + 1);
                         trailingSyntax = nestedSyntax;
                     }
 
@@ -1935,7 +1935,7 @@ public static partial class MarkdownReader {
             parsedSyntax = ParseBlockSyntaxNodesFromSourceLines(sourceLines, options, state);
         } else {
             var leadSyntax = new List<MarkdownSyntaxNode>();
-            _ = ParseBlocksFromLines(lines.ToArray(), options, state ?? new MarkdownReaderState(), leadSyntax, lineOffset);
+            ParseBlocksFromLines(lines.ToArray(), options, state ?? new MarkdownReaderState(), leadSyntax, lineOffset);
             parsedSyntax = leadSyntax;
         }
 

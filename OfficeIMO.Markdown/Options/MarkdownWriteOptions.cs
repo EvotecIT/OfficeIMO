@@ -42,9 +42,7 @@ public sealed class MarkdownWriteOptions {
             ImageRenderingMode = ImageRenderingMode
         };
         for (int i = 0; i < BlockRenderExtensions.Count; i++) {
-            if (BlockRenderExtensions[i] != null) {
-                clone.BlockRenderExtensions.Add(BlockRenderExtensions[i]);
-            }
+            clone.BlockRenderExtensions.Add(BlockRenderExtensions[i]);
         }
 
         return clone;

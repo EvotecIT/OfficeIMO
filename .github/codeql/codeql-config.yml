@@ -1,0 +1,44 @@
+name: "OfficeIMO production CodeQL config"
+
+paths:
+  - OfficeIMO.CSV
+  - OfficeIMO.Epub
+  - OfficeIMO.Excel
+  - OfficeIMO.Excel.GoogleSheets
+  - OfficeIMO.GoogleWorkspace
+  - OfficeIMO.Markdown
+  - OfficeIMO.Markdown.Html
+  - OfficeIMO.MarkdownRenderer
+  - OfficeIMO.MarkdownRenderer.IntelligenceX
+  - OfficeIMO.MarkdownRenderer.SamplePlugin
+  - OfficeIMO.MarkdownRenderer.Wpf
+  - OfficeIMO.Pdf
+  - OfficeIMO.PowerPoint
+  - OfficeIMO.Reader
+  - OfficeIMO.Reader.Csv
+  - OfficeIMO.Reader.Epub
+  - OfficeIMO.Reader.Html
+  - OfficeIMO.Reader.Json
+  - OfficeIMO.Reader.Text
+  - OfficeIMO.Reader.Xml
+  - OfficeIMO.Reader.Zip
+  - OfficeIMO.Shared
+  - OfficeIMO.Visio
+  - OfficeIMO.Word
+  - OfficeIMO.Word.GoogleDocs
+  - OfficeIMO.Word.Html
+  - OfficeIMO.Word.Markdown
+  - OfficeIMO.Word.Pdf
+  - OfficeIMO.Zip
+
+paths-ignore:
+  - Assets/PowerPointTemplates
+  - Docs
+  - OfficeIMO.CSV.Tests
+  - OfficeIMO.Excel.Benchmarks
+  - OfficeIMO.Examples
+  - OfficeIMO.Markdown.Benchmarks
+  - OfficeIMO.MarkdownRenderer.Wpf.Tests
+  - OfficeIMO.Tests
+  - OfficeIMO.VerifyTests
+  - Website/static/assets/prism

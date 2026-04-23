@@ -141,7 +141,6 @@ public static class WordMarkdownExtractionExtensions {
                 warnings,
                 out var flushed);
             if (flushed != null) yield return flushed;
-            blockIndex++;
         }
 
         // Final flush.

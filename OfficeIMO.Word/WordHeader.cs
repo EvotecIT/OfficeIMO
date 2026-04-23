@@ -92,18 +92,20 @@ namespace OfficeIMO.Word {
             }
 
             var partsToDelete = new HashSet<HeaderPart>();
-            var headersToRemove = (document ?? throw new InvalidOperationException("Main document is missing.")).Descendants<HeaderReference>()
+            var documentRoot = document ?? throw new InvalidOperationException("Main document is missing.");
+            var mainDocumentPart = docPart!;
+            var headersToRemove = documentRoot.Descendants<HeaderReference>()
                 .Where(h => h.Type != null && types.Contains(WordSection.GetType(h.Type))).ToList();
             foreach (var header in headersToRemove) {
-                if (header.Id == null || docPart == null) continue;
-                var part = docPart.GetPartById(header.Id.Value!) as HeaderPart;
+                if (header.Id == null) continue;
+                var part = mainDocumentPart.GetPartById(header.Id.Value!) as HeaderPart;
                 if (part != null) {
                     partsToDelete.Add(part);
                 }
                 header.Remove();
             }
             foreach (var part in partsToDelete) {
-                docPart!.DeletePart(part);
+                mainDocumentPart.DeletePart(part);
             }
         }
         /// <summary>

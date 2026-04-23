@@ -52,7 +52,7 @@ internal static class ResourceResolver {
                     var localMap = cidMap!;
                     map[kv.Key] = bytes => SumWidthsCid(bytes, localMap);
                 } else {
-                    map[kv.Key] = bytes => bytes != null ? (bytes.Length / 2) * 1000.0 : 0.0; // conservative default
+                    map[kv.Key] = bytes => bytes != null ? (bytes.Length / 2d) * 1000.0 : 0.0; // conservative default
                 }
             } else {
                 int firstChar = (int)(fontVal.Get<PdfNumber>("FirstChar")?.Value ?? 0);

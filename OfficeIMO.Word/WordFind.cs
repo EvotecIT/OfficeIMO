@@ -66,7 +66,6 @@ public static class StringExtensions {
     /// <param name="count">Outputs the number of replacements performed.</param>
     /// <returns>The resulting string after replacements.</returns>
     public static string FindAndReplace(this string str, string oldValue, string newValue, StringComparison comparisonType, ref int count) {
-        List<string> list = new List<string>();
         // Check inputs.
         if (str == null) {
             // Same as original .NET C# string.Replace behavior.

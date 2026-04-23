@@ -125,7 +125,7 @@ namespace OfficeIMO.Word {
             categoryAxis1.Append(delete1);
             categoryAxis1.Append(axisPosition1);
             if (!string.IsNullOrEmpty(_xAxisTitle)) {
-                categoryAxis1.Append(AddAxisTitle(_xAxisTitle ?? string.Empty));
+                categoryAxis1.Append(AddAxisTitle(_xAxisTitle!));
             }
             categoryAxis1.Append(majorTickMark1);
             categoryAxis1.Append(minorTickMark1);
@@ -170,7 +170,7 @@ namespace OfficeIMO.Word {
             valueAxis1.Append(axisPosition2);
             valueAxis1.Append(majorGridlines1);  // MajorGridlines should come before NumberingFormat
             if (!string.IsNullOrEmpty(_yAxisTitle)) {
-                valueAxis1.Append(AddAxisTitle(_yAxisTitle ?? string.Empty));
+                valueAxis1.Append(AddAxisTitle(_yAxisTitle!));
             }
             valueAxis1.Append(numberingFormat1);
             valueAxis1.Append(majorTickMark2);

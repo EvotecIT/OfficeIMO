@@ -113,9 +113,9 @@ internal static partial class PdfWriter {
                 double estWidth = line.Length * fontSize * em;
                 if (align == PdfAlign.Center) dx = Math.Max(0, (widthUsed - estWidth) / 2);
                 else if (align == PdfAlign.Right) dx = Math.Max(0, (widthUsed - estWidth));
-                if (dx != 0) sb.Append(F(dx)).Append(" 0 Td\n");
+                if (Math.Abs(dx) > 0.0001) sb.Append(F(dx)).Append(" 0 Td\n");
                 sb.Append('<').Append(EncodeWinAnsiHex(line)).Append("> Tj\n");
-                if (dx != 0) sb.Append(F(-dx)).Append(" 0 Td\n");
+                if (Math.Abs(dx) > 0.0001) sb.Append(F(-dx)).Append(" 0 Td\n");
                 if (i != lines.Count - 1) sb.Append("T*\n");
             }
             sb.Append("ET\n");
@@ -241,7 +241,6 @@ internal static partial class PdfWriter {
                     for (int rowIndex = 0; rowIndex < tb.Rows.Count; rowIndex++) {
                         var row = tb.Rows[rowIndex];
                         double rowHeight = rowHeights[rowIndex];
-                        double rowTop = y;
                         double rowBottom = y - rowHeight;
                         if (currentOpts.Debug?.ShowTableRowBoxes == true) { pageDirty = true; DrawRowRect(sb, new PdfColor(1, 0, 1), 0.6, xOrigin, rowBottom, tableWidth, rowHeight); }
                         if (style?.HeaderFill is not null && rowIndex == 0) { pageDirty = true; DrawRowFill(sb, style.HeaderFill.Value, xOrigin, rowBottom, tableWidth, rowHeight); } else if (style?.RowStripeFill is not null && rowIndex % 2 == 1) { pageDirty = true; DrawRowFill(sb, style.RowStripeFill.Value, xOrigin, rowBottom, tableWidth, rowHeight); }

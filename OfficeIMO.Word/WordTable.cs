@@ -450,7 +450,7 @@ namespace OfficeIMO.Word {
 
             if (initializeChildren) {
                 foreach (TableRow row in table.ChildElements.OfType<TableRow>().ToList()) {
-                    _ = new WordTableRow(this, row, document);
+                    new WordTableRow(this, row, document);
                 }
             }
 

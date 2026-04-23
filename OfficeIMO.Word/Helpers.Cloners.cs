@@ -79,18 +79,20 @@ public static partial class Helpers {
     /// <param name="source">The source stream.</param>
     /// <param name="target">The target stream.</param>
     public static void CopyStream(Stream? source, Stream target) {
-        if (source != null) {
-            MemoryStream? mstream = source as MemoryStream;
-            if (mstream != null) {
-                mstream.WriteTo(target);
-            } else {
-                byte[] buffer = new byte[2048];
-                int length = buffer.Length, size;
+        if (source is null) {
+            return;
+        }
 
-                while ((size = source.Read(buffer, 0, length)) != 0) {
-                    target.Write(buffer, 0, size);
-                }
-            }
+        if (source is MemoryStream memoryStream) {
+            memoryStream.WriteTo(target);
+            return;
+        }
+
+        byte[] buffer = new byte[2048];
+        int length = buffer.Length;
+        int size;
+        while ((size = source.Read(buffer, 0, length)) != 0) {
+            target.Write(buffer, 0, size);
         }
     }
 }

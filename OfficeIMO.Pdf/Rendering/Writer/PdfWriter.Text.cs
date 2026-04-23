@@ -128,8 +128,6 @@ internal static partial class PdfWriter {
                     heights.Add(fontSize * 1.4);
                     lines.Add(new());
                     lineWidth = 0;
-                    lastLine = lines[lines.Count - 1];
-                    needed = tokenW;
                 }
                 if (token.Length > 0) {
                     if (lineWidth > 0) lineWidth += spaceW;
@@ -189,7 +187,7 @@ internal static partial class PdfWriter {
             double dx = 0;
             if (block.Align == PdfAlign.Center) dx = Math.Max(0, (widthUsed - lineWForAlign) / 2);
             else if (block.Align == PdfAlign.Right) dx = Math.Max(0, widthUsed - lineWForAlign);
-            if (dx != 0) sb.Append(F(dx)).Append(" 0 Td\n");
+            if (Math.Abs(dx) > 0.0001) sb.Append(F(dx)).Append(" 0 Td\n");
 
             double xCursor = dx;
             for (int si = 0; si < segs.Count; si++) {
@@ -231,7 +229,7 @@ internal static partial class PdfWriter {
                 }
                 xCursor += wSeg;
             }
-            if (xCursor != 0) sb.Append(F(-xCursor)).Append(" 0 Td\n");
+            if (Math.Abs(xCursor) > 0.0001) sb.Append(F(-xCursor)).Append(" 0 Td\n");
         }
         sb.Append("ET\n");
 

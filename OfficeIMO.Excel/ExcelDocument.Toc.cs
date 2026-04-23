@@ -43,7 +43,6 @@ namespace OfficeIMO.Excel {
             int headerRow = r;
             toc.Cell(headerRow, 1, "Sheet"); toc.CellBold(headerRow, 1, true); toc.CellBackground(headerRow, 1, "#F2F2F2");
             toc.Cell(headerRow, 2, "Details"); toc.CellBold(headerRow, 2, true); toc.CellBackground(headerRow, 2, "#F2F2F2");
-            int colRanges = includeNamedRanges ? 3 : 0;
             if (includeNamedRanges) { toc.Cell(headerRow, 3, "Named Ranges"); toc.CellBold(headerRow, 3, true); toc.CellBackground(headerRow, 3, "#F2F2F2"); }
             r++;
 
