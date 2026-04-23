@@ -2172,7 +2172,7 @@ public static partial class MarkdownReader {
         var active = new List<MarkdownInlineParserExtension>(options.InlineParserExtensions.Count);
         for (var i = 0; i < options.InlineParserExtensions.Count; i++) {
             var extension = options.InlineParserExtensions[i];
-            if (extension.AppliesTo(options)) {
+            if (extension != null && extension.AppliesTo(options)) {
                 active.Add(extension);
             }
         }

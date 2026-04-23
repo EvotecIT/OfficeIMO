@@ -223,7 +223,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document">Document whose settings are managed.</param>
         public WordSettings(WordDocument document) {
-            ArgumentNullException.ThrowIfNull(document);
+            if (document == null) {
+                throw new ArgumentNullException(nameof(document));
+            }
             if (document.FileOpenAccess != FileAccess.Read) {
                 var mainPart = document._wordprocessingDocument.MainDocumentPart;
                 if (mainPart == null) {

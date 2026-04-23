@@ -20,7 +20,13 @@ namespace OfficeIMO.Excel {
 
         private void EnsureCorePropertiesPart() {
             // Touch the package properties to ensure the backing object is initialized.
-            try { GC.KeepAlive(_spreadsheetDocument.PackageProperties); } catch { }
+            try {
+                GC.KeepAlive(_spreadsheetDocument.PackageProperties);
+            } catch (ObjectDisposedException) {
+                // Package properties are best-effort when the package is already disposed.
+            } catch (InvalidOperationException) {
+                // Some package states do not expose core properties yet; callers retry on set.
+            }
         }
 
         /// <summary>The document creator/author.</summary>

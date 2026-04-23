@@ -88,13 +88,13 @@ namespace OfficeIMO.Excel {
                 // Drop orphaned Drawing reference
                 var drawing = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
                 if (drawing?.Id?.Value is string dId) {
-                    try { _worksheetPart.GetPartById(dId); } catch { ws.RemoveChild(drawing); }
+                    try { _worksheetPart.GetPartById(dId); } catch (ArgumentOutOfRangeException) { ws.RemoveChild(drawing); }
                 }
 
                 // Drop orphaned LegacyDrawingHeaderFooter reference
                 var legacy = ws.GetFirstChild<LegacyDrawingHeaderFooter>();
                 if (legacy?.Id?.Value is string lId) {
-                    try { _worksheetPart.GetPartById(lId); } catch { ws.RemoveChild(legacy); }
+                    try { _worksheetPart.GetPartById(lId); } catch (ArgumentOutOfRangeException) { ws.RemoveChild(legacy); }
                 }
 
                 ws.Save();

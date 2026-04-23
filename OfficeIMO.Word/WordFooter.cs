@@ -105,7 +105,7 @@ namespace OfficeIMO.Word {
 
             var partsToDelete = new HashSet<FooterPart>();
             var documentRoot = document ?? throw new InvalidOperationException("Main document is missing.");
-            var mainDocumentPart = docPart ?? throw new InvalidOperationException("Main document part is missing.");
+            var mainDocumentPart = docPart!;
             var footersToRemove = documentRoot.Descendants<FooterReference>()
                 .Where(f => f.Type != null && types.Contains(WordSection.GetType(f.Type))).ToList();
             foreach (var footer in footersToRemove) {

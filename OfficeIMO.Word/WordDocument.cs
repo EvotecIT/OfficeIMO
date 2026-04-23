@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.Fluent;
+using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -1773,7 +1774,9 @@ namespace OfficeIMO.Word {
             if (ownedPackageStream != null) {
                 try {
                     ownedPackageStream.Dispose();
-                } catch {
+                } catch (ObjectDisposedException) {
+                    // ignored
+                } catch (IOException) {
                     // ignored
                 }
 
@@ -1815,7 +1818,9 @@ namespace OfficeIMO.Word {
             if (ownedPackageStream != null) {
                 try {
                     await Task.Run(() => ownedPackageStream.Dispose()).ConfigureAwait(false);
-                } catch {
+                } catch (ObjectDisposedException) {
+                    // ignored
+                } catch (IOException) {
                     // ignored
                 }
 
