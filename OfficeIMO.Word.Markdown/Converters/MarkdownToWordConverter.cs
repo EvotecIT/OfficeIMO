@@ -190,7 +190,9 @@ namespace OfficeIMO.Word.Markdown {
 
             for (int i = 0; i < source.FencedBlockExtensions.Count; i++) {
                 var extension = source.FencedBlockExtensions[i];
-                target.FencedBlockExtensions.Add(extension);
+                if (extension != null) {
+                    target.FencedBlockExtensions.Add(extension);
+                }
             }
         }
 
@@ -202,7 +204,9 @@ namespace OfficeIMO.Word.Markdown {
 
             for (int i = 0; i < source.BlockParserExtensions.Count; i++) {
                 var extension = source.BlockParserExtensions[i];
-                target.BlockParserExtensions.Add(extension);
+                if (extension != null) {
+                    target.BlockParserExtensions.Add(extension);
+                }
             }
         }
 

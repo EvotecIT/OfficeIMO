@@ -832,17 +832,23 @@ public sealed class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownB
             : source.InputNormalization;
         clone.FencedBlockExtensions.Clear();
         for (int i = 0; i < source.FencedBlockExtensions.Count; i++) {
-            clone.FencedBlockExtensions.Add(source.FencedBlockExtensions[i]);
+            if (source.FencedBlockExtensions[i] != null) {
+                clone.FencedBlockExtensions.Add(source.FencedBlockExtensions[i]);
+            }
         }
 
         clone.BlockParserExtensions.Clear();
         for (int i = 0; i < source.BlockParserExtensions.Count; i++) {
-            clone.BlockParserExtensions.Add(source.BlockParserExtensions[i]);
+            if (source.BlockParserExtensions[i] != null) {
+                clone.BlockParserExtensions.Add(source.BlockParserExtensions[i]);
+            }
         }
 
         clone.InlineParserExtensions.Clear();
         for (int i = 0; i < source.InlineParserExtensions.Count; i++) {
-            clone.InlineParserExtensions.Add(source.InlineParserExtensions[i]);
+            if (source.InlineParserExtensions[i] != null) {
+                clone.InlineParserExtensions.Add(source.InlineParserExtensions[i]);
+            }
         }
 
         for (int i = 0; i < source.DocumentTransforms.Count; i++) {

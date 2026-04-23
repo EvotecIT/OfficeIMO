@@ -933,7 +933,9 @@ public static partial class MarkdownReader {
 
         for (int i = 0; i < extensions.Count; i++) {
             var extension = extensions[i];
-            target.FencedBlockExtensions.Add(extension);
+            if (extension != null) {
+                target.FencedBlockExtensions.Add(extension);
+            }
         }
     }
 
@@ -950,7 +952,9 @@ public static partial class MarkdownReader {
 
         for (int i = 0; i < extensions.Count; i++) {
             var extension = extensions[i];
-            target.BlockParserExtensions.Add(extension);
+            if (extension != null) {
+                target.BlockParserExtensions.Add(extension);
+            }
         }
     }
 
@@ -967,7 +971,9 @@ public static partial class MarkdownReader {
 
         for (int i = 0; i < extensions.Count; i++) {
             var extension = extensions[i];
-            target.InlineParserExtensions.Add(extension);
+            if (extension != null) {
+                target.InlineParserExtensions.Add(extension);
+            }
         }
     }
 
