@@ -158,7 +158,7 @@ internal static class HtmlRenderer {
 
         for (int i = extensions.Count - 1; i >= 0; i--) {
             var extension = extensions[i];
-            if (!extension.Matches(block)) {
+            if (extension == null || !extension.Matches(block)) {
                 continue;
             }
 

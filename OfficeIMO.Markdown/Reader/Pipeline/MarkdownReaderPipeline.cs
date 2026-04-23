@@ -50,7 +50,8 @@ public sealed class MarkdownReaderPipeline {
 
         for (int i = 0; i < extensions.Count; i++) {
             var extension = extensions[i];
-            if (extension.Placement != placement
+            if (extension == null
+                || extension.Placement != placement
                 || !extension.AppliesTo(options)) {
                 continue;
             }

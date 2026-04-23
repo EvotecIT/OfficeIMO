@@ -56,6 +56,10 @@ public static class WordMarkdownSemanticBlocks {
         string name) {
         for (int i = 0; i < options.FencedBlockExtensions.Count; i++) {
             var extension = options.FencedBlockExtensions[i];
+            if (extension == null) {
+                continue;
+            }
+
             for (int j = 0; j < extension.Languages.Count; j++) {
                 if (string.Equals(extension.Languages[j], language, StringComparison.OrdinalIgnoreCase)) {
                     return;
