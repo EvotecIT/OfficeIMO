@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -32,15 +33,9 @@ namespace OfficeIMO.Word {
         /// <param name="headerFooterValue"></param>
         /// <returns></returns>
         internal static bool GetHeaderReference(WordDocument document, WordSection section, HeaderFooterValues headerFooterValue) {
-            var sectionProperties = section._sectionProperties;
-
-            foreach (var element in sectionProperties.ChildElements.OfType<HeaderReference>()) {
-                if (element.Type?.Value == headerFooterValue) {
-                    // we found the header reference already exists; we do nothing;
-                    return true;
-                }
-            }
-            return false;
+            return section._sectionProperties.ChildElements
+                .OfType<HeaderReference>()
+                .Any(element => element.Type?.Value == headerFooterValue);
         }
 
 
@@ -52,13 +47,9 @@ namespace OfficeIMO.Word {
         /// <param name="headerFooterValue"></param>
         /// <returns></returns>
         internal static bool GetFooterReference(WordDocument document, WordSection section, HeaderFooterValues headerFooterValue) {
-            var sectionProperties = section._sectionProperties;
-            foreach (var element in sectionProperties.ChildElements.OfType<FooterReference>()) {
-                if (element.Type?.Value == headerFooterValue) {
-                    return true;
-                }
-            }
-            return false;
+            return section._sectionProperties.ChildElements
+                .OfType<FooterReference>()
+                .Any(element => element.Type?.Value == headerFooterValue);
         }
 
         /// <summary>
@@ -92,19 +83,7 @@ namespace OfficeIMO.Word {
                     Id = id
                 };
 
-                // Header/footer references must appear before other section
-                // properties (such as pgSz/pgMar) to satisfy the Open XML
-                // schema content model.
-                var lastHdrFtrRef = sectionProperties
-                    .ChildElements
-                    .Where(e => e is HeaderReference || e is FooterReference)
-                    .LastOrDefault();
-
-                if (lastHdrFtrRef != null) {
-                    sectionProperties.InsertAfter(headerReference, lastHdrFtrRef);
-                } else {
-                    sectionProperties.InsertAt(headerReference, 0);
-                }
+                InsertHeaderFooterReference(sectionProperties, headerReference);
             }
 
             var headers = section.Header ?? throw new InvalidOperationException("Headers collection is missing.");
@@ -145,18 +124,7 @@ namespace OfficeIMO.Word {
                     Id = id
                 };
 
-                // Footer references must live in the same leading group as
-                // header references inside sectPr.
-                var lastHdrFtrRef = sectionProperties
-                    .ChildElements
-                    .Where(e => e is HeaderReference || e is FooterReference)
-                    .LastOrDefault();
-
-                if (lastHdrFtrRef != null) {
-                    sectionProperties.InsertAfter(footerReference, lastHdrFtrRef);
-                } else {
-                    sectionProperties.InsertAt(footerReference, 0);
-                }
+                InsertHeaderFooterReference(sectionProperties, footerReference);
             }
 
             var footers = section.Footer ?? throw new InvalidOperationException("Footers collection is missing.");
@@ -166,6 +134,22 @@ namespace OfficeIMO.Word {
                 footers.First = new WordFooter(document, HeaderFooterValues.First, footerElement, section);
             } else {
                 footers.Even = new WordFooter(document, HeaderFooterValues.Even, footerElement, section);
+            }
+        }
+
+        private static void InsertHeaderFooterReference(SectionProperties sectionProperties, OpenXmlElement reference) {
+            // Header/footer references must appear before other section
+            // properties (such as pgSz/pgMar) to satisfy the Open XML
+            // schema content model.
+            var lastHdrFtrRef = sectionProperties
+                .ChildElements
+                .Where(e => e is HeaderReference || e is FooterReference)
+                .LastOrDefault();
+
+            if (lastHdrFtrRef != null) {
+                sectionProperties.InsertAfter(reference, lastHdrFtrRef);
+            } else {
+                sectionProperties.InsertAt(reference, 0);
             }
         }
 

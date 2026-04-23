@@ -443,8 +443,7 @@ namespace OfficeIMO.Word {
                 }
                 if (list.Count == 0) {
                     // Fallback: enumerate footnotes part when no body references were materialized yet.
-                    var footnotesPart = _wordprocessingDocument.MainDocumentPart?.FootnotesPart;
-                    var footnotes = footnotesPart != null ? footnotesPart.Footnotes : null;
+                    var footnotes = _wordprocessingDocument.MainDocumentPart?.FootnotesPart?.Footnotes;
                     if (footnotes != null) {
                         foreach (var fn in footnotes.ChildElements.OfType<DocumentFormat.OpenXml.Wordprocessing.Footnote>()) {
                             if (fn.Type != null) continue; // skip separators
