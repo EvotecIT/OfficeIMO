@@ -3,7 +3,7 @@
     <Description>EPUB extraction primitives for modular OfficeIMO ingestion pipelines.</Description>
     <AssemblyName>OfficeIMO.Epub</AssemblyName>
     <AssemblyTitle>OfficeIMO.Epub</AssemblyTitle>
-    <VersionPrefix>0.0.1</VersionPrefix>
+    <VersionPrefix>0.0.2</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>

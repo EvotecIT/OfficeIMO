@@ -3,7 +3,7 @@
     <Description>HTML adapter for OfficeIMO.Reader using OfficeIMO.Markdown.Html.</Description>
     <AssemblyName>OfficeIMO.Reader.Html</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.Html</AssemblyTitle>
-    <VersionPrefix>0.0.1</VersionPrefix>
+    <VersionPrefix>0.0.2</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
