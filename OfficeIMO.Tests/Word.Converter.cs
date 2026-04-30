@@ -35,8 +35,13 @@ public partial class Word {
     [InlineData(false)]
     [InlineData(true)]
     public void Test_SaveDotXAsDocX_ChangesPackageType(bool useSaveAs) {
-        string templatePath = Path.Combine(_directoryDocuments, "ExampleTemplate.dotx");
-        string outFilePath = Path.Combine(_directoryWithFiles, useSaveAs ? "ExampleTemplate_SaveAs.docx" : "ExampleTemplate_Save.docx");
+        const string templateFileName = "ExampleTemplate.dotx";
+        string outputFileName = useSaveAs ? "ExampleTemplate_SaveAs.docx" : "ExampleTemplate_Save.docx";
+        Assert.False(Path.IsPathRooted(templateFileName));
+        Assert.False(Path.IsPathRooted(outputFileName));
+
+        string templatePath = Path.Combine(_directoryDocuments, templateFileName);
+        string outFilePath = Path.Combine(_directoryWithFiles, outputFileName);
 
         using (WordDocument document = WordDocument.Load(templatePath)) {
             if (useSaveAs) {
