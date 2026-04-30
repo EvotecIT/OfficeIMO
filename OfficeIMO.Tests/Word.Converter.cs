@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -27,5 +29,26 @@ public partial class Word {
 
         Assert.False(templatePath.IsFileLocked());
         Assert.True(File.Exists(outFilePath));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Test_SaveDotXAsDocX_ChangesPackageType(bool useSaveAs) {
+        string templatePath = Path.Combine(_directoryDocuments, "ExampleTemplate.dotx");
+        string outFilePath = Path.Combine(_directoryWithFiles, useSaveAs ? "ExampleTemplate_SaveAs.docx" : "ExampleTemplate_Save.docx");
+
+        using (WordDocument document = WordDocument.Load(templatePath)) {
+            if (useSaveAs) {
+                using WordDocument savedDocument = document.SaveAs(outFilePath);
+            } else {
+                document.Save(outFilePath);
+            }
+        }
+
+        Assert.True(File.Exists(outFilePath));
+        using WordprocessingDocument saved = WordprocessingDocument.Open(outFilePath, false);
+        Assert.Equal(WordprocessingDocumentType.Document, saved.DocumentType);
+        Assert.Equal("application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml", saved.MainDocumentPart?.ContentType);
     }
 }
