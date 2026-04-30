@@ -40,8 +40,8 @@ public partial class Word {
         Assert.False(Path.IsPathRooted(templateFileName));
         Assert.False(Path.IsPathRooted(outputFileName));
 
-        string templatePath = Path.Join(_directoryDocuments, templateFileName);
-        string outFilePath = Path.Join(_directoryWithFiles, outputFileName);
+        string templatePath = JoinPath(_directoryDocuments, templateFileName);
+        string outFilePath = JoinPath(_directoryWithFiles, outputFileName);
 
         using (WordDocument document = WordDocument.Load(templatePath)) {
             if (useSaveAs) {
@@ -55,5 +55,17 @@ public partial class Word {
         using WordprocessingDocument saved = WordprocessingDocument.Open(outFilePath, false);
         Assert.Equal(WordprocessingDocumentType.Document, saved.DocumentType);
         Assert.Equal("application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml", saved.MainDocumentPart?.ContentType);
+    }
+
+    private static string JoinPath(string basePath, string fileName) {
+#if NET472
+        char separator = Path.DirectorySeparatorChar;
+        return basePath.EndsWith(separator.ToString(), StringComparison.Ordinal) ||
+               basePath.EndsWith(Path.AltDirectorySeparatorChar.ToString(), StringComparison.Ordinal)
+            ? basePath + fileName
+            : basePath + separator + fileName;
+#else
+        return Path.Join(basePath, fileName);
+#endif
     }
 }
