@@ -40,8 +40,8 @@ public partial class Word {
         Assert.False(Path.IsPathRooted(templateFileName));
         Assert.False(Path.IsPathRooted(outputFileName));
 
-        string templatePath = Path.Combine(_directoryDocuments, templateFileName);
-        string outFilePath = Path.Combine(_directoryWithFiles, outputFileName);
+        string templatePath = Path.Join(_directoryDocuments, templateFileName);
+        string outFilePath = Path.Join(_directoryWithFiles, outputFileName);
 
         using (WordDocument document = WordDocument.Load(templatePath)) {
             if (useSaveAs) {
