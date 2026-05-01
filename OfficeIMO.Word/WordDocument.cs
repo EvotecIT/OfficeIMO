@@ -1041,6 +1041,13 @@ namespace OfficeIMO.Word {
             };
         }
 
+        private static void AlignDocumentTypeWithFilePath(WordprocessingDocument document, string filePath) {
+            var documentType = GetDocumentType(filePath);
+            if (document.DocumentType != documentType) {
+                document.ChangeDocumentType(documentType);
+            }
+        }
+
         private static WordDocument CreateInternal(string? filePath, Stream? stream, WordprocessingDocumentType documentType, bool autoSave) {
             WordDocument word = new WordDocument();
             if (stream != null) {
@@ -1464,6 +1471,7 @@ namespace OfficeIMO.Word {
                     // Allow concurrent readers (other tests may have opened the sample file with Read/ReadWrite sharing)
                     using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete);
                     using (var clone = this._wordprocessingDocument.Clone(fs)) {
+                        AlignDocumentTypeWithFilePath(clone, filePath);
                         CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                     }
                     fs.Seek(0, SeekOrigin.Begin);
@@ -1542,6 +1550,7 @@ namespace OfficeIMO.Word {
 
                 using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite | FileShare.Delete);
                 using (var clone = _wordprocessingDocument.Clone(fs)) {
+                    AlignDocumentTypeWithFilePath(clone, filePath);
                     CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
                 }
                 fs.Seek(0, SeekOrigin.Begin);
