@@ -4,7 +4,7 @@
         <Description>Markdown builder, typed reader/AST, and HTML renderer for .NET with GitHub-like output and an optional portable reader profile. No external dependencies.</Description>
         <AssemblyName>OfficeIMO.Markdown</AssemblyName>
         <AssemblyTitle>OfficeIMO.Markdown</AssemblyTitle>
-        <VersionPrefix>0.6.11</VersionPrefix>
+        <VersionPrefix>0.6.12</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472</TargetFrameworks>
