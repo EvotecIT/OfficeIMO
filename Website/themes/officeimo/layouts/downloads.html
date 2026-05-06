@@ -136,36 +136,12 @@
 
             <div class="imo-downloads__grid">
               {{ for package in section.packages }}
-                {{ package_stats = null }}
-                {{ if package.registry == "nuget" && section.id != "reader-adapters" && section.id != "google-bridges" && stats_doc && stats_doc.nuget && stats_doc.nuget.packages }}
-                  {{ for stat_package in stats_doc.nuget.packages }}
-                    {{ if stat_package.id == package.registry_package }}
-                      {{ package_stats = stat_package }}
-                    {{ end }}
-                  {{ end }}
-                {{ end }}
-
-                {{ archive_asset = null }}
-                {{ if package.release_product && latest_release && latest_release.assets }}
-                  {{ for asset in latest_release.assets }}
-                    {{ if asset.product == package.release_product }}
-                      {{ archive_asset = asset }}
-                    {{ end }}
-                  {{ end }}
-                {{ end }}
-
               <article class="imo-download-card" style="--downloads-accent: {{ package.accent }}">
                 <div class="imo-download-card__top">
                   <div>
                     <div class="imo-download-card__eyebrow">{{ package.registry_label }}</div>
                     <h3>{{ package.title }}</h3>
                   </div>
-                  {{ if package_stats }}
-                  <div class="imo-download-card__metric">
-                    <strong>{{ package_stats.totalDownloads }}</strong>
-                    <span>downloads</span>
-                  </div>
-                  {{ end }}
                 </div>
 
                 <p class="imo-download-card__desc">{{ package.summary }}</p>
@@ -181,18 +157,15 @@
 
                 <div class="imo-download-card__meta">
                   <span class="imo-badge">{{ package.registry_label }}</span>
-                  {{ if package_stats && package_stats.version }}
-                  <span class="imo-badge">Latest NuGet {{ package_stats.version }}</span>
-                  {{ end }}
-                  {{ if archive_asset }}
-                  <span class="imo-badge">Archive {{ archive_asset.name }}</span>
+                  {{ if package.release_product }}
+                  <span class="imo-badge">Release archives available</span>
                   {{ end }}
                 </div>
 
                 <div class="imo-download-card__actions">
                   <a class="imo-btn imo-btn-primary" href="{{ package.registry_url }}" target="_blank" rel="noopener">Open {{ package.registry_label }} for {{ package.title }}</a>
-                  {{ if archive_asset }}
-                  <a class="imo-btn imo-btn-ghost" href="{{ archive_asset.downloadUrl }}" target="_blank" rel="noopener">Stable archive for {{ package.title }}</a>
+                  {{ if package.release_product && latest_release }}
+                  <a class="imo-btn imo-btn-ghost" href="{{ latest_release.url }}" target="_blank" rel="noopener">Latest release archives</a>
                   {{ end }}
                 </div>
 
