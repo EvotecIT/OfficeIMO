@@ -38,6 +38,28 @@ public class DrawingTests {
         Assert.Equal(0, OfficeColor.Transparent.A);
     }
 
+    [Fact]
+    public void OfficeFontInfoStoresFamilySizeAndStyleWithoutFontEngineDependency() {
+        var font = new OfficeFontInfo("Aptos", 12.5, OfficeFontStyle.Bold | OfficeFontStyle.Italic);
+
+        Assert.Equal("Aptos", font.FamilyName);
+        Assert.Equal(12.5, font.Size);
+        Assert.True(font.IsBold);
+        Assert.True(font.IsItalic);
+        Assert.Equal("Aptos, 12.5pt, Bold, Italic", font.ToString());
+    }
+
+    [Fact]
+    public void OfficeFontInfoProvidesImmutableCopyHelpers() {
+        var font = OfficeFontInfo.Default
+            .WithFamilyName("Arial")
+            .WithSize(10)
+            .WithStyle(OfficeFontStyle.Bold);
+
+        Assert.Equal(new OfficeFontInfo("Arial", 10, OfficeFontStyle.Bold), font);
+        Assert.NotEqual(OfficeFontInfo.Default, font);
+    }
+
     [Theory]
     [InlineData("png", OfficeImageFormat.Png)]
     [InlineData(".png", OfficeImageFormat.Png)]

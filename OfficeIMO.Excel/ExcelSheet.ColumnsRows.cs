@@ -822,22 +822,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static SixLabors.Fonts.Font CreateFontFromOpenXml(DocumentFormat.OpenXml.Spreadsheet.Font fontElement, SixLabors.Fonts.Font fallbackFont) {
-            var fontName = fontElement.GetFirstChild<FontName>()?.Val?.Value;
-            var fontSize = fontElement.GetFirstChild<FontSize>()?.Val?.Value ?? fallbackFont.Size;
-            bool bold = fontElement.GetFirstChild<Bold>() != null;
-            bool italic = fontElement.GetFirstChild<Italic>() != null;
-
-            try {
-                var style = bold && italic ? FontStyle.BoldItalic : bold ? FontStyle.Bold : italic ? FontStyle.Italic : FontStyle.Regular;
-                if (!string.IsNullOrEmpty(fontName)) {
-                    return SystemFonts.CreateFont(fontName!, (float)fontSize, style);
-                }
-
-                return fallbackFont.Family.CreateFont((float)fontSize, style);
-            } catch (FontFamilyNotFoundException) {
-                var fallbackStyle = bold && italic ? FontStyle.BoldItalic : bold ? FontStyle.Bold : italic ? FontStyle.Italic : FontStyle.Regular;
-                return fallbackFont.Family.CreateFont((float)fontSize, fallbackStyle);
-            }
+            var fontInfo = CreateFontInfoFromOpenXml(fontElement, fallbackFont.Size);
+            return CreateFontFromInfo(fontInfo, fallbackFont);
         }
 
         private readonly struct AutoFitStyleInfo {
