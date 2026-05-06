@@ -146,7 +146,13 @@ public sealed class PackageDependencyGuardrailTests {
 
         var parts = NormalizeProjectPath(relativePath)
             .Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-        var combinedPath = Path.GetFullPath(Path.Combine(new[] { repositoryRoot }.Concat(parts).ToArray()));
+        var combinedPath = repositoryRoot;
+        foreach (var part in parts) {
+            Assert.False(Path.IsPathRooted(part), "Repository-relative path segment must not be rooted: " + relativePath);
+            combinedPath = Path.Combine(combinedPath, part);
+        }
+
+        combinedPath = Path.GetFullPath(combinedPath);
 
         Assert.True(
             combinedPath.StartsWith(repositoryRoot, StringComparison.Ordinal),
