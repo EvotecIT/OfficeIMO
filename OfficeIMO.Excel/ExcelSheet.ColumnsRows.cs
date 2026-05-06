@@ -1,6 +1,5 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
-using SixLabors.Fonts;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
@@ -196,9 +195,8 @@ namespace OfficeIMO.Excel {
                 return widths;
             }
 
-            var defaultFont = GetDefaultFont();
-            var defaultOptions = new TextOptions(defaultFont);
-            float defaultMdw = MeasureWidthOrDefault("0", defaultOptions, fallback: 0);
+            var textMeasurer = ExcelTextMeasurer.Create(GetWorkbookDefaultFontInfo());
+            float defaultMdw = textMeasurer.DefaultStyle.MaximumDigitWidth;
             if (defaultMdw <= 0.0001f) {
                 return widths;
             }
@@ -208,25 +206,23 @@ namespace OfficeIMO.Excel {
             var cellFormats = stylesheet?.CellFormats?.Elements<CellFormat>().ToList();
             var fonts = stylesheet?.Fonts?.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ToList();
 
-            AutoFitStyleInfo ResolveStyleInfo(uint styleIndex, Dictionary<uint, AutoFitStyleInfo> styleCache) {
+            ExcelTextMeasurer.Style ResolveStyleInfo(uint styleIndex, Dictionary<uint, ExcelTextMeasurer.Style> styleCache) {
                 if (styleCache.TryGetValue(styleIndex, out var cached)) {
                     return cached;
                 }
 
-                SixLabors.Fonts.Font font = defaultFont;
+                var info = textMeasurer.DefaultStyle;
                 if (cellFormats != null && fonts != null) {
                     var cellFormat = styleIndex < cellFormats.Count ? cellFormats[(int)styleIndex] : null;
                     if (cellFormat?.FontId != null) {
                         uint fontId = cellFormat.FontId.Value;
                         if (fontId < fonts.Count) {
-                            font = CreateFontFromOpenXml(fonts[(int)fontId], defaultFont);
+                            var fontInfo = CreateFontInfoFromOpenXml(fonts[(int)fontId], textMeasurer.DefaultFontSize);
+                            info = textMeasurer.CreateStyle(fontInfo);
                         }
                     }
                 }
 
-                var options = new TextOptions(font);
-                float mdw = MeasureWidthOrDefault("0", options, defaultMdw);
-                var info = new AutoFitStyleInfo(font, options, mdw);
                 styleCache[styleIndex] = info;
                 return info;
             }
@@ -234,7 +230,7 @@ namespace OfficeIMO.Excel {
             float MeasureTextWidth(
                 string text,
                 uint styleIndex,
-                AutoFitStyleInfo styleInfo,
+                ExcelTextMeasurer.Style styleInfo,
                 Dictionary<(uint styleIndex, string text), float> textWidthCache,
                 Dictionary<uint, Dictionary<char, float>> charWidthCache) {
                 if (textWidthCache.TryGetValue((styleIndex, text), out float cached)) {
@@ -250,15 +246,15 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        float lineWidth = MeasureWidthOrDefault(line, styleInfo.Options, 0);
+                        float lineWidth = textMeasurer.MeasureWidthOrDefault(line, styleInfo, 0);
                         if (lineWidth > measured) {
                             measured = lineWidth;
                         }
                     }
-                } else if (TryMeasureSimpleAutoFitTextWidth(text, styleIndex, styleInfo, charWidthCache, out float fastMeasured)) {
+                } else if (TryMeasureSimpleAutoFitTextWidth(text, styleIndex, styleInfo, textMeasurer, charWidthCache, out float fastMeasured)) {
                     measured = fastMeasured;
                 } else {
-                    measured = MeasureWidthOrDefault(text, styleInfo.Options, 0);
+                    measured = textMeasurer.MeasureWidthOrDefault(text, styleInfo, 0);
                 }
 
                 textWidthCache[(styleIndex, text)] = measured;
@@ -270,7 +266,7 @@ namespace OfficeIMO.Excel {
             void ApplyMeasurement(
                 AutoFitMeasurement measurement,
                 double[] localWidths,
-                Dictionary<uint, AutoFitStyleInfo> styleCache,
+                Dictionary<uint, ExcelTextMeasurer.Style> styleCache,
                 Dictionary<(uint styleIndex, string text), float> textWidthCache,
                 Dictionary<uint, Dictionary<char, float>> charWidthCache) {
                     var styleInfo = ResolveStyleInfo(measurement.StyleIndex, styleCache);
@@ -284,7 +280,7 @@ namespace OfficeIMO.Excel {
                 }
 
             if (!parallel || plan.Measurements.Count < 2) {
-                var styleCache = new Dictionary<uint, AutoFitStyleInfo>();
+                var styleCache = new Dictionary<uint, ExcelTextMeasurer.Style>();
                 var textWidthCache = new Dictionary<(uint styleIndex, string text), float>();
                 var charWidthCache = new Dictionary<uint, Dictionary<char, float>>();
 
@@ -412,10 +408,10 @@ namespace OfficeIMO.Excel {
             double defaultHeight = GetDefaultRowHeightPoints();
             double maxHeight = defaultHeight; // Start with default as minimum
 
-            // Pre-calc default font metrics and MDW for pixel conversions
-            var defaultFont = GetDefaultFont();
-            var defaultOptions = new TextOptions(defaultFont) { Dpi = 96 };
-            float mdw = TextMeasurer.MeasureSize("0", defaultOptions).Width;
+            // Pre-calc default font metrics and MDW for pixel conversions.
+            var textMeasurer = ExcelTextMeasurer.Create(GetWorkbookDefaultFontInfo());
+            var defaultStyle = textMeasurer.CreateDefaultStyle(96);
+            float mdw = defaultStyle.MaximumDigitWidth;
             if (mdw <= 0.0001f) return defaultHeight;
 
             // Helper to get available content width in pixels for a given cell's column span
@@ -437,12 +433,12 @@ namespace OfficeIMO.Excel {
                 string text = GetCellText(cell);
                 if (string.IsNullOrEmpty(text)) continue;
 
-                var font = GetCellFont(cell);
-                var options = new TextOptions(font) { Dpi = 96 };
+                var fontInfo = GetCellFontInfo(cell, textMeasurer.FallbackFontInfo);
+                var style = textMeasurer.CreateStyle(fontInfo, 96);
 
                 // Measure a consistent line height using representative glyphs, but never below default row height
-                // ClosedXML effectively uses a line box that’s slightly taller than raw metrics; add a small pixel fudge
-                float measuredPx = TextMeasurer.MeasureSize("Xg", options).Height; // representative ascender/descender
+                // ClosedXML effectively uses a line box slightly taller than raw metrics; add a small pixel fudge.
+                float measuredPx = textMeasurer.MeasureHeightOrDefault("Xg", style, 0); // representative ascender/descender
                 double lineHeightPx = Math.Ceiling(measuredPx + 2); // add 2px to align with Excel/ClosedXML appearance
                 double baseLineHeightPt = Math.Max(defaultHeight, lineHeightPx * 72.0 / 96.0);
 
@@ -463,7 +459,7 @@ namespace OfficeIMO.Excel {
                         int linesCount = 0;
                         foreach (var hard in hardLines) {
                             // At minimum, each hard segment is one line, even if empty
-                            linesCount += CountWrappedLines(hard, availPx, options);
+                            linesCount += CountWrappedLines(hard, availPx, textMeasurer, style);
                         }
                         // Ensure we never undercount hard breaks
                         totalLines = Math.Max(totalLines, linesCount);
@@ -489,12 +485,12 @@ namespace OfficeIMO.Excel {
             return Math.Round(maxHeight, 2);
         }
 
-        private int CountWrappedLines(string text, double maxWidthPx, TextOptions options) {
+        private int CountWrappedLines(string text, double maxWidthPx, ExcelTextMeasurer textMeasurer, ExcelTextMeasurer.Style style) {
             // Empty line still occupies one visual line
             if (string.IsNullOrEmpty(text)) return 1;
 
             // Quick accept if whole text fits
-            float fullWidth = TextMeasurer.MeasureSize(text, options).Width;
+            float fullWidth = textMeasurer.MeasureWidthOrDefault(text, style, 0);
             if (fullWidth <= maxWidthPx) return 1;
 
             // Word-based greedy wrap
@@ -510,10 +506,10 @@ namespace OfficeIMO.Excel {
                 }
 
                 string segment = token;
-                float w = TextMeasurer.MeasureSize(segment, options).Width;
+                float w = textMeasurer.MeasureWidthOrDefault(segment, style, 0);
                 // If we had a previous nonempty segment on the line, consider a space before this word
                 if (current > 0) {
-                    float spaceW = TextMeasurer.MeasureSize(" ", options).Width;
+                    float spaceW = textMeasurer.MeasureWidthOrDefault(" ", style, 0);
                     w += spaceW;
                 }
 
@@ -523,14 +519,14 @@ namespace OfficeIMO.Excel {
                     var sb = new StringBuilder();
                     for (int c = 0; c < chars.Length; c++) {
                         string candidate = (current > 0 ? " " : string.Empty) + sb.ToString() + chars[c];
-                        float cw = TextMeasurer.MeasureSize(candidate, options).Width;
+                        float cw = textMeasurer.MeasureWidthOrDefault(candidate, style, 0);
                         if (cw > maxWidthPx) {
                             // break before this char
                             lines++;
                             sb.Clear();
                             current = 0;
                             candidate = chars[c].ToString();
-                            cw = TextMeasurer.MeasureSize(candidate, options).Width;
+                            cw = textMeasurer.MeasureWidthOrDefault(candidate, style, 0);
                         }
                         sb.Append(chars[c]);
                         current = cw;
@@ -541,7 +537,7 @@ namespace OfficeIMO.Excel {
                 if (current + w > maxWidthPx + 0.1) {
                     // Move word to next line
                     lines++;
-                    current = TextMeasurer.MeasureSize(token, options).Width; // start with word only on new line
+                    current = textMeasurer.MeasureWidthOrDefault(token, style, 0); // start with word only on new line
                 } else {
                     current += w;
                 }
@@ -730,19 +726,11 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private static float MeasureWidthOrDefault(string text, TextOptions options, float fallback) {
-            try {
-                float measured = TextMeasurer.MeasureSize(text, options).Width;
-                return measured > 0.0001f ? measured : fallback;
-            } catch {
-                return fallback;
-            }
-        }
-
         private static bool TryMeasureSimpleAutoFitTextWidth(
             string text,
             uint styleIndex,
-            AutoFitStyleInfo styleInfo,
+            ExcelTextMeasurer.Style styleInfo,
+            ExcelTextMeasurer textMeasurer,
             Dictionary<uint, Dictionary<char, float>> charWidthCache,
             out float measured) {
             measured = 0;
@@ -765,7 +753,7 @@ namespace OfficeIMO.Excel {
             for (int i = 0; i < text.Length; i++) {
                 char current = text[i];
                 if (!perCharWidths.TryGetValue(current, out float width)) {
-                    width = MeasureWidthOrDefault(current.ToString(), styleInfo.Options, styleInfo.MaximumDigitWidth);
+                    width = textMeasurer.MeasureWidthOrDefault(current.ToString(), styleInfo, styleInfo.MaximumDigitWidth);
                     perCharWidths[current] = width;
                 }
 
@@ -819,27 +807,6 @@ namespace OfficeIMO.Excel {
             }
 
             return sb.ToString();
-        }
-
-        private static SixLabors.Fonts.Font CreateFontFromOpenXml(DocumentFormat.OpenXml.Spreadsheet.Font fontElement, SixLabors.Fonts.Font fallbackFont) {
-            var fontInfo = CreateFontInfoFromOpenXml(fontElement, fallbackFont.Size);
-            return CreateFontFromInfo(fontInfo, fallbackFont);
-        }
-
-        private readonly struct AutoFitStyleInfo {
-            internal AutoFitStyleInfo(SixLabors.Fonts.Font font, TextOptions options, float maximumDigitWidth) {
-                _font = font;
-                _options = options;
-                _maximumDigitWidth = maximumDigitWidth;
-            }
-
-            private readonly SixLabors.Fonts.Font _font;
-            private readonly TextOptions _options;
-            private readonly float _maximumDigitWidth;
-
-            internal SixLabors.Fonts.Font Font => _font;
-            internal TextOptions Options => _options;
-            internal float MaximumDigitWidth => _maximumDigitWidth;
         }
 
         private readonly struct AutoFitMeasurement {
@@ -900,13 +867,13 @@ namespace OfficeIMO.Excel {
         private sealed class AutoFitParallelState {
             internal AutoFitParallelState(int columnCount) {
                 Widths = new double[columnCount];
-                StyleCache = new Dictionary<uint, AutoFitStyleInfo>();
+                StyleCache = new Dictionary<uint, ExcelTextMeasurer.Style>();
                 TextWidthCache = new Dictionary<(uint styleIndex, string text), float>();
                 CharWidthCache = new Dictionary<uint, Dictionary<char, float>>();
             }
 
             internal double[] Widths { get; }
-            internal Dictionary<uint, AutoFitStyleInfo> StyleCache { get; }
+            internal Dictionary<uint, ExcelTextMeasurer.Style> StyleCache { get; }
             internal Dictionary<(uint styleIndex, string text), float> TextWidthCache { get; }
             internal Dictionary<uint, Dictionary<char, float>> CharWidthCache { get; }
         }
