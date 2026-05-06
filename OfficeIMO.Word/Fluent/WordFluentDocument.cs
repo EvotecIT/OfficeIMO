@@ -222,11 +222,11 @@ namespace OfficeIMO.Word.Fluent {
         /// </summary>
         public WordFluentDocument Callout(string kind, string title, string body) {
             var color = kind?.ToLowerInvariant() switch {
-                "info" => SixLabors.ImageSharp.Color.LightBlue,
-                "warning" => SixLabors.ImageSharp.Color.Khaki,
-                "danger" => SixLabors.ImageSharp.Color.MistyRose,
-                "tip" => SixLabors.ImageSharp.Color.Honeydew,
-                _ => SixLabors.ImageSharp.Color.LightGray
+                "info" => OfficeIMO.Drawing.OfficeColor.LightBlue,
+                "warning" => OfficeIMO.Drawing.OfficeColor.Khaki,
+                "danger" => OfficeIMO.Drawing.OfficeColor.MistyRose,
+                "tip" => OfficeIMO.Drawing.OfficeColor.Honeydew,
+                _ => OfficeIMO.Drawing.OfficeColor.LightGray
             };
             var p1 = Document.AddParagraph();
             p1.ShadingFillColor = color;

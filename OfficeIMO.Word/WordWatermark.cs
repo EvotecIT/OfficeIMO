@@ -213,13 +213,13 @@ namespace OfficeIMO.Word {
         /// or three- or six-digit hexadecimal strings with or without a leading '#'.
         /// Invalid color values will result in <see cref="ArgumentException"/> being thrown.
         /// </summary>
-        public SixLabors.ImageSharp.Color? Color {
+        public OfficeIMO.Drawing.OfficeColor? Color {
             get {
                 if (ColorHex == "") {
                     return null;
                 }
 
-                return SixLabors.ImageSharp.Color.Parse(ColorHex);
+                return OfficeIMO.Drawing.OfficeColor.Parse(ColorHex);
 
             }
             set {

@@ -171,12 +171,12 @@ namespace OfficeIMO.Excel {
             DrawingsPart? drawingPart = null;
 
             WriteLock(() => {
-                var drawing = WorksheetRoot.GetFirstChild<Drawing>();
+                var drawing = WorksheetRoot.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
                 if (drawing == null) {
                     drawingPart = _worksheetPart.AddNewPart<DrawingsPart>();
                     drawingPart.WorksheetDrawing = new Xdr.WorksheetDrawing();
                     string relId = _worksheetPart.GetIdOfPart(drawingPart);
-                    WorksheetRoot.Append(new Drawing { Id = relId });
+                    WorksheetRoot.Append(new DocumentFormat.OpenXml.Spreadsheet.Drawing { Id = relId });
                 } else {
                     drawingPart = (DrawingsPart)_worksheetPart.GetPartById(drawing.Id!);
                     drawingPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
@@ -237,12 +237,12 @@ namespace OfficeIMO.Excel {
             DrawingsPart? drawingPart = null;
 
             WriteLock(() => {
-                var drawing = WorksheetRoot.GetFirstChild<Drawing>();
+                var drawing = WorksheetRoot.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
                 if (drawing == null) {
                     drawingPart = _worksheetPart.AddNewPart<DrawingsPart>();
                     drawingPart.WorksheetDrawing = new Xdr.WorksheetDrawing();
                     string relId = _worksheetPart.GetIdOfPart(drawingPart);
-                    WorksheetRoot.Append(new Drawing { Id = relId });
+                    WorksheetRoot.Append(new DocumentFormat.OpenXml.Spreadsheet.Drawing { Id = relId });
                 } else {
                     drawingPart = (DrawingsPart)_worksheetPart.GetPartById(drawing.Id!);
                     drawingPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();

@@ -29,4 +29,4 @@ Current feature set
 Design notes
  - Text layout is simple vertical flow with word‑wrapping based on monospaced Courier metrics (600 units/em).
  - No compression; content streams are plain for readability.
- - Future: images (via ImageSharp opt‑in), shapes, tables, simple styles, and better font metrics.
+ - Future: images, shapes, tables, simple styles, and better font metrics.

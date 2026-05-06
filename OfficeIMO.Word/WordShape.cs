@@ -2,7 +2,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
 using System.Threading;
 using A = DocumentFormat.OpenXml.Drawing;
-using Drawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
+using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using V = DocumentFormat.OpenXml.Vml;
 using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
@@ -41,7 +41,7 @@ namespace OfficeIMO.Word {
         /// <summary>The generic shape element if present.</summary>
         internal V.Shape? _shape;
         /// <summary>DrawingML shape element if present.</summary>
-        internal Drawing? _drawing;
+        internal WordDrawing? _drawing;
         internal Wps.WordprocessingShape? _wpsShape;
 
         // Cached templates to avoid rebuilding geometry adjust lists; cloned per use.
@@ -191,7 +191,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes a <see cref="WordShape"/> from existing run content.
         /// </summary>
-        internal WordShape(WordDocument document, Paragraph paragraph, Run run, Drawing? drawing = null) {
+        internal WordShape(WordDocument document, Paragraph paragraph, Run run, WordDrawing? drawing = null) {
             _document = document;
             _wordParagraph = new WordParagraph(document, paragraph, run);
             _run = run;
@@ -230,9 +230,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds an ellipse shape using <see cref="SixLabors.ImageSharp.Color"/>.
+        /// Adds an ellipse shape using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
         /// </summary>
-        public static WordShape AddEllipse(WordParagraph paragraph, double widthPt, double heightPt, SixLabors.ImageSharp.Color fillColor) {
+        public static WordShape AddEllipse(WordParagraph paragraph, double widthPt, double heightPt, OfficeIMO.Drawing.OfficeColor fillColor) {
             return AddEllipse(paragraph, widthPt, heightPt, fillColor.ToHexColor());
         }
 
@@ -285,9 +285,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds a line shape using <see cref="SixLabors.ImageSharp.Color"/>.
+        /// Adds a line shape using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
         /// </summary>
-        public static WordShape AddLine(WordParagraph paragraph, double startXPt, double startYPt, double endXPt, double endYPt, SixLabors.ImageSharp.Color color, double strokeWeightPt = 1) {
+        public static WordShape AddLine(WordParagraph paragraph, double startXPt, double startYPt, double endXPt, double endYPt, OfficeIMO.Drawing.OfficeColor color, double strokeWeightPt = 1) {
             return AddLine(paragraph, startXPt, startYPt, endXPt, endYPt, color.ToHexColor(), strokeWeightPt);
         }
 
@@ -315,9 +315,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds a polygon shape using <see cref="SixLabors.ImageSharp.Color"/> values.
+        /// Adds a polygon shape using <see cref="OfficeIMO.Drawing.OfficeColor"/> values.
         /// </summary>
-        public static WordShape AddPolygon(WordParagraph paragraph, string points, SixLabors.ImageSharp.Color fillColor, SixLabors.ImageSharp.Color strokeColor) {
+        public static WordShape AddPolygon(WordParagraph paragraph, string points, OfficeIMO.Drawing.OfficeColor fillColor, OfficeIMO.Drawing.OfficeColor strokeColor) {
             return AddPolygon(paragraph, points, fillColor.ToHexColor(), strokeColor.ToHexColor());
         }
 
@@ -390,16 +390,16 @@ namespace OfficeIMO.Word {
             graphic.Append(graphicData);
             inline.Append(graphic);
 
-            var drawing = new Drawing(inline);
-            run.Append(drawing);
+            var WordDrawing = new WordDrawing(inline);
+            run.Append(WordDrawing);
 
-            return new WordShape(paragraph._document!, paragraph._paragraph!, run, drawing);
+            return new WordShape(paragraph._document!, paragraph._paragraph!, run, WordDrawing);
         }
 
         /// <summary>
         /// Adds a DrawingML shape anchored at an absolute position on the page.
         /// </summary>
-        /// <param name="paragraph">Paragraph to host the drawing anchor.</param>
+        /// <param name="paragraph">Paragraph to host the WordDrawing anchor.</param>
         /// <param name="shapeType">Type of shape.</param>
         /// <param name="widthPt">Width in points.</param>
         /// <param name="heightPt">Height in points.</param>
@@ -417,9 +417,9 @@ namespace OfficeIMO.Word {
             var wsp = BuildWpsShape(cx, cy, shapeType);
             var graphic = new A.Graphic(new A.GraphicData(wsp) { Uri = "http://schemas.microsoft.com/office/word/2010/wordprocessingShape" });
             var anchor = BuildAnchor(cx, cy, offX, offY, graphic);
-            var drawing = new Drawing(anchor);
-            run.Append(drawing);
-            return new WordShape(paragraph._document!, paragraph._paragraph!, run, drawing);
+            var WordDrawing = new WordDrawing(anchor);
+            run.Append(WordDrawing);
+            return new WordShape(paragraph._document!, paragraph._paragraph!, run, WordDrawing);
         }
 
         private static string NormalizeHexNoHash(string? v) {
@@ -483,14 +483,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the fill color using <see cref="SixLabors.ImageSharp.Color"/>.
+        /// Gets or sets the fill color using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
         /// </summary>
-        public SixLabors.ImageSharp.Color FillColor {
+        public OfficeIMO.Drawing.OfficeColor FillColor {
             get {
                 var hex = FillColorHex;
-                if (string.IsNullOrEmpty(hex)) return SixLabors.ImageSharp.Color.Transparent;
+                if (string.IsNullOrEmpty(hex)) return OfficeIMO.Drawing.OfficeColor.Transparent;
                 if (!hex.StartsWith("#", StringComparison.Ordinal)) hex = "#" + hex;
-                return SixLabors.ImageSharp.Color.Parse(hex);
+                return OfficeIMO.Drawing.OfficeColor.Parse(hex);
             }
             set => FillColorHex = value.ToHexColor();
         }
@@ -640,14 +640,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Outline color using <see cref="SixLabors.ImageSharp.Color"/>.
+        /// Outline color using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
         /// </summary>
-        public SixLabors.ImageSharp.Color StrokeColor {
+        public OfficeIMO.Drawing.OfficeColor StrokeColor {
             get {
                 var hex = StrokeColorHex;
-                if (hex is not { Length: > 0 } s) return SixLabors.ImageSharp.Color.Transparent;
+                if (hex is not { Length: > 0 } s) return OfficeIMO.Drawing.OfficeColor.Transparent;
                 if (!s.StartsWith("#", StringComparison.Ordinal)) s = "#" + s;
-                return SixLabors.ImageSharp.Color.Parse(s);
+                return OfficeIMO.Drawing.OfficeColor.Parse(s);
             }
             set => StrokeColorHex = value.ToHexColor();
         }

@@ -55,8 +55,11 @@
     </ItemGroup>
 
   <ItemGroup>
-        <PackageReference Include="SixLabors.ImageSharp" Version="2.1.11" />
         <PackageReference Include="System.IO.Packaging" Version="10.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+        <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
   </ItemGroup>
 
   

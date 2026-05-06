@@ -36,7 +36,7 @@ The `.NET Framework 4.7.2` target is included for some packages only when buildi
 
 ## Native Dependencies
 
-For the core document packages, OfficeIMO mainly relies on managed libraries such as the Open XML SDK and ImageSharp. The main caveat is `OfficeIMO.Word.Pdf`, which uses QuestPDF and SkiaSharp, so runtime packaging and host fonts matter more there than they do for the rest of the suite.
+For the core document packages, OfficeIMO mainly relies on managed libraries such as the Open XML SDK and first-party drawing helpers. The main caveat is `OfficeIMO.Word.Pdf`, which uses QuestPDF and SkiaSharp, so runtime packaging and host fonts matter more there than they do for the rest of the suite.
 
 ## AOT Compilation
 

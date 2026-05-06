@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
-using Color = SixLabors.ImageSharp.Color;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class HyperLinks {

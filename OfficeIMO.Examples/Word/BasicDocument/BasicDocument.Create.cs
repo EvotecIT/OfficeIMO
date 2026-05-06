@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -25,18 +25,18 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Adding paragraph with some text");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                Console.WriteLine(SixLabors.ImageSharp.Color.Blue.ToHexColor());
-                Console.WriteLine(SixLabors.ImageSharp.Color.Crimson.ToHexColor());
-                Console.WriteLine(SixLabors.ImageSharp.Color.Aquamarine.ToHexColor());
+                Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Blue.ToHexColor());
+                Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Crimson.ToHexColor());
+                Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Aquamarine.ToHexColor());
 
-                paragraph.Color = SixLabors.ImageSharp.Color.Red;
+                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 paragraph = document.AddParagraph("Adding another paragraph with some more text");
                 paragraph.Bold = true;
                 paragraph = paragraph.AddText(" , but now we also decided to add more text to this paragraph using different style");
                 paragraph.Underline = UnderlineValues.DashLong;
                 paragraph = paragraph.AddText(" , and we still continue adding more text to existing paragraph.");
-                paragraph.Color = SixLabors.ImageSharp.Color.CornflowerBlue;
+                paragraph.Color = OfficeIMO.Drawing.OfficeColor.CornflowerBlue;
 
                 document.Save(openWord);
             }

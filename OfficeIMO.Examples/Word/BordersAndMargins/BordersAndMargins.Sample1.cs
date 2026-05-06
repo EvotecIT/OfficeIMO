@@ -13,20 +13,20 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Section 0");
 
                 document.Sections[0].Borders.LeftStyle = BorderValues.PalmsColor;
-                document.Sections[0].Borders.LeftColor = SixLabors.ImageSharp.Color.Aqua;
+                document.Sections[0].Borders.LeftColor = OfficeIMO.Drawing.OfficeColor.Aqua;
                 document.Sections[0].Borders.LeftSpace = 24;
                 document.Sections[0].Borders.LeftSize = 24;
 
                 document.Sections[0].Borders.RightStyle = BorderValues.BabyPacifier;
-                document.Sections[0].Borders.RightColor = SixLabors.ImageSharp.Color.Red;
+                document.Sections[0].Borders.RightColor = OfficeIMO.Drawing.OfficeColor.Red;
                 document.Sections[0].Borders.RightSize = 12;
 
                 document.Sections[0].Borders.TopStyle = BorderValues.SharksTeeth;
-                document.Sections[0].Borders.TopColor = SixLabors.ImageSharp.Color.GreenYellow;
+                document.Sections[0].Borders.TopColor = OfficeIMO.Drawing.OfficeColor.GreenYellow;
                 document.Sections[0].Borders.TopSize = 10;
 
                 document.Sections[0].Borders.BottomStyle = BorderValues.Thick;
-                document.Sections[0].Borders.BottomColor = SixLabors.ImageSharp.Color.Blue;
+                document.Sections[0].Borders.BottomColor = OfficeIMO.Drawing.OfficeColor.Blue;
                 document.Sections[0].Borders.BottomSize = 15;
 
                 document.Save(openWord);

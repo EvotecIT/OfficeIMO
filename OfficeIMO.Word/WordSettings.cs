@@ -496,11 +496,11 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Sets the background color using a <see cref="SixLabors.ImageSharp.Color"/> value.
+        /// Sets the background color using a <see cref="OfficeIMO.Drawing.OfficeColor"/> value.
         /// </summary>
         /// <param name="backgroundColor">Color value.</param>
         /// <returns>The current <see cref="WordSettings"/> instance.</returns>
-        public WordSettings SetBackgroundColor(SixLabors.ImageSharp.Color backgroundColor) {
+        public WordSettings SetBackgroundColor(OfficeIMO.Drawing.OfficeColor backgroundColor) {
             BackgroundColor = backgroundColor.ToHexColor();
             return this;
         }

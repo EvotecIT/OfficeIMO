@@ -563,7 +563,7 @@ namespace OfficeIMO.Visio {
             return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result : 0;
         }
 
-        private static SixLabors.ImageSharp.Color ParseColor(string? value, SixLabors.ImageSharp.Color fallback) {
+        private static OfficeIMO.Drawing.OfficeColor ParseColor(string? value, OfficeIMO.Drawing.OfficeColor fallback) {
             string? normalized = NormalizeCellLiteral(value);
             return string.IsNullOrWhiteSpace(normalized) ? fallback : VisioHelpers.FromVisioColor(normalized!);
         }

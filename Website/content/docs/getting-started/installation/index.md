@@ -170,7 +170,7 @@ Get-Module PSWriteOffice
 OfficeIMO.Word and OfficeIMO.Excel depend on:
 
 - **DocumentFormat.OpenXml** (>= 3.3.0, < 4.0.0) -- The Microsoft Open XML SDK.
-- **SixLabors.ImageSharp** (2.1.11) -- Cross-platform image processing for image insertion and measurement.
+- **OfficeIMO.Drawing** -- First-party color and image metadata helpers used by the document packages.
 
 OfficeIMO.Word.Html additionally depends on:
 

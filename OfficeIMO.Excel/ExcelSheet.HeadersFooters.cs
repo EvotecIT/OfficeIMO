@@ -1,7 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using SixLabors.ImageSharp;
+using OfficeIMO.Drawing;
 using System.Globalization;
 
 namespace OfficeIMO.Excel {
@@ -136,7 +136,7 @@ namespace OfficeIMO.Excel {
                 if (hf == null) {
                     hf = new HeaderFooter();
                     // Per Excel behavior, place HeaderFooter before any Drawing when possible
-                    var drawing = ws.GetFirstChild<Drawing>();
+                    var drawing = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
                     if (drawing != null) ws.InsertBefore(hf, drawing);
                     else {
                         var after = ws.GetFirstChild<PageSetup>();
@@ -286,7 +286,7 @@ namespace OfficeIMO.Excel {
             var hf = ws.GetFirstChild<HeaderFooter>();
             if (hf == null) {
                 hf = new HeaderFooter();
-                var drawingBefore = ws.GetFirstChild<Drawing>();
+                var drawingBefore = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
                 if (drawingBefore != null) ws.InsertBefore(hf, drawingBefore);
                 else { var after = ws.GetFirstChild<PageSetup>(); if (after != null) ws.InsertAfter(hf, after); else ws.Append(hf); }
             }
@@ -384,11 +384,9 @@ namespace OfficeIMO.Excel {
             double hPt = heightPoints ?? 0;
             if (wPt <= 0 || hPt <= 0) {
                 try {
-                    using var img = Image.Load(imageBytes);
-                    double dpiX = 96.0, dpiY = 96.0; // ImageSharp stores resolution separately; defaults vary
-                    var md = img.Metadata.ResolutionUnits;
-                    if (img.Metadata.HorizontalResolution > 0) dpiX = img.Metadata.HorizontalResolution;
-                    if (img.Metadata.VerticalResolution > 0) dpiY = img.Metadata.VerticalResolution;
+                    var img = OfficeImageReader.Identify(imageBytes);
+                    double dpiX = img.DpiX;
+                    double dpiY = img.DpiY;
                     if (wPt <= 0) wPt = img.Width * 72.0 / dpiX;
                     if (hPt <= 0) hPt = img.Height * 72.0 / dpiY;
                 } catch { wPt = wPt <= 0 ? 144.0 : wPt; hPt = hPt <= 0 ? 48.0 : hPt; }

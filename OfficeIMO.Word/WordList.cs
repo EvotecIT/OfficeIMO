@@ -154,7 +154,7 @@ public partial class WordList : WordElement {
     /// <summary>
     /// Gets or sets the color of the numbering symbols.
     /// </summary>
-    public SixLabors.ImageSharp.Color? Color {
+    public OfficeIMO.Drawing.OfficeColor? Color {
         get {
             if (ColorHex == "") {
                 return null;

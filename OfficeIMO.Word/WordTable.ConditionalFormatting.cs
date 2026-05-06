@@ -1,4 +1,4 @@
-using SixLabors.ImageSharp;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Word {
     public partial class WordTable {

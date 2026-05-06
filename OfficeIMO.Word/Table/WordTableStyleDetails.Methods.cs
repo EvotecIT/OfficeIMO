@@ -12,7 +12,7 @@ public partial class WordTableStyleDetails {
     /// <param name="style">Border style for all sides</param>
     /// <param name="size">Border size for all sides</param>
     /// <param name="color">Border color for all sides</param>
-    public void SetBordersForAllSides(BorderValues style, UInt32Value size, SixLabors.ImageSharp.Color color) {
+    public void SetBordersForAllSides(BorderValues style, UInt32Value size, OfficeIMO.Drawing.OfficeColor color) {
         _table.CheckTableProperties();
 
         string colorHex = color.ToHexColor();
@@ -39,8 +39,8 @@ public partial class WordTableStyleDetails {
     /// <param name="insideSize">Size for inside borders</param>
     /// <param name="insideColor">Color for inside borders</param>
     public void SetBordersOutsideInside(
-        BorderValues outsideStyle, UInt32Value outsideSize, SixLabors.ImageSharp.Color outsideColor,
-        BorderValues insideStyle, UInt32Value insideSize, SixLabors.ImageSharp.Color insideColor) {
+        BorderValues outsideStyle, UInt32Value outsideSize, OfficeIMO.Drawing.OfficeColor outsideColor,
+        BorderValues insideStyle, UInt32Value insideSize, OfficeIMO.Drawing.OfficeColor insideColor) {
         _table.CheckTableProperties();
 
         string outsideColorHex = outsideColor.ToHexColor();
@@ -62,12 +62,12 @@ public partial class WordTableStyleDetails {
     /// Creates a TableBorders object with custom settings for each side
     /// </summary>
     public void SetCustomBorders(
-        BorderValues? topStyle = null, UInt32Value? topSize = null, SixLabors.ImageSharp.Color? topColor = null,
-        BorderValues? bottomStyle = null, UInt32Value? bottomSize = null, SixLabors.ImageSharp.Color? bottomColor = null,
-        BorderValues? leftStyle = null, UInt32Value? leftSize = null, SixLabors.ImageSharp.Color? leftColor = null,
-        BorderValues? rightStyle = null, UInt32Value? rightSize = null, SixLabors.ImageSharp.Color? rightColor = null,
-        BorderValues? insideHStyle = null, UInt32Value? insideHSize = null, SixLabors.ImageSharp.Color? insideHColor = null,
-        BorderValues? insideVStyle = null, UInt32Value? insideVSize = null, SixLabors.ImageSharp.Color? insideVColor = null) {
+        BorderValues? topStyle = null, UInt32Value? topSize = null, OfficeIMO.Drawing.OfficeColor? topColor = null,
+        BorderValues? bottomStyle = null, UInt32Value? bottomSize = null, OfficeIMO.Drawing.OfficeColor? bottomColor = null,
+        BorderValues? leftStyle = null, UInt32Value? leftSize = null, OfficeIMO.Drawing.OfficeColor? leftColor = null,
+        BorderValues? rightStyle = null, UInt32Value? rightSize = null, OfficeIMO.Drawing.OfficeColor? rightColor = null,
+        BorderValues? insideHStyle = null, UInt32Value? insideHSize = null, OfficeIMO.Drawing.OfficeColor? insideHColor = null,
+        BorderValues? insideVStyle = null, UInt32Value? insideVSize = null, OfficeIMO.Drawing.OfficeColor? insideVColor = null) {
         _table.CheckTableProperties();
 
         // Get existing borders or create new

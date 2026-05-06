@@ -2,7 +2,7 @@ using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word;
 using System;
 using System.IO;
-using SixLabors.ImageSharp;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Pdf {

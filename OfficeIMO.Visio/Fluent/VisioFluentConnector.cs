@@ -1,5 +1,5 @@
 using System;
-using SixLabors.ImageSharp;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio.Fluent {
     /// <summary>

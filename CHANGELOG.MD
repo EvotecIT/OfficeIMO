@@ -1,5 +1,9 @@
 ## Unreleased
+### Breaking Changes
+* Replace public color/image helper usage of `SixLabors.ImageSharp` with first-party `OfficeIMO.Drawing` types. Consumers that passed `SixLabors.ImageSharp.Color` should migrate to `OfficeIMO.Drawing.OfficeColor`.
+
 ### What's Changed
+* Add `OfficeIMO.Drawing` as a shared zero-dependency color and image metadata layer, including header-only detection for PNG, JPEG, GIF, BMP, TIFF, ICO, PCX, EMF, placeable WMF, and SVG.
 * Add AI-ingestion focused chunk extraction APIs (Word/Excel/PowerPoint) and new `OfficeIMO.Reader` facade (Stream/byte[] supported) by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1430
 * Continue OfficeIMO.Markdown reader/AST/query cleanup and public API hardening across headings, lists, front matter, traversal helpers, and renderer contracts
 * Add OfficeIMO.Markdown benchmark harness for representative parse and HTML-render workloads by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1684

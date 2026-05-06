@@ -23,7 +23,7 @@ document.AddParagraph("Hello, World!").Bold = true;
 var paragraph = document.AddParagraph("This document was created with OfficeIMO.");
 paragraph.FontFamily = "Calibri";
 paragraph.FontSize = 14;
-paragraph.Color = SixLabors.ImageSharp.Color.DarkBlue;
+paragraph.Color = OfficeIMO.Drawing.OfficeColor.DarkBlue;
 
 // Add a table
 var table = document.AddTable(3, 3, WordTableStyle.TableGrid);

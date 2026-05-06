@@ -4,6 +4,61 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class PackageDependencyGuardrailTests {
+    [Fact]
+    public void Projects_DoNotReferenceImageSharpPackage() {
+        var projectFiles = Directory.EnumerateFiles(GetRepositoryRoot(), "*.csproj", SearchOption.AllDirectories)
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}Ignore{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => new FileInfo(path).Length > 0)
+            .ToArray();
+
+        var offenders = projectFiles
+            .Where(ProjectReferencesImageSharp)
+            .ToArray();
+
+        Assert.Empty(offenders);
+    }
+
+    [Fact]
+    public void OfficeImoDrawing_HasNoPackageReferences() {
+        var projectPath = Path.Combine(GetRepositoryRoot(), "OfficeIMO.Drawing", "OfficeIMO.Drawing.csproj");
+        Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
+
+        var document = XDocument.Load(projectPath);
+        var ns = document.Root?.Name.Namespace ?? XNamespace.None;
+
+        var references = document
+            .Descendants(ns + "PackageReference")
+            .Select(static e => (string?)e.Attribute("Include") ?? string.Empty)
+            .Where(static include => !string.IsNullOrWhiteSpace(include))
+            .ToArray();
+
+        Assert.Empty(references);
+    }
+
+    [Theory]
+    [InlineData("OfficeIMO.Word/OfficeIMO.Word.csproj")]
+    [InlineData("OfficeIMO.Excel/OfficeIMO.Excel.csproj")]
+    [InlineData("OfficeIMO.Visio/OfficeIMO.Visio.csproj")]
+    [InlineData("OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj")]
+    [InlineData("OfficeIMO.Word.Markdown/OfficeIMO.Word.Markdown.csproj")]
+    public void ImageAndColorConsumers_ReferenceOfficeImoDrawing(string relativeProjectPath) {
+        var projectPath = Path.Combine(GetRepositoryRoot(), relativeProjectPath.Replace('/', Path.DirectorySeparatorChar));
+        Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
+
+        var document = XDocument.Load(projectPath);
+        var ns = document.Root?.Name.Namespace ?? XNamespace.None;
+
+        var references = document
+            .Descendants(ns + "ProjectReference")
+            .Select(static e => ((string?)e.Attribute("Include"))?.Replace('/', Path.DirectorySeparatorChar) ?? string.Empty)
+            .Where(static include => include.EndsWith(Path.Combine("OfficeIMO.Drawing", "OfficeIMO.Drawing.csproj"), StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        Assert.Single(references);
+    }
+
     [Theory]
     [InlineData("OfficeIMO.Reader/OfficeIMO.Reader.csproj")]
     [InlineData("OfficeIMO.Reader.Json/OfficeIMO.Reader.Json.csproj")]
@@ -79,5 +134,14 @@ public sealed class PackageDependencyGuardrailTests {
         }
 
         throw new DirectoryNotFoundException("Unable to locate OfficeIMO repository root from test runtime base directory.");
+    }
+
+    private static bool ProjectReferencesImageSharp(string projectPath) {
+        var document = XDocument.Load(projectPath);
+        var ns = document.Root?.Name.Namespace ?? XNamespace.None;
+
+        return document
+            .Descendants(ns + "PackageReference")
+            .Any(static e => string.Equals((string?)e.Attribute("Include"), "SixLabors.ImageSharp", StringComparison.Ordinal));
     }
 }

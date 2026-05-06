@@ -5,7 +5,7 @@ OfficeIMO.Visio provides helpers for creating and editing .vsdx drawings with Op
 - Targets: netstandard2.0, net472 (Windows), net8.0, net10.0
 - License: MIT
 - NuGet: `OfficeIMO.Visio`
-- Dependencies: SixLabors.ImageSharp, System.IO.Packaging (Windows), Microsoft.Bcl.AsyncInterfaces (net472)
+- Dependencies: OfficeIMO.Drawing, System.IO.Packaging (Windows), Microsoft.Bcl.AsyncInterfaces (net472)
 
 ## Install
 

@@ -17,13 +17,13 @@ OfficeIMO packages are published under the [MIT License](https://github.com/Evot
 
 | OfficeIMO package or family | Upstream components used in the repo today | Why they are there |
 |---|---|---|
-| `OfficeIMO.Word` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)`, `SixLabors.ImageSharp` `2.1.11` | OOXML document model, packaging, colors, and image handling |
-| `OfficeIMO.Excel` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)`, `SixLabors.ImageSharp` `2.1.11`, `SixLabors.Fonts` `1.0.1` | Workbook model, image support, and font measurement/layout work |
+| `OfficeIMO.Word` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)` | OOXML document model and packaging; colors and image metadata use first-party `OfficeIMO.Drawing` |
+| `OfficeIMO.Excel` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)`, `SixLabors.Fonts` `1.0.1` | Workbook model, first-party image metadata, and font measurement/layout work |
 | `OfficeIMO.PowerPoint` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)` | Presentation OOXML model and packaging |
 | `OfficeIMO.Word.Html` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)`, `AngleSharp` `1.3.0`, `AngleSharp.Css` `1.0.0-beta.157` | HTML and CSS parsing for Word conversion workflows |
 | `OfficeIMO.Markdown.Html` | `AngleSharp` `1.3.0` | HTML parsing for Markdown conversion and bridge scenarios |
 | `OfficeIMO.Word.Pdf` | `QuestPDF` `2026.2.0`, `SkiaSharp` `3.119.2` | PDF document layout and graphics rendering |
-| `OfficeIMO.Visio` | `SixLabors.ImageSharp` `2.1.11`, `System.IO.Packaging` `10.0.3` | Image handling plus OPC packaging support for `.vsdx` files |
+| `OfficeIMO.Visio` | `System.IO.Packaging` `10.0.3` | OPC packaging support for `.vsdx` files; colors and image metadata use first-party `OfficeIMO.Drawing` |
 | `OfficeIMO.Markdown` | No third-party runtime package references | Core package is intentionally dependency-light |
 | `OfficeIMO.CSV` | No third-party runtime package references | Core package is intentionally dependency-light |
 | `OfficeIMO.Reader` | Composes first-party OfficeIMO packages | Its effective upstream surface follows the format packages it wraps |
@@ -35,7 +35,6 @@ Additional Microsoft compatibility helpers may appear on older target frameworks
 | Upstream project | License or model | OfficeIMO packages that use it | What to know |
 |---|---|---|---|
 | [DocumentFormat.OpenXml](https://www.nuget.org/packages/DocumentFormat.OpenXml/3.5.1) | MIT | Word, Excel, PowerPoint, Word.Html | This is Microsoft's official Open XML SDK and the main OOXML building block in the Office document packages. |
-| [SixLabors.ImageSharp 2.1.11](https://www.nuget.org/packages/SixLabors.ImageSharp/2.1.11) | Apache License 2.0 | Word, Excel, Visio | This is the exact version currently pinned in the repo. If the package line is upgraded in future, re-check the upstream terms rather than assuming the same license model still applies. |
 | [SixLabors.Fonts 1.0.1](https://www.nuget.org/packages/SixLabors.Fonts/1.0.1) | Apache License 2.0 | Excel | OfficeIMO currently pins the `1.0.1` line. As with other Six Labors packages, review the exact package version you ship instead of assuming newer lines follow the same terms. |
 | [AngleSharp](https://www.nuget.org/packages/AngleSharp/1.3.0) | MIT | Markdown.Html, Word.Html | Used for HTML parsing and DOM work. |
 | [AngleSharp.Css](https://www.nuget.org/packages/AngleSharp.Css/1.0.0-beta.157) | MIT | Word.Html | Adds CSS parsing on top of AngleSharp for HTML conversion flows. |

@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Fluent;
-using SixLabors.ImageSharp;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Examples.Visio {
     /// <summary>

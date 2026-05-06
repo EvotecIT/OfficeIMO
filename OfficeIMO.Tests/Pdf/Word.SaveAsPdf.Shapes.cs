@@ -1,6 +1,6 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
-using SixLabors.ImageSharp;
+using Color = OfficeIMO.Drawing.OfficeColor;
 using System.IO;
 using System.IO.Compression;
 using System.Text;

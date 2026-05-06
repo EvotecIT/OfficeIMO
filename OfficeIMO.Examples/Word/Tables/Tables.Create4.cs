@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using Color = SixLabors.ImageSharp.Color;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Tables {
@@ -28,7 +28,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Border Left Style: " + wordTable.Rows[1].Cells[0].Borders.LeftStyle);
 
                 wordTable.Rows[1].Cells[1].Borders.LeftStyle = BorderValues.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.LeftColorHex = SixLabors.ImageSharp.Color.OrangeRed.ToHexColor();
+                wordTable.Rows[1].Cells[1].Borders.LeftColorHex = OfficeIMO.Drawing.OfficeColor.OrangeRed.ToHexColor();
 
                 wordTable.Rows[2].Cells[1].Borders.LeftStyle = BorderValues.Double;
                 wordTable.Rows[2].Cells[1].Borders.LeftColor = Color.Gold;

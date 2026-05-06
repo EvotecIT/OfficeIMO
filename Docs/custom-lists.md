@@ -5,7 +5,7 @@ OfficeIMO supports creating custom bullet lists using `AddCustomBulletList` and 
 allows you to manually configure each level.
 
 ```csharp
-var custom = document.AddCustomBulletList(WordListLevelKind.BulletSquareSymbol, "Courier New", SixLabors.ImageSharp.Color.Red, fontSize: 16);
+var custom = document.AddCustomBulletList(WordListLevelKind.BulletSquareSymbol, "Courier New", OfficeIMO.Drawing.OfficeColor.Red, fontSize: 16);
 custom.AddItem("Custom bullet item");
 ```
 

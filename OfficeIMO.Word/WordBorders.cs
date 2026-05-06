@@ -1,4 +1,4 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -75,9 +75,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the left border color using a <see cref="SixLabors.ImageSharp.Color"/> value.
+        /// Gets or sets the left border color using a <see cref="OfficeIMO.Drawing.OfficeColor"/> value.
         /// </summary>
-        public SixLabors.ImageSharp.Color LeftColor {
+        public OfficeIMO.Drawing.OfficeColor LeftColor {
             get {
                 var hex = LeftColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("LeftColorHex is null"));
@@ -209,9 +209,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the right border color using a <see cref="SixLabors.ImageSharp.Color"/> value.
+        /// Gets or sets the right border color using a <see cref="OfficeIMO.Drawing.OfficeColor"/> value.
         /// </summary>
-        public SixLabors.ImageSharp.Color RightColor {
+        public OfficeIMO.Drawing.OfficeColor RightColor {
             get {
                 var hex = RightColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("RightColorHex is null"));
@@ -343,9 +343,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the top border color using a <see cref="SixLabors.ImageSharp.Color"/> value.
+        /// Gets or sets the top border color using a <see cref="OfficeIMO.Drawing.OfficeColor"/> value.
         /// </summary>
-        public SixLabors.ImageSharp.Color TopColor {
+        public OfficeIMO.Drawing.OfficeColor TopColor {
             get {
                 var hex = TopColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("TopColorHex is null"));
@@ -480,9 +480,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the bottom border color using a <see cref="SixLabors.ImageSharp.Color"/> value.
+        /// Gets or sets the bottom border color using a <see cref="OfficeIMO.Drawing.OfficeColor"/> value.
         /// </summary>
-        public SixLabors.ImageSharp.Color BottomColor {
+        public OfficeIMO.Drawing.OfficeColor BottomColor {
             get {
                 var hex = BottomColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("BottomColorHex is null"));

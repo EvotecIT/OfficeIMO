@@ -1,4 +1,4 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -48,7 +48,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document">Parent document.</param>
         /// <param name="color">Initial color.</param>
-        public WordBackground(WordDocument document, SixLabors.ImageSharp.Color color) {
+        public WordBackground(WordDocument document, OfficeIMO.Drawing.OfficeColor color) {
             _document = document;
 
             DocumentBackground documentBackground = new DocumentBackground() { Color = color.ToHexColor() };
@@ -67,11 +67,11 @@ namespace OfficeIMO.Word {
             return this;
         }
         /// <summary>
-        /// Sets the background color using a <see cref="SixLabors.ImageSharp.Color"/>.
+        /// Sets the background color using a <see cref="OfficeIMO.Drawing.OfficeColor"/>.
         /// </summary>
         /// <param name="color">Color value.</param>
         /// <returns>The current instance.</returns>
-        public WordBackground SetColor(SixLabors.ImageSharp.Color color) {
+        public WordBackground SetColor(OfficeIMO.Drawing.OfficeColor color) {
             this.Color = color.ToHexColor();
             return this;
         }

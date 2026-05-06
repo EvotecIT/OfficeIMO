@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Drawing;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.Word.Html;
 using System.Collections.Generic;
@@ -253,28 +254,25 @@ namespace OfficeIMO.Word.Markdown {
         private static bool TryGetImageDimensionsFromFile(string filePath, out double width, out double height) {
             width = 0;
             height = 0;
-            try {
-                using var image = SixLabors.ImageSharp.Image.Load(filePath, out _);
+            if (OfficeImageReader.TryIdentify(File.ReadAllBytes(filePath), filePath, out var image)) {
                 width = image.Width;
                 height = image.Height;
                 return width > 0 && height > 0;
-            } catch {
-                return false;
             }
+
+            return false;
         }
 
         private static bool TryGetImageDimensionsFromBytes(byte[] data, out double width, out double height) {
             width = 0;
             height = 0;
-            try {
-                using var stream = new System.IO.MemoryStream(data, writable: false);
-                using var image = SixLabors.ImageSharp.Image.Load(stream, out _);
+            if (OfficeImageReader.TryIdentify(data, null, out var image)) {
                 width = image.Width;
                 height = image.Height;
                 return width > 0 && height > 0;
-            } catch {
-                return false;
             }
+
+            return false;
         }
 
         private static bool NormalizePositiveDimension(double? value, out double normalized) {

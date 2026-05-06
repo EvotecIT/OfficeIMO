@@ -1,3 +1,4 @@
+using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
 using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;

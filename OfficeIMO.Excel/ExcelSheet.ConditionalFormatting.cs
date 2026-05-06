@@ -1,6 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
-using SixLaborsColor = SixLabors.ImageSharp.Color;
+using OfficeColor = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -63,7 +63,7 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private static string ConvertColor(SixLaborsColor color) {
+        private static string ConvertColor(OfficeColor color) {
             return "FF" + color.ToHexColor();
         }
 
@@ -73,7 +73,7 @@ namespace OfficeIMO.Excel {
         /// <param name="range">A1-style range to format.</param>
         /// <param name="startColor">Starting color of the scale.</param>
         /// <param name="endColor">Ending color of the scale.</param>
-        public void AddConditionalColorScale(string range, SixLaborsColor startColor, SixLaborsColor endColor) {
+        public void AddConditionalColorScale(string range, OfficeColor startColor, OfficeColor endColor) {
             AddConditionalColorScale(range, ConvertColor(startColor), ConvertColor(endColor));
         }
 
@@ -141,7 +141,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="range">A1-style range to format.</param>
         /// <param name="color">Bar color.</param>
-        public void AddConditionalDataBar(string range, SixLaborsColor color) {
+        public void AddConditionalDataBar(string range, OfficeColor color) {
             AddConditionalDataBar(range, ConvertColor(color));
         }
 

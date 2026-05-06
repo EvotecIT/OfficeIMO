@@ -1,9 +1,9 @@
-using SixLabors.ImageSharp;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Excel {
     internal static class ExcelColor {
         /// <summary>
-        /// Converts SixLabors Color to ARGB hex string expected by Spreadsheet colors (AARRGGBB, uppercase).
+        /// Converts OfficeIMO color to ARGB hex string expected by Spreadsheet colors (AARRGGBB, uppercase).
         /// </summary>
         public static string ToArgbHex(Color color) {
             var hex = color.ToHex().ToUpperInvariant(); // RRGGBBAA or RRGGBB

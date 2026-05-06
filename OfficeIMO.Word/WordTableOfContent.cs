@@ -249,7 +249,7 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                if (!instruction.Contains("TOC", StringComparison.OrdinalIgnoreCase)) {
+                if (instruction!.IndexOf("TOC", StringComparison.OrdinalIgnoreCase) < 0) {
                     continue;
                 }
 
@@ -274,7 +274,7 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                if (!instructionText.Contains("TOC", StringComparison.OrdinalIgnoreCase)) {
+                if (instructionText.IndexOf("TOC", StringComparison.OrdinalIgnoreCase) < 0) {
                     continue;
                 }
 

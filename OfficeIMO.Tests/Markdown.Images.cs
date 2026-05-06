@@ -4,7 +4,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp;
+using Color = OfficeIMO.Drawing.OfficeColor;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 using Xunit;
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
                 AllowLocalImages = true
             });
 
-            using var image = Image.Load(imagePath, out _);
+            var image = OfficeIMO.Drawing.OfficeImageReader.Identify(imagePath);
 
             Assert.Single(doc.Images);
             Assert.Equal("Local", doc.Images[0].Description);

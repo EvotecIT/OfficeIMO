@@ -530,7 +530,7 @@ namespace OfficeIMO.Word {
         /// <param name="size">The size of the line.</param>
         /// <param name="space">The space the line takes up.</param>
         /// <returns>The new Paragraph after the line.</returns>
-        public WordParagraph AddHorizontalLine(BorderValues? lineType = null, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
+        public WordParagraph AddHorizontalLine(BorderValues? lineType = null, OfficeIMO.Drawing.OfficeColor? color = null, uint size = 12, uint space = 1) {
             lineType ??= BorderValues.Single;
             var paragraphProperties = _paragraph!.ParagraphProperties ??= new ParagraphProperties();
             paragraphProperties.ParagraphBorders = new ParagraphBorders {
@@ -835,7 +835,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Creates a chart ready for combining bar and line series.
         /// Use <see cref="WordChart.AddChartAxisX"/> to supply category labels
-        /// and then call <see cref="WordChart.AddBar(string,int,SixLabors.ImageSharp.Color)"/> or
+        /// and then call <see cref="WordChart.AddBar(string,int,OfficeIMO.Drawing.OfficeColor)"/> or
         /// <see cref="WordChart.AddLine"/> to add data. <c>AddChartAxisX</c> must be called before adding any
         /// series so that both chart types share the same axes.
         /// </summary>
@@ -958,9 +958,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Add a rectangle shape to the paragraph using <see cref="SixLabors.ImageSharp.Color"/>.
+        /// Add a rectangle shape to the paragraph using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
         /// </summary>
-        public WordShape AddShape(double widthPt, double heightPt, SixLabors.ImageSharp.Color fillColor) {
+        public WordShape AddShape(double widthPt, double heightPt, OfficeIMO.Drawing.OfficeColor fillColor) {
             return AddShape(widthPt, heightPt, fillColor.ToHexColor());
         }
 
@@ -1001,10 +1001,10 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds a basic shape to the paragraph using <see cref="SixLabors.ImageSharp.Color"/> values.
+        /// Adds a basic shape to the paragraph using <see cref="OfficeIMO.Drawing.OfficeColor"/> values.
         /// </summary>
         public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
-            SixLabors.ImageSharp.Color fillColor, SixLabors.ImageSharp.Color strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
+            OfficeIMO.Drawing.OfficeColor fillColor, OfficeIMO.Drawing.OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
             return AddShape(shapeType, widthPt, heightPt, fillColor.ToHexColor(), strokeColor.ToHexColor(), strokeWeightPt, arcSize);
         }
 
@@ -1047,9 +1047,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Add a line shape to the paragraph using <see cref="SixLabors.ImageSharp.Color"/>.
+        /// Add a line shape to the paragraph using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
         /// </summary>
-        public WordLine AddLine(double startXPt, double startYPt, double endXPt, double endYPt, SixLabors.ImageSharp.Color color, double strokeWeightPt = 1) {
+        public WordLine AddLine(double startXPt, double startYPt, double endXPt, double endYPt, OfficeIMO.Drawing.OfficeColor color, double strokeWeightPt = 1) {
             return AddLine(startXPt, startYPt, endXPt, endYPt, color.ToHexColor(), strokeWeightPt);
         }
 

@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -10,7 +11,7 @@ namespace OfficeIMO.Word {
     public partial class WordChart {
         /// <summary>
         /// Built‑in color palettes for charts.
-        /// Used by <see cref="WordChart.ApplyPalette(WordChartPalette, bool, bool, bool, System.Collections.Generic.Dictionary{string, SixLabors.ImageSharp.Color}?)"/>
+        /// Used by <see cref="WordChart.ApplyPalette(WordChartPalette, bool, bool, bool, System.Collections.Generic.Dictionary{string, OfficeIMO.Drawing.OfficeColor}?)"/>
         /// to style series and pie slices in a consistent, professional way.
         /// </summary>
         public enum WordChartPalette {
@@ -46,7 +47,7 @@ namespace OfficeIMO.Word {
                 return id != null ? (ChartPart?)_document.MainDocumentPartRoot.GetPartById(id) : null;
             }
         }
-        private Drawing? _drawing;
+        private WordDrawing? _drawing;
         private Chart? _chart;
         /// <summary>
         /// The current index for values
@@ -60,7 +61,7 @@ namespace OfficeIMO.Word {
         private string? _yAxisTitle;
         private string _axisTitleFontName = "Calibri";
         private int _axisTitleFontSize = 11;
-        private SixLabors.ImageSharp.Color _axisTitleColor = SixLabors.ImageSharp.Color.Black;
+        private OfficeIMO.Drawing.OfficeColor _axisTitleColor = OfficeIMO.Drawing.OfficeColor.Black;
         //private string _id => _document._wordprocessingDocument.MainDocumentPart.GetIdOfPart(_chartPart);
 
         /// <summary>

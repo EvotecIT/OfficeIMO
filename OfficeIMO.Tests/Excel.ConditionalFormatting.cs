@@ -3,7 +3,7 @@ using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
-using SixLaborsColor = SixLabors.ImageSharp.Color;
+using OfficeColor = OfficeIMO.Drawing.OfficeColor;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, 1d);
                 sheet.CellValue(2, 1, 2d);
                 sheet.CellValue(3, 1, 3d);
-                sheet.AddConditionalColorScale("A1:A3", SixLaborsColor.Red, SixLaborsColor.Lime);
+                sheet.AddConditionalColorScale("A1:A3", OfficeColor.Red, OfficeColor.Lime);
                 document.Save();
             }
 
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, 1d);
                 sheet.CellValue(2, 1, 2d);
                 sheet.CellValue(3, 1, 3d);
-                sheet.AddConditionalDataBar("A1:A3", SixLaborsColor.Blue);
+                sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
                 document.Save();
             }
 
@@ -109,8 +109,8 @@ namespace OfficeIMO.Tests {
 
                 var tasks = new Task[] {
                     Task.Run(() => sheet.AddConditionalRule("A1:A3", ConditionalFormattingOperatorValues.GreaterThan, "2")),
-                    Task.Run(() => sheet.AddConditionalColorScale("A1:A3", SixLaborsColor.Red, SixLaborsColor.Blue)),
-                    Task.Run(() => sheet.AddConditionalDataBar("A1:A3", SixLaborsColor.Green))
+                    Task.Run(() => sheet.AddConditionalColorScale("A1:A3", OfficeColor.Red, OfficeColor.Blue)),
+                    Task.Run(() => sheet.AddConditionalDataBar("A1:A3", OfficeColor.Green))
                 };
                 await Task.WhenAll(tasks);
                 document.Save();

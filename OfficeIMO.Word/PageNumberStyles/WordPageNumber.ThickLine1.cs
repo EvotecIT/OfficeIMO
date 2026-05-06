@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 using Ovml = DocumentFormat.OpenXml.Vml.Office;
 using V = DocumentFormat.OpenXml.Vml;
@@ -60,7 +61,7 @@ public partial class WordPageNumber {
 
             AlternateContentChoice alternateContentChoice1 = new AlternateContentChoice() { Requires = "wps" };
 
-            Drawing drawing1 = new Drawing();
+            WordDrawing drawing1 = new WordDrawing();
 
             Wp.Inline inline1 = new Wp.Inline() { DistanceFromTop = (UInt32Value)0U, DistanceFromBottom = (UInt32Value)0U, DistanceFromLeft = (UInt32Value)0U, DistanceFromRight = (UInt32Value)0U, AnchorId = "3081DCFF", EditId = "5004DB72" };
             Wp.Extent extent1 = new Wp.Extent() { Cx = 5467350L, Cy = 54610L };

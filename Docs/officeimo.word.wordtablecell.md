@@ -102,7 +102,7 @@ public Nullable<ShadingPatternValues> ShadingPattern { get; set; }
 
 ### **ShadingFillColor**
 
-Get or set the background color of a cell using SixLabors.Color
+Get or set the background color of a cell using OfficeIMO color.
 
 ```csharp
 public Nullable<Color> ShadingFillColor { get; set; }

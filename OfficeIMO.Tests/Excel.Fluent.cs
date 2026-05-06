@@ -6,7 +6,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Fluent;
-using SixLaborsColor = SixLabors.ImageSharp.Color;
+using OfficeColor = OfficeIMO.Drawing.OfficeColor;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -132,8 +132,8 @@ namespace OfficeIMO.Tests {
                         .Row(r => r.Values("Alice", 1))
                         .Row(r => r.Values("Bob", 2))
                         .AutoFilter("A1:B3", criteria)
-                        .ConditionalColorScale("B2:B3", SixLaborsColor.Red, SixLaborsColor.Lime)
-                        .ConditionalDataBar("B2:B3", SixLaborsColor.Blue)
+                        .ConditionalColorScale("B2:B3", OfficeColor.Red, OfficeColor.Lime)
+                        .ConditionalDataBar("B2:B3", OfficeColor.Blue)
                         .AutoFit(columns: true, rows: true))
                     .End()
                     .Save();

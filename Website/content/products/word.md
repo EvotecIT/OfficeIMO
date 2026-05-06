@@ -38,7 +38,7 @@ using var document = WordDocument.Create("Report.docx");
 // Add a styled heading
 var paragraph = document.AddParagraph("Quarterly Report");
 paragraph.Style = WordParagraphStyle.Heading1;
-paragraph.Color = SixLabors.ImageSharp.Color.DarkBlue;
+paragraph.Color = OfficeIMO.Drawing.OfficeColor.DarkBlue;
 
 // Add body text
 document.AddParagraph("This report summarizes key metrics for Q4 2025.")

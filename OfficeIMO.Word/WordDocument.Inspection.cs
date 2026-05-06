@@ -520,7 +520,7 @@ namespace OfficeIMO.Word {
             }
 
             var text = value.ToString();
-            if (!string.IsNullOrWhiteSpace(text) && !text.Contains("{", StringComparison.Ordinal)) {
+            if (!string.IsNullOrWhiteSpace(text) && text.IndexOf("{", StringComparison.Ordinal) < 0) {
                 return text;
             }
 

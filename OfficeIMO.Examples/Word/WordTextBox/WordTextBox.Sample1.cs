@@ -1,7 +1,7 @@
 using System;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using OfficeIMO.Word;
-using Color = SixLabors.ImageSharp.Color;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class WordTextBox {

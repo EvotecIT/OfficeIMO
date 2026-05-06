@@ -1,6 +1,6 @@
 using System;
 using OfficeIMO.Excel;
-using SixLabors.ImageSharp;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Examples.Excel {
     public static class ConditionalFormatting {

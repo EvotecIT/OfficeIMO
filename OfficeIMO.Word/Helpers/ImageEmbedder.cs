@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using SixLabors.ImageSharp;
+using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
+using OfficeIMO.Drawing;
 using System.Net.Http;
 using A = DocumentFormat.OpenXml.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
@@ -19,10 +20,10 @@ namespace OfficeIMO.Word {
         /// <returns>A <see cref="Run"/> containing the embedded image.</returns>
         public static Run CreateImageRun(MainDocumentPart mainPart, string src) {
             byte[] bytes = ResolveImageSource(src);
-            using Image image = Image.Load(bytes, out var format);
+            OfficeImageInfo image = OfficeImageReader.Identify(bytes);
             long cx = (long)(image.Width * 9525L);
             long cy = (long)(image.Height * 9525L);
-            string contentType = format.DefaultMimeType;
+            string contentType = image.MimeType;
 
             ImagePart imagePart = mainPart.AddImagePart(contentType);
             using (MemoryStream ms = new MemoryStream(bytes)) {
@@ -49,7 +50,7 @@ namespace OfficeIMO.Word {
                                 new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }))) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" })
             ) { DistanceFromTop = 0U, DistanceFromBottom = 0U, DistanceFromLeft = 0U, DistanceFromRight = 0U };
 
-            var drawing = new Drawing(inline);
+            var drawing = new WordDrawing(inline);
             return new Run(drawing);
         }
 

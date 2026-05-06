@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
+using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -173,7 +174,7 @@ namespace OfficeIMO.Word {
             get {
                 if (_run != null) {
                     // DrawingML pictures
-                    var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
+                    var drawing = _run.ChildElements.OfType<WordDrawing>().FirstOrDefault();
                     if (drawing != null) {
                         if (drawing.Inline != null) {
                             if (drawing.Inline.Graphic != null && drawing.Inline.Graphic.GraphicData != null) {
@@ -796,7 +797,7 @@ namespace OfficeIMO.Word {
         public WordChart? Chart {
             get {
                 if (_run is not null) {
-                    var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
+                    var drawing = _run.ChildElements.OfType<WordDrawing>().FirstOrDefault();
                     if (drawing is not null) {
                         if (drawing.Inline is not null) {
                             if (drawing.Inline.Graphic is not null) {
@@ -820,7 +821,7 @@ namespace OfficeIMO.Word {
         public WordSmartArt? SmartArt {
             get {
                 if (_run is not null) {
-                    var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
+                    var drawing = _run.ChildElements.OfType<WordDrawing>().FirstOrDefault();
                     if (drawing is not null) {
                         var data = drawing.Descendants<GraphicData>().FirstOrDefault();
                         if (data is not null && data.Uri == "http://schemas.openxmlformats.org/drawingml/2006/diagram") {
@@ -992,7 +993,7 @@ namespace OfficeIMO.Word {
             get {
                 if (_run is not null) {
                     // DrawingML text boxes
-                    var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
+                    var drawing = _run.ChildElements.OfType<WordDrawing>().FirstOrDefault();
                     if (drawing is not null) {
                         if (drawing.Descendants<Wps.TextBoxInfo2>().Any()) {
                             return new WordTextBox(_document, _paragraph, _run);
@@ -1055,19 +1056,19 @@ namespace OfficeIMO.Word {
                     }
 
                     // DrawingML shapes (non-pictures and not text boxes)
-                    var drawing = _run.ChildElements.OfType<Drawing>().FirstOrDefault();
+                    var drawing = _run.ChildElements.OfType<WordDrawing>().FirstOrDefault();
                     if (drawing is null) {
                         foreach (var ac in _run.ChildElements.OfType<AlternateContent>()) {
                             var choice = ac.ChildElements.OfType<AlternateContentChoice>().FirstOrDefault();
                             if (choice is not null) {
-                                drawing = choice.Descendants<Drawing>().FirstOrDefault();
+                                drawing = choice.Descendants<WordDrawing>().FirstOrDefault();
                                 if (drawing is not null) {
                                     break;
                                 }
                             }
                             var fallback = ac.ChildElements.OfType<AlternateContentFallback>().FirstOrDefault();
                             if (fallback is not null) {
-                                drawing = fallback.Descendants<Drawing>().FirstOrDefault();
+                                drawing = fallback.Descendants<WordDrawing>().FirstOrDefault();
                                 if (drawing is not null) {
                                     break;
                                 }

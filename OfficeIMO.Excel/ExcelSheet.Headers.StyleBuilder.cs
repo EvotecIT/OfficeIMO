@@ -102,10 +102,10 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Applies a solid background fill to the column using an ImageSharp color.
+        /// Applies a solid background fill to the column using an OfficeIMO color.
         /// </summary>
         /// <param name="color">Fill color.</param>
-        public ColumnStyleByHeaderBuilder Background(SixLabors.ImageSharp.Color color) {
+        public ColumnStyleByHeaderBuilder Background(OfficeIMO.Drawing.OfficeColor color) {
             for (int r = _startRow; r <= _endRow; r++)
                 _sheet.CellBackground(r, _colIndex, color);
             return this;
@@ -187,9 +187,9 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Overload that accepts SixLabors colors for convenience.
+        /// Overload that accepts OfficeIMO colors for convenience.
         /// </summary>
-        public ColumnStyleByHeaderBuilder BackgroundByTextMap(System.Collections.Generic.IDictionary<string, SixLabors.ImageSharp.Color> map, bool caseInsensitive = true) {
+        public ColumnStyleByHeaderBuilder BackgroundByTextMap(System.Collections.Generic.IDictionary<string, OfficeIMO.Drawing.OfficeColor> map, bool caseInsensitive = true) {
             if (map == null || map.Count == 0) return this;
             var hex = new System.Collections.Generic.Dictionary<string, string>(caseInsensitive ? System.StringComparer.OrdinalIgnoreCase : System.StringComparer.Ordinal);
             foreach (var kv in map)

@@ -1,6 +1,6 @@
 using DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.Word;
-using SixLabors.ImageSharp;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Charts {
