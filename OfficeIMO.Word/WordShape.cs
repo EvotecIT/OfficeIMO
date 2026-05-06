@@ -41,7 +41,7 @@ namespace OfficeIMO.Word {
         /// <summary>The generic shape element if present.</summary>
         internal V.Shape? _shape;
         /// <summary>DrawingML shape element if present.</summary>
-        internal WordDrawing? _drawing;
+        internal readonly WordDrawing? _drawing;
         internal Wps.WordprocessingShape? _wpsShape;
 
         // Cached templates to avoid rebuilding geometry adjust lists; cloned per use.

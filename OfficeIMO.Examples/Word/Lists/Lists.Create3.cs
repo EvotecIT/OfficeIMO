@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraph.Bold = true;
                 paragraph.SetItalic();
 
-                paragraph = document.AddParagraph("This is second list").SetColor(OfficeIMO.Drawing.OfficeColor.OrangeRed).SetUnderline(UnderlineValues.Double);
+                document.AddParagraph("This is second list").SetColor(OfficeIMO.Drawing.OfficeColor.OrangeRed).SetUnderline(UnderlineValues.Double);
 
                 WordList wordList1 = document.AddList(WordListStyle.HeadingIA1);
                 wordList1.AddItem("Temp 1").SetCapsStyle(CapsStyle.SmallCaps);

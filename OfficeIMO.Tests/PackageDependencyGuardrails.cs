@@ -22,7 +22,7 @@ public sealed class PackageDependencyGuardrailTests {
 
     [Fact]
     public void OfficeImoDrawing_HasNoPackageReferences() {
-        var projectPath = Path.Combine(GetRepositoryRoot(), "OfficeIMO.Drawing", "OfficeIMO.Drawing.csproj");
+        var projectPath = GetRepositoryPath("OfficeIMO.Drawing/OfficeIMO.Drawing.csproj");
         Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
 
         var document = XDocument.Load(projectPath);
@@ -44,7 +44,7 @@ public sealed class PackageDependencyGuardrailTests {
     [InlineData("OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj")]
     [InlineData("OfficeIMO.Word.Markdown/OfficeIMO.Word.Markdown.csproj")]
     public void ImageAndColorConsumers_ReferenceOfficeImoDrawing(string relativeProjectPath) {
-        var projectPath = Path.Combine(GetRepositoryRoot(), relativeProjectPath.Replace('/', Path.DirectorySeparatorChar));
+        var projectPath = GetRepositoryPath(relativeProjectPath);
         Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
 
         var document = XDocument.Load(projectPath);
@@ -52,8 +52,8 @@ public sealed class PackageDependencyGuardrailTests {
 
         var references = document
             .Descendants(ns + "ProjectReference")
-            .Select(static e => ((string?)e.Attribute("Include"))?.Replace('/', Path.DirectorySeparatorChar) ?? string.Empty)
-            .Where(static include => include.EndsWith(Path.Combine("OfficeIMO.Drawing", "OfficeIMO.Drawing.csproj"), StringComparison.OrdinalIgnoreCase))
+            .Select(static e => NormalizeProjectPath((string?)e.Attribute("Include")))
+            .Where(static include => include.EndsWith("OfficeIMO.Drawing/OfficeIMO.Drawing.csproj", StringComparison.OrdinalIgnoreCase))
             .ToArray();
 
         Assert.Single(references);
@@ -68,7 +68,7 @@ public sealed class PackageDependencyGuardrailTests {
     [InlineData("OfficeIMO.Excel.GoogleSheets/OfficeIMO.Excel.GoogleSheets.csproj")]
     [InlineData("OfficeIMO.Word.GoogleDocs/OfficeIMO.Word.GoogleDocs.csproj")]
     public void SystemTextJsonPackageReference_IsLimitedToNonInboxTargets(string relativeProjectPath) {
-        var projectPath = Path.Combine(GetRepositoryRoot(), relativeProjectPath.Replace('/', Path.DirectorySeparatorChar));
+        var projectPath = GetRepositoryPath(relativeProjectPath);
         Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
 
         var document = XDocument.Load(projectPath);
@@ -96,7 +96,7 @@ public sealed class PackageDependencyGuardrailTests {
     [InlineData("OfficeIMO.CSV/OfficeIMO.CSV.csproj")]
     [InlineData("OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj")]
     public void NetFrameworkReferenceAssemblies_AreLimitedToNet472(string relativeProjectPath) {
-        var projectPath = Path.Combine(GetRepositoryRoot(), relativeProjectPath.Replace('/', Path.DirectorySeparatorChar));
+        var projectPath = GetRepositoryPath(relativeProjectPath);
         Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
 
         var document = XDocument.Load(projectPath);
@@ -135,6 +135,17 @@ public sealed class PackageDependencyGuardrailTests {
 
         throw new DirectoryNotFoundException("Unable to locate OfficeIMO repository root from test runtime base directory.");
     }
+
+    private static string GetRepositoryPath(string relativePath) {
+        Assert.False(Path.IsPathRooted(relativePath), "Repository-relative path must not be rooted: " + relativePath);
+
+        var parts = NormalizeProjectPath(relativePath)
+            .Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+        return Path.Combine(new[] { GetRepositoryRoot() }.Concat(parts).ToArray());
+    }
+
+    private static string NormalizeProjectPath(string? path) =>
+        (path ?? string.Empty).Replace('\\', '/');
 
     private static bool ProjectReferencesImageSharp(string projectPath) {
         var document = XDocument.Load(projectPath);

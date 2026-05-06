@@ -246,11 +246,9 @@ public readonly struct OfficeColor : IEquatable<OfficeColor> {
             return false;
         }
 
-        if (hex.Length == 6) {
-            color = FromRgb((byte)((packed >> 16) & 0xFF), (byte)((packed >> 8) & 0xFF), (byte)(packed & 0xFF));
-        } else {
-            color = FromRgba((byte)((packed >> 24) & 0xFF), (byte)((packed >> 16) & 0xFF), (byte)((packed >> 8) & 0xFF), (byte)(packed & 0xFF));
-        }
+        color = hex.Length == 6
+            ? FromRgb((byte)((packed >> 16) & 0xFF), (byte)((packed >> 8) & 0xFF), (byte)(packed & 0xFF))
+            : FromRgba((byte)((packed >> 24) & 0xFF), (byte)((packed >> 16) & 0xFF), (byte)((packed >> 8) & 0xFF), (byte)(packed & 0xFF));
 
         return true;
     }

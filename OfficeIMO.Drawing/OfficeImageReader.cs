@@ -478,7 +478,16 @@ public static class OfficeImageReader {
 
             info = new OfficeImageInfo(OfficeImageFormat.Svg, (int)Math.Round(width), (int)Math.Round(height));
             return true;
-        } catch {
+        } catch (XmlException) {
+            info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
+            return false;
+        } catch (InvalidOperationException) {
+            info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
+            return false;
+        } catch (IOException) {
+            info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
+            return false;
+        } catch (ArgumentException) {
             info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
             return false;
         }

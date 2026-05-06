@@ -22,7 +22,7 @@ namespace OfficeIMO.Examples.Word {
 
                 // VML Line with stroke color/weight
                 var p4 = document.AddParagraph("Line (Red, 3pt)");
-                var line = p4.AddLine(0, 0, 120, 0, OfficeIMO.Drawing.OfficeColor.Red, 3);
+                p4.AddLine(0, 0, 120, 0, OfficeIMO.Drawing.OfficeColor.Red, 3);
 
                 // VML Polygon (triangle)
                 var p5 = document.AddParagraph("Polygon (Triangle, Purple)");
