@@ -14,4 +14,4 @@ If you want the packaged artifacts for the current stable release, start with th
 
 ## Release Timeline
 
-{{< release-changelog placement="changelog.timeline" >}}
+Browse the full release timeline on [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases).
