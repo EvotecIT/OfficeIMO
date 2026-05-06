@@ -94,7 +94,7 @@
     },
     "timeline": {
       "product": "*",
-      "limit": 12,
+      "limit": 30,
       "includePreview": true,
       "class": "pf-release-changelog--timeline"
     }
