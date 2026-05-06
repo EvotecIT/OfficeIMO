@@ -149,7 +149,7 @@ public sealed class PackageDependencyGuardrailTests {
         var combinedPath = repositoryRoot;
         foreach (var part in parts) {
             Assert.False(Path.IsPathRooted(part), "Repository-relative path segment must not be rooted: " + relativePath);
-            combinedPath = Path.Combine(combinedPath, part);
+            combinedPath = AppendRepositoryPathSegment(combinedPath, part);
         }
 
         combinedPath = Path.GetFullPath(combinedPath);
@@ -159,6 +159,11 @@ public sealed class PackageDependencyGuardrailTests {
             "Repository-relative path must stay under repository root: " + relativePath);
         return combinedPath;
     }
+
+    private static string AppendRepositoryPathSegment(string basePath, string segment) =>
+        basePath.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)
+            ? basePath + segment
+            : basePath + Path.DirectorySeparatorChar + segment;
 
     private static string NormalizeProjectPath(string? path) =>
         (path ?? string.Empty).Replace('\\', '/');
