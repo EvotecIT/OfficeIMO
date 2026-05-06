@@ -139,9 +139,19 @@ public sealed class PackageDependencyGuardrailTests {
     private static string GetRepositoryPath(string relativePath) {
         Assert.False(Path.IsPathRooted(relativePath), "Repository-relative path must not be rooted: " + relativePath);
 
+        var repositoryRoot = Path.GetFullPath(GetRepositoryRoot());
+        if (!repositoryRoot.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)) {
+            repositoryRoot += Path.DirectorySeparatorChar;
+        }
+
         var parts = NormalizeProjectPath(relativePath)
             .Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-        return Path.Combine(new[] { GetRepositoryRoot() }.Concat(parts).ToArray());
+        var combinedPath = Path.GetFullPath(Path.Combine(new[] { repositoryRoot }.Concat(parts).ToArray()));
+
+        Assert.True(
+            combinedPath.StartsWith(repositoryRoot, StringComparison.Ordinal),
+            "Repository-relative path must stay under repository root: " + relativePath);
+        return combinedPath;
     }
 
     private static string NormalizeProjectPath(string? path) =>
