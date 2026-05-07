@@ -175,6 +175,10 @@ namespace OfficeIMO.Excel {
                 factor += 0.03f;
             }
 
+            if (fontInfo.IsUnderline) {
+                factor += 0.06f;
+            }
+
             return factor;
         }
 

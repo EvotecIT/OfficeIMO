@@ -262,6 +262,7 @@ namespace OfficeIMO.Excel {
             }
 
             const double pixelPadding = 2.0;
+            const double columnWidthSafetyFactor = 1.22;
 
             void ApplyMeasurement(
                 AutoFitMeasurement measurement,
@@ -271,8 +272,8 @@ namespace OfficeIMO.Excel {
                 Dictionary<uint, Dictionary<char, float>> charWidthCache) {
                     var styleInfo = ResolveStyleInfo(measurement.StyleIndex, styleCache);
                     float textWidthPx = MeasureTextWidth(measurement.Text, measurement.StyleIndex, styleInfo, textWidthCache, charWidthCache);
-                    double cellWidthPx = textWidthPx + (2 * pixelPadding) + 1;
-                    double columnWidth = Math.Truncate(cellWidthPx / styleInfo.MaximumDigitWidth * 256.0) / 256.0;
+                    double cellWidthPx = (textWidthPx * columnWidthSafetyFactor) + (2 * pixelPadding) + 1;
+                    double columnWidth = Math.Truncate(cellWidthPx / defaultMdw * 256.0) / 256.0;
 
                     if (columnWidth > localWidths[measurement.TargetIndex]) {
                         localWidths[measurement.TargetIndex] = columnWidth;
@@ -407,6 +408,7 @@ namespace OfficeIMO.Excel {
 
             double defaultHeight = GetDefaultRowHeightPoints();
             double maxHeight = defaultHeight; // Start with default as minimum
+            bool hasContent = false;
 
             // Pre-calc default font metrics and MDW for pixel conversions.
             var textMeasurer = ExcelTextMeasurer.Create(GetWorkbookDefaultFontInfo());
@@ -432,6 +434,7 @@ namespace OfficeIMO.Excel {
             foreach (var cell in row.Elements<Cell>()) {
                 string text = GetCellText(cell);
                 if (string.IsNullOrWhiteSpace(text)) continue;
+                hasContent = true;
 
                 var fontInfo = GetCellFontInfo(cell, textMeasurer.FallbackFontInfo);
                 var style = textMeasurer.CreateStyle(fontInfo, 96);
@@ -470,6 +473,9 @@ namespace OfficeIMO.Excel {
                 // Increase padding slightly for multi-line to avoid clipping
                 double paddingPt = totalLines > 1 ? 2.5 : 0.0;
                 double cellHeight = baseLineHeightPt * totalLines + paddingPt;
+                if (totalLines > 1) {
+                    cellHeight *= 1.20;
+                }
 
                 // Ensure Excel wraps when our calculation indicates multiple lines
                 if (totalLines > 1 && !HasWrapText(cell)) {
@@ -482,7 +488,7 @@ namespace OfficeIMO.Excel {
             }
 
             // Round to reasonable precision and return desired height
-            return Math.Round(maxHeight, 2);
+            return hasContent ? Math.Round(maxHeight, 2) : 0;
         }
 
         private int CountWrappedLines(string text, double maxWidthPx, ExcelTextMeasurer textMeasurer, ExcelTextMeasurer.Style style) {
@@ -617,9 +623,10 @@ namespace OfficeIMO.Excel {
             Row? row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == (uint)rowIndex);
             if (row == null) return;
 
-            double defaultHeight = GetDefaultRowHeightPoints();
-            if (height > defaultHeight) {
-                row.Height = height;
+            if (height > 0) {
+                // Excel normalizes OfficeIMO-authored row heights down on open/save; serialize a
+                // pixel-equivalent height so the visible Excel row height matches the measured value.
+                row.Height = Math.Round(height * 1.5, 2);
                 row.CustomHeight = true;
             } else {
                 row.Height = null;

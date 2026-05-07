@@ -148,7 +148,11 @@ namespace OfficeIMO.Excel {
 
         private static void EnsureStylesheetPrimitives(Stylesheet stylesheet) {
             if (stylesheet.Fonts == null || !stylesheet.Fonts.Elements<Font>().Any()) {
-                stylesheet.Fonts = new Fonts(new Font());
+                stylesheet.Fonts = new Fonts(new Font(new FontSize { Val = 11D }, new FontName { Val = "Calibri" }));
+            } else {
+                var defaultFont = stylesheet.Fonts.Elements<Font>().First();
+                defaultFont.FontSize ??= new FontSize { Val = 11D };
+                defaultFont.FontName ??= new FontName { Val = "Calibri" };
             }
             stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
 
@@ -172,14 +176,43 @@ namespace OfficeIMO.Excel {
             stylesheet.Borders.Count = (uint)stylesheet.Borders.Count();
 
             if (stylesheet.CellStyleFormats == null || !stylesheet.CellStyleFormats.Elements<CellFormat>().Any()) {
-                stylesheet.CellStyleFormats = new CellStyleFormats(new CellFormat());
+                stylesheet.CellStyleFormats = new CellStyleFormats(new CellFormat {
+                    NumberFormatId = 0U,
+                    FontId = 0U,
+                    FillId = 0U,
+                    BorderId = 0U
+                });
             }
             stylesheet.CellStyleFormats.Count = (uint)stylesheet.CellStyleFormats.Count();
 
             if (stylesheet.CellFormats == null || !stylesheet.CellFormats.Elements<CellFormat>().Any()) {
-                stylesheet.CellFormats = new CellFormats(new CellFormat());
+                stylesheet.CellFormats = new CellFormats(new CellFormat {
+                    NumberFormatId = 0U,
+                    FontId = 0U,
+                    FillId = 0U,
+                    BorderId = 0U,
+                    FormatId = 0U
+                });
             }
             stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
+
+            if (stylesheet.CellStyles == null || !stylesheet.CellStyles.Elements<CellStyle>().Any()) {
+                stylesheet.CellStyles = new CellStyles(new CellStyle {
+                    Name = "Normal",
+                    FormatId = 0U,
+                    BuiltinId = 0U
+                });
+            }
+            stylesheet.CellStyles.Count = (uint)stylesheet.CellStyles.Count();
+
+            stylesheet.DifferentialFormats ??= new DifferentialFormats();
+            stylesheet.DifferentialFormats.Count = (uint)stylesheet.DifferentialFormats.Count();
+
+            stylesheet.TableStyles ??= new TableStyles {
+                DefaultTableStyle = "TableStyleMedium2",
+                DefaultPivotStyle = "PivotStyleLight16"
+            };
+            stylesheet.TableStyles.Count = (uint)stylesheet.TableStyles.Count();
 
             if (stylesheet.NumberingFormats != null) {
                 stylesheet.NumberingFormats.Count = (uint)stylesheet.NumberingFormats.Count();

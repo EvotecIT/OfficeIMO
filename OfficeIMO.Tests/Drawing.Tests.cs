@@ -46,7 +46,18 @@ public class DrawingTests {
         Assert.Equal(12.5, font.Size);
         Assert.True(font.IsBold);
         Assert.True(font.IsItalic);
+        Assert.False(font.IsUnderline);
         Assert.Equal("Aptos, 12.5pt, Bold, Italic", font.ToString());
+    }
+
+    [Fact]
+    public void OfficeFontInfoStoresUnderlineStyle() {
+        var font = new OfficeFontInfo("Calibri", 11, OfficeFontStyle.Underline);
+
+        Assert.False(font.IsBold);
+        Assert.False(font.IsItalic);
+        Assert.True(font.IsUnderline);
+        Assert.Equal("Calibri, 11pt, Underline", font.ToString());
     }
 
     [Fact]

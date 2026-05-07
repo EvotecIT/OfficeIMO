@@ -357,9 +357,10 @@ namespace OfficeIMO.Excel {
                 var fontSize = firstFont.GetFirstChild<FontSize>()?.Val?.Value ?? 11.0;
                 bool bold = firstFont.GetFirstChild<Bold>() != null;
                 bool italic = firstFont.GetFirstChild<Italic>() != null;
+                bool underline = firstFont.GetFirstChild<Underline>() != null;
 
                 if (!string.IsNullOrEmpty(fontName)) {
-                    return new OfficeFontInfo(fontName, fontSize, GetOfficeFontStyle(bold, italic));
+                    return new OfficeFontInfo(fontName, fontSize, GetOfficeFontStyle(bold, italic, underline));
                 }
             } catch {
                 // ignore
@@ -391,14 +392,16 @@ namespace OfficeIMO.Excel {
             var fontSize = fontElement.GetFirstChild<FontSize>()?.Val?.Value ?? fallbackSize;
             bool bold = fontElement.GetFirstChild<Bold>() != null;
             bool italic = fontElement.GetFirstChild<Italic>() != null;
+            bool underline = fontElement.GetFirstChild<Underline>() != null;
 
-            return new OfficeFontInfo(fontName, fontSize, GetOfficeFontStyle(bold, italic));
+            return new OfficeFontInfo(fontName, fontSize, GetOfficeFontStyle(bold, italic, underline));
         }
 
-        private static OfficeFontStyle GetOfficeFontStyle(bool bold, bool italic) {
+        private static OfficeFontStyle GetOfficeFontStyle(bool bold, bool italic, bool underline) {
             var style = OfficeFontStyle.Regular;
             if (bold) style |= OfficeFontStyle.Bold;
             if (italic) style |= OfficeFontStyle.Italic;
+            if (underline) style |= OfficeFontStyle.Underline;
             return style;
         }
 

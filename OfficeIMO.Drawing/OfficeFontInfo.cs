@@ -31,6 +31,9 @@ public readonly struct OfficeFontInfo : IEquatable<OfficeFontInfo> {
     /// <summary>Whether the descriptor includes italic styling.</summary>
     public bool IsItalic => (Style & OfficeFontStyle.Italic) == OfficeFontStyle.Italic;
 
+    /// <summary>Whether the descriptor includes underline styling.</summary>
+    public bool IsUnderline => (Style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline;
+
     /// <summary>Default Office font descriptor.</summary>
     public static OfficeFontInfo Default => new OfficeFontInfo("Calibri", 11.0);
 
