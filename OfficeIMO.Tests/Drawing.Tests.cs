@@ -46,7 +46,18 @@ public class DrawingTests {
         Assert.Equal(12.5, font.Size);
         Assert.True(font.IsBold);
         Assert.True(font.IsItalic);
+        Assert.False(font.IsUnderline);
         Assert.Equal("Aptos, 12.5pt, Bold, Italic", font.ToString());
+    }
+
+    [Fact]
+    public void OfficeFontInfoStoresUnderlineStyle() {
+        var font = new OfficeFontInfo("Calibri", 11, OfficeFontStyle.Underline);
+
+        Assert.False(font.IsBold);
+        Assert.False(font.IsItalic);
+        Assert.True(font.IsUnderline);
+        Assert.Equal("Calibri, 11pt, Underline", font.ToString());
     }
 
     [Fact]
@@ -58,6 +69,32 @@ public class DrawingTests {
 
         Assert.Equal(new OfficeFontInfo("Arial", 10, OfficeFontStyle.Bold), font);
         Assert.NotEqual(OfficeFontInfo.Default, font);
+    }
+
+    [Fact]
+    public void OfficeTextMeasurerProvidesDeterministicReusableMetrics() {
+        var measurer = OfficeTextMeasurer.Create(OfficeFontInfo.Default);
+        var regular = measurer.CreateStyle(new OfficeFontInfo("Calibri", 11));
+        var bold = measurer.CreateStyle(new OfficeFontInfo("Calibri", 11, OfficeFontStyle.Bold));
+        var mono = measurer.CreateStyle(new OfficeFontInfo("Consolas", 11));
+
+        var regularMetrics = measurer.Measure("OfficeIMO 123", regular);
+        var boldMetrics = measurer.Measure("OfficeIMO 123", bold);
+        var monoMetrics = measurer.Measure("OfficeIMO 123", mono);
+
+        Assert.True(regularMetrics.WidthPixels > 0);
+        Assert.True(regularMetrics.LineHeightPixels > 0);
+        Assert.True(boldMetrics.WidthPixels > regularMetrics.WidthPixels);
+        Assert.True(monoMetrics.MaximumDigitWidthPixels > regularMetrics.MaximumDigitWidthPixels);
+    }
+
+    [Fact]
+    public void OfficeTextMeasurerNormalizesFallbackFontInfo() {
+        var measurer = OfficeTextMeasurer.Create(new OfficeFontInfo(null, 0));
+
+        Assert.Equal(OfficeFontInfo.Default, measurer.FallbackFontInfo);
+        Assert.Equal(OfficeTextMeasurer.DefaultDpi, measurer.DefaultStyle.Dpi);
+        Assert.True(measurer.DefaultStyle.MaximumDigitWidthPixels > 0);
     }
 
     [Theory]

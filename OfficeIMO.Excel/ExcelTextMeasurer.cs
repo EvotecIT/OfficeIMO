@@ -1,194 +1,58 @@
 using OfficeIMO.Drawing;
-using SixLabors.Fonts;
 
 namespace OfficeIMO.Excel {
     internal sealed class ExcelTextMeasurer {
-        private readonly SixLabors.Fonts.Font _fallbackFont;
-        private readonly OfficeFontInfo _fallbackFontInfo;
+        private readonly OfficeTextMeasurer _textMeasurer;
 
-        private ExcelTextMeasurer(SixLabors.Fonts.Font fallbackFont, OfficeFontInfo fallbackFontInfo) {
-            _fallbackFont = fallbackFont;
-            _fallbackFontInfo = fallbackFontInfo;
-            DefaultStyle = CreateStyle(fallbackFont, dpi: null);
+        private ExcelTextMeasurer(OfficeFontInfo fallbackFontInfo) {
+            _textMeasurer = OfficeTextMeasurer.Create(fallbackFontInfo);
+            DefaultStyle = new Style(_textMeasurer.DefaultStyle);
         }
 
         internal Style DefaultStyle { get; }
 
-        internal float DefaultFontSize => _fallbackFont.Size;
+        internal float DefaultFontSize => (float)_textMeasurer.DefaultFontSize;
 
-        internal OfficeFontInfo FallbackFontInfo => _fallbackFontInfo;
+        internal OfficeFontInfo FallbackFontInfo => _textMeasurer.FallbackFontInfo;
 
-        internal static ExcelTextMeasurer Create(OfficeFontInfo? workbookDefaultFontInfo) {
-            var fallbackInfo = workbookDefaultFontInfo ?? OfficeFontInfo.Default;
-            var fallbackFont = ResolveDefaultFont(workbookDefaultFontInfo);
-            return new ExcelTextMeasurer(fallbackFont, fallbackInfo);
-        }
+        internal static ExcelTextMeasurer Create(OfficeFontInfo? workbookDefaultFontInfo) =>
+            new ExcelTextMeasurer(workbookDefaultFontInfo ?? OfficeFontInfo.Default);
 
         internal Style CreateDefaultStyle(float dpi)
-            => CreateStyle(_fallbackFont, dpi);
+            => new Style(_textMeasurer.CreateDefaultStyle(dpi));
 
-        internal Style CreateStyle(OfficeFontInfo fontInfo) {
-            var font = CreateFontFromInfo(fontInfo, _fallbackFont);
-            return CreateStyle(font, dpi: null);
-        }
+        internal Style CreateStyle(OfficeFontInfo fontInfo)
+            => new Style(_textMeasurer.CreateStyle(fontInfo));
 
-        internal Style CreateStyle(OfficeFontInfo fontInfo, float dpi) {
-            var font = CreateFontFromInfo(fontInfo, _fallbackFont);
-            return CreateStyle(font, (float?)dpi);
-        }
+        internal Style CreateStyle(OfficeFontInfo fontInfo, float dpi)
+            => new Style(_textMeasurer.CreateStyle(fontInfo, dpi));
 
         internal float MeasureWidthOrDefault(string text, Style style, float fallback) {
-            try {
-                float measured = TextMeasurer.MeasureSize(text, style.Options).Width;
-                return measured > 0.0001f ? measured : fallback;
-            } catch (InvalidFontTableException) {
-                return fallback;
-            } catch (FontException) {
-                return fallback;
-            } catch (ArgumentException) {
-                return fallback;
-            } catch (InvalidOperationException) {
-                return fallback;
-            }
+            float measured = (float)_textMeasurer.MeasureWidthOrDefault(text, style.DrawingStyle, fallback);
+            return measured > 0.0001f ? measured : fallback;
         }
 
         internal float MeasureHeightOrDefault(string text, Style style, float fallback) {
-            try {
-                float measured = TextMeasurer.MeasureSize(text, style.Options).Height;
-                return measured > 0.0001f ? measured : fallback;
-            } catch (InvalidFontTableException) {
-                return fallback;
-            } catch (FontException) {
-                return fallback;
-            } catch (ArgumentException) {
-                return fallback;
-            } catch (InvalidOperationException) {
-                return fallback;
-            }
-        }
-
-        private static Style CreateStyle(SixLabors.Fonts.Font font, float? dpi) {
-            var options = new TextOptions(font);
-            if (dpi != null) {
-                options.Dpi = dpi.Value;
-            }
-
-            float mdw = MeasureWidthOrDefault("0", options, fallback: 0);
-            return new Style(options, mdw);
-        }
-
-        private static SixLabors.Fonts.Font ResolveDefaultFont(OfficeFontInfo? workbookDefaultFontInfo) {
-            if (workbookDefaultFontInfo != null) {
-                var font = TryCreateSystemFont(workbookDefaultFontInfo.Value);
-                if (font != null && IsFontUsable(font)) {
-                    return font;
-                }
-            }
-
-            string[] preferred = { "Calibri", "Arial", "Liberation Sans", "DejaVu Sans", "Times New Roman" };
-
-            foreach (var name in preferred) {
-                try {
-                    var font = SystemFonts.CreateFont(name, (float)OfficeFontInfo.Default.Size);
-                    if (IsFontUsable(font)) {
-                        return font;
-                    }
-                } catch (FontFamilyNotFoundException) {
-                    // Try next option.
-                }
-            }
-
-            foreach (var family in SystemFonts.Collection.Families) {
-                try {
-                    var font = family.CreateFont(11);
-                    if (IsFontUsable(font)) {
-                        return font;
-                    }
-                } catch (InvalidFontTableException) {
-                    // Skip fonts that cannot be loaded or measured.
-                } catch (FontException) {
-                    // Skip fonts that cannot be loaded or measured.
-                } catch (InvalidOperationException) {
-                    // Skip fonts that cannot be loaded or measured.
-                } catch (ArgumentException) {
-                    // Skip fonts that cannot be loaded or measured.
-                }
-            }
-
-            return SystemFonts.Collection.Families.First().CreateFont(11);
-        }
-
-        private static bool IsFontUsable(SixLabors.Fonts.Font font) {
-            try {
-                TextMeasurer.MeasureSize("0", new TextOptions(font));
-                return true;
-            } catch (InvalidFontTableException) {
-                return false;
-            } catch (FontException) {
-                return false;
-            } catch (ArgumentException) {
-                return false;
-            } catch (InvalidOperationException) {
-                return false;
-            }
-        }
-
-        private static SixLabors.Fonts.Font CreateFontFromInfo(OfficeFontInfo fontInfo, SixLabors.Fonts.Font fallbackFont) {
-            var style = ToSixLaborsFontStyle(fontInfo.Style);
-            var size = (float)fontInfo.Size;
-            try {
-                if (!string.IsNullOrWhiteSpace(fontInfo.FamilyName)) {
-                    return SystemFonts.CreateFont(fontInfo.FamilyName, size, style);
-                }
-
-                return fallbackFont.Family.CreateFont(size, style);
-            } catch (FontFamilyNotFoundException) {
-                return fallbackFont.Family.CreateFont(size, style);
-            }
-        }
-
-        private static SixLabors.Fonts.Font? TryCreateSystemFont(OfficeFontInfo fontInfo) {
-            if (string.IsNullOrWhiteSpace(fontInfo.FamilyName)) {
-                return null;
-            }
-
-            try {
-                return SystemFonts.CreateFont(fontInfo.FamilyName, (float)fontInfo.Size, ToSixLaborsFontStyle(fontInfo.Style));
-            } catch (FontFamilyNotFoundException) {
-                return null;
-            }
-        }
-
-        private static FontStyle ToSixLaborsFontStyle(OfficeFontStyle style) {
-            bool bold = (style & OfficeFontStyle.Bold) == OfficeFontStyle.Bold;
-            bool italic = (style & OfficeFontStyle.Italic) == OfficeFontStyle.Italic;
-            return bold && italic ? FontStyle.BoldItalic : bold ? FontStyle.Bold : italic ? FontStyle.Italic : FontStyle.Regular;
+            float measured = (float)_textMeasurer.MeasureLineHeightOrDefault(text, style.DrawingStyle, fallback);
+            return measured > 0.0001f ? measured : fallback;
         }
 
         internal readonly struct Style {
-            internal Style(TextOptions options, float maximumDigitWidth) {
-                Options = options;
-                MaximumDigitWidth = maximumDigitWidth;
+            internal Style(OfficeTextMeasurementStyle drawingStyle) {
+                DrawingStyle = drawingStyle;
             }
 
-            internal TextOptions Options { get; }
+            internal OfficeTextMeasurementStyle DrawingStyle { get; }
 
-            internal float MaximumDigitWidth { get; }
-        }
+            internal OfficeFontInfo FontInfo => DrawingStyle.FontInfo;
 
-        private static float MeasureWidthOrDefault(string text, TextOptions options, float fallback) {
-            try {
-                float measured = TextMeasurer.MeasureSize(text, options).Width;
-                return measured > 0.0001f ? measured : fallback;
-            } catch (InvalidFontTableException) {
-                return fallback;
-            } catch (FontException) {
-                return fallback;
-            } catch (ArgumentException) {
-                return fallback;
-            } catch (InvalidOperationException) {
-                return fallback;
-            }
+            internal float Dpi => (float)DrawingStyle.Dpi;
+
+            internal float FontSizePixels => (float)DrawingStyle.FontSizePixels;
+
+            internal float SpaceWidth => (float)DrawingStyle.SpaceWidthPixels;
+
+            internal float MaximumDigitWidth => (float)DrawingStyle.MaximumDigitWidthPixels;
         }
     }
 }

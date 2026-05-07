@@ -104,7 +104,7 @@ namespace OfficeIMO.Excel {
         private static Stylesheet CreateDefaultStylesheet() {
             var stylesheet = new Stylesheet();
 
-            stylesheet.Fonts = new Fonts(new Font());
+            stylesheet.Fonts = new Fonts(new Font(new FontSize { Val = 11D }, new FontName { Val = "Calibri" }));
             stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
 
             stylesheet.Fills = new Fills(
@@ -116,11 +116,36 @@ namespace OfficeIMO.Excel {
             stylesheet.Borders = new Borders(new Border());
             stylesheet.Borders.Count = (uint)stylesheet.Borders.Count();
 
-            stylesheet.CellStyleFormats = new CellStyleFormats(new CellFormat());
+            stylesheet.CellStyleFormats = new CellStyleFormats(new CellFormat {
+                NumberFormatId = 0U,
+                FontId = 0U,
+                FillId = 0U,
+                BorderId = 0U
+            });
             stylesheet.CellStyleFormats.Count = (uint)stylesheet.CellStyleFormats.Count();
 
-            stylesheet.CellFormats = new CellFormats(new CellFormat());
+            stylesheet.CellFormats = new CellFormats(new CellFormat {
+                NumberFormatId = 0U,
+                FontId = 0U,
+                FillId = 0U,
+                BorderId = 0U,
+                FormatId = 0U
+            });
             stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
+
+            stylesheet.CellStyles = new CellStyles(new CellStyle {
+                Name = "Normal",
+                FormatId = 0U,
+                BuiltinId = 0U
+            });
+            stylesheet.CellStyles.Count = (uint)stylesheet.CellStyles.Count();
+
+            stylesheet.DifferentialFormats = new DifferentialFormats { Count = 0U };
+            stylesheet.TableStyles = new TableStyles {
+                Count = 0U,
+                DefaultTableStyle = "TableStyleMedium2",
+                DefaultPivotStyle = "PivotStyleLight16"
+            };
 
             return stylesheet;
         }

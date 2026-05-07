@@ -6,6 +6,7 @@
 * Add `OfficeIMO.Drawing` as a shared zero-dependency color and image metadata layer, including header-only detection for PNG, JPEG, GIF, BMP, TIFF, ICO, PCX, EMF, placeable WMF, and SVG.
 * Add `OfficeIMO.Drawing` font descriptors so Office packages can share font metadata without exposing a font-engine dependency.
 * Move Excel autofit font resolution and text measurement behind an internal measurer boundary to reduce direct dependency leakage.
+* Remove the `SixLabors.Fonts` dependency from Excel autofit by using deterministic first-party text measurement.
 * Add AI-ingestion focused chunk extraction APIs (Word/Excel/PowerPoint) and new `OfficeIMO.Reader` facade (Stream/byte[] supported) by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1430
 * Continue OfficeIMO.Markdown reader/AST/query cleanup and public API hardening across headings, lists, front matter, traversal helpers, and renderer contracts
 * Add OfficeIMO.Markdown benchmark harness for representative parse and HTML-render workloads by @PrzemyslawKlys in https://github.com/EvotecIT/OfficeIMO/pull/1684

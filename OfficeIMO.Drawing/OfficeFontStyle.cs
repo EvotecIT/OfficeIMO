@@ -14,5 +14,8 @@ public enum OfficeFontStyle {
     Bold = 1,
 
     /// <summary>Italic text.</summary>
-    Italic = 2
+    Italic = 2,
+
+    /// <summary>Underlined text.</summary>
+    Underline = 4
 }

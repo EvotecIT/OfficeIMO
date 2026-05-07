@@ -4,6 +4,7 @@
   "ExpectedVersion": null,
   "ExpectedVersionMap": {
     "OfficeIMO.CSV": "0.1.X",
+    "OfficeIMO.Drawing": "1.0.X",
     "OfficeIMO.Epub": "0.0.X",
     "OfficeIMO.Excel": "0.6.X",
     "OfficeIMO.Markdown": "0.6.X",
