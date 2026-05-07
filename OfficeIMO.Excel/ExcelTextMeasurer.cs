@@ -41,7 +41,13 @@ namespace OfficeIMO.Excel {
             try {
                 float measured = TextMeasurer.MeasureSize(text, style.Options).Width;
                 return measured > 0.0001f ? measured : fallback;
-            } catch {
+            } catch (InvalidFontTableException) {
+                return fallback;
+            } catch (FontException) {
+                return fallback;
+            } catch (ArgumentException) {
+                return fallback;
+            } catch (InvalidOperationException) {
                 return fallback;
             }
         }
@@ -50,7 +56,13 @@ namespace OfficeIMO.Excel {
             try {
                 float measured = TextMeasurer.MeasureSize(text, style.Options).Height;
                 return measured > 0.0001f ? measured : fallback;
-            } catch {
+            } catch (InvalidFontTableException) {
+                return fallback;
+            } catch (FontException) {
+                return fallback;
+            } catch (ArgumentException) {
+                return fallback;
+            } catch (InvalidOperationException) {
                 return fallback;
             }
         }
@@ -92,7 +104,13 @@ namespace OfficeIMO.Excel {
                     if (IsFontUsable(font)) {
                         return font;
                     }
-                } catch {
+                } catch (InvalidFontTableException) {
+                    // Skip fonts that cannot be loaded or measured.
+                } catch (FontException) {
+                    // Skip fonts that cannot be loaded or measured.
+                } catch (InvalidOperationException) {
+                    // Skip fonts that cannot be loaded or measured.
+                } catch (ArgumentException) {
                     // Skip fonts that cannot be loaded or measured.
                 }
             }
@@ -104,7 +122,13 @@ namespace OfficeIMO.Excel {
             try {
                 TextMeasurer.MeasureSize("0", new TextOptions(font));
                 return true;
-            } catch {
+            } catch (InvalidFontTableException) {
+                return false;
+            } catch (FontException) {
+                return false;
+            } catch (ArgumentException) {
+                return false;
+            } catch (InvalidOperationException) {
                 return false;
             }
         }
@@ -156,7 +180,13 @@ namespace OfficeIMO.Excel {
             try {
                 float measured = TextMeasurer.MeasureSize(text, options).Width;
                 return measured > 0.0001f ? measured : fallback;
-            } catch {
+            } catch (InvalidFontTableException) {
+                return fallback;
+            } catch (FontException) {
+                return fallback;
+            } catch (ArgumentException) {
+                return fallback;
+            } catch (InvalidOperationException) {
                 return fallback;
             }
         }
