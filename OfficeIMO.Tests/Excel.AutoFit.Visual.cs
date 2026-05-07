@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
+#if NET8_0_OR_GREATER
 using System.Runtime.Versioning;
+#endif
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
@@ -318,7 +320,9 @@ namespace OfficeIMO.Tests {
             internal Dictionary<int, double> Rows { get; }
         }
 
+#if NET8_0_OR_GREATER
         [SupportedOSPlatform("windows")]
+#endif
         private sealed class ExcelAutoFitAutomation : IDisposable {
             private readonly object _application;
             private readonly dynamic _excel;
