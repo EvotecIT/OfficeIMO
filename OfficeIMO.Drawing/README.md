@@ -7,6 +7,8 @@ OfficeIMO.Drawing is the shared first-party drawing layer for OfficeIMO packages
 - `OfficeColor`: immutable RGBA color value with named colors and hex parsing.
 - `OfficeFontInfo`: immutable font family, size, and style descriptor for Office text features.
 - `OfficeFontStyle`: dependency-free font style flags.
+- `OfficeTextMeasurer`: deterministic text measurement estimates for Office layout decisions.
+- `OfficeTextMeasurementStyle` and `OfficeTextMetrics`: normalized measurement inputs and pixel metrics.
 - `OfficeImageReader`: header-only image metadata reader for common Office image formats.
 - `OfficeImageInfo`: image format, dimensions, DPI, and MIME metadata.
 - `OfficeImageFormat`: supported format enum used by OfficeIMO packages.
@@ -32,12 +34,24 @@ var accent = OfficeColor.CornflowerBlue;
 
 ## Font Descriptors
 
-`OfficeFontInfo` is a metadata contract only. It records the font family, point size, and bold/italic flags without measuring or rendering text.
+`OfficeFontInfo` records the font family, point size, and style flags without taking a dependency on a font engine.
 
 ```csharp
 using OfficeIMO.Drawing;
 
-var font = new OfficeFontInfo("Calibri", 11, OfficeFontStyle.Bold | OfficeFontStyle.Italic);
+var font = new OfficeFontInfo("Calibri", 11, OfficeFontStyle.Bold | OfficeFontStyle.Italic | OfficeFontStyle.Underline);
 ```
 
-Rendering packages can translate this descriptor into their own measurement backend while keeping public and shared APIs free of font-engine dependencies.
+## Text Measurement
+
+`OfficeTextMeasurer` provides deterministic Office-oriented estimates for width and line height. It intentionally does not call operating-system font APIs, so results stay stable across machines.
+
+```csharp
+using OfficeIMO.Drawing;
+
+var measurer = OfficeTextMeasurer.Create(OfficeFontInfo.Default);
+var style = measurer.CreateStyle(new OfficeFontInfo("Aptos", 12, OfficeFontStyle.Bold));
+OfficeTextMetrics metrics = measurer.Measure("OfficeIMO", style);
+```
+
+Rendering packages can use these estimates for layout planning while keeping public and shared APIs free of font-engine dependencies. Format-specific packages still own their own unit conversions and layout quirks, such as Excel column width units or PDF page coordinates.
