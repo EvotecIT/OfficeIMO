@@ -165,7 +165,7 @@ namespace OfficeIMO.Excel.Fluent {
             Sheet.CellBold(_row, 1, true);
             Sheet.Cell(_row, 2, value);
             string range = $"B{_row}:B{_row}";
-            Sheet.AddConditionalDataBar(range, SixLabors.ImageSharp.Color.LightGreen);
+            Sheet.AddConditionalDataBar(range, OfficeIMO.Drawing.OfficeColor.LightGreen);
             _row++;
             return Spacer();
         }

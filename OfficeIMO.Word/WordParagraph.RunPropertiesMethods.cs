@@ -127,11 +127,11 @@ namespace OfficeIMO.Word {
             return this;
         }
         /// <summary>
-        /// Sets the text color using <see cref="SixLabors.ImageSharp.Color"/>.
+        /// Sets the text color using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
         /// </summary>
         /// <param name="color">The color to apply.</param>
         /// <returns>The current paragraph instance.</returns>
-        public WordParagraph SetColor(SixLabors.ImageSharp.Color color) {
+        public WordParagraph SetColor(OfficeIMO.Drawing.OfficeColor color) {
             this.Color = color;
             return this;
         }

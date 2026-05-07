@@ -5,7 +5,7 @@ using System;
 using System.IO;
 using System.Linq;
 using Xunit;
-using Color = SixLabors.ImageSharp.Color;
+using Color = OfficeIMO.Drawing.OfficeColor;
 using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Tests {
@@ -421,7 +421,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddHeadersAndFooters();
 
-                // SixLabors colors
+                // OfficeIMO colors
                 var redHeader = GetHeader(document, 0, HeaderFooterValues.Default);
                 var red = redHeader.AddWatermark(WordWatermarkStyle.Text, "Red");
                 red.Color = Color.Red;

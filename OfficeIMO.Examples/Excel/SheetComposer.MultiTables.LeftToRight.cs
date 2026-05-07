@@ -58,7 +58,7 @@ namespace OfficeIMO.Examples.Excel
                 new { D1=2,D2=3,D3=4,D4=5,D5=6,D6=7,D7=8,D8=9 }
             };
             s.ColumnsAdaptive(new List<Action<SheetComposer.ColumnComposer>> {
-                c => { c.Section("D: Small"); var rr = c.TableFrom(small, null, visuals: v => { v.FreezeHeaderRow = false; v.NumericColumnDecimals["B"] = 0; v.DataBars["B"] = SixLabors.ImageSharp.Color.ParseHex("5B9BD5"); }); s.ApplyColumnSizing(rr, o=>{ o.MediumHeaders.Add("A"); o.NumericHeaders.Add("B"); }); },
+                c => { c.Section("D: Small"); var rr = c.TableFrom(small, null, visuals: v => { v.FreezeHeaderRow = false; v.NumericColumnDecimals["B"] = 0; v.DataBars["B"] = OfficeIMO.Drawing.OfficeColor.ParseHex("5B9BD5"); }); s.ApplyColumnSizing(rr, o=>{ o.MediumHeaders.Add("A"); o.NumericHeaders.Add("B"); }); },
                 c => { c.Section("E: Medium"); var rr = c.TableFrom(medium5, null, visuals: v => { v.FreezeHeaderRow = false; v.NumericColumnDecimals["C2"] = 0; v.NumericColumnDecimals["C3"] = 0; v.NumericColumnDecimals["C4"] = 0; v.TextBackgrounds["C5"] = new System.Collections.Generic.Dictionary<string,string>(System.StringComparer.OrdinalIgnoreCase) {{"ok","#D1E7DD"},{"warn","#FFF4CE"}}; }); s.ApplyColumnSizing(rr, o=>{ o.MediumHeaders.UnionWith(new[]{"C1","C5"}); o.NumericHeaders.UnionWith(new[]{"C2","C3","C4"}); }); },
                 c => { c.Section("F: Wider"); var rr = c.TableFrom(wide8, null, visuals: v => { v.FreezeHeaderRow = false; v.AutoFormatDynamicCollections = true; }); s.ApplyColumnSizing(rr, o=>{ o.NumericHeaders.UnionWith(new[]{"D1","D2","D3","D4","D5","D6","D7","D8"}); }); }
             }, gutter: 1);
@@ -145,7 +145,7 @@ namespace OfficeIMO.Examples.Excel
                 },
                 // Row 2: three tables (2,5,8 columns)
                 new List<Action<SheetComposer.ColumnComposer>> {
-                    c => { c.Section("Small"); var rr = c.TableFrom(small2, null, visuals: v => { v.FreezeHeaderRow = false; v.NumericColumnDecimals["B"] = 0; v.DataBars["B"] = SixLabors.ImageSharp.Color.ParseHex("5B9BD5"); }); ar.ApplyColumnSizing(rr, o=>{ o.MediumHeaders.Add("A"); o.NumericHeaders.Add("B"); }); },
+                    c => { c.Section("Small"); var rr = c.TableFrom(small2, null, visuals: v => { v.FreezeHeaderRow = false; v.NumericColumnDecimals["B"] = 0; v.DataBars["B"] = OfficeIMO.Drawing.OfficeColor.ParseHex("5B9BD5"); }); ar.ApplyColumnSizing(rr, o=>{ o.MediumHeaders.Add("A"); o.NumericHeaders.Add("B"); }); },
                     c => { c.Section("Medium5"); var rr = c.TableFrom(medium52, null, visuals: v => { v.FreezeHeaderRow = false; v.NumericColumnDecimals["C2"] = 0; v.NumericColumnDecimals["C3"] = 0; v.NumericColumnDecimals["C4"] = 0; v.TextBackgrounds["C5"] = new System.Collections.Generic.Dictionary<string,string>(System.StringComparer.OrdinalIgnoreCase) {{"ok","#D1E7DD"},{"warn","#FFF4CE"}}; }); ar.ApplyColumnSizing(rr, o=>{ o.MediumHeaders.UnionWith(new[]{"C1","C5"}); o.NumericHeaders.UnionWith(new[]{"C2","C3","C4"}); }); },
                     c => { c.Section("Wide8"); var rr = c.TableFrom(wide82, null, visuals: v => v.FreezeHeaderRow = false); ar.ApplyColumnSizing(rr, o=>{ o.NumericHeaders.UnionWith(new[]{"D1","D2","D3","D4","D5","D6","D7","D8"}); }); }
                 },

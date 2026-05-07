@@ -5,7 +5,7 @@ using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using Color = SixLabors.ImageSharp.Color;
+using Color = OfficeIMO.Drawing.OfficeColor;
 using Xunit;
 
 namespace OfficeIMO.Tests {

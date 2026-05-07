@@ -8,7 +8,7 @@ OfficeIMO.Word is a cross‑platform .NET library for creating and editing Micro
 - Targets: netstandard2.0, net472, net8.0, net9.0
 - License: MIT
 - NuGet: `OfficeIMO.Word`
-- Dependencies: DocumentFormat.OpenXml, SixLabors.ImageSharp
+- Dependencies: DocumentFormat.OpenXml, OfficeIMO.Drawing
 
 ### AOT / Trimming notes
 
@@ -256,7 +256,7 @@ var fluent = new WordFluentDocument(doc)
 ## Dependencies & Versions
 
 - DocumentFormat.OpenXml: 3.3.x (range [3.3.0, 4.0.0))
-- SixLabors.ImageSharp: 2.1.x
+- OfficeIMO.Drawing: shared first-party color and image metadata helpers
 - License: MIT
 
 ## Converters (adjacent packages)

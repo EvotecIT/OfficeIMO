@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         internal void CleanupWorksheetDrawingArtifacts() {
             var ws = WorksheetRoot;
-            var drawing = ws.GetFirstChild<Drawing>();
+            var drawing = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
             if (drawing?.Id?.Value is not string drawingRelId || string.IsNullOrWhiteSpace(drawingRelId)) {
                 return;
             }

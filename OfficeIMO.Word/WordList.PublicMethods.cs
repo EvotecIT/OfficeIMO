@@ -273,11 +273,11 @@ namespace OfficeIMO.Word {
         /// <param name="document">The parent document.</param>
         /// <param name="symbol">Predefined bullet symbol to use.</param>
         /// <param name="fontName">Font name used for the symbol.</param>
-        /// <param name="color">Optional <see cref="SixLabors.ImageSharp.Color"/> for the symbol.</param>
+        /// <param name="color">Optional <see cref="OfficeIMO.Drawing.OfficeColor"/> for the symbol.</param>
         /// <param name="colorHex">Optional color specified as hex string. Ignored when <paramref name="color"/> is provided.</param>
         /// <param name="fontSize">Optional font size in points.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
-        public static WordList AddCustomBulletList(WordDocument document, WordBulletSymbol symbol, string fontName, SixLabors.ImageSharp.Color? color = null, string? colorHex = null, int? fontSize = null) {
+        public static WordList AddCustomBulletList(WordDocument document, WordBulletSymbol symbol, string fontName, OfficeIMO.Drawing.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
             string? finalColor = color?.ToHexColor() ?? colorHex;
             return AddCustomBulletList(document, (char)symbol, fontName, finalColor, fontSize);
         }
@@ -292,7 +292,7 @@ namespace OfficeIMO.Word {
         /// <param name="colorHex">Optional color specified as hex string. Ignored when <paramref name="color"/> is provided.</param>
         /// <param name="fontSize">Optional font size in points.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
-        public static WordList AddCustomBulletList(WordDocument document, WordListLevelKind kind, string fontName, SixLabors.ImageSharp.Color? color = null, string? colorHex = null, int? fontSize = null) {
+        public static WordList AddCustomBulletList(WordDocument document, WordListLevelKind kind, string fontName, OfficeIMO.Drawing.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
             char symbol = GetBulletSymbol(kind);
             string? finalColor = color?.ToHexColor() ?? colorHex;
             return AddCustomBulletList(document, symbol, fontName, finalColor, fontSize);
@@ -414,7 +414,7 @@ namespace OfficeIMO.Word {
         /// <param name="colorHex">Optional color specified as hex string. Ignored when <paramref name="color"/> is provided.</param>
         /// <param name="fontSize">Optional font size in points.</param>
         /// <returns>The current <see cref="WordList"/>.</returns>
-        public WordList AddListLevel(int levelIndex, WordBulletSymbol symbol, string fontName, SixLabors.ImageSharp.Color? color = null, string? colorHex = null, int? fontSize = null) {
+        public WordList AddListLevel(int levelIndex, WordBulletSymbol symbol, string fontName, OfficeIMO.Drawing.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
             string? finalColor = color?.ToHexColor() ?? colorHex;
             return AddListLevel(levelIndex, (char)symbol, fontName, finalColor, fontSize);
         }
@@ -429,7 +429,7 @@ namespace OfficeIMO.Word {
         /// <param name="colorHex">Optional color specified as hex string. Ignored when <paramref name="color"/> is provided.</param>
         /// <param name="fontSize">Optional font size in points.</param>
         /// <returns>The current <see cref="WordList"/>.</returns>
-        public WordList AddListLevel(int levelIndex, WordListLevelKind kind, string fontName, SixLabors.ImageSharp.Color? color = null, string? colorHex = null, int? fontSize = null) {
+        public WordList AddListLevel(int levelIndex, WordListLevelKind kind, string fontName, OfficeIMO.Drawing.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
             char symbol = GetBulletSymbol(kind);
             string? finalColor = color?.ToHexColor() ?? colorHex;
             return AddListLevel(levelIndex, symbol, fontName, finalColor, fontSize);

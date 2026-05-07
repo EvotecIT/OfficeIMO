@@ -1,5 +1,4 @@
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -7,23 +6,21 @@ namespace OfficeIMO.Visio {
     /// </summary>
     internal static class VisioHelpers {
         /// <summary>
-        /// Converts a SixLabors.ImageSharp.Color to Visio RGB string format.
+        /// Converts a OfficeIMO.Drawing.OfficeColor to Visio RGB string format.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>A string in the format "RGB(r,g,b)" where r, g, b are 0-255.</returns>
         public static string ToVisioRgb(this Color color) {
-            var rgba = color.ToPixel<Rgba32>();
-            return $"RGB({rgba.R},{rgba.G},{rgba.B})";
+            return $"RGB({color.R},{color.G},{color.B})";
         }
         
         /// <summary>
-        /// Converts a SixLabors.ImageSharp.Color to hex format for Visio.
+        /// Converts a OfficeIMO.Drawing.OfficeColor to hex format for Visio.
         /// </summary>
         /// <param name="color">The color to convert.</param>
         /// <returns>A string in the format "#RRGGBB".</returns>
         public static string ToVisioHex(this Color color) {
-            var rgba = color.ToPixel<Rgba32>();
-            return $"#{rgba.R:X2}{rgba.G:X2}{rgba.B:X2}";
+            return $"#{color.R:X2}{color.G:X2}{color.B:X2}";
         }
 
         /// <summary>

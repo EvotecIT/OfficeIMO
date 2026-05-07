@@ -1,4 +1,4 @@
-using SixLabors.ImageSharp;
+using Color = OfficeIMO.Drawing.OfficeColor;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 

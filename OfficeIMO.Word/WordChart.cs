@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using AxisId = DocumentFormat.OpenXml.Drawing.Charts.AxisId;
 using Chart = DocumentFormat.OpenXml.Drawing.Charts.Chart;
 using ChartSpace = DocumentFormat.OpenXml.Drawing.Charts.ChartSpace;
@@ -54,8 +55,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document">Parent document that owns the chart.</param>
         /// <param name="paragraph">Paragraph containing the chart.</param>
-        /// <param name="drawing">Existing drawing element with chart data.</param>
-        public WordChart(WordDocument document, WordParagraph paragraph, Drawing drawing) {
+        /// <param name="drawing">Existing WordDrawing element with chart data.</param>
+        public WordChart(WordDocument document, WordParagraph paragraph, WordDrawing drawing) {
             _document = document;
             _drawing = drawing;
             _paragraph = paragraph;
@@ -211,7 +212,7 @@ namespace OfficeIMO.Word {
             // _chartPart = part;
             var id = _document._wordprocessingDocument.MainDocumentPart!.GetIdOfPart(part);
 
-            Drawing chartDrawing = CreateChartDrawing(id, width, height);
+            WordDrawing chartDrawing = CreateChartDrawing(id, width, height);
             _drawing = chartDrawing;
 
             var run = new Run();
@@ -467,8 +468,8 @@ namespace OfficeIMO.Word {
             return stringReference1;
         }
 
-        internal Drawing CreateChartDrawing(string id, int width = 600, int height = 600) {
-            Drawing drawing1 = new Drawing();
+        internal WordDrawing CreateChartDrawing(string id, int width = 600, int height = 600) {
+            WordDrawing drawing1 = new WordDrawing();
 
             DocumentFormat.OpenXml.Drawing.Wordprocessing.Inline inline1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.Inline();
             inline1.AddNamespaceDeclaration("wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing");

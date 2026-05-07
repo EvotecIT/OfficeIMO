@@ -91,12 +91,6 @@
       "channel": "stable",
       "limit": 12,
       "class": "pf-release-buttons--compact"
-    },
-    "timeline": {
-      "product": "*",
-      "limit": 30,
-      "includePreview": true,
-      "class": "pf-release-changelog--timeline"
     }
   }
 }

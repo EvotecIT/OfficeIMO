@@ -318,9 +318,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the text color using <see cref="SixLabors.ImageSharp.Color"/>.
+        /// Gets or sets the text color using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
         /// </summary>
-        public SixLabors.ImageSharp.Color? Color {
+        public OfficeIMO.Drawing.OfficeColor? Color {
             get {
                 if (ColorHex == "") {
                     return null;

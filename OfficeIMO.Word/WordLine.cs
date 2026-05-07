@@ -1,5 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using Color = SixLabors.ImageSharp.Color;
+using Color = OfficeIMO.Drawing.OfficeColor;
 using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
@@ -58,7 +58,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the stroke color using <see cref="SixLabors.ImageSharp.Color"/>.
+        /// Gets or sets the stroke color using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
         /// </summary>
         public Color Color {
             get {

@@ -44,7 +44,7 @@ namespace OfficeIMO.Excel {
                 typeof(CellWatches),
                 typeof(DocumentFormat.OpenXml.Spreadsheet.IgnoredErrors),
                 // SmartTags is deprecated and not in current OpenXML SDK
-                typeof(Drawing),
+                typeof(DocumentFormat.OpenXml.Spreadsheet.Drawing),
                 typeof(LegacyDrawing),
                 typeof(LegacyDrawingHeaderFooter),
                 typeof(DrawingHeaderFooter),

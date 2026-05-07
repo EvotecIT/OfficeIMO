@@ -1,7 +1,7 @@
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
-using SixLabors.ImageSharp;
+using Color = OfficeIMO.Drawing.OfficeColor;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using VerifyXunit;

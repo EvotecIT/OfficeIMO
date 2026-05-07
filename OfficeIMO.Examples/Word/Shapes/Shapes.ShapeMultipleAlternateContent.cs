@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
+using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using Path = System.IO.Path;
 
 namespace OfficeIMO.Examples.Word {
@@ -21,13 +22,13 @@ namespace OfficeIMO.Examples.Word {
             }
             using (WordprocessingDocument word = WordprocessingDocument.Open(filePath, true)) {
                 var body = Guard.NotNull(word.MainDocumentPart?.Document?.Body, "Document body must exist.");
-                var shapeRun = body.Descendants<Run>().FirstOrDefault(r => r.Descendants<Drawing>().Any() && !r.Descendants<Wps.TextBoxInfo2>().Any())
+                var shapeRun = body.Descendants<Run>().FirstOrDefault(r => r.Descendants<WordDrawing>().Any() && !r.Descendants<Wps.TextBoxInfo2>().Any())
                     ?? throw new InvalidOperationException("Run containing a shape drawing was not found.");
                 var textBoxRun = body.Descendants<Run>().FirstOrDefault(r => r.Descendants<Wps.TextBoxInfo2>().Any())
                     ?? throw new InvalidOperationException("Run containing a textbox drawing was not found.");
-                var shapeDrawing = (Drawing)(shapeRun.Descendants<Drawing>().FirstOrDefault()?.CloneNode(true)
+                var shapeDrawing = (WordDrawing)(shapeRun.Descendants<WordDrawing>().FirstOrDefault()?.CloneNode(true)
                     ?? throw new InvalidOperationException("Shape drawing was not found."));
-                var textBoxDrawing = (Drawing)(textBoxRun.Descendants<Drawing>().FirstOrDefault()?.CloneNode(true)
+                var textBoxDrawing = (WordDrawing)(textBoxRun.Descendants<WordDrawing>().FirstOrDefault()?.CloneNode(true)
                     ?? throw new InvalidOperationException("Textbox drawing was not found."));
 
                 var shapeAc = new AlternateContent();

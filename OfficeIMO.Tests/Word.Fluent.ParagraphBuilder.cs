@@ -7,7 +7,7 @@ using OfficeIMO;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Fluent;
 using Xunit;
-using Color = SixLabors.ImageSharp.Color;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public partial class Word {

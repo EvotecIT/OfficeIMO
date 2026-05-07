@@ -1,6 +1,6 @@
 using System.IO;
 using OfficeIMO.Word;
-using Color = SixLabors.ImageSharp.Color;
+using Color = OfficeIMO.Drawing.OfficeColor;
 using Xunit;
 using Path = System.IO.Path;
 

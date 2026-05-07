@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 using A14 = DocumentFormat.OpenXml.Office2010.Drawing;
 using Ovml = DocumentFormat.OpenXml.Vml.Office;
@@ -52,7 +53,7 @@ public partial class WordPageNumber {
 
             AlternateContentChoice alternateContentChoice1 = new AlternateContentChoice() { Requires = "wpg" };
 
-            Drawing drawing1 = new Drawing();
+            WordDrawing drawing1 = new WordDrawing();
 
             Wp.Anchor anchor1 = new Wp.Anchor() { DistanceFromTop = (UInt32Value)0U, DistanceFromBottom = (UInt32Value)0U, DistanceFromLeft = (UInt32Value)114300U, DistanceFromRight = (UInt32Value)114300U, SimplePos = false, RelativeHeight = (UInt32Value)251659264U, BehindDoc = false, Locked = false, LayoutInCell = true, AllowOverlap = true, EditId = "60C49A5A", AnchorId = "4D8B63E6" };
             Wp.SimplePosition simplePosition1 = new Wp.SimplePosition() { X = 0L, Y = 0L };

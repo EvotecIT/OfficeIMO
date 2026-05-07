@@ -1,7 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using SixLabors.Fonts;
+using OfficeIMO.Drawing;
 using System.Globalization;
 using System.Threading;
 
@@ -344,36 +344,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private SixLabors.Fonts.Font GetDefaultFont() {
-            // Try to use the workbook's default font if present
-            var wf = GetWorkbookDefaultFont();
-            if (wf != null) return wf;
-
-            string[] preferred = { "Calibri", "Arial", "Liberation Sans", "DejaVu Sans", "Times New Roman" };
-
-            foreach (var name in preferred) {
-                try {
-                    var font = SystemFonts.CreateFont(name, 11);
-                    if (IsFontUsable(font)) return font;
-                } catch (FontFamilyNotFoundException) {
-                    // Try next option
-                }
-            }
-
-            foreach (var family in SystemFonts.Collection.Families) {
-                try {
-                    var font = family.CreateFont(11);
-                    if (IsFontUsable(font)) return font;
-                } catch {
-                    // Skip fonts that cannot be loaded or measured
-                }
-            }
-
-            // Fallback to first available family without validation
-            return SystemFonts.Collection.Families.First().CreateFont(11);
-        }
-
-        private SixLabors.Fonts.Font? GetWorkbookDefaultFont() {
+        private OfficeFontInfo? GetWorkbookDefaultFontInfo() {
             try {
                 var workbookPart = WorkbookPartRoot;
                 var stylesPart = workbookPart?.WorkbookStylesPart;
@@ -387,13 +358,8 @@ namespace OfficeIMO.Excel {
                 bool bold = firstFont.GetFirstChild<Bold>() != null;
                 bool italic = firstFont.GetFirstChild<Italic>() != null;
 
-                var style = bold && italic ? FontStyle.BoldItalic : bold ? FontStyle.Bold : italic ? FontStyle.Italic : FontStyle.Regular;
                 if (!string.IsNullOrEmpty(fontName)) {
-                    try {
-                        return SystemFonts.CreateFont(fontName!, (float)fontSize, style);
-                    } catch (FontFamilyNotFoundException) {
-                        return null;
-                    }
+                    return new OfficeFontInfo(fontName, fontSize, GetOfficeFontStyle(bold, italic));
                 }
             } catch {
                 // ignore
@@ -401,47 +367,39 @@ namespace OfficeIMO.Excel {
             return null;
         }
 
-        private static bool IsFontUsable(SixLabors.Fonts.Font font) {
-            try {
-                TextMeasurer.MeasureSize("0", new TextOptions(font));
-                return true;
-            } catch {
-                return false;
-            }
-        }
-
-        private SixLabors.Fonts.Font GetCellFont(Cell cell) {
-            var defaultFont = GetDefaultFont();
-            if (cell.StyleIndex == null) return defaultFont;
+        private OfficeFontInfo GetCellFontInfo(Cell cell, OfficeFontInfo fallbackFontInfo) {
+            if (cell.StyleIndex == null) return fallbackFontInfo;
 
             var workbookPart = WorkbookPartRoot;
             var stylesPart = workbookPart?.WorkbookStylesPart;
             var stylesheet = stylesPart?.Stylesheet;
             var fonts = stylesheet?.Fonts;
             var cellFormats = stylesheet?.CellFormats;
-            if (fonts == null || cellFormats == null) return defaultFont;
+            if (fonts == null || cellFormats == null) return fallbackFontInfo;
 
             var cellFormat = cellFormats.Elements<CellFormat>().ElementAtOrDefault((int)cell.StyleIndex.Value);
-            if (cellFormat?.FontId == null) return defaultFont;
+            if (cellFormat?.FontId == null) return fallbackFontInfo;
 
             var fontElement = fonts.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ElementAtOrDefault((int)cellFormat.FontId.Value);
-            if (fontElement == null) return defaultFont;
+            if (fontElement == null) return fallbackFontInfo;
 
+            return CreateFontInfoFromOpenXml(fontElement, (float)fallbackFontInfo.Size);
+        }
+
+        private static OfficeFontInfo CreateFontInfoFromOpenXml(DocumentFormat.OpenXml.Spreadsheet.Font fontElement, float fallbackSize) {
             var fontName = fontElement.GetFirstChild<FontName>()?.Val?.Value;
-            var fontSize = fontElement.GetFirstChild<FontSize>()?.Val?.Value ?? defaultFont.Size;
+            var fontSize = fontElement.GetFirstChild<FontSize>()?.Val?.Value ?? fallbackSize;
             bool bold = fontElement.GetFirstChild<Bold>() != null;
             bool italic = fontElement.GetFirstChild<Italic>() != null;
 
-            try {
-                var style = bold && italic ? FontStyle.BoldItalic : bold ? FontStyle.Bold : italic ? FontStyle.Italic : FontStyle.Regular;
-                if (!string.IsNullOrEmpty(fontName)) {
-                    return SystemFonts.CreateFont(fontName!, (float)fontSize, style);
-                }
-                return defaultFont.Family.CreateFont((float)fontSize, style);
-            } catch (FontFamilyNotFoundException) {
-                var fallbackStyle = bold && italic ? FontStyle.BoldItalic : bold ? FontStyle.Bold : italic ? FontStyle.Italic : FontStyle.Regular;
-                return defaultFont.Family.CreateFont((float)fontSize, fallbackStyle);
-            }
+            return new OfficeFontInfo(fontName, fontSize, GetOfficeFontStyle(bold, italic));
+        }
+
+        private static OfficeFontStyle GetOfficeFontStyle(bool bold, bool italic) {
+            var style = OfficeFontStyle.Regular;
+            if (bold) style |= OfficeFontStyle.Bold;
+            if (italic) style |= OfficeFontStyle.Italic;
+            return style;
         }
 
         /// <summary>

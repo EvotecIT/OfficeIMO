@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using OfficeIMO.Word;
-using Color = SixLabors.ImageSharp.Color;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     /// <summary>

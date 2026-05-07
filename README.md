@@ -20,6 +20,7 @@ OfficeIMO is a family of lightweight .NET libraries for working with Office and 
 - Visio: basic `.vsdx` generation helpers
 - Markdown: builder, typed reader/AST, HTML rendering, and host-oriented rendering helpers
 - Reader: read-only extraction facade for ingestion scenarios
+- Drawing: shared first-party color and image metadata primitives
 
 Each package is shipped independently under the MIT license unless noted otherwise.
 
@@ -31,6 +32,7 @@ Each package is shipped independently under the MIT license unless noted otherwi
 - [OfficeIMO.Excel.GoogleSheets](OfficeIMO.Excel.GoogleSheets/README.md)
 - [OfficeIMO.Word.GoogleDocs](OfficeIMO.Word.GoogleDocs/README.md)
 - [OfficeIMO.CSV](OfficeIMO.CSV/README.md)
+- [OfficeIMO.Drawing](OfficeIMO.Drawing/README.md)
 - [OfficeIMO.PowerPoint](OfficeIMO.PowerPoint/README.md)
 - [OfficeIMO.Visio](OfficeIMO.Visio/README.md)
 - [OfficeIMO.Markdown](OfficeIMO.Markdown/README.md)
@@ -89,11 +91,12 @@ Each package is shipped independently under the MIT license unless noted otherwi
 - `OfficeIMO.PowerPoint`: programmatic slide generation
 - `OfficeIMO.Visio`: basic diagram generation
 - `OfficeIMO.Reader`: unified read-only extraction facade for ingestion workflows
+- `OfficeIMO.Drawing`: shared color and image metadata primitives used by OfficeIMO packages
 
 ## Targets
 
 - Word, PowerPoint, Visio: netstandard2.0, net472, net8.0, net10.0
-- Excel, CSV: netstandard2.0, net472, net8.0, net10.0
+- Excel, CSV, Drawing: netstandard2.0, net472, net8.0, net10.0
 - Markdown, MarkdownRenderer: netstandard2.0, net472, net8.0, net10.0
 - MarkdownRenderer.Wpf: net472, net8.0-windows, net10.0-windows for the WPF/WebView2 surface, plus shared helper code on net8.0 and net10.0 for cross-platform validation/tests
 
@@ -112,6 +115,7 @@ Arrows point from a package to what it depends on.
 ```mermaid
 flowchart TB
   WCore["OfficeIMO.Word"]
+  Drawing["OfficeIMO.Drawing"]
   subgraph Extensions
     WHtml["OfficeIMO.Word.Html"]
     WMd["OfficeIMO.Word.Markdown"]
@@ -125,6 +129,7 @@ flowchart TB
   Quest["QuestPDF"]
   Skia["SkiaSharp"]
 
+  WCore --> Drawing
   WHtml --> WCore
   WMd --> WCore
   WPdf --> WCore
@@ -173,11 +178,11 @@ flowchart TB
 flowchart TD
   Xl["OfficeIMO.Excel"]
   OXml["DocumentFormat.OpenXml"]
-  ImgSharp["SixLabors.ImageSharp"]
+  Drawing["OfficeIMO.Drawing"]
   Fonts["SixLabors.Fonts"]
 
   Xl --> OXml
-  Xl --> ImgSharp
+  Xl --> Drawing
   Xl --> Fonts
 ```
 
@@ -196,10 +201,10 @@ flowchart TD
 ```mermaid
 flowchart TD
   Vsdx["OfficeIMO.Visio"]
-  ImgSharp["SixLabors.ImageSharp"]
+  Drawing["OfficeIMO.Drawing"]
   Pkg["System.IO.Packaging"]
 
-  Vsdx --> ImgSharp
+  Vsdx --> Drawing
   Vsdx --> Pkg
 ```
 
@@ -233,7 +238,8 @@ For the current markdown package line:
 ## Dependency versions (high level)
 
 - DocumentFormat.OpenXml: 3.3.x (conservative version ranges)
-- SixLabors.ImageSharp / SixLabors.Fonts: Excel and image-centric packages
+- OfficeIMO.Drawing: first-party color and image metadata helpers
+- SixLabors.Fonts: Excel font measurement/layout work
 - AngleSharp / AngleSharp.Css: HTML conversion layers
 - QuestPDF / SkiaSharp: PDF conversion layers
 - System.Text.Json: markdown renderer host helpers

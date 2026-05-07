@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using Anchor = DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor;
 using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
 using V = DocumentFormat.OpenXml.Vml;
@@ -20,7 +21,7 @@ namespace OfficeIMO.Word {
         private const double EnglishMetricUnitsPerInch = 914400;
         private const double PixelsPerInch = 96;
 
-        internal Drawing _Image = null!;
+        internal WordDrawing _Image = null!;
         private ImagePart? _imagePart;
         private string? _externalRelationshipId;
         private WordDocument _document = null!;
@@ -1226,9 +1227,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the alpha inversion color.
         /// </summary>
-        public SixLabors.ImageSharp.Color? AlphaInversionColor {
+        public OfficeIMO.Drawing.OfficeColor? AlphaInversionColor {
             get {
-                if (AlphaInversionColorHex == null) return (SixLabors.ImageSharp.Color?)null;
+                if (AlphaInversionColorHex == null) return (OfficeIMO.Drawing.OfficeColor?)null;
                 return Helpers.ParseColor(AlphaInversionColorHex);
             }
             set { AlphaInversionColorHex = value?.ToHexColor(); }
@@ -1356,9 +1357,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the source color to change from.
         /// </summary>
-        public SixLabors.ImageSharp.Color? ColorChangeFrom {
+        public OfficeIMO.Drawing.OfficeColor? ColorChangeFrom {
             get {
-                return ColorChangeFromHex == null ? (SixLabors.ImageSharp.Color?)null : Helpers.ParseColor(ColorChangeFromHex);
+                return ColorChangeFromHex == null ? (OfficeIMO.Drawing.OfficeColor?)null : Helpers.ParseColor(ColorChangeFromHex);
             }
             set { ColorChangeFromHex = value?.ToHexColor(); }
         }
@@ -1366,9 +1367,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the target color to change to.
         /// </summary>
-        public SixLabors.ImageSharp.Color? ColorChangeTo {
+        public OfficeIMO.Drawing.OfficeColor? ColorChangeTo {
             get {
-                return ColorChangeToHex == null ? (SixLabors.ImageSharp.Color?)null : Helpers.ParseColor(ColorChangeToHex);
+                return ColorChangeToHex == null ? (OfficeIMO.Drawing.OfficeColor?)null : Helpers.ParseColor(ColorChangeToHex);
             }
             set { ColorChangeToHex = value?.ToHexColor(); }
         }
@@ -1437,9 +1438,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets a color replacement.
         /// </summary>
-        public SixLabors.ImageSharp.Color? ColorReplacement {
+        public OfficeIMO.Drawing.OfficeColor? ColorReplacement {
             get {
-                return ColorReplacementHex == null ? (SixLabors.ImageSharp.Color?)null : Helpers.ParseColor(ColorReplacementHex);
+                return ColorReplacementHex == null ? (OfficeIMO.Drawing.OfficeColor?)null : Helpers.ParseColor(ColorReplacementHex);
             }
             set { ColorReplacementHex = value?.ToHexColor(); }
         }
@@ -1479,9 +1480,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the first duotone color.
         /// </summary>
-        public SixLabors.ImageSharp.Color? DuotoneColor1 {
+        public OfficeIMO.Drawing.OfficeColor? DuotoneColor1 {
             get {
-                return DuotoneColor1Hex == null ? (SixLabors.ImageSharp.Color?)null : Helpers.ParseColor(DuotoneColor1Hex);
+                return DuotoneColor1Hex == null ? (OfficeIMO.Drawing.OfficeColor?)null : Helpers.ParseColor(DuotoneColor1Hex);
             }
             set { DuotoneColor1Hex = value?.ToHexColor(); }
         }
@@ -1489,9 +1490,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the second duotone color.
         /// </summary>
-        public SixLabors.ImageSharp.Color? DuotoneColor2 {
+        public OfficeIMO.Drawing.OfficeColor? DuotoneColor2 {
             get {
-                return DuotoneColor2Hex == null ? (SixLabors.ImageSharp.Color?)null : Helpers.ParseColor(DuotoneColor2Hex);
+                return DuotoneColor2Hex == null ? (OfficeIMO.Drawing.OfficeColor?)null : Helpers.ParseColor(DuotoneColor2Hex);
             }
             set { DuotoneColor2Hex = value?.ToHexColor(); }
         }
@@ -1955,9 +1956,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Wraps an existing drawing as a WordImage.
+        /// Wraps an existing WordDrawing as a WordImage.
         /// </summary>
-        public WordImage(WordDocument document, Drawing drawing) {
+        public WordImage(WordDocument document, WordDrawing drawing) {
             _document = document;
             _Image = drawing;
 
@@ -2050,7 +2051,7 @@ namespace OfficeIMO.Word {
         public WordImage Clone(WordParagraph paragraph) {
             if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
 
-            var drawingClone = (Drawing)_Image.CloneNode(true);
+            var drawingClone = (WordDrawing)_Image.CloneNode(true);
             var run = new DocumentFormat.OpenXml.Wordprocessing.Run(drawingClone);
             paragraph._paragraph.Append(run);
 
@@ -2167,7 +2168,7 @@ namespace OfficeIMO.Word {
             double emuWidth = imageLocation.Width * EnglishMetricUnitsPerInch / PixelsPerInch;
             double emuHeight = imageLocation.Height * EnglishMetricUnitsPerInch / PixelsPerInch;
 
-            var drawing = new Drawing();
+            var drawing = new WordDrawing();
 
             if (wrapImage == WrapTextImage.InLineWithText) {
                 var inline = GetInline(emuWidth, emuHeight, imageLocation.ImageName, fileName, imageLocation.RelationshipId, shape, compressionQuality, description);
@@ -2257,7 +2258,7 @@ namespace OfficeIMO.Word {
             double emuWidth = width * EnglishMetricUnitsPerInch / PixelsPerInch;
             double emuHeight = height * EnglishMetricUnitsPerInch / PixelsPerInch;
 
-            var drawing = new Drawing();
+            var drawing = new WordDrawing();
             if (wrapImage == WrapTextImage.InLineWithText) {
                 var inline = GetInline(emuWidth, emuHeight, System.IO.Path.GetFileNameWithoutExtension(uri.ToString()), System.IO.Path.GetFileName(uri.ToString()), rel.Id, shape, compressionQuality, description, true);
                 drawing.Append(inline);

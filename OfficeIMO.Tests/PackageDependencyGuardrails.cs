@@ -4,6 +4,61 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class PackageDependencyGuardrailTests {
+    [Fact]
+    public void Projects_DoNotReferenceImageSharpPackage() {
+        var projectFiles = Directory.EnumerateFiles(GetRepositoryRoot(), "*.csproj", SearchOption.AllDirectories)
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}Ignore{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => new FileInfo(path).Length > 0)
+            .ToArray();
+
+        var offenders = projectFiles
+            .Where(ProjectReferencesImageSharp)
+            .ToArray();
+
+        Assert.Empty(offenders);
+    }
+
+    [Fact]
+    public void OfficeImoDrawing_HasNoPackageReferences() {
+        var projectPath = GetRepositoryPath("OfficeIMO.Drawing/OfficeIMO.Drawing.csproj");
+        Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
+
+        var document = XDocument.Load(projectPath);
+        var ns = document.Root?.Name.Namespace ?? XNamespace.None;
+
+        var references = document
+            .Descendants(ns + "PackageReference")
+            .Select(static e => (string?)e.Attribute("Include") ?? string.Empty)
+            .Where(static include => !string.IsNullOrWhiteSpace(include))
+            .ToArray();
+
+        Assert.Empty(references);
+    }
+
+    [Theory]
+    [InlineData("OfficeIMO.Word/OfficeIMO.Word.csproj")]
+    [InlineData("OfficeIMO.Excel/OfficeIMO.Excel.csproj")]
+    [InlineData("OfficeIMO.Visio/OfficeIMO.Visio.csproj")]
+    [InlineData("OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj")]
+    [InlineData("OfficeIMO.Word.Markdown/OfficeIMO.Word.Markdown.csproj")]
+    public void ImageAndColorConsumers_ReferenceOfficeImoDrawing(string relativeProjectPath) {
+        var projectPath = GetRepositoryPath(relativeProjectPath);
+        Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
+
+        var document = XDocument.Load(projectPath);
+        var ns = document.Root?.Name.Namespace ?? XNamespace.None;
+
+        var references = document
+            .Descendants(ns + "ProjectReference")
+            .Select(static e => NormalizeProjectPath((string?)e.Attribute("Include")))
+            .Where(static include => include.EndsWith("OfficeIMO.Drawing/OfficeIMO.Drawing.csproj", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        Assert.Single(references);
+    }
+
     [Theory]
     [InlineData("OfficeIMO.Reader/OfficeIMO.Reader.csproj")]
     [InlineData("OfficeIMO.Reader.Json/OfficeIMO.Reader.Json.csproj")]
@@ -13,7 +68,7 @@ public sealed class PackageDependencyGuardrailTests {
     [InlineData("OfficeIMO.Excel.GoogleSheets/OfficeIMO.Excel.GoogleSheets.csproj")]
     [InlineData("OfficeIMO.Word.GoogleDocs/OfficeIMO.Word.GoogleDocs.csproj")]
     public void SystemTextJsonPackageReference_IsLimitedToNonInboxTargets(string relativeProjectPath) {
-        var projectPath = Path.Combine(GetRepositoryRoot(), relativeProjectPath.Replace('/', Path.DirectorySeparatorChar));
+        var projectPath = GetRepositoryPath(relativeProjectPath);
         Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
 
         var document = XDocument.Load(projectPath);
@@ -41,7 +96,7 @@ public sealed class PackageDependencyGuardrailTests {
     [InlineData("OfficeIMO.CSV/OfficeIMO.CSV.csproj")]
     [InlineData("OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj")]
     public void NetFrameworkReferenceAssemblies_AreLimitedToNet472(string relativeProjectPath) {
-        var projectPath = Path.Combine(GetRepositoryRoot(), relativeProjectPath.Replace('/', Path.DirectorySeparatorChar));
+        var projectPath = GetRepositoryPath(relativeProjectPath);
         Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
 
         var document = XDocument.Load(projectPath);
@@ -79,5 +134,46 @@ public sealed class PackageDependencyGuardrailTests {
         }
 
         throw new DirectoryNotFoundException("Unable to locate OfficeIMO repository root from test runtime base directory.");
+    }
+
+    private static string GetRepositoryPath(string relativePath) {
+        Assert.False(Path.IsPathRooted(relativePath), "Repository-relative path must not be rooted: " + relativePath);
+
+        var repositoryRoot = Path.GetFullPath(GetRepositoryRoot());
+        if (!repositoryRoot.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)) {
+            repositoryRoot += Path.DirectorySeparatorChar;
+        }
+
+        var parts = NormalizeProjectPath(relativePath)
+            .Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+        var combinedPath = repositoryRoot;
+        foreach (var part in parts) {
+            Assert.False(Path.IsPathRooted(part), "Repository-relative path segment must not be rooted: " + relativePath);
+            combinedPath = AppendRepositoryPathSegment(combinedPath, part);
+        }
+
+        combinedPath = Path.GetFullPath(combinedPath);
+
+        Assert.True(
+            combinedPath.StartsWith(repositoryRoot, StringComparison.Ordinal),
+            "Repository-relative path must stay under repository root: " + relativePath);
+        return combinedPath;
+    }
+
+    private static string AppendRepositoryPathSegment(string basePath, string segment) =>
+        basePath.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)
+            ? basePath + segment
+            : basePath + Path.DirectorySeparatorChar + segment;
+
+    private static string NormalizeProjectPath(string? path) =>
+        (path ?? string.Empty).Replace('\\', '/');
+
+    private static bool ProjectReferencesImageSharp(string projectPath) {
+        var document = XDocument.Load(projectPath);
+        var ns = document.Root?.Name.Namespace ?? XNamespace.None;
+
+        return document
+            .Descendants(ns + "PackageReference")
+            .Any(static e => string.Equals((string?)e.Attribute("Include"), "SixLabors.ImageSharp", StringComparison.Ordinal));
     }
 }

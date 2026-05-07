@@ -6,7 +6,7 @@ using System.Linq;
 
 using Xunit;
 
-using Color = SixLabors.ImageSharp.Color;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Tests {
     /// <summary>
@@ -29,9 +29,9 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("This is a bar chart");
                 var barChart1 = document.AddChart();
                 barChart1.AddCategories(categories);
-                barChart1.AddBar("Brazil", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
-                barChart1.AddBar("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
-                barChart1.AddBar("USA", new[] { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+                barChart1.AddBar("Brazil", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.Brown);
+                barChart1.AddBar("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.Drawing.OfficeColor.Green);
+                barChart1.AddBar("USA", new[] { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
                 barChart1.BarGrouping = BarGroupingValues.Clustered;
                 barChart1.BarDirection = BarDirectionValues.Column;
 
@@ -44,9 +44,9 @@ namespace OfficeIMO.Tests {
 
                 var lineChart = paragraphToTest.AddChart();
                 lineChart.AddChartAxisX(categories);
-                lineChart.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
-                lineChart.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
-                lineChart.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+                lineChart.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
+                lineChart.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, OfficeIMO.Drawing.OfficeColor.Brown);
+                lineChart.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.Drawing.OfficeColor.Green);
 
                 Assert.True(document.Sections[0].Charts.Count == 2);
                 Assert.True(document.Charts.Count == 2);
@@ -65,9 +65,9 @@ namespace OfficeIMO.Tests {
                 var paragraph4 = document.AddParagraph("Adding a line chart as required 2 - but assigned to paragraph");
                 var lineChart4 = paragraph4.AddChart();
                 lineChart4.AddChartAxisX(categories);
-                lineChart4.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
-                lineChart4.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
-                lineChart4.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+                lineChart4.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
+                lineChart4.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, OfficeIMO.Drawing.OfficeColor.Brown);
+                lineChart4.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.Drawing.OfficeColor.Green);
 
                 Assert.True(paragraph4.IsChart == false);
 
@@ -91,9 +91,9 @@ namespace OfficeIMO.Tests {
                 var areaChart = document.AddChart("AreaChart");
                 areaChart.AddCategories(categories);
 
-                areaChart.AddArea("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
-                areaChart.AddArea("Brazil", new List<int>() { 10, 35, 300, 13 }, SixLabors.ImageSharp.Color.Green);
-                areaChart.AddArea("Poland", new List<int>() { 10, 35, 230, 150 }, SixLabors.ImageSharp.Color.AliceBlue);
+                areaChart.AddArea("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.Brown);
+                areaChart.AddArea("Brazil", new List<int>() { 10, 35, 300, 13 }, OfficeIMO.Drawing.OfficeColor.Green);
+                areaChart.AddArea("Poland", new List<int>() { 10, 35, 230, 150 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
 
                 areaChart.AddLegend(LegendPositionValues.Top);
 

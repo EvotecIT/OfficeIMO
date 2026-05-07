@@ -1,4 +1,4 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -74,7 +74,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set left table cell border color using named colors
         /// </summary>
-        public SixLabors.ImageSharp.Color LeftColor {
+        public OfficeIMO.Drawing.OfficeColor LeftColor {
             get {
                 var hex = LeftColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("LeftColorHex is null"));
@@ -138,7 +138,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set right table cell border color using named colors
         /// </summary>
-        public SixLabors.ImageSharp.Color RightColor {
+        public OfficeIMO.Drawing.OfficeColor RightColor {
             get {
                 var hex = RightColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("RightColorHex is null"));
@@ -204,7 +204,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set top table cell border color using named colors
         /// </summary>
-        public SixLabors.ImageSharp.Color TopColor {
+        public OfficeIMO.Drawing.OfficeColor TopColor {
             get {
                 var hex = TopColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("TopColorHex is null"));
@@ -273,7 +273,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set bottom table cell border color using named colors
         /// </summary>
-        public SixLabors.ImageSharp.Color BottomColor {
+        public OfficeIMO.Drawing.OfficeColor BottomColor {
             get {
                 var hex = BottomColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("BottomColorHex is null"));
@@ -344,7 +344,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set inside horizontal table cell border color using named colors
         /// </summary>
-        public SixLabors.ImageSharp.Color InsideHorizontalColor {
+        public OfficeIMO.Drawing.OfficeColor InsideHorizontalColor {
             get {
                 var hex = InsideHorizontalColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("InsideHorizontalColorHex is null"));
@@ -415,7 +415,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set inside vertical table cell border color using named colors
         /// </summary>
-        public SixLabors.ImageSharp.Color InsideVerticalColor {
+        public OfficeIMO.Drawing.OfficeColor InsideVerticalColor {
             get {
                 var hex = InsideVerticalColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("InsideVerticalColorHex is null"));
@@ -483,7 +483,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set start table cell border color using named colors
         /// </summary>
-        public SixLabors.ImageSharp.Color StartColor {
+        public OfficeIMO.Drawing.OfficeColor StartColor {
             get {
                 var hex = StartColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("StartColorHex is null"));
@@ -551,7 +551,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set end table cell border color using named colors
         /// </summary>
-        public SixLabors.ImageSharp.Color EndColor {
+        public OfficeIMO.Drawing.OfficeColor EndColor {
             get {
                 var hex = EndColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("EndColorHex is null"));
@@ -626,7 +626,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set top left to bottom right table cell border color using named colors
         /// </summary>
-        public SixLabors.ImageSharp.Color TopLeftToBottomRightColor {
+        public OfficeIMO.Drawing.OfficeColor TopLeftToBottomRightColor {
             get {
                 var hex = TopLeftToBottomRightColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("TopLeftToBottomRightColorHex is null"));
@@ -692,7 +692,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set top right to bottom left table cell border color using named colors
         /// </summary>
-        public SixLabors.ImageSharp.Color TopRightToBottomLeftColor {
+        public OfficeIMO.Drawing.OfficeColor TopRightToBottomLeftColor {
             get {
                 var hex = TopRightToBottomLeftColorHex;
                 return Helpers.ParseColor(hex ?? throw new InvalidOperationException("TopRightToBottomLeftColorHex is null"));

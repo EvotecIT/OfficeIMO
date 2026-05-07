@@ -12,7 +12,7 @@ internal static partial class Protect {
         using (WordDocument document = WordDocument.Create(filePath)) {
             var paragraph = document.AddParagraph("This document is protected: password required to edit");
             paragraph.ParagraphAlignment = JustificationValues.Center;
-            paragraph.Color = SixLabors.ImageSharp.Color.Red;
+            paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
             paragraph.AddText(" - Password is 'Test123'");
 
             // This is the only way to enforce editing restrictions in modern Word

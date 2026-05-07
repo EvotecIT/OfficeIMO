@@ -236,7 +236,7 @@ namespace OfficeIMO.Word {
         /// <param name="size">Line width.</param>
         /// <param name="space">Line spacing.</param>
         /// <returns>The paragraph containing the line.</returns>
-        public WordParagraph AddHorizontalLine(BorderValues? lineType = null, SixLabors.ImageSharp.Color? color = null, uint size = 12, uint space = 1) {
+        public WordParagraph AddHorizontalLine(BorderValues? lineType = null, OfficeIMO.Drawing.OfficeColor? color = null, uint size = 12, uint space = 1) {
             lineType ??= BorderValues.Single;
             return this.AddParagraph("").AddHorizontalLine(lineType.Value, color, size, space);
         }
@@ -320,10 +320,10 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds a VML shape to the section using <see cref="SixLabors.ImageSharp.Color"/> values.
+        /// Adds a VML shape to the section using <see cref="OfficeIMO.Drawing.OfficeColor"/> values.
         /// </summary>
         public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
-            SixLabors.ImageSharp.Color fillColor, SixLabors.ImageSharp.Color strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
+            OfficeIMO.Drawing.OfficeColor fillColor, OfficeIMO.Drawing.OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
             return AddShape(shapeType, widthPt, heightPt, fillColor.ToHexColor(), strokeColor.ToHexColor(), strokeWeightPt, arcSize);
         }
 

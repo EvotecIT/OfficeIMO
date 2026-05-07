@@ -165,12 +165,12 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Applies solid background to a single cell using SixLabors color.
+        /// Applies solid background to a single cell using an OfficeIMO color.
         /// </summary>
         /// <param name="row">The 1-based row index of the cell to fill.</param>
         /// <param name="column">The 1-based column index of the cell to fill.</param>
-        /// <param name="color">The <see cref="SixLabors.ImageSharp.Color"/> to convert to a hex value.</param>
-        public void CellBackground(int row, int column, SixLabors.ImageSharp.Color color) {
+        /// <param name="color">The <see cref="OfficeIMO.Drawing.OfficeColor"/> to convert to a hex value.</param>
+        public void CellBackground(int row, int column, OfficeIMO.Drawing.OfficeColor color) {
             var argb = OfficeIMO.Excel.ExcelColor.ToArgbHex(color);
             CellBackground(row, column, argb);
         }

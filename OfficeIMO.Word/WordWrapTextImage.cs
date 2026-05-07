@@ -1,3 +1,4 @@
+using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -104,7 +105,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets the wrapping option for the provided drawing.
         /// </summary>
-        /// <param name="drawing">The drawing element to update.</param>
+        /// <param name="drawing">The WordDrawing element to update.</param>
         /// <param name="anchor">Anchor element associated with the drawing.</param>
         /// <param name="inline">Inline element associated with the drawing.</param>
         /// <param name="wrapImage">The desired wrapping option.</param>

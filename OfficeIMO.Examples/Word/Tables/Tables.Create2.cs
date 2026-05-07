@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using Color = SixLabors.ImageSharp.Color;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Tables {
@@ -45,7 +45,7 @@ namespace OfficeIMO.Examples.Word {
 
                 wordTable.Rows[8].Cells[1].Paragraphs[0].Text = "This should be in row 8th";
                 wordTable.Rows[1].Cells[2].Paragraphs[2].Text = "Change me";
-                wordTable.Rows[1].Cells[2].Paragraphs[2].SetColor(SixLabors.ImageSharp.Color.Green);
+                wordTable.Rows[1].Cells[2].Paragraphs[2].SetColor(OfficeIMO.Drawing.OfficeColor.Green);
                 // lets overwrite style
                 wordTable.Style = WordTableStyle.GridTable6ColorfulAccent1;
 

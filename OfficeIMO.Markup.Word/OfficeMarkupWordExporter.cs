@@ -1,17 +1,17 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using ImageSharpColor = SixLabors.ImageSharp.Color;
+using OfficeColor = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Markup.Word;
 
 public sealed class OfficeMarkupWordExporter {
-    private static readonly ImageSharpColor[] ChartColors = new[] {
-        ImageSharpColor.CornflowerBlue,
-        ImageSharpColor.SeaGreen,
-        ImageSharpColor.IndianRed,
-        ImageSharpColor.Goldenrod,
-        ImageSharpColor.MediumPurple,
-        ImageSharpColor.DarkCyan
+    private static readonly OfficeColor[] ChartColors = new[] {
+        OfficeColor.CornflowerBlue,
+        OfficeColor.SeaGreen,
+        OfficeColor.IndianRed,
+        OfficeColor.Goldenrod,
+        OfficeColor.MediumPurple,
+        OfficeColor.DarkCyan
     };
 
     public void Export(OfficeMarkupDocument document, OfficeMarkupWordExportOptions options) {

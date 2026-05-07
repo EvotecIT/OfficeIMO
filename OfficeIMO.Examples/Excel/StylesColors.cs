@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using OfficeIMO.Excel;
-using SixLabors.ImageSharp;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Examples.Excel
 {
@@ -40,7 +40,7 @@ namespace OfficeIMO.Examples.Excel
                  .Background(Color.Parse("#E7FFE7"))
                  .Bold();
 
-                // Cell-level background using SixLabors color
+                // Cell-level background using OfficeIMO color
                 s.CellBackground(2, 3, Color.Parse("#FFFBE6"));
                 // Cell-level background using hex string
                 s.CellBackground(3, 3, "#FFE7E7");

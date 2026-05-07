@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red;
+                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
                 var paragraphInHeader = defaultHeader.AddParagraph();
@@ -77,13 +77,13 @@ namespace OfficeIMO.Tests {
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red;
+                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red;
+                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 Assert.True(defaultHeader.Paragraphs[0].Text == "Default Header / Section 0", "Text for default header is wrong (section 0)");
 
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red;
+                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 var oddHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
                 var paragraphInHeaderO = oddHeader.AddParagraph();
@@ -165,13 +165,13 @@ namespace OfficeIMO.Tests {
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red;
+                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red;
+                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 Assert.True(oddHeader.Paragraphs.Count == 1, "Should only have X paragraphs");
                 Assert.True(oddHeader.Paragraphs[0].Text == "Odd Header / Section 0", "Text for default header is wrong (section 0)");
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red;
+                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 var firstHeader = RequireSectionHeader(document, 0, HeaderFooterValues.First);
                 var paragraphInHeaderF = firstHeader.AddParagraph();
@@ -232,13 +232,13 @@ namespace OfficeIMO.Tests {
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red;
+                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Red;
+                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
                 Assert.True(oddHeader.Paragraphs.Count == 1, "Should only have X paragraphs");
                 Assert.True(oddHeader.Paragraphs[0].Text == "Odd Header / Section 0", "Text for default header is wrong (section 0)");

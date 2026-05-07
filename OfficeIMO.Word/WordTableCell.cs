@@ -1,5 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using Color = SixLabors.ImageSharp.Color;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -193,7 +193,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Get or set the background color of a cell using SixLabors.Color
+        /// Get or set the background color of a cell using OfficeIMO color.
         /// </summary>
         public Color? ShadingFillColor {
             get {

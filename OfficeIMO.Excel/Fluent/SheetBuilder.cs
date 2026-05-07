@@ -1,5 +1,5 @@
 using System.Globalization;
-using SixLaborsColor = SixLabors.ImageSharp.Color;
+using OfficeColor = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Excel.Fluent {
     /// <summary>
@@ -210,14 +210,14 @@ namespace OfficeIMO.Excel.Fluent {
         }
 
         /// <summary>Adds a 2‑color scale conditional formatting rule over the range.</summary>
-        public SheetBuilder ConditionalColorScale(string range, SixLaborsColor startColor, SixLaborsColor endColor) {
+        public SheetBuilder ConditionalColorScale(string range, OfficeColor startColor, OfficeColor endColor) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             Sheet.AddConditionalColorScale(range, startColor, endColor);
             return this;
         }
 
         /// <summary>Adds a data bar conditional formatting rule over the range.</summary>
-        public SheetBuilder ConditionalDataBar(string range, SixLaborsColor color) {
+        public SheetBuilder ConditionalDataBar(string range, OfficeColor color) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             Sheet.AddConditionalDataBar(range, color);
             return this;

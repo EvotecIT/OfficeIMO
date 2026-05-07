@@ -22,7 +22,7 @@ document.AddParagraph("Hello, World!");
 var p = document.AddParagraph("Important Notice");
 p.Bold = true;
 p.FontSize = 16;
-p.Color = SixLabors.ImageSharp.Color.Red;
+p.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
 document.Save();
 ```
@@ -62,7 +62,7 @@ p.FontSizeComplexScript = 14;
 
 ```csharp
 var p = document.AddParagraph("Colored text");
-p.Color = SixLabors.ImageSharp.Color.DarkBlue;
+p.Color = OfficeIMO.Drawing.OfficeColor.DarkBlue;
 
 var p2 = document.AddParagraph("Highlighted text");
 p2.Highlight = DocumentFormat.OpenXml.Wordprocessing.HighlightColorValues.Yellow;
@@ -174,7 +174,7 @@ document.AddParagraph("Content on next page");
 ```csharp
 document.AddHorizontalLine(
     lineType: DocumentFormat.OpenXml.Wordprocessing.BorderValues.Single,
-    color: SixLabors.ImageSharp.Color.Gray,
+    color: OfficeIMO.Drawing.OfficeColor.Gray,
     size: 12
 );
 ```

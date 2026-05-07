@@ -5,6 +5,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 using DocumentFormat.OpenXml;
+using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Shapes {
@@ -17,11 +18,11 @@ namespace OfficeIMO.Examples.Word {
             }
             using (WordprocessingDocument word = WordprocessingDocument.Open(filePath, true)) {
                 var body = Guard.NotNull(word.MainDocumentPart?.Document?.Body, "Document body must exist.");
-                var run = body.Descendants<Run>().FirstOrDefault(r => r.Descendants<Drawing>().Any())
+                var run = body.Descendants<Run>().FirstOrDefault(r => r.Descendants<WordDrawing>().Any())
                     ?? throw new InvalidOperationException("No run containing a drawing was found.");
-                var drawing = run.Descendants<Drawing>().FirstOrDefault()
+                var drawing = run.Descendants<WordDrawing>().FirstOrDefault()
                     ?? throw new InvalidOperationException("Expected drawing element to be present.");
-                var fallbackDrawing = (Drawing)drawing.CloneNode(true);
+                var fallbackDrawing = (WordDrawing)drawing.CloneNode(true);
                 drawing.Remove();
                 var choice = new AlternateContentChoice() { Requires = "wps" };
                 choice.Append(new Run(new Text("placeholder")));

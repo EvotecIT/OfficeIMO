@@ -1,4 +1,4 @@
-using SixColor = SixLabors.ImageSharp.Color;
+using SixColor = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Excel.Fluent {
     /// <summary>

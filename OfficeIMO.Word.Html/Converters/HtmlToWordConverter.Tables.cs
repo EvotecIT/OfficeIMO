@@ -2,7 +2,7 @@ using AngleSharp.Css.Parser;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using DocumentFormat.OpenXml.Wordprocessing;
-using SixColor = SixLabors.ImageSharp.Color;
+using SixColor = OfficeIMO.Drawing.OfficeColor;
 using System.Globalization;
 
 namespace OfficeIMO.Word.Html {

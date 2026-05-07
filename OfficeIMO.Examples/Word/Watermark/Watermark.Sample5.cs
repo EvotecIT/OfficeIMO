@@ -1,10 +1,10 @@
 using OfficeIMO.Word;
-using SixLabors.ImageSharp;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Watermark {
         /// <summary>
-        /// Demonstrates applying watermarks with SixLabors colors and hex values across multiple sections.
+        /// Demonstrates applying watermarks with OfficeIMO colors and hex values across multiple sections.
         /// </summary>
         /// <param name="folderPath">Destination folder for the file.</param>
         /// <param name="openWord">Whether to open the document after creation.</param>
@@ -13,20 +13,20 @@ namespace OfficeIMO.Examples.Word {
             string filePath = Path.Combine(folderPath, "Watermark Multiple Colors.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                // Section 0 - SixLabors Color.Red
+                // Section 0 - OfficeColor.Red
                 document.Sections[0].SetMargins(WordMargin.Normal);
                 var watermark = document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Red");
                 watermark.Color = Color.Red;
                 Console.WriteLine($"Section 0 hex: {watermark.ColorHex}");
 
-                // Section 1 - SixLabors Color.Green
+                // Section 1 - OfficeColor.Green
                 document.AddSection();
                 document.Sections[1].SetMargins(WordMargin.Normal);
                 watermark = document.Sections[1].AddWatermark(WordWatermarkStyle.Text, "Green");
                 watermark.Color = Color.Green;
                 Console.WriteLine($"Section 1 hex: {watermark.ColorHex}");
 
-                // Section 2 - SixLabors Color.Blue
+                // Section 2 - OfficeColor.Blue
                 document.AddSection();
                 document.Sections[2].SetMargins(WordMargin.Normal);
                 watermark = document.Sections[2].AddWatermark(WordWatermarkStyle.Text, "Blue");

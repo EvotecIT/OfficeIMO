@@ -3,7 +3,7 @@ using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
-using Color = SixLabors.ImageSharp.Color;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -117,15 +117,15 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                paragraph.Color = SixLabors.ImageSharp.Color.Blue;
+                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Blue;
                 paragraph.AddText(" This is continutation in the same line");
                 paragraph.AddBreak(BreakValues.TextWrapping);
                 paragraph.AddText(" This is continuation, in another line").SetUnderline(UnderlineValues.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(HighlightColorValues.DarkGreen);
 
                 var paragraph1 = document.AddParagraph("Here's another paragraph ").AddText(" which continues here, but will continue in another line ").AddBreak(BreakValues.TextWrapping).AddText("to confirm that breaks with TextWrapping is working properly");
 
-                Assert.True(paragraph.Color == SixLabors.ImageSharp.Color.Blue);
-                Assert.True(document.Paragraphs[0].Color == SixLabors.ImageSharp.Color.Blue);
+                Assert.True(paragraph.Color == OfficeIMO.Drawing.OfficeColor.Blue);
+                Assert.True(document.Paragraphs[0].Color == OfficeIMO.Drawing.OfficeColor.Blue);
                 Assert.True(document.Paragraphs[1].Color == null);
                 Assert.True(document.Paragraphs[2].IsBreak == true);
                   Assert.True(document.Paragraphs[2].Break!.BreakType == BreakValues.TextWrapping);

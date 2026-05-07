@@ -1,7 +1,6 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using SixLabors.ImageSharp.PixelFormats;
 using System.Globalization;
-using Color = SixLabors.ImageSharp.Color;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Word.Html {
     internal enum WhiteSpaceMode {
@@ -284,7 +283,7 @@ namespace OfficeIMO.Word.Html {
             value = value.Trim();
             if (value.StartsWith("hsl", StringComparison.OrdinalIgnoreCase)) {
                 if (TryParseHsl(value, out byte hr, out byte hg, out byte hb)) {
-                    var color = new Color(new Rgb24(hr, hg, hb));
+                    var color = Color.FromRgb(hr, hg, hb);
                     return color.ToHexColor();
                 }
                 return null;
@@ -298,7 +297,7 @@ namespace OfficeIMO.Word.Html {
                         byte.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte r) &&
                         byte.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte g) &&
                         byte.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte b)) {
-                        var color = new Color(new Rgb24(r, g, b));
+                        var color = Color.FromRgb(r, g, b);
                         return color.ToHexColor();
                     }
                 }

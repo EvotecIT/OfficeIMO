@@ -2,7 +2,7 @@ using DocumentFormat.OpenXml.Drawing.Charts;
 
 using OfficeIMO.Word;
 
-using SixLabors.ImageSharp;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Charts {
@@ -18,9 +18,9 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("This is a bar chart 1");
                 var barChart1 = document.AddChart("New title");
                 barChart1.AddCategories(categories);
-                barChart1.AddBar("Brazil", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
-                barChart1.AddBar("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
-                barChart1.AddBar("USA", new[] { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+                barChart1.AddBar("Brazil", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.Brown);
+                barChart1.AddBar("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.Drawing.OfficeColor.Green);
+                barChart1.AddBar("USA", new[] { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
                 barChart1.BarGrouping = BarGroupingValues.Clustered;
                 barChart1.BarDirection = BarDirectionValues.Column;
 
@@ -61,9 +61,9 @@ namespace OfficeIMO.Examples.Word {
 
                 var lineChart = document.AddChart();
                 lineChart.AddChartAxisX(categories);
-                lineChart.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
-                lineChart.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
-                lineChart.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+                lineChart.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
+                lineChart.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, OfficeIMO.Drawing.OfficeColor.Brown);
+                lineChart.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.Drawing.OfficeColor.Green);
 
                 Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
 
@@ -71,9 +71,9 @@ namespace OfficeIMO.Examples.Word {
 
                 var lineChart2 = document.AddChart();
                 lineChart2.AddChartAxisX(categories);
-                lineChart2.AddLine("USA", new List<int>() { 10, 35, 50, 50 }, SixLabors.ImageSharp.Color.AliceBlue);
-                lineChart2.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
-                lineChart2.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+                lineChart2.AddLine("USA", new List<int>() { 10, 35, 50, 50 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
+                lineChart2.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, OfficeIMO.Drawing.OfficeColor.Brown);
+                lineChart2.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.Drawing.OfficeColor.Green);
 
                 Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
 
@@ -81,9 +81,9 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph = document.AddParagraph("This is a bar chart - but assigned to paragraph 1");
                 var barChart3 = paragraph.AddChart();
                 barChart3.AddCategories(categories);
-                barChart3.AddBar("Brazil", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
-                barChart3.AddBar("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
-                barChart3.AddBar("USA", new[] { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+                barChart3.AddBar("Brazil", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.Brown);
+                barChart3.AddBar("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.Drawing.OfficeColor.Green);
+                barChart3.AddBar("USA", new[] { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
                 barChart3.BarGrouping = BarGroupingValues.Clustered;
                 barChart3.BarDirection = BarDirectionValues.Column;
 
@@ -107,56 +107,56 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph3 = document.AddParagraph("Adding a line chart as required 1 - but assigned to paragraph");
                 var lineChart3 = paragraph3.AddChart();
                 lineChart3.AddChartAxisX(categories);
-                lineChart3.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
-                lineChart3.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
-                lineChart3.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+                lineChart3.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
+                lineChart3.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, OfficeIMO.Drawing.OfficeColor.Brown);
+                lineChart3.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.Drawing.OfficeColor.Green);
 
                 Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
 
                 var paragraph4 = document.AddParagraph("Adding a line chart as required 2 - but assigned to paragraph");
                 var lineChart4 = paragraph4.AddChart();
                 lineChart4.AddChartAxisX(categories);
-                lineChart4.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
-                lineChart4.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
-                lineChart4.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+                lineChart4.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
+                lineChart4.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, OfficeIMO.Drawing.OfficeColor.Brown);
+                lineChart4.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.Drawing.OfficeColor.Green);
 
                 Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
 
                 // let's add chart to first paragraph
                 var lineChart5 = paragraphToTest.AddChart();
                 lineChart5.AddChartAxisX(categories);
-                lineChart5.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
-                lineChart5.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, SixLabors.ImageSharp.Color.Brown);
-                lineChart5.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
+                lineChart5.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
+                lineChart5.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, OfficeIMO.Drawing.OfficeColor.Brown);
+                lineChart5.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.Drawing.OfficeColor.Green);
 
                 Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
 
                 var table = document.AddTable(3, 3);
                 var barChart4 = table.Rows[0].Cells[0].Paragraphs[0].AddChart();
                 barChart4.AddCategories(categories);
-                barChart4.AddBar("Brazil", new List<int>() { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.Brown);
-                barChart4.AddBar("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
-                barChart4.AddBar("USA", new[] { 10, 35, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+                barChart4.AddBar("Brazil", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.Brown);
+                barChart4.AddBar("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.Drawing.OfficeColor.Green);
+                barChart4.AddBar("USA", new[] { 10, 35, 18, 23 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
                 barChart4.BarGrouping = BarGroupingValues.Clustered;
                 barChart4.BarDirection = BarDirectionValues.Column;
 
                 var areaChart = document.AddChart("AreaChart");
                 areaChart.AddCategories(categories);
-                areaChart.AddArea("Brazil", new List<int>() { 100, 1, 18, 230 }, SixLabors.ImageSharp.Color.Brown);
-                areaChart.AddArea("Poland", new List<int>() { 13, 20, 230, 150 }, SixLabors.ImageSharp.Color.Green);
-                areaChart.AddArea("USA", new List<int>() { 10, 305, 18, 23 }, SixLabors.ImageSharp.Color.AliceBlue);
+                areaChart.AddArea("Brazil", new List<int>() { 100, 1, 18, 230 }, OfficeIMO.Drawing.OfficeColor.Brown);
+                areaChart.AddArea("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.Drawing.OfficeColor.Green);
+                areaChart.AddArea("USA", new List<int>() { 10, 305, 18, 23 }, OfficeIMO.Drawing.OfficeColor.AliceBlue);
                 areaChart.AddLegend(LegendPositionValues.Top);
 
                 var scatterChart = document.AddChart("Scatter chart");
-                scatterChart.AddScatter("Data", new List<double>() { 1, 2, 3 }, new List<double>() { 3, 2, 1 }, SixLabors.ImageSharp.Color.Red);
+                scatterChart.AddScatter("Data", new List<double>() { 1, 2, 3 }, new List<double>() { 3, 2, 1 }, OfficeIMO.Drawing.OfficeColor.Red);
 
                 var radarChart = document.AddChart("Radar chart");
                 radarChart.AddCategories(categories);
-                radarChart.AddRadar("USA", new List<int>() { 1, 5, 3, 2 }, SixLabors.ImageSharp.Color.Blue);
+                radarChart.AddRadar("USA", new List<int>() { 1, 5, 3, 2 }, OfficeIMO.Drawing.OfficeColor.Blue);
 
                 var bar3d = document.AddChart("Bar3D chart");
                 bar3d.AddCategories(categories);
-                bar3d.AddBar3D("USA", new List<int>() { 5, 2, 3, 4 }, SixLabors.ImageSharp.Color.DarkOrange);
+                bar3d.AddBar3D("USA", new List<int>() { 5, 2, 3, 4 }, OfficeIMO.Drawing.OfficeColor.DarkOrange);
 
                 var pie3d = document.AddChart("Pie3D chart");
                 pie3d.AddPie3D("Poland", 15);

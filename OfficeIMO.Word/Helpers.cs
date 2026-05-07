@@ -1,4 +1,4 @@
-using SixLabors.ImageSharp.Formats;
+using OfficeIMO.Drawing;
 using System.Diagnostics;
 
 namespace OfficeIMO.Word {
@@ -20,7 +20,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="c"></param>
         /// <returns></returns>
-        public static string ToHexColor(this SixLabors.ImageSharp.Color c) {
+        public static string ToHexColor(this OfficeIMO.Drawing.OfficeColor c) {
             return c.ToHex().Remove(6).ToLowerInvariant();
         }
 
@@ -28,14 +28,14 @@ namespace OfficeIMO.Word {
         /// Parses a color string that may or may not start with '#'.
         /// </summary>
         /// <param name="hex">Color value in hex without alpha or with '#'.</param>
-        internal static SixLabors.ImageSharp.Color ParseColor(string hex) {
+        internal static OfficeIMO.Drawing.OfficeColor ParseColor(string hex) {
             if (string.IsNullOrEmpty(hex)) {
                 throw new ArgumentException("Value cannot be null or empty.", nameof(hex));
             }
             if (!hex.StartsWith("#", StringComparison.Ordinal)) {
                 hex = "#" + hex;
             }
-            return SixLabors.ImageSharp.Color.Parse(hex);
+            return OfficeIMO.Drawing.OfficeColor.Parse(hex);
         }
 
         /// <summary>
@@ -51,12 +51,12 @@ namespace OfficeIMO.Word {
             }
 
             try {
-                var parsed = SixLabors.ImageSharp.Color.Parse(color);
+                var parsed = OfficeIMO.Drawing.OfficeColor.Parse(color!);
                 return parsed.ToHexColor();
             } catch {
                 if (!color!.StartsWith("#", StringComparison.Ordinal)) {
                     try {
-                        var parsedHex = SixLabors.ImageSharp.Color.Parse("#" + color);
+                        var parsedHex = OfficeIMO.Drawing.OfficeColor.Parse("#" + color);
                         return parsedHex.ToHexColor();
                     } catch {
                         // ignored so that ArgumentException below is thrown
@@ -152,72 +152,24 @@ namespace OfficeIMO.Word {
         }
 
         private static ImageCharacteristics GetImageCharacteristicsCore(Stream imageStream, string? fileName) {
-            // Fast-path by extension to avoid throwing/catching first-chance exceptions from ImageSharp
-            string? ext = null;
-            if (!string.IsNullOrEmpty(fileName)) {
-                ext = Path.GetExtension(fileName!).ToLowerInvariant();
-                if (ext == ".svg") {
-                    try {
-                        using var reader = new StreamReader(imageStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
-                        var svg = System.Xml.Linq.XDocument.Load(reader);
-                        var root = svg.Root ?? throw new InvalidOperationException("SVG document has no root element.");
-                        double width = 0;
-                        double height = 0;
-                        var wAttr = root.Attribute("width");
-                        var hAttr = root.Attribute("height");
-                        if (wAttr != null) double.TryParse(wAttr.Value.Replace("px", string.Empty), out width);
-                        if (hAttr != null) double.TryParse(hAttr.Value.Replace("px", string.Empty), out height);
-                        return new ImageCharacteristics(width, height, CustomImagePartType.Svg);
-                    } catch {
-                        imageStream.Position = 0;
-                        // If SVG parsing fails, fall through to ImageSharp attempt
-                    }
-                } else if (ext == ".emf") {
-                    return new ImageCharacteristics(0, 0, CustomImagePartType.Emf);
-                }
+            if (OfficeImageReader.TryIdentify(imageStream, fileName, out var imageInfo)) {
+                return new ImageCharacteristics(imageInfo.Width, imageInfo.Height, ConvertToImagePartType(imageInfo.Format));
             }
 
-            try {
-                using var img = SixLabors.ImageSharp.Image.Load(imageStream, out var imageFormat);
-                var type = ConvertToImagePartType(imageFormat);
-                return new ImageCharacteristics(img.Width, img.Height, type);
-            } catch (SixLabors.ImageSharp.UnknownImageFormatException) {
-                // Fallback: infer type from extension (if available) without throwing
-                if (!string.IsNullOrEmpty(ext)) {
-                    switch (ext) {
-                        case ".png":
-                            return new ImageCharacteristics(0, 0, CustomImagePartType.Png);
-                        case ".jpg":
-                        case ".jpeg":
-                            return new ImageCharacteristics(0, 0, CustomImagePartType.Jpeg);
-                        case ".gif":
-                            return new ImageCharacteristics(0, 0, CustomImagePartType.Gif);
-                        case ".bmp":
-                            return new ImageCharacteristics(0, 0, CustomImagePartType.Bmp);
-                        case ".tif":
-                        case ".tiff":
-                            return new ImageCharacteristics(0, 0, CustomImagePartType.Tiff);
-                        case ".emf":
-                            return new ImageCharacteristics(0, 0, CustomImagePartType.Emf);
-                        case ".svg":
-                            // Should have been handled above; default here for safety
-                            return new ImageCharacteristics(0, 0, CustomImagePartType.Svg);
-                    }
-                }
-                // As a last resort, treat as PNG with unknown size rather than throw repeatedly
-                return new ImageCharacteristics(0, 0, CustomImagePartType.Png);
-            }
+            return new ImageCharacteristics(0, 0, CustomImagePartType.Png);
         }
 
-        private static CustomImagePartType ConvertToImagePartType(IImageFormat imageFormat) =>
-            imageFormat.Name switch {
-                "BMP" => CustomImagePartType.Bmp,
-                "GIF" => CustomImagePartType.Gif,
-                "JPEG" => CustomImagePartType.Jpeg,
-                "PNG" => CustomImagePartType.Png,
-                "TIFF" => CustomImagePartType.Tiff,
-                "EMF" => CustomImagePartType.Emf,
-                _ => throw new ImageFormatNotSupportedException($"Image format not supported: {imageFormat.Name}.")
+        private static CustomImagePartType ConvertToImagePartType(OfficeImageFormat imageFormat) =>
+            imageFormat switch {
+                OfficeImageFormat.Bmp => CustomImagePartType.Bmp,
+                OfficeImageFormat.Gif => CustomImagePartType.Gif,
+                OfficeImageFormat.Jpeg => CustomImagePartType.Jpeg,
+                OfficeImageFormat.Png => CustomImagePartType.Png,
+                OfficeImageFormat.Tiff => CustomImagePartType.Tiff,
+                OfficeImageFormat.Emf => CustomImagePartType.Emf,
+                OfficeImageFormat.Wmf => CustomImagePartType.Wmf,
+                OfficeImageFormat.Svg => CustomImagePartType.Svg,
+                _ => CustomImagePartType.Png
             };
 
         /// <summary>

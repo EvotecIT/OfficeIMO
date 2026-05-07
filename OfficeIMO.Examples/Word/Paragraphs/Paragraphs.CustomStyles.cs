@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using Color = SixLabors.ImageSharp.Color;
+using Color = OfficeIMO.Drawing.OfficeColor;
 using WColor = DocumentFormat.OpenXml.Wordprocessing.Color;
 
 namespace OfficeIMO.Examples.Word;

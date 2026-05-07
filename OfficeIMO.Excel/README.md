@@ -406,15 +406,15 @@ Assert.Throws<ArgumentException>(() => doc.AddWorkSheet("Bad:Name", SheetNameVal
 ## Colors and Styles
 
 ```csharp
-using SixLabors.ImageSharp;
+using OfficeIMO.Drawing;
 
 // Column background + bold via builder
 s.ColumnStyleByHeader("Status", includeHeader: true)
- .Background(Color.Parse("#E7FFE7"))
+ .Background(OfficeColor.Parse("#E7FFE7"))
  .Bold();
 
 // Cell backgrounds
-s.CellBackground(2, 3, Color.Parse("#FFFBE6"));
+s.CellBackground(2, 3, OfficeColor.Parse("#FFFBE6"));
 s.CellBackground(3, 3, "#FFE7E7");
 ```
 

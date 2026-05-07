@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Drawing.Diagrams;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using System.Threading;
 using System.Xml.Linq;
 
@@ -18,7 +19,7 @@ namespace OfficeIMO.Word {
             return (UInt32Value)(uint)id;
         }
 
-        internal Drawing _drawing = null!;
+        internal WordDrawing _drawing = null!;
         private readonly WordDocument _document;
         private readonly WordParagraph _paragraph;
         private readonly SmartArtType? _type;
@@ -31,7 +32,7 @@ namespace OfficeIMO.Word {
             InsertSmartArt(type);
         }
 
-        internal WordSmartArt(WordDocument document, WordParagraph paragraph, Drawing drawing) {
+        internal WordSmartArt(WordDocument document, WordParagraph paragraph, WordDrawing drawing) {
             _document = document;
             _paragraph = paragraph;
             _drawing = drawing;
@@ -75,7 +76,7 @@ namespace OfficeIMO.Word {
                 DistanceFromRight = 0U
             };
 
-            _drawing = new Drawing(inline);
+            _drawing = new WordDrawing(inline);
             _paragraph.VerifyRun();
             _paragraph._run?.Append(_drawing);
         }

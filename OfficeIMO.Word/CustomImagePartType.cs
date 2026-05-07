@@ -35,6 +35,11 @@ public enum CustomImagePartType {
     Emf,
 
     /// <summary>
+    /// Windows metafile image type.
+    /// </summary>
+    Wmf,
+
+    /// <summary>
     /// Scalable Vector Graphics image type.
     /// </summary>
     Svg
@@ -57,6 +62,7 @@ public static class CustomImagePartTypeExtensions {
             CustomImagePartType.Png => "image/png",
             CustomImagePartType.Tiff => "image/tiff",
             CustomImagePartType.Emf => "image/x-emf",
+            CustomImagePartType.Wmf => "image/x-wmf",
             CustomImagePartType.Svg => "image/svg+xml",
             _ => throw new ArgumentOutOfRangeException(nameof(customType), customType, null)
         };

@@ -54,7 +54,7 @@ The repo also includes adjacent packages such as `OfficeIMO.Word.Pdf`, `OfficeIM
 
 ## License
 
-OfficeIMO is licensed under the [MIT License](https://github.com/EvotecIT/OfficeIMO/blob/master/LICENSE). Copyright (c) Przemyslaw Klys @ Evotec. If you need to review upstream runtime dependencies such as Open XML SDK, ImageSharp, or QuestPDF, see the [Third-Party Dependencies](/third-party/) page.
+OfficeIMO is licensed under the [MIT License](https://github.com/EvotecIT/OfficeIMO/blob/master/LICENSE). Copyright (c) Przemyslaw Klys @ Evotec. If you need to review upstream runtime dependencies such as Open XML SDK, SixLabors.Fonts, or QuestPDF, see the [Third-Party Dependencies](/third-party/) page.
 
 ## Source Code
 

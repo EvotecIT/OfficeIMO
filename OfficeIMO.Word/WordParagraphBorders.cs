@@ -1,5 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using Color = SixLabors.ImageSharp.Color;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -84,7 +84,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the left border color.
         /// </summary>
-        public SixLabors.ImageSharp.Color? LeftColor {
+        public OfficeIMO.Drawing.OfficeColor? LeftColor {
             get => LeftColorHex == null || LeftColorHex == "auto" ? null : Helpers.ParseColor(LeftColorHex);
             set => LeftColorHex = value?.ToHexColor();
         }
@@ -183,7 +183,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the right border color.
         /// </summary>
-        public SixLabors.ImageSharp.Color? RightColor {
+        public OfficeIMO.Drawing.OfficeColor? RightColor {
             get => RightColorHex == null || RightColorHex == "auto" ? null : Helpers.ParseColor(RightColorHex);
             set => RightColorHex = value?.ToHexColor();
         }
@@ -282,7 +282,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the top border color.
         /// </summary>
-        public SixLabors.ImageSharp.Color? TopColor {
+        public OfficeIMO.Drawing.OfficeColor? TopColor {
             get => TopColorHex == null || TopColorHex == "auto" ? null : Helpers.ParseColor(TopColorHex);
             set => TopColorHex = value?.ToHexColor();
         }
@@ -382,7 +382,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the bottom border color.
         /// </summary>
-        public SixLabors.ImageSharp.Color? BottomColor {
+        public OfficeIMO.Drawing.OfficeColor? BottomColor {
             get => BottomColorHex == null || BottomColorHex == "auto" ? null : Helpers.ParseColor(BottomColorHex);
             set => BottomColorHex = value?.ToHexColor();
         }

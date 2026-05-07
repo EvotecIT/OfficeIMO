@@ -3,7 +3,7 @@ using Xunit;
 using OfficeIMO.Word;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml.Drawing.Charts;
-using Color = SixLabors.ImageSharp.Color;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public partial class Word {

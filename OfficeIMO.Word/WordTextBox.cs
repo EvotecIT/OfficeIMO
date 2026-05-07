@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using DocumentFormat.OpenXml.Wordprocessing;
+using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using DrawingHorizontalAlignment = DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignment;
 using DrawingVerticalAlignment = DocumentFormat.OpenXml.Drawing.Wordprocessing.VerticalAlignment;
 using Graphic = DocumentFormat.OpenXml.Drawing.Graphic;
@@ -436,7 +437,7 @@ namespace OfficeIMO.Word {
             _run.ChildElements.OfType<AlternateContent>().FirstOrDefault()?
                 .ChildElements.OfType<AlternateContentChoice>().FirstOrDefault();
 
-        private Drawing? _drawing => _alternateContentChoice?.ChildElements.OfType<Drawing>().FirstOrDefault();
+        private WordDrawing? _drawing => _alternateContentChoice?.ChildElements.OfType<WordDrawing>().FirstOrDefault();
 
         private Inline? _inline => _drawing?.Inline;
 

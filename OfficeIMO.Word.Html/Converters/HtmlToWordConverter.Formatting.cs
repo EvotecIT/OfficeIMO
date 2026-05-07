@@ -4,10 +4,9 @@ using AngleSharp.Css.Parser;
 using AngleSharp.Css.Values;
 using AngleSharp.Dom;
 using DocumentFormat.OpenXml.Wordprocessing;
-using SixLabors.ImageSharp.PixelFormats;
 using System.Globalization;
 using System.Text.RegularExpressions;
-using Color = SixLabors.ImageSharp.Color;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -585,7 +584,7 @@ namespace OfficeIMO.Word.Html {
             string v = value!.Trim();
             if (v.StartsWith("hsl", StringComparison.OrdinalIgnoreCase)) {
                 if (TryParseHsl(v, out byte hr, out byte hg, out byte hb)) {
-                    var color = new Color(new Rgb24(hr, hg, hb));
+                    var color = Color.FromRgb(hr, hg, hb);
                     return color.ToHexColor();
                 }
                 return null;
@@ -599,7 +598,7 @@ namespace OfficeIMO.Word.Html {
                         byte.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte r) &&
                         byte.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte g) &&
                         byte.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out byte b)) {
-                        var color = new Color(new Rgb24(r, g, b));
+                        var color = Color.FromRgb(r, g, b);
                         return color.ToHexColor();
                     }
                 }
@@ -716,11 +715,11 @@ namespace OfficeIMO.Word.Html {
             }
             try {
                 var target = Color.Parse("#" + hex);
-                var targetRgb = target.ToPixel<Rgb24>();
+                var targetRgb = target;
                 HighlightColorValues? best = null;
                 int bestDistance = int.MaxValue;
                 foreach (var pair in _highlightColors) {
-                    var rgb = pair.Value.ToPixel<Rgb24>();
+                    var rgb = pair.Value;
                     int distance = (rgb.R - targetRgb.R) * (rgb.R - targetRgb.R) +
                                    (rgb.G - targetRgb.G) * (rgb.G - targetRgb.G) +
                                    (rgb.B - targetRgb.B) * (rgb.B - targetRgb.B);
