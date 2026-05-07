@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
             }
 
             string lower = normalized.ToLowerInvariant();
-            if (lower.Contains("am/pm", StringComparison.Ordinal) || lower.Contains("a/p", StringComparison.Ordinal)) {
+            if (lower.IndexOf("am/pm", StringComparison.Ordinal) >= 0 || lower.IndexOf("a/p", StringComparison.Ordinal) >= 0) {
                 return true;
             }
 

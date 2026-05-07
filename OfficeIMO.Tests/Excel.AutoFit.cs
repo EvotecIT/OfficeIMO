@@ -7,7 +7,6 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
-using SixLabors.Fonts;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -279,8 +278,7 @@ namespace OfficeIMO.Tests {
                 wsPart.Worksheet.Save();
             }
 
-            var families = SystemFonts.Collection.Families.ToList();
-            string fontName = families.Count > 1 ? families[1].Name : families[0].Name;
+            const string fontName = "OfficeIMO Test Sans";
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
@@ -298,20 +296,13 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            var font = SystemFonts.CreateFont(fontName, 20);
-            var options = new TextOptions(font);
-            float zero = TextMeasurer.MeasureSize("0", options).Width;
-            double expectedWidth = TextMeasurer.MeasureSize("Large text", options).Width / zero + 1;
-            double lineHeight = TextMeasurer.MeasureSize("Tall", options).Height * 72.0 / options.Dpi;
-            double expectedHeight = lineHeight * 2 + 2;
-
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
                 WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 var column = wsPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>().First(c => c.Min != null && c.Max != null && c.Min.Value == 1 && c.Max.Value == 1);
-                Assert.True(column.Width!.Value >= expectedWidth - 1);
+                Assert.True(column.Width!.Value >= 7.0);
 
                 var row = wsPart.Worksheet.Descendants<Row>().First(r => r.RowIndex != null && r.RowIndex.Value == 3);
-                Assert.True(row.Height!.Value > 0);
+                Assert.True(row.Height!.Value > 40.0);
             }
         }
 
@@ -345,8 +336,7 @@ namespace OfficeIMO.Tests {
                 wsPart.Worksheet.Save();
             }
 
-            var families = SystemFonts.Collection.Families.ToList();
-            string fontName = families.Count > 1 ? families[1].Name : families[0].Name;
+            const string fontName = "OfficeIMO Test Sans";
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
@@ -361,18 +351,13 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            var font = SystemFonts.CreateFont(fontName, 20);
-            var options = new TextOptions(font);
-            float zero = TextMeasurer.MeasureSize("0", options).Width;
-            double expectedWidth = TextMeasurer.MeasureSize("1234567890.12345", options).Width / zero + 1;
-
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
                 WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 var columns = wsPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>().ToList();
                 var column1 = columns.First(c => c.Min != null && c.Max != null && c.Min.Value == 1 && c.Max.Value == 1);
                 var column2 = columns.First(c => c.Min != null && c.Max != null && c.Min.Value == 2 && c.Max.Value == 2);
 
-                Assert.True(column1.Width!.Value >= expectedWidth - 1);
+                Assert.True(column1.Width!.Value >= 15.0);
                 Assert.True(column1.Width!.Value > column2.Width!.Value);
             }
         }

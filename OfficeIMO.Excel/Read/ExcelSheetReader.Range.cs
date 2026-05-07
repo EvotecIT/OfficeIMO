@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string GetUsedRangeA1() {
             string reference = ExcelSheet.ComputeSheetDimensionReference(WorksheetRoot);
-            return reference.Contains(":", StringComparison.Ordinal) ? reference : reference + ":" + reference;
+            return reference.IndexOf(":", StringComparison.Ordinal) >= 0 ? reference : reference + ":" + reference;
         }
         /// <summary>
         /// Reads a rectangular A1 range (e.g., "A1:C10") into a dense 2D array of typed values.

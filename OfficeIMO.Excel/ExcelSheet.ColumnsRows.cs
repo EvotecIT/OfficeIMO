@@ -431,7 +431,7 @@ namespace OfficeIMO.Excel {
 
             foreach (var cell in row.Elements<Cell>()) {
                 string text = GetCellText(cell);
-                if (string.IsNullOrEmpty(text)) continue;
+                if (string.IsNullOrWhiteSpace(text)) continue;
 
                 var fontInfo = GetCellFontInfo(cell, textMeasurer.FallbackFontInfo);
                 var style = textMeasurer.CreateStyle(fontInfo, 96);

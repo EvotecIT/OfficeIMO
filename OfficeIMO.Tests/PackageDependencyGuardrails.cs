@@ -21,6 +21,22 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Fact]
+    public void Projects_DoNotReferenceSixLaborsFontsPackage() {
+        var projectFiles = Directory.EnumerateFiles(GetRepositoryRoot(), "*.csproj", SearchOption.AllDirectories)
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}Ignore{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => new FileInfo(path).Length > 0)
+            .ToArray();
+
+        var offenders = projectFiles
+            .Where(ProjectReferencesSixLaborsFonts)
+            .ToArray();
+
+        Assert.Empty(offenders);
+    }
+
+    [Fact]
     public void OfficeImoDrawing_HasNoPackageReferences() {
         var projectPath = GetRepositoryPath("OfficeIMO.Drawing/OfficeIMO.Drawing.csproj");
         Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
@@ -175,5 +191,14 @@ public sealed class PackageDependencyGuardrailTests {
         return document
             .Descendants(ns + "PackageReference")
             .Any(static e => string.Equals((string?)e.Attribute("Include"), "SixLabors.ImageSharp", StringComparison.Ordinal));
+    }
+
+    private static bool ProjectReferencesSixLaborsFonts(string projectPath) {
+        var document = XDocument.Load(projectPath);
+        var ns = document.Root?.Name.Namespace ?? XNamespace.None;
+
+        return document
+            .Descendants(ns + "PackageReference")
+            .Any(static e => string.Equals((string?)e.Attribute("Include"), "SixLabors.Fonts", StringComparison.Ordinal));
     }
 }
