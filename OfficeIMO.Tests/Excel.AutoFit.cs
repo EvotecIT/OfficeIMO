@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
@@ -359,6 +360,71 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(column1.Width!.Value >= 15.0);
                 Assert.True(column1.Width!.Value > column2.Width!.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_AutoFit_UsesFormattedDisplayTextForNumbersAndDates() {
+            string filePath = Path.Combine(_directoryWithFiles, "AutoFit.FormattedDisplayText.xlsx");
+            var date = new DateTime(2026, 5, 7);
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.Cell(1, 1, 1234.5, numberFormat: "$#,##0.00");
+                sheet.CellValue(1, 2, 1234.5);
+                sheet.Cell(1, 3, 1.0, numberFormat: "0.00%");
+                sheet.CellValue(1, 4, 1.0);
+                sheet.Cell(1, 5, date, numberFormat: "yyyy-mm-dd");
+                sheet.CellValue(1, 6, date.ToOADate());
+
+                sheet.AutoFitColumnsFor(new[] { 1, 2, 3, 4, 5, 6 });
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var columns = wsPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>().ToList();
+                double Width(uint index) => columns.First(c => c.Min?.Value == index && c.Max?.Value == index).Width!.Value;
+
+                Assert.True(Width(1) > Width(2));
+                Assert.True(Width(3) > Width(4));
+                Assert.True(Width(5) > Width(6));
+            }
+        }
+
+        [Fact]
+        public void Test_AutoFit_UsesRichInlineStringRunFontsForColumnWidth() {
+            string filePath = Path.Combine(_directoryWithFiles, "AutoFit.RichInlineString.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Tiny HugeWideText");
+                sheet.CellValue(1, 2, "Tiny HugeWideText");
+
+                WorksheetPart wsPart = document._spreadSheetDocument.WorkbookPart!.WorksheetParts.First();
+                var richCell = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "A1");
+                richCell.CellValue = null;
+                richCell.DataType = CellValues.InlineString;
+                richCell.InlineString = new InlineString(
+                    new Run(
+                        new RunProperties(new RunFont { Val = "Calibri" }, new FontSize { Val = 8D }),
+                        new Text("Tiny ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(
+                        new RunProperties(new RunFont { Val = "Calibri" }, new FontSize { Val = 26D }, new Bold()),
+                        new Text("HugeWideText")));
+                wsPart.Worksheet.Save();
+
+                sheet.AutoFitColumnsFor(new[] { 1, 2 });
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var columns = wsPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>().ToList();
+                double richWidth = columns.First(c => c.Min?.Value == 1 && c.Max?.Value == 1).Width!.Value;
+                double plainWidth = columns.First(c => c.Min?.Value == 2 && c.Max?.Value == 2).Width!.Value;
+
+                Assert.True(richWidth > plainWidth * 1.4);
             }
         }
 

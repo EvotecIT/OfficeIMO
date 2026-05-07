@@ -92,14 +92,21 @@ namespace OfficeIMO.Tests {
                 new AutoFitVisualCase("CJK", "OfficeIMO 日本語 測試 한글 123", "OfficeIMO 日本語 測試 한글 wrapping with Latin words", "Calibri", 11.0),
                 new AutoFitVisualCase("Tabs", "Text\twith\ttabs", "Text\twith\ttabs and wrapping words after tabs", "Calibri", 11.0),
                 new AutoFitVisualCase("Multiline", "Top\nBottom", "Top\nMiddle\nBottom", "Calibri", 11.0),
-                new AutoFitVisualCase("Large underline", "Large underlined descenders gyjpq", "Large underlined wrapped descenders gyjpq gyjpq", "Arial", 20.0, underline: true)
+                new AutoFitVisualCase("Large underline", "Large underlined descenders gyjpq", "Large underlined wrapped descenders gyjpq gyjpq", "Arial", 20.0, underline: true),
+                new AutoFitVisualCase("Currency format", 1234.5D, "Currency formatted wrapped text", "Calibri", 11.0, numberFormat: "$#,##0.00"),
+                new AutoFitVisualCase("Percent format", 1.0D, "Percent formatted wrapped text", "Calibri", 11.0, numberFormat: "0.00%"),
+                new AutoFitVisualCase("Date format", new DateTime(2026, 5, 7), "Date formatted wrapped text", "Calibri", 11.0, numberFormat: "yyyy-mm-dd")
             };
 
             for (int i = 0; i < cases.Length; i++) {
                 int row = i + 2;
                 AutoFitVisualCase current = cases[i];
                 sheet.CellValue(row, 1, current.Name);
-                sheet.CellValue(row, 2, current.ColumnText);
+                if (!string.IsNullOrEmpty(current.NumberFormat)) {
+                    sheet.Cell(row, 2, current.ColumnValue, numberFormat: current.NumberFormat);
+                } else {
+                    sheet.CellValue(row, 2, current.ColumnValue);
+                }
                 sheet.CellValue(row, 3, current.WrappedText);
             }
 
@@ -114,7 +121,8 @@ namespace OfficeIMO.Tests {
                     current.Bold,
                     current.Italic,
                     current.Underline,
-                    wrapText: false);
+                    wrapText: false,
+                    numberFormat: current.NumberFormat);
                 uint wrapStyle = AddAutoFitVisualStyle(
                     spreadsheet,
                     current.FontName,
@@ -144,7 +152,8 @@ namespace OfficeIMO.Tests {
             bool bold,
             bool italic,
             bool underline,
-            bool wrapText) {
+            bool wrapText,
+            string? numberFormat = null) {
             var stylesPart = document.WorkbookPart!.WorkbookStylesPart ?? document.WorkbookPart!.AddNewPart<WorkbookStylesPart>();
             if (stylesPart.Stylesheet == null) {
                 stylesPart.Stylesheet = new Stylesheet(
@@ -169,10 +178,31 @@ namespace OfficeIMO.Tests {
             stylesheet.Fonts!.Append(font);
             stylesheet.Fonts.Count = (uint)stylesheet.Fonts.ChildElements.Count;
 
+            uint? numberFormatId = null;
+            if (!string.IsNullOrWhiteSpace(numberFormat)) {
+                stylesheet.NumberingFormats ??= new NumberingFormats();
+                var existing = stylesheet.NumberingFormats.Elements<NumberingFormat>()
+                    .FirstOrDefault(format => string.Equals(format.FormatCode?.Value, numberFormat, StringComparison.Ordinal));
+                if (existing?.NumberFormatId?.Value is uint existingId) {
+                    numberFormatId = existingId;
+                } else {
+                    uint nextId = stylesheet.NumberingFormats.Elements<NumberingFormat>().Any()
+                        ? Math.Max(164U, stylesheet.NumberingFormats.Elements<NumberingFormat>().Max(format => format.NumberFormatId?.Value ?? 0U) + 1U)
+                        : 164U;
+                    stylesheet.NumberingFormats.Append(new NumberingFormat { NumberFormatId = nextId, FormatCode = numberFormat });
+                    stylesheet.NumberingFormats.Count = (uint)stylesheet.NumberingFormats.ChildElements.Count;
+                    numberFormatId = nextId;
+                }
+            }
+
             var format = new CellFormat {
                 FontId = stylesheet.Fonts.Count - 1,
                 ApplyFont = true
             };
+            if (numberFormatId.HasValue) {
+                format.NumberFormatId = numberFormatId.Value;
+                format.ApplyNumberFormat = true;
+            }
 
             if (wrapText) {
                 format.Alignment = new Alignment { WrapText = true };
@@ -279,31 +309,34 @@ namespace OfficeIMO.Tests {
         private readonly struct AutoFitVisualCase {
             internal AutoFitVisualCase(
                 string name,
-                string columnText,
+                object columnValue,
                 string wrappedText,
                 string fontName,
                 double fontSize,
                 bool bold = false,
                 bool italic = false,
-                bool underline = false) {
+                bool underline = false,
+                string? numberFormat = null) {
                 Name = name;
-                ColumnText = columnText;
+                ColumnValue = columnValue;
                 WrappedText = wrappedText;
                 FontName = fontName;
                 FontSize = fontSize;
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
+                NumberFormat = numberFormat;
             }
 
             internal string Name { get; }
-            internal string ColumnText { get; }
+            internal object ColumnValue { get; }
             internal string WrappedText { get; }
             internal string FontName { get; }
             internal double FontSize { get; }
             internal bool Bold { get; }
             internal bool Italic { get; }
             internal bool Underline { get; }
+            internal string? NumberFormat { get; }
         }
 
         private sealed class AutoFitMetrics {
