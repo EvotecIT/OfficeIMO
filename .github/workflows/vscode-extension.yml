@@ -33,6 +33,8 @@ env:
   DOTNET_VERSION: |
     8.0.418
     10.0.103
+  NODE_VERSION: 20.x
+  NPM_AUDIT_LEVEL: moderate
 
 jobs:
   package:
@@ -52,9 +54,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: OfficeIMO.Markup.VSCode/package-lock.json
+
+      - name: Audit extension dependencies
+        working-directory: OfficeIMO.Markup.VSCode
+        run: |
+          npm ci
+          npm audit --audit-level ${{ env.NPM_AUDIT_LEVEL }}
 
       - name: Package extension
         shell: pwsh
@@ -63,6 +71,7 @@ jobs:
         run: |
           $params = @{
             OutputDirectory = 'dist'
+            SkipNpmCi = $true
           }
 
           if ('${{ github.event_name }}' -eq 'workflow_dispatch' -and '${{ inputs.pre_release }}' -eq 'true') {
