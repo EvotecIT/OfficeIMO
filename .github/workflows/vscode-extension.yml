@@ -62,7 +62,7 @@ jobs:
         working-directory: OfficeIMO.Markup.VSCode
         run: |
           npm ci
-          npm audit --audit-level ${{ env.NPM_AUDIT_LEVEL }}
+          npm audit --omit=dev --audit-level ${{ env.NPM_AUDIT_LEVEL }}
 
       - name: Package extension
         shell: pwsh
@@ -79,6 +79,10 @@ jobs:
           }
 
           if ('${{ github.event_name }}' -eq 'workflow_dispatch' -and '${{ inputs.publish_marketplace }}' -eq 'true') {
+            if ('${{ github.ref_name }}' -ne 'master') {
+              throw 'Marketplace publishing is only allowed from the master branch.'
+            }
+
             $params.PublishMarketplace = $true
           }
 
