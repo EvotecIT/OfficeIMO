@@ -230,13 +230,13 @@
         </member>
         <member name="T:OfficeIMO.Word.ColorNameResolver">
             <summary>
-            Provides utilities for resolving <see cref="T:SixLabors.ImageSharp.Color"/> instances to their
+            Provides utilities for resolving <see cref="T:OfficeIMO.Drawing.OfficeColor"/> instances to their
             named equivalents.
             </summary>
         </member>
-        <member name="M:OfficeIMO.Word.ColorNameResolver.GetColorName(SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.ColorNameResolver.GetColorName(OfficeIMO.Drawing.OfficeColor)">
             <summary>
-            Returns the standard color name for the specified <see cref="T:SixLabors.ImageSharp.Color"/>,
+            Returns the standard color name for the specified <see cref="T:OfficeIMO.Drawing.OfficeColor"/>,
             or the RGBA value if no name exists.
             </summary>
             <param name="color">The color to resolve.</param>
@@ -505,6 +505,11 @@
         <member name="F:OfficeIMO.Word.CustomImagePartType.Emf">
             <summary>
             Enhanced metafile image type.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.Word.CustomImagePartType.Wmf">
+            <summary>
+            Windows metafile image type.
             </summary>
         </member>
         <member name="F:OfficeIMO.Word.CustomImagePartType.Svg">
@@ -1442,7 +1447,7 @@
             </summary>
             <param name="configure">Callback to configure individual border settings.</param>
         </member>
-        <member name="M:OfficeIMO.Word.Fluent.ParagraphBuilder.Shading(SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.Fluent.ParagraphBuilder.Shading(OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Applies shading to the paragraph.
             </summary>
@@ -2050,7 +2055,7 @@
             <param name="source">The source stream.</param>
             <param name="target">The target stream.</param>
         </member>
-        <member name="M:OfficeIMO.Word.Helpers.ToHexColor(SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.Helpers.ToHexColor(OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Converts Color to Hex Color
             </summary>
@@ -3508,8 +3513,8 @@
             <summary>
             Creates a chart ready for combining bar and line series.
             Use <see cref="M:OfficeIMO.Word.WordChart.AddChartAxisX(System.Collections.Generic.List{System.String})"/> to supply category labels
-            and then call <see cref="M:OfficeIMO.Word.WordChart.AddBar(System.String,System.Int32,SixLabors.ImageSharp.Color)"/> or
-            <see cref="M:OfficeIMO.Word.WordChart.AddLine``1(System.String,System.Collections.Generic.List{``0},SixLabors.ImageSharp.Color)"/> to add data. The call to <c>AddChartAxisX</c> must be performed
+            and then call <see cref="M:OfficeIMO.Word.WordChart.AddBar(System.String,System.Int32,OfficeIMO.Drawing.OfficeColor)"/> or
+            <see cref="M:OfficeIMO.Word.WordChart.AddLine``1(System.String,System.Collections.Generic.List{``0},OfficeIMO.Drawing.OfficeColor)"/> to add data. The call to <c>AddChartAxisX</c> must be performed
             before adding any series so both chart types share the same axes.
             </summary>
         </member>
@@ -3541,7 +3546,7 @@
             <param name="fontSize">Font size in points.</param>
             <returns>The created <see cref="T:OfficeIMO.Word.WordList"/>.</returns>
         </member>
-        <member name="M:OfficeIMO.Word.WordDocument.AddCustomBulletList(OfficeIMO.Word.WordBulletSymbol,System.String,System.Nullable{SixLabors.ImageSharp.Color},System.String,System.Nullable{System.Int32})">
+        <member name="M:OfficeIMO.Word.WordDocument.AddCustomBulletList(OfficeIMO.Word.WordBulletSymbol,System.String,System.Nullable{OfficeIMO.Drawing.OfficeColor},System.String,System.Nullable{System.Int32})">
             <summary>
             Adds a custom bullet list with formatting options.
             </summary>
@@ -3552,7 +3557,7 @@
             <param name="fontSize">Font size in points.</param>
             <returns>The created <see cref="T:OfficeIMO.Word.WordList"/>.</returns>
         </member>
-        <member name="M:OfficeIMO.Word.WordDocument.AddCustomBulletList(OfficeIMO.Word.WordListLevelKind,System.String,System.Nullable{SixLabors.ImageSharp.Color},System.String,System.Nullable{System.Int32})">
+        <member name="M:OfficeIMO.Word.WordDocument.AddCustomBulletList(OfficeIMO.Word.WordListLevelKind,System.String,System.Nullable{OfficeIMO.Drawing.OfficeColor},System.String,System.Nullable{System.Int32})">
             <summary>
             Adds a custom bullet list using the specified formatting.
             </summary>
@@ -3698,9 +3703,9 @@
             <param name="arcSize">Corner roundness fraction for rounded rectangles.</param>
             <returns>The created <see cref="T:OfficeIMO.Word.WordShape"/>.</returns>
         </member>
-        <member name="M:OfficeIMO.Word.WordDocument.AddShape(OfficeIMO.Word.ShapeType,System.Double,System.Double,SixLabors.ImageSharp.Color,SixLabors.ImageSharp.Color,System.Double,System.Double)">
+        <member name="M:OfficeIMO.Word.WordDocument.AddShape(OfficeIMO.Word.ShapeType,System.Double,System.Double,OfficeIMO.Drawing.OfficeColor,OfficeIMO.Drawing.OfficeColor,System.Double,System.Double)">
             <summary>
-            Adds a basic shape to the document using <see cref="T:SixLabors.ImageSharp.Color"/> values.
+            Adds a basic shape to the document using <see cref="T:OfficeIMO.Drawing.OfficeColor"/> values.
             </summary>
         </member>
         <member name="M:OfficeIMO.Word.WordDocument.AddShapeDrawing(OfficeIMO.Word.ShapeType,System.Double,System.Double)">
@@ -3723,7 +3728,7 @@
             <param name="type">Layout type of the SmartArt.</param>
             <returns>The created <see cref="T:OfficeIMO.Word.WordSmartArt"/> instance.</returns>
         </member>
-        <member name="M:OfficeIMO.Word.WordDocument.AddHorizontalLine(System.Nullable{DocumentFormat.OpenXml.Wordprocessing.BorderValues},System.Nullable{SixLabors.ImageSharp.Color},System.UInt32,System.UInt32)">
+        <member name="M:OfficeIMO.Word.WordDocument.AddHorizontalLine(System.Nullable{DocumentFormat.OpenXml.Wordprocessing.BorderValues},System.Nullable{OfficeIMO.Drawing.OfficeColor},System.UInt32,System.UInt32)">
             <summary>
             Inserts a horizontal line into the document.
             </summary>
@@ -4177,7 +4182,7 @@
             </summary>
             <param name="document">Parent document that owns the chart.</param>
             <param name="paragraph">Paragraph containing the chart.</param>
-            <param name="drawing">Existing drawing element with chart data.</param>
+            <param name="drawing">Existing WordDrawing element with chart data.</param>
         </member>
         <member name="M:OfficeIMO.Word.WordChart.#ctor(OfficeIMO.Word.WordDocument,OfficeIMO.Word.WordParagraph,System.String,System.Boolean,System.Int32,System.Int32)">
             <summary>
@@ -4218,7 +4223,7 @@
         <member name="T:OfficeIMO.Word.WordChart.WordChartPalette">
             <summary>
             Built‑in color palettes for charts.
-            Used by <see cref="M:OfficeIMO.Word.WordChart.ApplyPalette(OfficeIMO.Word.WordChart.WordChartPalette,System.Boolean,System.Boolean,System.Boolean,System.Collections.Generic.Dictionary{System.String,SixLabors.ImageSharp.Color})"/>
+            Used by <see cref="M:OfficeIMO.Word.WordChart.ApplyPalette(OfficeIMO.Word.WordChart.WordChartPalette,System.Boolean,System.Boolean,System.Boolean,System.Collections.Generic.Dictionary{System.String,OfficeIMO.Drawing.OfficeColor})"/>
             to style series and pie slices in a consistent, professional way.
             </summary>
         </member>
@@ -4317,7 +4322,7 @@
             <param name="value">Data value for the slice.</param>
             <returns>The current <see cref="T:OfficeIMO.Word.WordChart"/> instance.</returns>
         </member>
-        <member name="M:OfficeIMO.Word.WordChart.AddChartLine``1(System.String,System.Int32[],SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordChart.AddChartLine``1(System.String,System.Int32[],OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Adds a line series to the chart from an array of integer values.
             </summary>
@@ -4326,7 +4331,7 @@
             <param name="values">Values for the series.</param>
             <param name="color">Line color.</param>
         </member>
-        <member name="M:OfficeIMO.Word.WordChart.AddLine``1(System.String,System.Collections.Generic.List{``0},SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordChart.AddLine``1(System.String,System.Collections.Generic.List{``0},OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Add a line to a chart. Multiple lines can be added.
             You cannot mix lines with pie charts. Lines can be combined with bar
@@ -4344,27 +4349,27 @@
             both chart types share the same axis.
             </summary>
         </member>
-        <member name="M:OfficeIMO.Word.WordChart.AddBar(System.String,System.Int32,SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordChart.AddBar(System.String,System.Int32,OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Adds a bar series to the chart. When mixing bar and line series be
             sure to call <see cref="M:OfficeIMO.Word.WordChart.AddChartAxisX(System.Collections.Generic.List{System.String})"/> first so the categories are
             shared across both chart types.
             </summary>
         </member>
-        <member name="M:OfficeIMO.Word.WordChart.AddBar``1(System.String,System.Collections.Generic.List{``0},SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordChart.AddBar``1(System.String,System.Collections.Generic.List{``0},OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Adds a bar series with multiple values. When used in a combo chart
             with line series the categories must be set via
             <see cref="M:OfficeIMO.Word.WordChart.AddChartAxisX(System.Collections.Generic.List{System.String})"/> before calling this method.
             </summary>
         </member>
-        <member name="M:OfficeIMO.Word.WordChart.AddBar(System.String,System.Int32[],SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordChart.AddBar(System.String,System.Int32[],OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Adds a bar series from an array of values. For combo charts ensure
             <see cref="M:OfficeIMO.Word.WordChart.AddChartAxisX(System.Collections.Generic.List{System.String})"/> has been called first.
             </summary>
         </member>
-        <member name="M:OfficeIMO.Word.WordChart.AddArea``1(System.String,System.Collections.Generic.List{``0},SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordChart.AddArea``1(System.String,System.Collections.Generic.List{``0},OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Adds an area chart series using the provided values.
             </summary>
@@ -4373,7 +4378,7 @@
             <param name="values">Values for the series.</param>
             <param name="color">Fill color for the series.</param>
         </member>
-        <member name="M:OfficeIMO.Word.WordChart.AddArea``1(System.String,System.Int32[],SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordChart.AddArea``1(System.String,System.Int32[],OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Adds an area chart series using an array of integer values.
             </summary>
@@ -4382,7 +4387,7 @@
             <param name="values">Data values.</param>
             <param name="color">Fill color for the series.</param>
         </member>
-        <member name="M:OfficeIMO.Word.WordChart.AddScatter(System.String,System.Collections.Generic.List{System.Double},System.Collections.Generic.List{System.Double},SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordChart.AddScatter(System.String,System.Collections.Generic.List{System.Double},System.Collections.Generic.List{System.Double},OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Adds a scatter chart series with separate X and Y values.
             </summary>
@@ -4391,7 +4396,7 @@
             <param name="yValues">Values plotted on the Y axis.</param>
             <param name="color">Color of the series.</param>
         </member>
-        <member name="M:OfficeIMO.Word.WordChart.AddRadar``1(System.String,System.Collections.Generic.List{``0},SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordChart.AddRadar``1(System.String,System.Collections.Generic.List{``0},OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Adds a radar chart series.
             </summary>
@@ -4400,7 +4405,7 @@
             <param name="values">Values for the series.</param>
             <param name="color">Color of the series.</param>
         </member>
-        <member name="M:OfficeIMO.Word.WordChart.AddBar3D``1(System.String,System.Collections.Generic.List{``0},SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordChart.AddBar3D``1(System.String,System.Collections.Generic.List{``0},OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Adds a 3D bar chart series.
             </summary>
@@ -4409,7 +4414,7 @@
             <param name="values">Series data values.</param>
             <param name="color">Color of the bars.</param>
         </member>
-        <member name="M:OfficeIMO.Word.WordChart.AddLine3D``1(System.String,System.Collections.Generic.List{``0},SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordChart.AddLine3D``1(System.String,System.Collections.Generic.List{``0},OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Adds a 3D line chart series to the chart.
             </summary>
@@ -4426,7 +4431,7 @@
             series in the current OpenXML specification.
             </remarks>
         </member>
-        <member name="M:OfficeIMO.Word.WordChart.AddArea3D``1(System.String,System.Collections.Generic.List{``0},SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordChart.AddArea3D``1(System.String,System.Collections.Generic.List{``0},OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Adds a 3D area chart series.
             </summary>
@@ -4455,7 +4460,7 @@
             <param name="title">Axis title text.</param>
             <returns>The current <see cref="T:OfficeIMO.Word.WordChart"/> instance.</returns>
         </member>
-        <member name="M:OfficeIMO.Word.WordChart.SetAxisTitleFormat(System.String,System.Int32,SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordChart.SetAxisTitleFormat(System.String,System.Int32,OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Defines font formatting for axis titles.
             </summary>
@@ -4464,17 +4469,17 @@
             <param name="color">Text color.</param>
             <returns>The current <see cref="T:OfficeIMO.Word.WordChart"/> instance.</returns>
         </member>
-        <member name="M:OfficeIMO.Word.WordChart.SetPieSliceColor(System.UInt32,SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordChart.SetPieSliceColor(System.UInt32,OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Sets the color of a specific pie slice by zero-based index.
             </summary>
         </member>
-        <member name="M:OfficeIMO.Word.WordChart.SetSeriesColor(System.UInt32,SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordChart.SetSeriesColor(System.UInt32,OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Sets the color of a specific series by its zero-based index across supported chart types.
             </summary>
         </member>
-        <member name="M:OfficeIMO.Word.WordChart.ApplyPalette(OfficeIMO.Word.WordChart.WordChartPalette,System.Boolean,System.Boolean,System.Boolean,System.Collections.Generic.Dictionary{System.String,SixLabors.ImageSharp.Color})">
+        <member name="M:OfficeIMO.Word.WordChart.ApplyPalette(OfficeIMO.Word.WordChart.WordChartPalette,System.Boolean,System.Boolean,System.Boolean,System.Collections.Generic.Dictionary{System.String,OfficeIMO.Drawing.OfficeColor})">
             <summary>
             Applies a built-in palette across the chart. Optionally honors semantic outcome
             names (Passed/Failed/Skipped/Error). Use applyToPies/applyToSeries to target types.
@@ -4732,19 +4737,19 @@
             <param name="fontSize">Optional font size for the symbol in points.</param>
             <returns>The created <see cref="T:OfficeIMO.Word.WordList"/>.</returns>
         </member>
-        <member name="M:OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument,OfficeIMO.Word.WordBulletSymbol,System.String,System.Nullable{SixLabors.ImageSharp.Color},System.String,System.Nullable{System.Int32})">
+        <member name="M:OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument,OfficeIMO.Word.WordBulletSymbol,System.String,System.Nullable{OfficeIMO.Drawing.OfficeColor},System.String,System.Nullable{System.Int32})">
             <summary>
             Creates a custom bulleted list using a predefined <see cref="T:OfficeIMO.Word.WordBulletSymbol"/>.
             </summary>
             <param name="document">The parent document.</param>
             <param name="symbol">Predefined bullet symbol to use.</param>
             <param name="fontName">Font name used for the symbol.</param>
-            <param name="color">Optional <see cref="T:SixLabors.ImageSharp.Color"/> for the symbol.</param>
+            <param name="color">Optional <see cref="T:OfficeIMO.Drawing.OfficeColor"/> for the symbol.</param>
             <param name="colorHex">Optional color specified as hex string. Ignored when <paramref name="color"/> is provided.</param>
             <param name="fontSize">Optional font size in points.</param>
             <returns>The created <see cref="T:OfficeIMO.Word.WordList"/>.</returns>
         </member>
-        <member name="M:OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument,OfficeIMO.Word.WordListLevelKind,System.String,System.Nullable{SixLabors.ImageSharp.Color},System.String,System.Nullable{System.Int32})">
+        <member name="M:OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument,OfficeIMO.Word.WordListLevelKind,System.String,System.Nullable{OfficeIMO.Drawing.OfficeColor},System.String,System.Nullable{System.Int32})">
             <summary>
             Creates a bulleted list using one of the predefined <see cref="T:OfficeIMO.Word.WordListLevelKind"/> values.
             </summary>
@@ -4792,7 +4797,7 @@
             <param name="fontSize">Optional font size in points.</param>
             <returns>The current <see cref="T:OfficeIMO.Word.WordList"/>.</returns>
         </member>
-        <member name="M:OfficeIMO.Word.WordList.AddListLevel(System.Int32,OfficeIMO.Word.WordBulletSymbol,System.String,System.Nullable{SixLabors.ImageSharp.Color},System.String,System.Nullable{System.Int32})">
+        <member name="M:OfficeIMO.Word.WordList.AddListLevel(System.Int32,OfficeIMO.Word.WordBulletSymbol,System.String,System.Nullable{OfficeIMO.Drawing.OfficeColor},System.String,System.Nullable{System.Int32})">
             <summary>
             Adds a new bullet list level using a predefined <see cref="T:OfficeIMO.Word.WordBulletSymbol"/>.
             </summary>
@@ -4804,7 +4809,7 @@
             <param name="fontSize">Optional font size in points.</param>
             <returns>The current <see cref="T:OfficeIMO.Word.WordList"/>.</returns>
         </member>
-        <member name="M:OfficeIMO.Word.WordList.AddListLevel(System.Int32,OfficeIMO.Word.WordListLevelKind,System.String,System.Nullable{SixLabors.ImageSharp.Color},System.String,System.Nullable{System.Int32})">
+        <member name="M:OfficeIMO.Word.WordList.AddListLevel(System.Int32,OfficeIMO.Word.WordListLevelKind,System.String,System.Nullable{OfficeIMO.Drawing.OfficeColor},System.String,System.Nullable{System.Int32})">
             <summary>
             Adds a new bullet list level using one of the predefined <see cref="T:OfficeIMO.Word.WordListLevelKind"/> values.
             </summary>
@@ -4855,9 +4860,9 @@
             <param name="matchTextFormat">Optional action applied to paragraphs when the condition is met.</param>
             <param name="noMatchTextFormat">Optional action applied to paragraphs when the condition is not met.</param>
         </member>
-        <member name="M:OfficeIMO.Word.WordTable.ConditionalFormatting(System.String,System.String,OfficeIMO.Word.TextMatchType,SixLabors.ImageSharp.Color,System.Nullable{SixLabors.ImageSharp.Color},System.Nullable{SixLabors.ImageSharp.Color},System.Nullable{SixLabors.ImageSharp.Color},System.Boolean,System.Collections.Generic.IEnumerable{System.String},System.Action{OfficeIMO.Word.WordParagraph},System.Action{OfficeIMO.Word.WordParagraph})">
+        <member name="M:OfficeIMO.Word.WordTable.ConditionalFormatting(System.String,System.String,OfficeIMO.Word.TextMatchType,OfficeIMO.Drawing.OfficeColor,System.Nullable{OfficeIMO.Drawing.OfficeColor},System.Nullable{OfficeIMO.Drawing.OfficeColor},System.Nullable{OfficeIMO.Drawing.OfficeColor},System.Boolean,System.Collections.Generic.IEnumerable{System.String},System.Action{OfficeIMO.Word.WordParagraph},System.Action{OfficeIMO.Word.WordParagraph})">
             <summary>
-            Applies conditional formatting to cells using <see cref="T:SixLabors.ImageSharp.Color"/> parameters.
+            Applies conditional formatting to cells using <see cref="T:OfficeIMO.Drawing.OfficeColor"/> parameters.
             </summary>
             <param name="columnName">Header text of the column to evaluate.</param>
             <param name="matchText">Text to compare against cell content.</param>
@@ -4886,9 +4891,9 @@
             <param name="matchTextFormat">Optional action applied to paragraphs when conditions match.</param>
             <param name="noMatchTextFormat">Optional action applied to paragraphs when conditions do not match.</param>
         </member>
-        <member name="M:OfficeIMO.Word.WordTable.ConditionalFormatting(System.Collections.Generic.IEnumerable{System.ValueTuple{System.String,System.String,OfficeIMO.Word.TextMatchType}},System.Boolean,SixLabors.ImageSharp.Color,System.Nullable{SixLabors.ImageSharp.Color},System.Nullable{SixLabors.ImageSharp.Color},System.Nullable{SixLabors.ImageSharp.Color},System.Boolean,System.Collections.Generic.IEnumerable{System.String},System.Action{OfficeIMO.Word.WordParagraph},System.Action{OfficeIMO.Word.WordParagraph})">
+        <member name="M:OfficeIMO.Word.WordTable.ConditionalFormatting(System.Collections.Generic.IEnumerable{System.ValueTuple{System.String,System.String,OfficeIMO.Word.TextMatchType}},System.Boolean,OfficeIMO.Drawing.OfficeColor,System.Nullable{OfficeIMO.Drawing.OfficeColor},System.Nullable{OfficeIMO.Drawing.OfficeColor},System.Nullable{OfficeIMO.Drawing.OfficeColor},System.Boolean,System.Collections.Generic.IEnumerable{System.String},System.Action{OfficeIMO.Word.WordParagraph},System.Action{OfficeIMO.Word.WordParagraph})">
             <summary>
-            Applies conditional formatting based on values in multiple columns using <see cref="T:SixLabors.ImageSharp.Color"/> parameters.
+            Applies conditional formatting based on values in multiple columns using <see cref="T:OfficeIMO.Drawing.OfficeColor"/> parameters.
             </summary>
             <param name="conditions">List of column/value conditions.</param>
             <param name="matchAll">When true, all conditions must match; otherwise any condition can match.</param>
@@ -6662,7 +6667,7 @@
             Get or set the table cell margin default
             </summary>
         </member>
-        <member name="M:OfficeIMO.Word.WordTableStyleDetails.SetBordersForAllSides(DocumentFormat.OpenXml.Wordprocessing.BorderValues,DocumentFormat.OpenXml.UInt32Value,SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordTableStyleDetails.SetBordersForAllSides(DocumentFormat.OpenXml.Wordprocessing.BorderValues,DocumentFormat.OpenXml.UInt32Value,OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Creates and sets a TableBorders object with the specified border settings
             </summary>
@@ -6670,7 +6675,7 @@
             <param name="size">Border size for all sides</param>
             <param name="color">Border color for all sides</param>
         </member>
-        <member name="M:OfficeIMO.Word.WordTableStyleDetails.SetBordersOutsideInside(DocumentFormat.OpenXml.Wordprocessing.BorderValues,DocumentFormat.OpenXml.UInt32Value,SixLabors.ImageSharp.Color,DocumentFormat.OpenXml.Wordprocessing.BorderValues,DocumentFormat.OpenXml.UInt32Value,SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordTableStyleDetails.SetBordersOutsideInside(DocumentFormat.OpenXml.Wordprocessing.BorderValues,DocumentFormat.OpenXml.UInt32Value,OfficeIMO.Drawing.OfficeColor,DocumentFormat.OpenXml.Wordprocessing.BorderValues,DocumentFormat.OpenXml.UInt32Value,OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Creates a TableBorders object with different settings for outside and inside borders
             </summary>
@@ -6681,7 +6686,7 @@
             <param name="insideSize">Size for inside borders</param>
             <param name="insideColor">Color for inside borders</param>
         </member>
-        <member name="M:OfficeIMO.Word.WordTableStyleDetails.SetCustomBorders(System.Nullable{DocumentFormat.OpenXml.Wordprocessing.BorderValues},DocumentFormat.OpenXml.UInt32Value,System.Nullable{SixLabors.ImageSharp.Color},System.Nullable{DocumentFormat.OpenXml.Wordprocessing.BorderValues},DocumentFormat.OpenXml.UInt32Value,System.Nullable{SixLabors.ImageSharp.Color},System.Nullable{DocumentFormat.OpenXml.Wordprocessing.BorderValues},DocumentFormat.OpenXml.UInt32Value,System.Nullable{SixLabors.ImageSharp.Color},System.Nullable{DocumentFormat.OpenXml.Wordprocessing.BorderValues},DocumentFormat.OpenXml.UInt32Value,System.Nullable{SixLabors.ImageSharp.Color},System.Nullable{DocumentFormat.OpenXml.Wordprocessing.BorderValues},DocumentFormat.OpenXml.UInt32Value,System.Nullable{SixLabors.ImageSharp.Color},System.Nullable{DocumentFormat.OpenXml.Wordprocessing.BorderValues},DocumentFormat.OpenXml.UInt32Value,System.Nullable{SixLabors.ImageSharp.Color})">
+        <member name="M:OfficeIMO.Word.WordTableStyleDetails.SetCustomBorders(System.Nullable{DocumentFormat.OpenXml.Wordprocessing.BorderValues},DocumentFormat.OpenXml.UInt32Value,System.Nullable{OfficeIMO.Drawing.OfficeColor},System.Nullable{DocumentFormat.OpenXml.Wordprocessing.BorderValues},DocumentFormat.OpenXml.UInt32Value,System.Nullable{OfficeIMO.Drawing.OfficeColor},System.Nullable{DocumentFormat.OpenXml.Wordprocessing.BorderValues},DocumentFormat.OpenXml.UInt32Value,System.Nullable{OfficeIMO.Drawing.OfficeColor},System.Nullable{DocumentFormat.OpenXml.Wordprocessing.BorderValues},DocumentFormat.OpenXml.UInt32Value,System.Nullable{OfficeIMO.Drawing.OfficeColor},System.Nullable{DocumentFormat.OpenXml.Wordprocessing.BorderValues},DocumentFormat.OpenXml.UInt32Value,System.Nullable{OfficeIMO.Drawing.OfficeColor},System.Nullable{DocumentFormat.OpenXml.Wordprocessing.BorderValues},DocumentFormat.OpenXml.UInt32Value,System.Nullable{OfficeIMO.Drawing.OfficeColor})">
             <summary>
             Creates a TableBorders object with custom settings for each side
             </summary>
@@ -6759,7 +6764,7 @@
             </summary>
             <param name="document">Parent document.</param>
         </member>
-        <member name="M:OfficeIMO.Word.WordBackground.#ctor(OfficeIMO.Word.WordDocument,SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordBackground.#ctor(OfficeIMO.Word.WordDocument,OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Creates a background with the specified color.
             </summary>
@@ -6773,9 +6778,9 @@
             <param name="color">Hex color value.</param>
             <returns>The current instance.</returns>
         </member>
-        <member name="M:OfficeIMO.Word.WordBackground.SetColor(SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordBackground.SetColor(OfficeIMO.Drawing.OfficeColor)">
             <summary>
-            Sets the background color using a <see cref="T:SixLabors.ImageSharp.Color"/>.
+            Sets the background color using a <see cref="T:OfficeIMO.Drawing.OfficeColor"/>.
             </summary>
             <param name="color">Color value.</param>
             <returns>The current instance.</returns>
@@ -6924,7 +6929,7 @@
         </member>
         <member name="P:OfficeIMO.Word.WordBorders.LeftColor">
             <summary>
-            Gets or sets the left border color using a <see cref="T:SixLabors.ImageSharp.Color"/> value.
+            Gets or sets the left border color using a <see cref="T:OfficeIMO.Drawing.OfficeColor"/> value.
             </summary>
         </member>
         <member name="P:OfficeIMO.Word.WordBorders.LeftStyle">
@@ -6959,7 +6964,7 @@
         </member>
         <member name="P:OfficeIMO.Word.WordBorders.RightColor">
             <summary>
-            Gets or sets the right border color using a <see cref="T:SixLabors.ImageSharp.Color"/> value.
+            Gets or sets the right border color using a <see cref="T:OfficeIMO.Drawing.OfficeColor"/> value.
             </summary>
         </member>
         <member name="P:OfficeIMO.Word.WordBorders.RightStyle">
@@ -6994,7 +6999,7 @@
         </member>
         <member name="P:OfficeIMO.Word.WordBorders.TopColor">
             <summary>
-            Gets or sets the top border color using a <see cref="T:SixLabors.ImageSharp.Color"/> value.
+            Gets or sets the top border color using a <see cref="T:OfficeIMO.Drawing.OfficeColor"/> value.
             </summary>
         </member>
         <member name="P:OfficeIMO.Word.WordBorders.TopStyle">
@@ -7029,7 +7034,7 @@
         </member>
         <member name="P:OfficeIMO.Word.WordBorders.BottomColor">
             <summary>
-            Gets or sets the bottom border color using a <see cref="T:SixLabors.ImageSharp.Color"/> value.
+            Gets or sets the bottom border color using a <see cref="T:OfficeIMO.Drawing.OfficeColor"/> value.
             </summary>
         </member>
         <member name="P:OfficeIMO.Word.WordBorders.BottomStyle">
@@ -8710,9 +8715,9 @@
             <param name="strokeWeightPt">Stroke weight in points.</param>
             <param name="arcSize">Corner roundness fraction for rounded rectangles.</param>
         </member>
-        <member name="M:OfficeIMO.Word.WordHeader.AddShape(OfficeIMO.Word.ShapeType,System.Double,System.Double,SixLabors.ImageSharp.Color,SixLabors.ImageSharp.Color,System.Double,System.Double)">
+        <member name="M:OfficeIMO.Word.WordHeader.AddShape(OfficeIMO.Word.ShapeType,System.Double,System.Double,OfficeIMO.Drawing.OfficeColor,OfficeIMO.Drawing.OfficeColor,System.Double,System.Double)">
             <summary>
-            Adds a VML shape to the header using <see cref="T:SixLabors.ImageSharp.Color"/> values.
+            Adds a VML shape to the header using <see cref="T:OfficeIMO.Drawing.OfficeColor"/> values.
             </summary>
         </member>
         <member name="M:OfficeIMO.Word.WordHeader.AddShapeDrawing(OfficeIMO.Word.ShapeType,System.Double,System.Double)">
@@ -8769,7 +8774,7 @@
             <param name="history">Whether to mark the link as visited.</param>
             <returns>The created <see cref="T:OfficeIMO.Word.WordParagraph"/> instance.</returns>
         </member>
-        <member name="M:OfficeIMO.Word.WordHeaderFooter.AddHorizontalLine(System.Nullable{DocumentFormat.OpenXml.Wordprocessing.BorderValues},System.Nullable{SixLabors.ImageSharp.Color},System.UInt32,System.UInt32)">
+        <member name="M:OfficeIMO.Word.WordHeaderFooter.AddHorizontalLine(System.Nullable{DocumentFormat.OpenXml.Wordprocessing.BorderValues},System.Nullable{OfficeIMO.Drawing.OfficeColor},System.UInt32,System.UInt32)">
             <summary>
             Adds a horizontal line to the header or footer.
             </summary>
@@ -9596,7 +9601,7 @@
         </member>
         <member name="M:OfficeIMO.Word.WordImage.#ctor(OfficeIMO.Word.WordDocument,DocumentFormat.OpenXml.Wordprocessing.Drawing)">
             <summary>
-            Wraps an existing drawing as a WordImage.
+            Wraps an existing WordDrawing as a WordImage.
             </summary>
         </member>
         <member name="M:OfficeIMO.Word.WordImage.#ctor(OfficeIMO.Word.WordDocument,DocumentFormat.OpenXml.Wordprocessing.Paragraph,DocumentFormat.OpenXml.Wordprocessing.Run,DocumentFormat.OpenXml.Vml.Shape)">
@@ -9677,7 +9682,7 @@
         </member>
         <member name="P:OfficeIMO.Word.WordLine.Color">
             <summary>
-            Gets or sets the stroke color using <see cref="T:SixLabors.ImageSharp.Color"/>.
+            Gets or sets the stroke color using <see cref="T:OfficeIMO.Drawing.OfficeColor"/>.
             </summary>
         </member>
         <member name="P:OfficeIMO.Word.WordLine.StrokeWeightPt">
@@ -11395,7 +11400,7 @@
             <param name="initials">The initials of the commenting author</param>
             <param name="comment">The comment text</param>
         </member>
-        <member name="M:OfficeIMO.Word.WordParagraph.AddHorizontalLine(System.Nullable{DocumentFormat.OpenXml.Wordprocessing.BorderValues},System.Nullable{SixLabors.ImageSharp.Color},System.UInt32,System.UInt32)">
+        <member name="M:OfficeIMO.Word.WordParagraph.AddHorizontalLine(System.Nullable{DocumentFormat.OpenXml.Wordprocessing.BorderValues},System.Nullable{OfficeIMO.Drawing.OfficeColor},System.UInt32,System.UInt32)">
             <summary>
             Add horizontal line (sometimes known as horizontal rule) to document proceeding from the paragraph that this is called on.
             </summary>
@@ -11586,8 +11591,8 @@
             <summary>
             Creates a chart ready for combining bar and line series.
             Use <see cref="M:OfficeIMO.Word.WordChart.AddChartAxisX(System.Collections.Generic.List{System.String})"/> to supply category labels
-            and then call <see cref="M:OfficeIMO.Word.WordChart.AddBar(System.String,System.Int32,SixLabors.ImageSharp.Color)"/> or
-            <see cref="M:OfficeIMO.Word.WordChart.AddLine``1(System.String,System.Collections.Generic.List{``0},SixLabors.ImageSharp.Color)"/> to add data. <c>AddChartAxisX</c> must be called before adding any
+            and then call <see cref="M:OfficeIMO.Word.WordChart.AddBar(System.String,System.Int32,OfficeIMO.Drawing.OfficeColor)"/> or
+            <see cref="M:OfficeIMO.Word.WordChart.AddLine``1(System.String,System.Collections.Generic.List{``0},OfficeIMO.Drawing.OfficeColor)"/> to add data. <c>AddChartAxisX</c> must be called before adding any
             series so that both chart types share the same axes.
             </summary>
         </member>
@@ -11637,9 +11642,9 @@
             <param name="heightPt">Height in points.</param>
             <param name="fillColor">Fill color in hex format.</param>
         </member>
-        <member name="M:OfficeIMO.Word.WordParagraph.AddShape(System.Double,System.Double,SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordParagraph.AddShape(System.Double,System.Double,OfficeIMO.Drawing.OfficeColor)">
             <summary>
-            Add a rectangle shape to the paragraph using <see cref="T:SixLabors.ImageSharp.Color"/>.
+            Add a rectangle shape to the paragraph using <see cref="T:OfficeIMO.Drawing.OfficeColor"/>.
             </summary>
         </member>
         <member name="M:OfficeIMO.Word.WordParagraph.AddShape(OfficeIMO.Word.ShapeType,System.Double,System.Double,System.String,System.String,System.Double,System.Double)">
@@ -11654,9 +11659,9 @@
             <param name="strokeWeightPt">Stroke weight in points.</param>
             <param name="arcSize">Corner roundness fraction for rounded rectangles.</param>
         </member>
-        <member name="M:OfficeIMO.Word.WordParagraph.AddShape(OfficeIMO.Word.ShapeType,System.Double,System.Double,SixLabors.ImageSharp.Color,SixLabors.ImageSharp.Color,System.Double,System.Double)">
+        <member name="M:OfficeIMO.Word.WordParagraph.AddShape(OfficeIMO.Word.ShapeType,System.Double,System.Double,OfficeIMO.Drawing.OfficeColor,OfficeIMO.Drawing.OfficeColor,System.Double,System.Double)">
             <summary>
-            Adds a basic shape to the paragraph using <see cref="T:SixLabors.ImageSharp.Color"/> values.
+            Adds a basic shape to the paragraph using <see cref="T:OfficeIMO.Drawing.OfficeColor"/> values.
             </summary>
         </member>
         <member name="M:OfficeIMO.Word.WordParagraph.AddShapeDrawing(OfficeIMO.Word.ShapeType,System.Double,System.Double)">
@@ -11688,9 +11693,9 @@
             <param name="color">Stroke color in hex format.</param>
             <param name="strokeWeightPt">Stroke weight in points.</param>
         </member>
-        <member name="M:OfficeIMO.Word.WordParagraph.AddLine(System.Double,System.Double,System.Double,System.Double,SixLabors.ImageSharp.Color,System.Double)">
+        <member name="M:OfficeIMO.Word.WordParagraph.AddLine(System.Double,System.Double,System.Double,System.Double,OfficeIMO.Drawing.OfficeColor,System.Double)">
             <summary>
-            Add a line shape to the paragraph using <see cref="T:SixLabors.ImageSharp.Color"/>.
+            Add a line shape to the paragraph using <see cref="T:OfficeIMO.Drawing.OfficeColor"/>.
             </summary>
         </member>
         <member name="M:OfficeIMO.Word.WordParagraph.AddStructuredDocumentTag(System.String,System.String,System.String)">
@@ -11865,7 +11870,7 @@
         </member>
         <member name="P:OfficeIMO.Word.WordParagraph.Color">
             <summary>
-            Gets or sets the text color using <see cref="T:SixLabors.ImageSharp.Color"/>.
+            Gets or sets the text color using <see cref="T:OfficeIMO.Drawing.OfficeColor"/>.
             </summary>
         </member>
         <member name="P:OfficeIMO.Word.WordParagraph.ColorHex">
@@ -12014,9 +12019,9 @@
             <param name="color">Color in hexadecimal format.</param>
             <returns>The current paragraph instance.</returns>
         </member>
-        <member name="M:OfficeIMO.Word.WordParagraph.SetColor(SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordParagraph.SetColor(OfficeIMO.Drawing.OfficeColor)">
             <summary>
-            Sets the text color using <see cref="T:SixLabors.ImageSharp.Color"/>.
+            Sets the text color using <see cref="T:OfficeIMO.Drawing.OfficeColor"/>.
             </summary>
             <param name="color">The color to apply.</param>
             <returns>The current paragraph instance.</returns>
@@ -12315,7 +12320,7 @@
             Gets or sets the current border preset type.
             </summary>
         </member>
-        <member name="M:OfficeIMO.Word.WordParagraphBorders.SetBorder(OfficeIMO.Word.WordParagraphBorderType,DocumentFormat.OpenXml.Wordprocessing.BorderValues,SixLabors.ImageSharp.Color,DocumentFormat.OpenXml.UInt32Value,System.Boolean)">
+        <member name="M:OfficeIMO.Word.WordParagraphBorders.SetBorder(OfficeIMO.Word.WordParagraphBorderType,DocumentFormat.OpenXml.Wordprocessing.BorderValues,OfficeIMO.Drawing.OfficeColor,DocumentFormat.OpenXml.UInt32Value,System.Boolean)">
             <summary>
             Applies border settings to a specific side of the paragraph.
             </summary>
@@ -13105,7 +13110,7 @@
             <param name="wordBorder">Border preset to apply.</param>
             <returns>The current section.</returns>
         </member>
-        <member name="M:OfficeIMO.Word.WordSection.AddHorizontalLine(System.Nullable{DocumentFormat.OpenXml.Wordprocessing.BorderValues},System.Nullable{SixLabors.ImageSharp.Color},System.UInt32,System.UInt32)">
+        <member name="M:OfficeIMO.Word.WordSection.AddHorizontalLine(System.Nullable{DocumentFormat.OpenXml.Wordprocessing.BorderValues},System.Nullable{OfficeIMO.Drawing.OfficeColor},System.UInt32,System.UInt32)">
             <summary>
             Inserts a horizontal line paragraph into the section.
             </summary>
@@ -13176,9 +13181,9 @@
             <param name="strokeWeightPt">Stroke weight in points.</param>
             <param name="arcSize">Rounded corner size expressed as a fraction between 0 and 1.</param>
         </member>
-        <member name="M:OfficeIMO.Word.WordSection.AddShape(OfficeIMO.Word.ShapeType,System.Double,System.Double,SixLabors.ImageSharp.Color,SixLabors.ImageSharp.Color,System.Double,System.Double)">
+        <member name="M:OfficeIMO.Word.WordSection.AddShape(OfficeIMO.Word.ShapeType,System.Double,System.Double,OfficeIMO.Drawing.OfficeColor,OfficeIMO.Drawing.OfficeColor,System.Double,System.Double)">
             <summary>
-            Adds a VML shape to the section using <see cref="T:SixLabors.ImageSharp.Color"/> values.
+            Adds a VML shape to the section using <see cref="T:OfficeIMO.Drawing.OfficeColor"/> values.
             </summary>
         </member>
         <member name="M:OfficeIMO.Word.WordSection.AddShapeDrawing(OfficeIMO.Word.ShapeType,System.Double,System.Double)">
@@ -13375,9 +13380,9 @@
             <param name="backgroundColor">Hexadecimal color value.</param>
             <returns>The current <see cref="T:OfficeIMO.Word.WordSettings"/> instance.</returns>
         </member>
-        <member name="M:OfficeIMO.Word.WordSettings.SetBackgroundColor(SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordSettings.SetBackgroundColor(OfficeIMO.Drawing.OfficeColor)">
             <summary>
-            Sets the background color using a <see cref="T:SixLabors.ImageSharp.Color"/> value.
+            Sets the background color using a <see cref="T:OfficeIMO.Drawing.OfficeColor"/> value.
             </summary>
             <param name="backgroundColor">Color value.</param>
             <returns>The current <see cref="T:OfficeIMO.Word.WordSettings"/> instance.</returns>
@@ -13472,9 +13477,9 @@
             Adds an ellipse shape to the given paragraph.
             </summary>
         </member>
-        <member name="M:OfficeIMO.Word.WordShape.AddEllipse(OfficeIMO.Word.WordParagraph,System.Double,System.Double,SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordShape.AddEllipse(OfficeIMO.Word.WordParagraph,System.Double,System.Double,OfficeIMO.Drawing.OfficeColor)">
             <summary>
-            Adds an ellipse shape using <see cref="T:SixLabors.ImageSharp.Color"/>.
+            Adds an ellipse shape using <see cref="T:OfficeIMO.Drawing.OfficeColor"/>.
             </summary>
         </member>
         <member name="M:OfficeIMO.Word.WordShape.AddRoundedRectangle(OfficeIMO.Word.WordParagraph,System.Double,System.Double,System.String,System.Double)">
@@ -13487,9 +13492,9 @@
             Adds a line shape to the given paragraph.
             </summary>
         </member>
-        <member name="M:OfficeIMO.Word.WordShape.AddLine(OfficeIMO.Word.WordParagraph,System.Double,System.Double,System.Double,System.Double,SixLabors.ImageSharp.Color,System.Double)">
+        <member name="M:OfficeIMO.Word.WordShape.AddLine(OfficeIMO.Word.WordParagraph,System.Double,System.Double,System.Double,System.Double,OfficeIMO.Drawing.OfficeColor,System.Double)">
             <summary>
-            Adds a line shape using <see cref="T:SixLabors.ImageSharp.Color"/>.
+            Adds a line shape using <see cref="T:OfficeIMO.Drawing.OfficeColor"/>.
             </summary>
         </member>
         <member name="M:OfficeIMO.Word.WordShape.AddPolygon(OfficeIMO.Word.WordParagraph,System.String,System.String,System.String)">
@@ -13497,9 +13502,9 @@
             Adds a polygon shape to the given paragraph.
             </summary>
         </member>
-        <member name="M:OfficeIMO.Word.WordShape.AddPolygon(OfficeIMO.Word.WordParagraph,System.String,SixLabors.ImageSharp.Color,SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Word.WordShape.AddPolygon(OfficeIMO.Word.WordParagraph,System.String,OfficeIMO.Drawing.OfficeColor,OfficeIMO.Drawing.OfficeColor)">
             <summary>
-            Adds a polygon shape using <see cref="T:SixLabors.ImageSharp.Color"/> values.
+            Adds a polygon shape using <see cref="T:OfficeIMO.Drawing.OfficeColor"/> values.
             </summary>
         </member>
         <member name="M:OfficeIMO.Word.WordShape.AddDrawingShape(OfficeIMO.Word.WordParagraph,OfficeIMO.Word.ShapeType,System.Double,System.Double)">
@@ -13515,7 +13520,7 @@
             <summary>
             Adds a DrawingML shape anchored at an absolute position on the page.
             </summary>
-            <param name="paragraph">Paragraph to host the drawing anchor.</param>
+            <param name="paragraph">Paragraph to host the WordDrawing anchor.</param>
             <param name="shapeType">Type of shape.</param>
             <param name="widthPt">Width in points.</param>
             <param name="heightPt">Height in points.</param>
@@ -13529,7 +13534,7 @@
         </member>
         <member name="P:OfficeIMO.Word.WordShape.FillColor">
             <summary>
-            Gets or sets the fill color using <see cref="T:SixLabors.ImageSharp.Color"/>.
+            Gets or sets the fill color using <see cref="T:OfficeIMO.Drawing.OfficeColor"/>.
             </summary>
         </member>
         <member name="P:OfficeIMO.Word.WordShape.Id">
@@ -13559,7 +13564,7 @@
         </member>
         <member name="P:OfficeIMO.Word.WordShape.StrokeColor">
             <summary>
-            Outline color using <see cref="T:SixLabors.ImageSharp.Color"/>.
+            Outline color using <see cref="T:OfficeIMO.Drawing.OfficeColor"/>.
             </summary>
         </member>
         <member name="P:OfficeIMO.Word.WordShape.StrokeWeight">
@@ -13835,7 +13840,7 @@
             </summary>
             <param name="color">Color in hexadecimal format.</param>
         </member>
-        <member name="M:OfficeIMO.Word.WordStructuredDocumentTag.SetColor(System.Nullable{SixLabors.ImageSharp.Color})">
+        <member name="M:OfficeIMO.Word.WordStructuredDocumentTag.SetColor(System.Nullable{OfficeIMO.Drawing.OfficeColor})">
             <summary>
             Sets the text color and returns the instance for chaining.
             </summary>
@@ -13887,9 +13892,9 @@
             Adds a conditional formatting rule based on a column value.
             </summary>
         </member>
-        <member name="M:OfficeIMO.Word.WordTableConditionalFormattingBuilder.AddRule(System.String,System.String,OfficeIMO.Word.TextMatchType,SixLabors.ImageSharp.Color,System.Nullable{SixLabors.ImageSharp.Color},System.Nullable{SixLabors.ImageSharp.Color},System.Nullable{SixLabors.ImageSharp.Color},System.Boolean,System.Collections.Generic.IEnumerable{System.String},System.Action{OfficeIMO.Word.WordParagraph},System.Action{OfficeIMO.Word.WordParagraph})">
+        <member name="M:OfficeIMO.Word.WordTableConditionalFormattingBuilder.AddRule(System.String,System.String,OfficeIMO.Word.TextMatchType,OfficeIMO.Drawing.OfficeColor,System.Nullable{OfficeIMO.Drawing.OfficeColor},System.Nullable{OfficeIMO.Drawing.OfficeColor},System.Nullable{OfficeIMO.Drawing.OfficeColor},System.Boolean,System.Collections.Generic.IEnumerable{System.String},System.Action{OfficeIMO.Word.WordParagraph},System.Action{OfficeIMO.Word.WordParagraph})">
             <summary>
-            Adds a conditional formatting rule using <see cref="T:SixLabors.ImageSharp.Color"/> parameters.
+            Adds a conditional formatting rule using <see cref="T:OfficeIMO.Drawing.OfficeColor"/> parameters.
             </summary>
         </member>
         <member name="M:OfficeIMO.Word.WordTableConditionalFormattingBuilder.AddRule(System.Collections.Generic.IEnumerable{System.ValueTuple{System.String,System.String,OfficeIMO.Word.TextMatchType}},System.Boolean,System.String,System.String,System.String,System.String,System.Boolean,System.Collections.Generic.IEnumerable{System.String},System.Action{OfficeIMO.Word.WordParagraph},System.Action{OfficeIMO.Word.WordParagraph})">
@@ -13897,9 +13902,9 @@
             Adds a conditional formatting rule based on multiple column values.
             </summary>
         </member>
-        <member name="M:OfficeIMO.Word.WordTableConditionalFormattingBuilder.AddRule(System.Collections.Generic.IEnumerable{System.ValueTuple{System.String,System.String,OfficeIMO.Word.TextMatchType}},System.Boolean,SixLabors.ImageSharp.Color,System.Nullable{SixLabors.ImageSharp.Color},System.Nullable{SixLabors.ImageSharp.Color},System.Nullable{SixLabors.ImageSharp.Color},System.Boolean,System.Collections.Generic.IEnumerable{System.String},System.Action{OfficeIMO.Word.WordParagraph},System.Action{OfficeIMO.Word.WordParagraph})">
+        <member name="M:OfficeIMO.Word.WordTableConditionalFormattingBuilder.AddRule(System.Collections.Generic.IEnumerable{System.ValueTuple{System.String,System.String,OfficeIMO.Word.TextMatchType}},System.Boolean,OfficeIMO.Drawing.OfficeColor,System.Nullable{OfficeIMO.Drawing.OfficeColor},System.Nullable{OfficeIMO.Drawing.OfficeColor},System.Nullable{OfficeIMO.Drawing.OfficeColor},System.Boolean,System.Collections.Generic.IEnumerable{System.String},System.Action{OfficeIMO.Word.WordParagraph},System.Action{OfficeIMO.Word.WordParagraph})">
             <summary>
-            Adds a conditional formatting rule based on multiple column values using <see cref="T:SixLabors.ImageSharp.Color"/> parameters.
+            Adds a conditional formatting rule based on multiple column values using <see cref="T:OfficeIMO.Drawing.OfficeColor"/> parameters.
             </summary>
         </member>
         <member name="M:OfficeIMO.Word.WordTableConditionalFormattingBuilder.AddRule(System.Func{OfficeIMO.Word.WordTableRow,System.Boolean},System.Action{OfficeIMO.Word.WordTableRow},System.Action{OfficeIMO.Word.WordTableRow})">
@@ -13995,7 +14000,7 @@
         </member>
         <member name="P:OfficeIMO.Word.WordTableCell.ShadingFillColor">
             <summary>
-            Get or set the background color of a cell using SixLabors.Color
+            Get or set the background color of a cell using OfficeIMO color.
             </summary>
         </member>
         <member name="P:OfficeIMO.Word.WordTableCell.Width">
@@ -15533,7 +15538,7 @@
             <summary>
             Sets the wrapping option for the provided drawing.
             </summary>
-            <param name="drawing">The drawing element to update.</param>
+            <param name="drawing">The WordDrawing element to update.</param>
             <param name="anchor">Anchor element associated with the drawing.</param>
             <param name="inline">Inline element associated with the drawing.</param>
             <param name="wrapImage">The desired wrapping option.</param>

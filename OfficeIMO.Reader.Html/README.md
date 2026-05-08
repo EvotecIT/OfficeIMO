@@ -18,4 +18,5 @@ DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler();
 ```
 
 Status:
-- scaffolded and intentionally non-packable/non-publishable
+- packaged as `OfficeIMO.Reader.Html`
+- preview-scoped modular adapter for `OfficeIMO.Reader`

@@ -15,4 +15,5 @@ DocumentReaderXmlRegistrationExtensions.RegisterXmlHandler(replaceExisting: true
 ```
 
 Status:
-- scaffolded and intentionally non-packable/non-publishable
+- packaged as `OfficeIMO.Reader.Xml`
+- preview-scoped modular adapter for `OfficeIMO.Reader`

@@ -1,11 +1,11 @@
 # OfficeIMO.CSV — Fluent CSV Document Model
 
-Fluent, strongly typed, AOT-friendly CSV document model aligned with the OfficeIMO ecosystem (Word, Excel, etc.). Targets `netstandard2.0`, `net8.0`, `net9.0`, and `net472`, with streaming support for large files.
+Fluent, strongly typed, AOT-friendly CSV document model aligned with the OfficeIMO ecosystem (Word, Excel, etc.). Targets `netstandard2.0`, `net8.0`, `net10.0`, and `net472`, with streaming support for large files.
 
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.CSV?color=3b82f6&logo=nuget)](https://www.nuget.org/packages/OfficeIMO.CSV)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.CSV?color=22c55e&logo=nuget&label=downloads)](https://www.nuget.org/packages/OfficeIMO.CSV)
 [![license](https://img.shields.io/badge/license-MIT-111827.svg)](./LICENSE)
-[![targets](https://img.shields.io/badge/targets-netstandard2.0%20%7C%20net8.0%20%7C%20net9.0%20%7C%20net472-0ea5e9.svg)](#compatibility)
+[![targets](https://img.shields.io/badge/targets-netstandard2.0%20%7C%20net8.0%20%7C%20net10.0%20%7C%20net472-0ea5e9.svg)](#compatibility)
 
 ## Highlights
 - Document-centric API: configure delimiter, header, culture, encoding once; compose transforms fluently.
@@ -109,8 +109,6 @@ var materialized = doc.Materialize().SortBy("Id");
 dotnet add package OfficeIMO.CSV
 ```
 
-> Not seeing it on NuGet yet? During early development you can add a `ProjectReference` to `OfficeIMO.CSV.csproj` in this repo.
-
 ## Compatibility
-- Frameworks: `netstandard2.0`, `net8.0`, `net9.0`, `net472`.
+- Frameworks: `netstandard2.0`, `net8.0`, `net10.0`, `net472`.
 - Designed to be trimming/NativeAOT friendly on .NET 8+.

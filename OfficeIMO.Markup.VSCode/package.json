@@ -11,7 +11,7 @@
     "url": "https://github.com/EvotecIT/OfficeIMO.git"
   },
   "engines": {
-    "vscode": "^1.107.0"
+    "vscode": "^1.118.0"
   },
   "categories": [
     "Programming Languages",
@@ -55,7 +55,9 @@
   "scripts": {
     "compile": "node scripts/bundle.cjs",
     "watch": "node scripts/bundle.cjs --watch",
-    "package": "vsce package --allow-missing-repository"
+    "package": "pwsh -NoProfile -File scripts/package-vsix.ps1",
+    "package:vsix": "pwsh -NoProfile -File scripts/package-vsix.ps1",
+    "publish:marketplace": "pwsh -NoProfile -File scripts/package-vsix.ps1 -PublishMarketplace"
   },
   "contributes": {
     "languages": [
@@ -367,10 +369,10 @@
     "mermaid": "^11.14.0"
   },
   "devDependencies": {
-    "@types/node": "^20.11.30",
-    "@types/vscode": "^1.107.0",
+    "@types/node": "^20.19.40",
+    "@types/vscode": "^1.118.0",
     "@vscode/vsce": "^3.6.0",
-    "esbuild": "^0.25.0",
-    "typescript": "^5.9.0"
+    "esbuild": "^0.28.0",
+    "typescript": "^6.0.3"
   }
 }

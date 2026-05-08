@@ -15,4 +15,5 @@ DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler(replaceExisting: tr
 ```
 
 Status:
-- scaffolded and intentionally non-packable/non-publishable
+- packaged as `OfficeIMO.Reader.Json`
+- preview-scoped modular adapter for `OfficeIMO.Reader`

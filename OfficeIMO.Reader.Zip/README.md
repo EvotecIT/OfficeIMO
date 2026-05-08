@@ -19,4 +19,5 @@ DocumentReaderZipRegistrationExtensions.RegisterZipHandler();
 ```
 
 Status:
-- scaffolded and intentionally non-packable/non-publishable
+- packaged as `OfficeIMO.Reader.Zip`
+- preview-scoped modular adapter for `OfficeIMO.Reader`

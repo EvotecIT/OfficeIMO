@@ -16,6 +16,8 @@
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
+        <PackageIcon>OfficeIMO.png</PackageIcon>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
         <DebugType>portable</DebugType>
         <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
         <IsPublishable>True</IsPublishable>
@@ -26,6 +28,17 @@
         <Nullable>enable</Nullable>
         <EnableTrimmingPolyfills>false</EnableTrimmingPolyfills>
     </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\Assets\OfficeIMO.png">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
+        <None Include="README.md">
+            <Pack>True</Pack>
+            <PackagePath>README.md</PackagePath>
+        </None>
+    </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\OfficeIMO.Markup\OfficeIMO.Markup.csproj" />

@@ -397,6 +397,20 @@
         <member name="F:OfficeIMO.PowerPoint.SlideTransition.Morph">
             <summary>Morph transition (by object).</summary>
         </member>
+        <member name="T:OfficeIMO.PowerPoint.SlideTransitionSpeed">
+            <summary>
+                Represents the playback speed for a slide transition.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.SlideTransitionSpeed.Slow">
+            <summary>Slow transition speed.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.SlideTransitionSpeed.Medium">
+            <summary>Medium transition speed.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.SlideTransitionSpeed.Fast">
+            <summary>Fast transition speed.</summary>
+        </member>
         <member name="T:OfficeIMO.PowerPoint.PowerPointExtractionExtensions">
             <summary>
             Chunked extraction helpers intended for AI ingestion.
@@ -1788,6 +1802,11 @@
                 Sets a background image for the slide.
             </summary>
         </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointSlide.SetBackgroundGradient(System.String,System.String,System.Double)">
+            <summary>
+                Sets a linear gradient background for the slide using two 6-digit hex colors.
+            </summary>
+        </member>
         <member name="M:OfficeIMO.PowerPoint.PowerPointSlide.ClearBackgroundImage">
             <summary>
                 Clears any background image from the slide.
@@ -1796,6 +1815,26 @@
         <member name="P:OfficeIMO.PowerPoint.PowerPointSlide.Transition">
             <summary>
                 Transition applied when moving to this slide.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointSlide.TransitionSpeed">
+            <summary>
+                Gets or sets the optional transition playback speed.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointSlide.TransitionDurationSeconds">
+            <summary>
+                Gets or sets the optional transition duration in seconds.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointSlide.TransitionAdvanceOnClick">
+            <summary>
+                Gets or sets whether clicking advances the slide.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointSlide.TransitionAdvanceAfterSeconds">
+            <summary>
+                Gets or sets the optional automatic-advance time in seconds.
             </summary>
         </member>
         <member name="P:OfficeIMO.PowerPoint.PowerPointSlide.Hidden">
@@ -3622,6 +3661,159 @@
         <member name="P:OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.NoLine">
             <summary>Disable line.</summary>
         </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointCompositionPreset">
+            <summary>
+                Named composition layouts for raw designer slides.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCompositionPreset.Auto">
+            <summary>Choose a stable preset from the active design intent.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCompositionPreset.BalancedColumns">
+            <summary>Two balanced columns with a full-width metric/support band.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCompositionPreset.VisualSplit">
+            <summary>Primary narrative region paired with a larger visual region.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCompositionPreset.MetricStory">
+            <summary>Large narrative/visual regions with a strong metric strip.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCompositionPreset.DashboardGrid">
+            <summary>Four equally weighted regions for dashboards and dense summaries.</summary>
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointCompositionVariant">
+            <summary>
+                Deterministic variants that adjust a composition preset without changing its semantic regions.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCompositionVariant.Auto">
+            <summary>Choose a stable variant from the active design intent.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCompositionVariant.Standard">
+            <summary>Use the preset's default region arrangement.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCompositionVariant.Mirrored">
+            <summary>Mirror the preset horizontally while preserving region roles.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCompositionVariant.VisualLead">
+            <summary>Give the visual region the leading side of the composition.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCompositionVariant.EvidenceLead">
+            <summary>Move metric or proof regions earlier in the reading order.</summary>
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointCompositionLayout">
+            <summary>
+                Resolved layout regions for a raw designer composition preset.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCompositionLayout.Preset">
+            <summary>
+                Preset used after resolving Auto.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCompositionLayout.Variant">
+            <summary>
+                Variant used after resolving Auto.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCompositionLayout.Content">
+            <summary>
+                Full content region used to derive the preset.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCompositionLayout.Primary">
+            <summary>
+                Main narrative or primary content region.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCompositionLayout.Secondary">
+            <summary>
+                Secondary narrative or supporting content region.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCompositionLayout.Visual">
+            <summary>
+                Preferred region for a visual frame, map, proof wall, or custom illustration.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCompositionLayout.Metrics">
+            <summary>
+                Preferred region for metrics or compact quantified proof.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCompositionLayout.Supporting">
+            <summary>
+                Preferred region for a callout, note, or supporting text.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCompositionLayout.Grid">
+            <summary>
+                Reusable grid regions supplied by the preset.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointCreativeDirectionPackSummary">
+            <summary>
+                Lightweight description of a creative direction pack that can be shown before applying it to a design brief.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCreativeDirectionPackSummary.Index">
+            <summary>
+                Zero-based pack index within the built-in pack list.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCreativeDirectionPackSummary.Pack">
+            <summary>
+                Creative direction pack value.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCreativeDirectionPackSummary.Name">
+            <summary>
+                Display name.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCreativeDirectionPackSummary.Description">
+            <summary>
+                Short explanation of where the pack fits.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCreativeDirectionPackSummary.RecipeName">
+            <summary>
+                Name of the recipe applied by this pack, when the pack sets one.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCreativeDirectionPackSummary.PaletteStyle">
+            <summary>
+                Supporting palette strategy applied by this pack, when the pack sets one.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCreativeDirectionPackSummary.LayoutStrategy">
+            <summary>
+                Auto layout strategy applied by this pack, when the pack sets one.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCreativeDirectionPackSummary.Variety">
+            <summary>
+                Alternative variety applied by this pack.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCreativeDirectionPackSummary.PreferredMoods">
+            <summary>
+                Preferred moods used to rank recipe directions.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCreativeDirectionPackSummary.PreferredDensities">
+            <summary>
+                Preferred densities used to rank recipe directions.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCreativeDirectionPackSummary.PreferredVisualStyles">
+            <summary>
+                Preferred visual styles used to rank recipe directions.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointCreativeDirectionPackSummary.ToString">
+            <inheritdoc />
+        </member>
         <member name="T:OfficeIMO.PowerPoint.PowerPointDeckComposer">
             <summary>
                 Presentation-bound designer facade that applies one deck design across many semantic slides.
@@ -3677,6 +3869,22 @@
                 Adds a custom designer slide with raw composition primitives and active deck chrome.
             </summary>
         </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckComposer.AddSlides(OfficeIMO.PowerPoint.PowerPointDeckPlan)">
+            <summary>
+                Adds all slides described by a semantic deck plan using the active deck design.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckComposer.AddSlides(OfficeIMO.PowerPoint.PowerPointDeckPlan,System.Boolean)">
+            <summary>
+                Adds all slides described by a semantic deck plan using the active deck design.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckComposer.DescribeSlides(OfficeIMO.PowerPoint.PowerPointDeckPlan)">
+            <summary>
+                Previews how a semantic deck plan resolves against the active deck design from the composer's
+                current slide position.
+            </summary>
+        </member>
         <member name="T:OfficeIMO.PowerPoint.PowerPointDesignExtensions">
             <summary>
                 High-level slide composition helpers for building polished decks without hand-placing every shape.
@@ -3685,6 +3893,26 @@
         <member name="M:OfficeIMO.PowerPoint.PowerPointDesignExtensions.UseDesigner(OfficeIMO.PowerPoint.PowerPointPresentation,OfficeIMO.PowerPoint.PowerPointDeckDesign,System.Boolean)">
             <summary>
                 Creates a presentation-bound designer facade and optionally applies the deck theme immediately.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignExtensions.UseDesigner(OfficeIMO.PowerPoint.PowerPointPresentation,OfficeIMO.PowerPoint.PowerPointDesignBrief,System.Int32,System.Boolean)">
+            <summary>
+                Creates a designer facade from a reusable design brief.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignExtensions.UseDesigner(OfficeIMO.PowerPoint.PowerPointPresentation,OfficeIMO.PowerPoint.PowerPointDesignBrief,OfficeIMO.PowerPoint.PowerPointDeckPlan,System.Int32,System.Boolean)">
+            <summary>
+                Creates a designer facade from the brief alternative that best fits the supplied deck plan.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignExtensions.UseDesigner(OfficeIMO.PowerPoint.PowerPointPresentation,System.String,System.String,OfficeIMO.PowerPoint.PowerPointDesignRecipe,System.Int32,System.String,System.String,System.String,System.String,System.Boolean)">
+            <summary>
+                Creates a designer facade directly from a brand accent and scenario recipe.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignExtensions.UseDesigner(OfficeIMO.PowerPoint.PowerPointPresentation,System.String,System.String,System.String,System.Int32,System.String,System.String,System.String,System.String,System.Boolean)">
+            <summary>
+                Creates a designer facade from a brand accent and plain-language deck purpose.
             </summary>
         </member>
         <member name="M:OfficeIMO.PowerPoint.PowerPointDesignExtensions.ApplyDesignerTheme(OfficeIMO.PowerPoint.PowerPointPresentation,OfficeIMO.PowerPoint.PowerPointDesignTheme)">
@@ -3752,6 +3980,11 @@
                 Creates several deterministic design directions from the same brand accent and content seed.
             </summary>
         </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckDesign.CreateAlternativesFromBrand(System.String,System.String,OfficeIMO.PowerPoint.PowerPointDesignRecipe,System.Int32,System.String,System.String,System.String,System.String,System.String,System.String)">
+            <summary>
+                Creates deterministic design alternatives from a curated scenario recipe.
+            </summary>
+        </member>
         <member name="M:OfficeIMO.PowerPoint.PowerPointDeckDesign.CreateAlternativesFromBrand(System.String,System.String,System.Collections.Generic.IEnumerable{OfficeIMO.PowerPoint.PowerPointDesignDirection},System.String,System.String,System.String,System.String,System.String,System.String)">
             <summary>
                 Creates deterministic design alternatives from caller-supplied creative directions.
@@ -3797,6 +4030,11 @@
                 Default direction motif behavior for generated slides.
             </summary>
         </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckDesign.Describe(System.Int32)">
+            <summary>
+                Creates a lightweight description that can be used to display or log a design choice.
+            </summary>
+        </member>
         <member name="M:OfficeIMO.PowerPoint.PowerPointDeckDesign.ApplyTo(OfficeIMO.PowerPoint.PowerPointPresentation)">
             <summary>
                 Applies the deck theme to the presentation.
@@ -3815,6 +4053,972 @@
         <member name="M:OfficeIMO.PowerPoint.PowerPointDeckDesign.Options(System.String)">
             <summary>
                 Creates default designer slide options for the supplied slide seed.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointDeckDesignRecommendation">
+            <summary>
+                Lightweight recommendation for a generated deck design alternative.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckDesignRecommendation.Design">
+            <summary>
+                Design alternative summary.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckDesignRecommendation.PreferenceScore">
+            <summary>
+                Simple score based on how many explicit brief preferences the alternative satisfies.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckDesignRecommendation.Reasons">
+            <summary>
+                Short explanations callers can show before choosing or rendering an alternative.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckDesignRecommendation.MatchesPreferences">
+            <summary>
+                Whether the alternative satisfies at least one explicit brief preference.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckDesignRecommendation.ToString">
+            <inheritdoc />
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointDeckDesignSummary">
+            <summary>
+                Lightweight description of a generated deck design alternative.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.Index">
+            <summary>
+                Zero-based alternative index.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.ThemeName">
+            <summary>
+                Generated theme name.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.DirectionName">
+            <summary>
+                Creative direction name.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.Mood">
+            <summary>
+                Broad deck mood.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.Density">
+            <summary>
+                Preferred content density.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.VisualStyle">
+            <summary>
+                Preferred visual style.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.LayoutStrategy">
+            <summary>
+                Strategy used by Auto slide variants.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.HeadingFontName">
+            <summary>
+                Heading font used by this alternative.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.BodyFontName">
+            <summary>
+                Body font used by this alternative.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.AccentColor">
+            <summary>
+                Primary brand accent.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.Accent2Color">
+            <summary>
+                Secondary accent color.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.Accent3Color">
+            <summary>
+                Tertiary accent color.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.WarningColor">
+            <summary>
+                Warm accent used for markers and highlights.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.PaletteStyle">
+            <summary>
+                Supporting palette strategy used by this alternative.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.TypographyStyle">
+            <summary>
+                Typography strategy used by this alternative.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.ShowsDirectionMotif">
+            <summary>
+                Whether this alternative uses repeated direction markers by default.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.ToString">
+            <inheritdoc />
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointDeckPlanLimits">
+            <summary>
+                Shared content limits used by semantic PowerPoint deck plans.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanLimits.MaxCaseStudySections">
+            <summary>Maximum narrative sections rendered by a case-study slide.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanLimits.MaxCaseStudyMetrics">
+            <summary>Maximum metrics visibly rendered by a case-study slide.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanLimits.MaxProcessSteps">
+            <summary>Maximum steps supported by a process slide.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanLimits.DenseProcessSteps">
+            <summary>Process steps above this count are considered dense.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanLimits.ComfortableCardGridCards">
+            <summary>Card counts above this value favor compact grid layouts.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanLimits.MaxLogoWallItems">
+            <summary>Maximum items supported by a logo/proof wall slide.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanLimits.DenseLogoWallItems">
+            <summary>Logo/proof wall items above this count are considered dense.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanLimits.MaxCoverageLocations">
+            <summary>Maximum locations supported by a coverage slide.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanLimits.VisibleCoveragePins">
+            <summary>Maximum pins shown by map-like coverage variants before text-only overflow.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanLimits.MaxCapabilitySections">
+            <summary>Maximum sections supported by a capability slide.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanLimits.DenseCapabilitySections">
+            <summary>Capability sections above this count are considered dense.</summary>
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind">
+            <summary>
+                Semantic kind of a planned designer slide.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind.Section">
+            <summary>Section or title slide.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind.CaseStudy">
+            <summary>Case-study summary slide.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind.Process">
+            <summary>Process or timeline slide.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind.CardGrid">
+            <summary>Card-grid slide.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind.LogoWall">
+            <summary>Logo, partner, or proof wall slide.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind.Coverage">
+            <summary>Coverage or location slide.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind.Capability">
+            <summary>Capability or content slide.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind.Custom">
+            <summary>Custom raw-composition slide.</summary>
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointDeckPlanDiagnosticSeverity">
+            <summary>
+                Severity of a planned slide diagnostic.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanDiagnosticSeverity.Warning">
+            <summary>The plan can render, but content may be dense, hidden, or better split across slides.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDeckPlanDiagnosticSeverity.Error">
+            <summary>The plan contains content that the semantic renderer rejects.</summary>
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointDeckPlan">
+            <summary>
+                Semantic sequence of designer slides that can be applied to a deck composer.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlan.Slides">
+            <summary>
+                Slides requested by this plan.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckPlan.Add(OfficeIMO.PowerPoint.PowerPointDeckPlanSlide)">
+            <summary>
+                Adds a prebuilt semantic slide request.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckPlan.AddSection(System.String,System.String,System.String,System.Action{OfficeIMO.PowerPoint.PowerPointDesignerSlideOptions})">
+            <summary>
+                Adds a section/title slide request.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckPlan.AddCaseStudy(System.String,System.Collections.Generic.IEnumerable{OfficeIMO.PowerPoint.PowerPointCaseStudySection},System.Collections.Generic.IEnumerable{OfficeIMO.PowerPoint.PowerPointMetric},System.String,System.Action{OfficeIMO.PowerPoint.PowerPointCaseStudySlideOptions})">
+            <summary>
+                Adds a case-study slide request.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckPlan.AddProcess(System.String,System.String,System.Collections.Generic.IEnumerable{OfficeIMO.PowerPoint.PowerPointProcessStep},System.String,System.Action{OfficeIMO.PowerPoint.PowerPointProcessSlideOptions})">
+            <summary>
+                Adds a process/timeline slide request.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckPlan.AddCardGrid(System.String,System.String,System.Collections.Generic.IEnumerable{OfficeIMO.PowerPoint.PowerPointCardContent},System.String,System.Action{OfficeIMO.PowerPoint.PowerPointCardGridSlideOptions})">
+            <summary>
+                Adds a card-grid slide request.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckPlan.AddLogoWall(System.String,System.String,System.Collections.Generic.IEnumerable{OfficeIMO.PowerPoint.PowerPointLogoItem},System.String,System.Action{OfficeIMO.PowerPoint.PowerPointLogoWallSlideOptions})">
+            <summary>
+                Adds a logo/proof wall slide request.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckPlan.AddCoverage(System.String,System.String,System.Collections.Generic.IEnumerable{OfficeIMO.PowerPoint.PowerPointCoverageLocation},System.String,System.Action{OfficeIMO.PowerPoint.PowerPointCoverageSlideOptions})">
+            <summary>
+                Adds a coverage/location slide request.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckPlan.AddCapability(System.String,System.String,System.Collections.Generic.IEnumerable{OfficeIMO.PowerPoint.PowerPointCapabilitySection},System.String,System.Action{OfficeIMO.PowerPoint.PowerPointCapabilitySlideOptions})">
+            <summary>
+                Adds a capability/content slide request.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckPlan.AddCustom(System.String,System.Action{OfficeIMO.PowerPoint.PowerPointSlideComposer},System.String,System.Action{OfficeIMO.PowerPoint.PowerPointDesignerSlideOptions},System.Boolean)">
+            <summary>
+                Adds a custom slide request that can use raw composition primitives inside the same semantic plan.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckPlan.DescribeSlides">
+            <summary>
+                Creates lightweight descriptions of the planned slide sequence before rendering.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckPlan.DescribeSlides(OfficeIMO.PowerPoint.PowerPointDeckDesign)">
+            <summary>
+                Creates lightweight descriptions of how the planned slide sequence resolves under a deck design.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckPlan.DescribeSlides(OfficeIMO.PowerPoint.PowerPointDeckDesign,System.Int32)">
+            <summary>
+                Creates lightweight descriptions of how the planned slide sequence resolves under a deck design,
+                using an existing composer slide count for fallback seed generation.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckPlan.ValidateSlides">
+            <summary>
+                Returns warnings and errors for the planned slide sequence before rendering.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointDeckPlanSlide">
+            <summary>
+                Base type for one semantic designer slide request.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlide.Title">
+            <summary>
+                Slide title or primary label.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlide.Subtitle">
+            <summary>
+                Optional slide subtitle.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlide.Seed">
+            <summary>
+                Optional stable seed used for this slide.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlide.Kind">
+            <summary>
+                Semantic slide kind.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointSectionPlanSlide">
+            <summary>
+                Section/title slide request.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointSectionPlanSlide.#ctor(System.String,System.String,System.String,System.Action{OfficeIMO.PowerPoint.PowerPointDesignerSlideOptions})">
+            <summary>
+                Creates a section/title slide request.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointSectionPlanSlide.Kind">
+            <inheritdoc />
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointCaseStudyPlanSlide">
+            <summary>
+                Case-study slide request.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointCaseStudyPlanSlide.#ctor(System.String,System.Collections.Generic.IEnumerable{OfficeIMO.PowerPoint.PowerPointCaseStudySection},System.Collections.Generic.IEnumerable{OfficeIMO.PowerPoint.PowerPointMetric},System.String,System.Action{OfficeIMO.PowerPoint.PowerPointCaseStudySlideOptions})">
+            <summary>
+                Creates a case-study slide request.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCaseStudyPlanSlide.Sections">
+            <summary>
+                Case-study narrative sections.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCaseStudyPlanSlide.Metrics">
+            <summary>
+                Optional case-study metrics.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCaseStudyPlanSlide.Kind">
+            <inheritdoc />
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointProcessPlanSlide">
+            <summary>
+                Process/timeline slide request.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointProcessPlanSlide.#ctor(System.String,System.String,System.Collections.Generic.IEnumerable{OfficeIMO.PowerPoint.PowerPointProcessStep},System.String,System.Action{OfficeIMO.PowerPoint.PowerPointProcessSlideOptions})">
+            <summary>
+                Creates a process/timeline slide request.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointProcessPlanSlide.Steps">
+            <summary>
+                Process steps.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointProcessPlanSlide.Kind">
+            <inheritdoc />
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointCardGridPlanSlide">
+            <summary>
+                Card-grid slide request.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointCardGridPlanSlide.#ctor(System.String,System.String,System.Collections.Generic.IEnumerable{OfficeIMO.PowerPoint.PowerPointCardContent},System.String,System.Action{OfficeIMO.PowerPoint.PowerPointCardGridSlideOptions})">
+            <summary>
+                Creates a card-grid slide request.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCardGridPlanSlide.Cards">
+            <summary>
+                Cards displayed by the grid.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCardGridPlanSlide.Kind">
+            <inheritdoc />
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointLogoWallPlanSlide">
+            <summary>
+                Logo/proof wall slide request.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointLogoWallPlanSlide.#ctor(System.String,System.String,System.Collections.Generic.IEnumerable{OfficeIMO.PowerPoint.PowerPointLogoItem},System.String,System.Action{OfficeIMO.PowerPoint.PowerPointLogoWallSlideOptions})">
+            <summary>
+                Creates a logo/proof wall slide request.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointLogoWallPlanSlide.Logos">
+            <summary>
+                Logo, partner, product, or certification items.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointLogoWallPlanSlide.Kind">
+            <inheritdoc />
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointCoveragePlanSlide">
+            <summary>
+                Coverage/location slide request.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointCoveragePlanSlide.#ctor(System.String,System.String,System.Collections.Generic.IEnumerable{OfficeIMO.PowerPoint.PowerPointCoverageLocation},System.String,System.Action{OfficeIMO.PowerPoint.PowerPointCoverageSlideOptions})">
+            <summary>
+                Creates a coverage/location slide request.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCoveragePlanSlide.Locations">
+            <summary>
+                Coverage locations.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCoveragePlanSlide.Kind">
+            <inheritdoc />
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointCapabilityPlanSlide">
+            <summary>
+                Capability/content slide request.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointCapabilityPlanSlide.#ctor(System.String,System.String,System.Collections.Generic.IEnumerable{OfficeIMO.PowerPoint.PowerPointCapabilitySection},System.String,System.Action{OfficeIMO.PowerPoint.PowerPointCapabilitySlideOptions})">
+            <summary>
+                Creates a capability/content slide request.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCapabilityPlanSlide.Sections">
+            <summary>
+                Capability or content sections.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCapabilityPlanSlide.Kind">
+            <inheritdoc />
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointCustomPlanSlide">
+            <summary>
+                Custom raw-composition slide request.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointCustomPlanSlide.#ctor(System.String,System.Action{OfficeIMO.PowerPoint.PowerPointSlideComposer},System.String,System.Action{OfficeIMO.PowerPoint.PowerPointDesignerSlideOptions},System.Boolean)">
+            <summary>
+                Creates a custom slide request that can use slide composer primitives.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCustomPlanSlide.Dark">
+            <summary>
+                Whether the custom slide should use the dark designer surface.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCustomPlanSlide.Kind">
+            <inheritdoc />
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideSummary">
+            <summary>
+                Lightweight description of one planned slide.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideSummary.Index">
+            <summary>
+                Zero-based slide index within the plan.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideSummary.Kind">
+            <summary>
+                Semantic slide kind.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideSummary.Title">
+            <summary>
+                Planned slide title.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideSummary.Subtitle">
+            <summary>
+                Optional planned slide subtitle.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideSummary.Seed">
+            <summary>
+                Optional stable seed used for the planned slide.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideSummary.ContentItemCount">
+            <summary>
+                Count of primary content items such as sections, steps, cards, or locations.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideSummary.ToString">
+            <inheritdoc />
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointDeckPlanDiagnostic">
+            <summary>
+                Warning or error found while validating a planned designer slide.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanDiagnostic.Index">
+            <summary>
+                Zero-based slide index within the plan.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanDiagnostic.Kind">
+            <summary>
+                Semantic slide kind.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanDiagnostic.Title">
+            <summary>
+                Planned slide title.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanDiagnostic.Severity">
+            <summary>
+                Diagnostic severity.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanDiagnostic.Code">
+            <summary>
+                Stable machine-readable diagnostic code.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanDiagnostic.Message">
+            <summary>
+                Human-readable diagnostic message.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckPlanDiagnostic.ToString">
+            <inheritdoc />
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointDeckPlanValidationException">
+            <summary>
+                Raised when a semantic deck plan contains validation errors that would prevent rendering.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanValidationException.Diagnostics">
+            <summary>
+                Diagnostics collected from the deck plan.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary">
+            <summary>
+                Lightweight description of one planned slide after resolving a deck design.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.Index">
+            <summary>
+                Zero-based slide index within the plan.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.Kind">
+            <summary>
+                Semantic slide kind.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.Title">
+            <summary>
+                Planned slide title.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.Subtitle">
+            <summary>
+                Optional planned slide subtitle.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.Seed">
+            <summary>
+                Optional caller-supplied stable seed used for the planned slide.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.ResolvedSeed">
+            <summary>
+                Slide seed resolved the same way the deck composer resolves it before rendering.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.DesignSeed">
+            <summary>
+                Full deterministic design seed formed from the deck design seed and resolved slide seed.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.ContentItemCount">
+            <summary>
+                Count of primary content items such as sections, steps, cards, or locations.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.LayoutVariant">
+            <summary>
+                Resolved layout variant name for semantic slides, or custom surface name for raw composition slides.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.LayoutReasons">
+            <summary>
+                Short explanations for why this layout variant was selected for the planned slide.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.DirectionName">
+            <summary>
+                Creative direction name used by the deck design.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.Mood">
+            <summary>
+                Broad visual mood used by the deck design.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.Density">
+            <summary>
+                Preferred content density used by the deck design.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.VisualStyle">
+            <summary>
+                Preferred visual style used by the deck design.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.LayoutStrategy">
+            <summary>
+                Auto layout strategy used when resolving this planned slide.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.HeadingFontName">
+            <summary>
+                Heading font used by the deck design.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.BodyFontName">
+            <summary>
+                Body font used by the deck design.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.ToString">
+            <inheritdoc />
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointDeckPlanAlternativeSummary">
+            <summary>
+                Lightweight description of how one deck plan resolves under one generated design alternative.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanAlternativeSummary.Index">
+            <summary>
+                Zero-based alternative index.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanAlternativeSummary.Variety">
+            <summary>
+                Variety level used when resolving design alternatives for this preview.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanAlternativeSummary.Design">
+            <summary>
+                Design alternative summary.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanAlternativeSummary.Slides">
+            <summary>
+                Slide render summaries resolved under this design alternative.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanAlternativeSummary.Diagnostics">
+            <summary>
+                Plan diagnostics shared by every alternative.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanAlternativeSummary.ContentFitScore">
+            <summary>
+                Lightweight score describing how well this design alternative fits the planned slide content.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanAlternativeSummary.ContentFitReasons">
+            <summary>
+                Short explanations for why this design alternative fits the planned slide content.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanAlternativeSummary.MatchesContent">
+            <summary>
+                Whether this alternative has at least one positive content-fit signal.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanAlternativeSummary.HasErrors">
+            <summary>
+                Whether the plan has any diagnostics that would prevent semantic rendering.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDeckPlanAlternativeSummary.HasWarnings">
+            <summary>
+                Whether the plan has any warning diagnostics.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDeckPlanAlternativeSummary.ToString">
+            <inheritdoc />
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointDesignBrief">
+            <summary>
+                Small deck design brief that can resolve a brand, purpose, identity, and optional custom directions
+                into one or more deterministic deck designs.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.FromBrand(System.String,System.String,System.String)">
+            <summary>
+                Creates a brief from a brand accent and stable seed.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.DescribeCreativeDirectionPacks">
+            <summary>
+                Describes the built-in creative direction packs that can be applied to a design brief.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.DescribeCreativeDirectionPack(OfficeIMO.PowerPoint.PowerPointCreativeDirectionPack)">
+            <summary>
+                Describes one creative direction pack before applying it to a design brief.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.#ctor(System.String,System.String)">
+            <summary>
+                Creates a brief from a brand accent and stable seed.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.AccentColor">
+            <summary>
+                Brand accent color used to derive the deck palette.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.Seed">
+            <summary>
+                Stable seed used to make generated alternatives repeatable.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.Purpose">
+            <summary>
+                Plain-language purpose used to select a built-in recipe when no explicit recipe is set.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.Recipe">
+            <summary>
+                Explicit recipe. When omitted, the purpose text is matched against built-in recipes.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.Name">
+            <summary>
+                Optional display name passed into generated deck themes.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.Eyebrow">
+            <summary>
+                Optional default eyebrow for generated slides.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.FooterLeft">
+            <summary>
+                Optional left footer for generated slides.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.FooterRight">
+            <summary>
+                Optional right footer for generated slides.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.HeadingFontName">
+            <summary>
+                Optional heading font override applied to every generated alternative.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.BodyFontName">
+            <summary>
+                Optional body font override applied to every generated alternative.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.SecondaryAccentColor">
+            <summary>
+                Optional secondary accent override applied after recipe variations.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.TertiaryAccentColor">
+            <summary>
+                Optional tertiary accent override applied after recipe variations.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.WarmAccentColor">
+            <summary>
+                Optional warm accent override applied after recipe variations.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.SurfaceColor">
+            <summary>
+                Optional surface color override applied after recipe variations.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.PanelBorderColor">
+            <summary>
+                Optional panel border color override applied after recipe variations.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.PaletteStyle">
+            <summary>
+                Optional supporting palette strategy applied before explicit palette color overrides.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.TypographyStyle">
+            <summary>
+                Optional typography strategy applied before explicit font overrides.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.LayoutStrategy">
+            <summary>
+                Optional Auto layout strategy applied to generated design alternatives.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.CreativeDirectionPack">
+            <summary>
+                Optional high-level creative pack used to configure recipe, palette, layout strategy, and ranking preferences.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.Variety">
+            <summary>
+                Controls how far generated alternatives should move from the selected recipe or preferred direction.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.Directions">
+            <summary>
+                Caller-supplied creative directions. When present, these take precedence over recipes.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.PreferredMoods">
+            <summary>
+                Preferred moods used to rank recipe or custom directions before alternatives are created.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.PreferredDensities">
+            <summary>
+                Preferred slide densities used to rank recipe or custom directions before alternatives are created.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignBrief.PreferredVisualStyles">
+            <summary>
+                Preferred visual styles used to rank recipe or custom directions before alternatives are created.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.ForPurpose(System.String)">
+            <summary>
+                Sets the plain-language deck purpose used for recipe matching.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.WithRecipe(OfficeIMO.PowerPoint.PowerPointDesignRecipe)">
+            <summary>
+                Uses an explicit recipe instead of matching one from the purpose text.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.WithIdentity(System.String,System.String,System.String,System.String)">
+            <summary>
+                Sets deck identity chrome shared by generated slides.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.WithFonts(System.String,System.String)">
+            <summary>
+                Applies font overrides while preserving the rest of the selected recipe or direction.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.WithPalette(System.String,System.String,System.String,System.String,System.String)">
+            <summary>
+                Applies optional supporting palette overrides while preserving the primary brand accent.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.WithPaletteStyle(OfficeIMO.PowerPoint.PowerPointPaletteStyle)">
+            <summary>
+                Chooses a supporting palette strategy while preserving the primary brand accent.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.WithTypographyStyle(OfficeIMO.PowerPoint.PowerPointTypographyStyle)">
+            <summary>
+                Chooses a typography strategy while preserving the selected recipe or creative direction.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.WithLayoutStrategy(OfficeIMO.PowerPoint.PowerPointAutoLayoutStrategy)">
+            <summary>
+                Chooses how Auto slide variants should balance content fit, design variety, and compactness.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.WithCreativeDirectionPack(OfficeIMO.PowerPoint.PowerPointCreativeDirectionPack)">
+            <summary>
+                Applies a curated creative starting point while preserving seed-based variation and any later explicit overrides.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.WithVariety(OfficeIMO.PowerPoint.PowerPointDesignVariety)">
+            <summary>
+                Sets how broad generated alternatives should be.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.WithDirections(System.Collections.Generic.IEnumerable{OfficeIMO.PowerPoint.PowerPointDesignDirection})">
+            <summary>
+                Replaces recipe-based alternatives with caller-supplied creative directions.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.WithPreferredMoods(OfficeIMO.PowerPoint.PowerPointDesignMood[])">
+            <summary>
+                Prefers one or more moods when ordering recipe or custom directions.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.WithPreferredDensities(OfficeIMO.PowerPoint.PowerPointSlideDensity[])">
+            <summary>
+                Prefers one or more slide densities when ordering recipe or custom directions.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.WithPreferredVisualStyles(OfficeIMO.PowerPoint.PowerPointVisualStyle[])">
+            <summary>
+                Prefers one or more visual styles when ordering recipe or custom directions.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.ClearDesignPreferences">
+            <summary>
+                Clears direction ordering preferences.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.AddDirection(OfficeIMO.PowerPoint.PowerPointDesignDirection)">
+            <summary>
+                Adds one caller-supplied creative direction.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.CreateAlternatives(System.Int32)">
+            <summary>
+                Creates deterministic deck design alternatives from this brief.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.DescribeAlternatives(System.Int32)">
+            <summary>
+                Creates lightweight descriptions of generated alternatives without requiring callers to inspect the deck objects.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.RecommendAlternatives(System.Int32)">
+            <summary>
+                Creates lightweight recommendations explaining why generated alternatives fit this brief.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.DescribeDeckPlan(OfficeIMO.PowerPoint.PowerPointDeckPlan,System.Int32)">
+            <summary>
+                Creates lightweight descriptions of how a deck plan would resolve under one design alternative.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.DescribeDeckPlan(OfficeIMO.PowerPoint.PowerPointDeckPlan,System.Int32,System.Int32)">
+            <summary>
+                Creates lightweight descriptions of how a deck plan would resolve under one design alternative,
+                using an existing composer slide count for fallback seed generation.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.DescribeDeckPlanAlternatives(OfficeIMO.PowerPoint.PowerPointDeckPlan,System.Int32)">
+            <summary>
+                Creates lightweight descriptions of how a deck plan would resolve across several design alternatives.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.DescribeDeckPlanAlternatives(OfficeIMO.PowerPoint.PowerPointDeckPlan,System.Int32,System.Int32)">
+            <summary>
+                Creates lightweight descriptions of how a deck plan would resolve across several design alternatives,
+                using an existing composer slide count for fallback seed generation.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.RecommendDeckPlanAlternatives(OfficeIMO.PowerPoint.PowerPointDeckPlan,System.Int32)">
+            <summary>
+                Creates content-fit recommendations for a deck plan, ordered with the strongest match first.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.RecommendDeckPlanAlternatives(OfficeIMO.PowerPoint.PowerPointDeckPlan,System.Int32,System.Int32)">
+            <summary>
+                Creates content-fit recommendations for a deck plan, ordered with the strongest match first,
+                using an existing composer slide count for fallback seed generation.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.RecommendDeckPlanAlternative(OfficeIMO.PowerPoint.PowerPointDeckPlan,System.Int32)">
+            <summary>
+                Selects the strongest content-fit recommendation for a deck plan.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.RecommendDeckPlanAlternative(OfficeIMO.PowerPoint.PowerPointDeckPlan,System.Int32,System.Int32)">
+            <summary>
+                Selects the strongest content-fit recommendation for a deck plan,
+                using an existing composer slide count for fallback seed generation.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignBrief.CreateDesign(System.Int32)">
+            <summary>
+                Creates one deterministic deck design from this brief.
             </summary>
         </member>
         <member name="T:OfficeIMO.PowerPoint.PowerPointDesignDirection">
@@ -3937,6 +5141,132 @@
         <member name="F:OfficeIMO.PowerPoint.PowerPointVisualStyle.Minimal">
             <summary>Uses the fewest decorative elements.</summary>
         </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointDesignVariety">
+            <summary>
+                Controls how far generated alternatives should move from the selected recipe or preferred direction.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDesignVariety.Focused">
+            <summary>Stay close to the highest-ranked direction and vary mostly by palette and seed.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDesignVariety.Balanced">
+            <summary>Use the selected recipe or custom direction set as supplied.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDesignVariety.Exploratory">
+            <summary>Extend recipe alternatives with broader built-in directions for more creative distance.</summary>
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointPaletteStyle">
+            <summary>
+                Supporting palette strategy used to move generated alternatives away from a single house style.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointPaletteStyle.Auto">
+            <summary>Choose a deterministic supporting palette from the design seed.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointPaletteStyle.Analogous">
+            <summary>Use nearby hues for a calm brand-led palette.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointPaletteStyle.Complementary">
+            <summary>Use a contrasting hue for stronger visual separation.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointPaletteStyle.SplitComplementary">
+            <summary>Use two contrasting hues around the brand accent complement.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointPaletteStyle.Monochrome">
+            <summary>Use mostly tints and shades of the brand accent.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointPaletteStyle.WarmNeutral">
+            <summary>Pair the brand accent with warmer neutral surfaces and markers.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointPaletteStyle.CoolNeutral">
+            <summary>Pair the brand accent with cooler neutral surfaces and markers.</summary>
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointTypographyStyle">
+            <summary>
+                Typography strategy used to give generated decks a distinct typographic personality.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointTypographyStyle.Auto">
+            <summary>Choose a deterministic typography pair from the design seed.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointTypographyStyle.FriendlySans">
+            <summary>Friendly presentation typography with rounded headings and readable body text.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointTypographyStyle.ModernSans">
+            <summary>Modern Office-native typography for clean business decks.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointTypographyStyle.ExecutiveSans">
+            <summary>System-safe executive typography for formal decision decks.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointTypographyStyle.EditorialSerif">
+            <summary>Editorial heading typography paired with a clean sans body.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointTypographyStyle.TechnicalSans">
+            <summary>Compact technical typography for diagrams, runbooks, and operational decks.</summary>
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointDirectionMotifStyle">
+            <summary>
+                Decorative direction marker treatment used by designer slide chrome and section slides.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDirectionMotifStyle.Auto">
+            <summary>Choose a deterministic motif style from the design intent.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDirectionMotifStyle.Triangles">
+            <summary>Use the original editable triangle markers.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDirectionMotifStyle.Chevrons">
+            <summary>Use line-drawn chevrons for a cleaner directional cue.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDirectionMotifStyle.Dots">
+            <summary>Use quiet dot markers.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDirectionMotifStyle.Bars">
+            <summary>Use compact bar markers.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointDirectionMotifStyle.None">
+            <summary>Do not render direction markers.</summary>
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointCreativeDirectionPack">
+            <summary>
+                Higher-level creative starting points that combine recipe, palette, layout, and ranking preferences.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCreativeDirectionPack.Auto">
+            <summary>Let the purpose text and explicit brief settings choose the design direction.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCreativeDirectionPack.Boardroom">
+            <summary>Restrained, board-ready hierarchy for executive and decision decks.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCreativeDirectionPack.FieldProof">
+            <summary>Visual proof and stronger contrast for case studies, portfolios, and service stories.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCreativeDirectionPack.EditorialCaseStudy">
+            <summary>Editorial spacing and softer surfaces for narrative-heavy customer stories.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCreativeDirectionPack.TechnicalMap">
+            <summary>Compact geometric structure for architecture, rollout, and operational decks.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCreativeDirectionPack.QuietAppendix">
+            <summary>Quiet, dense appendix treatment for supporting detail and reference slides.</summary>
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointAutoLayoutStrategy">
+            <summary>
+                Controls how Auto slide variants balance content fit against visual variety.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointAutoLayoutStrategy.ContentFirst">
+            <summary>Favor layouts that fit the supplied content, then use the design seed for ties.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointAutoLayoutStrategy.DesignFirst">
+            <summary>Favor deterministic design-seed variety unless content would become dense or less readable.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointAutoLayoutStrategy.Compact">
+            <summary>Favor compact, scannable variants for denser business decks.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointAutoLayoutStrategy.VisualFirst">
+            <summary>Favor variants with stronger visual panels, proof areas, or hero framing when content allows it.</summary>
+        </member>
         <member name="T:OfficeIMO.PowerPoint.PowerPointSectionLayoutVariant">
             <summary>
                 Section/title slide layout variants. Auto uses the design intent seed to pick a stable variant.
@@ -3953,6 +5283,26 @@
         </member>
         <member name="F:OfficeIMO.PowerPoint.PowerPointSectionLayoutVariant.Poster">
             <summary>Poster-style dark title slide with a large centered title area.</summary>
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointTitleAccentStyle">
+            <summary>
+                Title accent treatment used by section/title slides.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointTitleAccentStyle.Auto">
+            <summary>Choose a deterministic title accent from the design intent.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointTitleAccentStyle.None">
+            <summary>Do not draw an additional title accent.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointTitleAccentStyle.Underline">
+            <summary>Draw a short accent underline near the section title.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointTitleAccentStyle.SideRule">
+            <summary>Draw a compact vertical accent rule beside the section title.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointTitleAccentStyle.KickerRule">
+            <summary>Draw a small editorial kicker rule above the section title.</summary>
         </member>
         <member name="T:OfficeIMO.PowerPoint.PowerPointCaseStudyLayoutVariant">
             <summary>
@@ -3985,6 +5335,26 @@
         <member name="F:OfficeIMO.PowerPoint.PowerPointProcessLayoutVariant.NumberedColumns">
             <summary>Separate numbered columns without a rail.</summary>
         </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointProcessConnectorStyle">
+            <summary>
+                Connector treatment used between process steps on rail-based process slides.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointProcessConnectorStyle.Auto">
+            <summary>Choose a connector treatment from the design intent.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointProcessConnectorStyle.ContinuousRail">
+            <summary>Single quiet line running through all process nodes.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointProcessConnectorStyle.SegmentArrows">
+            <summary>Short arrowed line segments between adjacent steps.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointProcessConnectorStyle.StepDots">
+            <summary>Small dotted markers between adjacent steps.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointProcessConnectorStyle.None">
+            <summary>Use no visible connector between process steps.</summary>
+        </member>
         <member name="T:OfficeIMO.PowerPoint.PowerPointCardGridLayoutVariant">
             <summary>
                 Card grid layout variants. Auto uses the design intent seed to pick a stable variant.
@@ -3998,6 +5368,66 @@
         </member>
         <member name="F:OfficeIMO.PowerPoint.PowerPointCardGridLayoutVariant.SoftTiles">
             <summary>Softer cards with a vertical accent strip.</summary>
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointCardSurfaceStyle">
+            <summary>
+                Card panel treatment used independently from the grid layout.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCardSurfaceStyle.Auto">
+            <summary>Choose a deterministic surface treatment from the design intent.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCardSurfaceStyle.Elevated">
+            <summary>Use a quiet elevated card with a subtle shadow.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCardSurfaceStyle.Flat">
+            <summary>Use a flat card with minimal outline and no shadow.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCardSurfaceStyle.Hairline">
+            <summary>Use a precise hairline card for editorial or formal layouts.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointCardSurfaceStyle.AccentWash">
+            <summary>Use a very light accent-tinted card surface.</summary>
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointMetricStripVariant">
+            <summary>
+                Metric strip surface variants for raw designer compositions.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointMetricStripVariant.Auto">
+            <summary>Choose a deterministic surface from the active design intent.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointMetricStripVariant.SolidBand">
+            <summary>Single accent band behind the metrics.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointMetricStripVariant.SeparatedTiles">
+            <summary>Separate metric tiles with individual accent surfaces.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointMetricStripVariant.Underlined">
+            <summary>Quiet text metrics with accent underlines and no filled panel.</summary>
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointVisualFrameVariant">
+            <summary>
+                Visual frame placeholder variants for raw designer compositions.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointVisualFrameVariant.Auto">
+            <summary>Choose a deterministic visual placeholder from the active design intent.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointVisualFrameVariant.Dashboard">
+            <summary>Dashboard-like placeholder with panels and content lines.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointVisualFrameVariant.Collage">
+            <summary>Layered collage placeholder with overlapping proof tiles.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointVisualFrameVariant.Diagram">
+            <summary>Diagram placeholder with editable nodes and connectors.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointVisualFrameVariant.DeviceMockup">
+            <summary>Screen or laptop-like visual treatment for product, app, or screenshot content.</summary>
+        </member>
+        <member name="F:OfficeIMO.PowerPoint.PowerPointVisualFrameVariant.ProofBoard">
+            <summary>Editorial proof board with image, certificate, or evidence panels.</summary>
         </member>
         <member name="T:OfficeIMO.PowerPoint.PowerPointLogoWallLayoutVariant">
             <summary>
@@ -4098,6 +5528,11 @@
                 Preferred primitive visual style.
             </summary>
         </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignIntent.LayoutStrategy">
+            <summary>
+                Strategy used by Auto slide variants.
+            </summary>
+        </member>
         <member name="T:OfficeIMO.PowerPoint.PowerPointDesignerSlideOptions">
             <summary>
                 Common chrome options for high-level designer slides.
@@ -4120,7 +5555,12 @@
         </member>
         <member name="P:OfficeIMO.PowerPoint.PowerPointDesignerSlideOptions.ShowDirectionMotif">
             <summary>
-                Adds a row of editable triangle markers for movement and visual rhythm.
+                Adds a row of editable direction markers for movement and visual rhythm.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignerSlideOptions.DirectionMotifStyle">
+            <summary>
+                Direction marker treatment used when ShowDirectionMotif is enabled.
             </summary>
         </member>
         <member name="P:OfficeIMO.PowerPoint.PowerPointDesignerSlideOptions.DesignIntent">
@@ -4131,6 +5571,11 @@
         <member name="P:OfficeIMO.PowerPoint.PowerPointDesignerSlideOptions.SectionVariant">
             <summary>
                 Section slide layout variant. Used by section/title slide helpers.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignerSlideOptions.TitleAccentStyle">
+            <summary>
+                Optional title accent for section/title slide helpers.
             </summary>
         </member>
         <member name="T:OfficeIMO.PowerPoint.PowerPointCaseStudySlideOptions">
@@ -4146,6 +5591,11 @@
         <member name="P:OfficeIMO.PowerPoint.PowerPointCaseStudySlideOptions.VisualImagePath">
             <summary>
                 Optional supporting image displayed in the bottom visual area.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCaseStudySlideOptions.VisualFrameVariant">
+            <summary>
+                Visual frame treatment for the supporting image or editable placeholder.
             </summary>
         </member>
         <member name="P:OfficeIMO.PowerPoint.PowerPointCaseStudySlideOptions.PersonImagePath">
@@ -4183,6 +5633,11 @@
                 Card layout variant. Auto uses the design intent seed.
             </summary>
         </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCardGridSlideOptions.SurfaceStyle">
+            <summary>
+                Card panel treatment. Auto uses the design intent seed and mood.
+            </summary>
+        </member>
         <member name="P:OfficeIMO.PowerPoint.PowerPointCardGridSlideOptions.SupportingText">
             <summary>
                 Optional supporting text block displayed below the cards.
@@ -4201,6 +5656,11 @@
         <member name="P:OfficeIMO.PowerPoint.PowerPointProcessSlideOptions.Variant">
             <summary>
                 Process layout variant. Auto uses the design intent seed.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointProcessSlideOptions.ConnectorStyle">
+            <summary>
+                Connector treatment for rail-based process slides. Auto uses the design intent.
             </summary>
         </member>
         <member name="T:OfficeIMO.PowerPoint.PowerPointLogoWallSlideOptions">
@@ -4271,6 +5731,11 @@
         <member name="P:OfficeIMO.PowerPoint.PowerPointCapabilitySlideOptions.VisualImagePath">
             <summary>
                 Optional image path for the visual frame.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointCapabilitySlideOptions.VisualFrameVariant">
+            <summary>
+                Visual frame treatment used when VisualKind is VisualFrame.
             </summary>
         </member>
         <member name="P:OfficeIMO.PowerPoint.PowerPointCapabilitySlideOptions.VisualLabel">
@@ -4473,6 +5938,187 @@
                 Optional accent color override.
             </summary>
         </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointDesignRecipe">
+            <summary>
+                Curated set of creative directions for a repeatable presentation scenario.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignRecipe.ConsultingPortfolio">
+            <summary>
+                Consulting and service portfolio recipe with proof, story, and appendix personalities.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignRecipe.ExecutiveBrief">
+            <summary>
+                Executive brief recipe for decision decks and board-ready summaries.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignRecipe.TechnicalProposal">
+            <summary>
+                Technical proposal recipe for architecture, rollout, and operations decks.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignRecipe.TransformationRoadmap">
+            <summary>
+                Transformation roadmap recipe for change programs, milestones, and phased plans.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignRecipe.BuiltIn">
+            <summary>
+                Built-in recipes suitable for generating varied deck alternatives.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignRecipe.#ctor(System.String,System.Collections.Generic.IEnumerable{OfficeIMO.PowerPoint.PowerPointDesignDirection},System.String,System.String,System.Collections.Generic.IEnumerable{System.String})">
+            <summary>
+                Creates a reusable design recipe from one or more directions.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignRecipe.Name">
+            <summary>
+                Recipe display name.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignRecipe.Description">
+            <summary>
+                Optional short explanation of where the recipe fits.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignRecipe.DefaultEyebrow">
+            <summary>
+                Optional eyebrow applied when the caller does not supply one.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignRecipe.Keywords">
+            <summary>
+                Optional purpose keywords used when selecting built-in recipes from plain text.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignRecipe.Directions">
+            <summary>
+                Curated creative directions used by this recipe.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignRecipe.CreateAlternativesFromBrand(System.String,System.String,System.Int32,System.String,System.String,System.String,System.String,System.String,System.String)">
+            <summary>
+                Creates deterministic deck design alternatives from this recipe.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignRecipe.Describe(System.Int32)">
+            <summary>
+                Creates a lightweight description of this recipe and its creative directions.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignRecipe.DescribeBuiltIns">
+            <summary>
+                Creates lightweight descriptions of all built-in recipes.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignRecipe.DescribeMatches(System.String)">
+            <summary>
+                Creates lightweight descriptions of built-in recipes matching a plain-language purpose.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignRecipe.FindBuiltIn(System.String)">
+            <summary>
+                Finds a built-in recipe that matches a plain-language purpose such as "executive brief".
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignRecipe.Matches(System.String)">
+            <summary>
+                Determines whether this recipe matches a plain-language purpose.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointDesignRecipeSummary">
+            <summary>
+                Lightweight description of a design recipe that can be shown before creating deck alternatives.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignRecipeSummary.Index">
+            <summary>
+                Zero-based recipe index within the built-in recipe list.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignRecipeSummary.Name">
+            <summary>
+                Recipe display name.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignRecipeSummary.Description">
+            <summary>
+                Optional short explanation of where the recipe fits.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignRecipeSummary.DefaultEyebrow">
+            <summary>
+                Optional eyebrow applied when the caller does not supply one.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignRecipeSummary.Keywords">
+            <summary>
+                Purpose keywords used for recipe matching.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignRecipeSummary.Directions">
+            <summary>
+                Creative directions included in the recipe.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignRecipeSummary.DirectionCount">
+            <summary>
+                Number of creative directions included in the recipe.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignRecipeSummary.ToString">
+            <inheritdoc />
+        </member>
+        <member name="T:OfficeIMO.PowerPoint.PowerPointDesignDirectionSummary">
+            <summary>
+                Lightweight description of one creative direction inside a design recipe.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignDirectionSummary.Index">
+            <summary>
+                Zero-based direction index within the recipe.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignDirectionSummary.Name">
+            <summary>
+                Creative direction name.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignDirectionSummary.Mood">
+            <summary>
+                Broad deck mood.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignDirectionSummary.Density">
+            <summary>
+                Preferred content density.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignDirectionSummary.VisualStyle">
+            <summary>
+                Preferred primitive visual style.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignDirectionSummary.HeadingFontName">
+            <summary>
+                Heading font used by this direction.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignDirectionSummary.BodyFontName">
+            <summary>
+                Body font used by this direction.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignDirectionSummary.ShowsDirectionMotif">
+            <summary>
+                Whether this direction uses repeated direction markers by default.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignDirectionSummary.ToString">
+            <inheritdoc />
+        </member>
         <member name="T:OfficeIMO.PowerPoint.PowerPointDesignTheme">
             <summary>
                 Defines a reusable visual system for high-level PowerPoint slide compositions.
@@ -4496,6 +6142,16 @@
         <member name="M:OfficeIMO.PowerPoint.PowerPointDesignTheme.WithVariation(System.String)">
             <summary>
                 Creates a deterministic palette variation that keeps the primary brand accent but changes supporting colors.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignTheme.WithTypographyStyle(OfficeIMO.PowerPoint.PowerPointTypographyStyle,System.String)">
+            <summary>
+                Creates a copy with a specific typography strategy.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointDesignTheme.WithPaletteStyle(OfficeIMO.PowerPoint.PowerPointPaletteStyle,System.String)">
+            <summary>
+                Creates a copy with a specific supporting palette strategy while preserving the primary brand accent.
             </summary>
         </member>
         <member name="M:OfficeIMO.PowerPoint.PowerPointDesignTheme.WithMood(OfficeIMO.PowerPoint.PowerPointDesignMood)">
@@ -4576,6 +6232,16 @@
         <member name="P:OfficeIMO.PowerPoint.PowerPointDesignTheme.WarningColor">
             <summary>
                 Warm accent used for markers and direction motifs.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignTheme.PaletteStyle">
+            <summary>
+                Supporting palette strategy used to generate secondary accents and surfaces.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.PowerPoint.PowerPointDesignTheme.TypographyStyle">
+            <summary>
+                Typography strategy used to resolve the heading and body font pair.
             </summary>
         </member>
         <member name="P:OfficeIMO.PowerPoint.PowerPointDesignTheme.HeadingFontName">
@@ -5799,6 +7465,16 @@
                 Returns a row/column grid inside the default content area.
             </summary>
         </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointSlideComposer.UsePreset(OfficeIMO.PowerPoint.PowerPointCompositionPreset,System.Double,System.Double,System.Double)">
+            <summary>
+                Resolves a named composition preset into reusable regions for a raw designer slide.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointSlideComposer.UsePreset(OfficeIMO.PowerPoint.PowerPointCompositionPreset,OfficeIMO.PowerPoint.PowerPointCompositionVariant,System.Double,System.Double,System.Double)">
+            <summary>
+                Resolves a named composition preset and variant into reusable regions for a raw designer slide.
+            </summary>
+        </member>
         <member name="M:OfficeIMO.PowerPoint.PowerPointSlideComposer.AddTitle(System.String,System.String)">
             <summary>
                 Adds a standard title block using the active theme and slide surface.
@@ -5834,9 +7510,24 @@
                 Adds a themed metric strip inside explicit bounds.
             </summary>
         </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointSlideComposer.AddMetricStrip(System.Collections.Generic.IEnumerable{OfficeIMO.PowerPoint.PowerPointMetric},OfficeIMO.PowerPoint.PowerPointLayoutBox,OfficeIMO.PowerPoint.PowerPointMetricStripVariant)">
+            <summary>
+                Adds a themed metric strip inside explicit bounds using a selected surface variant.
+            </summary>
+        </member>
         <member name="M:OfficeIMO.PowerPoint.PowerPointSlideComposer.AddVisualFrame(OfficeIMO.PowerPoint.PowerPointLayoutBox,System.String)">
             <summary>
                 Adds a polished image or editable placeholder surface inside explicit bounds.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointSlideComposer.AddVisualFrame(OfficeIMO.PowerPoint.PowerPointLayoutBox,OfficeIMO.PowerPoint.PowerPointVisualFrameVariant)">
+            <summary>
+                Adds a polished editable placeholder surface inside explicit bounds using a selected visual variant.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.PowerPoint.PowerPointSlideComposer.AddVisualFrame(OfficeIMO.PowerPoint.PowerPointLayoutBox,System.String,OfficeIMO.PowerPoint.PowerPointVisualFrameVariant)">
+            <summary>
+                Adds a polished image or editable placeholder surface inside explicit bounds using a selected visual variant.
             </summary>
         </member>
         <member name="M:OfficeIMO.PowerPoint.PowerPointSlideComposer.AddCalloutBand(System.String,OfficeIMO.PowerPoint.PowerPointLayoutBox,System.String)">

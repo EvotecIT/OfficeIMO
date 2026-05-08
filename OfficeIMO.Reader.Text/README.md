@@ -23,4 +23,5 @@ Compatibility note:
 - `RegisterStructuredTextHandler(...)` is intentionally manual-only and not included in registrar auto-discovery.
 
 Status:
-- compatibility wrapper and intentionally non-packable/non-publishable
+- packaged as `OfficeIMO.Reader.Text`
+- compatibility wrapper for existing integrations; new integrations should prefer the dedicated CSV, JSON, and XML adapters

@@ -5,7 +5,7 @@ OfficeIMO.Word is a cross‑platform .NET library for creating and editing Micro
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Word)](https://www.nuget.org/packages/OfficeIMO.Word)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Word?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Word)
 
-- Targets: netstandard2.0, net472, net8.0, net9.0
+- Targets: netstandard2.0, net472 (Windows build), net8.0, net10.0
 - License: MIT
 - NuGet: `OfficeIMO.Word`
 - Dependencies: DocumentFormat.OpenXml, OfficeIMO.Drawing
@@ -255,7 +255,7 @@ var fluent = new WordFluentDocument(doc)
 
 ## Dependencies & Versions
 
-- DocumentFormat.OpenXml: 3.3.x (range [3.3.0, 4.0.0))
+- DocumentFormat.OpenXml: range `[3.5.1, 4.0.0)`
 - OfficeIMO.Drawing: shared first-party color and image metadata helpers
 - License: MIT
 
@@ -265,7 +265,7 @@ var fluent = new WordFluentDocument(doc)
 - Markdown: `OfficeIMO.Word.Markdown` — convert to/from Markdown using OfficeIMO.Markdown
 - PDF: `OfficeIMO.Word.Pdf` (QuestPDF/SkiaSharp) — export to PDF
 
-> Note: Converters are in active development and will be released to NuGet once they meet quality and test coverage goals. Until then, they ship in‑repo for early evaluation.
+> Note: Converters ship as adjacent packages so consumers can opt into the extra dependency surface only when needed.
 
 ## Notes on Versioning
 

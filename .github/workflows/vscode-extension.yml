@@ -1,0 +1,83 @@
+name: VS Code Extension
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'OfficeIMO.Markup*/**'
+      - '.github/workflows/vscode-extension.yml'
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'OfficeIMO.Markup*/**'
+      - '.github/workflows/vscode-extension.yml'
+  workflow_dispatch:
+    inputs:
+      publish_marketplace:
+        description: 'Publish the packaged VSIX to the Visual Studio Marketplace'
+        required: false
+        type: boolean
+        default: false
+      pre_release:
+        description: 'Package and publish as a pre-release extension'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: |
+    8.0.418
+    10.0.103
+
+jobs:
+  package:
+    name: Package VSIX
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: OfficeIMO.Markup.VSCode/package-lock.json
+
+      - name: Package extension
+        shell: pwsh
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          $params = @{
+            OutputDirectory = 'dist'
+          }
+
+          if ('${{ github.event_name }}' -eq 'workflow_dispatch' -and '${{ inputs.pre_release }}' -eq 'true') {
+            $params.PreRelease = $true
+          }
+
+          if ('${{ github.event_name }}' -eq 'workflow_dispatch' -and '${{ inputs.publish_marketplace }}' -eq 'true') {
+            $params.PublishMarketplace = $true
+          }
+
+          ./OfficeIMO.Markup.VSCode/scripts/package-vsix.ps1 @params
+
+      - name: Upload VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: officeimo-markup-vsix
+          path: OfficeIMO.Markup.VSCode/dist/*.vsix
+          if-no-files-found: error
