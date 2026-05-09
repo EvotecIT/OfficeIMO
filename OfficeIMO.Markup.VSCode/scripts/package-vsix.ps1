@@ -5,6 +5,8 @@ param(
 
     [string]$Framework = 'net8.0',
 
+    [string[]]$RuntimeIdentifiers = @('win-x64', 'linux-x64', 'osx-x64', 'osx-arm64'),
+
     [string]$OutputDirectory = 'dist',
 
     [switch]$SkipNpmCi,
@@ -119,39 +121,61 @@ try {
         }
     }
 
+    if ($RuntimeIdentifiers.Count -eq 0) {
+        throw 'At least one runtime identifier must be provided.'
+    }
+
     $publishRoot = Assert-ChildPath -Path (Join-Path $extensionRoot '.tmp/cli-publish') -Parent $extensionRoot
     if (Test-Path -LiteralPath $publishRoot) {
         Remove-Item -LiteralPath $publishRoot -Recurse -Force
     }
     New-Item -ItemType Directory -Path $publishRoot | Out-Null
 
-    $dotnetArgs = @(
-        'publish',
-        $cliProject,
-        '-c', $Configuration,
-        '-f', $Framework,
-        '-o', $publishRoot,
-        '--nologo',
-        '--verbosity', 'minimal',
-        '-m:1',
-        '-nr:false',
-        '-p:BuildInParallel=false',
-        '-p:UseSharedCompilation=false',
-        '-p:DebugType=embedded'
-    )
-    if ($SkipRestore) {
-        $dotnetArgs += '--no-restore'
-    }
-
-    Write-Host "Publishing OfficeIMO.Markup.Cli ($Configuration, $Framework)..." -ForegroundColor Cyan
-    Invoke-Tool -FilePath 'dotnet' -ArgumentList $dotnetArgs
-
     $bundledCli = Assert-ChildPath -Path (Join-Path $extensionRoot 'tools/OfficeIMO.Markup.Cli') -Parent $extensionRoot
     if (Test-Path -LiteralPath $bundledCli) {
         Remove-Item -LiteralPath $bundledCli -Recurse -Force
     }
     New-Item -ItemType Directory -Path $bundledCli | Out-Null
-    Copy-Item -Path (Join-Path $publishRoot '*') -Destination $bundledCli -Recurse -Force
+
+    foreach ($rid in $RuntimeIdentifiers) {
+        if ([string]::IsNullOrWhiteSpace($rid)) {
+            throw 'Runtime identifiers cannot be empty.'
+        }
+
+        $ridPublishRoot = Assert-ChildPath -Path (Join-Path $publishRoot $rid) -Parent $publishRoot
+        New-Item -ItemType Directory -Path $ridPublishRoot | Out-Null
+
+        $dotnetArgs = @(
+            'publish',
+            $cliProject,
+            '-c', $Configuration,
+            '-f', $Framework,
+            '-r', $rid,
+            '--self-contained', 'true',
+            '-o', $ridPublishRoot,
+            '--nologo',
+            '--verbosity', 'minimal',
+            '-m:1',
+            '-nr:false',
+            '-p:BuildInParallel=false',
+            '-p:UseSharedCompilation=false',
+            '-p:DebugType=embedded',
+            '-p:PublishSingleFile=true',
+            '-p:IncludeNativeLibrariesForSelfExtract=true',
+            '-p:EnableCompressionInSingleFile=true'
+        )
+        if ($SkipRestore) {
+            $dotnetArgs += '--no-restore'
+        }
+
+        Write-Host "Publishing OfficeIMO.Markup.Cli ($Configuration, $Framework, $rid, self-contained)..." -ForegroundColor Cyan
+        Invoke-Tool -FilePath 'dotnet' -ArgumentList $dotnetArgs
+
+        $ridBundleRoot = Join-Path $bundledCli $rid
+        New-Item -ItemType Directory -Path $ridBundleRoot | Out-Null
+        Copy-Item -Path (Join-Path $ridPublishRoot '*') -Destination $ridBundleRoot -Recurse -Force
+    }
+
     Remove-Item -LiteralPath $publishRoot -Recurse -Force
 
     Write-Host 'Compiling VS Code extension...' -ForegroundColor Cyan

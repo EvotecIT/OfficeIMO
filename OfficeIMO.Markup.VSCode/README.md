@@ -54,8 +54,8 @@ npm run package
 `npm run package` calls `scripts/package-vsix.ps1`, which:
 
 - installs extension dependencies with `npm ci`
-- publishes `OfficeIMO.Markup.Cli` for `net8.0`
-- replaces the bundled CLI under `tools/OfficeIMO.Markup.Cli`
+- publishes self-contained `OfficeIMO.Markup.Cli` builds for Windows, Linux, and macOS
+- replaces the bundled CLI runtime folders under `tools/OfficeIMO.Markup.Cli`
 - compiles the extension JavaScript
 - writes `dist/officeimo-markup-<version>.vsix`
 
@@ -68,6 +68,8 @@ For packaged Insiders installation:
 ```
 
 Packaged installs include the bundled Release build of `OfficeIMO.Markup.Cli`, so preview and export work even when the opened workspace is not the OfficeIMO source tree.
+
+The VSIX bundles self-contained CLI executables for `win-x64`, `linux-x64`, `osx-x64`, and `osx-arm64`, so marketplace users do not need a separate .NET runtime for the default packaged path. The `officeimoMarkup.cliPath` setting can still point to a custom executable, DLL, or `.csproj` for development and advanced testing.
 
 ## Marketplace Publishing
 
