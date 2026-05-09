@@ -6,12 +6,24 @@ on:
       - master
     paths:
       - 'OfficeIMO.Markup*/**'
+      - 'OfficeIMO.Drawing/**'
+      - 'OfficeIMO.Excel/**'
+      - 'OfficeIMO.Markdown/**'
+      - 'OfficeIMO.PowerPoint/**'
+      - 'OfficeIMO.Word/**'
+      - 'Directory.Build.props'
       - '.github/workflows/vscode-extension.yml'
   pull_request:
     branches:
       - master
     paths:
       - 'OfficeIMO.Markup*/**'
+      - 'OfficeIMO.Drawing/**'
+      - 'OfficeIMO.Excel/**'
+      - 'OfficeIMO.Markdown/**'
+      - 'OfficeIMO.PowerPoint/**'
+      - 'OfficeIMO.Word/**'
+      - 'Directory.Build.props'
       - '.github/workflows/vscode-extension.yml'
   workflow_dispatch:
     inputs:
