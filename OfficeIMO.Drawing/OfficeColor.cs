@@ -129,6 +129,7 @@ public readonly struct OfficeColor : IEquatable<OfficeColor> {
         ["Plum"] = Plum,
         ["PowderBlue"] = FromRgb(176, 224, 230),
         ["Purple"] = Purple,
+        ["RebeccaPurple"] = RebeccaPurple,
         ["Red"] = Red,
         ["RosyBrown"] = FromRgb(188, 143, 143),
         ["RoyalBlue"] = FromRgb(65, 105, 225),
@@ -348,6 +349,7 @@ public readonly struct OfficeColor : IEquatable<OfficeColor> {
     public static OfficeColor Pink => FromRgb(255, 192, 203);
     public static OfficeColor Plum => FromRgb(221, 160, 221);
     public static OfficeColor Purple => FromRgb(128, 0, 128);
+    public static OfficeColor RebeccaPurple => FromRgb(102, 51, 153);
     public static OfficeColor Red => FromRgb(255, 0, 0);
     public static OfficeColor SaddleBrown => FromRgb(139, 69, 19);
     public static OfficeColor Salmon => FromRgb(250, 128, 114);
