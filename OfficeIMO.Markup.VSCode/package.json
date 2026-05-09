@@ -6,10 +6,37 @@
   "publisher": "evotec-services",
   "author": "Evotec Services sp. z o.o.",
   "license": "MIT",
+  "icon": "assets/icon.png",
+  "homepage": "https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Markup.VSCode",
+  "bugs": {
+    "url": "https://github.com/EvotecIT/OfficeIMO/issues"
+  },
+  "qna": false,
+  "galleryBanner": {
+    "color": "#102A43",
+    "theme": "dark"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/EvotecIT/OfficeIMO.git"
   },
+  "keywords": [
+    "officeimo",
+    "office",
+    "openxml",
+    "markdown",
+    "markup",
+    "powerpoint",
+    "excel",
+    "word",
+    "pptx",
+    "xlsx",
+    "docx",
+    "documents",
+    "presentations",
+    "workbooks",
+    "mermaid"
+  ],
   "engines": {
     "vscode": "^1.107.0"
   },
@@ -44,12 +71,15 @@
     "out/extension.js.map",
     "out/mermaidPreview.js",
     "out/mermaidPreview.js.map",
+    "assets/icon.png",
     "syntaxes/**",
     "snippets/**",
     "tools/**",
+    "CHANGELOG.md",
     "language-configuration.json",
     "LICENSE",
     "README.md",
+    "SUPPORT.md",
     "package.json"
   ],
   "scripts": {

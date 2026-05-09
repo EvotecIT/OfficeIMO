@@ -10,15 +10,6 @@ const allowedCliArtifactNames = new Set([
   'officeimo.markup.cli.exe'
 ]);
 
-const bundledCliRuntimeIdentifiers = [
-  'win-x64',
-  'win-arm64',
-  'linux-x64',
-  'linux-arm64',
-  'osx-x64',
-  'osx-arm64'
-];
-
 let warnedAboutInvalidCliPath = false;
 
 type CliResult = {
@@ -1137,10 +1128,7 @@ function resolveDefaultCliPath(context: vscode.ExtensionContext): string {
 }
 
 function findBundledCliExecutable(bundledRoot: string): string | undefined {
-  const preferredRid = currentRuntimeIdentifier();
-  const runtimeIdentifiers = preferredRid
-    ? [preferredRid, ...bundledCliRuntimeIdentifiers.filter((rid) => rid !== preferredRid)]
-    : bundledCliRuntimeIdentifiers;
+  const runtimeIdentifiers = currentPlatformRuntimeIdentifiers();
   const candidates = runtimeIdentifiers.map((rid) => path.join(bundledRoot, rid));
 
   const executableName = process.platform === 'win32' ? 'OfficeIMO.Markup.Cli.exe' : 'OfficeIMO.Markup.Cli';
@@ -1155,21 +1143,21 @@ function findBundledCliExecutable(bundledRoot: string): string | undefined {
   return undefined;
 }
 
-function currentRuntimeIdentifier(): string | undefined {
+function currentPlatformRuntimeIdentifiers(): string[] {
   const architecture = runtimeArchitecture();
   if (!architecture) {
-    return undefined;
+    return [];
   }
 
   switch (process.platform) {
     case 'win32':
-      return `win-${architecture}`;
+      return architecture === 'arm64' ? ['win-arm64', 'win-x64'] : [`win-${architecture}`];
     case 'linux':
-      return `linux-${architecture}`;
+      return [`linux-${architecture}`];
     case 'darwin':
-      return `osx-${architecture}`;
+      return [`osx-${architecture}`];
     default:
-      return undefined;
+      return [];
   }
 }
 

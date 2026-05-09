@@ -1,6 +1,42 @@
 # OfficeIMO Markup for VS Code
 
-Visual Studio Code extension for authoring `.office.md` and `.omd` files with OfficeIMO Markup. The extension provides syntax highlighting, snippets, validation, live preview, code generation, and Office export commands for presentation, workbook, and document profiles.
+Author Office documents from a Markdown-inspired format, preview the structure while you write, and export directly to PowerPoint, Excel, or Word using OfficeIMO.
+
+OfficeIMO Markup is useful when you want repeatable document generation without opening Office first: meeting decks, workbook reports, narrative documents, generated examples, or source-controlled Office content.
+
+## What You Get
+
+- Syntax highlighting and snippets for `.omd` and `.office.md` files.
+- Live preview for presentation, document, workbook, layout, chart, card, column, textbox, and Mermaid blocks.
+- Inline validation while editing.
+- Commands to generate C# or PowerShell code from markup.
+- Export commands for `.pptx`, `.xlsx`, and `.docx`.
+- Self-contained bundled CLI builds for Windows x64, Linux x64, macOS x64, and macOS arm64.
+- Optional Mermaid CLI integration for rendering diagrams during PowerPoint export.
+
+## Quick Start
+
+1. Create a file named `deck.office.md` or `deck.omd`.
+2. Add OfficeIMO front matter and content.
+3. Run `OfficeIMO Markup: Open Preview`.
+4. Run an export command such as `OfficeIMO Markup: Export PowerPoint`.
+
+```markdown
+---
+profile: presentation
+title: Quarterly Update
+---
+
+# Quarterly Update
+
+::: slide
+## Highlights
+
+- Revenue grew 18 percent
+- Support backlog dropped
+- Next quarter focuses on automation
+:::
+```
 
 ## Commands
 
@@ -21,19 +57,34 @@ Visual Studio Code extension for authoring `.office.md` and `.omd` files with Of
 - `OfficeIMO Markup: Open Generated PowerShell`
 - `OfficeIMO Markup: Install Mermaid Renderer`
 
-## Authoring
+## Supported Files
 
-Open a `.omd` or `.office.md` file, then run `OfficeIMO Markup: Open Preview` or use the editor, explorer, or preview toolbar actions. Plain `.md` files keep the built-in VS Code Markdown preview unless the file contains OfficeIMO front matter or directives.
+The extension activates for:
 
-The preview refreshes while the panel is open and exposes direct actions for refresh, validation, artifact generation, export-and-open, and opening the output folder. Inline chart data, semantic layout blocks, textboxes, columns, cards, and Mermaid diagrams get a lightweight live preview. Presentation previews keep slides stacked one per row and avoid drawing extra generated metadata onto the slide canvas.
+- `.omd`
+- `.office.md`
+- Markdown files that contain OfficeIMO front matter or directives
 
-Generated outputs can be written beside the markup file or into a configured subfolder via `officeimoMarkup.outputDirectoryMode` and `officeimoMarkup.outputSubfolderName`.
+Plain `.md` files keep the built-in VS Code Markdown preview unless the document looks like OfficeIMO Markup.
 
-## Mermaid
+## Requirements
 
-Mermaid preview rendering is bundled into the VSIX. PowerPoint export can render Mermaid diagrams to PNG images when Mermaid CLI is available.
+For normal packaged installs, no separate .NET runtime is required on the bundled platforms. The VSIX includes self-contained CLI executables for `win-x64`, `linux-x64`, `osx-x64`, and `osx-arm64`.
 
-Run `OfficeIMO Markup: Install Mermaid Renderer` to install `@mermaid-js/mermaid-cli` into the current VS Code profile's extension storage and save the discovered `mmdc` path in `officeimoMarkup.mermaidCliPath`. You can also set `officeimoMarkup.mermaidCliPath` manually. When no renderer is available, export keeps readable diagram text.
+Advanced users can set `officeimoMarkup.cliPath` to a custom `OfficeIMO.Markup.Cli` executable, DLL, or `.csproj`. DLL and project paths require a local .NET SDK or runtime.
+
+Mermaid preview rendering is bundled in the extension. PowerPoint export can render Mermaid diagrams to PNG images when Mermaid CLI is available. Run `OfficeIMO Markup: Install Mermaid Renderer` to install `@mermaid-js/mermaid-cli` into the current VS Code profile's extension storage.
+
+## Settings
+
+- `officeimoMarkup.defaultProfile` - fallback profile when a file does not include front matter.
+- `officeimoMarkup.cliPath` - optional custom CLI path.
+- `officeimoMarkup.outputDirectoryMode` - write generated files beside the source file or into a generated subfolder.
+- `officeimoMarkup.outputSubfolderName` - subfolder name for generated outputs.
+- `officeimoMarkup.previewAutoRefresh` - refresh preview automatically while editing.
+- `officeimoMarkup.renderMermaidInPreview` - render Mermaid diagrams in the preview webview.
+- `officeimoMarkup.renderMermaidOnExport` - render Mermaid diagrams during PowerPoint export.
+- `officeimoMarkup.mermaidCliPath` - optional path to `mmdc`.
 
 ## Development
 
@@ -67,10 +118,6 @@ For packaged Insiders installation:
 .\scripts\install-insiders.ps1 -Force
 ```
 
-Packaged installs include the bundled Release build of `OfficeIMO.Markup.Cli`, so preview and export work even when the opened workspace is not the OfficeIMO source tree.
-
-The VSIX bundles self-contained CLI executables for `win-x64`, `linux-x64`, `osx-x64`, and `osx-arm64`, so marketplace users do not need a separate .NET runtime for the default packaged path. The `officeimoMarkup.cliPath` setting can still point to a custom executable, DLL, or `.csproj` for development and advanced testing.
-
 ## Marketplace Publishing
 
 Local publish requires a Visual Studio Marketplace personal access token in `VSCE_PAT`:
@@ -82,7 +129,11 @@ npm run publish:marketplace
 
 CI packaging and publishing are handled by `.github/workflows/vscode-extension.yml`.
 
-- Pull requests and pushes touching `OfficeIMO.Markup*` package the VSIX and upload it as the `officeimo-markup-vsix` artifact.
+- Pull requests and pushes touching the extension or its runtime dependencies package the VSIX and upload it as the `officeimo-markup-vsix` artifact.
 - Manual `workflow_dispatch` can set `publish_marketplace=true` to publish to the Visual Studio Marketplace.
-- `VSCE_PAT` must be configured as a repository secret before marketplace publishing is enabled.
+- `VSCE_PAT` must be configured as a repository or organization secret before marketplace publishing is enabled.
 - `pre_release=true` packages and publishes the extension as a VS Code pre-release.
+
+## Support
+
+Report bugs and feature requests in the [OfficeIMO issue tracker](https://github.com/EvotecIT/OfficeIMO/issues). Include the OfficeIMO Markup file, the command you ran, and the generated output or error message when possible.
