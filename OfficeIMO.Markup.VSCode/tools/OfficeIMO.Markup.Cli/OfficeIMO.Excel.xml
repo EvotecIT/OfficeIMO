@@ -2693,6 +2693,22 @@
             <param name="column">The 1-based column index of the cell to modify.</param>
             <param name="bold">Whether the font should be bold (true) or regular (false).</param>
         </member>
+        <member name="M:OfficeIMO.Excel.ExcelSheet.CellItalic(System.Int32,System.Int32,System.Boolean)">
+            <summary>
+            Applies italic font styling to a single cell.
+            </summary>
+            <param name="row">The 1-based row index of the cell to modify.</param>
+            <param name="column">The 1-based column index of the cell to modify.</param>
+            <param name="italic">Whether the font should be italic (true) or regular (false).</param>
+        </member>
+        <member name="M:OfficeIMO.Excel.ExcelSheet.CellUnderline(System.Int32,System.Int32,System.Boolean)">
+            <summary>
+            Applies underline font styling to a single cell.
+            </summary>
+            <param name="row">The 1-based row index of the cell to modify.</param>
+            <param name="column">The 1-based column index of the cell to modify.</param>
+            <param name="underline">Whether the font should be underlined (true) or not (false).</param>
+        </member>
         <member name="M:OfficeIMO.Excel.ExcelSheet.CellBackground(System.Int32,System.Int32,System.String)">
             <summary>
             Applies solid background to a single cell. Accepts #RRGGBB or #AARRGGBB.
@@ -2701,13 +2717,13 @@
             <param name="column">The 1-based column index of the cell to fill.</param>
             <param name="hexColor">The background color expressed as an ARGB or RGB hex string.</param>
         </member>
-        <member name="M:OfficeIMO.Excel.ExcelSheet.CellBackground(System.Int32,System.Int32,SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Excel.ExcelSheet.CellBackground(System.Int32,System.Int32,OfficeIMO.Drawing.OfficeColor)">
             <summary>
-            Applies solid background to a single cell using SixLabors color.
+            Applies solid background to a single cell using an OfficeIMO color.
             </summary>
             <param name="row">The 1-based row index of the cell to fill.</param>
             <param name="column">The 1-based column index of the cell to fill.</param>
-            <param name="color">The <see cref="T:SixLabors.ImageSharp.Color"/> to convert to a hex value.</param>
+            <param name="color">The <see cref="T:OfficeIMO.Drawing.OfficeColor"/> to convert to a hex value.</param>
         </member>
         <member name="M:OfficeIMO.Excel.ExcelSheet.Cell(System.Int32,System.Int32,System.Object,System.String,System.String)">
             <summary>
@@ -2762,6 +2778,23 @@
             <param name="row">The 1-based row index of the cell to align.</param>
             <param name="column">The 1-based column index of the cell to align.</param>
             <param name="alignment">The horizontal alignment value to apply.</param>
+        </member>
+        <member name="M:OfficeIMO.Excel.ExcelSheet.CellVerticalAlign(System.Int32,System.Int32,DocumentFormat.OpenXml.Spreadsheet.VerticalAlignmentValues)">
+            <summary>
+            Applies a vertical alignment to a single cell.
+            </summary>
+            <param name="row">The 1-based row index of the cell to align.</param>
+            <param name="column">The 1-based column index of the cell to align.</param>
+            <param name="alignment">The vertical alignment value to apply.</param>
+        </member>
+        <member name="M:OfficeIMO.Excel.ExcelSheet.CellBorder(System.Int32,System.Int32,DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues,System.String)">
+            <summary>
+            Applies the same border style to all sides of a single cell.
+            </summary>
+            <param name="row">The 1-based row index of the cell to style.</param>
+            <param name="column">The 1-based column index of the cell to style.</param>
+            <param name="style">The border style to apply on all four sides.</param>
+            <param name="hexColor">Optional border color expressed as ARGB or RGB hex.</param>
         </member>
         <member name="M:OfficeIMO.Excel.ExcelSheet.CellFontColor(System.Int32,System.Int32,System.String)">
             <summary>
@@ -2988,7 +3021,7 @@
             <param name="formula1">Primary formula or value.</param>
             <param name="formula2">Optional secondary formula or value.</param>
         </member>
-        <member name="M:OfficeIMO.Excel.ExcelSheet.AddConditionalColorScale(System.String,SixLabors.ImageSharp.Color,SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Excel.ExcelSheet.AddConditionalColorScale(System.String,OfficeIMO.Drawing.OfficeColor,OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Adds a two-color scale conditional format to a range.
             </summary>
@@ -3004,7 +3037,7 @@
             <param name="startColor">Starting color in hex (e.g. FF0000).</param>
             <param name="endColor">Ending color in hex.</param>
         </member>
-        <member name="M:OfficeIMO.Excel.ExcelSheet.AddConditionalDataBar(System.String,SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Excel.ExcelSheet.AddConditionalDataBar(System.String,OfficeIMO.Drawing.OfficeColor)">
             <summary>
             Adds a data bar conditional format to a range.
             </summary>
@@ -4068,9 +4101,9 @@
             Applies a solid background fill to the column. Accepts #RRGGBB or #AARRGGBB.
             </summary>
         </member>
-        <member name="M:OfficeIMO.Excel.ColumnStyleByHeaderBuilder.Background(SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Excel.ColumnStyleByHeaderBuilder.Background(OfficeIMO.Drawing.OfficeColor)">
             <summary>
-            Applies a solid background fill to the column using an ImageSharp color.
+            Applies a solid background fill to the column using an OfficeIMO color.
             </summary>
             <param name="color">Fill color.</param>
         </member>
@@ -4103,9 +4136,9 @@
             Keys are compared case-insensitively by default.
             </summary>
         </member>
-        <member name="M:OfficeIMO.Excel.ColumnStyleByHeaderBuilder.BackgroundByTextMap(System.Collections.Generic.IDictionary{System.String,SixLabors.ImageSharp.Color},System.Boolean)">
+        <member name="M:OfficeIMO.Excel.ColumnStyleByHeaderBuilder.BackgroundByTextMap(System.Collections.Generic.IDictionary{System.String,OfficeIMO.Drawing.OfficeColor},System.Boolean)">
             <summary>
-            Overload that accepts SixLabors colors for convenience.
+            Overload that accepts OfficeIMO colors for convenience.
             </summary>
         </member>
         <member name="M:OfficeIMO.Excel.ColumnStyleByHeaderBuilder.BoldWhenTextEquals(System.String,System.Boolean)">
@@ -4647,10 +4680,10 @@
         <member name="M:OfficeIMO.Excel.Fluent.SheetBuilder.AutoFilter(System.String,System.Collections.Generic.Dictionary{System.UInt32,System.Collections.Generic.IEnumerable{System.String}})">
             <summary>Applies AutoFilter to a range with optional per‑column criteria.</summary>
         </member>
-        <member name="M:OfficeIMO.Excel.Fluent.SheetBuilder.ConditionalColorScale(System.String,SixLabors.ImageSharp.Color,SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Excel.Fluent.SheetBuilder.ConditionalColorScale(System.String,OfficeIMO.Drawing.OfficeColor,OfficeIMO.Drawing.OfficeColor)">
             <summary>Adds a 2‑color scale conditional formatting rule over the range.</summary>
         </member>
-        <member name="M:OfficeIMO.Excel.Fluent.SheetBuilder.ConditionalDataBar(System.String,SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Excel.Fluent.SheetBuilder.ConditionalDataBar(System.String,OfficeIMO.Drawing.OfficeColor)">
             <summary>Adds a data bar conditional formatting rule over the range.</summary>
         </member>
         <member name="M:OfficeIMO.Excel.Fluent.SheetBuilder.Freeze(System.Int32,System.Int32)">
@@ -5166,9 +5199,9 @@
             Provides helper methods used by <c>OfficeIMO.Excel</c> components.
             </summary>
         </member>
-        <member name="M:OfficeIMO.Excel.Helpers.ToHexColor(SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Excel.Helpers.ToHexColor(OfficeIMO.Drawing.OfficeColor)">
             <summary>
-            Converts a <see cref="T:SixLabors.ImageSharp.Color"/> to a hexadecimal
+            Converts a <see cref="T:OfficeIMO.Drawing.OfficeColor"/> to a hexadecimal
             color string.
             </summary>
             <param name="c">Color to convert.</param>
@@ -6097,9 +6130,9 @@
             Throw descriptive exceptions when the name doesn't meet requirements.
             </summary>
         </member>
-        <member name="M:OfficeIMO.Excel.ExcelColor.ToArgbHex(SixLabors.ImageSharp.Color)">
+        <member name="M:OfficeIMO.Excel.ExcelColor.ToArgbHex(OfficeIMO.Drawing.OfficeColor)">
             <summary>
-            Converts SixLabors Color to ARGB hex string expected by Spreadsheet colors (AARRGGBB, uppercase).
+            Converts OfficeIMO color to ARGB hex string expected by Spreadsheet colors (AARRGGBB, uppercase).
             </summary>
         </member>
         <member name="T:OfficeIMO.Excel.ExcelHostExtensions">

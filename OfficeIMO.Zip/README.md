@@ -11,5 +11,6 @@ Current scope:
 - traversal warnings for rejected/limited entries
 
 Status:
-- scaffolded for modular Reader integration
-- intentionally marked non-packable/non-publishable until finalized
+- packaged as `OfficeIMO.Zip`
+- used directly by `OfficeIMO.Reader.Zip`
+- still preview-scoped while traversal policy and adapter integration continue to evolve

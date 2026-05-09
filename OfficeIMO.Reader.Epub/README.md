@@ -20,4 +20,5 @@ DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler();
 ```
 
 Status:
-- scaffolded and intentionally non-packable/non-publishable
+- packaged as `OfficeIMO.Reader.Epub`
+- preview-scoped modular adapter for `OfficeIMO.Reader`

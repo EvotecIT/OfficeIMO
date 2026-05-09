@@ -6,10 +6,37 @@
   "publisher": "evotec-services",
   "author": "Evotec Services sp. z o.o.",
   "license": "MIT",
+  "icon": "assets/icon.png",
+  "homepage": "https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Markup.VSCode",
+  "bugs": {
+    "url": "https://github.com/EvotecIT/OfficeIMO/issues"
+  },
+  "qna": false,
+  "galleryBanner": {
+    "color": "#102A43",
+    "theme": "dark"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/EvotecIT/OfficeIMO.git"
   },
+  "keywords": [
+    "officeimo",
+    "office",
+    "openxml",
+    "markdown",
+    "markup",
+    "powerpoint",
+    "excel",
+    "word",
+    "pptx",
+    "xlsx",
+    "docx",
+    "documents",
+    "presentations",
+    "workbooks",
+    "mermaid"
+  ],
   "engines": {
     "vscode": "^1.107.0"
   },
@@ -44,18 +71,24 @@
     "out/extension.js.map",
     "out/mermaidPreview.js",
     "out/mermaidPreview.js.map",
+    "assets/icon.png",
+    "scripts/package-vsix.cjs",
     "syntaxes/**",
     "snippets/**",
     "tools/**",
+    "CHANGELOG.md",
     "language-configuration.json",
     "LICENSE",
     "README.md",
+    "SUPPORT.md",
     "package.json"
   ],
   "scripts": {
     "compile": "node scripts/bundle.cjs",
     "watch": "node scripts/bundle.cjs --watch",
-    "package": "vsce package --allow-missing-repository"
+    "package": "node scripts/package-vsix.cjs",
+    "package:vsix": "node scripts/package-vsix.cjs",
+    "publish:marketplace": "node scripts/package-vsix.cjs --publish-marketplace"
   },
   "contributes": {
     "languages": [
@@ -367,10 +400,10 @@
     "mermaid": "^11.14.0"
   },
   "devDependencies": {
-    "@types/node": "^20.11.30",
-    "@types/vscode": "^1.107.0",
+    "@types/node": "^20.19.40",
+    "@types/vscode": "1.107.0",
     "@vscode/vsce": "^3.6.0",
-    "esbuild": "^0.25.0",
-    "typescript": "^5.9.0"
+    "esbuild": "^0.28.0",
+    "typescript": "^6.0.3"
   }
 }

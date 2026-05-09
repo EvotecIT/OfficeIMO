@@ -2,7 +2,7 @@
 
 OfficeIMO.PowerPoint focuses on creating and editing .pptx presentations with Open XML.
 
-- Targets: netstandard2.0, net472, net8.0, net9.0
+- Targets: netstandard2.0, net472 (Windows build), net8.0, net10.0
 - License: MIT
 - NuGet: `OfficeIMO.PowerPoint`
 - Dependencies: DocumentFormat.OpenXml
@@ -944,7 +944,7 @@ slide.AddPicture("logo.png", columns[1]);
 
 ## Dependencies & License
 
-- DocumentFormat.OpenXml: 3.3.x (range [3.3.0, 4.0.0))
+- DocumentFormat.OpenXml: range `[3.5.1, 4.0.0)`
 - License: MIT
 
 <!-- (No migration notes: these APIs are new additions.) -->

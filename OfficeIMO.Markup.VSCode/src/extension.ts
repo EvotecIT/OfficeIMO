@@ -1111,7 +1111,13 @@ function resolveConfiguredCliPath(configPath: string): string | undefined {
 
 function resolveDefaultCliPath(context: vscode.ExtensionContext): string {
   const extensionPath = resolveRealPath(context.extensionUri.fsPath);
-  const bundledDll = path.join(extensionPath, 'tools', 'OfficeIMO.Markup.Cli', 'OfficeIMO.Markup.Cli.dll');
+  const bundledRoot = path.join(extensionPath, 'tools', 'OfficeIMO.Markup.Cli');
+  const bundledExecutable = findBundledCliExecutable(bundledRoot);
+  if (bundledExecutable) {
+    return bundledExecutable;
+  }
+
+  const bundledDll = path.join(bundledRoot, 'OfficeIMO.Markup.Cli.dll');
   const candidates = [
     bundledDll,
     path.join(workspaceRoot(context), 'OfficeIMO.Markup.Cli', 'OfficeIMO.Markup.Cli.csproj'),
@@ -1119,6 +1125,63 @@ function resolveDefaultCliPath(context: vscode.ExtensionContext): string {
   ];
 
   return candidates.find((candidate) => fs.existsSync(candidate)) ?? bundledDll;
+}
+
+function findBundledCliExecutable(bundledRoot: string): string | undefined {
+  const runtimeIdentifiers = currentPlatformRuntimeIdentifiers();
+  const candidates = runtimeIdentifiers.map((rid) => path.join(bundledRoot, rid));
+
+  const executableName = process.platform === 'win32' ? 'OfficeIMO.Markup.Cli.exe' : 'OfficeIMO.Markup.Cli';
+  for (const candidateRoot of candidates) {
+    const executable = path.join(candidateRoot, executableName);
+    if (fs.existsSync(executable)) {
+      ensureExecutable(executable);
+      return executable;
+    }
+  }
+
+  return undefined;
+}
+
+function currentPlatformRuntimeIdentifiers(): string[] {
+  const architecture = runtimeArchitecture();
+  if (!architecture) {
+    return [];
+  }
+
+  switch (process.platform) {
+    case 'win32':
+      return architecture === 'arm64' ? ['win-arm64', 'win-x64'] : [`win-${architecture}`];
+    case 'linux':
+      return [`linux-${architecture}`];
+    case 'darwin':
+      return [`osx-${architecture}`];
+    default:
+      return [];
+  }
+}
+
+function runtimeArchitecture(): string | undefined {
+  switch (process.arch) {
+    case 'x64':
+      return 'x64';
+    case 'arm64':
+      return 'arm64';
+    default:
+      return undefined;
+  }
+}
+
+function ensureExecutable(filePath: string): void {
+  if (process.platform === 'win32') {
+    return;
+  }
+
+  try {
+    fs.chmodSync(filePath, 0o755);
+  } catch {
+    // Best effort: VSIX installs normally preserve executable bits on Unix-like hosts.
+  }
 }
 
 function findBuiltCliDll(csprojPath: string): string | undefined {

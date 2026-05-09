@@ -1,1 +1,5 @@
 *.vsix
+dist/
+out/
+.tmp/
+node_modules/

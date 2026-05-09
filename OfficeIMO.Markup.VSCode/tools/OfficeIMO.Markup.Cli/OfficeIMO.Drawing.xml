@@ -1,0 +1,361 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>OfficeIMO.Drawing</name>
+    </assembly>
+    <members>
+        <member name="T:OfficeIMO.Shared.ObjectDataHelpers">
+            <summary>
+            Shared helpers for projecting object data into tabular structures.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.Shared.ObjectDataHelpers.GetColumnNames(System.Object)">
+            <summary>
+            Resolves column names from a dictionary or public readable properties.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.Shared.ObjectDataHelpers.GetValue(System.Object,System.String)">
+            <summary>
+            Retrieves a value for the specified column from a dictionary or property.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.Shared.NonDisposingMemoryStream">
+            <summary>
+            MemoryStream that suppresses disposal so OpenXml packages can close without losing the buffer.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.Drawing.OfficeColor">
+            <summary>
+            Small immutable RGBA color value used by OfficeIMO packages without external image dependencies.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeColor.#ctor(System.Byte,System.Byte,System.Byte,System.Byte)">
+            <summary>
+            Creates an RGBA color.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeColor.R">
+            <summary>Red component.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeColor.G">
+            <summary>Green component.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeColor.B">
+            <summary>Blue component.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeColor.A">
+            <summary>Alpha component.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeColor.FromRgb(System.Byte,System.Byte,System.Byte)">
+            <summary>Creates an opaque color from RGB components.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeColor.FromRgba(System.Byte,System.Byte,System.Byte,System.Byte)">
+            <summary>Creates a color from RGBA components.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeColor.Parse(System.String)">
+            <summary>Parses a named color, #RRGGBB, RRGGBB, #RRGGBBAA, or RRGGBBAA.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeColor.ParseHex(System.String)">
+            <summary>Parses a hexadecimal color value.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeColor.TryParse(System.String,OfficeIMO.Drawing.OfficeColor@)">
+            <summary>Tries to parse a named or hexadecimal color value.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeColor.TryParseHex(System.String,OfficeIMO.Drawing.OfficeColor@)">
+            <summary>Tries to parse a hexadecimal color value.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeColor.ToHex">
+            <summary>Returns RRGGBBAA.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeColor.ToRgbHex">
+            <summary>Returns RRGGBB.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeColor.ToArgbHex">
+            <summary>Returns AARRGGBB.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeColor.ToString">
+            <inheritdoc />
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeColor.Equals(OfficeIMO.Drawing.OfficeColor)">
+            <inheritdoc />
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeColor.Equals(System.Object)">
+            <inheritdoc />
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeColor.GetHashCode">
+            <inheritdoc />
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeColor.op_Equality(OfficeIMO.Drawing.OfficeColor,OfficeIMO.Drawing.OfficeColor)">
+            <summary>Equality operator.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeColor.op_Inequality(OfficeIMO.Drawing.OfficeColor,OfficeIMO.Drawing.OfficeColor)">
+            <summary>Inequality operator.</summary>
+        </member>
+        <member name="T:OfficeIMO.Drawing.OfficeColorExtensions">
+            <summary>
+            Convenience color conversion helpers shared by OfficeIMO packages.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeColorExtensions.ToHexColor(OfficeIMO.Drawing.OfficeColor)">
+            <summary>
+            Converts a color to a hexadecimal RRGGBB value.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.Drawing.OfficeFontInfo">
+            <summary>
+            Small immutable font descriptor used by OfficeIMO packages without taking a dependency on a font engine.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeFontInfo.#ctor(System.String,System.Double,OfficeIMO.Drawing.OfficeFontStyle)">
+            <summary>
+            Creates a font descriptor.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeFontInfo.FamilyName">
+            <summary>Font family name, when known.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeFontInfo.Size">
+            <summary>Font size in points.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeFontInfo.Style">
+            <summary>Font style flags.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeFontInfo.IsBold">
+            <summary>Whether the descriptor includes bold styling.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeFontInfo.IsItalic">
+            <summary>Whether the descriptor includes italic styling.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeFontInfo.IsUnderline">
+            <summary>Whether the descriptor includes underline styling.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeFontInfo.Default">
+            <summary>Default Office font descriptor.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeFontInfo.WithFamilyName(System.String)">
+            <summary>Creates a copy with a different family name.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeFontInfo.WithSize(System.Double)">
+            <summary>Creates a copy with a different point size.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeFontInfo.WithStyle(OfficeIMO.Drawing.OfficeFontStyle)">
+            <summary>Creates a copy with different style flags.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeFontInfo.Equals(OfficeIMO.Drawing.OfficeFontInfo)">
+            <inheritdoc />
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeFontInfo.Equals(System.Object)">
+            <inheritdoc />
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeFontInfo.GetHashCode">
+            <inheritdoc />
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeFontInfo.ToString">
+            <inheritdoc />
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeFontInfo.op_Equality(OfficeIMO.Drawing.OfficeFontInfo,OfficeIMO.Drawing.OfficeFontInfo)">
+            <summary>Equality operator.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeFontInfo.op_Inequality(OfficeIMO.Drawing.OfficeFontInfo,OfficeIMO.Drawing.OfficeFontInfo)">
+            <summary>Inequality operator.</summary>
+        </member>
+        <member name="T:OfficeIMO.Drawing.OfficeFontStyle">
+            <summary>
+            Describes text style flags without depending on a rendering or font library.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.Drawing.OfficeFontStyle.Regular">
+            <summary>Regular text.</summary>
+        </member>
+        <member name="F:OfficeIMO.Drawing.OfficeFontStyle.Bold">
+            <summary>Bold text.</summary>
+        </member>
+        <member name="F:OfficeIMO.Drawing.OfficeFontStyle.Italic">
+            <summary>Italic text.</summary>
+        </member>
+        <member name="F:OfficeIMO.Drawing.OfficeFontStyle.Underline">
+            <summary>Underlined text.</summary>
+        </member>
+        <member name="T:OfficeIMO.Drawing.OfficeImageFormat">
+            <summary>
+            Image formats understood by the shared OfficeIMO drawing layer.
+            </summary>
+        </member>
+        <member name="F:OfficeIMO.Drawing.OfficeImageFormat.Unknown">
+            <summary>Unknown or unsupported image format.</summary>
+        </member>
+        <member name="F:OfficeIMO.Drawing.OfficeImageFormat.Png">
+            <summary>Portable Network Graphics image.</summary>
+        </member>
+        <member name="F:OfficeIMO.Drawing.OfficeImageFormat.Jpeg">
+            <summary>JPEG image.</summary>
+        </member>
+        <member name="F:OfficeIMO.Drawing.OfficeImageFormat.Gif">
+            <summary>Graphics Interchange Format image.</summary>
+        </member>
+        <member name="F:OfficeIMO.Drawing.OfficeImageFormat.Bmp">
+            <summary>Bitmap image.</summary>
+        </member>
+        <member name="F:OfficeIMO.Drawing.OfficeImageFormat.Tiff">
+            <summary>Tagged Image File Format image.</summary>
+        </member>
+        <member name="F:OfficeIMO.Drawing.OfficeImageFormat.Svg">
+            <summary>Scalable Vector Graphics image.</summary>
+        </member>
+        <member name="F:OfficeIMO.Drawing.OfficeImageFormat.Emf">
+            <summary>Enhanced Metafile image.</summary>
+        </member>
+        <member name="F:OfficeIMO.Drawing.OfficeImageFormat.Wmf">
+            <summary>Windows Metafile image.</summary>
+        </member>
+        <member name="F:OfficeIMO.Drawing.OfficeImageFormat.Icon">
+            <summary>Icon image.</summary>
+        </member>
+        <member name="F:OfficeIMO.Drawing.OfficeImageFormat.Pcx">
+            <summary>PCX image.</summary>
+        </member>
+        <member name="T:OfficeIMO.Drawing.OfficeImageInfo">
+            <summary>
+            Header-level image metadata used by Office Open XML packages.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeImageInfo.#ctor(OfficeIMO.Drawing.OfficeImageFormat,System.Int32,System.Int32,System.Double,System.Double)">
+            <summary>
+            Creates a new image metadata value.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeImageInfo.Format">
+            <summary>Image format.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeImageInfo.Width">
+            <summary>Width in pixels, or 0 when unknown.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeImageInfo.Height">
+            <summary>Height in pixels, or 0 when unknown.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeImageInfo.DpiX">
+            <summary>Horizontal resolution in DPI. Defaults to 96 when absent.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeImageInfo.DpiY">
+            <summary>Vertical resolution in DPI. Defaults to 96 when absent.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeImageInfo.MimeType">
+            <summary>Default MIME type for the detected format.</summary>
+        </member>
+        <member name="T:OfficeIMO.Drawing.OfficeImageReader">
+            <summary>
+            Header-only image metadata reader used to avoid full image decoding dependencies.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeImageReader.Identify(System.String)">
+            <summary>
+            Identifies image metadata from a file.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeImageReader.Identify(System.Byte[],System.String)">
+            <summary>
+            Identifies image metadata from a byte array.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeImageReader.TryIdentify(System.IO.Stream,System.String,OfficeIMO.Drawing.OfficeImageInfo@)">
+            <summary>
+            Tries to identify image metadata from a stream.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeImageReader.TryIdentify(System.Byte[],System.String,OfficeIMO.Drawing.OfficeImageInfo@)">
+            <summary>
+            Tries to identify image metadata from a byte array.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeImageReader.FromExtension(System.String)">
+            <summary>
+            Maps a file name or extension to a supported image format.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.Drawing.OfficeTextMeasurementStyle">
+            <summary>
+            Normalized font and DPI data used by <see cref="T:OfficeIMO.Drawing.OfficeTextMeasurer"/>.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeTextMeasurementStyle.FontInfo">
+            <summary>Normalized font descriptor used for this measurement style.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeTextMeasurementStyle.Dpi">
+            <summary>Measurement DPI.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeTextMeasurementStyle.FontSizePixels">
+            <summary>Font size converted to pixels for the selected DPI.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeTextMeasurementStyle.SpaceWidthPixels">
+            <summary>Estimated width of a space character in pixels.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeTextMeasurementStyle.MaximumDigitWidthPixels">
+            <summary>Estimated maximum digit width in pixels.</summary>
+        </member>
+        <member name="T:OfficeIMO.Drawing.OfficeTextMeasurer">
+            <summary>
+            Deterministic, zero-dependency text measurer for Office layout estimates.
+            </summary>
+            <remarks>
+            This measurer intentionally does not call operating-system font APIs. It provides stable
+            Office-oriented estimates for layout decisions such as autofit and wrapping.
+            </remarks>
+        </member>
+        <member name="F:OfficeIMO.Drawing.OfficeTextMeasurer.DefaultDpi">
+            <summary>Default measurement DPI.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeTextMeasurer.DefaultStyle">
+            <summary>Default style derived from the fallback font.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeTextMeasurer.DefaultFontSize">
+            <summary>Default font size in points.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeTextMeasurer.FallbackFontInfo">
+            <summary>Fallback font descriptor used when no explicit font is available.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeTextMeasurer.Create(System.Nullable{OfficeIMO.Drawing.OfficeFontInfo})">
+            <summary>Creates a deterministic text measurer.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeTextMeasurer.CreateDefaultStyle(System.Double)">
+            <summary>Creates a style from the measurer fallback font and a DPI value.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeTextMeasurer.CreateStyle(OfficeIMO.Drawing.OfficeFontInfo)">
+            <summary>Creates a style from a font descriptor using the default DPI.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeTextMeasurer.CreateStyle(OfficeIMO.Drawing.OfficeFontInfo,System.Double)">
+            <summary>Creates a style from a font descriptor and DPI value.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeTextMeasurer.Measure(System.String,OfficeIMO.Drawing.OfficeTextMeasurementStyle)">
+            <summary>Measures text width and line metrics for the supplied style.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeTextMeasurer.MeasureWidth(System.String,OfficeIMO.Drawing.OfficeTextMeasurementStyle)">
+            <summary>Measures text width in pixels for the supplied style.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeTextMeasurer.MeasureWidthOrDefault(System.String,OfficeIMO.Drawing.OfficeTextMeasurementStyle,System.Double)">
+            <summary>Measures text width or returns the provided fallback when text cannot be measured.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeTextMeasurer.MeasureLineHeight(OfficeIMO.Drawing.OfficeTextMeasurementStyle)">
+            <summary>Measures a single-line text height in pixels for the supplied style.</summary>
+        </member>
+        <member name="M:OfficeIMO.Drawing.OfficeTextMeasurer.MeasureLineHeightOrDefault(System.String,OfficeIMO.Drawing.OfficeTextMeasurementStyle,System.Double)">
+            <summary>Measures line height or returns the provided fallback when text is empty.</summary>
+        </member>
+        <member name="T:OfficeIMO.Drawing.OfficeTextMetrics">
+            <summary>
+            Deterministic text measurement result in pixels.
+            </summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeTextMetrics.WidthPixels">
+            <summary>Estimated text width in pixels.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeTextMetrics.LineHeightPixels">
+            <summary>Estimated single-line height in pixels.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeTextMetrics.SpaceWidthPixels">
+            <summary>Estimated width of a space character in pixels.</summary>
+        </member>
+        <member name="P:OfficeIMO.Drawing.OfficeTextMetrics.MaximumDigitWidthPixels">
+            <summary>Estimated maximum digit width in pixels.</summary>
+        </member>
+    </members>
+</doc>

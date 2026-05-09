@@ -15,4 +15,5 @@ DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler(replaceExisting: true
 ```
 
 Status:
-- scaffolded and intentionally non-packable/non-publishable
+- packaged as `OfficeIMO.Reader.Csv`
+- preview-scoped modular adapter for `OfficeIMO.Reader`

@@ -11,5 +11,7 @@ Current scope:
 - emits extraction warnings for malformed/unreadable content
 
 Status:
-- scaffolded and intentionally non-packable/non-publishable
+- packaged as `OfficeIMO.Epub`
+- used directly by `OfficeIMO.Reader.Epub`
+- still preview-scoped while full OPF/spine/nav semantics continue to evolve
 - full OPF/spine/nav semantics are planned next
