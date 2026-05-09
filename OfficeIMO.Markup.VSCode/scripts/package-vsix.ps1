@@ -5,7 +5,7 @@ param(
 
     [string]$Framework = 'net8.0',
 
-    [string[]]$RuntimeIdentifiers = @('win-x64', 'linux-x64', 'osx-x64', 'osx-arm64'),
+    [string[]]$RuntimeIdentifiers = @('win-x64', 'win-arm64', 'linux-x64', 'linux-arm64', 'osx-x64', 'osx-arm64'),
 
     [string]$OutputDirectory = 'dist',
 
@@ -136,6 +136,30 @@ try {
         Remove-Item -LiteralPath $bundledCli -Recurse -Force
     }
     New-Item -ItemType Directory -Path $bundledCli | Out-Null
+
+    $portablePublishRoot = Assert-ChildPath -Path (Join-Path $publishRoot 'portable') -Parent $publishRoot
+    New-Item -ItemType Directory -Path $portablePublishRoot | Out-Null
+    $portableArgs = @(
+        'publish',
+        $cliProject,
+        '-c', $Configuration,
+        '-f', $Framework,
+        '-o', $portablePublishRoot,
+        '--nologo',
+        '--verbosity', 'minimal',
+        '-m:1',
+        '-nr:false',
+        '-p:BuildInParallel=false',
+        '-p:UseSharedCompilation=false',
+        '-p:DebugType=embedded'
+    )
+    if ($SkipRestore) {
+        $portableArgs += '--no-restore'
+    }
+
+    Write-Host "Publishing OfficeIMO.Markup.Cli ($Configuration, $Framework, portable fallback)..." -ForegroundColor Cyan
+    Invoke-Tool -FilePath 'dotnet' -ArgumentList $portableArgs
+    Copy-Item -Path (Join-Path $portablePublishRoot '*') -Destination $bundledCli -Recurse -Force
 
     foreach ($rid in $RuntimeIdentifiers) {
         if ([string]::IsNullOrWhiteSpace($rid)) {

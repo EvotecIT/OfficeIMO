@@ -11,7 +11,7 @@ OfficeIMO Markup is useful when you want repeatable document generation without 
 - Inline validation while editing.
 - Commands to generate C# or PowerShell code from markup.
 - Export commands for `.pptx`, `.xlsx`, and `.docx`.
-- Self-contained bundled CLI builds for Windows x64, Linux x64, macOS x64, and macOS arm64.
+- Self-contained bundled CLI builds for Windows, Linux, and macOS on x64 and arm64.
 - Optional Mermaid CLI integration for rendering diagrams during PowerPoint export.
 
 ## Quick Start
@@ -69,7 +69,7 @@ Plain `.md` files keep the built-in VS Code Markdown preview unless the document
 
 ## Requirements
 
-For normal packaged installs, no separate .NET runtime is required on the bundled platforms. The VSIX includes self-contained CLI executables for `win-x64`, `linux-x64`, `osx-x64`, and `osx-arm64`.
+For normal packaged installs, no separate .NET runtime is required on the bundled platforms. The VSIX includes self-contained CLI executables for `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`, `osx-x64`, and `osx-arm64`.
 
 Advanced users can set `officeimoMarkup.cliPath` to a custom `OfficeIMO.Markup.Cli` executable, DLL, or `.csproj`. DLL and project paths require a local .NET SDK or runtime.
 
@@ -102,15 +102,16 @@ Development links use the source tree and fall back to the sibling `OfficeIMO.Ma
 npm run package
 ```
 
-`npm run package` calls `scripts/package-vsix.ps1`, which:
+`npm run package` calls `scripts/package-vsix.cjs`, which:
 
 - installs extension dependencies with `npm ci`
 - publishes self-contained `OfficeIMO.Markup.Cli` builds for Windows, Linux, and macOS
+- publishes a framework-dependent CLI fallback for unsupported runtimes with .NET installed
 - replaces the bundled CLI runtime folders under `tools/OfficeIMO.Markup.Cli`
 - compiles the extension JavaScript
 - writes `dist/officeimo-markup-<version>.vsix`
 
-Use this script instead of running raw `vsce package`; the raw VSCE command does not refresh the bundled CLI and can ship stale dependencies.
+Use `npm run package` instead of running raw `vsce package`; the raw VSCE command does not refresh the bundled CLI and can ship stale dependencies. The npm package command uses the cross-platform Node wrapper in `scripts/package-vsix.cjs`; `scripts/package-vsix.ps1` remains available for CI and PowerShell users.
 
 For packaged Insiders installation:
 

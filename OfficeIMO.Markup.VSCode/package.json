@@ -72,6 +72,7 @@
     "out/mermaidPreview.js",
     "out/mermaidPreview.js.map",
     "assets/icon.png",
+    "scripts/package-vsix.cjs",
     "syntaxes/**",
     "snippets/**",
     "tools/**",
@@ -85,9 +86,9 @@
   "scripts": {
     "compile": "node scripts/bundle.cjs",
     "watch": "node scripts/bundle.cjs --watch",
-    "package": "pwsh -NoProfile -File scripts/package-vsix.ps1",
-    "package:vsix": "pwsh -NoProfile -File scripts/package-vsix.ps1",
-    "publish:marketplace": "pwsh -NoProfile -File scripts/package-vsix.ps1 -PublishMarketplace"
+    "package": "node scripts/package-vsix.cjs",
+    "package:vsix": "node scripts/package-vsix.cjs",
+    "publish:marketplace": "node scripts/package-vsix.cjs --publish-marketplace"
   },
   "contributes": {
     "languages": [
