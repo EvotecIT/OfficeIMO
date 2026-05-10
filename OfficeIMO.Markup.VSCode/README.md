@@ -132,6 +132,8 @@ CI packaging and publishing are handled by `.github/workflows/vscode-extension.y
 
 - Pull requests and pushes touching the extension or its runtime dependencies package the VSIX and upload it as the `officeimo-markup-vsix` artifact.
 - Manual `workflow_dispatch` can set `publish_marketplace=true` to publish to the Visual Studio Marketplace.
+- Publishing a GitHub Release named `officeimo-markup-v<version>` from a commit contained in `master` publishes that version to the Visual Studio Marketplace and attaches the packaged VSIX to the release.
+- Mark the GitHub Release as pre-release to publish a VS Code pre-release build.
 - `VSCE_PAT` must be configured as a repository or organization secret before marketplace publishing is enabled.
 - `pre_release=true` packages and publishes the extension as a VS Code pre-release.
 
