@@ -54,7 +54,7 @@ env:
 jobs:
   package:
     name: Package VSIX
-    if: ${{ github.event_name != 'release' || startsWith(github.event.release.tag_name, 'officeimo-markup-v') }}
+    if: ${{ github.event_name != 'release' || startsWith(github.event.release.tag_name, 'OfficeIMO-v') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -90,12 +90,70 @@ jobs:
           SHOULD_PUBLISH: ${{ github.event_name == 'release' || inputs.publish_marketplace }}
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
-          if ('${{ github.event_name }}' -eq 'release') {
-            $tagPrefix = 'officeimo-markup-v'
-            if (-not $env:RELEASE_TAG.StartsWith($tagPrefix, [System.StringComparison]::Ordinal)) {
-              throw "OfficeIMO VS Code Marketplace publishing only accepts release tags named officeimo-markup-v<version>. Current tag: $env:RELEASE_TAG. Example: officeimo-markup-v0.1.12"
+          function Convert-OfficeIMOReleaseTagToExtensionVersion {
+            param(
+              [Parameter(Mandatory)]
+              [string] $TagName
+            )
+
+            if ($TagName -match '^OfficeIMO-v(?<stamp>\d{14})$') {
+              $stamp = $Matches.stamp
+              $year = [int] $stamp.Substring(0, 4)
+              $monthDay = [int] $stamp.Substring(4, 4)
+              $time = [int] $stamp.Substring(8, 6)
+              return "$year.$monthDay.$time"
             }
 
+            throw "OfficeIMO VS Code Marketplace publishing only accepts normal OfficeIMO release tags named OfficeIMO-vYYYYMMDDHHMMSS. Current tag: $TagName. Example: OfficeIMO-v20260507115122"
+          }
+
+          function Set-ExtensionPackageVersion {
+            param(
+              [Parameter(Mandatory)]
+              [string] $Version
+            )
+
+            $packagePath = 'OfficeIMO.Markup.VSCode/package.json'
+            $lockPath = 'OfficeIMO.Markup.VSCode/package-lock.json'
+            $package = Get-Content -LiteralPath $packagePath -Raw | ConvertFrom-Json
+            $package.version = $Version
+            $package | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $packagePath -Encoding utf8
+
+            if (Test-Path -LiteralPath $lockPath) {
+              $lock = Get-Content -LiteralPath $lockPath -Raw | ConvertFrom-Json
+              $lock.version = $Version
+              $rootPackage = $lock.packages.PSObject.Properties[''].Value
+              if ($null -ne $rootPackage) {
+                $rootPackage.version = $Version
+              }
+              $lock | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $lockPath -Encoding utf8
+            }
+
+            return $package
+          }
+
+          function Test-MarketplaceVersionExists {
+            param(
+              [Parameter(Mandatory)]
+              [string] $ExtensionId,
+
+              [Parameter(Mandatory)]
+              [string] $Version
+            )
+
+            $showOutput = npm exec -- vsce show $ExtensionId --json 2>$null
+            if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($showOutput)) {
+              Write-Host "Marketplace listing $ExtensionId was not found or could not be read. Publishing will create or update it." -ForegroundColor Yellow
+              return $false
+            }
+
+            $listing = $showOutput | ConvertFrom-Json
+            return @($listing.versions | Where-Object { $_.version -eq $Version }).Count -gt 0
+          }
+
+          $shouldPublishMarketplace = $env:SHOULD_PUBLISH -eq 'true'
+
+          if ('${{ github.event_name }}' -eq 'release') {
             git fetch origin master
             if ($LASTEXITCODE -ne 0) {
               throw 'Failed to fetch origin/master for release source validation.'
@@ -106,10 +164,14 @@ jobs:
               throw 'Release publishing is only allowed from commits contained in origin/master.'
             }
 
-            $package = Get-Content -LiteralPath 'OfficeIMO.Markup.VSCode/package.json' -Raw | ConvertFrom-Json
-            $tagVersion = $env:RELEASE_TAG.Substring($tagPrefix.Length)
-            if ($tagVersion -ne $package.version) {
-              throw "Release tag $env:RELEASE_TAG must match OfficeIMO.Markup.VSCode package version $($package.version). Update package.json/package-lock.json or create release tag officeimo-markup-v$($package.version)."
+            $targetVersion = Convert-OfficeIMOReleaseTagToExtensionVersion -TagName $env:RELEASE_TAG
+            $package = Set-ExtensionPackageVersion -Version $targetVersion
+            $extensionId = "$($package.publisher).$($package.name)"
+            Write-Host "Stamped OfficeIMO Markup extension version $targetVersion from release tag $env:RELEASE_TAG." -ForegroundColor Cyan
+
+            if (Test-MarketplaceVersionExists -ExtensionId $extensionId -Version $targetVersion) {
+              Write-Host "Marketplace version $extensionId@$targetVersion already exists. The VSIX will be packaged and attached to the GitHub Release, but Marketplace publishing will be skipped." -ForegroundColor Yellow
+              $shouldPublishMarketplace = $false
             }
           }
 
@@ -122,7 +184,7 @@ jobs:
             $params.PreRelease = $true
           }
 
-          if ($env:SHOULD_PUBLISH -eq 'true') {
+          if ($shouldPublishMarketplace) {
             if ('${{ github.event_name }}' -eq 'workflow_dispatch' -and '${{ github.ref_name }}' -ne 'master') {
               throw 'Marketplace publishing is only allowed from the master branch.'
             }
