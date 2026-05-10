@@ -1,6 +1,9 @@
 name: VS Code Extension
 
 on:
+  release:
+    types:
+      - published
   push:
     branches:
       - master
@@ -51,20 +54,23 @@ env:
 jobs:
   package:
     name: Package VSIX
+    if: ${{ github.event_name != 'release' || startsWith(github.event.release.tag_name, 'officeimo-markup-v') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -79,19 +85,45 @@ jobs:
       - name: Package extension
         shell: pwsh
         env:
+          IS_PRE_RELEASE: ${{ (github.event_name == 'release' && github.event.release.prerelease) || (github.event_name == 'workflow_dispatch' && inputs.pre_release) }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          SHOULD_PUBLISH: ${{ github.event_name == 'release' || inputs.publish_marketplace }}
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
+          if ('${{ github.event_name }}' -eq 'release') {
+            $tagPrefix = 'officeimo-markup-v'
+            if (-not $env:RELEASE_TAG.StartsWith($tagPrefix, [System.StringComparison]::Ordinal)) {
+              throw "OfficeIMO VS Code Marketplace publishing only accepts release tags named officeimo-markup-v<version>. Current tag: $env:RELEASE_TAG. Example: officeimo-markup-v0.1.12"
+            }
+
+            git fetch origin master
+            if ($LASTEXITCODE -ne 0) {
+              throw 'Failed to fetch origin/master for release source validation.'
+            }
+
+            git merge-base --is-ancestor HEAD origin/master
+            if ($LASTEXITCODE -ne 0) {
+              throw 'Release publishing is only allowed from commits contained in origin/master.'
+            }
+
+            $package = Get-Content -LiteralPath 'OfficeIMO.Markup.VSCode/package.json' -Raw | ConvertFrom-Json
+            $tagVersion = $env:RELEASE_TAG.Substring($tagPrefix.Length)
+            if ($tagVersion -ne $package.version) {
+              throw "Release tag $env:RELEASE_TAG must match OfficeIMO.Markup.VSCode package version $($package.version). Update package.json/package-lock.json or create release tag officeimo-markup-v$($package.version)."
+            }
+          }
+
           $params = @{
             OutputDirectory = 'dist'
             SkipNpmCi = $true
           }
 
-          if ('${{ github.event_name }}' -eq 'workflow_dispatch' -and '${{ inputs.pre_release }}' -eq 'true') {
+          if ($env:IS_PRE_RELEASE -eq 'true') {
             $params.PreRelease = $true
           }
 
-          if ('${{ github.event_name }}' -eq 'workflow_dispatch' -and '${{ inputs.publish_marketplace }}' -eq 'true') {
-            if ('${{ github.ref_name }}' -ne 'master') {
+          if ($env:SHOULD_PUBLISH -eq 'true') {
+            if ('${{ github.event_name }}' -eq 'workflow_dispatch' -and '${{ github.ref_name }}' -ne 'master') {
               throw 'Marketplace publishing is only allowed from the master branch.'
             }
 
@@ -101,8 +133,26 @@ jobs:
           ./OfficeIMO.Markup.VSCode/scripts/package-vsix.ps1 @params
 
       - name: Upload VSIX
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: officeimo-markup-vsix
           path: OfficeIMO.Markup.VSCode/dist/*.vsix
           if-no-files-found: error
+
+  attach-release-asset:
+    if: ${{ github.event_name == 'release' }}
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download VSIX artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: officeimo-markup-vsix
+          path: release-vsix
+
+      - name: Attach VSIX to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" release-vsix/*.vsix --repo "${GITHUB_REPOSITORY}" --clobber
