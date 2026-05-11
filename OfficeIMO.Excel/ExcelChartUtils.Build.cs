@@ -345,15 +345,14 @@ namespace OfficeIMO.Excel {
         }
 
         private static DoughnutChart CreateDoughnutChart(ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> seriesDescriptors) {
-            var chart = new DoughnutChart(
-                new VaryColors { Val = true },
-                new HoleSize { Val = 50 });
+            var chart = new DoughnutChart(new VaryColors { Val = true });
 
             foreach (var descriptor in seriesDescriptors) {
                 chart.Append(CreatePieChartSeries(descriptor.Index, range, descriptor.Series));
             }
 
             chart.Append(CreateDefaultDataLabels());
+            chart.Append(new HoleSize { Val = 50 });
             return chart;
         }
 
