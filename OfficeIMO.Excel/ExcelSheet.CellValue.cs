@@ -266,30 +266,48 @@ namespace OfficeIMO.Excel {
             Cell cell,
             object? value,
             EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>? dataType,
-            ref uint? dateStyleIndex,
-            ref uint? durationStyleIndex,
-            ref uint? wrapStyleIndex) {
+            ref Dictionary<uint, uint>? dateStyleIndexes,
+            ref Dictionary<uint, uint>? durationStyleIndexes,
+            ref Dictionary<uint, uint>? wrapStyleIndexes) {
             bool wroteNumber = dataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
+            uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
 
             if (wroteNumber && (value is DateTime || value is DateTimeOffset)) {
-                dateStyleIndex ??= GetOrCreateDefaultBuiltInNumberFormatStyleIndex(14);
-                cell.StyleIndex = dateStyleIndex.Value;
+                cell.StyleIndex = GetOrAddBuiltInNumberFormatStyleIndex(ref dateStyleIndexes, baseStyleIndex, 14);
                 return;
             }
 
             if (value is TimeSpan) {
-                durationStyleIndex ??= GetOrCreateDefaultBuiltInNumberFormatStyleIndex(46);
-                cell.StyleIndex = durationStyleIndex.Value;
+                cell.StyleIndex = GetOrAddBuiltInNumberFormatStyleIndex(ref durationStyleIndexes, baseStyleIndex, 46);
                 return;
             }
 
             if (value is string s && (s.Contains("\n") || s.Contains("\r"))) {
-                wrapStyleIndex ??= GetOrCreateDefaultWrapTextStyleIndex();
-                cell.StyleIndex = wrapStyleIndex.Value;
+                cell.StyleIndex = GetOrAddWrapTextStyleIndex(ref wrapStyleIndexes, baseStyleIndex);
             }
         }
 
-        private uint GetOrCreateDefaultBuiltInNumberFormatStyleIndex(uint builtInFormatId) {
+        private uint GetOrAddBuiltInNumberFormatStyleIndex(ref Dictionary<uint, uint>? styleIndexes, uint baseStyleIndex, uint builtInFormatId) {
+            styleIndexes ??= new Dictionary<uint, uint>();
+            if (!styleIndexes.TryGetValue(baseStyleIndex, out uint styleIndex)) {
+                styleIndex = GetOrCreateBuiltInNumberFormatStyleIndex(baseStyleIndex, builtInFormatId);
+                styleIndexes[baseStyleIndex] = styleIndex;
+            }
+
+            return styleIndex;
+        }
+
+        private uint GetOrAddWrapTextStyleIndex(ref Dictionary<uint, uint>? styleIndexes, uint baseStyleIndex) {
+            styleIndexes ??= new Dictionary<uint, uint>();
+            if (!styleIndexes.TryGetValue(baseStyleIndex, out uint styleIndex)) {
+                styleIndex = GetOrCreateWrapTextStyleIndex(baseStyleIndex);
+                styleIndexes[baseStyleIndex] = styleIndex;
+            }
+
+            return styleIndex;
+        }
+
+        private uint GetOrCreateBuiltInNumberFormatStyleIndex(uint baseStyleIndex, uint builtInFormatId) {
             var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
             if (stylesPart == null) {
@@ -299,7 +317,7 @@ namespace OfficeIMO.Excel {
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            var newFormat = GetBaseCellFormat(stylesheet, 0U);
+            var newFormat = GetBaseCellFormat(stylesheet, baseStyleIndex);
             newFormat.NumberFormatId = builtInFormatId;
             newFormat.ApplyNumberFormat = true;
             uint index = AppendOrReuseCellFormat(stylesheet, newFormat);
@@ -307,7 +325,7 @@ namespace OfficeIMO.Excel {
             return index;
         }
 
-        private uint GetOrCreateDefaultWrapTextStyleIndex() {
+        private uint GetOrCreateWrapTextStyleIndex(uint baseStyleIndex) {
             var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
             if (stylesPart == null) {
@@ -317,7 +335,7 @@ namespace OfficeIMO.Excel {
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            var newFormat = GetBaseCellFormat(stylesheet, 0U);
+            var newFormat = GetBaseCellFormat(stylesheet, baseStyleIndex);
             var alignment = newFormat.Alignment != null
                 ? (Alignment)newFormat.Alignment.CloneNode(true)
                 : new Alignment();

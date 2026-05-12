@@ -172,6 +172,69 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CellValuesParallelAppendedAutoFormatsPreserveTemplateColumnStyle() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesParallelPreserveTemplateColumnStyle.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                var workbookPart = document._spreadSheetDocument.WorkbookPart!;
+                var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+                stylesPart.Stylesheet = new Stylesheet(
+                    new Fonts(
+                        new DocumentFormat.OpenXml.Spreadsheet.Font(),
+                        new DocumentFormat.OpenXml.Spreadsheet.Font(new FontName { Val = "OfficeIMO Template Test" })) { Count = 2 },
+                    new Fills(new Fill()) { Count = 1 },
+                    new Borders(new Border()) { Count = 1 },
+                    new CellFormats(
+                        new CellFormat(),
+                        new CellFormat {
+                            FontId = 1U,
+                            ApplyFont = true,
+                            Alignment = new Alignment { Horizontal = HorizontalAlignmentValues.Center },
+                            ApplyAlignment = true
+                        }) { Count = 2 });
+                stylesPart.Stylesheet.Save();
+
+                var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+                var templateRow = new Row { RowIndex = 1U };
+                templateRow.Append(
+                    new Cell { CellReference = "A1", StyleIndex = 1U },
+                    new Cell { CellReference = "B1", StyleIndex = 1U },
+                    new Cell { CellReference = "C1", StyleIndex = 1U });
+                sheetData.Append(templateRow);
+
+                sheet.CellValues(new[] {
+                    (2, 1, (object)new DateTime(2026, 5, 12)),
+                    (2, 2, (object)TimeSpan.FromHours(27)),
+                    (2, 3, (object)"Line 1\nLine 2")
+                }, ExecutionMode.Parallel);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var styles = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+                var formats = styles.CellFormats!.Elements<CellFormat>().ToList();
+                var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(c => c.CellReference!.Value!);
+
+                var dateFormat = formats[(int)cells["A2"].StyleIndex!.Value];
+                var durationFormat = formats[(int)cells["B2"].StyleIndex!.Value];
+                var wrapFormat = formats[(int)cells["C2"].StyleIndex!.Value];
+
+                Assert.Equal(1U, dateFormat.FontId!.Value);
+                Assert.Equal(14U, dateFormat.NumberFormatId!.Value);
+                Assert.Equal(HorizontalAlignmentValues.Center, dateFormat.Alignment!.Horizontal!.Value);
+
+                Assert.Equal(1U, durationFormat.FontId!.Value);
+                Assert.Equal(46U, durationFormat.NumberFormatId!.Value);
+                Assert.Equal(HorizontalAlignmentValues.Center, durationFormat.Alignment!.Horizontal!.Value);
+
+                Assert.Equal(1U, wrapFormat.FontId!.Value);
+                Assert.Equal(HorizontalAlignmentValues.Center, wrapFormat.Alignment!.Horizontal!.Value);
+                Assert.True(wrapFormat.Alignment!.WrapText!.Value);
+            }
+        }
+
+        [Fact]
         public void Test_CellValuesParallelSanitizesControlCharacters() {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesParallelSanitizedControls.xlsx");
 

@@ -162,12 +162,13 @@ namespace OfficeIMO.Excel {
                 columnNames[column] = GetColumnName(column);
             }
 
+            var baseStyleIndexes = GetAppendBaseStyleIndexes(sheetData, firstRow, maxColumn);
             Row? row = null;
             int rowIndex = 0;
             string rowReference = string.Empty;
-            uint? appendedDateStyleIndex = null;
-            uint? appendedDurationStyleIndex = null;
-            uint? appendedWrapStyleIndex = null;
+            Dictionary<uint, uint>? appendedDateStyleIndexes = null;
+            Dictionary<uint, uint>? appendedDurationStyleIndexes = null;
+            Dictionary<uint, uint>? appendedWrapStyleIndexes = null;
             for (int i = 0; i < prepared.Length; i++) {
                 var p = prepared[i];
                 if (p.Row != rowIndex) {
@@ -182,18 +183,57 @@ namespace OfficeIMO.Excel {
                     CellValue = p.Val,
                     DataType = p.Type
                 };
+                uint? baseStyleIndex = baseStyleIndexes[p.Col];
+                if (baseStyleIndex.HasValue) {
+                    cell.StyleIndex = baseStyleIndex.Value;
+                }
+
                 row!.Append(cell);
                 ApplyAutomaticCellFormattingForAppendedCell(
                     cell,
                     source[i].Value,
                     p.Type,
-                    ref appendedDateStyleIndex,
-                    ref appendedDurationStyleIndex,
-                    ref appendedWrapStyleIndex);
+                    ref appendedDateStyleIndexes,
+                    ref appendedDurationStyleIndexes,
+                    ref appendedWrapStyleIndexes);
             }
 
             ClearHeaderCache();
             return true;
+        }
+
+        private static uint?[] GetAppendBaseStyleIndexes(SheetData sheetData, int firstRow, int maxColumn) {
+            var baseStyleIndexes = new uint?[maxColumn + 1];
+            var baseStyleRows = new int[maxColumn + 1];
+
+            foreach (var existingRow in sheetData.Elements<Row>()) {
+                if (existingRow.RowIndex == null) {
+                    continue;
+                }
+
+                int existingRowIndex = (int)existingRow.RowIndex.Value;
+                if (existingRowIndex >= firstRow) {
+                    continue;
+                }
+
+                foreach (var existingCell in existingRow.Elements<Cell>()) {
+                    if (existingCell.CellReference == null || existingCell.StyleIndex == null) {
+                        continue;
+                    }
+
+                    int columnIndex = A1.ParseColumnIndexFromCellReference(existingCell.CellReference.Value);
+                    if (columnIndex <= 0 || columnIndex > maxColumn) {
+                        continue;
+                    }
+
+                    if (existingRowIndex >= baseStyleRows[columnIndex]) {
+                        baseStyleRows[columnIndex] = existingRowIndex;
+                        baseStyleIndexes[columnIndex] = existingCell.StyleIndex.Value;
+                    }
+                }
+            }
+
+            return baseStyleIndexes;
         }
 
         private sealed class BatchCellWriter {
