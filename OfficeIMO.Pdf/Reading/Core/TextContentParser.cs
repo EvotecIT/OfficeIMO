@@ -110,7 +110,7 @@ internal static class TextContentParser {
             if (bytes.Length >= 2) {
                 string one = decodeWithFont(font, new byte[] { bytes[0] });
                 string two = decodeWithFont(font, new byte[] { bytes[0], bytes[1] });
-                twoByte = string.IsNullOrEmpty(one) && !string.IsNullOrEmpty(two);
+                twoByte = IsNullOrEmptyDecodedGlyph(one) && !IsNullOrEmptyDecodedGlyph(two);
             }
             var sbOut = new StringBuilder(bytes.Length);
             double advTotal = 0;
@@ -306,6 +306,9 @@ internal static class TextContentParser {
             return joined;
         }
     }
+
+    private static bool IsNullOrEmptyDecodedGlyph(string? value) =>
+        string.IsNullOrEmpty(value) || value.All(static character => character == '\0');
 
     public static List<FormInvocation> ExtractFormInvocations(string content) {
         var invocations = new List<FormInvocation>();

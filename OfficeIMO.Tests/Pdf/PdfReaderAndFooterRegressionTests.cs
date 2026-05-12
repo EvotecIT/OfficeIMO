@@ -128,6 +128,24 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void TextContentParser_UsesTwoByteCid_WhenSingleHighByteDecodesToNullGlyph() {
+        const string content = "BT /F1 12 Tf 0 0 Td <004400450046> Tj ET";
+
+        var spans = TextContentParser.Parse(
+            content,
+            static (_, bytes) => bytes switch {
+                [0x00, 0x44] => "A",
+                [0x00, 0x45] => "B",
+                [0x00, 0x46] => "C",
+                [0x00] => "\0",
+                _ => string.Empty
+            },
+            static (_, _) => 500);
+
+        Assert.Equal("ABC", string.Concat(spans.Select(static span => span.Text)));
+    }
+
+    [Fact]
     public void PdfTextExtractor_ExtractAllText_ReadsPagesWithContentStreamArrays() {
         byte[] bytes = BuildPdfWithContentStreamArray();
 
