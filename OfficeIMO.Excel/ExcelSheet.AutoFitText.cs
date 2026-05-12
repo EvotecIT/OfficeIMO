@@ -36,9 +36,7 @@ namespace OfficeIMO.Excel {
             var cache = new Dictionary<uint, string?>();
             foreach (var format in numberingFormats.Elements<NumberingFormat>()) {
                 uint id = format.NumberFormatId?.Value ?? 0U;
-                if (!cache.ContainsKey(id)) {
-                    cache.Add(id, format.FormatCode?.Value);
-                }
+                cache[id] = format.FormatCode?.Value;
             }
 
             return cache;
