@@ -133,16 +133,24 @@ public class PdfReaderAndFooterRegressionTests {
 
         var spans = TextContentParser.Parse(
             content,
-            static (_, bytes) => bytes switch {
-                [0x00, 0x44] => "A",
-                [0x00, 0x45] => "B",
-                [0x00, 0x46] => "C",
-                [0x00] => "\0",
-                _ => string.Empty
-            },
+            static (_, bytes) => DecodeSyntheticCid(bytes),
             static (_, _) => 500);
 
         Assert.Equal("ABC", string.Concat(spans.Select(static span => span.Text)));
+
+        static string DecodeSyntheticCid(byte[] bytes) {
+            if (bytes.Length == 1 && bytes[0] == 0x00) {
+                return "\0";
+            }
+
+            if (bytes.Length == 2 && bytes[0] == 0x00) {
+                if (bytes[1] == 0x44) return "A";
+                if (bytes[1] == 0x45) return "B";
+                if (bytes[1] == 0x46) return "C";
+            }
+
+            return string.Empty;
+        }
     }
 
     [Fact]
