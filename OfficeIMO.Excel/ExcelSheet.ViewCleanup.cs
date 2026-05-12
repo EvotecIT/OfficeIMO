@@ -47,7 +47,7 @@ namespace OfficeIMO.Excel {
                     pane.Remove();
                     pane = null;
                 } else {
-                    paneCell = A1.ColumnIndexToLetters(frozenColumns + 1) + (frozenRows + 1).ToString(CultureInfo.InvariantCulture);
+                    paneCell = A1.CellReference(frozenRows + 1, frozenColumns + 1);
                     pane.TopLeftCell = paneCell;
 
                     if (frozenRows > 0 && frozenColumns > 0) {

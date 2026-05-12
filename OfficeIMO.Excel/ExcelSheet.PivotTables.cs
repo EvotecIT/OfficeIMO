@@ -356,8 +356,8 @@ namespace OfficeIMO.Excel {
             int width = Math.Max(1, columnCount);
             int endColumn = startColumn + width - 1;
             int endRow = startRow + 1; // header + at least one data row
-            string start = $"{A1.ColumnIndexToLetters(startColumn)}{startRow}";
-            string end = $"{A1.ColumnIndexToLetters(endColumn)}{endRow}";
+            string start = A1.CellReference(startRow, startColumn);
+            string end = A1.CellReference(endRow, endColumn);
             return $"{start}:{end}";
         }
 

@@ -1,0 +1,188 @@
+{
+  "GeneratedAtUtc": "2026-05-11T21:18:08.1678224Z",
+  "Framework": ".NET 8.0.26",
+  "MachineName": "EVOMAGIC",
+  "RowCount": 2500,
+  "Libraries": [
+    {
+      "Library": "OfficeIMO.Excel",
+      "OutputBytes": 116481,
+      "Stages": [
+        {
+          "Name": "InsertObjects",
+          "AverageMilliseconds": 15.234279999999998,
+          "MedianMilliseconds": 17.2228,
+          "SamplesMilliseconds": [
+            17.2228,
+            18.0234,
+            22.044,
+            11.6025,
+            7.2787
+          ]
+        },
+        {
+          "Name": "AddTable.ScanExistingIds",
+          "AverageMilliseconds": 0.013219999999999999,
+          "MedianMilliseconds": 0.0131,
+          "SamplesMilliseconds": [
+            0.0173,
+            0.0131,
+            0.0222,
+            0.0079,
+            0.0056
+          ]
+        },
+        {
+          "Name": "AddTable",
+          "AverageMilliseconds": 27.463160000000006,
+          "MedianMilliseconds": 36.2433,
+          "SamplesMilliseconds": [
+            36.2433,
+            36.6115,
+            42.5915,
+            12.4535,
+            9.416
+          ]
+        },
+        {
+          "Name": "AutoFitColumns.BuildPlan",
+          "AverageMilliseconds": 27.41166,
+          "MedianMilliseconds": 27.8823,
+          "SamplesMilliseconds": [
+            27.8823,
+            34.546,
+            16.9743,
+            25.0534,
+            32.6023
+          ]
+        },
+        {
+          "Name": "AutoFitColumns.CalculateWidths",
+          "AverageMilliseconds": 2.44514,
+          "MedianMilliseconds": 3.0921,
+          "SamplesMilliseconds": [
+            1.1649,
+            0.8849,
+            3.0921,
+            3.9201,
+            3.1637
+          ]
+        },
+        {
+          "Name": "AutoFitColumns.ApplyWidths",
+          "AverageMilliseconds": 14.685060000000002,
+          "MedianMilliseconds": 8.7673,
+          "SamplesMilliseconds": [
+            25.0888,
+            23.9597,
+            8.7673,
+            7.6557,
+            7.9538
+          ]
+        },
+        {
+          "Name": "AutoFitColumns",
+          "AverageMilliseconds": 44.571600000000004,
+          "MedianMilliseconds": 43.7462,
+          "SamplesMilliseconds": [
+            54.1731,
+            59.4163,
+            28.8598,
+            36.6626,
+            43.7462
+          ]
+        },
+        {
+          "Name": "DisposeAndSave",
+          "AverageMilliseconds": 22.642179999999996,
+          "MedianMilliseconds": 17.2258,
+          "SamplesMilliseconds": [
+            31.0183,
+            32.735,
+            17.2258,
+            16.1258,
+            16.106
+          ]
+        },
+        {
+          "Name": "Total",
+          "AverageMilliseconds": 110.2207,
+          "MedianMilliseconds": 110.9786,
+          "SamplesMilliseconds": [
+            139.0775,
+            147.0686,
+            110.9786,
+            77.1429,
+            76.8359
+          ]
+        }
+      ]
+    },
+    {
+      "Library": "ClosedXML",
+      "OutputBytes": 123939,
+      "Stages": [
+        {
+          "Name": "InsertTable",
+          "AverageMilliseconds": 13.617420000000001,
+          "MedianMilliseconds": 13.6784,
+          "SamplesMilliseconds": [
+            13.4909,
+            13.2684,
+            13.6784,
+            13.8462,
+            13.8032
+          ]
+        },
+        {
+          "Name": "StyleTable",
+          "AverageMilliseconds": 0.00023999999999999998,
+          "MedianMilliseconds": 0.0002,
+          "SamplesMilliseconds": [
+            0.0002,
+            0.0003,
+            0.0002,
+            0.0002,
+            0.0003
+          ]
+        },
+        {
+          "Name": "AutoFitColumns",
+          "AverageMilliseconds": 149.75258,
+          "MedianMilliseconds": 152.967,
+          "SamplesMilliseconds": [
+            152.967,
+            135.1344,
+            139.7468,
+            157.9869,
+            162.9278
+          ]
+        },
+        {
+          "Name": "SaveAs",
+          "AverageMilliseconds": 105.54034000000001,
+          "MedianMilliseconds": 98.2347,
+          "SamplesMilliseconds": [
+            98.2347,
+            92.9002,
+            96.2833,
+            101.9658,
+            138.3177
+          ]
+        },
+        {
+          "Name": "Total",
+          "AverageMilliseconds": 268.92762,
+          "MedianMilliseconds": 264.707,
+          "SamplesMilliseconds": [
+            264.707,
+            241.3389,
+            249.7215,
+            273.809,
+            315.0617
+          ]
+        }
+      ]
+    }
+  ]
+}

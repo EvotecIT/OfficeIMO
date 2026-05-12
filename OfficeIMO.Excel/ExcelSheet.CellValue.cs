@@ -262,6 +262,91 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private void ApplyAutomaticCellFormattingForAppendedCell(
+            Cell cell,
+            object? value,
+            EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>? dataType,
+            uint baseStyleIndex,
+            ref Dictionary<uint, uint>? dateStyleIndexes,
+            ref Dictionary<uint, uint>? durationStyleIndexes,
+            ref Dictionary<uint, uint>? wrapStyleIndexes) {
+            bool wroteNumber = dataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
+
+            if (wroteNumber && (value is DateTime || value is DateTimeOffset)) {
+                cell.StyleIndex = GetOrAddBuiltInNumberFormatStyleIndex(ref dateStyleIndexes, baseStyleIndex, 14);
+                return;
+            }
+
+            if (value is TimeSpan) {
+                cell.StyleIndex = GetOrAddBuiltInNumberFormatStyleIndex(ref durationStyleIndexes, baseStyleIndex, 46);
+                return;
+            }
+
+            if (value is string s && (s.Contains("\n") || s.Contains("\r"))) {
+                cell.StyleIndex = GetOrAddWrapTextStyleIndex(ref wrapStyleIndexes, baseStyleIndex);
+            }
+        }
+
+        private uint GetOrAddBuiltInNumberFormatStyleIndex(ref Dictionary<uint, uint>? styleIndexes, uint baseStyleIndex, uint builtInFormatId) {
+            styleIndexes ??= new Dictionary<uint, uint>();
+            if (!styleIndexes.TryGetValue(baseStyleIndex, out uint styleIndex)) {
+                styleIndex = GetOrCreateBuiltInNumberFormatStyleIndex(baseStyleIndex, builtInFormatId);
+                styleIndexes[baseStyleIndex] = styleIndex;
+            }
+
+            return styleIndex;
+        }
+
+        private uint GetOrAddWrapTextStyleIndex(ref Dictionary<uint, uint>? styleIndexes, uint baseStyleIndex) {
+            styleIndexes ??= new Dictionary<uint, uint>();
+            if (!styleIndexes.TryGetValue(baseStyleIndex, out uint styleIndex)) {
+                styleIndex = GetOrCreateWrapTextStyleIndex(baseStyleIndex);
+                styleIndexes[baseStyleIndex] = styleIndex;
+            }
+
+            return styleIndex;
+        }
+
+        private uint GetOrCreateBuiltInNumberFormatStyleIndex(uint baseStyleIndex, uint builtInFormatId) {
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+            WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
+            if (stylesPart == null) {
+                stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
+            }
+
+            Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            EnsureDefaultStylePrimitives(stylesheet);
+
+            var newFormat = GetBaseCellFormat(stylesheet, baseStyleIndex);
+            newFormat.NumberFormatId = builtInFormatId;
+            newFormat.ApplyNumberFormat = true;
+            uint index = AppendOrReuseCellFormat(stylesheet, newFormat);
+            stylesPart.Stylesheet.Save();
+            return index;
+        }
+
+        private uint GetOrCreateWrapTextStyleIndex(uint baseStyleIndex) {
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+            WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
+            if (stylesPart == null) {
+                stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
+            }
+
+            Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            EnsureDefaultStylePrimitives(stylesheet);
+
+            var newFormat = GetBaseCellFormat(stylesheet, baseStyleIndex);
+            var alignment = newFormat.Alignment != null
+                ? (Alignment)newFormat.Alignment.CloneNode(true)
+                : new Alignment();
+            alignment.WrapText = true;
+            newFormat.Alignment = alignment;
+            newFormat.ApplyAlignment = true;
+            uint index = AppendOrReuseCellFormat(stylesheet, newFormat);
+            stylesPart.Stylesheet.Save();
+            return index;
+        }
+
         private void ApplyWrapText(Cell cell) {
             var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;

@@ -101,9 +101,10 @@ namespace OfficeIMO.Excel {
                     ssPlanner.ApplyAndFixup(prepared, _excelDocument);
                     stylePlanner.ApplyTo(_excelDocument);
 
+                    var writer = new BatchCellWriter(this);
                     for (int i = 0; i < prepared.Length; i++) {
                         var p = prepared[i];
-                        var cell = GetCell(p.Row, p.Col);
+                        var cell = writer.GetOrCreateCell(p.Row, p.Col);
                         cell.CellValue = p.Val;
                         cell.DataType = p.Type;
                         if (wrapFlags[i])
@@ -139,8 +140,8 @@ namespace OfficeIMO.Excel {
 
             int rowsCount = table.Rows.Count + (includeHeaders ? 1 : 0);
             int colsCount = Math.Max(1, table.Columns.Count);
-            string startRef = GetColumnName(startColumn) + startRow.ToString(CultureInfo.InvariantCulture);
-            string endRef = GetColumnName(startColumn + colsCount - 1) + (startRow + rowsCount - 1).ToString(CultureInfo.InvariantCulture);
+            string startRef = A1.CellReference(startRow, startColumn);
+            string endRef = A1.CellReference(startRow + rowsCount - 1, startColumn + colsCount - 1);
             string range = startRef + ":" + endRef;
 
             // Create the Table with optional AutoFilter and style

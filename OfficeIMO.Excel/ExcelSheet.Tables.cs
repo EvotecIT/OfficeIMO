@@ -307,11 +307,14 @@ namespace OfficeIMO.Excel {
                 var usedHeaders = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
                 for (uint i = 0; i < columnsCount; i++) {
                     string baseName = $"Column{i + 1}";
+                    string headerValue = string.Empty;
+                    bool headerCellIsSharedString = false;
                     // If the table has headers, try to get the actual header value
                     if (hasHeader && startRowIndex > 0) {
                         var headerCell = GetCell(startRowIndex, startColumnIndex + (int)i);
                         if (headerCell != null) {
-                            string headerValue = GetCellText(headerCell);
+                            headerCellIsSharedString = headerCell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString;
+                            headerValue = GetCellText(headerCell);
                             if (!string.IsNullOrWhiteSpace(headerValue)) {
                                 baseName = headerValue;
                             }
@@ -324,7 +327,7 @@ namespace OfficeIMO.Excel {
                     }
                     tableColumns.Append(new TableColumn { Id = i + 1, Name = candidate });
 
-                    if (hasHeader) {
+                    if (hasHeader && (!headerCellIsSharedString || !string.Equals(headerValue, candidate, System.StringComparison.Ordinal))) {
                         CellValueCore(startRowIndex, startColumnIndex + (int)i, candidate);
                     }
                 }
@@ -472,14 +475,54 @@ namespace OfficeIMO.Excel {
         private void EnsureRangeCellsExist(int startRowIndex, int endRowIndex, int startColumnIndex, int endColumnIndex) {
             var sheetData = GetOrCreateSheetData();
 
+            if (RangeCellsAlreadyExistAsContiguousRows(sheetData, startRowIndex, endRowIndex, startColumnIndex, endColumnIndex)) {
+                return;
+            }
+
             var rows = sheetData.Elements<Row>()
                 .Where(r => r.RowIndex != null)
                 .ToDictionary(r => (int)r.RowIndex!.Value);
+
+            int columnCount = endColumnIndex - startColumnIndex + 1;
+            bool useBitMask = columnCount <= 64;
+            ulong fullMask = columnCount == 64 ? ulong.MaxValue : (1UL << columnCount) - 1UL;
 
             for (int rowIndex = startRowIndex; rowIndex <= endRowIndex; rowIndex++) {
                 if (!rows.TryGetValue(rowIndex, out Row? row)) {
                     row = GetOrCreateRowElement(sheetData, rowIndex);
                     rows[rowIndex] = row;
+                }
+
+                if (useBitMask) {
+                    ulong existingMask = 0UL;
+                    foreach (var cell in row.Elements<Cell>()) {
+                        var cellReference = cell.CellReference?.Value;
+                        if (string.IsNullOrEmpty(cellReference)) {
+                            continue;
+                        }
+
+                        int columnIndex = GetColumnIndex(cellReference!);
+                        if (columnIndex < startColumnIndex || columnIndex > endColumnIndex) {
+                            continue;
+                        }
+
+                        existingMask |= 1UL << (columnIndex - startColumnIndex);
+                        if (existingMask == fullMask) {
+                            break;
+                        }
+                    }
+
+                    if (existingMask == fullMask) {
+                        continue;
+                    }
+
+                    for (int offset = 0; offset < columnCount; offset++) {
+                        if ((existingMask & (1UL << offset)) == 0UL) {
+                            GetCell(rowIndex, startColumnIndex + offset);
+                        }
+                    }
+
+                    continue;
                 }
 
                 var existingColumns = new HashSet<int>();
@@ -496,6 +539,58 @@ namespace OfficeIMO.Excel {
                     }
                 }
             }
+        }
+
+        private static bool RangeCellsAlreadyExistAsContiguousRows(SheetData sheetData, int startRowIndex, int endRowIndex, int startColumnIndex, int endColumnIndex) {
+            int expectedRow = startRowIndex;
+            int expectedColumnCount = endColumnIndex - startColumnIndex + 1;
+
+            foreach (var row in sheetData.Elements<Row>()) {
+                if (row.RowIndex == null) {
+                    continue;
+                }
+
+                int rowIndex = (int)row.RowIndex.Value;
+                if (rowIndex < startRowIndex) {
+                    continue;
+                }
+
+                if (rowIndex > endRowIndex) {
+                    break;
+                }
+
+                if (rowIndex != expectedRow || !RowHasExactContiguousCells(row, startColumnIndex, endColumnIndex, expectedColumnCount)) {
+                    return false;
+                }
+
+                expectedRow++;
+            }
+
+            return expectedRow > endRowIndex;
+        }
+
+        private static bool RowHasExactContiguousCells(Row row, int startColumnIndex, int endColumnIndex, int expectedColumnCount) {
+            int expectedColumn = startColumnIndex;
+            int cellCount = 0;
+
+            foreach (var cell in row.Elements<Cell>()) {
+                string? cellReference = cell.CellReference?.Value;
+                if (string.IsNullOrEmpty(cellReference)) {
+                    return false;
+                }
+
+                if (GetColumnIndex(cellReference!) != expectedColumn) {
+                    return false;
+                }
+
+                expectedColumn++;
+                cellCount++;
+                if (cellCount > expectedColumnCount) {
+                    return false;
+                }
+            }
+
+            return cellCount == expectedColumnCount && expectedColumn == endColumnIndex + 1;
         }
 
     }

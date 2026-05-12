@@ -64,7 +64,9 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelReadOptions() {
             Execution.OperationThresholds["ReadRange"] = 10_000;
+            Execution.OperationThresholds["ReadRangeAsDataTable"] = 2_000;
             Execution.OperationThresholds["ReadObjects"] = 2_000;
+            Execution.OperationThresholds["ReadObjectsAs"] = 2_000;
             Execution.OperationThresholds["ReadRows"] = 20_000;
         }
     }

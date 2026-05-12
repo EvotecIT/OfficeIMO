@@ -79,6 +79,11 @@ internal static class ExcelWriteProfileRunner {
         var document = ExcelDocument.Create(stream);
 
         try {
+            document.Execution.SaveWorksheetAfterAutoFit = false;
+            if (totals != null) {
+                document.Execution.OnTiming = (operation, elapsed) => AddStage(totals, operation, elapsed.TotalMilliseconds);
+            }
+
             var sheet = document.AddWorkSheet("Data");
 
             stageWatch.Restart();

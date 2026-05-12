@@ -15,9 +15,14 @@ namespace OfficeIMO.Excel {
         /// <param name="mode">Overrides how the auto-fit work is scheduled across columns.</param>
         /// <param name="ct">Cancels the auto-fit pass while widths are being measured or applied.</param>
         public void AutoFitColumns(ExecutionMode? mode = null, CancellationToken ct = default) {
-            var columns = GetAllColumnIndices();
-            if (columns.Count == 0) return;
-            AutoFitColumnsInternal(columns.OrderBy(i => i).ToList(), mode, ct);
+            var planWatch = EffectiveExecution.OnTiming == null ? null : System.Diagnostics.Stopwatch.StartNew();
+            var measurementPlan = BuildAutoFitMeasurementPlanForAllColumns(ct);
+            if (planWatch != null) {
+                planWatch.Stop();
+                EffectiveExecution.ReportTiming("AutoFitColumns.BuildPlan", planWatch.Elapsed);
+            }
+            if (measurementPlan.Columns.Count == 0) return;
+            AutoFitColumnsInternal(measurementPlan, mode, ct);
         }
 
         /// <summary>
@@ -48,8 +53,19 @@ namespace OfficeIMO.Excel {
 
         private void AutoFitColumnsInternal(IReadOnlyList<int> columnsList, ExecutionMode? mode, CancellationToken ct) {
             if (columnsList.Count == 0) return;
-            double[] computed = new double[columnsList.Count];
+            var planWatch = EffectiveExecution.OnTiming == null ? null : System.Diagnostics.Stopwatch.StartNew();
             var measurementPlan = BuildAutoFitMeasurementPlan(columnsList, ct);
+            if (planWatch != null) {
+                planWatch.Stop();
+                EffectiveExecution.ReportTiming("AutoFitColumns.BuildPlan", planWatch.Elapsed);
+            }
+            AutoFitColumnsInternal(measurementPlan, mode, ct);
+        }
+
+        private void AutoFitColumnsInternal(AutoFitMeasurementPlan measurementPlan, ExecutionMode? mode, CancellationToken ct) {
+            var columnsList = measurementPlan.Columns;
+            if (columnsList.Count == 0) return;
+            double[] computed = new double[columnsList.Count];
             int workload = Math.Max(columnsList.Count, measurementPlan.Measurements.Count);
 
             ExecuteWithPolicy(
@@ -61,23 +77,47 @@ namespace OfficeIMO.Excel {
                     var sheetData = worksheet.GetFirstChild<SheetData>();
                     if (sheetData == null) return;
 
+                    var calculateWatch = EffectiveExecution.OnTiming == null ? null : System.Diagnostics.Stopwatch.StartNew();
                     computed = CalculateColumnWidths(measurementPlan, ct, parallel: false);
+                    if (calculateWatch != null) {
+                        calculateWatch.Stop();
+                        EffectiveExecution.ReportTiming("AutoFitColumns.CalculateWidths", calculateWatch.Elapsed);
+                    }
 
+                    var applyWatch = EffectiveExecution.OnTiming == null ? null : System.Diagnostics.Stopwatch.StartNew();
                     for (int i = 0; i < columnsList.Count; i++) {
                         SetColumnWidthCore(columnsList[i], computed[i]);
                     }
 
-                    worksheet.Save();
+                    if (EffectiveExecution.SaveWorksheetAfterAutoFit) {
+                        worksheet.Save();
+                    }
+                    if (applyWatch != null) {
+                        applyWatch.Stop();
+                        EffectiveExecution.ReportTiming("AutoFitColumns.ApplyWidths", applyWatch.Elapsed);
+                    }
                 },
                 computeParallel: () => {
+                    var calculateWatch = EffectiveExecution.OnTiming == null ? null : System.Diagnostics.Stopwatch.StartNew();
                     computed = CalculateColumnWidths(measurementPlan, ct, parallel: true);
+                    if (calculateWatch != null) {
+                        calculateWatch.Stop();
+                        EffectiveExecution.ReportTiming("AutoFitColumns.CalculateWidths", calculateWatch.Elapsed);
+                    }
                 },
                 applySequential: () => {
                     var worksheet = WorksheetRoot;
+                    var applyWatch = EffectiveExecution.OnTiming == null ? null : System.Diagnostics.Stopwatch.StartNew();
                     for (int i = 0; i < columnsList.Count; i++) {
                         SetColumnWidthCore(columnsList[i], computed[i]);
                     }
-                    worksheet.Save();
+                    if (EffectiveExecution.SaveWorksheetAfterAutoFit) {
+                        worksheet.Save();
+                    }
+                    if (applyWatch != null) {
+                        applyWatch.Stop();
+                        EffectiveExecution.ReportTiming("AutoFitColumns.ApplyWidths", applyWatch.Elapsed);
+                    }
                 },
                 ct: ct
             );
@@ -112,6 +152,57 @@ namespace OfficeIMO.Excel {
             return columnIndexes;
         }
 
+        private AutoFitMeasurementPlan BuildAutoFitMeasurementPlanForAllColumns(CancellationToken ct) {
+            var worksheet = WorksheetRoot;
+            SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
+            if (sheetData == null) {
+                return new AutoFitMeasurementPlan(Array.Empty<int>(), new List<AutoFitMeasurement>());
+            }
+
+            var columnsList = new List<int>();
+            var targetColumns = new Dictionary<int, int>();
+            var measurements = new List<AutoFitMeasurement>();
+            var uniqueMeasurements = new HashSet<AutoFitMeasurementKey>();
+            var textContext = CreateAutoFitTextContext();
+
+            foreach (var row in sheetData.Elements<Row>()) {
+                ct.ThrowIfCancellationRequested();
+
+                foreach (var cell in row.Elements<Cell>()) {
+                    string? reference = cell.CellReference?.Value;
+                    if (string.IsNullOrEmpty(reference)) {
+                        continue;
+                    }
+
+                    int columnIndex = GetColumnIndex(reference!);
+                    if (!targetColumns.TryGetValue(columnIndex, out int targetIndex)) {
+                        targetIndex = columnsList.Count;
+                        targetColumns[columnIndex] = targetIndex;
+                        columnsList.Add(columnIndex);
+                    }
+
+                    AddAutoFitMeasurement(cell, targetIndex, textContext, uniqueMeasurements, measurements);
+                }
+            }
+
+            var columns = worksheet.GetFirstChild<Columns>();
+            if (columns != null) {
+                foreach (var column in columns.Elements<Column>()) {
+                    uint min = column.Min?.Value ?? 0;
+                    uint max = column.Max?.Value ?? 0;
+                    for (uint i = min; i <= max; i++) {
+                        int columnIndex = (int)i;
+                        if (!targetColumns.ContainsKey(columnIndex)) {
+                            targetColumns[columnIndex] = columnsList.Count;
+                            columnsList.Add(columnIndex);
+                        }
+                    }
+                }
+            }
+
+            return new AutoFitMeasurementPlan(columnsList, measurements);
+        }
+
         private AutoFitMeasurementPlan BuildAutoFitMeasurementPlan(IReadOnlyList<int> columnsList, CancellationToken ct) {
             var worksheet = WorksheetRoot;
             SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
@@ -126,7 +217,7 @@ namespace OfficeIMO.Excel {
 
             var measurements = new List<AutoFitMeasurement>();
             var uniqueMeasurements = new HashSet<AutoFitMeasurementKey>();
-            var sharedStrings = _excelDocument.SharedStringTablePart?.SharedStringTable?.Elements<SharedStringItem>().ToList();
+            var textContext = CreateAutoFitTextContext();
             foreach (var row in sheetData.Elements<Row>()) {
                 ct.ThrowIfCancellationRequested();
 
@@ -141,20 +232,29 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    string text = GetCellAutoFitText(cell, sharedStrings);
-                    if (string.IsNullOrWhiteSpace(text)) {
-                        continue;
-                    }
-
-                    uint styleIndex = cell.StyleIndex?.Value ?? 0U;
-                    var runs = GetCellAutoFitRichTextRuns(cell, sharedStrings);
-                    if (uniqueMeasurements.Add(new AutoFitMeasurementKey(targetIndex, styleIndex, text, runs))) {
-                        measurements.Add(new AutoFitMeasurement(targetIndex, styleIndex, text, runs));
-                    }
+                    AddAutoFitMeasurement(cell, targetIndex, textContext, uniqueMeasurements, measurements);
                 }
             }
 
             return new AutoFitMeasurementPlan(columnsList, measurements);
+        }
+
+        private void AddAutoFitMeasurement(
+            Cell cell,
+            int targetIndex,
+            AutoFitTextContext textContext,
+            HashSet<AutoFitMeasurementKey> uniqueMeasurements,
+            List<AutoFitMeasurement> measurements) {
+            string text = GetCellAutoFitText(cell, textContext);
+            if (string.IsNullOrWhiteSpace(text)) {
+                return;
+            }
+
+            uint styleIndex = cell.StyleIndex?.Value ?? 0U;
+            var runs = GetCellAutoFitRichTextRuns(cell, textContext);
+            if (uniqueMeasurements.Add(new AutoFitMeasurementKey(targetIndex, styleIndex, text, runs))) {
+                measurements.Add(new AutoFitMeasurement(targetIndex, styleIndex, text, runs));
+            }
         }
 
         private double[] CalculateColumnWidths(IReadOnlyList<int> columnsList, CancellationToken ct) {
@@ -687,7 +787,9 @@ namespace OfficeIMO.Excel {
                     }
 
                     UpdateSheetFormat();
-                    worksheet.Save();
+                    if (EffectiveExecution.SaveWorksheetAfterAutoFit) {
+                        worksheet.Save();
+                    }
                 },
                 computeParallel: () => {
                     // Parallel compute phase - calculate heights without DOM mutation
@@ -714,7 +816,9 @@ namespace OfficeIMO.Excel {
                         SetRowHeightCore(rowIndexes[i], computed[i]);
                     }
                     UpdateSheetFormat();
-                    worksheet.Save();
+                    if (EffectiveExecution.SaveWorksheetAfterAutoFit) {
+                        worksheet.Save();
+                    }
                 },
                 ct: ct
             );
@@ -730,7 +834,9 @@ namespace OfficeIMO.Excel {
             WriteLockConditional(() => {
                 var width = CalculateColumnWidths([columnIndex], CancellationToken.None)[0];
                 SetColumnWidthCore(columnIndex, width);
-                WorksheetRoot.Save();
+                if (EffectiveExecution.SaveWorksheetAfterAutoFit) {
+                    WorksheetRoot.Save();
+                }
             });
         }
 
@@ -979,7 +1085,9 @@ namespace OfficeIMO.Excel {
                 var height = CalculateRowHeight(rowIndex);
                 SetRowHeightCore(rowIndex, height);
                 UpdateSheetFormat();
-                WorksheetRoot.Save();
+                if (EffectiveExecution.SaveWorksheetAfterAutoFit) {
+                    WorksheetRoot.Save();
+                }
             });
         }
 
@@ -1036,7 +1144,7 @@ namespace OfficeIMO.Excel {
                     pane.HorizontalSplit = leftCols;  // HorizontalSplit = number of columns to freeze
                 }
 
-                pane.TopLeftCell = GetColumnName(leftCols + 1) + (topRows + 1).ToString(CultureInfo.InvariantCulture);
+                pane.TopLeftCell = A1.CellReference(topRows + 1, leftCols + 1);
 
                 if (topRows > 0 && leftCols > 0) {
                     pane.ActivePane = PaneValues.BottomRight;

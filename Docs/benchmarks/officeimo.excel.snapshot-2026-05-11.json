@@ -1,0 +1,120 @@
+{
+  "GeneratedAtUtc": "2026-05-11T20:29:04.9637624Z",
+  "Framework": ".NET 8.0.26",
+  "MachineName": "EVOMAGIC",
+  "RowCount": 2500,
+  "Scenarios": [
+    {
+      "Name": "Excel: Write report (2,500 rows)",
+      "Library": "OfficeIMO.Excel",
+      "Result": "96.1 ms avg",
+      "Notes": "Insert objects, table, and AutoFit on a single worksheet.",
+      "OutputMetric": 116483,
+      "AverageMilliseconds": 96.10812000000001,
+      "MedianMilliseconds": 92.5889,
+      "SamplesMilliseconds": [
+        103.9374,
+        106.6889,
+        85.7597,
+        91.5657,
+        92.5889
+      ]
+    },
+    {
+      "Name": "Excel: Write report (2,500 rows)",
+      "Library": "ClosedXML",
+      "Result": "295.2 ms avg",
+      "Notes": "Insert table and adjust columns on a single worksheet.",
+      "OutputMetric": 123939,
+      "AverageMilliseconds": 295.18466,
+      "MedianMilliseconds": 282.0313,
+      "SamplesMilliseconds": [
+        268.3282,
+        349.6834,
+        297.2462,
+        282.0313,
+        278.6342
+      ]
+    },
+    {
+      "Name": "Excel: Read objects (2,500 rows)",
+      "Library": "OfficeIMO.Excel",
+      "Result": "93.1 ms avg",
+      "Notes": "Reader path materializing dictionary-style rows.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 93.07083999999999,
+      "MedianMilliseconds": 96.0153,
+      "SamplesMilliseconds": [
+        96.9836,
+        89.1854,
+        96.1484,
+        96.0153,
+        87.0215
+      ]
+    },
+    {
+      "Name": "Excel: Read DataTable (2,500 rows)",
+      "Library": "OfficeIMO.Excel",
+      "Result": "97.3 ms avg",
+      "Notes": "Reader path materializing a DataTable from the same workbook.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 97.28184,
+      "MedianMilliseconds": 94.868,
+      "SamplesMilliseconds": [
+        92.8474,
+        94.868,
+        105.5181,
+        112.2982,
+        80.8775
+      ]
+    },
+    {
+      "Name": "Excel: Read rows (2,500 rows)",
+      "Library": "ClosedXML",
+      "Result": "119.5 ms avg",
+      "Notes": "Worksheet row iteration over the same workbook payload.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 119.4952,
+      "MedianMilliseconds": 115.4397,
+      "SamplesMilliseconds": [
+        111.2301,
+        142.0559,
+        122.9706,
+        115.4397,
+        105.7797
+      ]
+    },
+    {
+      "Name": "Excel: Load/edit/save (2,500 rows)",
+      "Library": "OfficeIMO.Excel",
+      "Result": "100.8 ms avg",
+      "Notes": "Load workbook, add review column, save to memory.",
+      "OutputMetric": 118097,
+      "AverageMilliseconds": 100.80865999999999,
+      "MedianMilliseconds": 112.225,
+      "SamplesMilliseconds": [
+        118.2237,
+        117.5052,
+        112.225,
+        82.852,
+        73.2374
+      ]
+    },
+    {
+      "Name": "Excel: Load/edit/save (2,500 rows)",
+      "Library": "ClosedXML",
+      "Result": "105.8 ms avg",
+      "Notes": "Load workbook, add review column, save to memory.",
+      "OutputMetric": 124386,
+      "AverageMilliseconds": 105.84762,
+      "MedianMilliseconds": 116.0685,
+      "SamplesMilliseconds": [
+        119.2336,
+        116.0685,
+        130.9499,
+        82.5183,
+        80.4678
+      ]
+    }
+  ]
+}

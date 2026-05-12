@@ -43,8 +43,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal static string BuildCellA1(int row, int column) {
-            string col = A1.ColumnIndexToLetters(column);
-            return $"${col}${row}";
+            return A1.AbsoluteCellReference(row, column);
         }
 
         internal static string BuildRangeA1(int row1, int col1, int row2, int col2) {

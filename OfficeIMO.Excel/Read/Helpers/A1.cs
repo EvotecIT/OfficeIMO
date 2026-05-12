@@ -1,14 +1,17 @@
-using System.Globalization;
-using System.Text.RegularExpressions;
-
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Utility helpers for parsing and converting Excel A1 references. Public so examples and
     /// consumers can reuse consistent logic without re-implementing regexes or math.
     /// </summary>
     public static class A1 {
-        private static readonly Regex RangeRx = new("^\\s*([A-Za-z]+)(\\d+)\\s*:\\s*([A-Za-z]+)(\\d+)\\s*$", RegexOptions.Compiled);
-        private static readonly Regex CellRx = new("^\\s*([A-Za-z]+)(\\d+)\\s*$", RegexOptions.Compiled);
+        /// <summary>Maximum row index supported by the Excel worksheet grid.</summary>
+        public const int MaxRows = 1048576;
+
+        /// <summary>Maximum column index supported by the Excel worksheet grid.</summary>
+        public const int MaxColumns = 16384;
+
+        private const int ColumnLettersBufferLength = 7;
+        private const int CellReferenceBufferLength = 24;
 
         /// <summary>
         /// Parses a single A1 cell reference (e.g., "B5") into a 1-based (row, column) tuple.
@@ -17,12 +20,7 @@ namespace OfficeIMO.Excel {
         /// <param name="cellRef">A1 cell reference, without sheet prefix.</param>
         /// <returns>Tuple of row and column (1-based). Returns (0,0) if invalid.</returns>
         public static (int Row, int Col) ParseCellRef(string cellRef) {
-            if (string.IsNullOrWhiteSpace(cellRef)) return (0, 0);
-            var m = CellRx.Match(cellRef);
-            if (!m.Success) return (0, 0);
-            var col = ColumnLettersToIndex(m.Groups[1].Value);
-            var row = int.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture);
-            return (row, col);
+            return TryParseCellRef(cellRef, 0, cellRef?.Length ?? 0, out int row, out int col) ? (row, col) : (0, 0);
         }
 
         /// <summary>
@@ -32,12 +30,19 @@ namespace OfficeIMO.Excel {
         public static bool TryParseRange(string a1Range, out int r1, out int c1, out int r2, out int c2) {
             r1 = c1 = r2 = c2 = 0;
             if (string.IsNullOrWhiteSpace(a1Range)) return false;
-            var m = RangeRx.Match(a1Range);
-            if (!m.Success) return false;
-            c1 = ColumnLettersToIndex(m.Groups[1].Value);
-            r1 = int.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture);
-            c2 = ColumnLettersToIndex(m.Groups[3].Value);
-            r2 = int.Parse(m.Groups[4].Value, CultureInfo.InvariantCulture);
+            int start = 0;
+            int length = a1Range.Length;
+            TrimBounds(a1Range, ref start, ref length);
+
+            int separator = a1Range.IndexOf(':', start, length);
+            if (separator < 0) return false;
+
+            if (!TryParseCellRef(a1Range, start, separator - start, out r1, out c1)
+                || !TryParseCellRef(a1Range, separator + 1, start + length - separator - 1, out r2, out c2)) {
+                r1 = c1 = r2 = c2 = 0;
+                return false;
+            }
+
             if (c1 > c2) (c1, c2) = (c2, c1);
             if (r1 > r2) (r1, r2) = (r2, r1);
             return true;
@@ -55,14 +60,10 @@ namespace OfficeIMO.Excel {
         /// // r1=2, c1=2, r2=10, c2=4
         /// </example>
         public static (int r1, int c1, int r2, int c2) ParseRange(string a1Range) {
-            var m = RangeRx.Match(a1Range);
-            if (!m.Success) throw new ArgumentException($"Invalid A1 range '{a1Range}'.");
-            var c1 = ColumnLettersToIndex(m.Groups[1].Value);
-            var r1 = int.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture);
-            var c2 = ColumnLettersToIndex(m.Groups[3].Value);
-            var r2 = int.Parse(m.Groups[4].Value, CultureInfo.InvariantCulture);
-            if (c1 > c2) (c1, c2) = (c2, c1);
-            if (r1 > r2) (r1, r2) = (r2, r1);
+            if (!TryParseRange(a1Range, out int r1, out int c1, out int r2, out int c2)) {
+                throw new ArgumentException($"Invalid A1 range '{a1Range}'.");
+            }
+
             return (r1, c1, r2, c2);
         }
 
@@ -74,11 +75,62 @@ namespace OfficeIMO.Excel {
         /// <returns>1-based column index, or 0 when input yields no letters.</returns>
         public static int ColumnLettersToIndex(string letters) {
             int res = 0;
-            foreach (char ch in letters.ToUpperInvariant()) {
+            foreach (char character in letters) {
+                char ch = ToUpperAscii(character);
                 if (ch < 'A' || ch > 'Z') continue;
-                res = res * 26 + (ch - 'A' + 1);
+                int value = ch - 'A' + 1;
+                if (res > (int.MaxValue - value) / 26) {
+                    return 0;
+                }
+                res = res * 26 + value;
             }
             return res;
+        }
+
+        internal static int ParseColumnIndexFromCellReference(string? cellRef) {
+            if (string.IsNullOrWhiteSpace(cellRef)) return 0;
+            string text = cellRef!;
+            int start = 0;
+            int length = text.Length;
+            TrimBounds(text, ref start, ref length);
+            int col = 0;
+
+            int end = start + length;
+            int i = start;
+            for (; i < end; i++) {
+                char ch = ToUpperAscii(text[i]);
+                if (ch < 'A' || ch > 'Z') {
+                    break;
+                }
+
+                int value = ch - 'A' + 1;
+                if (col > (int.MaxValue - value) / 26) {
+                    return 0;
+                }
+
+                col = col * 26 + value;
+            }
+
+            if (i == start || i == end) {
+                return 0;
+            }
+
+            int row = 0;
+            for (; i < end; i++) {
+                char ch = text[i];
+                if (ch < '0' || ch > '9') {
+                    return 0;
+                }
+
+                int digit = ch - '0';
+                if (row > (int.MaxValue - digit) / 10) {
+                    return 0;
+                }
+
+                row = row * 10 + digit;
+            }
+
+            return row > 0 ? col : 0;
         }
 
         /// <summary>
@@ -92,14 +144,170 @@ namespace OfficeIMO.Excel {
         /// </example>
         public static string ColumnIndexToLetters(int index) {
             if (index <= 0) return "A";
-            string letters = string.Empty;
+            char[] buffer = new char[ColumnLettersBufferLength];
+            int position = 0;
+            AppendColumnLetters(index, buffer, ref position);
+            return new string(buffer, 0, position);
+        }
+
+        /// <summary>
+        /// Builds an A1 cell reference from 1-based row and column indexes.
+        /// </summary>
+        public static string CellReference(int row, int column) {
+            return BuildCellReference(row, column, absolute: false);
+        }
+
+        internal static string AbsoluteCellReference(int row, int column) {
+            return BuildCellReference(row, column, absolute: true);
+        }
+
+        private static bool TryParseCellRef(string? text, int start, int length, out int row, out int col) {
+            row = 0;
+            col = 0;
+            if (string.IsNullOrEmpty(text) || length <= 0) {
+                return false;
+            }
+
+            string source = text!;
+            if (!IsValidSlice(source, start, length)) {
+                return false;
+            }
+
+            TrimBounds(source, ref start, ref length);
+            if (length <= 0) {
+                return false;
+            }
+
+            int end = start + length;
+            int i = start;
+            for (; i < end; i++) {
+                char ch = ToUpperAscii(source[i]);
+                if (ch < 'A' || ch > 'Z') {
+                    break;
+                }
+
+                int value = ch - 'A' + 1;
+                if (col > (int.MaxValue - value) / 26) {
+                    row = 0;
+                    col = 0;
+                    return false;
+                }
+
+                col = col * 26 + value;
+            }
+
+            if (i == start || i == end) {
+                row = 0;
+                col = 0;
+                return false;
+            }
+
+            for (; i < end; i++) {
+                char ch = source[i];
+                if (ch < '0' || ch > '9') {
+                    row = 0;
+                    col = 0;
+                    return false;
+                }
+
+                int digit = ch - '0';
+                if (row > (int.MaxValue - digit) / 10) {
+                    row = 0;
+                    col = 0;
+                    return false;
+                }
+
+                row = row * 10 + digit;
+            }
+
+            if (row <= 0 || col <= 0) {
+                row = 0;
+                col = 0;
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool IsValidSlice(string text, int start, int length) {
+            return (uint)start <= (uint)text.Length
+                && (uint)length <= (uint)(text.Length - start);
+        }
+
+        private static void TrimBounds(string text, ref int start, ref int length) {
+            TrimStart(text, ref start, ref length);
+            while (length > 0 && char.IsWhiteSpace(text[start + length - 1])) {
+                length--;
+            }
+        }
+
+        private static void TrimStart(string text, ref int start, ref int length) {
+            while (length > 0 && char.IsWhiteSpace(text[start])) {
+                start++;
+                length--;
+            }
+        }
+
+        private static char ToUpperAscii(char character) {
+            return character >= 'a' && character <= 'z'
+                ? (char)(character - ('a' - 'A'))
+                : character;
+        }
+
+        private static string BuildCellReference(int row, int column, bool absolute) {
+            if (row <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(row), "A1 references are 1-based and require a positive row.");
+            }
+            if (column <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(column), "A1 references are 1-based and require a positive column.");
+            }
+
+            char[] buffer = new char[CellReferenceBufferLength];
+            int position = 0;
+            if (absolute) {
+                buffer[position++] = '$';
+            }
+            AppendColumnLetters(column, buffer, ref position);
+            if (absolute) {
+                buffer[position++] = '$';
+            }
+            AppendPositiveInt(row, buffer, ref position);
+            return new string(buffer, 0, position);
+        }
+
+        private static void AppendColumnLetters(int index, char[] buffer, ref int position) {
+            int letters = 0;
             int n = index;
             while (n > 0) {
-                int rem = (n - 1) % 26;
-                letters = (char)('A' + rem) + letters;
+                letters++;
                 n = (n - 1) / 26;
             }
-            return letters;
+
+            int start = position;
+            position += letters;
+            n = index;
+            for (int i = position - 1; i >= start; i--) {
+                int rem = (n - 1) % 26;
+                buffer[i] = (char)('A' + rem);
+                n = (n - 1) / 26;
+            }
+        }
+
+        private static void AppendPositiveInt(int value, char[] buffer, ref int position) {
+            int digits = 1;
+            int n = value;
+            while (n >= 10) {
+                digits++;
+                n /= 10;
+            }
+
+            int start = position;
+            position += digits;
+            n = value;
+            for (int i = position - 1; i >= start; i--) {
+                buffer[i] = (char)('0' + (n % 10));
+                n /= 10;
+            }
         }
     }
 }

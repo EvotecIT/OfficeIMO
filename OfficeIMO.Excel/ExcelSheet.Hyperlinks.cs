@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel {
                 // Avoid nested locks: write value using core method
                 CellValueCore(row, column, text);
 
-                var reference = GetColumnName(column) + row.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var reference = A1.CellReference(row, column);
                 // Ensure Hyperlinks container exists
                 var ws = WorksheetRoot;
                 var hyperlinks = ws.Elements<Hyperlinks>().FirstOrDefault();
@@ -77,7 +77,7 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 string text = string.IsNullOrEmpty(display) ? normalizedLocation : display!;
                 CellValueCore(row, column, text);
-                var reference = GetColumnName(column) + row.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var reference = A1.CellReference(row, column);
                 var ws = WorksheetRoot;
                 var hyperlinks = ws.Elements<Hyperlinks>().FirstOrDefault();
                 if (hyperlinks == null) {

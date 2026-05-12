@@ -19,12 +19,34 @@ namespace OfficeIMO.Excel {
             || value == ' '
             || value == '%';
 
-        private string GetCellAutoFitText(Cell cell, IReadOnlyList<SharedStringItem>? sharedStrings = null) {
+        private AutoFitTextContext CreateAutoFitTextContext() {
+            var stylesheet = WorkbookPartRoot?.WorkbookStylesPart?.Stylesheet;
+            return new AutoFitTextContext(
+                _excelDocument.SharedStringTablePart?.SharedStringTable?.Elements<SharedStringItem>().ToList(),
+                stylesheet?.CellFormats?.Elements<CellFormat>().ToList(),
+                BuildCustomNumberFormatCache(stylesheet));
+        }
+
+        private static Dictionary<uint, string?>? BuildCustomNumberFormatCache(Stylesheet? stylesheet) {
+            var numberingFormats = stylesheet?.NumberingFormats;
+            if (numberingFormats == null) {
+                return null;
+            }
+
+            var cache = new Dictionary<uint, string?>();
+            foreach (var format in numberingFormats.Elements<NumberingFormat>()) {
+                uint id = format.NumberFormatId?.Value ?? 0U;
+                cache[id] = format.FormatCode?.Value;
+            }
+
+            return cache;
+        }
+
+        private string GetCellAutoFitText(Cell cell, AutoFitTextContext? context = null) {
             var dataType = cell.DataType?.Value;
 
             if (dataType == XCellValues.SharedString) {
-                var item = GetSharedStringItem(cell, sharedStrings);
-                return item == null ? string.Empty : GetSharedStringText(item);
+                return GetCachedSharedStringText(cell, context);
             }
 
             if (dataType == XCellValues.InlineString) {
@@ -45,19 +67,19 @@ namespace OfficeIMO.Excel {
             }
 
             if (dataType == null || dataType == XCellValues.Number) {
-                return FormatAutoFitNumericText(cell, raw);
+                return FormatAutoFitNumericText(cell, raw, context);
             }
 
             return raw;
         }
 
-        private string FormatAutoFitNumericText(Cell cell, string raw) {
+        private string FormatAutoFitNumericText(Cell cell, string raw, AutoFitTextContext? context) {
             if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)) {
                 return raw;
             }
 
-            uint numberFormatId = GetCellNumberFormatId(cell);
-            string? formatCode = GetNumberFormatCode(numberFormatId);
+            uint numberFormatId = GetCellNumberFormatId(cell, context);
+            string? formatCode = GetNumberFormatCode(numberFormatId, context);
 
             if (numberFormatId == 0U || string.IsNullOrWhiteSpace(formatCode) || string.Equals(formatCode, "General", StringComparison.OrdinalIgnoreCase)) {
                 return raw;
@@ -70,20 +92,53 @@ namespace OfficeIMO.Excel {
             return FormatAutoFitNumberValue(value, numberFormatId, formatCode!) ?? raw;
         }
 
-        private uint GetCellNumberFormatId(Cell cell) {
+        private uint GetCellNumberFormatId(Cell cell, AutoFitTextContext? context) {
             if (cell.StyleIndex == null) {
                 return 0U;
             }
 
-            var cellFormats = WorkbookPartRoot?.WorkbookStylesPart?.Stylesheet?.CellFormats;
-            var cellFormat = cellFormats?.Elements<CellFormat>().ElementAtOrDefault((int)cell.StyleIndex.Value);
-            return cellFormat?.NumberFormatId?.Value ?? 0U;
+            uint styleIndex = cell.StyleIndex.Value;
+            if (context != null && context.NumberFormatIdsByStyle.TryGetValue(styleIndex, out uint cachedFormatId)) {
+                return cachedFormatId;
+            }
+
+            CellFormat? cellFormat = null;
+            if (context?.CellFormats != null) {
+                cellFormat = styleIndex < context.CellFormats.Count ? context.CellFormats[(int)styleIndex] : null;
+            } else {
+                var cellFormats = WorkbookPartRoot?.WorkbookStylesPart?.Stylesheet?.CellFormats;
+                cellFormat = cellFormats?.Elements<CellFormat>().ElementAtOrDefault((int)styleIndex);
+            }
+
+            uint numberFormatId = cellFormat?.NumberFormatId?.Value ?? 0U;
+            if (context != null) {
+                context.NumberFormatIdsByStyle[styleIndex] = numberFormatId;
+            }
+
+            return numberFormatId;
         }
 
-        private string? GetNumberFormatCode(uint numberFormatId) {
+        private string? GetNumberFormatCode(uint numberFormatId, AutoFitTextContext? context) {
+            if (context != null && context.NumberFormatCodes.TryGetValue(numberFormatId, out string? cachedCode)) {
+                return cachedCode;
+            }
+
+            string? code = GetNumberFormatCodeCore(numberFormatId, context);
+            if (context != null) {
+                context.NumberFormatCodes[numberFormatId] = code;
+            }
+
+            return code;
+        }
+
+        private string? GetNumberFormatCodeCore(uint numberFormatId, AutoFitTextContext? context) {
             string? builtIn = GetBuiltInNumberFormatCode(numberFormatId);
             if (builtIn != null) {
                 return builtIn;
+            }
+
+            if (context?.CustomNumberFormats != null) {
+                return context.CustomNumberFormats.TryGetValue(numberFormatId, out string? formatCode) ? formatCode : null;
             }
 
             var numberingFormats = WorkbookPartRoot?.WorkbookStylesPart?.Stylesheet?.NumberingFormats;
@@ -298,20 +353,52 @@ namespace OfficeIMO.Excel {
             return builder.ToString();
         }
 
-        private SharedStringItem? GetSharedStringItem(Cell cell, IReadOnlyList<SharedStringItem>? sharedStrings = null) {
+        private static bool TryGetSharedStringIndex(Cell cell, out int id) {
             var raw = cell.CellValue?.InnerText;
-            if (string.IsNullOrEmpty(raw) || !int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int id)) {
-                return null;
-            }
-
-            sharedStrings ??= _excelDocument.SharedStringTablePart?.SharedStringTable?.Elements<SharedStringItem>().ToList();
-            return sharedStrings != null && id >= 0 && id < sharedStrings.Count ? sharedStrings[id] : null;
+            return int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out id);
         }
 
-        private IReadOnlyList<AutoFitTextRun>? GetCellAutoFitRichTextRuns(Cell cell, IReadOnlyList<SharedStringItem>? sharedStrings = null) {
+        private string GetCachedSharedStringText(Cell cell, AutoFitTextContext? context) {
+            if (!TryGetSharedStringIndex(cell, out int id)) {
+                return string.Empty;
+            }
+
+            if (context != null && context.SharedStringTexts.TryGetValue(id, out string? cachedText)) {
+                return cachedText;
+            }
+
+            var sharedStrings = context?.SharedStrings ?? _excelDocument.SharedStringTablePart?.SharedStringTable?.Elements<SharedStringItem>().ToList();
+            string text = sharedStrings != null && id >= 0 && id < sharedStrings.Count
+                ? GetSharedStringText(sharedStrings[id])
+                : string.Empty;
+
+            if (context != null) {
+                context.SharedStringTexts[id] = text;
+            }
+
+            return text;
+        }
+
+        private IReadOnlyList<AutoFitTextRun>? GetCellAutoFitRichTextRuns(Cell cell, AutoFitTextContext? context = null) {
             if (cell.DataType?.Value == XCellValues.SharedString) {
-                var item = GetSharedStringItem(cell, sharedStrings);
-                return item == null ? null : GetSharedStringRichTextRuns(item);
+                if (!TryGetSharedStringIndex(cell, out int id)) {
+                    return null;
+                }
+
+                if (context != null && context.SharedStringRichTextRuns.TryGetValue(id, out var cachedRuns)) {
+                    return cachedRuns;
+                }
+
+                var sharedStrings = context?.SharedStrings ?? _excelDocument.SharedStringTablePart?.SharedStringTable?.Elements<SharedStringItem>().ToList();
+                var runs = sharedStrings != null && id >= 0 && id < sharedStrings.Count
+                    ? GetSharedStringRichTextRuns(sharedStrings[id])
+                    : null;
+
+                if (context != null) {
+                    context.SharedStringRichTextRuns[id] = runs;
+                }
+
+                return runs;
             }
 
             if (cell.DataType?.Value == XCellValues.InlineString) {
@@ -321,7 +408,30 @@ namespace OfficeIMO.Excel {
             return null;
         }
 
+        private sealed class AutoFitTextContext {
+            internal AutoFitTextContext(
+                IReadOnlyList<SharedStringItem>? sharedStrings,
+                IReadOnlyList<CellFormat>? cellFormats,
+                Dictionary<uint, string?>? customNumberFormats) {
+                SharedStrings = sharedStrings;
+                CellFormats = cellFormats;
+                CustomNumberFormats = customNumberFormats;
+            }
+
+            internal IReadOnlyList<SharedStringItem>? SharedStrings { get; }
+            internal IReadOnlyList<CellFormat>? CellFormats { get; }
+            internal Dictionary<uint, string?>? CustomNumberFormats { get; }
+            internal Dictionary<uint, uint> NumberFormatIdsByStyle { get; } = new Dictionary<uint, uint>();
+            internal Dictionary<uint, string?> NumberFormatCodes { get; } = new Dictionary<uint, string?>();
+            internal Dictionary<int, string> SharedStringTexts { get; } = new Dictionary<int, string>();
+            internal Dictionary<int, IReadOnlyList<AutoFitTextRun>?> SharedStringRichTextRuns { get; } = new Dictionary<int, IReadOnlyList<AutoFitTextRun>?>();
+        }
+
         private static IReadOnlyList<AutoFitTextRun>? GetSharedStringRichTextRuns(SharedStringItem item) {
+            if (item.Text != null) {
+                return null;
+            }
+
             var runs = item.Elements<Run>().ToList();
             if (runs.Count == 0) {
                 return null;
@@ -332,6 +442,10 @@ namespace OfficeIMO.Excel {
 
         private static IReadOnlyList<AutoFitTextRun>? GetInlineStringRichTextRuns(InlineString? inlineString) {
             if (inlineString == null) {
+                return null;
+            }
+
+            if (inlineString.Text != null) {
                 return null;
             }
 

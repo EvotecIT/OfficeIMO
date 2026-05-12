@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrEmpty(text)) throw new ArgumentException("Comment text is required.", nameof(text));
 
             WriteLock(() => {
-                string reference = A1.ColumnIndexToLetters(column) + row.ToString(CultureInfo.InvariantCulture);
+                string reference = A1.CellReference(row, column);
                 string authorDisplay = NormalizeAuthor(author, initials);
 
                 var commentsPart = GetOrCreateCommentsPart();
@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel {
             if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column), "Row and column are 1-based and must be positive.");
 
             WriteLock(() => {
-                string reference = A1.ColumnIndexToLetters(column) + row.ToString(CultureInfo.InvariantCulture);
+                string reference = A1.CellReference(row, column);
 
                 var commentsPart = WorksheetCommentsPartRoot;
                 if (commentsPart?.Comments?.CommentList == null) {
@@ -101,7 +101,7 @@ namespace OfficeIMO.Excel {
         public bool HasComment(int row, int column) {
             if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row), "Row and column are 1-based and must be positive.");
             if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column), "Row and column are 1-based and must be positive.");
-            string reference = A1.ColumnIndexToLetters(column) + row.ToString(CultureInfo.InvariantCulture);
+            string reference = A1.CellReference(row, column);
             var commentsPart = WorksheetCommentsPartRoot;
             return commentsPart?.Comments?.CommentList?
                 .Elements<Comment>()

@@ -16,14 +16,30 @@ namespace OfficeIMO.Excel {
         /// Header cells are matched to public writable properties on T by name (case-insensitive).
         /// </summary>
         public IEnumerable<T> ReadObjects<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(string a1Range, OfficeIMO.Excel.ExecutionMode? mode = null, CancellationToken ct = default) where T : new() {
-            var values = ReadRange(a1Range, mode, ct);
-            int rows = values.GetLength(0);
-            int cols = values.GetLength(1);
-            if (rows == 0 || cols == 0) yield break;
+            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            if (r1 > r2 || c1 > c2) throw new ArgumentException($"Invalid range '{a1Range}'.");
+
+            int rows = r2 - r1 + 1;
+            int cols = c2 - c1 + 1;
+            if (rows <= 1 || cols == 0) return Array.Empty<T>();
+
+            var rawCells = SnapshotAndConvertRangeCells(r1, c1, r2, c2, "ReadObjectsAs", mode, ct, rows * cols);
 
             // Build property map from normalized, disambiguated headers so repeated
             // source headers remain addressable instead of colliding.
-            var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => values[0, c]?.ToString(), _opt.NormalizeHeaders);
+            var headerValues = new object?[cols];
+            foreach (var cell in rawCells) {
+                if (cell.Row != r1) {
+                    continue;
+                }
+
+                int cc = cell.Col - c1;
+                if ((uint)cc < (uint)cols) {
+                    headerValues[cc] = cell.TypedValue;
+                }
+            }
+
+            var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => headerValues[c]?.ToString(), _opt.NormalizeHeaders);
 
             var writableProps = typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public)
                 .Where(p => p.CanWrite)
@@ -111,21 +127,45 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            for (int r = 1; r < rows; r++) {
-                if (ct.IsCancellationRequested) yield break;
+            int dataRowCount = rows - 1;
+            var rowValues = new object?[dataRowCount][];
+            foreach (var cell in rawCells) {
+                if (cell.Row <= r1) {
+                    continue;
+                }
+
+                int rr = cell.Row - r1 - 1;
+                int cc = cell.Col - c1;
+                if ((uint)rr < (uint)dataRowCount && (uint)cc < (uint)cols) {
+                    var values = rowValues[rr];
+                    if (values == null) {
+                        values = new object?[cols];
+                        rowValues[rr] = values;
+                    }
+
+                    values[cc] = cell.TypedValue;
+                }
+            }
+
+            var result = new List<T>(dataRowCount);
+            for (int r = 0; r < dataRowCount; r++) {
+                if (ct.IsCancellationRequested) break;
                 var obj = new T();
+                var values = rowValues[r];
                 for (int c = 0; c < cols; c++) {
                     if (map[c].ColIndex == -1) continue;
                     var pi = map[c].Prop;
-                    var raw = values[r, c];
+                    var raw = values?[c];
                     if (raw is null) continue;
 
                     object? converted = TryChangeType(raw, pi.PropertyType, _opt.Culture);
                     if (converted is not null || IsNullableType(pi.PropertyType))
                         pi.SetValue(obj, converted);
                 }
-                yield return obj;
+                result.Add(obj);
             }
+
+            return result;
         }
 
         private static bool IsNullableType(Type t) {

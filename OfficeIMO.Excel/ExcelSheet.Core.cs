@@ -184,7 +184,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            string cellReference = GetColumnName(column) + row.ToString(CultureInfo.InvariantCulture);
+            string cellReference = A1.CellReference(row, column);
 
             // Find or create cell with proper ordering (by numeric column index)
             Cell? cell = null;
@@ -258,29 +258,40 @@ namespace OfficeIMO.Excel {
         }
 
         private static string GetColumnName(int columnIndex) {
-            int dividend = columnIndex;
-            StringBuilder columnName = new StringBuilder();
-
-            while (dividend > 0) {
-                int modulo = (dividend - 1) % 26;
-                columnName.Insert(0, Convert.ToChar(65 + modulo));
-                dividend = (dividend - modulo) / 26;
-            }
-
-            return columnName.ToString();
+            return A1.ColumnIndexToLetters(columnIndex);
         }
 
         private static int GetColumnIndex(string cellReference) {
             int columnIndex = 0;
-            foreach (char ch in cellReference.Where(char.IsLetter)) {
-                columnIndex = (columnIndex * 26) + (ch - 'A' + 1);
+            for (int i = 0; i < cellReference.Length; i++) {
+                char ch = cellReference[i];
+                if (ch >= 'A' && ch <= 'Z') {
+                    columnIndex = (columnIndex * 26) + (ch - 'A' + 1);
+                    continue;
+                }
+
+                if (ch >= 'a' && ch <= 'z') {
+                    columnIndex = (columnIndex * 26) + (ch - 'a' + 1);
+                    continue;
+                }
+
+                if (columnIndex > 0) {
+                    break;
+                }
             }
             return columnIndex;
         }
 
         private static int GetRowIndex(string cellReference) {
-            var digits = new string(cellReference.Where(char.IsDigit).ToArray());
-            return int.Parse(digits, CultureInfo.InvariantCulture);
+            int rowIndex = 0;
+            for (int i = 0; i < cellReference.Length; i++) {
+                char ch = cellReference[i];
+                if (ch >= '0' && ch <= '9') {
+                    rowIndex = (rowIndex * 10) + (ch - '0');
+                }
+            }
+
+            return rowIndex;
         }
 
         // Exposed as internal so other components in the same assembly (e.g., SheetComposer)
