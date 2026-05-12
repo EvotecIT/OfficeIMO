@@ -4,6 +4,15 @@ namespace OfficeIMO.Excel {
     /// consumers can reuse consistent logic without re-implementing regexes or math.
     /// </summary>
     public static class A1 {
+        /// <summary>Maximum row index supported by the Excel worksheet grid.</summary>
+        public const int MaxRows = 1048576;
+
+        /// <summary>Maximum column index supported by the Excel worksheet grid.</summary>
+        public const int MaxColumns = 16384;
+
+        private const int ColumnLettersBufferLength = 7;
+        private const int CellReferenceBufferLength = 24;
+
         /// <summary>
         /// Parses a single A1 cell reference (e.g., "B5") into a 1-based (row, column) tuple.
         /// Returns (0,0) when the input does not match a valid simple cell reference.
@@ -69,7 +78,11 @@ namespace OfficeIMO.Excel {
             foreach (char character in letters) {
                 char ch = ToUpperAscii(character);
                 if (ch < 'A' || ch > 'Z') continue;
-                res = res * 26 + (ch - 'A' + 1);
+                int value = ch - 'A' + 1;
+                if (res > (int.MaxValue - value) / 26) {
+                    return 0;
+                }
+                res = res * 26 + value;
             }
             return res;
         }
@@ -89,7 +102,12 @@ namespace OfficeIMO.Excel {
                     break;
                 }
 
-                col = col * 26 + (ch - 'A' + 1);
+                int value = ch - 'A' + 1;
+                if (col > (int.MaxValue - value) / 26) {
+                    return 0;
+                }
+
+                col = col * 26 + value;
             }
 
             return col;
@@ -106,7 +124,7 @@ namespace OfficeIMO.Excel {
         /// </example>
         public static string ColumnIndexToLetters(int index) {
             if (index <= 0) return "A";
-            char[] buffer = new char[7];
+            char[] buffer = new char[ColumnLettersBufferLength];
             int position = 0;
             AppendColumnLetters(index, buffer, ref position);
             return new string(buffer, 0, position);
@@ -131,6 +149,10 @@ namespace OfficeIMO.Excel {
             }
 
             string source = text!;
+            if (!IsValidSlice(source, start, length)) {
+                return false;
+            }
+
             TrimBounds(source, ref start, ref length);
             if (length <= 0) {
                 return false;
@@ -144,7 +166,14 @@ namespace OfficeIMO.Excel {
                     break;
                 }
 
-                col = col * 26 + (ch - 'A' + 1);
+                int value = ch - 'A' + 1;
+                if (col > (int.MaxValue - value) / 26) {
+                    row = 0;
+                    col = 0;
+                    return false;
+                }
+
+                col = col * 26 + value;
             }
 
             if (i == start || i == end) {
@@ -161,16 +190,28 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                row = row * 10 + (ch - '0');
+                int digit = ch - '0';
+                if (row > (int.MaxValue - digit) / 10) {
+                    row = 0;
+                    col = 0;
+                    return false;
+                }
+
+                row = row * 10 + digit;
             }
 
-            if (row <= 0) {
+            if (row <= 0 || col <= 0) {
                 row = 0;
                 col = 0;
                 return false;
             }
 
             return true;
+        }
+
+        private static bool IsValidSlice(string text, int start, int length) {
+            return (uint)start <= (uint)text.Length
+                && (uint)length <= (uint)(text.Length - start);
         }
 
         private static void TrimBounds(string text, ref int start, ref int length) {
@@ -201,7 +242,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(column), "A1 references are 1-based and require a positive column.");
             }
 
-            char[] buffer = new char[24];
+            char[] buffer = new char[CellReferenceBufferLength];
             int position = 0;
             if (absolute) {
                 buffer[position++] = '$';

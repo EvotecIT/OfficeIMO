@@ -397,16 +397,14 @@ namespace OfficeIMO.Excel {
             }
 
             // Bounds check: Excel supports 1..1,048,576 rows and 1..16,384 columns (XFD)
-            const int MaxRow = 1_048_576;
-            const int MaxCol = 16_384;
-            bool outOfBounds = (r1 < 1 || c1 < 1 || r2 > MaxRow || c2 > MaxCol || c1 > MaxCol || r1 > MaxRow);
+            bool outOfBounds = (r1 < 1 || c1 < 1 || r2 > A1.MaxRows || c2 > A1.MaxColumns || c1 > A1.MaxColumns || r1 > A1.MaxRows);
             if (outOfBounds && validationMode == NameValidationMode.Strict)
                 throw new ArgumentOutOfRangeException(nameof(range), "A1 range exceeds Excel bounds (rows ≤ 1,048,576; cols ≤ 16,384). Use Sanitize to clamp.");
             // Sanitize: clamp into valid range
-            r1 = Math.Max(1, Math.Min(MaxRow, r1));
-            r2 = Math.Max(1, Math.Min(MaxRow, r2));
-            c1 = Math.Max(1, Math.Min(MaxCol, c1));
-            c2 = Math.Max(1, Math.Min(MaxCol, c2));
+            r1 = Math.Max(1, Math.Min(A1.MaxRows, r1));
+            r2 = Math.Max(1, Math.Min(A1.MaxRows, r2));
+            c1 = Math.Max(1, Math.Min(A1.MaxColumns, c1));
+            c2 = Math.Max(1, Math.Min(A1.MaxColumns, c2));
 
             string start = A1.AbsoluteCellReference(r1, c1);
             string end = A1.AbsoluteCellReference(r2, c2);

@@ -90,11 +90,20 @@ namespace OfficeIMO.Tests {
             Assert.Equal((0, 0), A1.ParseCellRef("A"));
             Assert.Equal((0, 0), A1.ParseCellRef("A0"));
             Assert.Equal((0, 0), A1.ParseCellRef("A1:B2"));
+            Assert.Equal((A1.MaxRows, A1.MaxColumns), A1.ParseCellRef("XFD1048576"));
+            Assert.Equal((1, A1.MaxColumns + 1), A1.ParseCellRef("XFE1"));
+            Assert.Equal((A1.MaxRows + 1, A1.MaxColumns), A1.ParseCellRef("XFD1048577"));
+            Assert.Equal((0, 0), A1.ParseCellRef("ZZZZZZZ1"));
+            Assert.Equal((0, 0), A1.ParseCellRef("A2147483648"));
 
             Assert.True(A1.TryParseRange(" c10 : a2 ", out int r1, out int c1, out int r2, out int c2));
             Assert.Equal((2, 1, 10, 3), (r1, c1, r2, c2));
 
             Assert.False(A1.TryParseRange("A1", out _, out _, out _, out _));
+            Assert.True(A1.TryParseRange("A1:XFE1", out r1, out c1, out r2, out c2));
+            Assert.Equal((1, 1, 1, A1.MaxColumns + 1), (r1, c1, r2, c2));
+            Assert.False(A1.TryParseRange("A1:ZZZZZZZ1", out _, out _, out _, out _));
+            Assert.False(A1.TryParseRange("A1:A2147483648", out _, out _, out _, out _));
             Assert.Equal(28, A1.ColumnLettersToIndex("a-b1"));
             Assert.Equal("A", A1.ColumnIndexToLetters(0));
             Assert.Equal("A", A1.ColumnIndexToLetters(1));

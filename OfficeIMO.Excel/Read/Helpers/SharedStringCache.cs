@@ -5,6 +5,8 @@ using System.Text;
 
 namespace OfficeIMO.Excel {
     internal sealed class SharedStringCache {
+        private const int MinimumInitialCapacity = 1024;
+
         private readonly List<string> _items;
 
         private SharedStringCache(List<string> items) => _items = items;
@@ -13,7 +15,7 @@ namespace OfficeIMO.Excel {
             var part = doc.WorkbookPart!.SharedStringTablePart;
             if (part?.SharedStringTable == null) return new SharedStringCache(new List<string>());
 
-            var list = new List<string>(Math.Max(1024, (int)(part.SharedStringTable.Count?.Value ?? 0)));
+            var list = new List<string>(Math.Max(MinimumInitialCapacity, (int)(part.SharedStringTable.Count?.Value ?? 0)));
             foreach (var item in part.SharedStringTable.Elements<SharedStringItem>()) {
                 if (item.Text?.Text != null)
                     list.Add(item.Text.Text);
