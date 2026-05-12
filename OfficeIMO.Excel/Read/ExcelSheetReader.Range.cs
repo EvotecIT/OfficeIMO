@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel {
             var decided = mode ?? policy.Mode;
             int workload = height * width;
             if (decided == OfficeIMO.Excel.ExecutionMode.Sequential) {
-                FillRangeSequential(result, r1, c1, r2, c2);
+                FillRangeSequential(result, r1, c1, r2, c2, ct);
                 return result;
             }
 
@@ -202,6 +202,7 @@ namespace OfficeIMO.Excel {
                         TypeHint = cell.DataType?.Value,
                         StyleIndex = cell.StyleIndex?.Value,
                         HasFormula = cell.CellFormula is not null,
+                        FormulaText = ExtractFormulaText(cell),
                         RawText = ExtractRawText(cell),
                         InlineText = ExtractInlineString(cell)
                     };
@@ -212,7 +213,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void FillRangeSequential(object?[,] result, int r1, int c1, int r2, int c2) {
+        private void FillRangeSequential(object?[,] result, int r1, int c1, int r2, int c2, CancellationToken ct) {
             var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
             if (sheetData == null) return;
 
@@ -220,6 +221,7 @@ namespace OfficeIMO.Excel {
             int width = result.GetLength(1);
 
             foreach (var row in sheetData.Elements<Row>()) {
+                ct.ThrowIfCancellationRequested();
                 var rIndex = checked((int)row.RowIndex!.Value);
                 if (rIndex < r1) continue;
                 if (rIndex > r2) continue;
@@ -228,6 +230,7 @@ namespace OfficeIMO.Excel {
                 if ((uint)rr >= (uint)height) continue;
 
                 foreach (var cell in row.Elements<Cell>()) {
+                    ct.ThrowIfCancellationRequested();
                     int cIndex = A1.ParseColumnIndexFromCellReference(cell.CellReference?.Value);
                     if (cIndex < c1 || cIndex > c2) continue;
 
@@ -238,6 +241,7 @@ namespace OfficeIMO.Excel {
                         TypeHint = cell.DataType?.Value,
                         StyleIndex = cell.StyleIndex?.Value,
                         HasFormula = cell.CellFormula is not null,
+                        FormulaText = ExtractFormulaText(cell),
                         RawText = ExtractRawText(cell),
                         InlineText = ExtractInlineString(cell)
                     };

@@ -235,6 +235,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CellValuesParallelAppendedPlainCellsDoNotInheritLastRowStyle() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesParallelPlainCellsNoLastRowStyle.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                var workbookPart = document._spreadSheetDocument.WorkbookPart!;
+                var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+                stylesPart.Stylesheet = new Stylesheet(
+                    new Fonts(
+                        new DocumentFormat.OpenXml.Spreadsheet.Font(),
+                        new DocumentFormat.OpenXml.Spreadsheet.Font(new FontName { Val = "OfficeIMO Last Row Test" })) { Count = 2 },
+                    new Fills(new Fill()) { Count = 1 },
+                    new Borders(new Border()) { Count = 1 },
+                    new CellFormats(
+                        new CellFormat(),
+                        new CellFormat { FontId = 1U, ApplyFont = true }) { Count = 2 });
+                stylesPart.Stylesheet.Save();
+
+                var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+                var styledRow = new Row { RowIndex = 1U };
+                styledRow.Append(new Cell { CellReference = "A1", StyleIndex = 1U });
+                sheetData.Append(styledRow);
+
+                sheet.CellValues(new[] {
+                    (2, 1, (object)"Plain"),
+                    (3, 1, (object)"Still Plain")
+                }, ExecutionMode.Parallel);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(c => c.CellReference!.Value!);
+
+                Assert.True(cells.ContainsKey("A2"));
+                Assert.True(cells.ContainsKey("A3"));
+                Assert.Null(cells["A2"].StyleIndex);
+                Assert.Null(cells["A3"].StyleIndex);
+            }
+        }
+
+        [Fact]
         public void Test_CellValuesParallelSanitizesControlCharacters() {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesParallelSanitizedControls.xlsx");
 

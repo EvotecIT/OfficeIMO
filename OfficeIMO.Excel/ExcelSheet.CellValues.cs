@@ -131,7 +131,7 @@ namespace OfficeIMO.Excel {
 
             for (int i = 0; i < prepared.Length; i++) {
                 var p = prepared[i];
-                if (p.Row <= 0 || p.Col <= 0 || p.Row < currentRow) {
+                if (p.Row <= 0 || p.Col <= 0 || p.Col > A1.MaxColumns || p.Row < currentRow) {
                     return false;
                 }
 
@@ -183,16 +183,13 @@ namespace OfficeIMO.Excel {
                     CellValue = p.Val,
                     DataType = p.Type
                 };
-                uint? baseStyleIndex = baseStyleIndexes[p.Col];
-                if (baseStyleIndex.HasValue) {
-                    cell.StyleIndex = baseStyleIndex.Value;
-                }
 
                 row!.Append(cell);
                 ApplyAutomaticCellFormattingForAppendedCell(
                     cell,
                     source[i].Value,
                     p.Type,
+                    baseStyleIndexes[p.Col] ?? 0U,
                     ref appendedDateStyleIndexes,
                     ref appendedDurationStyleIndexes,
                     ref appendedWrapStyleIndexes);

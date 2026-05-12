@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
@@ -110,6 +111,54 @@ namespace OfficeIMO.Tests {
                 var cell = reader.GetSheet("data").EnumerateCells().Single(c => c.Row == 3 && c.Column == 1);
 
                 Assert.Equal("SUM(A1:A2)", cell.Value);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRangeSequential_FormulaText_IsReturnedWhenCachedResultsAreDisabled() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderSequentialFormulaText.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, 2);
+                    sheet.CellValue(2, 1, 3);
+                    sheet.CellFormula(3, 1, "=SUM(A1:A2)");
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions { UseCachedFormulaResult = false });
+                object?[,] values = reader.GetSheet("Data").ReadRange("A3:A3", ExecutionMode.Sequential);
+
+                Assert.Equal("SUM(A1:A2)", values[0, 0]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRangeSequential_HonorsCancellation() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderSequentialCancellation.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Value");
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                using var cts = new CancellationTokenSource();
+                cts.Cancel();
+
+                Assert.Throws<OperationCanceledException>(() =>
+                    reader.GetSheet("Data").ReadRange("A1:A1", ExecutionMode.Sequential, cts.Token));
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

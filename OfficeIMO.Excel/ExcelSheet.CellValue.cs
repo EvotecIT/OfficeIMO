@@ -266,11 +266,11 @@ namespace OfficeIMO.Excel {
             Cell cell,
             object? value,
             EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>? dataType,
+            uint baseStyleIndex,
             ref Dictionary<uint, uint>? dateStyleIndexes,
             ref Dictionary<uint, uint>? durationStyleIndexes,
             ref Dictionary<uint, uint>? wrapStyleIndexes) {
             bool wroteNumber = dataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
-            uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
 
             if (wroteNumber && (value is DateTime || value is DateTimeOffset)) {
                 cell.StyleIndex = GetOrAddBuiltInNumberFormatStyleIndex(ref dateStyleIndexes, baseStyleIndex, 14);
