@@ -353,6 +353,69 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_ReadRangeSequential_DoesNotStopAtOutOfOrderRowsBeyondRange() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderOutOfOrderRows.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Header");
+                    sheet.CellValue(2, 1, "InRange");
+                    sheet.CellValue(5, 1, "Outside");
+                    document.Save();
+                }
+
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                    var sheetData = worksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+                    var row2 = sheetData.Elements<Row>().First(r => r.RowIndex?.Value == 2U);
+                    row2.Remove();
+                    sheetData.Append(row2);
+                    worksheetPart.Worksheet.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                object?[,] values = reader.GetSheet("Data").ReadRange("A1:A2", ExecutionMode.Sequential);
+
+                Assert.Equal("Header", values[0, 0]);
+                Assert.Equal("InRange", values[1, 0]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRange_IgnoresMalformedCellReferenceWithoutRowNumber() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderMalformedCellReference.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "ShouldIgnore");
+                    document.Save();
+                }
+
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                    var cell = worksheetPart.Worksheet.Descendants<Cell>().First(c => c.CellReference?.Value == "A1");
+                    cell.CellReference = "A";
+                    worksheetPart.Worksheet.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                object?[,] values = reader.GetSheet("Data").ReadRange("A1:A1", ExecutionMode.Sequential);
+
+                Assert.Null(values[0, 0]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Sheet_Rows_CanBeEnumeratedAfterReaderScopeDisposes() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderRowsMaterialized.xlsx");
 

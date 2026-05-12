@@ -24,9 +24,24 @@ namespace OfficeIMO.Excel {
             return new AutoFitTextContext(
                 _excelDocument.SharedStringTablePart?.SharedStringTable?.Elements<SharedStringItem>().ToList(),
                 stylesheet?.CellFormats?.Elements<CellFormat>().ToList(),
-                stylesheet?.NumberingFormats?.Elements<NumberingFormat>().ToDictionary(
-                    nf => nf.NumberFormatId?.Value ?? 0U,
-                    nf => nf.FormatCode?.Value));
+                BuildCustomNumberFormatCache(stylesheet));
+        }
+
+        private static Dictionary<uint, string?>? BuildCustomNumberFormatCache(Stylesheet? stylesheet) {
+            var numberingFormats = stylesheet?.NumberingFormats;
+            if (numberingFormats == null) {
+                return null;
+            }
+
+            var cache = new Dictionary<uint, string?>();
+            foreach (var format in numberingFormats.Elements<NumberingFormat>()) {
+                uint id = format.NumberFormatId?.Value ?? 0U;
+                if (!cache.ContainsKey(id)) {
+                    cache.Add(id, format.FormatCode?.Value);
+                }
+            }
+
+            return cache;
         }
 
         private string GetCellAutoFitText(Cell cell, AutoFitTextContext? context = null) {

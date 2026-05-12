@@ -299,31 +299,10 @@ namespace OfficeIMO.Excel {
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            var cellFormatsEl = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
-            uint index = 0;
-            foreach (var format in cellFormatsEl.Elements<CellFormat>()) {
-                if ((format.NumberFormatId?.Value ?? 0U) == builtInFormatId
-                    && format.ApplyNumberFormat?.Value == true
-                    && (format.FontId?.Value ?? 0U) == 0U
-                    && (format.FillId?.Value ?? 0U) == 0U
-                    && (format.BorderId?.Value ?? 0U) == 0U
-                    && (format.FormatId?.Value ?? 0U) == 0U) {
-                    return index;
-                }
-
-                index++;
-            }
-
-            var newFormat = new CellFormat {
-                NumberFormatId = builtInFormatId,
-                FontId = 0U,
-                FillId = 0U,
-                BorderId = 0U,
-                FormatId = 0U,
-                ApplyNumberFormat = true
-            };
-            cellFormatsEl.Append(newFormat);
-            cellFormatsEl.Count = index + 1U;
+            var newFormat = GetBaseCellFormat(stylesheet, 0U);
+            newFormat.NumberFormatId = builtInFormatId;
+            newFormat.ApplyNumberFormat = true;
+            uint index = AppendOrReuseCellFormat(stylesheet, newFormat);
             stylesPart.Stylesheet.Save();
             return index;
         }
@@ -338,32 +317,14 @@ namespace OfficeIMO.Excel {
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            var cellFormatsEl = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
-            uint index = 0;
-            foreach (var format in cellFormatsEl.Elements<CellFormat>()) {
-                if ((format.NumberFormatId?.Value ?? 0U) == 0U
-                    && (format.FontId?.Value ?? 0U) == 0U
-                    && (format.FillId?.Value ?? 0U) == 0U
-                    && (format.BorderId?.Value ?? 0U) == 0U
-                    && (format.FormatId?.Value ?? 0U) == 0U
-                    && format.Alignment?.WrapText?.Value == true) {
-                    return index;
-                }
-
-                index++;
-            }
-
-            var newFormat = new CellFormat {
-                NumberFormatId = 0U,
-                FontId = 0U,
-                FillId = 0U,
-                BorderId = 0U,
-                FormatId = 0U,
-                ApplyAlignment = true,
-                Alignment = new Alignment { WrapText = true }
-            };
-            cellFormatsEl.Append(newFormat);
-            cellFormatsEl.Count = index + 1U;
+            var newFormat = GetBaseCellFormat(stylesheet, 0U);
+            var alignment = newFormat.Alignment != null
+                ? (Alignment)newFormat.Alignment.CloneNode(true)
+                : new Alignment();
+            alignment.WrapText = true;
+            newFormat.Alignment = alignment;
+            newFormat.ApplyAlignment = true;
+            uint index = AppendOrReuseCellFormat(stylesheet, newFormat);
             stylesPart.Stylesheet.Save();
             return index;
         }

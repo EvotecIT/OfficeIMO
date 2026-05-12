@@ -222,7 +222,7 @@ namespace OfficeIMO.Excel {
             foreach (var row in sheetData.Elements<Row>()) {
                 var rIndex = checked((int)row.RowIndex!.Value);
                 if (rIndex < r1) continue;
-                if (rIndex > r2) break;
+                if (rIndex > r2) continue;
 
                 int rr = rIndex - r1;
                 if ((uint)rr >= (uint)height) continue;

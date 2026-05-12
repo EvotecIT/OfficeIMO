@@ -432,6 +432,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AutoFit_ToleratesDuplicateCustomNumberFormatIds() {
+            string filePath = Path.Combine(_directoryWithFiles, "AutoFit.DuplicateNumberFormats.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, 1234.5d);
+
+                var workbookPart = document._spreadSheetDocument.WorkbookPart!;
+                var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+                stylesPart.Stylesheet ??= new Stylesheet(
+                    new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font()) { Count = 1 },
+                    new Fills(new Fill()) { Count = 1 },
+                    new Borders(new Border()) { Count = 1 },
+                    new CellFormats(new CellFormat()) { Count = 1 });
+
+                var stylesheet = stylesPart.Stylesheet;
+                stylesheet.NumberingFormats ??= new NumberingFormats();
+                stylesheet.NumberingFormats.Append(new NumberingFormat { NumberFormatId = 164U, FormatCode = "0.0" });
+                stylesheet.NumberingFormats.Append(new NumberingFormat { NumberFormatId = 164U, FormatCode = "0.00" });
+                stylesheet.NumberingFormats.Count = (uint)stylesheet.NumberingFormats.ChildElements.Count;
+
+                stylesheet.CellFormats ??= new CellFormats(new CellFormat()) { Count = 1 };
+                stylesheet.CellFormats.Append(new CellFormat { NumberFormatId = 164U, ApplyNumberFormat = true });
+                stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.ChildElements.Count;
+
+                var cell = document._spreadSheetDocument.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().First(c => c.CellReference == "A1");
+                cell.StyleIndex = stylesheet.CellFormats.Count!.Value - 1;
+                stylesPart.Stylesheet.Save();
+
+                var exception = Record.Exception(() => sheet.AutoFitColumns());
+                Assert.Null(exception);
+                document.Save();
+            }
+        }
+
+        [Fact]
         public void Test_AutoFit_UsesFormattedDisplayTextForNumbersAndDates() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.FormattedDisplayText.xlsx");
             var date = new DateTime(2026, 5, 7);

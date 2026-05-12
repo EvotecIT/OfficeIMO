@@ -92,11 +92,12 @@ namespace OfficeIMO.Excel {
             string text = cellRef!;
             int start = 0;
             int length = text.Length;
-            TrimStart(text, ref start, ref length);
+            TrimBounds(text, ref start, ref length);
             int col = 0;
 
             int end = start + length;
-            for (int i = start; i < end; i++) {
+            int i = start;
+            for (; i < end; i++) {
                 char ch = ToUpperAscii(text[i]);
                 if (ch < 'A' || ch > 'Z') {
                     break;
@@ -110,7 +111,26 @@ namespace OfficeIMO.Excel {
                 col = col * 26 + value;
             }
 
-            return col;
+            if (i == start || i == end) {
+                return 0;
+            }
+
+            int row = 0;
+            for (; i < end; i++) {
+                char ch = text[i];
+                if (ch < '0' || ch > '9') {
+                    return 0;
+                }
+
+                int digit = ch - '0';
+                if (row > (int.MaxValue - digit) / 10) {
+                    return 0;
+                }
+
+                row = row * 10 + digit;
+            }
+
+            return row > 0 ? col : 0;
         }
 
         /// <summary>
