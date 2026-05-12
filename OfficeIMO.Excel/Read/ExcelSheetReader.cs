@@ -38,7 +38,7 @@ namespace OfficeIMO.Excel {
             foreach (var row in sheetData.Elements<Row>()) {
                 var rIndex = checked((int)row.RowIndex!.Value);
                 foreach (var cell in row.Elements<Cell>()) {
-                    var (_, cIndex) = A1.ParseCellRef(cell.CellReference?.Value ?? string.Empty);
+                    int cIndex = A1.ParseColumnIndexFromCellReference(cell.CellReference?.Value);
                     var value = ConvertCell(cell);
                     if (value is not null || CellHasExplicitBlank(cell))
                         yield return new CellValueInfo(rIndex, cIndex, value);
@@ -66,18 +66,13 @@ namespace OfficeIMO.Excel {
             var inline = cell.InlineString;
             if (inline?.Text?.Text != null) return inline.Text.Text;
             if (inline?.HasChildren == true) {
-                var runs = inline.Elements<Run>().Select(r => r.Text?.Text ?? string.Empty);
-                return string.Concat(runs);
+                return SharedStringCache.GetRunText(inline);
             }
             return null;
         }
 
         private object? ConvertCell(Cell cell) {
-            var cellRef = cell.CellReference?.Value;
-            var coords = cellRef != null ? A1.ParseCellRef(cellRef) : (Row: 0, Col: 0);
             var raw = new CellRaw {
-                Row = coords.Row,
-                Col = coords.Col,
                 TypeHint = cell.DataType?.Value,
                 StyleIndex = cell.StyleIndex?.Value,
                 HasFormula = cell.CellFormula is not null,

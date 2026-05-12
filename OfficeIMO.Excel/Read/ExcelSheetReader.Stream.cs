@@ -121,8 +121,7 @@ namespace OfficeIMO.Excel {
                     if (!rowMap.TryGetValue(absoluteRow, out var rowEl)) continue;
 
                     foreach (var cell in rowEl.Elements<Cell>()) {
-                        if (cell.CellReference?.Value is null) continue;
-                        var (r, c) = A1.ParseCellRef(cell.CellReference.Value);
+                        int c = A1.ParseColumnIndexFromCellReference(cell.CellReference?.Value);
                         if (c < cc1 || c > cc2) continue;
                         var val = ConvertCell(cell);
                         outRows[i][c - cc1] = val ?? outRows[i][c - cc1];

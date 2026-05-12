@@ -45,8 +45,7 @@ namespace OfficeIMO.Excel {
                 bool hasCells = false;
 
                 foreach (var cell in row.Elements<Cell>()) {
-                    if (cell.CellReference?.Value is null) continue;
-                    var (rr, cc) = A1.ParseCellRef(cell.CellReference.Value);
+                    int cc = A1.ParseColumnIndexFromCellReference(cell.CellReference?.Value);
                     if (cc < c1 || cc > c2) continue;
                     var val = ConvertCell(cell);
                     arr[cc - c1] = val ?? arr[cc - c1];

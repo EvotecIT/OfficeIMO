@@ -30,8 +30,7 @@ namespace OfficeIMO.Excel {
 
                 object? value = null;
                 foreach (var cell in row.Elements<Cell>()) {
-                    if (cell.CellReference?.Value is null) continue;
-                    var (rr, cc) = A1.ParseCellRef(cell.CellReference.Value);
+                    int cc = A1.ParseColumnIndexFromCellReference(cell.CellReference?.Value);
                     if (cc != c1) continue;
                     value = ConvertCell(cell);
                     break;

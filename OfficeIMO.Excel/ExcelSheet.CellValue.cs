@@ -262,6 +262,112 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private void ApplyAutomaticCellFormattingForAppendedCell(
+            Cell cell,
+            object? value,
+            EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>? dataType,
+            ref uint? dateStyleIndex,
+            ref uint? durationStyleIndex,
+            ref uint? wrapStyleIndex) {
+            bool wroteNumber = dataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
+
+            if (wroteNumber && (value is DateTime || value is DateTimeOffset)) {
+                dateStyleIndex ??= GetOrCreateDefaultBuiltInNumberFormatStyleIndex(14);
+                cell.StyleIndex = dateStyleIndex.Value;
+                return;
+            }
+
+            if (value is TimeSpan) {
+                durationStyleIndex ??= GetOrCreateDefaultBuiltInNumberFormatStyleIndex(46);
+                cell.StyleIndex = durationStyleIndex.Value;
+                return;
+            }
+
+            if (value is string s && (s.Contains("\n") || s.Contains("\r"))) {
+                wrapStyleIndex ??= GetOrCreateDefaultWrapTextStyleIndex();
+                cell.StyleIndex = wrapStyleIndex.Value;
+            }
+        }
+
+        private uint GetOrCreateDefaultBuiltInNumberFormatStyleIndex(uint builtInFormatId) {
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+            WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
+            if (stylesPart == null) {
+                stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
+            }
+
+            Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            EnsureDefaultStylePrimitives(stylesheet);
+
+            var cellFormatsEl = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+            uint index = 0;
+            foreach (var format in cellFormatsEl.Elements<CellFormat>()) {
+                if ((format.NumberFormatId?.Value ?? 0U) == builtInFormatId
+                    && format.ApplyNumberFormat?.Value == true
+                    && (format.FontId?.Value ?? 0U) == 0U
+                    && (format.FillId?.Value ?? 0U) == 0U
+                    && (format.BorderId?.Value ?? 0U) == 0U
+                    && (format.FormatId?.Value ?? 0U) == 0U) {
+                    return index;
+                }
+
+                index++;
+            }
+
+            var newFormat = new CellFormat {
+                NumberFormatId = builtInFormatId,
+                FontId = 0U,
+                FillId = 0U,
+                BorderId = 0U,
+                FormatId = 0U,
+                ApplyNumberFormat = true
+            };
+            cellFormatsEl.Append(newFormat);
+            cellFormatsEl.Count = index + 1U;
+            stylesPart.Stylesheet.Save();
+            return index;
+        }
+
+        private uint GetOrCreateDefaultWrapTextStyleIndex() {
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+            WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
+            if (stylesPart == null) {
+                stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
+            }
+
+            Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            EnsureDefaultStylePrimitives(stylesheet);
+
+            var cellFormatsEl = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+            uint index = 0;
+            foreach (var format in cellFormatsEl.Elements<CellFormat>()) {
+                if ((format.NumberFormatId?.Value ?? 0U) == 0U
+                    && (format.FontId?.Value ?? 0U) == 0U
+                    && (format.FillId?.Value ?? 0U) == 0U
+                    && (format.BorderId?.Value ?? 0U) == 0U
+                    && (format.FormatId?.Value ?? 0U) == 0U
+                    && format.Alignment?.WrapText?.Value == true) {
+                    return index;
+                }
+
+                index++;
+            }
+
+            var newFormat = new CellFormat {
+                NumberFormatId = 0U,
+                FontId = 0U,
+                FillId = 0U,
+                BorderId = 0U,
+                FormatId = 0U,
+                ApplyAlignment = true,
+                Alignment = new Alignment { WrapText = true }
+            };
+            cellFormatsEl.Append(newFormat);
+            cellFormatsEl.Count = index + 1U;
+            stylesPart.Stylesheet.Save();
+            return index;
+        }
+
         private void ApplyWrapText(Cell cell) {
             var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;

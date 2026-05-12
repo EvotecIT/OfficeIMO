@@ -1,5 +1,7 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using System.Text;
 
 namespace OfficeIMO.Excel {
     internal sealed class SharedStringCache {
@@ -16,11 +18,31 @@ namespace OfficeIMO.Excel {
                 if (item.Text?.Text != null)
                     list.Add(item.Text.Text);
                 else if (item.HasChildren)
-                    list.Add(string.Concat(item.Elements<Run>().Select(r => r.Text?.Text ?? string.Empty)));
+                    list.Add(GetRunText(item));
                 else
                     list.Add(string.Empty);
             }
             return new SharedStringCache(list);
+        }
+
+        internal static string GetRunText(OpenXmlElement parent) {
+            string? first = null;
+            StringBuilder? builder = null;
+
+            foreach (var run in parent.Elements<Run>()) {
+                string text = run.Text?.Text ?? string.Empty;
+                if (builder != null) {
+                    builder.Append(text);
+                } else if (first == null) {
+                    first = text;
+                } else {
+                    builder = new StringBuilder(first.Length + text.Length);
+                    builder.Append(first);
+                    builder.Append(text);
+                }
+            }
+
+            return builder?.ToString() ?? first ?? string.Empty;
         }
 
         public string? Get(int index) {

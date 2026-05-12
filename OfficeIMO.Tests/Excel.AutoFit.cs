@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -204,6 +205,73 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AutoFitColumnsFor_BatchApplySplitsSpanningColumnOnce() {
+            string filePath = Path.Combine(_directoryWithFiles, "AutoFit.BatchSplitColumn.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Very long text that should expand the first column significantly");
+                sheet.CellValue(1, 2, "Keep");
+                sheet.CellValue(1, 3, "Very long text that should expand the third column significantly");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var worksheet = wsPart.Worksheet;
+                var columns = worksheet.GetFirstChild<Columns>() ?? worksheet.InsertAt(new Columns(), 0);
+                columns.RemoveAllChildren();
+                columns.Append(new Column { Min = 1, Max = 3, Width = 10, CustomWidth = true });
+                worksheet.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var sheet = document.Sheets.First();
+                sheet.AutoFitColumnsFor(new[] { 1, 3 });
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cols = wsPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>().ToList();
+                Assert.Equal(new uint[] { 1, 2, 3 }, cols.Select(c => c.Min!.Value).ToArray());
+
+                var column1 = cols.First(c => c.Min != null && c.Max != null && c.Min.Value == 1 && c.Max.Value == 1);
+                var column2 = cols.First(c => c.Min != null && c.Max != null && c.Min.Value == 2 && c.Max.Value == 2);
+                var column3 = cols.First(c => c.Min != null && c.Max != null && c.Min.Value == 3 && c.Max.Value == 3);
+
+                Assert.True(column1.BestFit?.Value ?? false);
+                Assert.True(column3.BestFit?.Value ?? false);
+                Assert.Equal(10.0, column2.Width!.Value);
+                Assert.False(column2.BestFit?.Value ?? false);
+
+                OpenXmlValidator validator = new();
+                Assert.Empty(validator.Validate(spreadsheet));
+            }
+        }
+
+        [Fact]
+        public void Test_AutoFitColumns_DeferredWorksheetSavePersistsOnDispose() {
+            string filePath = Path.Combine(_directoryWithFiles, "AutoFit.DeferredWorksheetSave.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.Execution.SaveWorksheetAfterAutoFit = false;
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Very long text that should still persist after deferred AutoFit save");
+                sheet.AutoFitColumns();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var column = wsPart.Worksheet.GetFirstChild<Columns>()?.Elements<Column>().FirstOrDefault(c => c.Min?.Value == 1 && c.Max?.Value == 1);
+                Column nonNullColumn = Assert.IsType<Column>(column);
+                Assert.True(nonNullColumn.BestFit?.Value ?? false);
+                Assert.True(nonNullColumn.Width?.Value > 0);
+
+                OpenXmlValidator validator = new();
+                Assert.Empty(validator.Validate(spreadsheet));
+            }
+        }
+
+        [Fact]
         public void Test_AutoFitColumns_ClampsToExcelMaxWidth() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.MaxWidth.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
@@ -390,6 +458,29 @@ namespace OfficeIMO.Tests {
                 Assert.True(Width(3) > Width(4));
                 Assert.True(Width(5) > Width(6));
             }
+        }
+
+        [Fact]
+        public void Test_AutoFitColumns_ReportsTimingSubStages() {
+            string filePath = Path.Combine(_directoryWithFiles, "AutoFit.Timing.xlsx");
+            var timings = new List<(string Operation, TimeSpan Elapsed)>();
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.Execution.OnTiming = (operation, elapsed) => timings.Add((operation, elapsed));
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Long text for timing instrumentation");
+                sheet.CellValue(2, 1, "Repeated shared string text");
+                sheet.CellValue(3, 1, "Repeated shared string text");
+                sheet.CellValue(1, 2, 1234.5);
+                sheet.AutoFitColumns();
+                document.Save();
+            }
+
+            var operations = timings.Select(t => t.Operation).ToArray();
+            Assert.Contains("AutoFitColumns.BuildPlan", operations);
+            Assert.Contains("AutoFitColumns.CalculateWidths", operations);
+            Assert.Contains("AutoFitColumns.ApplyWidths", operations);
+            Assert.All(timings, timing => Assert.True(timing.Elapsed >= TimeSpan.Zero));
         }
 
         [Fact]

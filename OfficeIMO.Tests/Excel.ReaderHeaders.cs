@@ -4,6 +4,8 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -45,6 +47,32 @@ namespace OfficeIMO.Tests {
 
         private sealed class StrictMappedRow {
             public string? Name { get; set; }
+        }
+
+        private static void AssertRangeEqual(object?[,] expected, object?[,] actual) {
+            Assert.Equal(expected.GetLength(0), actual.GetLength(0));
+            Assert.Equal(expected.GetLength(1), actual.GetLength(1));
+
+            for (int r = 0; r < expected.GetLength(0); r++) {
+                for (int c = 0; c < expected.GetLength(1); c++) {
+                    Assert.Equal(expected[r, c], actual[r, c]);
+                }
+            }
+        }
+
+        private static void AssertDataTablesEqual(DataTable expected, DataTable actual) {
+            Assert.Equal(expected.Columns.Count, actual.Columns.Count);
+            Assert.Equal(expected.Rows.Count, actual.Rows.Count);
+
+            for (int c = 0; c < expected.Columns.Count; c++) {
+                Assert.Equal(expected.Columns[c].ColumnName, actual.Columns[c].ColumnName);
+            }
+
+            for (int r = 0; r < expected.Rows.Count; r++) {
+                for (int c = 0; c < expected.Columns.Count; c++) {
+                    Assert.Equal(expected.Rows[r][c], actual.Rows[r][c]);
+                }
+            }
         }
 
         [Fact]
@@ -99,6 +127,285 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("OK", table.Rows[0]["Status"]);
                 Assert.Equal("Warning", table.Rows[0]["Status_2"]);
                 Assert.Equal("Error", table.Rows[0]["status_3"]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRange_ForcedExecutionModesReturnSameValues() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderExecutionModes.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    sheet.CellValue(1, 2, "Amount");
+                    sheet.CellValue(1, 3, "Active");
+                    sheet.CellValue(2, 1, "Alpha");
+                    sheet.CellValue(2, 2, 12.5d);
+                    sheet.CellValue(2, 3, true);
+                    sheet.CellValue(3, 1, "Beta");
+                    sheet.CellValue(3, 2, 25d);
+                    sheet.CellValue(3, 3, false);
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var sheetReader = reader.GetSheet("Data");
+
+                object?[,] automatic = sheetReader.ReadRange("A1:C3");
+                object?[,] sequential = sheetReader.ReadRange("A1:C3", ExecutionMode.Sequential);
+                object?[,] parallel = sheetReader.ReadRange("A1:C3", ExecutionMode.Parallel);
+
+                AssertRangeEqual(automatic, sequential);
+                AssertRangeEqual(automatic, parallel);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRangeAsDataTable_ForcedExecutionModesReturnSameValues() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderDataTableExecutionModes.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    sheet.CellValue(1, 2, "Amount");
+                    sheet.CellValue(1, 3, "Active");
+                    sheet.CellValue(2, 1, "Alpha");
+                    sheet.CellValue(2, 2, 12.5d);
+                    sheet.CellValue(3, 1, "Beta");
+                    sheet.CellValue(3, 3, true);
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var sheetReader = reader.GetSheet("Data");
+
+                DataTable automatic = sheetReader.ReadRangeAsDataTable("A1:C3");
+                DataTable sequential = sheetReader.ReadRangeAsDataTable("A1:C3", mode: ExecutionMode.Sequential);
+                DataTable parallel = sheetReader.ReadRangeAsDataTable("A1:C3", mode: ExecutionMode.Parallel);
+
+                AssertDataTablesEqual(automatic, sequential);
+                AssertDataTablesEqual(automatic, parallel);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRangeAsDataTable_WithoutHeadersPreservesAllRowsAndBlankCells() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderDataTableNoHeaders.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Alpha");
+                    sheet.CellValue(1, 3, 10);
+                    sheet.CellValue(2, 2, "Beta");
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                DataTable table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:C2", headersInFirstRow: false);
+
+                Assert.Equal(new[] { "Column1", "Column2", "Column3" }, table.Columns.Cast<DataColumn>().Select(c => c.ColumnName).ToArray());
+                Assert.Equal(2, table.Rows.Count);
+                Assert.Equal("Alpha", table.Rows[0]["Column1"]);
+                Assert.Equal(DBNull.Value, table.Rows[0]["Column2"]);
+                Assert.Equal(10d, table.Rows[0]["Column3"]);
+                Assert.Equal(DBNull.Value, table.Rows[1]["Column1"]);
+                Assert.Equal("Beta", table.Rows[1]["Column2"]);
+                Assert.Equal(DBNull.Value, table.Rows[1]["Column3"]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRangeAsDataTable_ReportsOwnExecutionDecision() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderDataTableDecision.xlsx");
+            var decisions = new List<(string Operation, int Items, ExecutionMode Mode)>();
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    sheet.CellValue(1, 2, "Value");
+                    sheet.CellValue(2, 1, "Alpha");
+                    sheet.CellValue(2, 2, 1);
+                    document.Save();
+                }
+
+                var options = new ExcelReadOptions();
+                options.Execution.OperationThresholds["ReadRangeAsDataTable"] = 1;
+                options.Execution.OnDecision = (operation, items, mode) => decisions.Add((operation, items, mode));
+
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                DataTable table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:B2");
+
+                Assert.Single(table.Rows);
+                var decision = Assert.Single(decisions);
+                Assert.Equal("ReadRangeAsDataTable", decision.Operation);
+                Assert.Equal(4, decision.Items);
+                Assert.Equal(ExecutionMode.Parallel, decision.Mode);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_TypedObjects_ReportsOwnExecutionDecision() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderTypedObjectsDecision.xlsx");
+            var decisions = new List<(string Operation, int Items, ExecutionMode Mode)>();
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    sheet.CellValue(1, 2, "Ignored");
+                    sheet.CellValue(2, 1, "Alpha");
+                    sheet.CellValue(2, 2, "Value");
+                    document.Save();
+                }
+
+                var options = new ExcelReadOptions();
+                options.Execution.OperationThresholds["ReadObjectsAs"] = 1;
+                options.Execution.OnDecision = (operation, items, mode) => decisions.Add((operation, items, mode));
+
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                var row = Assert.Single(reader.GetSheet("Data").ReadObjects<StrictMappedRow>("A1:B2"));
+
+                Assert.Equal("Alpha", row.Name);
+                var decision = Assert.Single(decisions);
+                Assert.Equal("ReadObjectsAs", decision.Operation);
+                Assert.Equal(4, decision.Items);
+                Assert.Equal(ExecutionMode.Parallel, decision.Mode);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRange_PreservesRichSharedAndInlineStrings() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderRichStrings.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Shared");
+                    sheet.CellValue(1, 2, "Inline");
+                    sheet.CellValue(2, 1, "placeholder");
+                    sheet.CellValue(2, 2, "placeholder");
+                    document.Save();
+                }
+
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                    var sheetData = worksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+                    var row = sheetData.Elements<Row>().First(r => r.RowIndex?.Value == 2);
+                    var sharedCell = row.Elements<Cell>().First(c => c.CellReference?.Value == "A2");
+                    var inlineCell = row.Elements<Cell>().First(c => c.CellReference?.Value == "B2");
+
+                    int sharedIndex = int.Parse(sharedCell.CellValue!.Text);
+                    var sharedTable = spreadsheet.WorkbookPart!.SharedStringTablePart!.SharedStringTable!;
+                    sharedTable.ReplaceChild(
+                        new SharedStringItem(
+                            new Run(new Text("Shared ")),
+                            new Run(new Text("Rich"))),
+                        sharedTable.Elements<SharedStringItem>().ElementAt(sharedIndex));
+
+                    inlineCell.CellValue = null;
+                    inlineCell.DataType = CellValues.InlineString;
+                    inlineCell.InlineString = new InlineString(
+                        new Run(new Text("Inline ")),
+                        new Run(new Text("Rich")));
+
+                    sharedTable.Save();
+                    worksheetPart.Worksheet.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                object?[,] values = reader.GetSheet("Data").ReadRange("A2:B2");
+
+                Assert.Equal("Shared Rich", values[0, 0]);
+                Assert.Equal("Inline Rich", values[0, 1]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Sheet_Rows_CanBeEnumeratedAfterReaderScopeDisposes() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderRowsMaterialized.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    sheet.CellValue(1, 2, "Amount");
+                    sheet.CellValue(2, 1, "Alpha");
+                    sheet.CellValue(2, 2, 12.5d);
+                    document.Save();
+                }
+
+                IEnumerable<Dictionary<string, object?>> rows;
+                using (var document = ExcelDocument.Load(filePath)) {
+                    rows = document.GetSheet("Data").Rows("A1:B2");
+                }
+
+                var row = Assert.Single(rows);
+                Assert.Equal("Alpha", row["Name"]);
+                Assert.Equal(12.5d, row["Amount"]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Sheet_RowsAs_CanBeEnumeratedAfterReaderScopeDisposes() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderRowsAsMaterialized.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "First Name");
+                    sheet.CellValue(1, 2, "First Name");
+                    sheet.CellValue(1, 3, "Total Amount 2");
+                    sheet.CellValue(2, 1, "Alpha");
+                    sheet.CellValue(2, 2, "Beta");
+                    sheet.CellValue(2, 3, 42);
+                    document.Save();
+                }
+
+                IEnumerable<FriendlyHeaderRow> rows;
+                using (var document = ExcelDocument.Load(filePath)) {
+                    rows = document.GetSheet("Data").RowsAs<FriendlyHeaderRow>("A1:C2");
+                }
+
+                var row = Assert.Single(rows);
+                Assert.Equal("Alpha", row.FirstName);
+                Assert.Equal("Beta", row.FirstName_2);
+                Assert.Equal(42, row.TotalAmount2);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

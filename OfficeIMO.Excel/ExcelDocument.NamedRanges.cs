@@ -408,8 +408,8 @@ namespace OfficeIMO.Excel {
             c1 = Math.Max(1, Math.Min(MaxCol, c1));
             c2 = Math.Max(1, Math.Min(MaxCol, c2));
 
-            string start = $"${A1.ColumnIndexToLetters(c1)}${r1}";
-            string end = $"${A1.ColumnIndexToLetters(c2)}${r2}";
+            string start = A1.AbsoluteCellReference(r1, c1);
+            string end = A1.AbsoluteCellReference(r2, c2);
 
             string normalized = start;
             if (start != end) {

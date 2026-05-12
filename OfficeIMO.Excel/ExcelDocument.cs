@@ -521,6 +521,53 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        internal Dictionary<string, int> GetSharedStringIndices(IEnumerable<string> texts) {
+            if (texts == null) {
+                throw new ArgumentNullException(nameof(texts));
+            }
+
+            lock (_sharedStringLock) {
+                var sharedStringTable = SharedStringTablePart.SharedStringTable ??= new SharedStringTable();
+                int tableCount;
+
+                if (_sharedStringCache.Count == 0) {
+                    tableCount = 0;
+                    foreach (SharedStringItem item in sharedStringTable.Elements<SharedStringItem>()) {
+                        _sharedStringCache[item.InnerText] = tableCount;
+                        tableCount++;
+                    }
+                } else {
+                    tableCount = sharedStringTable.Elements<SharedStringItem>().Count();
+                }
+
+                var result = new Dictionary<string, int>(StringComparer.Ordinal);
+                bool changed = false;
+
+                foreach (string text in texts) {
+                    if (result.ContainsKey(text)) {
+                        continue;
+                    }
+
+                    if (_sharedStringCache.TryGetValue(text, out int existingIndex)) {
+                        result[text] = existingIndex;
+                        continue;
+                    }
+
+                    int newIndex = tableCount++;
+                    sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
+                    _sharedStringCache[text] = newIndex;
+                    result[text] = newIndex;
+                    changed = true;
+                }
+
+                if (changed) {
+                    sharedStringTable.Save();
+                }
+
+                return result;
+            }
+        }
+
         /// <summary>
         /// Creates a new Excel document at the specified path.
         /// </summary>

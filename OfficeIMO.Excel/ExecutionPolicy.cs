@@ -44,7 +44,9 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Optional timing callback invoked by long-running operations to report elapsed time.
-        /// Provides a lightweight hook for performance monitoring in large workbooks.
+        /// Provides a lightweight hook for performance monitoring in large workbooks. Operation
+        /// names may include whole operations such as "AutoFitColumns" and scoped sub-stages such
+        /// as "AutoFitColumns.BuildPlan", "AutoFitColumns.CalculateWidths", or "AutoFitColumns.ApplyWidths".
         /// </summary>
         public Action<string, TimeSpan>? OnTiming { get; set; }
 
@@ -65,6 +67,13 @@ namespace OfficeIMO.Excel {
         /// are requested to avoid penalizing hot paths.
         /// </summary>
         public WorksheetValidationMode WorksheetValidation { get; set; } = WorksheetValidationMode.DiagnosticsOnly;
+
+        /// <summary>
+        /// Saves the worksheet part immediately after AutoFit mutates row heights or column widths.
+        /// Disable for large report-generation pipelines that call <see cref="ExcelDocument.Save()"/> or dispose
+        /// the document after a batch of worksheet mutations.
+        /// </summary>
+        public bool SaveWorksheetAfterAutoFit { get; set; } = true;
 
         /// <summary>
         /// Enables invoking <see cref="DocumentFormat.OpenXml.Validation.OpenXmlValidator"/> while debugging. This

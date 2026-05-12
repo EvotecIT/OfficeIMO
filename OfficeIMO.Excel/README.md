@@ -25,6 +25,7 @@ OfficeIMO.Excel provides a lightweight, typed, and ergonomic API for reading and
   - `Automatic` switches to parallel per operation when the workload exceeds a threshold.
   - `doc.Execution.MaxDegreeOfParallelism` caps parallelism (set to CPU count for best results).
   - Optional diagnostics callbacks: `OnDecision(op, items, mode)`, `OnTiming(op, elapsed)`.
+  - `doc.Execution.SaveWorksheetAfterAutoFit = false` defers AutoFit worksheet-part saves until `Save()`/dispose, which is faster for large report exports that batch all worksheet changes.
 - Safe across tasks:
   - Multiple tasks can operate on the same `ExcelDocument`; the library coordinates writes.
   - Multiple `ExcelDocument` instances can run in parallel without interaction.
@@ -36,6 +37,7 @@ using var doc = ExcelDocument.Create(path);
 // Prefer all cores for compute; keep writes safe
 doc.Execution.Mode = ExecutionMode.Automatic;
 doc.Execution.MaxDegreeOfParallelism = Environment.ProcessorCount;
+doc.Execution.SaveWorksheetAfterAutoFit = false; // report-export mode: save once at the document boundary
 doc.Execution.OnDecision = (op, n, m) => Console.WriteLine($"[Exec] {op}: {n} → {m}");
 // AutoFit with parallel compute
 var s = doc.AddWorkSheet("Data");

@@ -57,8 +57,8 @@ namespace OfficeIMO.Excel {
                 return "A1";
             }
 
-            string start = A1.ColumnIndexToLetters(minCol) + minRow.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            string end = A1.ColumnIndexToLetters(maxCol) + maxRow.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string start = A1.CellReference(minRow, minCol);
+            string end = A1.CellReference(maxRow, maxCol);
             return start == end ? start : start + ":" + end;
         }
 

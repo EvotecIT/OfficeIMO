@@ -30,12 +30,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            var map = new Dictionary<string, int>(StringComparer.Ordinal);
-            foreach (var s in _distinct.Keys) {
-                int idx = doc.GetSharedStringIndex(s);
-                map[s] = idx;
-            }
-            _finalIndex = map;
+            _finalIndex = doc.GetSharedStringIndices(_distinct.Keys);
         }
 
         /// <summary>
@@ -47,11 +42,11 @@ namespace OfficeIMO.Excel {
 
             // prepared.Val.Text currently holds the raw string; replace with index text
             var text = prepared.Val?.Text ?? string.Empty;
-            var sanitized = Utilities.ExcelSanitizer.SanitizeString(text);
-            if (_finalIndex.TryGetValue(sanitized, out int idx)) {
+            if (_finalIndex.TryGetValue(text, out int idx)) {
                 prepared.Val = new CellValue(idx.ToString(CultureInfo.InvariantCulture));
             } else {
                 // Fallback: if not found (shouldn't happen), keep as string cell
+                var sanitized = Utilities.ExcelSanitizer.SanitizeString(text);
                 prepared.Val = new CellValue(sanitized);
                 prepared.Type = DocumentFormat.OpenXml.Spreadsheet.CellValues.String;
             }

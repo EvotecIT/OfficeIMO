@@ -83,5 +83,28 @@ namespace OfficeIMO.Tests {
             }
             File.Delete(filePath);
         }
+
+        [Fact]
+        public void A1ParsingPreservesSimpleCellAndRangeSemantics() {
+            Assert.Equal((12, 28), A1.ParseCellRef(" ab12 "));
+            Assert.Equal((0, 0), A1.ParseCellRef("A"));
+            Assert.Equal((0, 0), A1.ParseCellRef("A0"));
+            Assert.Equal((0, 0), A1.ParseCellRef("A1:B2"));
+
+            Assert.True(A1.TryParseRange(" c10 : a2 ", out int r1, out int c1, out int r2, out int c2));
+            Assert.Equal((2, 1, 10, 3), (r1, c1, r2, c2));
+
+            Assert.False(A1.TryParseRange("A1", out _, out _, out _, out _));
+            Assert.Equal(28, A1.ColumnLettersToIndex("a-b1"));
+            Assert.Equal("A", A1.ColumnIndexToLetters(0));
+            Assert.Equal("A", A1.ColumnIndexToLetters(1));
+            Assert.Equal("Z", A1.ColumnIndexToLetters(26));
+            Assert.Equal("AA", A1.ColumnIndexToLetters(27));
+            Assert.Equal("AB", A1.ColumnIndexToLetters(28));
+            Assert.Equal("XFD", A1.ColumnIndexToLetters(16384));
+            Assert.Equal("AB12", A1.CellReference(12, 28));
+            Assert.Throws<ArgumentOutOfRangeException>(() => A1.CellReference(0, 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => A1.CellReference(1, 0));
+        }
     }
 }

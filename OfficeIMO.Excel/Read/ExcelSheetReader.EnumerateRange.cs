@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel {
                 if (rIndex > r2) break;
 
                 foreach (var cell in row.Elements<Cell>()) {
-                    var (_, cIndex) = A1.ParseCellRef(cell.CellReference?.Value ?? string.Empty);
+                    int cIndex = A1.ParseColumnIndexFromCellReference(cell.CellReference?.Value);
                     if (cIndex < c1 || cIndex > c2) continue;
                     var value = ConvertCell(cell);
                     if (value is not null || CellHasExplicitBlank(cell))
