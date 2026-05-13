@@ -48,7 +48,7 @@ Generate a write-stage profile to identify where report-export time is spent:
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-write .\Docs\benchmarks\officeimo.excel.write-profile.json
 ```
 
-Generate a read-stage profile to compare automatic, forced sequential, forced parallel range conversion, and sparse row/column reads:
+Generate a read-stage profile to compare automatic, forced sequential, forced parallel range conversion, streaming typed object reads, and sparse row/column reads:
 
 ```powershell
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-read .\Docs\benchmarks\officeimo.excel.read-profile.json
@@ -85,7 +85,7 @@ dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\
 By default this also launches the isolated legacy EPPlus helper. The helper accepts the same positional output path and `--out` aliases when run directly. For a faster current-library-only pass, add `--skip-legacy-epplus`. Use `--scenario` to run one or more targeted scenarios during tuning:
 
 ```powershell
-dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare --rows 2500 --scenario read-range --scenario read-objects
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare --rows 2500 --scenario read-range --scenario read-objects --scenario read-objects-stream
 ```
 
 The comparison command defaults to one warmup and three measured samples so quick checks stay quick. For less noisy local tuning, increase the sample count; the same settings are passed through to the isolated legacy EPPlus helper:
@@ -96,7 +96,7 @@ dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\
 
 Current-library comparison scenarios measure OfficeIMO, ClosedXML, and current EPPlus in rotated groups for each scenario so fixed library order does not decide the numbers. Legacy EPPlus still runs in a separate process because it uses a different package generation.
 
-The comparison command covers bulk report writes, append-style writes, dense range reads, bounded top-of-sheet reads, DataTable materialization, streaming range reads, bounded streaming reads, large sparse reads, typed object materialization, AutoFit on an existing workbook, large shared-string payloads, formula text reads, and shared-string reads. Read scenarios record deterministic value checksums as `OutputMetric`, so local comparisons can confirm that each library read equivalent content instead of only touching the same number of rows. The command fails if a read checksum differs across libraries, including legacy EPPlus. Write and AutoFit scenarios keep package-size metrics because each library serializes workbook parts differently. The comparison and read-profile JSON include the benchmark build configuration, and performance artifacts should be produced with `-c Release`. The command writes JSON under `Docs\benchmarks` by default and does not participate in CI.
+The comparison command covers bulk report writes, append-style writes, dense range reads, bounded top-of-sheet reads, DataTable materialization, streaming range reads, bounded streaming reads, large sparse reads, eager and streaming typed object materialization, AutoFit on an existing workbook, large shared-string payloads, formula text reads, and shared-string reads. Read scenarios record deterministic value checksums as `OutputMetric`, so local comparisons can confirm that each library read equivalent content instead of only touching the same number of rows. The command fails if a read checksum differs across libraries, including legacy EPPlus. Write and AutoFit scenarios keep package-size metrics because each library serializes workbook parts differently. The comparison and read-profile JSON include the benchmark build configuration, and performance artifacts should be produced with `-c Release`. The command writes JSON under `Docs\benchmarks` by default and does not participate in CI.
 
 The write profile also accepts `--rows`, which is the preferred way to investigate 25,000+ row report-export costs without running the full BenchmarkDotNet suite:
 

@@ -49,6 +49,7 @@ internal static class ExcelReadProfileRunner {
             new ReadProfileCase("ReadObjectsAs.Sequential", "Typed object materialization with forced sequential range conversion.", () => OfficeImoReadObjectsAs(workbookBytes, dataRange, ExecutionMode.Sequential)),
             new ReadProfileCase("ReadObjectsAs.Parallel", "Typed object materialization with forced parallel range conversion.", () => OfficeImoReadObjectsAs(workbookBytes, dataRange, ExecutionMode.Parallel))
         ], warmupIterations, measuredIterations));
+        scenarios.Add(Measure("OfficeIMO.Excel", "ReadObjectsStreamAs", "Streaming typed object materialization without full result buffering.", () => OfficeImoReadObjectsStreamAs(workbookBytes, dataRange), warmupIterations, measuredIterations));
         scenarios.AddRange(MeasureGroup("OfficeIMO.Excel", [
             new ReadProfileCase("ReadRange", "Dense 2D array read with automatic execution policy.", () => OfficeImoReadRange(workbookBytes, dataRange, null)),
             new ReadProfileCase("ReadRange.Sequential", "Dense 2D array read with forced sequential conversion.", () => OfficeImoReadRange(workbookBytes, dataRange, ExecutionMode.Sequential)),
@@ -154,6 +155,11 @@ internal static class ExcelReadProfileRunner {
     private static int OfficeImoReadObjectsAs(byte[] workbookBytes, string dataRange, ExecutionMode? mode) {
         using var reader = ExcelDocumentReader.Open(workbookBytes);
         return reader.GetSheet("Data").ReadObjects<ReadSalesRecord>(dataRange, mode).Count();
+    }
+
+    private static int OfficeImoReadObjectsStreamAs(byte[] workbookBytes, string dataRange) {
+        using var reader = ExcelDocumentReader.Open(workbookBytes);
+        return reader.GetSheet("Data").ReadObjectsStream<ReadSalesRecord>(dataRange).Count();
     }
 
     private static int OfficeImoReadRange(byte[] workbookBytes, string dataRange, ExecutionMode? mode) {

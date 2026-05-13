@@ -133,6 +133,11 @@ foreach (var row in s1.Rows()) {
 // Read a specific range and map to POCOs
 var people = s1.RowsAs<Person>("A1:C10").ToList();
 
+// Stream typed rows while the workbook remains open
+foreach (var person in s1.RowsAsStream<Person>("A1:C100000")) {
+    Console.WriteLine(person.Name);
+}
+
 // Friendly headers and explicit aliases are supported too
 var summaries = s1.RowsAs<StatusSummary>("E1:G10").ToList();
 
@@ -470,7 +475,7 @@ s.ColumnStyleByHeader("Misc").NumberFormat("0.00E+00");
 
 ## Status
 
-- Values-only read: available (`Read()` fluent APIs, `Rows`, `Rows("A1:C3")`, `RowsAs<T>`)
+- Values-only read: available (`Read()` fluent APIs, `Rows`, `Rows("A1:C3")`, `RowsAs<T>`, `RowsAsStream<T>`)
 - Editable rows: available (`RowsObjects()` / `Read().AsEditableRows()`)
 - Fluent write: available (`Compose(...)`, `AsFluent().Sheet(...)`)
 
