@@ -18,6 +18,8 @@ dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-read .\Docs\benchmarks\officeimo.excel.read-profile-YYYY-MM-DD.json
 ```
 
+Commands that write artifacts also accept `--out`, `--output`, or `--output-path` when an explicit output path is clearer than the positional form.
+
 Add `--website-data .\Website\data\benchmarks.json` to a snapshot run when the public benchmark table should be refreshed from the same measured values.
 
 Short aliases can be used when the default `Docs\benchmarks` output path is sufficient:

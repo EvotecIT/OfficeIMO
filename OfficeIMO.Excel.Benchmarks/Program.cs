@@ -6,8 +6,9 @@ if (IsCommand(args, "--snapshot", "snapshot")) {
     bool hasOutputPath = HasOutputPath(args);
     int rowCount = ParseRowCount(args, startIndex: hasOutputPath ? 2 : 1);
     string? websiteDataPath = ParseOptionValue(args, "--website-data", "--website-benchmarks");
+    string? outputPathOverride = ParseOutputPath(args);
     string outputPath = ExcelBenchmarkSnapshotRunner.WriteSnapshot(
-        hasOutputPath ? args[1] : BuildDefaultOutputPath("officeimo.excel.snapshot", rowCount),
+        outputPathOverride ?? BuildDefaultOutputPath("officeimo.excel.snapshot", rowCount),
         rowCount,
         websiteDataPath);
     Console.WriteLine($"Excel benchmark snapshot written to '{outputPath}'.");
@@ -20,8 +21,9 @@ if (IsCommand(args, "--snapshot", "snapshot")) {
 if (IsCommand(args, "--profile-write", "profile-write", "write-profile")) {
     bool hasOutputPath = HasOutputPath(args);
     int rowCount = ParseRowCount(args, startIndex: hasOutputPath ? 2 : 1);
+    string? outputPathOverride = ParseOutputPath(args);
     string outputPath = ExcelWriteProfileRunner.WriteProfile(
-        hasOutputPath ? args[1] : BuildDefaultOutputPath("officeimo.excel.write-profile", rowCount),
+        outputPathOverride ?? BuildDefaultOutputPath("officeimo.excel.write-profile", rowCount),
         rowCount);
     Console.WriteLine($"Excel write profile written to '{outputPath}'.");
     return;
@@ -32,8 +34,9 @@ if (IsCommand(args, "--profile-read", "profile-read", "read-profile")) {
     int rowCount = ParseRowCount(args, startIndex: hasOutputPath ? 2 : 1);
     int warmupIterations = ParsePositiveOption(args, "--warmup", "--warmups") ?? ExcelReadProfileRunner.DefaultWarmupIterations;
     int measuredIterations = ParsePositiveOption(args, "--iterations", "--measured-iterations", "--samples") ?? ExcelReadProfileRunner.DefaultMeasuredIterations;
+    string? outputPathOverride = ParseOutputPath(args);
     string outputPath = ExcelReadProfileRunner.WriteProfile(
-        hasOutputPath ? args[1] : BuildDefaultOutputPath("officeimo.excel.read-profile", rowCount),
+        outputPathOverride ?? BuildDefaultOutputPath("officeimo.excel.read-profile", rowCount),
         rowCount,
         warmupIterations,
         measuredIterations);
@@ -48,8 +51,9 @@ if (IsCommand(args, "--compare-libraries", "compare-libraries", "compare")) {
     string[] scenarioFilters = ParseOptionValues(args, "--scenario", "--scenarios");
     int warmupIterations = ParsePositiveOption(args, "--warmup", "--warmups") ?? ExcelLibraryComparisonRunner.DefaultWarmupIterations;
     int measuredIterations = ParsePositiveOption(args, "--iterations", "--measured-iterations", "--samples") ?? ExcelLibraryComparisonRunner.DefaultMeasuredIterations;
+    string? outputPathOverride = ParseOutputPath(args);
     string outputPath = ExcelLibraryComparisonRunner.WriteComparison(
-        hasOutputPath ? args[1] : BuildDefaultOutputPath("officeimo.excel.library-comparison", rowCount),
+        outputPathOverride ?? BuildDefaultOutputPath("officeimo.excel.library-comparison", rowCount),
         rowCount,
         includeLegacyEpPlus,
         scenarioFilters,
@@ -66,6 +70,10 @@ static bool IsCommand(string[] args, params string[] names)
 
 static bool HasOutputPath(string[] args)
     => args.Length >= 2 && !args[1].StartsWith("-", StringComparison.Ordinal);
+
+static string? ParseOutputPath(string[] args)
+    => ParseOptionValue(args, "--out", "--output", "--output-path")
+       ?? (HasOutputPath(args) ? args[1] : null);
 
 static string BuildDefaultOutputPath(string baseName, int rowCount) {
     string suffix = rowCount == 2500 ? string.Empty : "-" + rowCount.ToString(CultureInfo.InvariantCulture);

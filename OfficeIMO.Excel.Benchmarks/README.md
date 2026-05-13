@@ -75,10 +75,11 @@ Generate a local library comparison against ClosedXML and EPPlus:
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare --rows 2500
 ```
 
-To refresh the committed comparison artifact explicitly, pass the output path immediately after `compare`:
+To refresh the committed comparison artifact explicitly, pass the output path immediately after `compare` or with `--out`:
 
 ```powershell
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Docs\benchmarks\officeimo.excel.library-comparison.json --rows 2500
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare --out .\Docs\benchmarks\officeimo.excel.library-comparison.json --rows 2500
 ```
 
 By default this also launches the isolated legacy EPPlus helper. For a faster current-library-only pass, add `--skip-legacy-epplus`. Use `--scenario` to run one or more targeted scenarios during tuning:
