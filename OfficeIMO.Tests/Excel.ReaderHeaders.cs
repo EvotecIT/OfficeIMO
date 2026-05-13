@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Data;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -55,6 +56,12 @@ namespace OfficeIMO.Tests {
             public bool? Active { get; set; }
             public DateTime? CreatedOn { get; set; }
             public double? Amount { get; set; }
+        }
+
+        private sealed class DateStyledNumericTypedRow {
+            public double NumericValue { get; set; }
+            public DateTime DateValue { get; set; }
+            public string? TextValue { get; set; }
         }
 
         private static void AssertRangeEqual(object?[,] expected, object?[,] actual) {
@@ -958,6 +965,107 @@ namespace OfficeIMO.Tests {
                 Assert.Null(rows[1].Active);
                 Assert.Null(rows[1].CreatedOn);
                 Assert.Null(rows[1].Amount);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_TypedObjects_ParallelKeepsDateStyledNumericTargetsNumeric() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderDateStyledNumericTypedHeaders.xlsx");
+            const double serialValue = 1.5d;
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "NumericValue");
+                    sheet.CellValue(1, 2, "DateValue");
+                    sheet.CellValue(1, 3, "TextValue");
+                    sheet.CellValue(2, 1, serialValue);
+                    sheet.CellValue(2, 2, serialValue);
+                    sheet.CellValue(2, 3, serialValue);
+                    sheet.ColumnStyleByHeader("NumericValue").NumberFormat("[h]:mm");
+                    sheet.ColumnStyleByHeader("DateValue").NumberFormat("[h]:mm");
+                    sheet.ColumnStyleByHeader("TextValue").NumberFormat("[h]:mm");
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var row = Assert.Single(reader.GetSheet("Data").ReadObjects<DateStyledNumericTypedRow>("A1:C2", ExecutionMode.Parallel));
+
+                Assert.Equal(serialValue, row.NumericValue);
+                Assert.Equal(DateTime.FromOADate(serialValue), row.DateValue);
+                Assert.Equal(DateTime.FromOADate(serialValue).ToString(CultureInfo.InvariantCulture), row.TextValue);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_TypedObjects_ParallelHonorsHandledNullTypeConverterForDateStyledNumeric() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderDateStyledNumericTypeConverter.xlsx");
+            const double serialValue = 1.5d;
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "NumericValue");
+                    sheet.CellValue(2, 1, serialValue);
+                    sheet.ColumnStyleByHeader("NumericValue").NumberFormat("[h]:mm");
+                    document.Save();
+                }
+
+                var options = new ExcelReadOptions {
+                    TypeConverter = (value, targetType, culture) =>
+                        targetType == typeof(double) ? (true, null) : (false, null)
+                };
+
+                using var sequentialReader = ExcelDocumentReader.Open(filePath, options);
+                using var parallelReader = ExcelDocumentReader.Open(filePath, options);
+                var sequentialRow = Assert.Single(sequentialReader.GetSheet("Data").ReadObjects<DateStyledNumericTypedRow>("A1:A2", ExecutionMode.Sequential));
+                var row = Assert.Single(parallelReader.GetSheet("Data").ReadObjects<DateStyledNumericTypedRow>("A1:A2", ExecutionMode.Parallel));
+
+                Assert.Equal(sequentialRow.NumericValue, row.NumericValue);
+                Assert.Equal(0d, row.NumericValue);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_TypedObjects_ParallelHonorsHandledCellConverterForDateStyledNumeric() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderDateStyledNumericCellConverter.xlsx");
+            const double serialValue = 1.5d;
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "NumericValue");
+                    sheet.CellValue(2, 1, serialValue);
+                    sheet.ColumnStyleByHeader("NumericValue").NumberFormat("[h]:mm");
+                    document.Save();
+                }
+
+                var options = new ExcelReadOptions {
+                    CellValueConverter = context =>
+                        context.RawText == serialValue.ToString(CultureInfo.InvariantCulture)
+                            ? new ExcelCellValue("not-a-number")
+                            : ExcelCellValue.NotHandled
+                };
+
+                using var sequentialReader = ExcelDocumentReader.Open(filePath, options);
+                using var parallelReader = ExcelDocumentReader.Open(filePath, options);
+                var sequentialRow = Assert.Single(sequentialReader.GetSheet("Data").ReadObjects<DateStyledNumericTypedRow>("A1:A2", ExecutionMode.Sequential));
+                var row = Assert.Single(parallelReader.GetSheet("Data").ReadObjects<DateStyledNumericTypedRow>("A1:A2", ExecutionMode.Parallel));
+
+                Assert.Equal(sequentialRow.NumericValue, row.NumericValue);
+                Assert.Equal(0d, row.NumericValue);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

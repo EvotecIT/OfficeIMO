@@ -77,6 +77,7 @@ namespace OfficeIMO.Excel {
                 result.Add(new T());
             }
 
+            bool hasCustomConverters = _opt.CellValueConverter != null || _opt.TypeConverter != null;
             for (int i = 0; i < rawCells.Count; i++) {
                 if (canCancel && (i & 1023) == 0) {
                     ct.ThrowIfCancellationRequested();
@@ -99,6 +100,13 @@ namespace OfficeIMO.Excel {
                 }
 
                 object? converted = TryChangeType(cell.TypedValue, binding, _opt.Culture);
+                if (converted is null
+                    && !hasCustomConverters
+                    && ShouldRetryRawDateStyledNumericBinding(cell, binding)
+                    && TryConvertRawForBinding(cell, binding, out object? rawConverted)) {
+                    converted = rawConverted;
+                }
+
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
                 }
@@ -854,6 +862,28 @@ namespace OfficeIMO.Excel {
             }
 
             return TryConvertNumericTextForBinding(raw.RawText, binding, out converted);
+        }
+
+        private bool ShouldRetryRawDateStyledNumericBinding<TTarget>(
+            CellRaw raw,
+            TypedPropertyBinding<TTarget> binding) {
+            if (!_opt.TreatDatesUsingNumberFormat
+                || binding.NeedsDateStyleConversion
+                || !IsNumericBindingDestination(binding.DestinationType)
+                || raw.RawText == null
+                || raw.StyleIndex is null
+                || !_styles.IsDateLike(raw.StyleIndex.Value)) {
+                return false;
+            }
+
+            return double.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out _);
+        }
+
+        private static bool IsNumericBindingDestination(Type destinationType) {
+            return destinationType == typeof(int)
+                || destinationType == typeof(long)
+                || destinationType == typeof(double)
+                || destinationType == typeof(decimal);
         }
 
         private bool TryConvertNumericTextForBinding<TTarget>(
