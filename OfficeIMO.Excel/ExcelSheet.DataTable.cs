@@ -196,8 +196,7 @@ namespace OfficeIMO.Excel {
             }
 
             bool hasHeaderRow = (table.HeaderRowCount?.Value ?? 1U) > 0U;
-            bool hasSyntheticHeaders = HasSyntheticTableColumnNames(tableColumnNames);
-            DataTable appendTable = BuildAppendDataTable(dataTable, tableColumnNames, matchColumnsByHeader && hasHeaderRow && !hasSyntheticHeaders);
+            DataTable appendTable = BuildAppendDataTable(dataTable, tableColumnNames, matchColumnsByHeader && hasHeaderRow);
             if (appendTable.Rows.Count == 0) {
                 return currentRange!;
             }
@@ -293,20 +292,6 @@ namespace OfficeIMO.Excel {
             }
 
             return ordered;
-        }
-
-        private static bool HasSyntheticTableColumnNames(IReadOnlyList<string> tableColumnNames) {
-            if (tableColumnNames.Count == 0) {
-                return false;
-            }
-
-            for (int i = 0; i < tableColumnNames.Count; i++) {
-                if (!string.Equals(tableColumnNames[i], $"Column{i + 1}", StringComparison.OrdinalIgnoreCase)) {
-                    return false;
-                }
-            }
-
-            return true;
         }
 
         private static bool HasActiveTotalsRow(Table table) {

@@ -277,23 +277,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_AppendDataTableToTable_SyntheticHeadersUsePositionalMapping() {
-            string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableSyntheticHeaders.xlsx");
+        public void Test_AppendDataTableToTable_ColumnLikeHeadersUseHeaderMapping() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableColumnLikeHeaders.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Sales");
                 sheet.CellValue(1, 1, "Column1");
                 sheet.CellValue(1, 2, "Column2");
-                sheet.CellValue(2, 1, "NA");
-                sheet.CellValue(2, 2, 100);
-                sheet.AddTable("A1:B2", true, "SyntheticSales", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                sheet.CellValue(2, 1, "first");
+                sheet.CellValue(2, 2, "second");
+                sheet.AddTable("A1:B2", true, "ColumnNamedSales", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
 
                 var append = new DataTable();
-                append.Columns.Add("Region", typeof(string));
-                append.Columns.Add("Revenue", typeof(int));
-                append.Rows.Add("APAC", 150);
+                append.Columns.Add("Column2", typeof(string));
+                append.Columns.Add("Column1", typeof(string));
+                append.Rows.Add("fourth", "third");
 
-                Assert.Equal("A1:B3", sheet.AppendDataTableToTable(append, "SyntheticSales"));
+                Assert.Equal("A1:B3", sheet.AppendDataTableToTable(append, "ColumnNamedSales"));
                 document.Save();
             }
 
@@ -301,8 +301,8 @@ namespace OfficeIMO.Tests {
                 WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 TableDefinitionPart tablePart = worksheetPart.TableDefinitionParts.First();
                 Assert.Equal("A1:B3", tablePart.Table.Reference!.Value);
-                Assert.Equal("APAC", GetCellText(spreadsheet, worksheetPart, "A3"));
-                Assert.Equal("150", GetCellText(spreadsheet, worksheetPart, "B3"));
+                Assert.Equal("third", GetCellText(spreadsheet, worksheetPart, "A3"));
+                Assert.Equal("fourth", GetCellText(spreadsheet, worksheetPart, "B3"));
             }
 
             File.Delete(filePath);
