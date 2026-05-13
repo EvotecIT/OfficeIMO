@@ -13,18 +13,30 @@ namespace OfficeIMO.Excel {
         /// <param name="convert">Optional custom converter. If null, uses culture-aware conversion.</param>
         /// <param name="ct">Cancellation token.</param>
         public IEnumerable<T> ReadColumnAs<T>(string a1Range, Func<object, T>? convert = null, CancellationToken ct = default) {
+            bool canCancel = ct.CanBeCanceled;
             foreach (var obj in ReadColumn(a1Range, ct)) {
-                if (ct.IsCancellationRequested) yield break;
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
                 if (obj is null) {
                     yield return default(T)!;
                     continue;
                 }
+
+                T result;
                 if (convert != null) {
-                    yield return convert(obj);
+                    result = convert(obj);
                 } else {
-                    var val = TryChangeType(obj, typeof(T), _opt.Culture);
-                    yield return val is null ? default(T)! : (T)val;
+                    var val = TryChangeType(obj, targetType: typeof(T), culture: _opt.Culture);
+                    result = val is null ? default(T)! : (T)val;
                 }
+
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
+                yield return result;
             }
         }
 
@@ -37,9 +49,13 @@ namespace OfficeIMO.Excel {
         /// <param name="ct">Cancellation token.</param>
         public IEnumerable<T[]> ReadRowsAs<T>(string a1Range, Func<object, T>? convert = null, CancellationToken ct = default) {
             var (r1, _, _, _) = A1.ParseRange(a1Range);
+            bool canCancel = ct.CanBeCanceled;
             int offset = 0;
             foreach (var row in ReadRows(a1Range, ct)) {
-                if (ct.IsCancellationRequested) yield break;
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
                 int rowIndex = r1 + offset;
                 offset++;
                 if (row is null) {
@@ -47,6 +63,10 @@ namespace OfficeIMO.Excel {
                 }
                 var result = new T[row.Length];
                 for (int i = 0; i < row.Length; i++) {
+                    if (canCancel && (i & 1023) == 0) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
                     var obj = row[i];
                     if (obj is null) {
                         result[i] = default(T)!;
@@ -55,10 +75,15 @@ namespace OfficeIMO.Excel {
                     if (convert != null) {
                         result[i] = convert(obj);
                     } else {
-                        var val = TryChangeType(obj, typeof(T), _opt.Culture);
+                        var val = TryChangeType(obj, targetType: typeof(T), culture: _opt.Culture);
                         result[i] = val is null ? default(T)! : (T)val;
                     }
                 }
+
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
                 yield return result;
             }
         }
@@ -75,16 +100,34 @@ namespace OfficeIMO.Excel {
             int rows = values.GetLength(0);
             int cols = values.GetLength(1);
             var result = new T[rows, cols];
+            bool canCancel = ct.CanBeCanceled;
+            int convertedCells = 0;
+
+            if (canCancel) {
+                ct.ThrowIfCancellationRequested();
+            }
 
             for (int r = 0; r < rows; r++) {
-                if (ct.IsCancellationRequested) break;
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
                 for (int c = 0; c < cols; c++) {
+                    if (canCancel && (++convertedCells & 1023) == 0) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
                     var obj = values[r, c];
                     if (obj is null) {
                         result[r, c] = default(T)!;
                         continue;
                     }
-                    var val = TryChangeType(obj, typeof(T), _opt.Culture);
+
+                    var val = TryChangeType(obj, targetType: typeof(T), culture: _opt.Culture);
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
                     result[r, c] = val is null ? default(T)! : (T)val;
                 }
             }

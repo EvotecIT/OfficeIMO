@@ -1,6 +1,7 @@
 using System.Data;
 using System.ComponentModel;
 using System.Runtime.Serialization;
+using System.Xml.Linq;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -32,6 +33,11 @@ namespace OfficeIMO.Tests {
             public int CompletionPercent { get; set; }
         }
 
+        private sealed class CompatibilityScoreRow {
+            public string? Name { get; set; }
+            public int Score { get; set; }
+        }
+
         [Fact]
         public void Compatibility_Corpus_RecoverableContentTypes_StayInSyncAcrossPathAndStreamReaders() {
             string filePath = Path.Combine(_directoryWithFiles, "CompatibilityCorpus.RecoverableContentTypes.xlsx");
@@ -50,20 +56,28 @@ namespace OfficeIMO.Tests {
                     sheet.CellValue(3, 3, "Closed");
                 }, rewriteAppContentTypeToXml: true);
 
+                byte[] workbookBytes = File.ReadAllBytes(filePath);
                 using var pathReader = ExcelDocumentReader.Open(filePath);
-                using var streamReader = ExcelDocumentReader.Open(new MemoryStream(File.ReadAllBytes(filePath), writable: false));
+                using var streamReader = ExcelDocumentReader.Open(new MemoryStream(workbookBytes, writable: false));
+                using var bytesReader = ExcelDocumentReader.Open(workbookBytes);
 
                 var pathRows = pathReader.GetSheet("Data").ReadObjects("A1:C3").ToList();
                 var streamRows = streamReader.GetSheet("Data").ReadObjects("A1:C3").ToList();
+                var bytesRows = bytesReader.GetSheet("Data").ReadObjects("A1:C3").ToList();
 
                 Assert.Equal(pathReader.GetSheetNames(), streamReader.GetSheetNames());
+                Assert.Equal(pathReader.GetSheetNames(), bytesReader.GetSheetNames());
                 Assert.Equal(pathRows.Count, streamRows.Count);
+                Assert.Equal(pathRows.Count, bytesRows.Count);
                 Assert.Equal(pathRows[0]["Region"], streamRows[0]["Region"]);
                 Assert.Equal(pathRows[0]["Amount"], streamRows[0]["Amount"]);
                 Assert.Equal(pathRows[1]["Status"], streamRows[1]["Status"]);
+                Assert.Equal(pathRows[0]["Region"], bytesRows[0]["Region"]);
+                Assert.Equal(pathRows[0]["Amount"], bytesRows[0]["Amount"]);
+                Assert.Equal(pathRows[1]["Status"], bytesRows[1]["Status"]);
 
                 using var pathDocument = ExcelDocument.Load(filePath);
-                using var streamDocument = ExcelDocument.Load(new MemoryStream(File.ReadAllBytes(filePath), writable: false));
+                using var streamDocument = ExcelDocument.Load(new MemoryStream(workbookBytes, writable: false));
 
                 var pathEditable = pathDocument.GetSheet("Data").RowsObjects("A1:C3").ToList();
                 var streamEditable = streamDocument.GetSheet("Data").RowsObjects("A1:C3").ToList();
@@ -405,6 +419,95 @@ namespace OfficeIMO.Tests {
 
                 Assert.IsType<double>(row["EscapedHours"]);
                 Assert.Equal(7d, (double)row["EscapedHours"]!);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Compatibility_Corpus_NonCanonicalRowsAndMalformedReferences_ReadSafely() {
+            string filePath = Path.Combine(_directoryWithFiles, "CompatibilityCorpus.NonCanonicalRows.xlsx");
+
+            try {
+                ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    sheet.CellValue(1, 2, "Score");
+                    sheet.CellValue(2, 1, "First");
+                    sheet.CellValue(2, 2, 10);
+                    sheet.CellValue(3, 1, "Second");
+                    sheet.CellValue(3, 2, 20);
+                });
+
+                ExcelCompatibilityCorpusBuilder.RewriteWorksheetXml(filePath, "xl/worksheets/sheet1.xml", worksheet => {
+                    XNamespace ns = worksheet.Root!.Name.Namespace;
+                    var sheetData = worksheet.Root.Element(ns + "sheetData")!;
+                    var rows = sheetData.Elements(ns + "row").ToList();
+                    sheetData.RemoveNodes();
+
+                    sheetData.Add(rows[0]);
+                    sheetData.Add(rows[2]);
+                    sheetData.Add(rows[1]);
+
+                    var malformedCell = new XElement(ns + "c",
+                        new XAttribute("r", "TOTAL"),
+                        new XAttribute("t", "str"),
+                        new XElement(ns + "v", "Bad"));
+                    rows[1].Add(malformedCell);
+                    return worksheet;
+                });
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                object?[,] values = reader.GetSheet("Data").ReadRange("A1:B3", ExecutionMode.Sequential);
+                var objects = reader.GetSheet("Data").ReadObjects("A1:B3", ExecutionMode.Sequential).ToList();
+                var typedObjects = reader.GetSheet("Data").ReadObjects<CompatibilityScoreRow>("A1:B3", ExecutionMode.Sequential).ToList();
+
+                Assert.Equal("First", values[1, 0]);
+                Assert.Equal(10d, values[1, 1]);
+                Assert.Equal("Second", values[2, 0]);
+                Assert.Equal(20d, values[2, 1]);
+                Assert.Equal(2, objects.Count);
+                Assert.Equal("First", objects[0]["Name"]);
+                Assert.Equal("Second", objects[1]["Name"]);
+                Assert.Equal(2, typedObjects.Count);
+                Assert.Equal("First", typedObjects[0].Name);
+                Assert.Equal(10, typedObjects[0].Score);
+                Assert.Equal("Second", typedObjects[1].Name);
+                Assert.Equal(20, typedObjects[1].Score);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Compatibility_Corpus_TextHeavyCellValues_SaveAsValidWorkbook() {
+            string filePath = Path.Combine(_directoryWithFiles, "CompatibilityCorpus.TextHeavyCellValues.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Strings");
+                    var cells = Enumerable.Range(1, 300).SelectMany(row => new[] {
+                        (row, 1, (object)("Repeated " + row % 10)),
+                        (row, 2, (object)("Distinct " + row)),
+                        (row, 3, (object)("Long " + new string((char)('A' + row % 26), 80)))
+                    }).ToArray();
+                    sheet.CellValues(cells, ExecutionMode.Parallel);
+                    sheet.AutoFitColumns();
+                    document.Save();
+
+                    var validationErrors = document.ValidateDocument();
+                    Assert.Empty(validationErrors);
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                object?[,] values = reader.GetSheet("Strings").ReadRange("A1:C300");
+                Assert.Equal(900, values.Length);
+                Assert.Equal("Repeated 1", values[0, 0]);
+                Assert.Equal("Distinct 300", values[299, 1]);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

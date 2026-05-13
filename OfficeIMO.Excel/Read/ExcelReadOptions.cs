@@ -63,10 +63,10 @@ namespace OfficeIMO.Excel {
         /// Initializes reading defaults and per-operation thresholds.
         /// </summary>
         public ExcelReadOptions() {
-            Execution.OperationThresholds["ReadRange"] = 10_000;
+            Execution.OperationThresholds["ReadRange"] = 50_000;
             Execution.OperationThresholds["ReadRangeAsDataTable"] = 2_000;
-            Execution.OperationThresholds["ReadObjects"] = 2_000;
-            Execution.OperationThresholds["ReadObjectsAs"] = 2_000;
+            Execution.OperationThresholds["ReadObjects"] = 10_000;
+            Execution.OperationThresholds["ReadObjectsAs"] = 50_000;
             Execution.OperationThresholds["ReadRows"] = 20_000;
         }
     }

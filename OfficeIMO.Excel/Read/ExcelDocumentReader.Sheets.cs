@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
             var wb = WorkbookRoot;
             var sheet = wb.Sheets!.Elements<Sheet>().ElementAt(index - 1);
             var wsPart = (WorksheetPart)WorkbookPartRoot.GetPartById(sheet.Id!);
-            return new ExcelSheetReader(sheet.Name!, wsPart, _sst, _styles, _opt);
+            return new ExcelSheetReader(sheet.Name!, wsPart, _sst, _styles, _opt, _owns);
         }
 
         /// <summary>

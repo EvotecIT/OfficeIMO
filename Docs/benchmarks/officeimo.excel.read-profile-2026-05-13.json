@@ -1,0 +1,278 @@
+{
+  "GeneratedAtUtc": "2026-05-13T11:38:09.7638529Z",
+  "Framework": ".NET 8.0.27",
+  "MachineName": "EVOMAGIC",
+  "RowCount": 2500,
+  "Scenarios": [
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadObjects",
+      "Notes": "Automatic execution policy.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 72.88618,
+      "MedianMilliseconds": 65.4371,
+      "SamplesMilliseconds": [
+        64.3985,
+        71.4506,
+        65.4371,
+        65.2865,
+        97.8582
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadObjects.Sequential",
+      "Notes": "Forced sequential range conversion.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 67.39171999999999,
+      "MedianMilliseconds": 53.115,
+      "SamplesMilliseconds": [
+        104.2249,
+        91.8182,
+        53.115,
+        44.0453,
+        43.7552
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadObjects.Parallel",
+      "Notes": "Forced parallel range conversion.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 38.886739999999996,
+      "MedianMilliseconds": 39.3843,
+      "SamplesMilliseconds": [
+        37.7403,
+        37.0798,
+        39.3843,
+        40.7523,
+        39.477
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadObjectsAs",
+      "Notes": "Typed object materialization with automatic execution policy.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 46.765480000000004,
+      "MedianMilliseconds": 45.6765,
+      "SamplesMilliseconds": [
+        45.6765,
+        45.7414,
+        52.1998,
+        45.4093,
+        44.8004
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadObjectsAs.Sequential",
+      "Notes": "Typed object materialization with forced sequential range conversion.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 45.390859999999996,
+      "MedianMilliseconds": 45.1072,
+      "SamplesMilliseconds": [
+        44.817,
+        45.2811,
+        45.1047,
+        45.1072,
+        46.6443
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadObjectsAs.Parallel",
+      "Notes": "Typed object materialization with forced parallel range conversion.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 37.33306,
+      "MedianMilliseconds": 37.266,
+      "SamplesMilliseconds": [
+        36.3167,
+        38.7852,
+        37.266,
+        37.6808,
+        36.6166
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRange",
+      "Notes": "Dense 2D array read with automatic execution policy.",
+      "OutputMetric": 20008,
+      "AverageMilliseconds": 45.8568,
+      "MedianMilliseconds": 45.8352,
+      "SamplesMilliseconds": [
+        46.241,
+        45.557,
+        46.0661,
+        45.8352,
+        45.5847
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRange.Sequential",
+      "Notes": "Dense 2D array read with forced sequential conversion.",
+      "OutputMetric": 20008,
+      "AverageMilliseconds": 35.51951999999999,
+      "MedianMilliseconds": 30.7006,
+      "SamplesMilliseconds": [
+        45.0665,
+        44.3054,
+        30.7006,
+        29.9175,
+        27.6076
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRange.Parallel",
+      "Notes": "Dense 2D array read with forced parallel conversion.",
+      "OutputMetric": 20008,
+      "AverageMilliseconds": 21.49972,
+      "MedianMilliseconds": 21.4961,
+      "SamplesMilliseconds": [
+        21.4721,
+        21.4961,
+        21.5395,
+        21.4238,
+        21.5671
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRangeAsDataTable",
+      "Notes": "Automatic execution policy.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 26.54866,
+      "MedianMilliseconds": 26.4273,
+      "SamplesMilliseconds": [
+        26.4273,
+        26.3088,
+        26.8008,
+        27.0174,
+        26.189
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRangeAsDataTable.Sequential",
+      "Notes": "Forced sequential range conversion.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 31.872439999999994,
+      "MedianMilliseconds": 30.5968,
+      "SamplesMilliseconds": [
+        32.7713,
+        30.5968,
+        35.6041,
+        30.3134,
+        30.0766
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRangeAsDataTable.Parallel",
+      "Notes": "Forced parallel range conversion.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 26.29076,
+      "MedianMilliseconds": 26.0241,
+      "SamplesMilliseconds": [
+        26.0241,
+        26.7676,
+        25.8786,
+        26.0064,
+        26.7771
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRangeStream",
+      "Notes": "Streaming row chunks with automatic execution policy.",
+      "OutputMetric": 2501,
+      "AverageMilliseconds": 30.06626,
+      "MedianMilliseconds": 29.6118,
+      "SamplesMilliseconds": [
+        29.6118,
+        29.6811,
+        32.4505,
+        29.4164,
+        29.1715
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRangeStream.Sequential",
+      "Notes": "Streaming row chunks with forced sequential conversion.",
+      "OutputMetric": 2501,
+      "AverageMilliseconds": 29.35682,
+      "MedianMilliseconds": 29.3995,
+      "SamplesMilliseconds": [
+        29.3995,
+        29.4094,
+        29.4305,
+        29.3376,
+        29.2071
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRangeStream.Parallel",
+      "Notes": "Streaming row chunks with forced parallel conversion.",
+      "OutputMetric": 2501,
+      "AverageMilliseconds": 23.512819999999998,
+      "MedianMilliseconds": 22.7045,
+      "SamplesMilliseconds": [
+        23.3981,
+        22.5457,
+        26.6226,
+        22.2932,
+        22.7045
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadColumn.LargeSparse",
+      "Notes": "Sparse A1:A100001 read with only the first and last rows populated.",
+      "OutputMetric": 100001,
+      "AverageMilliseconds": 1.72882,
+      "MedianMilliseconds": 1.7132,
+      "SamplesMilliseconds": [
+        1.8079,
+        1.725,
+        1.7072,
+        1.6908,
+        1.7132
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRows.LargeSparse",
+      "Notes": "Sparse A1:A100001 row read with only the first and last rows populated.",
+      "OutputMetric": 100001,
+      "AverageMilliseconds": 1.77194,
+      "MedianMilliseconds": 1.7895,
+      "SamplesMilliseconds": [
+        1.7895,
+        1.7588,
+        1.7958,
+        1.7916,
+        1.724
+      ]
+    },
+    {
+      "Library": "ClosedXML",
+      "Name": "ReadRows",
+      "Notes": "Worksheet row iteration over the same workbook payload.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 53.76977999999999,
+      "MedianMilliseconds": 51.611,
+      "SamplesMilliseconds": [
+        52.5462,
+        51.1673,
+        62.4241,
+        51.611,
+        51.1003
+      ]
+    }
+  ]
+}

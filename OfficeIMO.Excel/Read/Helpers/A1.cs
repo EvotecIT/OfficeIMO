@@ -88,14 +88,106 @@ namespace OfficeIMO.Excel {
         }
 
         internal static int ParseColumnIndexFromCellReference(string? cellRef) {
-            if (string.IsNullOrWhiteSpace(cellRef)) return 0;
+            if (string.IsNullOrEmpty(cellRef)) return 0;
             string text = cellRef!;
-            int start = 0;
+            int start = char.IsWhiteSpace(text[0]) ? FindFirstNonWhiteSpace(text) : 0;
+            int end = char.IsWhiteSpace(text[text.Length - 1]) ? FindLastNonWhiteSpace(text, start) : text.Length;
+            if (start >= end) return 0;
+
+            return ParseColumnIndexFromTrimmedCellReference(text, start, end);
+        }
+
+        internal static int ParseColumnIndexFromCellReferenceFast(string? cellRef) {
+            if (string.IsNullOrEmpty(cellRef)) return 0;
+
+            string text = cellRef!;
             int length = text.Length;
-            TrimBounds(text, ref start, ref length);
+            char first = text[0];
+            char last = text[length - 1];
+            if (!char.IsWhiteSpace(first) && last >= '0' && last <= '9') {
+                int commonIndex = 0;
+                int commonCol = 0;
+                for (; commonIndex < length; commonIndex++) {
+                    char ch = ToUpperAscii(text[commonIndex]);
+                    if (ch < 'A' || ch > 'Z') {
+                        break;
+                    }
+
+                    int value = ch - 'A' + 1;
+                    if (commonCol > (int.MaxValue - value) / 26) {
+                        return 0;
+                    }
+
+                    commonCol = (commonCol * 26) + value;
+                }
+
+                if (commonIndex == 0 || commonIndex == length) {
+                    return 0;
+                }
+
+                bool commonHasNonZeroRowDigit = false;
+                for (; commonIndex < length; commonIndex++) {
+                    char ch = text[commonIndex];
+                    if (ch < '0' || ch > '9') {
+                        return 0;
+                    }
+
+                    commonHasNonZeroRowDigit |= ch != '0';
+                }
+
+                return commonHasNonZeroRowDigit ? commonCol : 0;
+            }
+
+            int index = 0;
+            while (index < length && char.IsWhiteSpace(text[index])) {
+                index++;
+            }
+
+            int col = 0;
+            int letterStart = index;
+            for (; index < length; index++) {
+                char ch = ToUpperAscii(text[index]);
+                if (ch < 'A' || ch > 'Z') {
+                    break;
+                }
+
+                int value = ch - 'A' + 1;
+                if (col > (int.MaxValue - value) / 26) {
+                    return 0;
+                }
+
+                col = (col * 26) + value;
+            }
+
+            if (index == letterStart || index == length) {
+                return 0;
+            }
+
+            bool hasNonZeroRowDigit = false;
+            for (; index < length; index++) {
+                char ch = text[index];
+                if (ch >= '0' && ch <= '9') {
+                    hasNonZeroRowDigit |= ch != '0';
+                    continue;
+                }
+
+                if (!char.IsWhiteSpace(ch)) {
+                    return 0;
+                }
+
+                while (++index < length) {
+                    if (!char.IsWhiteSpace(text[index])) {
+                        return 0;
+                    }
+                }
+            }
+
+            return hasNonZeroRowDigit ? col : 0;
+        }
+
+        private static int ParseColumnIndexFromTrimmedCellReference(string text, int start, int end) {
             int col = 0;
 
-            int end = start + length;
             int i = start;
             for (; i < end; i++) {
                 char ch = ToUpperAscii(text[i]);
@@ -127,10 +219,28 @@ namespace OfficeIMO.Excel {
                     return 0;
                 }
 
-                row = row * 10 + digit;
+                row = (row * 10) + digit;
             }
 
             return row > 0 ? col : 0;
+        }
+
+        private static int FindFirstNonWhiteSpace(string text) {
+            int index = 0;
+            while (index < text.Length && char.IsWhiteSpace(text[index])) {
+                index++;
+            }
+
+            return index;
+        }
+
+        private static int FindLastNonWhiteSpace(string text, int start) {
+            int end = text.Length;
+            while (end > start && char.IsWhiteSpace(text[end - 1])) {
+                end--;
+            }
+
+            return end;
         }
 
         /// <summary>

@@ -4,6 +4,7 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
+using System.Threading;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
@@ -47,6 +48,13 @@ namespace OfficeIMO.Tests {
 
         private sealed class StrictMappedRow {
             public string? Name { get; set; }
+        }
+
+        private sealed class NullableTypedRow {
+            public int? Score { get; set; }
+            public bool? Active { get; set; }
+            public DateTime? CreatedOn { get; set; }
+            public double? Amount { get; set; }
         }
 
         private static void AssertRangeEqual(object?[,] expected, object?[,] actual) {
@@ -912,6 +920,105 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Alice", typedFromSheet.GivenName);
                 Assert.Equal("OK", typedFromSheet.Status);
                 Assert.Equal(97, typedFromSheet.CompletionPercent);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_TypedObjects_MapNullableValueTypes() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderNullableTypedHeaders.xlsx");
+            var expectedDate = new DateTime(2024, 5, 12, 9, 30, 0);
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Score");
+                    sheet.CellValue(1, 2, "Active");
+                    sheet.CellValue(1, 3, "CreatedOn");
+                    sheet.CellValue(1, 4, "Amount");
+                    sheet.CellValue(2, 1, 42);
+                    sheet.CellValue(2, 2, true);
+                    sheet.CellValue(2, 3, expectedDate);
+                    sheet.CellValue(2, 4, 123.45);
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var rows = reader.GetSheet("Data").ReadObjects<NullableTypedRow>("A1:D3").ToList();
+
+                Assert.Equal(2, rows.Count);
+                Assert.Equal(42, rows[0].Score);
+                Assert.True(rows[0].Active);
+                Assert.Equal(expectedDate, rows[0].CreatedOn);
+                Assert.Equal(123.45, rows[0].Amount);
+                Assert.Null(rows[1].Score);
+                Assert.Null(rows[1].Active);
+                Assert.Null(rows[1].CreatedOn);
+                Assert.Null(rows[1].Amount);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_TypedObjects_ThrowsWhenCancellationArrivesDuringMaterialization() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderTypedObjectsMaterializationCancellation.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Score");
+                    sheet.CellValue(2, 1, 42);
+                    sheet.CellValue(3, 1, 43);
+                    document.Save();
+                }
+
+                using var cts = new CancellationTokenSource();
+                var options = new ExcelReadOptions {
+                    TypeConverter = (value, targetType, culture) => {
+                        cts.Cancel();
+                        return (false, null);
+                    }
+                };
+
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                Assert.Throws<OperationCanceledException>(() =>
+                    reader.GetSheet("Data").ReadObjects<NullableTypedRow>("A1:A3", ct: cts.Token).ToList());
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRangeAs_ThrowsWhenCancellationArrivesDuringConversion() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderTypedRangeConversionCancellation.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, 42);
+                    sheet.CellValue(1, 2, 43);
+                    document.Save();
+                }
+
+                using var cts = new CancellationTokenSource();
+                var options = new ExcelReadOptions {
+                    TypeConverter = (value, targetType, culture) => {
+                        cts.Cancel();
+                        return (false, null);
+                    }
+                };
+
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                Assert.Throws<OperationCanceledException>(() =>
+                    reader.GetSheet("Data").ReadRangeAs<int>("A1:B1", ct: cts.Token));
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

@@ -3,7 +3,8 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     internal sealed class StylesCache {
-        private readonly HashSet<uint> _dateStyleIdx = new();
+        private static readonly bool[] EmptyDateStyleIndexes = Array.Empty<bool>();
+        private bool[] _dateStyleIndexes = EmptyDateStyleIndexes;
 
         private StylesCache() { }
 
@@ -27,19 +28,23 @@ namespace OfficeIMO.Excel {
 
             var xfs = sp.Stylesheet.CellFormats;
             if (xfs != null) {
-                uint idx = 0;
-                foreach (var cf in xfs.Elements<CellFormat>()) {
+                var cellFormats = xfs.Elements<CellFormat>().ToList();
+                if (cellFormats.Count > 0) {
+                    cache._dateStyleIndexes = new bool[cellFormats.Count];
+                }
+
+                for (int idx = 0; idx < cellFormats.Count; idx++) {
+                    var cf = cellFormats[idx];
                     var nId = (uint)(cf.NumberFormatId?.Value ?? 0);
                     bool dateLike = IsBuiltInDate(nId) || (nf.TryGetValue(nId, out var code) && ExcelNumberFormatClassifier.LooksLikeDateFormat(code));
-                    if (dateLike) cache._dateStyleIdx.Add(idx);
-                    idx++;
+                    if (dateLike) cache._dateStyleIndexes[idx] = true;
                 }
             }
 
             return cache;
         }
 
-        public bool IsDateLike(uint styleIndex) => _dateStyleIdx.Contains(styleIndex);
+        public bool IsDateLike(uint styleIndex) => styleIndex < (uint)_dateStyleIndexes.Length && _dateStyleIndexes[styleIndex];
     }
 }
 

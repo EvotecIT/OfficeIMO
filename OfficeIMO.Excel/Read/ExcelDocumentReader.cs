@@ -55,6 +55,20 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Opens an Excel workbook from an in-memory package for read-only access.
+        /// The byte array is used directly; callers should not modify it while the reader is alive.
+        /// </summary>
+        public static ExcelDocumentReader Open(byte[] bytes, ExcelReadOptions? options = null) {
+            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+
+            return OpenFromBytes(
+                bytes,
+                options,
+                normalizeContentTypes: false,
+                contextMessage: "Failed to open workbook bytes after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.");
+        }
+
+        /// <summary>
         /// Wraps an already open SpreadsheetDocument without taking ownership.
         /// The returned reader must be disposed, but it will not close the underlying document.
         /// </summary>
@@ -79,7 +93,7 @@ namespace OfficeIMO.Excel {
             var sheet = wb.Sheets!.Elements<Sheet>().FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
             if (sheet is null) throw new KeyNotFoundException($"Sheet '{name}' not found.");
             var wsPart = (WorksheetPart)WorkbookPartRoot.GetPartById(sheet.Id!);
-            return new ExcelSheetReader(sheet.Name!, wsPart, _sst, _styles, _opt);
+            return new ExcelSheetReader(sheet.Name!, wsPart, _sst, _styles, _opt, _owns);
         }
 
         /// <summary>
@@ -93,13 +107,14 @@ namespace OfficeIMO.Excel {
         private static ExcelDocumentReader OpenFromBytes(byte[] bytes, ExcelReadOptions? options, bool normalizeContentTypes, string contextMessage) {
             MemoryStream? packageStream = null;
             try {
-                packageStream = new MemoryStream(bytes.Length + 4096);
-                packageStream.Write(bytes, 0, bytes.Length);
-                packageStream.Position = 0;
-
                 if (normalizeContentTypes) {
+                    packageStream = new MemoryStream(bytes.Length + 4096);
+                    packageStream.Write(bytes, 0, bytes.Length);
+                    packageStream.Position = 0;
                     ExcelPackageUtilities.NormalizeContentTypes(packageStream, leaveOpen: true);
                     packageStream.Position = 0;
+                } else {
+                    packageStream = new MemoryStream(bytes, 0, bytes.Length, writable: false, publiclyVisible: false);
                 }
 
                 var doc = SpreadsheetDocument.Open(packageStream, false);
