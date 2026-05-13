@@ -82,7 +82,7 @@ dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare --out .\Docs\benchmarks\officeimo.excel.library-comparison.json --rows 2500
 ```
 
-By default this also launches the isolated legacy EPPlus helper. For a faster current-library-only pass, add `--skip-legacy-epplus`. Use `--scenario` to run one or more targeted scenarios during tuning:
+By default this also launches the isolated legacy EPPlus helper. The helper accepts the same positional output path and `--out` aliases when run directly. For a faster current-library-only pass, add `--skip-legacy-epplus`. Use `--scenario` to run one or more targeted scenarios during tuning:
 
 ```powershell
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare --rows 2500 --scenario read-range --scenario read-objects

@@ -11,9 +11,8 @@ const int WarmupIterations = 1;
 const int MeasuredIterations = 3;
 const string LibraryName = "EPPlus 4.5.3.3";
 
-string outputPath = args.Length >= 1 && !args[0].StartsWith("-", StringComparison.Ordinal)
-    ? args[0]
-    : Path.Combine("Docs", "benchmarks", "officeimo.excel.legacy-epplus-comparison.json");
+string outputPath = ParseOutputPath(args)
+    ?? Path.Combine("Docs", "benchmarks", "officeimo.excel.legacy-epplus-comparison.json");
 int rowCount = ParseRowCount(args);
 if (rowCount <= 0) {
     throw new ArgumentOutOfRangeException(nameof(rowCount));
@@ -603,6 +602,26 @@ static int ParseRowCount(string[] args) {
     }
 
     return DefaultRowCount;
+}
+
+static string? ParseOutputPath(string[] args)
+    => ParseOptionValue(args, "--out", "--output", "--output-path")
+       ?? (args.Length >= 1 && !args[0].StartsWith("-", StringComparison.Ordinal) ? args[0] : null);
+
+static string? ParseOptionValue(string[] args, params string[] optionNames) {
+    for (int i = 0; i < args.Length; i++) {
+        if (!optionNames.Any(name => string.Equals(args[i], name, StringComparison.OrdinalIgnoreCase))) {
+            continue;
+        }
+
+        if (i + 1 >= args.Length || args[i + 1].StartsWith("-", StringComparison.Ordinal)) {
+            throw new ArgumentException($"Missing value for {args[i]}.");
+        }
+
+        return args[i + 1];
+    }
+
+    return null;
 }
 
 static string[] ParseOptionValues(string[] args, params string[] optionNames) {
