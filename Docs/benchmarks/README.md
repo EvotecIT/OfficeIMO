@@ -5,8 +5,9 @@ This folder stores small, committed benchmark artifacts for `OfficeIMO.Excel`.
 - `officeimo.excel.snapshot-YYYY-MM-DD.json`: lightweight end-to-end scenario snapshot for write, read, and round-trip flows
 - `officeimo.excel.write-profile-YYYY-MM-DD.json`: write-stage breakdown intended to highlight where optimization work should focus
 - `officeimo.excel.read-profile-YYYY-MM-DD.json`: read-stage comparison for automatic, forced sequential, and forced parallel range conversion
+- `officeimo.excel.library-comparison.json`: local opt-in comparison against ClosedXML, current EPPlus, and isolated EPPlus 4.5.3.3
 
-Both artifact types now store raw sample lists and medians in addition to averages so noisy runs are easier to spot. Write profiles also include OfficeIMO timing-hook sub-stages such as AutoFit plan, width calculation, and width application when those hooks are emitted.
+Benchmark artifacts now store raw sample lists and medians in addition to averages so noisy runs are easier to spot. Write profiles also include OfficeIMO timing-hook sub-stages such as AutoFit plan, width calculation, and width application when those hooks are emitted.
 OfficeIMO benchmark runs use the report-export AutoFit mode (`Execution.SaveWorksheetAfterAutoFit = false`) so worksheet changes are committed once at document save/dispose time instead of after each AutoFit operation.
 
 Generate them from the benchmark harness:

@@ -1,3 +1,4 @@
+using System.Data;
 using System.Globalization;
 using System.Text.Json;
 using ClosedXML.Excel;
@@ -79,6 +80,12 @@ internal static class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("OfficeIMO.Excel", "Read the first 100 data rows from a larger sheet.", () => OfficeImoReadRange(officeImoWorkbookBytes, topDataRange)),
             new LibraryComparisonCase("ClosedXML", "Read the first 100 data rows from a larger sheet.", () => ClosedXmlReadRange(closedXmlWorkbookBytes, topDataRows)),
             new LibraryComparisonCase("EPPlus", "Read the first 100 data rows from a larger sheet.", () => EpPlusReadRange(epPlusWorkbookBytes, topDataRows))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "read-datatable", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Materialize A1 range as a DataTable.", () => OfficeImoReadDataTable(officeImoWorkbookBytes, dataRange)),
+            new LibraryComparisonCase("ClosedXML", "Manual DataTable materialization from worksheet rows.", () => ClosedXmlReadDataTable(closedXmlWorkbookBytes)),
+            new LibraryComparisonCase("EPPlus", "Manual DataTable materialization from worksheet rows.", () => EpPlusReadDataTable(epPlusWorkbookBytes))
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "read-range-stream", warmupIterations, measuredIterations, [
@@ -534,6 +541,56 @@ internal static class ExcelLibraryComparisonRunner {
 
     private static int EpPlusReadRangeStream(byte[] workbookBytes, int maxDataRows = int.MaxValue) => EpPlusReadRange(workbookBytes, maxDataRows);
 
+    private static int OfficeImoReadDataTable(byte[] workbookBytes, string dataRange) {
+        using var reader = ExcelDocumentReader.Open(workbookBytes);
+        DataTable table = reader.GetSheet("Data").ReadRangeAsDataTable(dataRange, headersInFirstRow: true);
+        return AddSalesDataTableMetric(table);
+    }
+
+    private static int ClosedXmlReadDataTable(byte[] workbookBytes) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using var workbook = new XLWorkbook(stream);
+        var worksheet = workbook.Worksheet("Data");
+        int lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 0;
+        DataTable table = CreateSalesDataTable();
+
+        for (int row = 2; row <= lastRow; row++) {
+            table.Rows.Add(
+                worksheet.Cell(row, 1).GetValue<int>(),
+                worksheet.Cell(row, 2).GetValue<string>(),
+                worksheet.Cell(row, 3).GetValue<string>(),
+                worksheet.Cell(row, 4).GetValue<DateTime>(),
+                worksheet.Cell(row, 5).GetValue<double>(),
+                worksheet.Cell(row, 6).GetValue<int>(),
+                worksheet.Cell(row, 7).GetValue<bool>(),
+                worksheet.Cell(row, 8).GetValue<string>());
+        }
+
+        return AddSalesDataTableMetric(table);
+    }
+
+    private static int EpPlusReadDataTable(byte[] workbookBytes) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using var package = new ExcelPackage(stream);
+        var worksheet = package.Workbook.Worksheets["Data"];
+        int lastRow = worksheet.Dimension?.End.Row ?? 0;
+        DataTable table = CreateSalesDataTable();
+
+        for (int row = 2; row <= lastRow; row++) {
+            table.Rows.Add(
+                Convert.ToInt32(worksheet.Cells[row, 1].Value, CultureInfo.InvariantCulture),
+                Convert.ToString(worksheet.Cells[row, 2].Value, CultureInfo.InvariantCulture) ?? string.Empty,
+                Convert.ToString(worksheet.Cells[row, 3].Value, CultureInfo.InvariantCulture) ?? string.Empty,
+                ReadDateCell(worksheet.Cells[row, 4].Value),
+                Convert.ToDouble(worksheet.Cells[row, 5].Value, CultureInfo.InvariantCulture),
+                Convert.ToInt32(worksheet.Cells[row, 6].Value, CultureInfo.InvariantCulture),
+                Convert.ToBoolean(worksheet.Cells[row, 7].Value, CultureInfo.InvariantCulture),
+                Convert.ToString(worksheet.Cells[row, 8].Value, CultureInfo.InvariantCulture) ?? string.Empty);
+        }
+
+        return AddSalesDataTableMetric(table);
+    }
+
     private static int OfficeImoReadSparseColumn(byte[] workbookBytes, string sparseRange, int expectedRows) {
         using var reader = ExcelDocumentReader.Open(workbookBytes);
         int metric = 0;
@@ -950,11 +1007,47 @@ internal static class ExcelLibraryComparisonRunner {
            || string.Equals(scenario, "read-range-stream", StringComparison.Ordinal)
            || string.Equals(scenario, "read-top-range", StringComparison.Ordinal)
            || string.Equals(scenario, "read-top-range-stream", StringComparison.Ordinal)
+           || string.Equals(scenario, "read-datatable", StringComparison.Ordinal)
            || string.Equals(scenario, "large-sparse-column-read", StringComparison.Ordinal)
            || string.Equals(scenario, "large-sparse-row-read", StringComparison.Ordinal)
            || string.Equals(scenario, "read-objects", StringComparison.Ordinal)
            || string.Equals(scenario, "formula-heavy-read", StringComparison.Ordinal)
            || string.Equals(scenario, "shared-string-read", StringComparison.Ordinal);
+
+    private static DataTable CreateSalesDataTable() {
+        var table = new DataTable("Data") { Locale = CultureInfo.InvariantCulture };
+        table.Columns.Add("Id", typeof(int));
+        table.Columns.Add("Region", typeof(string));
+        table.Columns.Add("Owner", typeof(string));
+        table.Columns.Add("CreatedOn", typeof(DateTime));
+        table.Columns.Add("Amount", typeof(double));
+        table.Columns.Add("Units", typeof(int));
+        table.Columns.Add("Active", typeof(bool));
+        table.Columns.Add("Notes", typeof(string));
+        return table;
+    }
+
+    private static int AddSalesDataTableMetric(DataTable table) {
+        int metric = 0;
+        foreach (DataColumn column in table.Columns) {
+            metric = AddStringMetric(metric, column.ColumnName);
+        }
+
+        foreach (DataRow row in table.Rows) {
+            metric = AddSalesRangeMetric(
+                metric,
+                Convert.ToInt32(row[0], CultureInfo.InvariantCulture),
+                Convert.ToString(row[1], CultureInfo.InvariantCulture) ?? string.Empty,
+                Convert.ToString(row[2], CultureInfo.InvariantCulture) ?? string.Empty,
+                ReadDateCell(row[3]),
+                Convert.ToDouble(row[4], CultureInfo.InvariantCulture),
+                Convert.ToInt32(row[5], CultureInfo.InvariantCulture),
+                Convert.ToBoolean(row[6], CultureInfo.InvariantCulture),
+                Convert.ToString(row[7], CultureInfo.InvariantCulture) ?? string.Empty);
+        }
+
+        return metric;
+    }
 
     private static int AddSalesRecordMetric(int metric, ReadSalesRecord record) {
         metric = AddIntMetric(metric, record.Id);

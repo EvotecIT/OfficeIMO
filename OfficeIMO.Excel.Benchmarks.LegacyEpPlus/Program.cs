@@ -1,3 +1,4 @@
+using System.Data;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
@@ -33,6 +34,7 @@ AddScenario(scenarios, scenarioFilter, "write-bulk-report", LibraryName, "EPPlus
 AddScenario(scenarios, scenarioFilter, "append-plain-rows", LibraryName, "EPPlus 4.x append equivalent row/cell values.", () => AppendPlainRows(rows), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "read-range", LibraryName, "EPPlus 4.x iterate used data cells from workbook.", () => ReadRange(workbookBytes), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "read-top-range", LibraryName, "EPPlus 4.x read the first 100 data rows from a larger sheet.", () => ReadRange(workbookBytes, topDataRows), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "read-datatable", LibraryName, "EPPlus 4.x manual DataTable materialization from worksheet rows.", () => ReadDataTable(workbookBytes), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "read-range-stream", LibraryName, "EPPlus 4.x iterate used data cells row-by-row.", () => ReadRange(workbookBytes), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "read-top-range-stream", LibraryName, "EPPlus 4.x read the first 100 data rows from a larger sheet row-by-row.", () => ReadRange(workbookBytes, topDataRows), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "large-sparse-column-read", LibraryName, "EPPlus 4.x read A1:A100001 with only first and last rows populated.", () => ReadSparseColumn(sparseWorkbookBytes, SparseLastRow), warmupIterations, measuredIterations);
@@ -199,6 +201,28 @@ static int ReadRange(byte[] workbookBytes, int maxDataRows = int.MaxValue) {
     }
 
     return metric;
+}
+
+static int ReadDataTable(byte[] workbookBytes) {
+    using var stream = new MemoryStream(workbookBytes, writable: false);
+    using var package = new ExcelPackage(stream);
+    var worksheet = package.Workbook.Worksheets["Data"];
+    int lastRow = worksheet.Dimension?.End.Row ?? 0;
+    DataTable table = CreateSalesDataTable();
+
+    for (int row = 2; row <= lastRow; row++) {
+        table.Rows.Add(
+            Convert.ToInt32(worksheet.Cells[row, 1].Value, CultureInfo.InvariantCulture),
+            Convert.ToString(worksheet.Cells[row, 2].Value, CultureInfo.InvariantCulture) ?? string.Empty,
+            Convert.ToString(worksheet.Cells[row, 3].Value, CultureInfo.InvariantCulture) ?? string.Empty,
+            ReadDateCell(worksheet.Cells[row, 4].Value),
+            Convert.ToDouble(worksheet.Cells[row, 5].Value, CultureInfo.InvariantCulture),
+            Convert.ToInt32(worksheet.Cells[row, 6].Value, CultureInfo.InvariantCulture),
+            Convert.ToBoolean(worksheet.Cells[row, 7].Value, CultureInfo.InvariantCulture),
+            Convert.ToString(worksheet.Cells[row, 8].Value, CultureInfo.InvariantCulture) ?? string.Empty);
+    }
+
+    return AddSalesDataTableMetric(table);
 }
 
 static int ReadSparseColumn(byte[] workbookBytes, int expectedRows) {
@@ -465,6 +489,41 @@ static int AddSalesRangeMetric(
     metric = AddIntMetric(metric, units);
     metric = AddIntMetric(metric, active ? 1 : 0);
     return AddStringMetric(metric, notes);
+}
+
+static DataTable CreateSalesDataTable() {
+    var table = new DataTable("Data") { Locale = CultureInfo.InvariantCulture };
+    table.Columns.Add("Id", typeof(int));
+    table.Columns.Add("Region", typeof(string));
+    table.Columns.Add("Owner", typeof(string));
+    table.Columns.Add("CreatedOn", typeof(DateTime));
+    table.Columns.Add("Amount", typeof(double));
+    table.Columns.Add("Units", typeof(int));
+    table.Columns.Add("Active", typeof(bool));
+    table.Columns.Add("Notes", typeof(string));
+    return table;
+}
+
+static int AddSalesDataTableMetric(DataTable table) {
+    int metric = 0;
+    foreach (DataColumn column in table.Columns) {
+        metric = AddStringMetric(metric, column.ColumnName);
+    }
+
+    foreach (DataRow row in table.Rows) {
+        metric = AddSalesRangeMetric(
+            metric,
+            Convert.ToInt32(row[0], CultureInfo.InvariantCulture),
+            Convert.ToString(row[1], CultureInfo.InvariantCulture) ?? string.Empty,
+            Convert.ToString(row[2], CultureInfo.InvariantCulture) ?? string.Empty,
+            ReadDateCell(row[3]),
+            Convert.ToDouble(row[4], CultureInfo.InvariantCulture),
+            Convert.ToInt32(row[5], CultureInfo.InvariantCulture),
+            Convert.ToBoolean(row[6], CultureInfo.InvariantCulture),
+            Convert.ToString(row[7], CultureInfo.InvariantCulture) ?? string.Empty);
+    }
+
+    return metric;
 }
 
 static int AddIntMetric(int metric, int value) {
