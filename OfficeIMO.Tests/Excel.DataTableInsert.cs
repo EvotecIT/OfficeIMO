@@ -445,6 +445,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AppendDataTableToTable_ThrowsWhenTotalsRowShownWithoutCount() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableTotalsShownNoCount.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Sales");
+
+                var table = new DataTable();
+                table.Columns.Add("Region", typeof(string));
+                table.Columns.Add("Revenue", typeof(int));
+                table.Rows.Add("NA", 100);
+                sheet.InsertDataTableAsTable(table, tableName: "SalesTable");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                Table table = spreadsheet.WorkbookPart!.WorksheetParts.First().TableDefinitionParts.First().Table;
+                table.TotalsRowShown = true;
+                table.TotalsRowCount = null;
+                table.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var append = new DataTable();
+                append.Columns.Add("Region", typeof(string));
+                append.Columns.Add("Revenue", typeof(int));
+                append.Rows.Add("APAC", 150);
+
+                var exception = Assert.Throws<InvalidOperationException>(() => document.Sheets[0].AppendDataTableToTable(append, "SalesTable"));
+                Assert.Contains("totals row", exception.Message);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void Test_AppendDataTableToTable_ThrowsWhenCellsBelowTableContainData() {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableOccupiedCells.xlsx");
 

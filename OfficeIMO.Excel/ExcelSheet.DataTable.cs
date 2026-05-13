@@ -296,7 +296,11 @@ namespace OfficeIMO.Excel {
 
         private static bool HasActiveTotalsRow(Table table) {
             uint? totalsRowCount = table.TotalsRowCount?.Value;
-            return totalsRowCount.HasValue && totalsRowCount.Value > 0U;
+            if (totalsRowCount.HasValue) {
+                return totalsRowCount.Value > 0U;
+            }
+
+            return table.TotalsRowShown?.Value == true;
         }
 
         private void EnsureAppendTargetIsEmpty(int startRow, int endRow, int startColumn, int endColumn, string tableName) {
