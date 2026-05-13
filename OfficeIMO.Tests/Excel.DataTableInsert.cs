@@ -277,6 +277,49 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AppendDataTableToTable_HiddenHeadersUseMatchingColumnNames() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableHiddenHeaders.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Sales");
+
+                var table = new DataTable();
+                table.Columns.Add("Region", typeof(string));
+                table.Columns.Add("Revenue", typeof(int));
+                table.Rows.Add("NA", 100);
+                sheet.InsertDataTableAsTable(table, tableName: "HiddenHeaderSales");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                Table table = spreadsheet.WorkbookPart!.WorksheetParts.First().TableDefinitionParts.First().Table;
+                table.HeaderRowCount = 0U;
+                table.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var append = new DataTable();
+                append.Columns.Add("Revenue", typeof(int));
+                append.Columns.Add("Region", typeof(string));
+                append.Rows.Add(150, "APAC");
+
+                Assert.Equal("A1:B3", document.Sheets[0].AppendDataTableToTable(append, "HiddenHeaderSales"));
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                TableDefinitionPart tablePart = worksheetPart.TableDefinitionParts.First();
+                Assert.Equal((uint)0, tablePart.Table.HeaderRowCount!.Value);
+                Assert.Equal("A1:B3", tablePart.Table.Reference!.Value);
+                Assert.Equal("APAC", GetCellText(spreadsheet, worksheetPart, "A3"));
+                Assert.Equal("150", GetCellText(spreadsheet, worksheetPart, "B3"));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void Test_AppendDataTableToTable_ColumnLikeHeadersUseHeaderMapping() {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableColumnLikeHeaders.xlsx");
 

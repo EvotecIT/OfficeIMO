@@ -196,7 +196,8 @@ namespace OfficeIMO.Excel {
             }
 
             bool hasHeaderRow = (table.HeaderRowCount?.Value ?? 1U) > 0U;
-            DataTable appendTable = BuildAppendDataTable(dataTable, tableColumnNames, matchColumnsByHeader && hasHeaderRow);
+            bool useHeaderMapping = matchColumnsByHeader && ShouldMapAppendColumnsByHeader(dataTable, tableColumnNames, hasHeaderRow);
+            DataTable appendTable = BuildAppendDataTable(dataTable, tableColumnNames, useHeaderMapping);
             if (appendTable.Rows.Count == 0) {
                 return currentRange!;
             }
@@ -292,6 +293,43 @@ namespace OfficeIMO.Excel {
             }
 
             return ordered;
+        }
+
+        private static bool ShouldMapAppendColumnsByHeader(DataTable source, IReadOnlyList<string> tableColumnNames, bool hasHeaderRow) {
+            if (hasHeaderRow) {
+                return true;
+            }
+
+            if (SourceContainsTableColumns(source, tableColumnNames)) {
+                return true;
+            }
+
+            return !HasDefaultHeaderlessColumnNames(tableColumnNames);
+        }
+
+        private static bool SourceContainsTableColumns(DataTable source, IReadOnlyList<string> tableColumnNames) {
+            var sourceColumnNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (DataColumn column in source.Columns) {
+                sourceColumnNames.Add(column.ColumnName);
+            }
+
+            foreach (string tableColumnName in tableColumnNames) {
+                if (!sourceColumnNames.Contains(tableColumnName)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool HasDefaultHeaderlessColumnNames(IReadOnlyList<string> tableColumnNames) {
+            for (int i = 0; i < tableColumnNames.Count; i++) {
+                if (!string.Equals(tableColumnNames[i], "Column" + (i + 1), StringComparison.OrdinalIgnoreCase)) {
+                    return false;
+                }
+            }
+
+            return tableColumnNames.Count > 0;
         }
 
         private static bool HasActiveTotalsRow(Table table) {
