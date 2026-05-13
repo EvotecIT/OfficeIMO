@@ -345,12 +345,14 @@ namespace OfficeIMO.Excel {
                 Type propertyType,
                 Type destinationType,
                 bool isNullable,
+                bool needsDateStyleConversion,
                 Action<TTarget, object?> setValue,
                 Func<object, CultureInfo, object?> convertValue) {
                 Property = property;
                 PropertyType = propertyType;
                 DestinationType = destinationType;
                 IsNullable = isNullable;
+                NeedsDateStyleConversion = needsDateStyleConversion;
                 SetValue = setValue;
                 ConvertValue = convertValue;
             }
@@ -359,6 +361,7 @@ namespace OfficeIMO.Excel {
             internal Type PropertyType { get; }
             internal Type DestinationType { get; }
             internal bool IsNullable { get; }
+            internal bool NeedsDateStyleConversion { get; }
             internal Action<TTarget, object?> SetValue { get; }
             internal Func<object, CultureInfo, object?> ConvertValue { get; }
         }
@@ -428,13 +431,19 @@ namespace OfficeIMO.Excel {
 
             private static TypedPropertyBinding<TTarget> CreateBinding(PropertyInfo property) {
                 var nullable = Nullable.GetUnderlyingType(property.PropertyType);
+                var destinationType = nullable ?? property.PropertyType;
                 return new TypedPropertyBinding<TTarget>(
                     property,
                     property.PropertyType,
-                    nullable ?? property.PropertyType,
+                    destinationType,
                     !property.PropertyType.IsValueType || nullable != null,
+                    NeedsDateStyleConversion(destinationType),
                     CreateSetter(property),
-                    CreateConverter(nullable ?? property.PropertyType));
+                    CreateConverter(destinationType));
+            }
+
+            private static bool NeedsDateStyleConversion(Type destinationType) {
+                return destinationType == typeof(DateTime) || destinationType == typeof(string);
             }
 
             private static Func<object, CultureInfo, object?> CreateConverter(Type destinationType) {
@@ -732,7 +741,7 @@ namespace OfficeIMO.Excel {
             }
 
             uint? styleIndex = null;
-            if (_opt.TreatDatesUsingNumberFormat) {
+            if (_opt.TreatDatesUsingNumberFormat && binding.NeedsDateStyleConversion) {
                 styleIndex = cell.StyleIndex?.Value;
                 if (styleIndex is not null && _styles.IsDateLike(styleIndex.Value)) {
                     if (double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var oa)
@@ -834,6 +843,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (_opt.TreatDatesUsingNumberFormat
+                && binding.NeedsDateStyleConversion
                 && raw.StyleIndex is not null
                 && _styles.IsDateLike(raw.StyleIndex.Value)) {
                 if (double.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var oa)) {
