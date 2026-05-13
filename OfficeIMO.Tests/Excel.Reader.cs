@@ -455,6 +455,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_ReadObjectsAs_ReportsOwnExecutionDecision() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderObjectsAsDecision.xlsx");
+            var decisions = new List<(string Operation, int Items, ExecutionMode Mode)>();
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Id");
+                    sheet.CellValue(1, 2, "Name");
+                    sheet.CellValue(2, 1, 1);
+                    sheet.CellValue(2, 2, "One");
+                    document.Save();
+                }
+
+                var options = new ExcelReadOptions();
+                options.Execution.OperationThresholds["ReadObjectsAs"] = 1;
+                options.Execution.OnDecision = (operation, items, mode) => decisions.Add((operation, items, mode));
+
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                var row = Assert.Single(reader.GetSheet("Data").ReadObjects<ReaderDecisionRecord>("A1:B2"));
+
+                Assert.Equal(1, row.Id);
+                Assert.Equal("One", row.Name);
+                var decision = Assert.Single(decisions);
+                Assert.Equal("ReadObjectsAs", decision.Operation);
+                Assert.Equal(4, decision.Items);
+                Assert.Equal(ExecutionMode.Parallel, decision.Mode);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Reader_ReadRangeStream_SequentialMode_ReturnsOrderedChunks() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderRangeStreamSequentialChunks.xlsx");
 
@@ -665,6 +700,12 @@ namespace OfficeIMO.Tests {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        private sealed class ReaderDecisionRecord {
+            public int Id { get; set; }
+
+            public string Name { get; set; } = string.Empty;
         }
     }
 }
