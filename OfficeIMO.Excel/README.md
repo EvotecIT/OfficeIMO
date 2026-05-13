@@ -58,6 +58,22 @@ stream.Position = 0;
 File.WriteAllBytes("out.xlsx", stream.ToArray());
 ```
 
+Append to an existing table
+
+```csharp
+using var doc = ExcelDocument.Load(path);
+var sheet = doc["Sales"];
+
+var rows = new DataTable();
+rows.Columns.Add("Revenue", typeof(decimal));
+rows.Columns.Add("Region", typeof(string));
+rows.Rows.Add(150m, "APAC");
+
+// Columns are matched by table header by default, so source order can differ.
+sheet.AppendDataTableToTable(rows, "SalesTable");
+doc.Save();
+```
+
 What to expect
 
 - Noticeable wins on:

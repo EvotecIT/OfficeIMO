@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Data;
 using System.Globalization;
@@ -147,6 +148,255 @@ namespace OfficeIMO.Excel {
             // Create the Table with optional AutoFilter and style
             AddTable(range, includeHeaders, tableName ?? string.Empty, style, includeAutoFilter);
             return range;
+        }
+
+        /// <summary>
+        /// Appends rows from a <see cref="DataTable"/> to an existing Excel table and expands the table range.
+        /// </summary>
+        /// <param name="dataTable">Source DataTable containing rows to append.</param>
+        /// <param name="tableName">Existing table name or display name.</param>
+        /// <param name="matchColumnsByHeader">When true, DataTable columns are matched to table columns by header text. When false, columns are appended by position.</param>
+        /// <param name="mode">Optional execution mode override.</param>
+        /// <param name="ct">Cancellation token.</param>
+        /// <returns>The updated A1 range of the table.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="dataTable"/> or <paramref name="tableName"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the source columns cannot be mapped to the existing table.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the table cannot be found or cannot be safely expanded.</exception>
+        public string AppendDataTableToTable(
+            DataTable dataTable,
+            string tableName,
+            bool matchColumnsByHeader = true,
+            ExecutionMode? mode = null,
+            CancellationToken ct = default) {
+            if (dataTable == null) throw new ArgumentNullException(nameof(dataTable));
+            if (tableName == null) throw new ArgumentNullException(nameof(tableName));
+            if (string.IsNullOrWhiteSpace(tableName)) throw new ArgumentException("Table name cannot be empty.", nameof(tableName));
+
+            var tableDefinitionPart = FindTableDefinitionPart(tableName);
+            var table = tableDefinitionPart?.Table;
+            if (table == null) {
+                throw new InvalidOperationException($"Table '{tableName}' was not found on worksheet '{Name}'.");
+            }
+
+            string? currentRange = table.Reference?.Value;
+            if (string.IsNullOrWhiteSpace(currentRange) || !A1.TryParseRange(currentRange!, out int startRow, out int startColumn, out int endRow, out int endColumn)) {
+                throw new InvalidOperationException($"Table '{tableName}' does not have a valid range.");
+            }
+
+            if (HasActiveTotalsRow(table)) {
+                throw new InvalidOperationException($"Table '{tableName}' has a totals row. Appending before totals rows is not supported yet.");
+            }
+
+            var tableColumnNames = table.TableColumns?.Elements<TableColumn>()
+                .Select(column => column.Name?.Value ?? string.Empty)
+                .ToList() ?? new List<string>();
+            int tableColumnCount = endColumn - startColumn + 1;
+            if (tableColumnNames.Count != tableColumnCount) {
+                throw new InvalidOperationException($"Table '{tableName}' column metadata does not match its range.");
+            }
+
+            bool hasHeaderRow = (table.HeaderRowCount?.Value ?? 1U) > 0U;
+            bool useHeaderMapping = matchColumnsByHeader && ShouldMapAppendColumnsByHeader(dataTable, tableColumnNames, hasHeaderRow);
+            DataTable appendTable = BuildAppendDataTable(dataTable, tableColumnNames, useHeaderMapping);
+            if (appendTable.Rows.Count == 0) {
+                return currentRange!;
+            }
+
+            int appendStartRow = endRow + 1;
+            int appendEndRow = endRow + appendTable.Rows.Count;
+            if (appendEndRow > A1.MaxRows) {
+                throw new InvalidOperationException($"Appending {appendTable.Rows.Count} rows would exceed the Excel row limit.");
+            }
+
+            EnsureAppendTargetIsEmpty(appendStartRow, appendEndRow, startColumn, endColumn, tableName);
+
+            InsertDataTable(appendTable, appendStartRow, startColumn, includeHeaders: false, mode, ct);
+
+            string updatedRange = A1.CellReference(startRow, startColumn) + ":" + A1.CellReference(appendEndRow, endColumn);
+            WriteLock(() => {
+                table.Reference = updatedRange;
+                var autoFilter = table.GetFirstChild<AutoFilter>();
+                if (autoFilter != null) {
+                    autoFilter.Reference = updatedRange;
+                }
+
+                table.Save();
+                WorksheetRoot.Save();
+            });
+
+            return updatedRange;
+        }
+
+        private TableDefinitionPart? FindTableDefinitionPart(string tableName) {
+            return _worksheetPart.TableDefinitionParts
+                .FirstOrDefault(part => {
+                    var table = part.Table;
+                    if (table == null) {
+                        return false;
+                    }
+
+                    string? name = table.Name?.Value;
+                    string? displayName = table.DisplayName?.Value;
+                    return string.Equals(name, tableName, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(displayName, tableName, StringComparison.OrdinalIgnoreCase);
+                });
+        }
+
+        private static DataTable BuildAppendDataTable(DataTable source, IReadOnlyList<string> tableColumnNames, bool matchColumnsByHeader) {
+            if (source.Columns.Count != tableColumnNames.Count) {
+                throw new ArgumentException($"Source table has {source.Columns.Count} columns, but the Excel table has {tableColumnNames.Count} columns.", nameof(source));
+            }
+
+            if (!matchColumnsByHeader) {
+                return source;
+            }
+
+            var sourceColumns = new Dictionary<string, DataColumn>(StringComparer.OrdinalIgnoreCase);
+            foreach (DataColumn column in source.Columns) {
+                if (sourceColumns.ContainsKey(column.ColumnName)) {
+                    throw new ArgumentException($"Source table contains duplicate column '{column.ColumnName}'.", nameof(source));
+                }
+
+                sourceColumns.Add(column.ColumnName, column);
+            }
+
+            var orderedColumns = new DataColumn[tableColumnNames.Count];
+            var matchedSourceNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < tableColumnNames.Count; i++) {
+                string tableColumnName = tableColumnNames[i];
+                if (!sourceColumns.TryGetValue(tableColumnName, out DataColumn? sourceColumn)) {
+                    throw new ArgumentException($"Source table is missing column '{tableColumnName}'.", nameof(source));
+                }
+
+                orderedColumns[i] = sourceColumn;
+                matchedSourceNames.Add(sourceColumn.ColumnName);
+            }
+
+            foreach (DataColumn column in source.Columns) {
+                if (!matchedSourceNames.Contains(column.ColumnName)) {
+                    throw new ArgumentException($"Source table column '{column.ColumnName}' does not exist in the Excel table.", nameof(source));
+                }
+            }
+
+            var ordered = new DataTable(source.TableName);
+            foreach (DataColumn sourceColumn in orderedColumns) {
+                ordered.Columns.Add(sourceColumn.ColumnName, sourceColumn.DataType);
+            }
+
+            foreach (DataRow sourceRow in source.Rows) {
+                DataRow row = ordered.NewRow();
+                for (int i = 0; i < orderedColumns.Length; i++) {
+                    row[i] = sourceRow[orderedColumns[i]];
+                }
+
+                ordered.Rows.Add(row);
+            }
+
+            return ordered;
+        }
+
+        private static bool ShouldMapAppendColumnsByHeader(DataTable source, IReadOnlyList<string> tableColumnNames, bool hasHeaderRow) {
+            if (hasHeaderRow) {
+                return true;
+            }
+
+            if (SourceContainsTableColumns(source, tableColumnNames)) {
+                return true;
+            }
+
+            return !HasDefaultHeaderlessColumnNames(tableColumnNames);
+        }
+
+        private static bool SourceContainsTableColumns(DataTable source, IReadOnlyList<string> tableColumnNames) {
+            var sourceColumnNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (DataColumn column in source.Columns) {
+                sourceColumnNames.Add(column.ColumnName);
+            }
+
+            foreach (string tableColumnName in tableColumnNames) {
+                if (!sourceColumnNames.Contains(tableColumnName)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool HasDefaultHeaderlessColumnNames(IReadOnlyList<string> tableColumnNames) {
+            for (int i = 0; i < tableColumnNames.Count; i++) {
+                if (!string.Equals(tableColumnNames[i], "Column" + (i + 1), StringComparison.OrdinalIgnoreCase)) {
+                    return false;
+                }
+            }
+
+            return tableColumnNames.Count > 0;
+        }
+
+        private static bool HasActiveTotalsRow(Table table) {
+            uint? totalsRowCount = table.TotalsRowCount?.Value;
+            if (totalsRowCount.HasValue) {
+                return totalsRowCount.Value > 0U;
+            }
+
+            return table.TotalsRowShown?.Value == true;
+        }
+
+        private void EnsureAppendTargetIsEmpty(int startRow, int endRow, int startColumn, int endColumn, string tableName) {
+            if (startRow > endRow) {
+                return;
+            }
+
+            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
+            if (sheetData == null) {
+                return;
+            }
+
+            foreach (Row rowElement in sheetData.Elements<Row>()) {
+                if (rowElement.RowIndex == null) {
+                    continue;
+                }
+
+                int rowIndex = (int)rowElement.RowIndex.Value;
+                if (rowIndex < startRow) {
+                    continue;
+                }
+
+                if (rowIndex > endRow) {
+                    break;
+                }
+
+                foreach (Cell cell in rowElement.Elements<Cell>()) {
+                    string? reference = cell.CellReference?.Value;
+                    if (string.IsNullOrEmpty(reference)) {
+                        continue;
+                    }
+
+                    int columnIndex = A1.ParseColumnIndexFromCellReference(reference!);
+                    if (columnIndex < startColumn || columnIndex > endColumn) {
+                        continue;
+                    }
+
+                    if (CellHasContent(cell)) {
+                        throw new InvalidOperationException($"Cannot append to table '{tableName}' because cell {reference} already contains data.");
+                    }
+                }
+            }
+        }
+
+        private static bool CellHasContent(Cell cell) {
+            if (cell.CellFormula != null) {
+                return true;
+            }
+
+            if (cell.CellValue != null && !string.IsNullOrEmpty(cell.CellValue.Text)) {
+                return true;
+            }
+
+            if (cell.InlineString != null) {
+                return true;
+            }
+
+            return false;
         }
     }
 }
