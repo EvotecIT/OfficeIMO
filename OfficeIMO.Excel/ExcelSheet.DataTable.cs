@@ -183,7 +183,7 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException($"Table '{tableName}' does not have a valid range.");
             }
 
-            if (table.TotalsRowShown?.Value == true) {
+            if (HasActiveTotalsRow(table)) {
                 throw new InvalidOperationException($"Table '{tableName}' has a totals row. Appending before totals rows is not supported yet.");
             }
 
@@ -307,6 +307,11 @@ namespace OfficeIMO.Excel {
             }
 
             return true;
+        }
+
+        private static bool HasActiveTotalsRow(Table table) {
+            uint? totalsRowCount = table.TotalsRowCount?.Value;
+            return totalsRowCount.HasValue && totalsRowCount.Value > 0U;
         }
 
         private void EnsureAppendTargetIsEmpty(int startRow, int endRow, int startColumn, int endColumn, string tableName) {

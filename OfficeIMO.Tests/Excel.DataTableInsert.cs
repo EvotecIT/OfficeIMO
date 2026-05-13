@@ -367,6 +367,84 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AppendDataTableToTable_AllowsHistoricalTotalsRowShownFlag() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableHistoricalTotals.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Sales");
+
+                var table = new DataTable();
+                table.Columns.Add("Region", typeof(string));
+                table.Columns.Add("Revenue", typeof(int));
+                table.Rows.Add("NA", 100);
+                sheet.InsertDataTableAsTable(table, tableName: "SalesTable");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                Table table = spreadsheet.WorkbookPart!.WorksheetParts.First().TableDefinitionParts.First().Table;
+                table.TotalsRowShown = true;
+                table.TotalsRowCount = 0U;
+                table.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var append = new DataTable();
+                append.Columns.Add("Region", typeof(string));
+                append.Columns.Add("Revenue", typeof(int));
+                append.Rows.Add("APAC", 150);
+
+                Assert.Equal("A1:B3", document.Sheets[0].AppendDataTableToTable(append, "SalesTable"));
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                TableDefinitionPart tablePart = worksheetPart.TableDefinitionParts.First();
+                Assert.Equal("A1:B3", tablePart.Table.Reference!.Value);
+                Assert.Equal("APAC", GetCellText(spreadsheet, worksheetPart, "A3"));
+                Assert.Equal("150", GetCellText(spreadsheet, worksheetPart, "B3"));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Test_AppendDataTableToTable_ThrowsWhenTotalsRowIsActive() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableActiveTotals.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Sales");
+
+                var table = new DataTable();
+                table.Columns.Add("Region", typeof(string));
+                table.Columns.Add("Revenue", typeof(int));
+                table.Rows.Add("NA", 100);
+                sheet.InsertDataTableAsTable(table, tableName: "SalesTable");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                Table table = spreadsheet.WorkbookPart!.WorksheetParts.First().TableDefinitionParts.First().Table;
+                table.TotalsRowShown = true;
+                table.TotalsRowCount = 1U;
+                table.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var append = new DataTable();
+                append.Columns.Add("Region", typeof(string));
+                append.Columns.Add("Revenue", typeof(int));
+                append.Rows.Add("APAC", 150);
+
+                var exception = Assert.Throws<InvalidOperationException>(() => document.Sheets[0].AppendDataTableToTable(append, "SalesTable"));
+                Assert.Contains("totals row", exception.Message);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void Test_AppendDataTableToTable_ThrowsWhenCellsBelowTableContainData() {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableOccupiedCells.xlsx");
 
