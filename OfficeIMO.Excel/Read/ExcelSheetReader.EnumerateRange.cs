@@ -10,19 +10,16 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IEnumerable<CellValueInfo> EnumerateRange(string a1Range) {
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
-            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
-            if (sheetData == null) yield break;
 
-            foreach (var row in sheetData.Elements<Row>()) {
+            foreach (var row in EnumerateWorksheetRows()) {
                 var rIndex = checked((int)row.RowIndex!.Value);
                 if (rIndex < r1) continue;
                 if (rIndex > r2) continue;
 
                 foreach (var cell in row.Elements<Cell>()) {
-                    int cIndex = A1.ParseColumnIndexFromCellReference(cell.CellReference?.Value);
+                    int cIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
                     if (cIndex < c1 || cIndex > c2) continue;
-                    var value = ConvertCell(cell);
-                    if (value is not null || CellHasExplicitBlank(cell))
+                    if (TryConvertCell(cell, out var value))
                         yield return new CellValueInfo(rIndex, cIndex, value);
                 }
             }

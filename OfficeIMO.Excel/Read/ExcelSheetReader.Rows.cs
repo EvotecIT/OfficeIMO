@@ -23,36 +23,86 @@ namespace OfficeIMO.Excel {
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) yield break;
 
-            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
-            if (sheetData is null) yield break;
+            bool canCancel = ct.CanBeCanceled;
+            int height = r2 - r1 + 1;
+            int width = c2 - c1 + 1;
+            if (height > DenseSnapshotCapacityLimit && RowsAreSortedWithinRange(r1, r2, ct)) {
+                int nextRow = r1;
+                foreach (var row in EnumerateWorksheetRows(ct)) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
 
-            // Build quick row lookup for the requested span
-            var map = new Dictionary<int, Row>();
-            foreach (var row in sheetData.Elements<Row>()) {
+                    int ri = checked((int)row.RowIndex!.Value);
+                    if (ri < r1) continue;
+                    if (ri > r2) break;
+
+                    while (nextRow < ri) {
+                        if (canCancel) {
+                            ct.ThrowIfCancellationRequested();
+                        }
+
+                        yield return null;
+                        nextRow++;
+                    }
+
+                    yield return ReadRowValue(row, c1, c2, width, ct);
+                    nextRow = ri + 1;
+                }
+
+                while (nextRow <= r2) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    yield return null;
+                    nextRow++;
+                }
+
+                yield break;
+            }
+
+            var map = new Dictionary<int, Row>(GetSnapshotCapacity(height));
+            foreach (var row in EnumerateWorksheetRows(ct)) {
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
                 int ri = checked((int)row.RowIndex!.Value);
                 if (ri < r1) continue;
-                if (ri > r2) break;
+                if (ri > r2) continue;
                 map[ri] = row;
             }
 
-            int width = c2 - c1 + 1;
             for (int r = r1; r <= r2; r++) {
-                if (ct.IsCancellationRequested) yield break;
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
 
                 if (!map.TryGetValue(r, out var row)) { yield return null; continue; }
 
-                var arr = new object?[width];
+                yield return ReadRowValue(row, c1, c2, width, ct);
+            }
+
+            object?[]? ReadRowValue(Row row, int firstColumn, int lastColumn, int rowWidth, CancellationToken token) {
+                var arr = new object?[rowWidth];
                 bool hasCells = false;
+                bool canCancelCell = token.CanBeCanceled;
 
                 foreach (var cell in row.Elements<Cell>()) {
-                    int cc = A1.ParseColumnIndexFromCellReference(cell.CellReference?.Value);
-                    if (cc < c1 || cc > c2) continue;
-                    var val = ConvertCell(cell);
-                    arr[cc - c1] = val ?? arr[cc - c1];
+                    if (canCancelCell) {
+                        token.ThrowIfCancellationRequested();
+                    }
+
+                    int cc = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    if (cc < firstColumn || cc > lastColumn) continue;
                     hasCells = true;
+                    if (TryConvertCell(cell, out object? value)) {
+                        arr[cc - firstColumn] = value ?? arr[cc - firstColumn];
+                    }
                 }
 
-                yield return hasCells ? arr : null;
+                return hasCells ? arr : null;
             }
         }
     }

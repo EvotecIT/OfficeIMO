@@ -28,6 +28,36 @@ internal static class ExcelCompatibilityCorpusBuilder {
         return filePath;
     }
 
+    internal static void RewriteWorksheetXml(string filePath, string worksheetEntryName, Func<XDocument, XDocument> mutateDocument) {
+        if (mutateDocument == null) throw new ArgumentNullException(nameof(mutateDocument));
+
+        using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        using var archive = new ZipArchive(fileStream, ZipArchiveMode.Update, leaveOpen: false);
+
+        var worksheet = archive.GetEntry(worksheetEntryName) ?? throw new InvalidOperationException($"Missing worksheet entry '{worksheetEntryName}'.");
+
+        string xml;
+        using (var entryStream = worksheet.Open())
+        using (var reader = new StreamReader(entryStream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))) {
+            xml = reader.ReadToEnd();
+        }
+
+        var document = mutateDocument(XDocument.Parse(xml, LoadOptions.PreserveWhitespace));
+
+        worksheet.Delete();
+        var replacement = archive.CreateEntry(worksheetEntryName, CompressionLevel.NoCompression);
+        using var replacementStream = replacement.Open();
+        var settings = new XmlWriterSettings {
+            Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+            Indent = false,
+            OmitXmlDeclaration = false,
+            NewLineHandling = NewLineHandling.None
+        };
+        using var writer = XmlWriter.Create(replacementStream, settings);
+        document.Save(writer);
+        writer.Flush();
+    }
+
     private static void RewriteContentTypes(string filePath, Action<XElement> mutateRoot) {
         using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
         using var archive = new ZipArchive(fileStream, ZipArchiveMode.Update, leaveOpen: false);

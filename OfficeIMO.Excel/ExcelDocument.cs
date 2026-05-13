@@ -300,6 +300,7 @@ namespace OfficeIMO.Excel {
         public SpreadsheetDocument _spreadSheetDocument = null!;
         private WorkbookPart _workBookPart = null!;
         private SharedStringTablePart? _sharedStringTablePart;
+        private bool _sharedStringTableDirty;
         private Stream? _packageStream;
         private Stream? _sourceStream;
         private Stream? _ownedOpenStream;
@@ -514,7 +515,7 @@ namespace OfficeIMO.Excel {
                 // Add new string
                 int newIndex = sharedStringTable.Elements<SharedStringItem>().Count();
                 sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
-                sharedStringTable.Save();
+                _sharedStringTableDirty = true;
                 _sharedStringCache[text] = newIndex;
 
                 return newIndex;
@@ -562,6 +563,7 @@ namespace OfficeIMO.Excel {
 
                 if (changed) {
                     sharedStringTable.Save();
+                    _sharedStringTableDirty = false;
                 }
 
                 return result;
@@ -1405,6 +1407,11 @@ namespace OfficeIMO.Excel {
                 try { RepairDefinedNames(save: true); } catch { }
             }
 
+            if (_sharedStringTableDirty) {
+                _sharedStringTablePart?.SharedStringTable?.Save();
+                _sharedStringTableDirty = false;
+            }
+
             WorkbookRoot.Save();
             try { _spreadSheetDocument.PackageProperties.Modified = DateTime.UtcNow; } catch { }
 
@@ -1756,6 +1763,13 @@ namespace OfficeIMO.Excel {
                 if (this._spreadSheetDocument != null) {
                     try {
                         if (this._spreadSheetDocument.AutoSave && this._spreadSheetDocument.FileOpenAccess != FileAccess.Read) {
+                            lock (_sharedStringLock) {
+                                if (_sharedStringTableDirty) {
+                                    _sharedStringTablePart?.SharedStringTable?.Save();
+                                    _sharedStringTableDirty = false;
+                                }
+                            }
+
                             WorkbookRoot.Save();
                         }
 

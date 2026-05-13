@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        private const int DirectSequentialCellWriteLimit = 16;
+
         /// <summary>
         /// Writes multiple cell values efficiently, using parallelization when beneficial.
         /// </summary>
@@ -41,11 +43,27 @@ namespace OfficeIMO.Excel {
                 itemCount: list.Count,
                 overrideMode: mode,
                 sequentialCore: () => {
-                    // Sequential path - direct writes with NoLock
-                    for (int i = 0; i < list.Count; i++) {
-                        var (r, c, v) = list[i];
-                        CellValueCore(r, c, v);
+                    if (list.Count <= DirectSequentialCellWriteLimit) {
+                        for (int i = 0; i < list.Count; i++) {
+                            ct.ThrowIfCancellationRequested();
+                            var (r, c, v) = list[i];
+                            CellValueCore(r, c, v);
+                        }
+
+                        return;
                     }
+
+                    // Sequential path - keep the fast prepared/apply writer so row-major
+                    // batches can append rows instead of falling back to GetCell per cell.
+                    for (int i = 0; i < list.Count; i++) {
+                        ct.ThrowIfCancellationRequested();
+                        var (r, c, v) = list[i];
+                        var (val, type) = CoerceForCellNoDom(v, ssPlanner);
+                        prepared[i] = (r, c, val!, type!);
+                    }
+
+                    ssPlanner.ApplyAndFixup(prepared, _excelDocument);
+                    ApplyPreparedCells(prepared, list);
                 },
                 computeParallel: () => {
                     // Parallel compute phase - prepare values without DOM mutation
