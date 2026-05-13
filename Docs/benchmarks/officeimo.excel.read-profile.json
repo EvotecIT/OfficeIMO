@@ -1,5 +1,5 @@
 {
-  "GeneratedAtUtc": "2026-05-13T14:16:16.8520801Z",
+  "GeneratedAtUtc": "2026-05-13T16:58:07.2316136Z",
   "Framework": ".NET 8.0.27",
   "MachineName": "EVOMAGIC",
   "BuildConfiguration": "Release",
@@ -12,14 +12,14 @@
       "Name": "ReadObjects",
       "Notes": "Automatic execution policy.",
       "OutputMetric": 2500,
-      "AverageMilliseconds": 74.08059999999999,
-      "MedianMilliseconds": 66.1169,
+      "AverageMilliseconds": 69.3334,
+      "MedianMilliseconds": 64.7627,
       "SamplesMilliseconds": [
-        67.7499,
-        64.9061,
-        66.1169,
-        65.7798,
-        105.8503
+        67.2046,
+        64.7627,
+        63.7686,
+        63.5853,
+        87.3458
       ]
     },
     {
@@ -27,14 +27,14 @@
       "Name": "ReadObjects.Sequential",
       "Notes": "Forced sequential range conversion.",
       "OutputMetric": 2500,
-      "AverageMilliseconds": 70.08252,
-      "MedianMilliseconds": 56.4875,
+      "AverageMilliseconds": 69.50194,
+      "MedianMilliseconds": 53.9106,
       "SamplesMilliseconds": [
-        104.6906,
-        83.3172,
-        56.4875,
-        51.4395,
-        54.4778
+        104.3743,
+        100.9104,
+        53.9106,
+        44.7735,
+        43.5409
       ]
     },
     {
@@ -42,14 +42,14 @@
       "Name": "ReadObjects.Parallel",
       "Notes": "Forced parallel range conversion.",
       "OutputMetric": 2500,
-      "AverageMilliseconds": 44.61228,
-      "MedianMilliseconds": 44.8613,
+      "AverageMilliseconds": 36.871120000000005,
+      "MedianMilliseconds": 37.049,
       "SamplesMilliseconds": [
-        44.8613,
-        45.3453,
-        43.9868,
-        43.9098,
-        44.9582
+        35.5359,
+        35.5833,
+        37.4611,
+        37.049,
+        38.7263
       ]
     },
     {
@@ -57,14 +57,14 @@
       "Name": "ReadObjectsAs",
       "Notes": "Typed object materialization with automatic execution policy.",
       "OutputMetric": 2500,
-      "AverageMilliseconds": 50.87098,
-      "MedianMilliseconds": 49.8195,
+      "AverageMilliseconds": 43.54726000000001,
+      "MedianMilliseconds": 42.8437,
       "SamplesMilliseconds": [
-        49.8195,
-        50.6886,
-        54.7851,
-        49.3115,
-        49.7502
+        42.5863,
+        42.8437,
+        46.7307,
+        42.4529,
+        43.1227
       ]
     },
     {
@@ -72,14 +72,14 @@
       "Name": "ReadObjectsAs.Sequential",
       "Notes": "Typed object materialization with forced sequential range conversion.",
       "OutputMetric": 2500,
-      "AverageMilliseconds": 49.48736,
-      "MedianMilliseconds": 49.3988,
+      "AverageMilliseconds": 42.57732,
+      "MedianMilliseconds": 42.4546,
       "SamplesMilliseconds": [
-        49.2495,
-        50.1126,
-        49.3988,
-        49.5445,
-        49.1314
+        42.0457,
+        42.3317,
+        42.4546,
+        43.4203,
+        42.6343
       ]
     },
     {
@@ -87,14 +87,14 @@
       "Name": "ReadObjectsAs.Parallel",
       "Notes": "Typed object materialization with forced parallel range conversion.",
       "OutputMetric": 2500,
-      "AverageMilliseconds": 43.53934,
-      "MedianMilliseconds": 43.1182,
+      "AverageMilliseconds": 35.11898,
+      "MedianMilliseconds": 34.7106,
       "SamplesMilliseconds": [
-        45.2059,
-        43.0476,
-        42.8762,
-        43.1182,
-        43.4488
+        36.4434,
+        34.6157,
+        34.6239,
+        34.7106,
+        35.2013
       ]
     },
     {
@@ -102,14 +102,14 @@
       "Name": "ReadRange",
       "Notes": "Dense 2D array read with automatic execution policy.",
       "OutputMetric": 20008,
-      "AverageMilliseconds": 71.6255,
-      "MedianMilliseconds": 69.1995,
+      "AverageMilliseconds": 35.5916,
+      "MedianMilliseconds": 35.0602,
       "SamplesMilliseconds": [
-        76.123,
-        77.471,
-        68.8642,
-        69.1995,
-        66.4698
+        34.4092,
+        37.111,
+        36.7576,
+        35.0602,
+        34.62
       ]
     },
     {
@@ -117,14 +117,14 @@
       "Name": "ReadRange.Sequential",
       "Notes": "Dense 2D array read with forced sequential conversion.",
       "OutputMetric": 20008,
-      "AverageMilliseconds": 44.66888,
-      "MedianMilliseconds": 42.4978,
+      "AverageMilliseconds": 57.181920000000005,
+      "MedianMilliseconds": 59.0799,
       "SamplesMilliseconds": [
-        63.8958,
-        53.2194,
-        42.4978,
-        36.0268,
-        27.7046
+        46.1325,
+        61.4449,
+        53.9589,
+        59.0799,
+        65.2934
       ]
     },
     {
@@ -132,14 +132,14 @@
       "Name": "ReadRange.Parallel",
       "Notes": "Dense 2D array read with forced parallel conversion.",
       "OutputMetric": 20008,
-      "AverageMilliseconds": 27.255119999999998,
-      "MedianMilliseconds": 28.3075,
+      "AverageMilliseconds": 47.00364,
+      "MedianMilliseconds": 47.2987,
       "SamplesMilliseconds": [
-        24.1668,
-        28.9613,
-        28.3075,
-        31.105,
-        23.735
+        50.8845,
+        47.2987,
+        49.6459,
+        46.489,
+        40.7001
       ]
     },
     {
@@ -147,14 +147,14 @@
       "Name": "ReadRangeAsDataTable",
       "Notes": "Automatic execution policy.",
       "OutputMetric": 2500,
-      "AverageMilliseconds": 64.73604,
-      "MedianMilliseconds": 55.027,
+      "AverageMilliseconds": 55.15241999999999,
+      "MedianMilliseconds": 55.9577,
       "SamplesMilliseconds": [
-        53.0155,
-        55.027,
-        69.9119,
-        47.53,
-        98.1958
+        59.2883,
+        60.3598,
+        51.196,
+        48.9603,
+        55.9577
       ]
     },
     {
@@ -162,14 +162,14 @@
       "Name": "ReadRangeAsDataTable.Sequential",
       "Notes": "Forced sequential range conversion.",
       "OutputMetric": 2500,
-      "AverageMilliseconds": 77.51018,
-      "MedianMilliseconds": 76.6413,
+      "AverageMilliseconds": 59.55562,
+      "MedianMilliseconds": 63.0532,
       "SamplesMilliseconds": [
-        57.6749,
-        104.2781,
-        78.3467,
-        70.6099,
-        76.6413
+        63.0532,
+        71.2352,
+        72.1695,
+        50.8368,
+        40.4834
       ]
     },
     {
@@ -177,14 +177,14 @@
       "Name": "ReadRangeAsDataTable.Parallel",
       "Notes": "Forced parallel range conversion.",
       "OutputMetric": 2500,
-      "AverageMilliseconds": 91.80996,
-      "MedianMilliseconds": 92.3951,
+      "AverageMilliseconds": 39.745140000000006,
+      "MedianMilliseconds": 39.8893,
       "SamplesMilliseconds": [
-        137.8953,
-        92.3951,
-        61.6847,
-        60.5625,
-        106.5122
+        42.8335,
+        43.0031,
+        37.0455,
+        39.8893,
+        35.9543
       ]
     },
     {
@@ -192,14 +192,14 @@
       "Name": "ReadRangeStream",
       "Notes": "Streaming row chunks with automatic execution policy.",
       "OutputMetric": 2501,
-      "AverageMilliseconds": 53.48142,
-      "MedianMilliseconds": 54.3551,
+      "AverageMilliseconds": 42.40410000000001,
+      "MedianMilliseconds": 41.5582,
       "SamplesMilliseconds": [
-        74.3475,
-        37.8808,
-        59.2802,
-        41.5435,
-        54.3551
+        41.5582,
+        40.7246,
+        46.5824,
+        41.5529,
+        41.6024
       ]
     },
     {
@@ -207,14 +207,14 @@
       "Name": "ReadRangeStream.Sequential",
       "Notes": "Streaming row chunks with forced sequential conversion.",
       "OutputMetric": 2501,
-      "AverageMilliseconds": 47.15302,
-      "MedianMilliseconds": 47.7843,
+      "AverageMilliseconds": 38.247980000000005,
+      "MedianMilliseconds": 38.587,
       "SamplesMilliseconds": [
-        42.9344,
-        52.2777,
-        34.624,
-        58.1447,
-        47.7843
+        33.7078,
+        41.7145,
+        38.587,
+        36.1285,
+        41.1021
       ]
     },
     {
@@ -222,14 +222,14 @@
       "Name": "ReadRangeStream.Parallel",
       "Notes": "Streaming row chunks with forced parallel conversion.",
       "OutputMetric": 2501,
-      "AverageMilliseconds": 56.59778,
-      "MedianMilliseconds": 58.5797,
+      "AverageMilliseconds": 31.17228,
+      "MedianMilliseconds": 31.3296,
       "SamplesMilliseconds": [
-        67.4201,
-        74.5923,
-        58.5797,
-        33.7335,
-        48.6633
+        31.3492,
+        31.1073,
+        31.4692,
+        31.3296,
+        30.6061
       ]
     },
     {
@@ -237,14 +237,14 @@
       "Name": "ReadColumn.LargeSparse",
       "Notes": "Sparse A1:A100001 read with only the first and last rows populated.",
       "OutputMetric": 100001,
-      "AverageMilliseconds": 4.9108,
-      "MedianMilliseconds": 2.7036,
+      "AverageMilliseconds": 2.7627800000000002,
+      "MedianMilliseconds": 2.7158,
       "SamplesMilliseconds": [
-        2.445,
-        13.2407,
-        3.7248,
-        2.4399,
-        2.7036
+        2.8755,
+        2.7158,
+        2.7088,
+        2.6779,
+        2.8359
       ]
     },
     {
@@ -252,14 +252,14 @@
       "Name": "ReadRows.LargeSparse",
       "Notes": "Sparse A1:A100001 row read with only the first and last rows populated.",
       "OutputMetric": 100001,
-      "AverageMilliseconds": 3.3776400000000004,
-      "MedianMilliseconds": 3.1707,
+      "AverageMilliseconds": 2.69512,
+      "MedianMilliseconds": 2.6939,
       "SamplesMilliseconds": [
-        3.1707,
-        2.4847,
-        4.7172,
-        3.9175,
-        2.5981
+        2.6803,
+        2.7177,
+        2.7082,
+        2.6939,
+        2.6755
       ]
     },
     {
@@ -267,14 +267,14 @@
       "Name": "ReadRows",
       "Notes": "Worksheet row iteration over the same workbook payload.",
       "OutputMetric": 2500,
-      "AverageMilliseconds": 83.21998,
-      "MedianMilliseconds": 79.8881,
+      "AverageMilliseconds": 81.55192,
+      "MedianMilliseconds": 81.4968,
       "SamplesMilliseconds": [
-        77.95,
-        80.6436,
-        98.7269,
-        78.8913,
-        79.8881
+        78.9332,
+        83.938,
+        93.6008,
+        69.7908,
+        81.4968
       ]
     }
   ]
