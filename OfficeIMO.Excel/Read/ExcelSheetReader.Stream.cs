@@ -87,7 +87,7 @@ namespace OfficeIMO.Excel {
                 yield break;
             }
 
-            int maxPendingChunks = Math.Max(dop, dop * 2);
+            int maxPendingChunks = dop;
             var pending = new Dictionary<int, Task<RangeChunk>>(maxPendingChunks);
             int activeWindow = -1;
             List<Row> bufferRows = new();
@@ -194,7 +194,7 @@ namespace OfficeIMO.Excel {
 
                     int rowIndex = checked((int)row.RowIndex!.Value);
                     if (rowIndex < rr1) continue;
-                    if (rowIndex > rr2) break;
+                    if (rowIndex > rr2) continue;
 
                     int window = GetWindowIndex(rowIndex);
                     if ((uint)window >= (uint)windows.Length) continue;
@@ -213,7 +213,7 @@ namespace OfficeIMO.Excel {
                     yield break;
                 }
 
-                int maxBufferedPendingChunks = Math.Max(dop, dop * 2);
+                int maxBufferedPendingChunks = dop;
                 var bufferedPending = new Dictionary<int, Task<RangeChunk>>(maxBufferedPendingChunks);
                 int bufferedScheduleIndex = 0;
                 int bufferedNextToYield = 0;
@@ -259,7 +259,7 @@ namespace OfficeIMO.Excel {
 
                     int rowIndex = checked((int)row.RowIndex!.Value);
                     if (rowIndex < rr1) continue;
-                    if (rowIndex > rr2) break;
+                    if (rowIndex > rr2) continue;
 
                     int window = GetWindowIndex(rowIndex);
                     if (!windows.TryGetValue(window, out var windowRows)) {
@@ -278,7 +278,7 @@ namespace OfficeIMO.Excel {
                     yield break;
                 }
 
-                int maxUnsortedPendingChunks = Math.Max(dop, dop * 2);
+                int maxUnsortedPendingChunks = dop;
                 var unsortedPending = new Dictionary<int, Task<RangeChunk>>(maxUnsortedPendingChunks);
                 int unsortedScheduleIndex = 0;
                 int unsortedNextToYield = 0;
@@ -316,6 +316,7 @@ namespace OfficeIMO.Excel {
         private static bool RowsAreSortedWithinRange(SheetData data, int firstRow, int lastRow, CancellationToken token) {
             bool canCancel = token.CanBeCanceled;
             bool hasPrevious = false;
+            bool sawRowAfterRange = false;
             int previous = 0;
 
             foreach (var row in data.Elements<Row>()) {
@@ -325,7 +326,14 @@ namespace OfficeIMO.Excel {
 
                 int rowIndex = checked((int)row.RowIndex!.Value);
                 if (rowIndex < firstRow) continue;
-                if (rowIndex > lastRow) break;
+                if (rowIndex > lastRow) {
+                    sawRowAfterRange = true;
+                    continue;
+                }
+                if (sawRowAfterRange) {
+                    return false;
+                }
+
                 if (hasPrevious && rowIndex <= previous) {
                     return false;
                 }
@@ -340,6 +348,7 @@ namespace OfficeIMO.Excel {
         private bool RowsAreSortedWithinRange(int firstRow, int lastRow, CancellationToken token) {
             bool canCancel = token.CanBeCanceled;
             bool hasPrevious = false;
+            bool sawRowAfterRange = false;
             int previous = 0;
 
             foreach (var row in EnumerateWorksheetRows(token)) {
@@ -349,7 +358,14 @@ namespace OfficeIMO.Excel {
 
                 int rowIndex = checked((int)row.RowIndex!.Value);
                 if (rowIndex < firstRow) continue;
-                if (rowIndex > lastRow) break;
+                if (rowIndex > lastRow) {
+                    sawRowAfterRange = true;
+                    continue;
+                }
+                if (sawRowAfterRange) {
+                    return false;
+                }
+
                 if (hasPrevious && rowIndex <= previous) {
                     return false;
                 }

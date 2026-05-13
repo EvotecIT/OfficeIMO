@@ -146,7 +146,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (rowIndex > r2) {
-                    break;
+                    continue;
                 }
 
                 if (rowIndex == r1) {
@@ -274,7 +274,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (rowIndex > r2) {
-                    break;
+                    continue;
                 }
 
                 int resultIndex = rowIndex - r1 - 1;

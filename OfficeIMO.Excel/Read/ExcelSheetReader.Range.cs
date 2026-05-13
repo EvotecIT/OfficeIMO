@@ -268,7 +268,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (rowIndex > r2) {
-                    break;
+                    continue;
                 }
 
                 if (headersInFirstRow && rowIndex == r1) {
@@ -423,7 +423,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (rowIndex > r2) {
-                    break;
+                    continue;
                 }
 
                 if (rowIndex == r1) {
@@ -523,7 +523,7 @@ namespace OfficeIMO.Excel {
 
                 int rowIndex = checked((int)row.RowIndex!.Value);
                 if (rowIndex < r1) continue;
-                if (rowIndex > r2) break;
+                if (rowIndex > r2) continue;
 
                 int rr = rowIndex - r1 - startRow;
                 bool isHeaderRow = headerValues != null && rowIndex == r1;
@@ -616,7 +616,7 @@ namespace OfficeIMO.Excel {
 
                 var rIndex = checked((int)row.RowIndex!.Value);
                 if (rIndex < r1) continue;
-                if (rIndex > r2) break;
+                if (rIndex > r2) continue;
 
                 foreach (var cell in row.Elements<Cell>()) {
                     if (canCancel && (++visitedCells & 1023) == 0) {
@@ -647,7 +647,7 @@ namespace OfficeIMO.Excel {
 
                 var rIndex = checked((int)row.RowIndex!.Value);
                 if (rIndex < r1) continue;
-                if (rIndex > r2) break;
+                if (rIndex > r2) continue;
 
                 int rr = rIndex - r1;
                 if ((uint)rr >= (uint)height) continue;

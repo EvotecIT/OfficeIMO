@@ -126,13 +126,20 @@ namespace OfficeIMO.Excel {
                 }
 
                 bool commonHasNonZeroRowDigit = false;
+                int commonRow = 0;
                 for (; commonIndex < length; commonIndex++) {
                     char ch = text[commonIndex];
                     if (ch < '0' || ch > '9') {
                         return 0;
                     }
 
-                    commonHasNonZeroRowDigit |= ch != '0';
+                    int digit = ch - '0';
+                    if (commonRow > (int.MaxValue - digit) / 10) {
+                        return 0;
+                    }
+
+                    commonRow = (commonRow * 10) + digit;
+                    commonHasNonZeroRowDigit |= digit != 0;
                 }
 
                 return commonHasNonZeroRowDigit ? commonCol : 0;
@@ -164,10 +171,17 @@ namespace OfficeIMO.Excel {
             }
 
             bool hasNonZeroRowDigit = false;
+            int row = 0;
             for (; index < length; index++) {
                 char ch = text[index];
                 if (ch >= '0' && ch <= '9') {
-                    hasNonZeroRowDigit |= ch != '0';
+                    int digit = ch - '0';
+                    if (row > (int.MaxValue - digit) / 10) {
+                        return 0;
+                    }
+
+                    row = (row * 10) + digit;
+                    hasNonZeroRowDigit |= digit != 0;
                     continue;
                 }
 

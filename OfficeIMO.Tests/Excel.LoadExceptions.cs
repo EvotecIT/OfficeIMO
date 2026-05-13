@@ -155,6 +155,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_LoadWithAutoSave_PersistsSharedStringTableChangesOnDispose() {
+            string filePath = Path.Combine(_directoryWithFiles, "LoadAutoSaveSharedStrings.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Initial");
+                    document.Save();
+                }
+
+                using (var document = ExcelDocument.Load(filePath, readOnly: false, autoSave: true)) {
+                    document.Sheets[0].CellValue(1, 1, "Updated");
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                object?[,] values = reader.GetSheet("Data").ReadRange("A1:A1");
+
+                Assert.Equal("Updated", values[0, 0]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Test_ReaderOpenNormalizedPath_CanReadWorkbook() {
             string sourcePath = Path.Combine(_directoryDocuments, "BasicExcel.xlsx");
             string filePath = Path.Combine(_directoryWithFiles, "ReaderOpenNormalized.xlsx");

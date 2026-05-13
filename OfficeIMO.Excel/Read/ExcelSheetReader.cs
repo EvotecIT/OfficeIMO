@@ -160,6 +160,11 @@ namespace OfficeIMO.Excel {
 
             string? rawText = ExtractRawText(cell);
             string? inlineText = ExtractInlineString(cell, typeHint);
+            if (hasFormula && _opt.UseCachedFormulaResult && rawText == null && formulaText != null) {
+                value = formulaText;
+                return true;
+            }
+
             if (rawText == null && inlineText == null && formulaText == null) {
                 if (!CellHasExplicitBlank(cell) && !_opt.FillBlanksInRanges) {
                     return false;

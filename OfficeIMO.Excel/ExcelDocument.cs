@@ -1763,6 +1763,13 @@ namespace OfficeIMO.Excel {
                 if (this._spreadSheetDocument != null) {
                     try {
                         if (this._spreadSheetDocument.AutoSave && this._spreadSheetDocument.FileOpenAccess != FileAccess.Read) {
+                            lock (_sharedStringLock) {
+                                if (_sharedStringTableDirty) {
+                                    _sharedStringTablePart?.SharedStringTable?.Save();
+                                    _sharedStringTableDirty = false;
+                                }
+                            }
+
                             WorkbookRoot.Save();
                         }
 

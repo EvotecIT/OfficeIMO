@@ -206,6 +206,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_FormulaText_IsReturnedWhenCachedResultIsMissing() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderFormulaWithoutCachedResult.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, 2);
+                    sheet.CellValue(2, 1, 3);
+                    sheet.CellFormula(3, 1, "=SUM(A1:A2)");
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var cell = reader.GetSheet("Data").EnumerateCells().Single(c => c.Row == 3 && c.Column == 1);
+
+                Assert.Equal("SUM(A1:A2)", cell.Value);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Reader_ReadRangeSequential_FormulaText_IsReturnedWhenCachedResultsAreDisabled() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderSequentialFormulaText.xlsx");
 

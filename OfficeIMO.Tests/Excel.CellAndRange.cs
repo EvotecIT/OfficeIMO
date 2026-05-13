@@ -116,6 +116,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, A1.ParseColumnIndexFromCellReferenceFast("A0000000001"));
             Assert.Equal(0, A1.ParseColumnIndexFromCellReferenceFast("A"));
             Assert.Equal(0, A1.ParseColumnIndexFromCellReferenceFast("A0"));
+            Assert.Equal(0, A1.ParseColumnIndexFromCellReferenceFast("A2147483648"));
             Assert.Equal(0, A1.ParseColumnIndexFromCellReferenceFast("AB12X"));
             Assert.Equal(0, A1.ParseColumnIndexFromCellReferenceFast("TOTAL"));
             Assert.Equal("A", A1.ColumnIndexToLetters(0));

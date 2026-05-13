@@ -59,7 +59,7 @@ namespace OfficeIMO.Excel {
 
                 int ri = checked((int)row.RowIndex!.Value);
                 if (ri < r1) continue;
-                if (ri > r2) break;
+                if (ri > r2) continue;
                 rowMap[ri] = row;
             }
 

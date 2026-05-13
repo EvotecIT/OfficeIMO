@@ -70,7 +70,7 @@ namespace OfficeIMO.Excel {
 
                 int ri = checked((int)row.RowIndex!.Value);
                 if (ri < r1) continue;
-                if (ri > r2) break;
+                if (ri > r2) continue;
                 map[ri] = row;
             }
 
@@ -96,9 +96,9 @@ namespace OfficeIMO.Excel {
 
                     int cc = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
                     if (cc < firstColumn || cc > lastColumn) continue;
+                    hasCells = true;
                     if (TryConvertCell(cell, out object? value)) {
                         arr[cc - firstColumn] = value ?? arr[cc - firstColumn];
-                        hasCells = true;
                     }
                 }
 
