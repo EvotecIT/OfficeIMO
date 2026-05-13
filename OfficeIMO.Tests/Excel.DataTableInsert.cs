@@ -136,5 +136,103 @@ namespace OfficeIMO.Tests {
 
             File.Delete(filePath);
         }
+
+        [Fact]
+        public void Test_AppendDataTableToTable_ExtendsTableAndMapsColumnsByHeader() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTable.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Sales");
+
+                var table = new DataTable();
+                table.Columns.Add("Region", typeof(string));
+                table.Columns.Add("Revenue", typeof(int));
+                table.Rows.Add("NA", 100);
+                table.Rows.Add("EMEA", 120);
+
+                Assert.Equal("A1:B3", sheet.InsertDataTableAsTable(table, tableName: "SalesTable"));
+
+                var append = new DataTable();
+                append.Columns.Add("Revenue", typeof(int));
+                append.Columns.Add("Region", typeof(string));
+                append.Rows.Add(150, "APAC");
+                append.Rows.Add(175, "LATAM");
+
+                Assert.Equal("A1:B5", sheet.AppendDataTableToTable(append, "SalesTable"));
+                Assert.Equal("A1:B5", sheet.GetTableRange("SalesTable"));
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                TableDefinitionPart tablePart = worksheetPart.TableDefinitionParts.First();
+                Assert.Equal("A1:B5", tablePart.Table.Reference!.Value);
+                Assert.Equal("A1:B5", tablePart.Table.GetFirstChild<AutoFilter>()!.Reference!.Value);
+
+                Assert.Equal("APAC", GetCellText(spreadsheet, worksheetPart, "A4"));
+                Assert.Equal("150", GetCellText(spreadsheet, worksheetPart, "B4"));
+                Assert.Equal("LATAM", GetCellText(spreadsheet, worksheetPart, "A5"));
+                Assert.Equal("175", GetCellText(spreadsheet, worksheetPart, "B5"));
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+                Assert.Equal("A1:B5", document.Sheets[0].GetTableRange("SalesTable"));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Test_AppendDataTableToTable_ThrowsWhenColumnIsMissing() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableMissingColumn.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Sales");
+
+                var table = new DataTable();
+                table.Columns.Add("Region", typeof(string));
+                table.Columns.Add("Revenue", typeof(int));
+                table.Rows.Add("NA", 100);
+                sheet.InsertDataTableAsTable(table, tableName: "SalesTable");
+
+                var append = new DataTable();
+                append.Columns.Add("Region", typeof(string));
+                append.Columns.Add("Amount", typeof(int));
+                append.Rows.Add("APAC", 150);
+
+                var exception = Assert.Throws<ArgumentException>(() => sheet.AppendDataTableToTable(append, "SalesTable"));
+                Assert.Contains("Revenue", exception.Message);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Test_AppendDataTableToTable_ThrowsWhenCellsBelowTableContainData() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableOccupiedCells.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Sales");
+
+                var table = new DataTable();
+                table.Columns.Add("Region", typeof(string));
+                table.Columns.Add("Revenue", typeof(int));
+                table.Rows.Add("NA", 100);
+                sheet.InsertDataTableAsTable(table, tableName: "SalesTable");
+
+                sheet.CellValue(3, 1, "Existing");
+
+                var append = new DataTable();
+                append.Columns.Add("Region", typeof(string));
+                append.Columns.Add("Revenue", typeof(int));
+                append.Rows.Add("APAC", 150);
+
+                var exception = Assert.Throws<InvalidOperationException>(() => sheet.AppendDataTableToTable(append, "SalesTable"));
+                Assert.Contains("A3", exception.Message);
+            }
+
+            File.Delete(filePath);
+        }
     }
 }
