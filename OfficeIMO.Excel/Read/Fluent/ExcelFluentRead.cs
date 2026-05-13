@@ -1,3 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Threading;
+
 namespace OfficeIMO.Excel.Fluent {
     /// <summary>
     /// Entry point for fluent read pipelines.
@@ -97,6 +100,23 @@ namespace OfficeIMO.Excel.Fluent {
         public IEnumerable<T> AsObjects<T>() where T : new() {
             using var rdr = ExcelDocumentReader.Wrap(_doc._spreadSheetDocument, _options);
             return rdr.GetSheet(_sheetName).ReadObjects<T>(_a1);
+        }
+
+        /// <summary>
+        /// Streams rows (excluding header) as instances of T by matching headers to property names.
+        /// Enumerate the returned sequence while the owning ExcelDocument is still open.
+        /// </summary>
+        public IEnumerable<T> AsObjectsStream<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+            CancellationToken ct = default) where T : new() {
+            return AsObjectsStreamIterator<T>(ct);
+        }
+
+        private IEnumerable<T> AsObjectsStreamIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+            CancellationToken ct) where T : new() {
+            using var rdr = ExcelDocumentReader.Wrap(_doc._spreadSheetDocument, _options);
+            foreach (var row in rdr.GetSheet(_sheetName).ReadObjectsStream<T>(_a1, ct)) {
+                yield return row;
+            }
         }
 
         /// <summary>

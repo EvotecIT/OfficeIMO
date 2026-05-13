@@ -1,3 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Threading;
+
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Read convenience methods exposed directly on ExcelSheet to avoid separate reader usage.
@@ -41,6 +44,29 @@ namespace OfficeIMO.Excel {
             using var rdr = _excelDocument.CreateReader(options);
             var sh = rdr.GetSheet(this.Name);
             return sh.ReadObjects<T>(a1Range);
+        }
+
+        /// <summary>
+        /// Streams the specified A1 range as instances of T using header-to-property mapping.
+        /// Enumerate the returned sequence while the owning ExcelDocument is still open.
+        /// </summary>
+        public IEnumerable<T> RowsAsStream<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+            string a1Range,
+            ExcelReadOptions? options = null,
+            CancellationToken ct = default) where T : new() {
+            if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
+            return RowsAsStreamIterator<T>(a1Range, options, ct);
+        }
+
+        private IEnumerable<T> RowsAsStreamIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+            string a1Range,
+            ExcelReadOptions? options,
+            CancellationToken ct) where T : new() {
+            using var rdr = _excelDocument.CreateReader(options);
+            var sh = rdr.GetSheet(this.Name);
+            foreach (var row in sh.ReadObjectsStream<T>(a1Range, ct)) {
+                yield return row;
+            }
         }
 
         /// <summary>

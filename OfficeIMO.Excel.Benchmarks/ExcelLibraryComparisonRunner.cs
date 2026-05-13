@@ -118,6 +118,12 @@ internal static class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("EPPlus", "Manual typed materialization from worksheet rows.", () => EpPlusReadObjects(epPlusWorkbookBytes))
         ]);
 
+        AddScenarioGroup(scenarios, scenarioFilter, "read-objects-stream", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Streaming typed materialization with ReadObjectsStream<T>.", () => OfficeImoReadObjectsStream(officeImoWorkbookBytes, dataRange)),
+            new LibraryComparisonCase("ClosedXML", "Manual typed materialization from worksheet rows.", () => ClosedXmlReadObjects(closedXmlWorkbookBytes)),
+            new LibraryComparisonCase("EPPlus", "Manual typed materialization from worksheet rows.", () => EpPlusReadObjects(epPlusWorkbookBytes))
+        ]);
+
         AddScenarioGroup(scenarios, scenarioFilter, "autofit-existing", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Load existing workbook, autofit columns, save.", () => OfficeImoAutoFitExisting(officeImoWorkbookBytes)),
             new LibraryComparisonCase("ClosedXML", "Load existing workbook, autofit columns, save.", () => ClosedXmlAutoFitExisting(closedXmlWorkbookBytes)),
@@ -659,6 +665,16 @@ internal static class ExcelLibraryComparisonRunner {
         using var reader = ExcelDocumentReader.Open(workbookBytes);
         int metric = 0;
         foreach (var row in reader.GetSheet("Data").ReadObjects<ReadSalesRecord>(dataRange)) {
+            metric = AddSalesRecordMetric(metric, row);
+        }
+
+        return metric;
+    }
+
+    private static int OfficeImoReadObjectsStream(byte[] workbookBytes, string dataRange) {
+        using var reader = ExcelDocumentReader.Open(workbookBytes);
+        int metric = 0;
+        foreach (var row in reader.GetSheet("Data").ReadObjectsStream<ReadSalesRecord>(dataRange)) {
             metric = AddSalesRecordMetric(metric, row);
         }
 
