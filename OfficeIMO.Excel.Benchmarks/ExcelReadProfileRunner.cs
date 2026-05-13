@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using ClosedXML.Excel;
 
@@ -38,6 +39,36 @@ internal static class ExcelReadProfileRunner {
         byte[] sparseWorkbookBytes = CreateSparseWorkbookBytes(SparseLastRow);
         string sparseRange = $"A1:A{SparseLastRow}";
 
+        List<ExcelReadProfileScenario> scenarios = [];
+        scenarios.AddRange(MeasureGroup("OfficeIMO.Excel", [
+            new ReadProfileCase("ReadObjects", "Automatic execution policy.", () => OfficeImoReadObjects(workbookBytes, dataRange, null)),
+            new ReadProfileCase("ReadObjects.Sequential", "Forced sequential range conversion.", () => OfficeImoReadObjects(workbookBytes, dataRange, ExecutionMode.Sequential)),
+            new ReadProfileCase("ReadObjects.Parallel", "Forced parallel range conversion.", () => OfficeImoReadObjects(workbookBytes, dataRange, ExecutionMode.Parallel))
+        ], warmupIterations, measuredIterations));
+        scenarios.AddRange(MeasureGroup("OfficeIMO.Excel", [
+            new ReadProfileCase("ReadObjectsAs", "Typed object materialization with automatic execution policy.", () => OfficeImoReadObjectsAs(workbookBytes, dataRange, null)),
+            new ReadProfileCase("ReadObjectsAs.Sequential", "Typed object materialization with forced sequential range conversion.", () => OfficeImoReadObjectsAs(workbookBytes, dataRange, ExecutionMode.Sequential)),
+            new ReadProfileCase("ReadObjectsAs.Parallel", "Typed object materialization with forced parallel range conversion.", () => OfficeImoReadObjectsAs(workbookBytes, dataRange, ExecutionMode.Parallel))
+        ], warmupIterations, measuredIterations));
+        scenarios.AddRange(MeasureGroup("OfficeIMO.Excel", [
+            new ReadProfileCase("ReadRange", "Dense 2D array read with automatic execution policy.", () => OfficeImoReadRange(workbookBytes, dataRange, null)),
+            new ReadProfileCase("ReadRange.Sequential", "Dense 2D array read with forced sequential conversion.", () => OfficeImoReadRange(workbookBytes, dataRange, ExecutionMode.Sequential)),
+            new ReadProfileCase("ReadRange.Parallel", "Dense 2D array read with forced parallel conversion.", () => OfficeImoReadRange(workbookBytes, dataRange, ExecutionMode.Parallel))
+        ], warmupIterations, measuredIterations));
+        scenarios.AddRange(MeasureGroup("OfficeIMO.Excel", [
+            new ReadProfileCase("ReadRangeAsDataTable", "Automatic execution policy.", () => OfficeImoReadDataTable(workbookBytes, dataRange, null)),
+            new ReadProfileCase("ReadRangeAsDataTable.Sequential", "Forced sequential range conversion.", () => OfficeImoReadDataTable(workbookBytes, dataRange, ExecutionMode.Sequential)),
+            new ReadProfileCase("ReadRangeAsDataTable.Parallel", "Forced parallel range conversion.", () => OfficeImoReadDataTable(workbookBytes, dataRange, ExecutionMode.Parallel))
+        ], warmupIterations, measuredIterations));
+        scenarios.AddRange(MeasureGroup("OfficeIMO.Excel", [
+            new ReadProfileCase("ReadRangeStream", "Streaming row chunks with automatic execution policy.", () => OfficeImoReadRangeStream(workbookBytes, dataRange, null)),
+            new ReadProfileCase("ReadRangeStream.Sequential", "Streaming row chunks with forced sequential conversion.", () => OfficeImoReadRangeStream(workbookBytes, dataRange, ExecutionMode.Sequential)),
+            new ReadProfileCase("ReadRangeStream.Parallel", "Streaming row chunks with forced parallel conversion.", () => OfficeImoReadRangeStream(workbookBytes, dataRange, ExecutionMode.Parallel))
+        ], warmupIterations, measuredIterations));
+        scenarios.Add(Measure("OfficeIMO.Excel", "ReadColumn.LargeSparse", "Sparse A1:A100001 read with only the first and last rows populated.", () => OfficeImoReadSparseColumn(sparseWorkbookBytes, sparseRange, SparseLastRow), warmupIterations, measuredIterations));
+        scenarios.Add(Measure("OfficeIMO.Excel", "ReadRows.LargeSparse", "Sparse A1:A100001 row read with only the first and last rows populated.", () => OfficeImoReadSparseRows(sparseWorkbookBytes, sparseRange, SparseLastRow), warmupIterations, measuredIterations));
+        scenarios.Add(Measure("ClosedXML", "ReadRows", "Worksheet row iteration over the same workbook payload.", () => ClosedXmlReadRows(workbookBytes), warmupIterations, measuredIterations));
+
         var profile = new ExcelReadProfile {
             GeneratedAtUtc = DateTime.UtcNow,
             Framework = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
@@ -46,26 +77,7 @@ internal static class ExcelReadProfileRunner {
             RowCount = rowCount,
             WarmupIterations = warmupIterations,
             MeasuredIterations = measuredIterations,
-            Scenarios = [
-                Measure("OfficeIMO.Excel", "ReadObjects", "Automatic execution policy.", () => OfficeImoReadObjects(workbookBytes, dataRange, null), warmupIterations, measuredIterations),
-                Measure("OfficeIMO.Excel", "ReadObjects.Sequential", "Forced sequential range conversion.", () => OfficeImoReadObjects(workbookBytes, dataRange, ExecutionMode.Sequential), warmupIterations, measuredIterations),
-                Measure("OfficeIMO.Excel", "ReadObjects.Parallel", "Forced parallel range conversion.", () => OfficeImoReadObjects(workbookBytes, dataRange, ExecutionMode.Parallel), warmupIterations, measuredIterations),
-                Measure("OfficeIMO.Excel", "ReadObjectsAs", "Typed object materialization with automatic execution policy.", () => OfficeImoReadObjectsAs(workbookBytes, dataRange, null), warmupIterations, measuredIterations),
-                Measure("OfficeIMO.Excel", "ReadObjectsAs.Sequential", "Typed object materialization with forced sequential range conversion.", () => OfficeImoReadObjectsAs(workbookBytes, dataRange, ExecutionMode.Sequential), warmupIterations, measuredIterations),
-                Measure("OfficeIMO.Excel", "ReadObjectsAs.Parallel", "Typed object materialization with forced parallel range conversion.", () => OfficeImoReadObjectsAs(workbookBytes, dataRange, ExecutionMode.Parallel), warmupIterations, measuredIterations),
-                Measure("OfficeIMO.Excel", "ReadRange", "Dense 2D array read with automatic execution policy.", () => OfficeImoReadRange(workbookBytes, dataRange, null), warmupIterations, measuredIterations),
-                Measure("OfficeIMO.Excel", "ReadRange.Sequential", "Dense 2D array read with forced sequential conversion.", () => OfficeImoReadRange(workbookBytes, dataRange, ExecutionMode.Sequential), warmupIterations, measuredIterations),
-                Measure("OfficeIMO.Excel", "ReadRange.Parallel", "Dense 2D array read with forced parallel conversion.", () => OfficeImoReadRange(workbookBytes, dataRange, ExecutionMode.Parallel), warmupIterations, measuredIterations),
-                Measure("OfficeIMO.Excel", "ReadRangeAsDataTable", "Automatic execution policy.", () => OfficeImoReadDataTable(workbookBytes, dataRange, null), warmupIterations, measuredIterations),
-                Measure("OfficeIMO.Excel", "ReadRangeAsDataTable.Sequential", "Forced sequential range conversion.", () => OfficeImoReadDataTable(workbookBytes, dataRange, ExecutionMode.Sequential), warmupIterations, measuredIterations),
-                Measure("OfficeIMO.Excel", "ReadRangeAsDataTable.Parallel", "Forced parallel range conversion.", () => OfficeImoReadDataTable(workbookBytes, dataRange, ExecutionMode.Parallel), warmupIterations, measuredIterations),
-                Measure("OfficeIMO.Excel", "ReadRangeStream", "Streaming row chunks with automatic execution policy.", () => OfficeImoReadRangeStream(workbookBytes, dataRange, null), warmupIterations, measuredIterations),
-                Measure("OfficeIMO.Excel", "ReadRangeStream.Sequential", "Streaming row chunks with forced sequential conversion.", () => OfficeImoReadRangeStream(workbookBytes, dataRange, ExecutionMode.Sequential), warmupIterations, measuredIterations),
-                Measure("OfficeIMO.Excel", "ReadRangeStream.Parallel", "Streaming row chunks with forced parallel conversion.", () => OfficeImoReadRangeStream(workbookBytes, dataRange, ExecutionMode.Parallel), warmupIterations, measuredIterations),
-                Measure("OfficeIMO.Excel", "ReadColumn.LargeSparse", "Sparse A1:A100001 read with only the first and last rows populated.", () => OfficeImoReadSparseColumn(sparseWorkbookBytes, sparseRange, SparseLastRow), warmupIterations, measuredIterations),
-                Measure("OfficeIMO.Excel", "ReadRows.LargeSparse", "Sparse A1:A100001 row read with only the first and last rows populated.", () => OfficeImoReadSparseRows(sparseWorkbookBytes, sparseRange, SparseLastRow), warmupIterations, measuredIterations),
-                Measure("ClosedXML", "ReadRows", "Worksheet row iteration over the same workbook payload.", () => ClosedXmlReadRows(workbookBytes), warmupIterations, measuredIterations)
-            ]
+            Scenarios = scenarios
         };
 
         string? directory = Path.GetDirectoryName(outputPath);
@@ -96,6 +108,66 @@ internal static class ExcelReadProfileRunner {
             MedianMilliseconds = measurement.MedianMilliseconds,
             SamplesMilliseconds = measurement.SamplesMilliseconds.ToList()
         };
+    }
+
+    private static IReadOnlyList<ExcelReadProfileScenario> MeasureGroup(
+        string library,
+        IReadOnlyList<ReadProfileCase> cases,
+        int warmupIterations,
+        int measuredIterations) {
+        if (cases.Count == 0) {
+            return [];
+        }
+
+        var samples = new List<double>[cases.Count];
+        var outputMetrics = new int[cases.Count];
+        for (int i = 0; i < cases.Count; i++) {
+            if (cases[i].Action == null) {
+                throw new ArgumentNullException(nameof(cases));
+            }
+
+            samples[i] = new List<double>(measuredIterations);
+        }
+
+        for (int warmup = 0; warmup < warmupIterations; warmup++) {
+            foreach (int index in GetRotatedOrder(cases.Count, warmup)) {
+                cases[index].Action();
+            }
+        }
+
+        for (int iteration = 0; iteration < measuredIterations; iteration++) {
+            foreach (int index in GetRotatedOrder(cases.Count, iteration)) {
+                BenchmarkMeasurement.PrepareForMeasurement();
+
+                var stopwatch = Stopwatch.StartNew();
+                outputMetrics[index] = cases[index].Action();
+                stopwatch.Stop();
+
+                samples[index].Add(stopwatch.Elapsed.TotalMilliseconds);
+            }
+        }
+
+        var scenarios = new List<ExcelReadProfileScenario>(cases.Count);
+        for (int i = 0; i < cases.Count; i++) {
+            var measurement = new BenchmarkMeasurement.BenchmarkMeasurementResult(outputMetrics[i], samples[i]);
+            scenarios.Add(new ExcelReadProfileScenario {
+                Library = library,
+                Name = cases[i].Name,
+                Notes = cases[i].Notes,
+                OutputMetric = measurement.OutputMetric,
+                AverageMilliseconds = measurement.AverageMilliseconds,
+                MedianMilliseconds = measurement.MedianMilliseconds,
+                SamplesMilliseconds = measurement.SamplesMilliseconds.ToList()
+            });
+        }
+
+        return scenarios;
+    }
+
+    private static IEnumerable<int> GetRotatedOrder(int count, int offset) {
+        for (int i = 0; i < count; i++) {
+            yield return (i + offset) % count;
+        }
     }
 
     private static int OfficeImoReadObjects(byte[] workbookBytes, string dataRange, ExecutionMode? mode) {
@@ -230,6 +302,8 @@ internal static class ExcelReadProfileRunner {
         public double MedianMilliseconds { get; init; }
         public List<double> SamplesMilliseconds { get; init; } = [];
     }
+
+    private sealed record ReadProfileCase(string Name, string Notes, Func<int> Action);
 
     private sealed class ReadSalesRecord {
         public int Id { get; set; }

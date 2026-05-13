@@ -67,6 +67,8 @@ The read profile also accepts `--warmup` and `--iterations` when a focused local
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- read-profile --rows 2500 --warmup 3 --iterations 9
 ```
 
+The read profile measures automatic, forced sequential, and forced parallel variants in rotated groups for each read API. This keeps mode comparisons from depending on fixed scenario order and makes first-sample outliers visible in the raw sample list.
+
 Generate a local library comparison against ClosedXML and EPPlus:
 
 ```powershell
