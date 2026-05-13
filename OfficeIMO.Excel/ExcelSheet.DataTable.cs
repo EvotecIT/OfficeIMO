@@ -195,7 +195,8 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException($"Table '{tableName}' column metadata does not match its range.");
             }
 
-            DataTable appendTable = BuildAppendDataTable(dataTable, tableColumnNames, matchColumnsByHeader);
+            bool hasHeaderRow = (table.HeaderRowCount?.Value ?? 1U) > 0U;
+            DataTable appendTable = BuildAppendDataTable(dataTable, tableColumnNames, matchColumnsByHeader && hasHeaderRow);
             if (appendTable.Rows.Count == 0) {
                 return currentRange!;
             }
@@ -298,19 +299,39 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            foreach (Cell cell in WorksheetRoot.Descendants<Cell>()) {
-                string? reference = cell.CellReference?.Value;
-                if (string.IsNullOrEmpty(reference)) {
+            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
+            if (sheetData == null) {
+                return;
+            }
+
+            foreach (Row rowElement in sheetData.Elements<Row>()) {
+                if (rowElement.RowIndex == null) {
                     continue;
                 }
 
-                var (row, column) = A1.ParseCellRef(reference!);
-                if (row < startRow || row > endRow || column < startColumn || column > endColumn) {
+                int rowIndex = (int)rowElement.RowIndex.Value;
+                if (rowIndex < startRow) {
                     continue;
                 }
 
-                if (CellHasContent(cell)) {
-                    throw new InvalidOperationException($"Cannot append to table '{tableName}' because cell {reference} already contains data.");
+                if (rowIndex > endRow) {
+                    break;
+                }
+
+                foreach (Cell cell in rowElement.Elements<Cell>()) {
+                    string? reference = cell.CellReference?.Value;
+                    if (string.IsNullOrEmpty(reference)) {
+                        continue;
+                    }
+
+                    int columnIndex = A1.ParseColumnIndexFromCellReference(reference!);
+                    if (columnIndex < startColumn || columnIndex > endColumn) {
+                        continue;
+                    }
+
+                    if (CellHasContent(cell)) {
+                        throw new InvalidOperationException($"Cannot append to table '{tableName}' because cell {reference} already contains data.");
+                    }
                 }
             }
         }

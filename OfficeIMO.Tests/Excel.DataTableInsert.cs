@@ -209,6 +209,80 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AppendDataTableToTable_HeaderlessTableUsesPositionalMapping() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableHeaderless.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Sales");
+
+                var table = new DataTable();
+                table.Columns.Add("Region", typeof(string));
+                table.Columns.Add("Revenue", typeof(int));
+                table.Rows.Add("NA", 100);
+
+                Assert.Equal("A1:B1", sheet.InsertDataTableAsTable(table, includeHeaders: false, tableName: "HeaderlessSales"));
+
+                var append = new DataTable();
+                append.Columns.Add("Region", typeof(string));
+                append.Columns.Add("Revenue", typeof(int));
+                append.Rows.Add("APAC", 150);
+                append.Rows.Add("EMEA", 200);
+
+                Assert.Equal("A1:B3", sheet.AppendDataTableToTable(append, "HeaderlessSales"));
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                TableDefinitionPart tablePart = worksheetPart.TableDefinitionParts.First();
+                Assert.Equal((uint)0, tablePart.Table.HeaderRowCount!.Value);
+                Assert.Equal("A1:B3", tablePart.Table.Reference!.Value);
+
+                Assert.Equal("APAC", GetCellText(spreadsheet, worksheetPart, "A2"));
+                Assert.Equal("150", GetCellText(spreadsheet, worksheetPart, "B2"));
+                Assert.Equal("EMEA", GetCellText(spreadsheet, worksheetPart, "A3"));
+                Assert.Equal("200", GetCellText(spreadsheet, worksheetPart, "B3"));
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Test_AppendDataTableToTable_EmptyTableKeepsExistingRange() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableEmpty.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Sales");
+
+                var table = new DataTable();
+                table.Columns.Add("Region", typeof(string));
+                table.Columns.Add("Revenue", typeof(int));
+                table.Rows.Add("NA", 100);
+
+                sheet.InsertDataTableAsTable(table, tableName: "SalesTable");
+
+                var append = new DataTable();
+                append.Columns.Add("Revenue", typeof(int));
+                append.Columns.Add("Region", typeof(string));
+
+                Assert.Equal("A1:B2", sheet.AppendDataTableToTable(append, "SalesTable"));
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                TableDefinitionPart tablePart = worksheetPart.TableDefinitionParts.First();
+                Assert.Equal("A1:B2", tablePart.Table.Reference!.Value);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void Test_AppendDataTableToTable_ThrowsWhenCellsBelowTableContainData() {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableOccupiedCells.xlsx");
 
