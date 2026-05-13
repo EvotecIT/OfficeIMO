@@ -209,6 +209,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AppendDataTableToTable_ThrowsWhenColumnCountDoesNotMatch() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableColumnCountMismatch.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Sales");
+
+                var table = new DataTable();
+                table.Columns.Add("Region", typeof(string));
+                table.Columns.Add("Revenue", typeof(int));
+                table.Rows.Add("NA", 100);
+                sheet.InsertDataTableAsTable(table, tableName: "SalesTable");
+
+                var append = new DataTable();
+                append.Columns.Add("Region", typeof(string));
+                append.Rows.Add("APAC");
+
+                var exception = Assert.Throws<ArgumentException>(() => sheet.AppendDataTableToTable(append, "SalesTable"));
+                Assert.Contains("1 columns", exception.Message);
+                Assert.Contains("2 columns", exception.Message);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void Test_AppendDataTableToTable_HeaderlessTableUsesPositionalMapping() {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableHeaderless.xlsx");
 
@@ -252,6 +277,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AppendDataTableToTable_SyntheticHeadersUsePositionalMapping() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableSyntheticHeaders.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Sales");
+                sheet.CellValue(1, 1, "Column1");
+                sheet.CellValue(1, 2, "Column2");
+                sheet.CellValue(2, 1, "NA");
+                sheet.CellValue(2, 2, 100);
+                sheet.AddTable("A1:B2", true, "SyntheticSales", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+
+                var append = new DataTable();
+                append.Columns.Add("Region", typeof(string));
+                append.Columns.Add("Revenue", typeof(int));
+                append.Rows.Add("APAC", 150);
+
+                Assert.Equal("A1:B3", sheet.AppendDataTableToTable(append, "SyntheticSales"));
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                TableDefinitionPart tablePart = worksheetPart.TableDefinitionParts.First();
+                Assert.Equal("A1:B3", tablePart.Table.Reference!.Value);
+                Assert.Equal("APAC", GetCellText(spreadsheet, worksheetPart, "A3"));
+                Assert.Equal("150", GetCellText(spreadsheet, worksheetPart, "B3"));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void Test_AppendDataTableToTable_EmptyTableKeepsExistingRange() {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableEmpty.xlsx");
 
@@ -277,6 +334,33 @@ namespace OfficeIMO.Tests {
                 WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 TableDefinitionPart tablePart = worksheetPart.TableDefinitionParts.First();
                 Assert.Equal("A1:B2", tablePart.Table.Reference!.Value);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Test_AppendDataTableToTable_ThrowsWhenFormulaExistsBelowTable() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableFormulaBelow.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Sales");
+
+                var table = new DataTable();
+                table.Columns.Add("Region", typeof(string));
+                table.Columns.Add("Revenue", typeof(int));
+                table.Rows.Add("NA", 100);
+                sheet.InsertDataTableAsTable(table, tableName: "SalesTable");
+
+                sheet.CellFormula(3, 2, "SUM(B2:B2)");
+
+                var append = new DataTable();
+                append.Columns.Add("Region", typeof(string));
+                append.Columns.Add("Revenue", typeof(int));
+                append.Rows.Add("APAC", 150);
+
+                var exception = Assert.Throws<InvalidOperationException>(() => sheet.AppendDataTableToTable(append, "SalesTable"));
+                Assert.Contains("B3", exception.Message);
             }
 
             File.Delete(filePath);
