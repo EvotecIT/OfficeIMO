@@ -30,6 +30,8 @@ namespace OfficeIMO.Excel {
                 var extensionList = workbook.Elements<ExtensionList>().FirstOrDefault();
                 if (extensionList != null) {
                     workbook.InsertBefore(calculationProperties, extensionList);
+                } else if (workbook.Elements<PivotCaches>().FirstOrDefault() is { } pivotCaches) {
+                    workbook.InsertBefore(calculationProperties, pivotCaches);
                 } else {
                     workbook.Append(calculationProperties);
                 }
