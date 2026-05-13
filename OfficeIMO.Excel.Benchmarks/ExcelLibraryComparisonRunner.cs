@@ -57,57 +57,83 @@ internal static class ExcelLibraryComparisonRunner {
         string sparseRange = $"A1:A{SparseLastRow}";
         var scenarios = new List<ExcelLibraryComparisonScenario>();
 
-        AddScenario(scenarios, scenarioFilter, "write-bulk-report", "OfficeIMO.Excel", "Insert objects, add table, autofit, save.", () => OfficeImoWriteBulkReport(rows), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "write-bulk-report", "ClosedXML", "Insert table, apply table style, autofit, save.", () => ClosedXmlWriteBulkReport(rows), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "write-bulk-report", "EPPlus", "Manual row population, add table, autofit, save.", () => EpPlusWriteBulkReport(rows), warmupIterations, measuredIterations);
+        AddScenarioGroup(scenarios, scenarioFilter, "write-bulk-report", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Insert objects, add table, autofit, save.", () => OfficeImoWriteBulkReport(rows)),
+            new LibraryComparisonCase("ClosedXML", "Insert table, apply table style, autofit, save.", () => ClosedXmlWriteBulkReport(rows)),
+            new LibraryComparisonCase("EPPlus", "Manual row population, add table, autofit, save.", () => EpPlusWriteBulkReport(rows))
+        ]);
 
-        AddScenario(scenarios, scenarioFilter, "append-plain-rows", "OfficeIMO.Excel", "Append prepared plain cells with CellValues parallel mode.", () => OfficeImoAppendPlainRows(rows), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "append-plain-rows", "ClosedXML", "Append equivalent row/cell values.", () => ClosedXmlAppendPlainRows(rows), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "append-plain-rows", "EPPlus", "Append equivalent row/cell values.", () => EpPlusAppendPlainRows(rows), warmupIterations, measuredIterations);
+        AddScenarioGroup(scenarios, scenarioFilter, "append-plain-rows", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Append prepared plain cells with CellValues parallel mode.", () => OfficeImoAppendPlainRows(rows)),
+            new LibraryComparisonCase("ClosedXML", "Append equivalent row/cell values.", () => ClosedXmlAppendPlainRows(rows)),
+            new LibraryComparisonCase("EPPlus", "Append equivalent row/cell values.", () => EpPlusAppendPlainRows(rows))
+        ]);
 
-        AddScenario(scenarios, scenarioFilter, "read-range", "OfficeIMO.Excel", "Read A1 range with automatic execution policy.", () => OfficeImoReadRange(officeImoWorkbookBytes, dataRange), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "read-range", "ClosedXML", "Iterate used data cells from workbook.", () => ClosedXmlReadRange(closedXmlWorkbookBytes), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "read-range", "EPPlus", "Iterate used data cells from workbook.", () => EpPlusReadRange(epPlusWorkbookBytes), warmupIterations, measuredIterations);
+        AddScenarioGroup(scenarios, scenarioFilter, "read-range", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Read A1 range with automatic execution policy.", () => OfficeImoReadRange(officeImoWorkbookBytes, dataRange)),
+            new LibraryComparisonCase("ClosedXML", "Iterate used data cells from workbook.", () => ClosedXmlReadRange(closedXmlWorkbookBytes)),
+            new LibraryComparisonCase("EPPlus", "Iterate used data cells from workbook.", () => EpPlusReadRange(epPlusWorkbookBytes))
+        ]);
 
-        AddScenario(scenarios, scenarioFilter, "read-top-range", "OfficeIMO.Excel", "Read the first 100 data rows from a larger sheet.", () => OfficeImoReadRange(officeImoWorkbookBytes, topDataRange), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "read-top-range", "ClosedXML", "Read the first 100 data rows from a larger sheet.", () => ClosedXmlReadRange(closedXmlWorkbookBytes, topDataRows), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "read-top-range", "EPPlus", "Read the first 100 data rows from a larger sheet.", () => EpPlusReadRange(epPlusWorkbookBytes, topDataRows), warmupIterations, measuredIterations);
+        AddScenarioGroup(scenarios, scenarioFilter, "read-top-range", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Read the first 100 data rows from a larger sheet.", () => OfficeImoReadRange(officeImoWorkbookBytes, topDataRange)),
+            new LibraryComparisonCase("ClosedXML", "Read the first 100 data rows from a larger sheet.", () => ClosedXmlReadRange(closedXmlWorkbookBytes, topDataRows)),
+            new LibraryComparisonCase("EPPlus", "Read the first 100 data rows from a larger sheet.", () => EpPlusReadRange(epPlusWorkbookBytes, topDataRows))
+        ]);
 
-        AddScenario(scenarios, scenarioFilter, "read-range-stream", "OfficeIMO.Excel", "Stream A1 range in row chunks with automatic execution policy.", () => OfficeImoReadRangeStream(officeImoWorkbookBytes, dataRange), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "read-range-stream", "ClosedXML", "Iterate used data cells row-by-row.", () => ClosedXmlReadRangeStream(closedXmlWorkbookBytes), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "read-range-stream", "EPPlus", "Iterate used data cells row-by-row.", () => EpPlusReadRangeStream(epPlusWorkbookBytes), warmupIterations, measuredIterations);
+        AddScenarioGroup(scenarios, scenarioFilter, "read-range-stream", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Stream A1 range in row chunks with automatic execution policy.", () => OfficeImoReadRangeStream(officeImoWorkbookBytes, dataRange)),
+            new LibraryComparisonCase("ClosedXML", "Iterate used data cells row-by-row.", () => ClosedXmlReadRangeStream(closedXmlWorkbookBytes)),
+            new LibraryComparisonCase("EPPlus", "Iterate used data cells row-by-row.", () => EpPlusReadRangeStream(epPlusWorkbookBytes))
+        ]);
 
-        AddScenario(scenarios, scenarioFilter, "read-top-range-stream", "OfficeIMO.Excel", "Stream the first 100 data rows from a larger sheet.", () => OfficeImoReadRangeStream(officeImoWorkbookBytes, topDataRange), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "read-top-range-stream", "ClosedXML", "Read the first 100 data rows from a larger sheet row-by-row.", () => ClosedXmlReadRangeStream(closedXmlWorkbookBytes, topDataRows), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "read-top-range-stream", "EPPlus", "Read the first 100 data rows from a larger sheet row-by-row.", () => EpPlusReadRangeStream(epPlusWorkbookBytes, topDataRows), warmupIterations, measuredIterations);
+        AddScenarioGroup(scenarios, scenarioFilter, "read-top-range-stream", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Stream the first 100 data rows from a larger sheet.", () => OfficeImoReadRangeStream(officeImoWorkbookBytes, topDataRange)),
+            new LibraryComparisonCase("ClosedXML", "Read the first 100 data rows from a larger sheet row-by-row.", () => ClosedXmlReadRangeStream(closedXmlWorkbookBytes, topDataRows)),
+            new LibraryComparisonCase("EPPlus", "Read the first 100 data rows from a larger sheet row-by-row.", () => EpPlusReadRangeStream(epPlusWorkbookBytes, topDataRows))
+        ]);
 
-        AddScenario(scenarios, scenarioFilter, "large-sparse-column-read", "OfficeIMO.Excel", "Read A1:A100001 with only first and last rows populated.", () => OfficeImoReadSparseColumn(sparseWorkbookBytes, sparseRange, SparseLastRow), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "large-sparse-column-read", "ClosedXML", "Read A1:A100001 with only first and last rows populated.", () => ClosedXmlReadSparseColumn(sparseWorkbookBytes, SparseLastRow), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "large-sparse-column-read", "EPPlus", "Read A1:A100001 with only first and last rows populated.", () => EpPlusReadSparseColumn(sparseWorkbookBytes, SparseLastRow), warmupIterations, measuredIterations);
+        AddScenarioGroup(scenarios, scenarioFilter, "large-sparse-column-read", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Read A1:A100001 with only first and last rows populated.", () => OfficeImoReadSparseColumn(sparseWorkbookBytes, sparseRange, SparseLastRow)),
+            new LibraryComparisonCase("ClosedXML", "Read A1:A100001 with only first and last rows populated.", () => ClosedXmlReadSparseColumn(sparseWorkbookBytes, SparseLastRow)),
+            new LibraryComparisonCase("EPPlus", "Read A1:A100001 with only first and last rows populated.", () => EpPlusReadSparseColumn(sparseWorkbookBytes, SparseLastRow))
+        ]);
 
-        AddScenario(scenarios, scenarioFilter, "large-sparse-row-read", "OfficeIMO.Excel", "Read A1:A100001 as rows with only first and last rows populated.", () => OfficeImoReadSparseRows(sparseWorkbookBytes, sparseRange, SparseLastRow), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "large-sparse-row-read", "ClosedXML", "Read A1:A100001 as rows with only first and last rows populated.", () => ClosedXmlReadSparseRows(sparseWorkbookBytes, SparseLastRow), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "large-sparse-row-read", "EPPlus", "Read A1:A100001 as rows with only first and last rows populated.", () => EpPlusReadSparseRows(sparseWorkbookBytes, SparseLastRow), warmupIterations, measuredIterations);
+        AddScenarioGroup(scenarios, scenarioFilter, "large-sparse-row-read", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Read A1:A100001 as rows with only first and last rows populated.", () => OfficeImoReadSparseRows(sparseWorkbookBytes, sparseRange, SparseLastRow)),
+            new LibraryComparisonCase("ClosedXML", "Read A1:A100001 as rows with only first and last rows populated.", () => ClosedXmlReadSparseRows(sparseWorkbookBytes, SparseLastRow)),
+            new LibraryComparisonCase("EPPlus", "Read A1:A100001 as rows with only first and last rows populated.", () => EpPlusReadSparseRows(sparseWorkbookBytes, SparseLastRow))
+        ]);
 
-        AddScenario(scenarios, scenarioFilter, "read-objects", "OfficeIMO.Excel", "Typed materialization with ReadObjects<T>.", () => OfficeImoReadObjects(officeImoWorkbookBytes, dataRange), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "read-objects", "ClosedXML", "Manual typed materialization from worksheet rows.", () => ClosedXmlReadObjects(closedXmlWorkbookBytes), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "read-objects", "EPPlus", "Manual typed materialization from worksheet rows.", () => EpPlusReadObjects(epPlusWorkbookBytes), warmupIterations, measuredIterations);
+        AddScenarioGroup(scenarios, scenarioFilter, "read-objects", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Typed materialization with ReadObjects<T>.", () => OfficeImoReadObjects(officeImoWorkbookBytes, dataRange)),
+            new LibraryComparisonCase("ClosedXML", "Manual typed materialization from worksheet rows.", () => ClosedXmlReadObjects(closedXmlWorkbookBytes)),
+            new LibraryComparisonCase("EPPlus", "Manual typed materialization from worksheet rows.", () => EpPlusReadObjects(epPlusWorkbookBytes))
+        ]);
 
-        AddScenario(scenarios, scenarioFilter, "autofit-existing", "OfficeIMO.Excel", "Load existing workbook, autofit columns, save.", () => OfficeImoAutoFitExisting(officeImoWorkbookBytes), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "autofit-existing", "ClosedXML", "Load existing workbook, autofit columns, save.", () => ClosedXmlAutoFitExisting(closedXmlWorkbookBytes), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "autofit-existing", "EPPlus", "Load existing workbook, autofit columns, save.", () => EpPlusAutoFitExisting(epPlusWorkbookBytes), warmupIterations, measuredIterations);
+        AddScenarioGroup(scenarios, scenarioFilter, "autofit-existing", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Load existing workbook, autofit columns, save.", () => OfficeImoAutoFitExisting(officeImoWorkbookBytes)),
+            new LibraryComparisonCase("ClosedXML", "Load existing workbook, autofit columns, save.", () => ClosedXmlAutoFitExisting(closedXmlWorkbookBytes)),
+            new LibraryComparisonCase("EPPlus", "Load existing workbook, autofit columns, save.", () => EpPlusAutoFitExisting(epPlusWorkbookBytes))
+        ]);
 
-        AddScenario(scenarios, scenarioFilter, "large-shared-strings", "OfficeIMO.Excel", "Write repeated and distinct text-heavy cells.", () => OfficeImoWriteSharedStrings(rowCount), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "large-shared-strings", "ClosedXML", "Write repeated and distinct text-heavy cells.", () => ClosedXmlWriteSharedStrings(rowCount), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "large-shared-strings", "EPPlus", "Write repeated and distinct text-heavy cells.", () => EpPlusWriteSharedStrings(rowCount), warmupIterations, measuredIterations);
+        AddScenarioGroup(scenarios, scenarioFilter, "large-shared-strings", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Write repeated and distinct text-heavy cells.", () => OfficeImoWriteSharedStrings(rowCount)),
+            new LibraryComparisonCase("ClosedXML", "Write repeated and distinct text-heavy cells.", () => ClosedXmlWriteSharedStrings(rowCount)),
+            new LibraryComparisonCase("EPPlus", "Write repeated and distinct text-heavy cells.", () => EpPlusWriteSharedStrings(rowCount))
+        ]);
 
-        AddScenario(scenarios, scenarioFilter, "formula-heavy-read", "OfficeIMO.Excel", "Read formula text with cached formula results disabled.", () => OfficeImoReadFormulaText(formulaWorkbookBytes, rowCount), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "formula-heavy-read", "ClosedXML", "Read formula A1 text from formula cells.", () => ClosedXmlReadFormulaText(formulaWorkbookBytes, rowCount), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "formula-heavy-read", "EPPlus", "Read formula text from formula cells.", () => EpPlusReadFormulaText(formulaWorkbookBytes, rowCount), warmupIterations, measuredIterations);
+        AddScenarioGroup(scenarios, scenarioFilter, "formula-heavy-read", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Read formula text with cached formula results disabled.", () => OfficeImoReadFormulaText(formulaWorkbookBytes, rowCount)),
+            new LibraryComparisonCase("ClosedXML", "Read formula A1 text from formula cells.", () => ClosedXmlReadFormulaText(formulaWorkbookBytes, rowCount)),
+            new LibraryComparisonCase("EPPlus", "Read formula text from formula cells.", () => EpPlusReadFormulaText(formulaWorkbookBytes, rowCount))
+        ]);
 
-        AddScenario(scenarios, scenarioFilter, "shared-string-read", "OfficeIMO.Excel", "Read repeated shared string payload.", () => OfficeImoReadSharedStrings(sharedStringWorkbookBytes, rowCount), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "shared-string-read", "ClosedXML", "Read repeated shared string payload.", () => ClosedXmlReadSharedStrings(sharedStringWorkbookBytes, rowCount), warmupIterations, measuredIterations);
-        AddScenario(scenarios, scenarioFilter, "shared-string-read", "EPPlus", "Read repeated shared string payload.", () => EpPlusReadSharedStrings(sharedStringWorkbookBytes, rowCount), warmupIterations, measuredIterations);
+        AddScenarioGroup(scenarios, scenarioFilter, "shared-string-read", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Read repeated shared string payload.", () => OfficeImoReadSharedStrings(sharedStringWorkbookBytes, rowCount)),
+            new LibraryComparisonCase("ClosedXML", "Read repeated shared string payload.", () => ClosedXmlReadSharedStrings(sharedStringWorkbookBytes, rowCount)),
+            new LibraryComparisonCase("EPPlus", "Read repeated shared string payload.", () => EpPlusReadSharedStrings(sharedStringWorkbookBytes, rowCount))
+        ]);
 
         if (scenarios.Count == 0) {
             throw new ArgumentException("No comparison scenarios matched the requested --scenario filter.");
@@ -156,20 +182,41 @@ internal static class ExcelLibraryComparisonRunner {
         return filter.Count == 0 ? null : filter;
     }
 
-    private static void AddScenario(
+    private static void AddScenarioGroup(
         List<ExcelLibraryComparisonScenario> scenarios,
         IReadOnlySet<string>? scenarioFilter,
         string scenario,
-        string library,
-        string notes,
-        Func<int> action,
         int warmupIterations,
-        int measuredIterations) {
+        int measuredIterations,
+        IReadOnlyList<LibraryComparisonCase> cases) {
         if (scenarioFilter != null && !scenarioFilter.Contains(scenario)) {
             return;
         }
 
-        scenarios.Add(Measure(scenario, library, notes, action, warmupIterations, measuredIterations));
+        Console.WriteLine($"Running {scenario} comparison group...");
+        var measurements = BenchmarkMeasurement.MeasureGroup(
+            warmupIterations,
+            measuredIterations,
+            cases.Select(c => c.Action).ToArray());
+
+        for (int i = 0; i < cases.Count; i++) {
+            var comparisonCase = cases[i];
+            var measurement = measurements[i];
+            Console.WriteLine(
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{scenario} / {comparisonCase.Library}: avg {measurement.AverageMilliseconds:F2} ms, median {measurement.MedianMilliseconds:F2} ms"));
+
+            scenarios.Add(new ExcelLibraryComparisonScenario {
+                Scenario = scenario,
+                Library = comparisonCase.Library,
+                Notes = comparisonCase.Notes,
+                OutputMetric = measurement.OutputMetric,
+                AverageMilliseconds = measurement.AverageMilliseconds,
+                MedianMilliseconds = measurement.MedianMilliseconds,
+                SamplesMilliseconds = measurement.SamplesMilliseconds.ToList()
+            });
+        }
     }
 
     private static IReadOnlyList<ExcelLibraryComparisonScenario> RunLegacyEpPlusComparison(
@@ -272,31 +319,6 @@ internal static class ExcelLibraryComparisonRunner {
         }
 
         throw new DirectoryNotFoundException("Could not locate the OfficeIMO repository root.");
-    }
-
-    private static ExcelLibraryComparisonScenario Measure(
-        string scenario,
-        string library,
-        string notes,
-        Func<int> action,
-        int warmupIterations,
-        int measuredIterations) {
-        Console.WriteLine($"Running {scenario} / {library}...");
-        var measurement = BenchmarkMeasurement.Measure(warmupIterations, measuredIterations, action);
-        Console.WriteLine(
-            string.Create(
-                CultureInfo.InvariantCulture,
-                $"{scenario} / {library}: avg {measurement.AverageMilliseconds:F2} ms, median {measurement.MedianMilliseconds:F2} ms"));
-
-        return new ExcelLibraryComparisonScenario {
-            Scenario = scenario,
-            Library = library,
-            Notes = notes,
-            OutputMetric = measurement.OutputMetric,
-            AverageMilliseconds = measurement.AverageMilliseconds,
-            MedianMilliseconds = measurement.MedianMilliseconds,
-            SamplesMilliseconds = measurement.SamplesMilliseconds.ToList()
-        };
     }
 
     private static void ConfigureEpPlusLicense() {
@@ -1058,6 +1080,8 @@ internal static class ExcelLibraryComparisonRunner {
         public double MedianMilliseconds { get; init; }
         public List<double> SamplesMilliseconds { get; init; } = [];
     }
+
+    private sealed record LibraryComparisonCase(string Library, string Notes, Func<int> Action);
 
     private sealed class ReadSalesRecord {
         public int Id { get; set; }

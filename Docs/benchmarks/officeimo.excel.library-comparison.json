@@ -1,5 +1,5 @@
 {
-  "GeneratedAtUtc": "2026-05-13T17:28:24.021663Z",
+  "GeneratedAtUtc": "2026-05-13T17:43:01.6346818Z",
   "Framework": ".NET 8.0.27",
   "MachineName": "EVOMAGIC",
   "BuildConfiguration": "Release",
@@ -12,13 +12,13 @@
       "Scenario": "write-bulk-report",
       "Library": "OfficeIMO.Excel",
       "Notes": "Insert objects, add table, autofit, save.",
-      "OutputMetric": 116479,
-      "AverageMilliseconds": 82.78653333333332,
-      "MedianMilliseconds": 75.856,
+      "OutputMetric": 116480,
+      "AverageMilliseconds": 96.79719999999999,
+      "MedianMilliseconds": 105.5964,
       "SamplesMilliseconds": [
-        75.856,
-        75.2134,
-        97.2902
+        78.0585,
+        105.5964,
+        106.7367
       ]
     },
     {
@@ -26,12 +26,12 @@
       "Library": "ClosedXML",
       "Notes": "Insert table, apply table style, autofit, save.",
       "OutputMetric": 123939,
-      "AverageMilliseconds": 249.48686666666666,
-      "MedianMilliseconds": 252.8779,
+      "AverageMilliseconds": 258.91069999999996,
+      "MedianMilliseconds": 253.7076,
       "SamplesMilliseconds": [
-        252.8779,
-        239.9588,
-        255.6239
+        253.7076,
+        234.6105,
+        288.414
       ]
     },
     {
@@ -39,25 +39,25 @@
       "Library": "EPPlus",
       "Notes": "Manual row population, add table, autofit, save.",
       "OutputMetric": 117810,
-      "AverageMilliseconds": 105.8503,
-      "MedianMilliseconds": 106.4121,
+      "AverageMilliseconds": 102.18556666666666,
+      "MedianMilliseconds": 99.2186,
       "SamplesMilliseconds": [
-        107.8242,
-        103.3146,
-        106.4121
+        96.7136,
+        99.2186,
+        110.6245
       ]
     },
     {
       "Scenario": "append-plain-rows",
       "Library": "OfficeIMO.Excel",
       "Notes": "Append prepared plain cells with CellValues parallel mode.",
-      "OutputMetric": 54242,
-      "AverageMilliseconds": 12.591333333333333,
-      "MedianMilliseconds": 12.4565,
+      "OutputMetric": 54241,
+      "AverageMilliseconds": 29.000566666666668,
+      "MedianMilliseconds": 29.0774,
       "SamplesMilliseconds": [
-        13.0308,
-        12.2867,
-        12.4565
+        29.3805,
+        29.0774,
+        28.5438
       ]
     },
     {
@@ -65,12 +65,12 @@
       "Library": "ClosedXML",
       "Notes": "Append equivalent row/cell values.",
       "OutputMetric": 61265,
-      "AverageMilliseconds": 36.22206666666667,
-      "MedianMilliseconds": 37.2903,
+      "AverageMilliseconds": 48.34823333333333,
+      "MedianMilliseconds": 48.1419,
       "SamplesMilliseconds": [
-        37.8955,
-        37.2903,
-        33.4804
+        48.1419,
+        46.3003,
+        50.6025
       ]
     },
     {
@@ -78,12 +78,12 @@
       "Library": "EPPlus",
       "Notes": "Append equivalent row/cell values.",
       "OutputMetric": 58217,
-      "AverageMilliseconds": 30.029700000000002,
-      "MedianMilliseconds": 29.4776,
+      "AverageMilliseconds": 30.1331,
+      "MedianMilliseconds": 29.6041,
       "SamplesMilliseconds": [
-        29.4776,
-        28.581,
-        32.0305
+        29.6041,
+        31.4721,
+        29.3231
       ]
     },
     {
@@ -91,12 +91,12 @@
       "Library": "OfficeIMO.Excel",
       "Notes": "Read A1 range with automatic execution policy.",
       "OutputMetric": -112024653,
-      "AverageMilliseconds": 54.52393333333333,
-      "MedianMilliseconds": 54.895,
+      "AverageMilliseconds": 64.5741,
+      "MedianMilliseconds": 64.2681,
       "SamplesMilliseconds": [
-        55.3524,
-        54.895,
-        53.3244
+        67.5639,
+        64.2681,
+        61.8903
       ]
     },
     {
@@ -104,12 +104,12 @@
       "Library": "ClosedXML",
       "Notes": "Iterate used data cells from workbook.",
       "OutputMetric": -112024653,
-      "AverageMilliseconds": 78.61273333333334,
-      "MedianMilliseconds": 78.5679,
+      "AverageMilliseconds": 113.34836666666666,
+      "MedianMilliseconds": 114.2367,
       "SamplesMilliseconds": [
-        79.3876,
-        77.8827,
-        78.5679
+        118.8008,
+        114.2367,
+        107.0076
       ]
     },
     {
@@ -117,12 +117,12 @@
       "Library": "EPPlus",
       "Notes": "Iterate used data cells from workbook.",
       "OutputMetric": -112024653,
-      "AverageMilliseconds": 41.510400000000004,
-      "MedianMilliseconds": 41.5534,
+      "AverageMilliseconds": 44.80916666666667,
+      "MedianMilliseconds": 43.835,
       "SamplesMilliseconds": [
-        41.8811,
-        41.5534,
-        41.0967
+        46.8415,
+        43.751,
+        43.835
       ]
     },
     {
@@ -130,12 +130,12 @@
       "Library": "OfficeIMO.Excel",
       "Notes": "Read the first 100 data rows from a larger sheet.",
       "OutputMetric": 1806718686,
-      "AverageMilliseconds": 3.520666666666667,
-      "MedianMilliseconds": 3.5219,
+      "AverageMilliseconds": 4.410033333333334,
+      "MedianMilliseconds": 4.366,
       "SamplesMilliseconds": [
-        3.5219,
-        3.4924,
-        3.5477
+        4.5042,
+        4.3599,
+        4.366
       ]
     },
     {
@@ -143,12 +143,12 @@
       "Library": "ClosedXML",
       "Notes": "Read the first 100 data rows from a larger sheet.",
       "OutputMetric": 1806718686,
-      "AverageMilliseconds": 73.34866666666666,
-      "MedianMilliseconds": 73.2954,
+      "AverageMilliseconds": 96.40413333333333,
+      "MedianMilliseconds": 98.0441,
       "SamplesMilliseconds": [
-        74.7876,
-        73.2954,
-        71.963
+        98.0441,
+        98.5266,
+        92.6417
       ]
     },
     {
@@ -156,12 +156,12 @@
       "Library": "EPPlus",
       "Notes": "Read the first 100 data rows from a larger sheet.",
       "OutputMetric": 1806718686,
-      "AverageMilliseconds": 31.654966666666667,
-      "MedianMilliseconds": 31.4815,
+      "AverageMilliseconds": 33.80736666666667,
+      "MedianMilliseconds": 33.7702,
       "SamplesMilliseconds": [
-        32.5005,
-        31.4815,
-        30.9829
+        33.8878,
+        33.7702,
+        33.7641
       ]
     },
     {
@@ -169,12 +169,12 @@
       "Library": "OfficeIMO.Excel",
       "Notes": "Stream A1 range in row chunks with automatic execution policy.",
       "OutputMetric": -112024653,
-      "AverageMilliseconds": 46.2802,
-      "MedianMilliseconds": 45.8073,
+      "AverageMilliseconds": 46.26840000000001,
+      "MedianMilliseconds": 45.4256,
       "SamplesMilliseconds": [
-        47.3088,
-        45.7245,
-        45.8073
+        48.0093,
+        45.4256,
+        45.3703
       ]
     },
     {
@@ -182,12 +182,12 @@
       "Library": "ClosedXML",
       "Notes": "Iterate used data cells row-by-row.",
       "OutputMetric": -112024653,
-      "AverageMilliseconds": 72.92926666666666,
-      "MedianMilliseconds": 72.9989,
+      "AverageMilliseconds": 84.32356666666668,
+      "MedianMilliseconds": 87.6928,
       "SamplesMilliseconds": [
-        72.9989,
-        72.7076,
-        73.0813
+        92.1404,
+        87.6928,
+        73.1375
       ]
     },
     {
@@ -195,12 +195,12 @@
       "Library": "EPPlus",
       "Notes": "Iterate used data cells row-by-row.",
       "OutputMetric": -112024653,
-      "AverageMilliseconds": 37.3958,
-      "MedianMilliseconds": 37.253,
+      "AverageMilliseconds": 37.49609999999999,
+      "MedianMilliseconds": 36.3551,
       "SamplesMilliseconds": [
-        37.253,
-        38.1405,
-        36.7939
+        39.7818,
+        36.3514,
+        36.3551
       ]
     },
     {
@@ -208,12 +208,12 @@
       "Library": "OfficeIMO.Excel",
       "Notes": "Stream the first 100 data rows from a larger sheet.",
       "OutputMetric": 1806718686,
-      "AverageMilliseconds": 3.400733333333333,
-      "MedianMilliseconds": 3.418,
+      "AverageMilliseconds": 3.4804333333333326,
+      "MedianMilliseconds": 3.4991,
       "SamplesMilliseconds": [
-        3.4464,
-        3.418,
-        3.3378
+        3.4991,
+        3.6323,
+        3.3099
       ]
     },
     {
@@ -221,12 +221,12 @@
       "Library": "ClosedXML",
       "Notes": "Read the first 100 data rows from a larger sheet row-by-row.",
       "OutputMetric": 1806718686,
-      "AverageMilliseconds": 69.0225,
-      "MedianMilliseconds": 69.1395,
+      "AverageMilliseconds": 66.91890000000001,
+      "MedianMilliseconds": 67.0753,
       "SamplesMilliseconds": [
-        70.0231,
-        69.1395,
-        67.9049
+        67.3546,
+        67.0753,
+        66.3268
       ]
     },
     {
@@ -234,12 +234,12 @@
       "Library": "EPPlus",
       "Notes": "Read the first 100 data rows from a larger sheet row-by-row.",
       "OutputMetric": 1806718686,
-      "AverageMilliseconds": 30.8657,
-      "MedianMilliseconds": 29.9854,
+      "AverageMilliseconds": 29.330933333333334,
+      "MedianMilliseconds": 29.2727,
       "SamplesMilliseconds": [
-        29.8806,
-        29.9854,
-        32.7311
+        29.1814,
+        29.5387,
+        29.2727
       ]
     },
     {
@@ -247,12 +247,12 @@
       "Library": "OfficeIMO.Excel",
       "Notes": "Read A1:A100001 with only first and last rows populated.",
       "OutputMetric": 1893721815,
-      "AverageMilliseconds": 1.9779,
-      "MedianMilliseconds": 1.9891,
+      "AverageMilliseconds": 2.2667333333333333,
+      "MedianMilliseconds": 2.2761,
       "SamplesMilliseconds": [
-        1.9946,
-        1.95,
-        1.9891
+        2.2812,
+        2.2761,
+        2.2429
       ]
     },
     {
@@ -260,12 +260,12 @@
       "Library": "ClosedXML",
       "Notes": "Read A1:A100001 with only first and last rows populated.",
       "OutputMetric": 1893721815,
-      "AverageMilliseconds": 3.075566666666667,
-      "MedianMilliseconds": 3.0338,
+      "AverageMilliseconds": 2.855866666666667,
+      "MedianMilliseconds": 2.7917,
       "SamplesMilliseconds": [
-        3.0338,
-        3.1766,
-        3.0163
+        2.7917,
+        3.0406,
+        2.7353
       ]
     },
     {
@@ -273,12 +273,12 @@
       "Library": "EPPlus",
       "Notes": "Read A1:A100001 with only first and last rows populated.",
       "OutputMetric": 1893721815,
-      "AverageMilliseconds": 44.66623333333333,
-      "MedianMilliseconds": 44.036,
+      "AverageMilliseconds": 45.394733333333335,
+      "MedianMilliseconds": 44.9206,
       "SamplesMilliseconds": [
-        46.1613,
-        43.8014,
-        44.036
+        44.8578,
+        44.9206,
+        46.4058
       ]
     },
     {
@@ -286,12 +286,12 @@
       "Library": "OfficeIMO.Excel",
       "Notes": "Read A1:A100001 as rows with only first and last rows populated.",
       "OutputMetric": 1893721815,
-      "AverageMilliseconds": 1.9113333333333333,
-      "MedianMilliseconds": 1.8861,
+      "AverageMilliseconds": 2.3765666666666667,
+      "MedianMilliseconds": 2.3779,
       "SamplesMilliseconds": [
-        2.0186,
-        1.8861,
-        1.8293
+        2.3887,
+        2.3631,
+        2.3779
       ]
     },
     {
@@ -299,12 +299,12 @@
       "Library": "ClosedXML",
       "Notes": "Read A1:A100001 as rows with only first and last rows populated.",
       "OutputMetric": 1893721815,
-      "AverageMilliseconds": 2.9397333333333333,
-      "MedianMilliseconds": 2.9119,
+      "AverageMilliseconds": 3.0506666666666664,
+      "MedianMilliseconds": 2.9299,
       "SamplesMilliseconds": [
-        3.0135,
-        2.9119,
-        2.8938
+        3.5056,
+        2.9299,
+        2.7165
       ]
     },
     {
@@ -312,12 +312,12 @@
       "Library": "EPPlus",
       "Notes": "Read A1:A100001 as rows with only first and last rows populated.",
       "OutputMetric": 1893721815,
-      "AverageMilliseconds": 44.402433333333335,
-      "MedianMilliseconds": 44.2601,
+      "AverageMilliseconds": 44.984,
+      "MedianMilliseconds": 44.9124,
       "SamplesMilliseconds": [
-        44.2601,
-        43.2677,
-        45.6795
+        46.2426,
+        44.9124,
+        43.797
       ]
     },
     {
@@ -325,12 +325,12 @@
       "Library": "OfficeIMO.Excel",
       "Notes": "Typed materialization with ReadObjects\u003CT\u003E.",
       "OutputMetric": -674374636,
-      "AverageMilliseconds": 67.37083333333334,
-      "MedianMilliseconds": 67.9622,
+      "AverageMilliseconds": 59.41113333333333,
+      "MedianMilliseconds": 65.1258,
       "SamplesMilliseconds": [
-        68.792,
-        67.9622,
-        65.3583
+        47.2426,
+        65.865,
+        65.1258
       ]
     },
     {
@@ -338,12 +338,12 @@
       "Library": "ClosedXML",
       "Notes": "Manual typed materialization from worksheet rows.",
       "OutputMetric": -674374636,
-      "AverageMilliseconds": 100.38873333333333,
-      "MedianMilliseconds": 98.6019,
+      "AverageMilliseconds": 73.45743333333333,
+      "MedianMilliseconds": 62.4517,
       "SamplesMilliseconds": [
-        86.8284,
-        98.6019,
-        115.7359
+        62.4517,
+        62.1136,
+        95.807
       ]
     },
     {
@@ -351,25 +351,25 @@
       "Library": "EPPlus",
       "Notes": "Manual typed materialization from worksheet rows.",
       "OutputMetric": -674374636,
-      "AverageMilliseconds": 30.283266666666666,
-      "MedianMilliseconds": 28.8291,
+      "AverageMilliseconds": 30.85246666666666,
+      "MedianMilliseconds": 29.5165,
       "SamplesMilliseconds": [
-        33.3007,
-        28.72,
-        28.8291
+        35.3077,
+        29.5165,
+        27.7332
       ]
     },
     {
       "Scenario": "autofit-existing",
       "Library": "OfficeIMO.Excel",
       "Notes": "Load existing workbook, autofit columns, save.",
-      "OutputMetric": 117644,
-      "AverageMilliseconds": 121.78193333333333,
-      "MedianMilliseconds": 121.6625,
+      "OutputMetric": 117642,
+      "AverageMilliseconds": 101.99239999999999,
+      "MedianMilliseconds": 110.0663,
       "SamplesMilliseconds": [
-        126.0652,
-        121.6625,
-        117.6181
+        120.2028,
+        110.0663,
+        75.7081
       ]
     },
     {
@@ -377,12 +377,12 @@
       "Library": "ClosedXML",
       "Notes": "Load existing workbook, autofit columns, save.",
       "OutputMetric": 123937,
-      "AverageMilliseconds": 236.18460000000002,
-      "MedianMilliseconds": 225.6168,
+      "AverageMilliseconds": 200.3966,
+      "MedianMilliseconds": 232.9878,
       "SamplesMilliseconds": [
-        262.672,
-        220.265,
-        225.6168
+        238.0353,
+        232.9878,
+        130.1667
       ]
     },
     {
@@ -390,25 +390,25 @@
       "Library": "EPPlus",
       "Notes": "Load existing workbook, autofit columns, save.",
       "OutputMetric": 117810,
-      "AverageMilliseconds": 87.67756666666666,
-      "MedianMilliseconds": 87.3319,
+      "AverageMilliseconds": 90.34463333333333,
+      "MedianMilliseconds": 90.3476,
       "SamplesMilliseconds": [
-        87.3319,
-        82.9877,
-        92.7131
+        90.3476,
+        95.9494,
+        84.7369
       ]
     },
     {
       "Scenario": "large-shared-strings",
       "Library": "OfficeIMO.Excel",
       "Notes": "Write repeated and distinct text-heavy cells.",
-      "OutputMetric": 47017,
-      "AverageMilliseconds": 11.990233333333334,
-      "MedianMilliseconds": 10.9039,
+      "OutputMetric": 47049,
+      "AverageMilliseconds": 12.700866666666668,
+      "MedianMilliseconds": 11.8343,
       "SamplesMilliseconds": [
-        10.9039,
-        10.6625,
-        14.4043
+        11.5761,
+        11.8343,
+        14.6922
       ]
     },
     {
@@ -416,12 +416,12 @@
       "Library": "ClosedXML",
       "Notes": "Write repeated and distinct text-heavy cells.",
       "OutputMetric": 51516,
-      "AverageMilliseconds": 12.098833333333332,
-      "MedianMilliseconds": 12.04,
+      "AverageMilliseconds": 11.578433333333335,
+      "MedianMilliseconds": 11.5867,
       "SamplesMilliseconds": [
-        12.8494,
-        12.04,
-        11.4071
+        11.76,
+        11.3886,
+        11.5867
       ]
     },
     {
@@ -429,12 +429,12 @@
       "Library": "EPPlus",
       "Notes": "Write repeated and distinct text-heavy cells.",
       "OutputMetric": 49240,
-      "AverageMilliseconds": 20.31056666666667,
-      "MedianMilliseconds": 20.2617,
+      "AverageMilliseconds": 18.870433333333335,
+      "MedianMilliseconds": 18.8205,
       "SamplesMilliseconds": [
-        21.4983,
-        19.1717,
-        20.2617
+        19.0149,
+        18.8205,
+        18.7759
       ]
     },
     {
@@ -442,12 +442,12 @@
       "Library": "OfficeIMO.Excel",
       "Notes": "Read formula text with cached formula results disabled.",
       "OutputMetric": -691586664,
-      "AverageMilliseconds": 10.1325,
-      "MedianMilliseconds": 9.5687,
+      "AverageMilliseconds": 10.251366666666668,
+      "MedianMilliseconds": 10.2507,
       "SamplesMilliseconds": [
-        9.5418,
-        11.287,
-        9.5687
+        10.2109,
+        10.2507,
+        10.2925
       ]
     },
     {
@@ -455,12 +455,12 @@
       "Library": "ClosedXML",
       "Notes": "Read formula A1 text from formula cells.",
       "OutputMetric": -691586664,
-      "AverageMilliseconds": 15.071166666666668,
-      "MedianMilliseconds": 15.2325,
+      "AverageMilliseconds": 14.5468,
+      "MedianMilliseconds": 14.4046,
       "SamplesMilliseconds": [
-        14.354,
-        15.2325,
-        15.627
+        14.256,
+        14.9798,
+        14.4046
       ]
     },
     {
@@ -468,12 +468,12 @@
       "Library": "EPPlus",
       "Notes": "Read formula text from formula cells.",
       "OutputMetric": -691586664,
-      "AverageMilliseconds": 12.227066666666667,
-      "MedianMilliseconds": 12.1806,
+      "AverageMilliseconds": 9.4431,
+      "MedianMilliseconds": 9.4259,
       "SamplesMilliseconds": [
-        12.1806,
-        13.4152,
-        11.0854
+        9.2862,
+        9.6172,
+        9.4259
       ]
     },
     {
@@ -481,12 +481,12 @@
       "Library": "OfficeIMO.Excel",
       "Notes": "Read repeated shared string payload.",
       "OutputMetric": 543349019,
-      "AverageMilliseconds": 12.295966666666667,
-      "MedianMilliseconds": 12.3208,
+      "AverageMilliseconds": 12.620199999999999,
+      "MedianMilliseconds": 12.5345,
       "SamplesMilliseconds": [
-        12.3208,
-        11.9321,
-        12.635
+        12.794,
+        12.5321,
+        12.5345
       ]
     },
     {
@@ -494,12 +494,12 @@
       "Library": "ClosedXML",
       "Notes": "Read repeated shared string payload.",
       "OutputMetric": 543349019,
-      "AverageMilliseconds": 16.1758,
-      "MedianMilliseconds": 16.1085,
+      "AverageMilliseconds": 15.350066666666665,
+      "MedianMilliseconds": 15.3517,
       "SamplesMilliseconds": [
-        16.1085,
-        16.0624,
-        16.3565
+        15.5176,
+        15.1809,
+        15.3517
       ]
     },
     {
@@ -507,12 +507,12 @@
       "Library": "EPPlus",
       "Notes": "Read repeated shared string payload.",
       "OutputMetric": 543349019,
-      "AverageMilliseconds": 15.084133333333334,
-      "MedianMilliseconds": 15.0477,
+      "AverageMilliseconds": 12.394800000000002,
+      "MedianMilliseconds": 12.2769,
       "SamplesMilliseconds": [
-        14.9283,
-        15.2764,
-        15.0477
+        12.2769,
+        12.1643,
+        12.7432
       ]
     },
     {
@@ -520,12 +520,12 @@
       "Library": "EPPlus 4.5.3.3",
       "Notes": "EPPlus 4.x manual row population, add table, autofit, save.",
       "OutputMetric": 116158,
-      "AverageMilliseconds": 95.01893333333334,
-      "MedianMilliseconds": 94.6991,
+      "AverageMilliseconds": 100.1838,
+      "MedianMilliseconds": 97.7294,
       "SamplesMilliseconds": [
-        91.5003,
-        94.6991,
-        98.8574
+        94.1771,
+        97.7294,
+        108.6449
       ]
     },
     {
@@ -533,12 +533,12 @@
       "Library": "EPPlus 4.5.3.3",
       "Notes": "EPPlus 4.x append equivalent row/cell values.",
       "OutputMetric": 56516,
-      "AverageMilliseconds": 17.188866666666666,
-      "MedianMilliseconds": 17.0891,
+      "AverageMilliseconds": 18.79886666666667,
+      "MedianMilliseconds": 18.5775,
       "SamplesMilliseconds": [
-        17.4179,
-        17.0891,
-        17.0596
+        19.367,
+        18.5775,
+        18.4521
       ]
     },
     {
@@ -546,12 +546,12 @@
       "Library": "EPPlus 4.5.3.3",
       "Notes": "EPPlus 4.x iterate used data cells from workbook.",
       "OutputMetric": -112024653,
-      "AverageMilliseconds": 32.834833333333336,
-      "MedianMilliseconds": 32.5231,
+      "AverageMilliseconds": 34.772333333333336,
+      "MedianMilliseconds": 35.3765,
       "SamplesMilliseconds": [
-        34.5855,
-        31.3959,
-        32.5231
+        35.3765,
+        33.1083,
+        35.8322
       ]
     },
     {
@@ -559,12 +559,12 @@
       "Library": "EPPlus 4.5.3.3",
       "Notes": "EPPlus 4.x read the first 100 data rows from a larger sheet.",
       "OutputMetric": 1806718686,
-      "AverageMilliseconds": 26.8908,
-      "MedianMilliseconds": 26.4503,
+      "AverageMilliseconds": 27.777800000000003,
+      "MedianMilliseconds": 27.1107,
       "SamplesMilliseconds": [
-        26.4503,
-        26.2268,
-        27.9953
+        27.1107,
+        26.7109,
+        29.5118
       ]
     },
     {
@@ -572,12 +572,12 @@
       "Library": "EPPlus 4.5.3.3",
       "Notes": "EPPlus 4.x iterate used data cells row-by-row.",
       "OutputMetric": -112024653,
-      "AverageMilliseconds": 31.756733333333333,
-      "MedianMilliseconds": 30.4177,
+      "AverageMilliseconds": 34.42593333333333,
+      "MedianMilliseconds": 34.5325,
       "SamplesMilliseconds": [
-        34.5362,
-        30.4177,
-        30.3163
+        36.4072,
+        32.3381,
+        34.5325
       ]
     },
     {
@@ -585,12 +585,12 @@
       "Library": "EPPlus 4.5.3.3",
       "Notes": "EPPlus 4.x read the first 100 data rows from a larger sheet row-by-row.",
       "OutputMetric": 1806718686,
-      "AverageMilliseconds": 26.36113333333333,
-      "MedianMilliseconds": 26.2758,
+      "AverageMilliseconds": 27.975233333333335,
+      "MedianMilliseconds": 28.4496,
       "SamplesMilliseconds": [
-        26.6672,
-        26.2758,
-        26.1404
+        28.5999,
+        28.4496,
+        26.8762
       ]
     },
     {
@@ -598,12 +598,12 @@
       "Library": "EPPlus 4.5.3.3",
       "Notes": "EPPlus 4.x read A1:A100001 with only first and last rows populated.",
       "OutputMetric": 1893721815,
-      "AverageMilliseconds": 12.1017,
-      "MedianMilliseconds": 11.6002,
+      "AverageMilliseconds": 12.854366666666666,
+      "MedianMilliseconds": 12.4634,
       "SamplesMilliseconds": [
-        13.5926,
-        11.6002,
-        11.1123
+        14.1737,
+        12.4634,
+        11.926
       ]
     },
     {
@@ -611,12 +611,12 @@
       "Library": "EPPlus 4.5.3.3",
       "Notes": "EPPlus 4.x read A1:A100001 as rows with only first and last rows populated.",
       "OutputMetric": 1893721815,
-      "AverageMilliseconds": 11.240933333333333,
-      "MedianMilliseconds": 11.3095,
+      "AverageMilliseconds": 12.583066666666667,
+      "MedianMilliseconds": 12.4026,
       "SamplesMilliseconds": [
-        11.3324,
-        11.3095,
-        11.0809
+        13.0958,
+        12.2508,
+        12.4026
       ]
     },
     {
@@ -624,12 +624,12 @@
       "Library": "EPPlus 4.5.3.3",
       "Notes": "EPPlus 4.x manual typed materialization from worksheet rows.",
       "OutputMetric": -674374636,
-      "AverageMilliseconds": 30.563833333333335,
-      "MedianMilliseconds": 30.6468,
+      "AverageMilliseconds": 31.865733333333335,
+      "MedianMilliseconds": 31.515,
       "SamplesMilliseconds": [
-        30.6468,
-        30.7818,
-        30.2629
+        31.5012,
+        31.515,
+        32.581
       ]
     },
     {
@@ -637,12 +637,12 @@
       "Library": "EPPlus 4.5.3.3",
       "Notes": "EPPlus 4.x load existing workbook, autofit columns, save.",
       "OutputMetric": 116158,
-      "AverageMilliseconds": 127.2901,
-      "MedianMilliseconds": 132.5,
+      "AverageMilliseconds": 141.19516666666667,
+      "MedianMilliseconds": 147.3866,
       "SamplesMilliseconds": [
-        110.5936,
-        132.5,
-        138.7767
+        121.243,
+        147.3866,
+        154.9559
       ]
     },
     {
@@ -650,12 +650,12 @@
       "Library": "EPPlus 4.5.3.3",
       "Notes": "EPPlus 4.x write repeated and distinct text-heavy cells.",
       "OutputMetric": 47529,
-      "AverageMilliseconds": 17.080433333333332,
-      "MedianMilliseconds": 16.4677,
+      "AverageMilliseconds": 15.727733333333333,
+      "MedianMilliseconds": 15.19,
       "SamplesMilliseconds": [
-        16.4677,
-        16.3739,
-        18.3997
+        15.19,
+        14.8089,
+        17.1843
       ]
     },
     {
@@ -663,12 +663,12 @@
       "Library": "EPPlus 4.5.3.3",
       "Notes": "EPPlus 4.x read formula text from formula cells.",
       "OutputMetric": -691586664,
-      "AverageMilliseconds": 17.7214,
-      "MedianMilliseconds": 17.7661,
+      "AverageMilliseconds": 14.402133333333333,
+      "MedianMilliseconds": 14.2406,
       "SamplesMilliseconds": [
-        17.9736,
-        17.7661,
-        17.4245
+        14.1948,
+        14.771,
+        14.2406
       ]
     },
     {
@@ -676,12 +676,12 @@
       "Library": "EPPlus 4.5.3.3",
       "Notes": "EPPlus 4.x read repeated shared string payload.",
       "OutputMetric": 543349019,
-      "AverageMilliseconds": 22.04816666666667,
-      "MedianMilliseconds": 21.5486,
+      "AverageMilliseconds": 16.29883333333333,
+      "MedianMilliseconds": 16.2967,
       "SamplesMilliseconds": [
-        21.5486,
-        23.2058,
-        21.3901
+        16.2967,
+        16.377,
+        16.2228
       ]
     }
   ]

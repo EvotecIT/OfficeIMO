@@ -87,6 +87,8 @@ The comparison command defaults to one warmup and three measured samples so quic
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare --rows 2500 --scenario read-range --warmup 2 --iterations 7
 ```
 
+Current-library comparison scenarios measure OfficeIMO, ClosedXML, and current EPPlus in rotated groups for each scenario so fixed library order does not decide the numbers. Legacy EPPlus still runs in a separate process because it uses a different package generation.
+
 The comparison command covers bulk report writes, append-style writes, dense range reads, bounded top-of-sheet reads, streaming range reads, bounded streaming reads, large sparse reads, typed object materialization, AutoFit on an existing workbook, large shared-string payloads, formula text reads, and shared-string reads. Read scenarios record deterministic value checksums as `OutputMetric`, so local comparisons can confirm that each library read equivalent content instead of only touching the same number of rows. The command fails if a read checksum differs across libraries, including legacy EPPlus. Write and AutoFit scenarios keep package-size metrics because each library serializes workbook parts differently. The comparison and read-profile JSON include the benchmark build configuration, and performance artifacts should be produced with `-c Release`. The command writes JSON under `Docs\benchmarks` by default and does not participate in CI.
 
 The write profile also accepts `--rows`, which is the preferred way to investigate 25,000+ row report-export costs without running the full BenchmarkDotNet suite:

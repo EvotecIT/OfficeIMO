@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 using ClosedXML.Excel;
 
@@ -119,37 +118,20 @@ internal static class ExcelReadProfileRunner {
             return [];
         }
 
-        var samples = new List<double>[cases.Count];
-        var outputMetrics = new int[cases.Count];
         for (int i = 0; i < cases.Count; i++) {
             if (cases[i].Action == null) {
                 throw new ArgumentNullException(nameof(cases));
             }
-
-            samples[i] = new List<double>(measuredIterations);
         }
 
-        for (int warmup = 0; warmup < warmupIterations; warmup++) {
-            foreach (int index in GetRotatedOrder(cases.Count, warmup)) {
-                cases[index].Action();
-            }
-        }
-
-        for (int iteration = 0; iteration < measuredIterations; iteration++) {
-            foreach (int index in GetRotatedOrder(cases.Count, iteration)) {
-                BenchmarkMeasurement.PrepareForMeasurement();
-
-                var stopwatch = Stopwatch.StartNew();
-                outputMetrics[index] = cases[index].Action();
-                stopwatch.Stop();
-
-                samples[index].Add(stopwatch.Elapsed.TotalMilliseconds);
-            }
-        }
+        var measurements = BenchmarkMeasurement.MeasureGroup(
+            warmupIterations,
+            measuredIterations,
+            cases.Select(c => c.Action).ToArray());
 
         var scenarios = new List<ExcelReadProfileScenario>(cases.Count);
         for (int i = 0; i < cases.Count; i++) {
-            var measurement = new BenchmarkMeasurement.BenchmarkMeasurementResult(outputMetrics[i], samples[i]);
+            var measurement = measurements[i];
             scenarios.Add(new ExcelReadProfileScenario {
                 Library = library,
                 Name = cases[i].Name,
@@ -162,12 +144,6 @@ internal static class ExcelReadProfileRunner {
         }
 
         return scenarios;
-    }
-
-    private static IEnumerable<int> GetRotatedOrder(int count, int offset) {
-        for (int i = 0; i < count; i++) {
-            yield return (i + offset) % count;
-        }
     }
 
     private static int OfficeImoReadObjects(byte[] workbookBytes, string dataRange, ExecutionMode? mode) {
