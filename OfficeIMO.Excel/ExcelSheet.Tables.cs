@@ -14,27 +14,121 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(range)) throw new System.ArgumentNullException(nameof(range));
             if (byHeader == null) throw new System.ArgumentNullException(nameof(byHeader));
 
-            var totalsByHeader = new System.Collections.Generic.Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues>(byHeader, System.StringComparer.OrdinalIgnoreCase);
+            SetTableTotalsCore(range, byHeader, throwIfMissing: false);
+        }
+
+        /// <summary>
+        /// Enables a totals row for the named table and assigns per-column functions by header name.
+        /// </summary>
+        /// <param name="tableName">Table name or display name.</param>
+        /// <param name="byHeader">Mapping of table header names to totals functions.</param>
+        public void SetTableTotalsByName(string tableName, System.Collections.Generic.IDictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues> byHeader) {
+            if (string.IsNullOrWhiteSpace(tableName)) throw new System.ArgumentNullException(nameof(tableName));
+            if (byHeader == null) throw new System.ArgumentNullException(nameof(byHeader));
+
+            SetTableTotalsCore(tableName, byHeader, throwIfMissing: true);
+        }
+
+        /// <summary>
+        /// Clears totals-row settings for the table identified by range, name, or display name.
+        /// </summary>
+        /// <param name="tableOrRange">Table range, name, or display name.</param>
+        public void ClearTableTotals(string tableOrRange) {
+            if (string.IsNullOrWhiteSpace(tableOrRange)) throw new System.ArgumentNullException(nameof(tableOrRange));
+
             WriteLock(() => {
-                foreach (var tdp in _worksheetPart.TableDefinitionParts) {
-                    var table = tdp.Table;
-                    if (table is null) continue;
-                    if (table.Reference?.Value != range) continue;
-                    table.TotalsRowShown = true;
-                    var tableColumns = table.TableColumns ?? throw new InvalidOperationException("Table columns are missing.");
-                    var headerNames = tableColumns.Elements<TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList();
-                    int idx = 0;
-                    foreach (var tc in tableColumns.Elements<TableColumn>()) {
-                        var name = headerNames[idx++];
-                        if (totalsByHeader.TryGetValue(name, out var fn)) {
-                            tc.TotalsRowFunction = fn;
-                        }
-                    }
-                    table.Save();
-                    break;
+                var table = FindTableByRangeNameOrDisplayName(tableOrRange);
+                if (table == null) {
+                    throw new InvalidOperationException($"Table '{tableOrRange}' was not found on worksheet '{Name}'.");
                 }
+
+                table.TotalsRowShown = false;
+                table.TotalsRowCount = 0U;
+                foreach (var tableColumn in table.TableColumns?.Elements<TableColumn>() ?? Enumerable.Empty<TableColumn>()) {
+                    tableColumn.TotalsRowFunction = null;
+                    tableColumn.TotalsRowFormula = null;
+                    tableColumn.TotalsRowLabel = null;
+                }
+
+                table.Save();
                 WorksheetRoot.Save();
             });
+        }
+
+        /// <summary>
+        /// Updates the visual style flags for the table identified by range, name, or display name.
+        /// </summary>
+        /// <param name="tableOrRange">Table range, name, or display name.</param>
+        /// <param name="style">Table style to apply.</param>
+        /// <param name="showFirstColumn">Optional first-column emphasis flag.</param>
+        /// <param name="showLastColumn">Optional last-column emphasis flag.</param>
+        /// <param name="showRowStripes">Optional row stripe flag.</param>
+        /// <param name="showColumnStripes">Optional column stripe flag.</param>
+        public void SetTableStyle(
+            string tableOrRange,
+            TableStyle style,
+            bool? showFirstColumn = null,
+            bool? showLastColumn = null,
+            bool? showRowStripes = null,
+            bool? showColumnStripes = null) {
+            if (string.IsNullOrWhiteSpace(tableOrRange)) throw new System.ArgumentNullException(nameof(tableOrRange));
+
+            WriteLock(() => {
+                var table = FindTableByRangeNameOrDisplayName(tableOrRange);
+                if (table == null) {
+                    throw new InvalidOperationException($"Table '{tableOrRange}' was not found on worksheet '{Name}'.");
+                }
+
+                var styleInfo = table.TableStyleInfo;
+                if (styleInfo == null) {
+                    styleInfo = new TableStyleInfo();
+                    table.Append(styleInfo);
+                }
+
+                styleInfo.Name = style.ToString();
+                if (showFirstColumn.HasValue) styleInfo.ShowFirstColumn = showFirstColumn.Value;
+                if (showLastColumn.HasValue) styleInfo.ShowLastColumn = showLastColumn.Value;
+                if (showRowStripes.HasValue) styleInfo.ShowRowStripes = showRowStripes.Value;
+                if (showColumnStripes.HasValue) styleInfo.ShowColumnStripes = showColumnStripes.Value;
+
+                table.Save();
+                WorksheetRoot.Save();
+            });
+        }
+
+        private void SetTableTotalsCore(string tableOrRange, System.Collections.Generic.IDictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues> byHeader, bool throwIfMissing) {
+            var totalsByHeader = new System.Collections.Generic.Dictionary<string, DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues>(byHeader, System.StringComparer.OrdinalIgnoreCase);
+            WriteLock(() => {
+                var table = FindTableByRangeNameOrDisplayName(tableOrRange);
+                if (table == null) {
+                    if (throwIfMissing) {
+                        throw new InvalidOperationException($"Table '{tableOrRange}' was not found on worksheet '{Name}'.");
+                    }
+
+                    return;
+                }
+
+                table.TotalsRowShown = true;
+                var tableColumns = table.TableColumns ?? throw new InvalidOperationException("Table columns are missing.");
+                foreach (var tc in tableColumns.Elements<TableColumn>()) {
+                    var name = tc.Name?.Value ?? string.Empty;
+                    if (totalsByHeader.TryGetValue(name, out var fn)) {
+                        tc.TotalsRowFunction = fn;
+                    }
+                }
+
+                table.Save();
+                WorksheetRoot.Save();
+            });
+        }
+
+        private Table? FindTableByRangeNameOrDisplayName(string tableOrRange) {
+            return _worksheetPart.TableDefinitionParts
+                .Select(part => part.Table)
+                .FirstOrDefault(table => table != null && (
+                    string.Equals(table.Reference?.Value, tableOrRange, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(table.Name?.Value, tableOrRange, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(table.DisplayName?.Value, tableOrRange, StringComparison.OrdinalIgnoreCase)));
         }
         /// <summary>
         /// Adds an AutoFilter to the worksheet or table.

@@ -243,6 +243,71 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_SetTableTotalsByNameAndClearTableTotals() {
+            string filePath = Path.Combine(_directoryWithFiles, "Table.TotalsByName.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Amount");
+                sheet.CellValue(2, 1, "A");
+                sheet.CellValue(2, 2, 2d);
+                sheet.AddTable("A1:B2", true, "SalesTable", TableStyle.TableStyleMedium9);
+
+                sheet.SetTableTotalsByName("SalesTable", new Dictionary<string, TotalsRowFunctionValues> {
+                    ["Name"] = TotalsRowFunctionValues.Count,
+                    ["Amount"] = TotalsRowFunctionValues.Sum,
+                });
+
+                sheet.ClearTableTotals("SalesTable");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                TableDefinitionPart tablePart = wsPart.TableDefinitionParts.First();
+                var table = tablePart.Table;
+
+                Assert.False(table.TotalsRowShown?.Value ?? false);
+                Assert.Equal((uint)0, table.TotalsRowCount!.Value);
+                Assert.All(table.TableColumns!.Elements<TableColumn>(), column => Assert.Null(column.TotalsRowFunction));
+            }
+        }
+
+        [Fact]
+        public void Test_SetTableStyleUpdatesNamedTableVisualFlags() {
+            string filePath = Path.Combine(_directoryWithFiles, "Table.StyleByName.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Amount");
+                sheet.CellValue(2, 1, "A");
+                sheet.CellValue(2, 2, 2d);
+                sheet.AddTable("A1:B2", true, "SalesTable", TableStyle.TableStyleMedium9);
+
+                sheet.SetTableStyle(
+                    "SalesTable",
+                    TableStyle.TableStyleLight11,
+                    showFirstColumn: true,
+                    showLastColumn: true,
+                    showRowStripes: false,
+                    showColumnStripes: true);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                TableDefinitionPart tablePart = wsPart.TableDefinitionParts.First();
+                var styleInfo = tablePart.Table.TableStyleInfo!;
+
+                Assert.Equal("TableStyleLight11", styleInfo.Name!.Value);
+                Assert.True(styleInfo.ShowFirstColumn?.Value);
+                Assert.True(styleInfo.ShowLastColumn?.Value);
+                Assert.False(styleInfo.ShowRowStripes?.Value);
+                Assert.True(styleInfo.ShowColumnStripes?.Value);
+            }
+        }
+
         private static string GetCellText(SpreadsheetDocument document, WorksheetPart worksheetPart, string cellReference) {
             var cell = worksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>()
                 .First(item => item.CellReference?.Value == cellReference);

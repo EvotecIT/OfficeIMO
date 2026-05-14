@@ -1,8 +1,10 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
 using OfficeIMO.Excel;
 using Xunit;
+using TotalsRowFunctionValues = DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
@@ -26,6 +28,10 @@ namespace OfficeIMO.Tests {
                 sheet2.CellValue(2, 2, 2d);
                 sheet2.CellValue(2, 3, 3);
                 sheet2.AddTable("A1:C2", true, "TableTwo", TableStyle.TableStyleMedium9);
+                sheet2.SetTableTotalsByName("TableTwo", new Dictionary<string, TotalsRowFunctionValues> {
+                    ["Value"] = TotalsRowFunctionValues.Sum,
+                    ["Count"] = TotalsRowFunctionValues.Sum,
+                });
 
                 document.Save();
             }
@@ -38,11 +44,19 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A1:B2", tableOne.Range);
                 Assert.Equal("SheetOne", tableOne.SheetName);
                 Assert.Equal(0, tableOne.SheetIndex);
+                Assert.Equal("TableStyleMedium9", tableOne.StyleName);
+                Assert.True(tableOne.HasHeaderRow);
+                Assert.True(tableOne.HasAutoFilter);
+                Assert.False(tableOne.TotalsRowShown);
+                Assert.Equal(new[] { "Name", "Value" }, tableOne.Columns.Select(column => column.Name).ToArray());
 
                 var tableTwo = tables.Single(t => t.Name == "TableTwo");
                 Assert.Equal("A1:C2", tableTwo.Range);
                 Assert.Equal("SheetTwo", tableTwo.SheetName);
                 Assert.Equal(1, tableTwo.SheetIndex);
+                Assert.True(tableTwo.TotalsRowShown);
+                Assert.Equal("sum", tableTwo.Columns.Single(column => column.Name == "Value").TotalsRowFunction);
+                Assert.Equal("sum", tableTwo.Columns.Single(column => column.Name == "Count").TotalsRowFunction);
             }
 
             File.Delete(filePath);

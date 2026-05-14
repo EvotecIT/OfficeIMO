@@ -44,8 +44,26 @@ namespace OfficeIMO.Excel {
                         }
 
                         var name = table.Name?.Value ?? table.DisplayName?.Value ?? string.Empty;
+                        var displayName = table.DisplayName?.Value ?? name;
                         var range = table.Reference?.Value ?? string.Empty;
-                        result.Add(new ExcelTableInfo(name, range, sheetName, sheetIndex));
+                        var columns = table.TableColumns?.Elements<TableColumn>()
+                            .Select((column, index) => new ExcelTableColumnInfo(
+                                index + 1,
+                                column.Name?.Value ?? string.Empty,
+                                GetOpenXmlAttributeValue(column, "totalsRowFunction")))
+                            .ToList() ?? new List<ExcelTableColumnInfo>();
+
+                        result.Add(new ExcelTableInfo(
+                            name,
+                            displayName,
+                            range,
+                            sheetName,
+                            sheetIndex,
+                            table.TableStyleInfo?.Name?.Value,
+                            (table.HeaderRowCount?.Value ?? 1U) > 0U,
+                            table.TotalsRowShown?.Value == true,
+                            table.GetFirstChild<AutoFilter>() != null,
+                            columns));
                     }
                 }
 
