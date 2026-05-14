@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -188,33 +189,42 @@ namespace OfficeIMO.Excel {
             bool skipHeader = options.SourceHasHeader && !options.IncludeSourceHeader && values.GetLength(0) > 0;
             int sourceRowOffset = skipHeader ? 1 : 0;
             int rowsToCopy = Math.Max(0, values.GetLength(0) - sourceRowOffset);
-            int[] columnMap = BuildMergeColumnMap(targetSheet, sourceBounds, values, options);
-            int columnsToCopy = columnMap.Length;
+            return Locking.ExecuteWrite(EnsureLock(), () => {
+                using (Locking.EnterNoLockScope()) {
+                    int[] columnMap = BuildMergeColumnMap(targetSheet, sourceBounds, values, options);
+                    int columnsToCopy = columnMap.Length;
 
-            int targetStartRow = options.TargetStartRow ?? GetAppendStartRow(targetSheet, options.BlankRowsBefore);
-            int targetStartColumn = GetMergeTargetStartColumn(targetSheet, sourceBounds, options);
-            if (targetStartRow < 1) throw new ArgumentOutOfRangeException(nameof(options.TargetStartRow));
-            if (targetStartColumn < 1) throw new ArgumentOutOfRangeException(nameof(options.TargetStartColumn));
+                    int targetStartRow = options.TargetStartRow ?? GetAppendStartRow(targetSheet, options.BlankRowsBefore);
+                    int targetStartColumn = GetMergeTargetStartColumn(targetSheet, sourceBounds, options);
+                    if (targetStartRow < 1) throw new ArgumentOutOfRangeException(nameof(options.TargetStartRow));
+                    if (targetStartColumn < 1) throw new ArgumentOutOfRangeException(nameof(options.TargetStartColumn));
 
-            EnsureMergeTargetCanWrite(targetSheet, targetStartRow, targetStartColumn, rowsToCopy, values, sourceRowOffset, columnMap, options);
+                    EnsureMergeTargetCanWrite(targetSheet, targetStartRow, targetStartColumn, rowsToCopy, values, sourceRowOffset, columnMap, options);
 
-            for (int rowOffset = 0; rowOffset < rowsToCopy; rowOffset++) {
-                for (int columnOffset = 0; columnOffset < columnsToCopy; columnOffset++) {
-                    object? value = values[rowOffset + sourceRowOffset, columnMap[columnOffset]];
-                    if (value == null) continue;
-                    targetSheet.CellValue(targetStartRow + rowOffset, targetStartColumn + columnOffset, value);
+                    var cells = new List<(int Row, int Column, object Value)>();
+                    for (int rowOffset = 0; rowOffset < rowsToCopy; rowOffset++) {
+                        for (int columnOffset = 0; columnOffset < columnsToCopy; columnOffset++) {
+                            object? value = values[rowOffset + sourceRowOffset, columnMap[columnOffset]];
+                            if (value == null) continue;
+                            cells.Add((targetStartRow + rowOffset, targetStartColumn + columnOffset, value));
+                        }
+                    }
+
+                    if (cells.Count > 0) {
+                        targetSheet.CellValues(cells);
+                    }
+
+                    string targetRange = BuildMergeTargetRange(targetStartRow, targetStartColumn, rowsToCopy, columnsToCopy);
+                    return new ExcelWorksheetMergeResult(
+                        sourceSheet.Name,
+                        targetSheet.Name,
+                        sourceRange,
+                        targetRange,
+                        rowsToCopy,
+                        columnsToCopy,
+                        skipHeader);
                 }
-            }
-
-            string targetRange = BuildMergeTargetRange(targetStartRow, targetStartColumn, rowsToCopy, columnsToCopy);
-            return new ExcelWorksheetMergeResult(
-                sourceSheet.Name,
-                targetSheet.Name,
-                sourceRange,
-                targetRange,
-                rowsToCopy,
-                columnsToCopy,
-                skipHeader);
+            });
         }
 
         /// <summary>
@@ -354,6 +364,8 @@ namespace OfficeIMO.Excel {
 
         private void CopyWorksheetTables(WorksheetPart sourcePart, WorksheetPart copiedPart) {
             TableParts? copiedTableParts = null;
+            var tableNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var copiedTables = new List<Table>();
             foreach (TableDefinitionPart sourceTablePart in sourcePart.TableDefinitionParts) {
                 Table? sourceTable = sourceTablePart.Table;
                 if (sourceTable == null) {
@@ -364,16 +376,32 @@ namespace OfficeIMO.Excel {
                 TableDefinitionPart copiedTablePart = copiedPart.AddNewPart<TableDefinitionPart>(relationshipId);
                 var copiedTable = (Table)sourceTable.CloneNode(true);
                 copiedTable.Id = GetNextUniqueTableId();
-                string tableName = CreateUniqueCopiedTableName(sourceTable.Name?.Value ?? sourceTable.DisplayName?.Value);
+                string? sourceTableName = sourceTable.Name?.Value ?? sourceTable.DisplayName?.Value;
+                string tableName = CreateUniqueCopiedTableName(sourceTableName);
                 copiedTable.Name = tableName;
                 copiedTable.DisplayName = tableName;
 
                 copiedTablePart.Table = copiedTable;
-                copiedTablePart.Table.Save();
                 ReserveTableName(tableName);
+                copiedTables.Add(copiedTable);
+                if (!string.IsNullOrWhiteSpace(sourceTableName)) {
+                    tableNameMap[sourceTableName!] = tableName;
+                }
 
                 copiedTableParts ??= EnsureTableParts(copiedPart.Worksheet!);
                 copiedTableParts.Append(new TablePart { Id = copiedPart.GetIdOfPart(copiedTablePart) });
+            }
+
+            if (tableNameMap.Count > 0) {
+                RewriteStructuredTableReferences(copiedPart.Worksheet!, tableNameMap);
+            }
+
+            foreach (Table copiedTable in copiedTables) {
+                if (tableNameMap.Count > 0) {
+                    RewriteStructuredTableReferences(copiedTable, tableNameMap);
+                }
+
+                copiedTable.Save();
             }
 
             if (copiedTableParts != null) {
@@ -448,8 +476,44 @@ namespace OfficeIMO.Excel {
             }
 
             tableParts = new TableParts();
-            worksheet.Append(tableParts);
+            WorksheetExtensionList? extensionList = worksheet.Elements<WorksheetExtensionList>().FirstOrDefault();
+            if (extensionList != null) {
+                worksheet.InsertBefore(tableParts, extensionList);
+            } else {
+                worksheet.Append(tableParts);
+            }
+
             return tableParts;
+        }
+
+        private static void RewriteStructuredTableReferences(Worksheet worksheet, IReadOnlyDictionary<string, string> tableNameMap) {
+            foreach (CellFormula formula in worksheet.Descendants<CellFormula>()) {
+                formula.Text = RewriteStructuredTableReferences(formula.Text, tableNameMap);
+            }
+        }
+
+        private static void RewriteStructuredTableReferences(Table table, IReadOnlyDictionary<string, string> tableNameMap) {
+            foreach (CalculatedColumnFormula formula in table.Descendants<CalculatedColumnFormula>()) {
+                formula.Text = RewriteStructuredTableReferences(formula.Text, tableNameMap);
+            }
+
+            foreach (TotalsRowFormula formula in table.Descendants<TotalsRowFormula>()) {
+                formula.Text = RewriteStructuredTableReferences(formula.Text, tableNameMap);
+            }
+        }
+
+        private static string RewriteStructuredTableReferences(string? formula, IReadOnlyDictionary<string, string> tableNameMap) {
+            if (string.IsNullOrEmpty(formula) || tableNameMap.Count == 0) {
+                return formula ?? string.Empty;
+            }
+
+            string rewritten = formula!;
+            foreach (var mapping in tableNameMap) {
+                string pattern = @"(?<![A-Za-z0-9_\\])" + Regex.Escape(mapping.Key) + @"(?=\[)";
+                rewritten = Regex.Replace(rewritten, pattern, mapping.Value, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            }
+
+            return rewritten;
         }
 
         private static string MakeUnusedRelationshipId(WorksheetPart worksheetPart) {

@@ -76,6 +76,7 @@ namespace OfficeIMO.Tests {
                 source.CellValue(3, 1, "EMEA");
                 source.CellValue(3, 2, 200);
                 source.AddTable("A1:B3", hasHeader: true, name: "SalesTable", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                source.CellFormula(4, 2, "SUM(SalesTable[Revenue])");
 
                 ExcelSheet copy = document.CopyWorkSheet(source, "Copy");
 
@@ -100,6 +101,38 @@ namespace OfficeIMO.Tests {
                 TableParts tableParts = Assert.Single(copiedPart.Worksheet.Elements<TableParts>());
                 TablePart tablePart = Assert.Single(tableParts.Elements<TablePart>());
                 Assert.NotNull(copiedPart.GetPartById(tablePart.Id!.Value!));
+
+                Cell formulaCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference == "B4");
+                Assert.Equal("SUM(SalesTable2[Revenue])", formulaCell.CellFormula?.Text);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Test_CopyWorkSheetWithinWorkbook_InsertsTablePartsBeforeExtensionList() {
+            string filePath = Path.Combine(_directoryWithFiles, "WorksheetCopyTablePartsOrder.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                ExcelSheet source = document.AddWorkSheet("Source");
+                source.CellValue(1, 1, "Name");
+                source.CellValue(2, 1, "Ada");
+                source.AddTable("A1:A2", hasHeader: true, name: "People", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                source.WorksheetPart.Worksheet.Append(new WorksheetExtensionList(new WorksheetExtension { Uri = "{00000000-0000-0000-0000-000000000001}" }));
+
+                document.CopyWorkSheet(source, "Copy");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Copy");
+                var children = copiedPart.Worksheet.ChildElements.ToList();
+                int tablePartsIndex = children.FindIndex(element => element is TableParts);
+                int extensionListIndex = children.FindIndex(element => element is WorksheetExtensionList);
+
+                Assert.True(tablePartsIndex >= 0);
+                Assert.True(extensionListIndex >= 0);
+                Assert.True(tablePartsIndex < extensionListIndex);
             }
 
             File.Delete(filePath);

@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Actual Excel table name, when a table was created.</summary>
         public string? TableName { get; }
 
-        /// <summary>A1 range occupied by the imported data.</summary>
+        /// <summary>A1 range occupied by the imported data, or an empty string when no worksheet cells were written.</summary>
         public string Range { get; }
 
         /// <summary>Number of source data rows imported.</summary>

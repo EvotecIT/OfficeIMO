@@ -255,6 +255,86 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_InsertDataSet_HeaderlessEmptyTable_DoesNotCreateTableOrFakeRange() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataSetImportHeaderlessEmpty.xlsx");
+
+            var dataSet = new DataSet("Empty");
+            var empty = new DataTable("EmptyTable");
+            empty.Columns.Add("Name", typeof(string));
+            dataSet.Tables.Add(empty);
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var result = Assert.Single(document.InsertDataSet(dataSet, includeHeaders: false));
+
+                Assert.Equal("EmptyTable", result.SheetName);
+                Assert.Null(result.TableName);
+                Assert.Equal(string.Empty, result.Range);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+                Assert.Empty(worksheetPart.TableDefinitionParts);
+                Assert.Empty(worksheetPart.Worksheet.Descendants<Cell>());
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Test_InsertDataSet_ZeroColumnPlainRange_ReturnsEmptyRange() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataSetImportZeroColumn.xlsx");
+
+            var dataSet = new DataSet("ZeroColumn");
+            var empty = new DataTable("NoColumns");
+            empty.Rows.Add(empty.NewRow());
+            dataSet.Tables.Add(empty);
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var result = Assert.Single(document.InsertDataSet(dataSet, createTables: false));
+
+                Assert.Equal("NoColumns", result.SheetName);
+                Assert.Null(result.TableName);
+                Assert.Equal(string.Empty, result.Range);
+                Assert.Equal(1, result.RowCount);
+                Assert.Equal(0, result.ColumnCount);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+                Assert.Empty(worksheetPart.TableDefinitionParts);
+                Assert.Empty(worksheetPart.Worksheet.Descendants<Cell>());
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Test_InsertDataSet_HeaderlessNoRowsPlainRange_ReturnsEmptyRange() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataSetImportHeaderlessNoRows.xlsx");
+
+            var dataSet = new DataSet("Headerless");
+            var empty = new DataTable("EmptyRange");
+            empty.Columns.Add("Name", typeof(string));
+            dataSet.Tables.Add(empty);
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var result = Assert.Single(document.InsertDataSet(dataSet, createTables: false, includeHeaders: false));
+
+                Assert.Equal(string.Empty, result.Range);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+                Assert.Empty(worksheetPart.Worksheet.Descendants<Cell>());
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void Test_InsertDataReader_StreamsRowsAndCreatesTable() {
             string filePath = Path.Combine(_directoryWithFiles, "DataReaderImport.xlsx");
 
@@ -283,6 +363,32 @@ namespace OfficeIMO.Tests {
                 Cell dateCell = worksheetPart.Worksheet.Descendants<Cell>().First(cell => cell.CellReference == "C2");
                 Assert.True(dateCell.DataType == null || dateCell.DataType.Value == CellValues.Number);
                 Assert.Equal(new DateTime(2026, 1, 2, 3, 4, 0).ToOADate().ToString(CultureInfo.InvariantCulture), dateCell.CellValue!.Text);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Test_InsertDataReader_HeaderlessEmptyReader_ReturnsEmptyRangeAndNoTable() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataReaderImportHeaderlessEmpty.xlsx");
+
+            var source = new DataTable("ReaderData");
+            source.Columns.Add("Name", typeof(string));
+            source.Columns.Add("Amount", typeof(decimal));
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Reader");
+                using IDataReader reader = source.CreateDataReader();
+                string range = sheet.InsertDataReader(reader, includeHeaders: false, tableName: "ReaderTable");
+
+                Assert.Equal(string.Empty, range);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+                Assert.Empty(worksheetPart.TableDefinitionParts);
+                Assert.Empty(worksheetPart.Worksheet.Descendants<Cell>());
             }
 
             File.Delete(filePath);

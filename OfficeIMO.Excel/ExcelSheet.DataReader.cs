@@ -66,7 +66,7 @@ namespace OfficeIMO.Excel {
 
             int occupiedRows = dataRows + (includeHeaders ? 1 : 0);
             if (occupiedRows == 0) {
-                occupiedRows = 1;
+                return string.Empty;
             }
 
             string range = A1.CellReference(startRow, startColumn) + ":" +
