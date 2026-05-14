@@ -1,0 +1,718 @@
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using System.Globalization;
+
+namespace OfficeIMO.Excel {
+    public partial class ExcelDocument {
+        private static readonly object WorksheetOperationTableIdLock = new object();
+
+        /// <summary>
+        /// Copies a worksheet within this workbook.
+        /// </summary>
+        /// <param name="sourceSheetName">Name of the worksheet to copy.</param>
+        /// <param name="newSheetName">Requested name for the copied worksheet.</param>
+        /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
+        /// <returns>The copied worksheet.</returns>
+        public ExcelSheet CopyWorkSheet(string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
+            return CopyWorkSheet(GetSheet(sourceSheetName), newSheetName, validationMode);
+        }
+
+        /// <summary>
+        /// Copies a worksheet within this workbook.
+        /// </summary>
+        public ExcelSheet CopyWorksheet(string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
+            return CopyWorkSheet(sourceSheetName, newSheetName, validationMode);
+        }
+
+        /// <summary>
+        /// Copies a worksheet within this workbook.
+        /// </summary>
+        /// <param name="sourceSheet">Worksheet to copy.</param>
+        /// <param name="newSheetName">Requested name for the copied worksheet.</param>
+        /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
+        /// <returns>The copied worksheet.</returns>
+        public ExcelSheet CopyWorkSheet(ExcelSheet sourceSheet, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
+            if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
+            if (!ReferenceEquals(sourceSheet.Document, this)) {
+                throw new ArgumentException("Source worksheet must belong to this workbook. Use CopyWorkSheetFrom to copy between workbooks.", nameof(sourceSheet));
+            }
+
+            return Locking.ExecuteWrite(EnsureLock(), () => {
+                string validatedName = ValidateOrSanitizeSheetName(newSheetName, validationMode, currentSheetName: null);
+                WorksheetPart sourcePart = sourceSheet.WorksheetPart;
+                WorksheetPart copiedPart = WorkbookPartRoot.AddNewPart<WorksheetPart>();
+                copiedPart.Worksheet = (Worksheet)sourcePart.Worksheet!.CloneNode(true);
+                RemoveRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
+                CopyWorksheetTables(sourcePart, copiedPart);
+                copiedPart.Worksheet.Save();
+
+                Sheet sheet = AppendWorksheetElement(copiedPart, validatedName);
+                MarkSheetCacheDirty();
+                WorkbookRoot.Save();
+                return new ExcelSheet(this, _spreadSheetDocument, sheet);
+            });
+        }
+
+        /// <summary>
+        /// Copies a worksheet within this workbook.
+        /// </summary>
+        public ExcelSheet CopyWorksheet(ExcelSheet sourceSheet, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
+            return CopyWorkSheet(sourceSheet, newSheetName, validationMode);
+        }
+
+        /// <summary>
+        /// Copies a worksheet from another workbook into this workbook. Values are copied through the reader/writer
+        /// surface so callers can combine workbooks without sharing package parts.
+        /// </summary>
+        /// <param name="sourceDocument">Workbook containing the source worksheet.</param>
+        /// <param name="sourceSheetName">Name of the worksheet to copy.</param>
+        /// <param name="newSheetName">Requested name for the copied worksheet.</param>
+        /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
+        /// <returns>The copied worksheet.</returns>
+        public ExcelSheet CopyWorkSheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
+            if (sourceDocument == null) throw new ArgumentNullException(nameof(sourceDocument));
+            if (string.IsNullOrWhiteSpace(sourceSheetName)) throw new ArgumentNullException(nameof(sourceSheetName));
+            if (ReferenceEquals(sourceDocument, this)) {
+                return CopyWorkSheet(sourceSheetName, newSheetName, validationMode);
+            }
+
+            ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
+            string usedRange = sourceSheet.GetUsedRangeA1();
+            var (startRow, startColumn, _, _) = A1.ParseRange(usedRange);
+            object?[,] values;
+            using (var reader = sourceDocument.CreateReader()) {
+                values = reader.GetSheet(sourceSheet.Name).ReadRange(usedRange);
+            }
+
+            ExcelSheet targetSheet = AddWorkSheet(newSheetName, validationMode);
+            for (int rowOffset = 0; rowOffset < values.GetLength(0); rowOffset++) {
+                for (int columnOffset = 0; columnOffset < values.GetLength(1); columnOffset++) {
+                    object? value = values[rowOffset, columnOffset];
+                    if (value == null) continue;
+                    targetSheet.CellValue(startRow + rowOffset, startColumn + columnOffset, value);
+                }
+            }
+
+            CopyWorksheetTables(sourceSheet.WorksheetPart, targetSheet.WorksheetPart);
+            targetSheet.WorksheetPart.Worksheet!.Save();
+
+            return targetSheet;
+        }
+
+        /// <summary>
+        /// Copies a worksheet from another workbook into this workbook.
+        /// </summary>
+        public ExcelSheet CopyWorksheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
+            return CopyWorkSheetFrom(sourceDocument, sourceSheetName, newSheetName, validationMode);
+        }
+
+        /// <summary>
+        /// Reorders a worksheet by name using a zero-based target index.
+        /// </summary>
+        public void ReorderWorkSheet(string sheetName, int targetIndex) {
+            ReorderWorkSheet(GetSheet(sheetName), targetIndex);
+        }
+
+        /// <summary>
+        /// Reorders a worksheet by name using a zero-based target index.
+        /// </summary>
+        public void ReorderWorksheet(string sheetName, int targetIndex) {
+            ReorderWorkSheet(sheetName, targetIndex);
+        }
+
+        /// <summary>
+        /// Reorders a worksheet using a zero-based target index.
+        /// </summary>
+        public void ReorderWorkSheet(ExcelSheet sheet, int targetIndex) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (!ReferenceEquals(sheet.Document, this)) {
+                throw new ArgumentException("Worksheet must belong to this workbook.", nameof(sheet));
+            }
+
+            Locking.ExecuteWrite(EnsureLock(), () => {
+                Sheets sheets = WorkbookRoot.Sheets ?? throw new InvalidOperationException("Workbook sheets collection is missing.");
+                List<Sheet> orderedSheets = sheets.Elements<Sheet>().ToList();
+                if (targetIndex < 0 || targetIndex >= orderedSheets.Count) {
+                    throw new ArgumentOutOfRangeException(nameof(targetIndex), $"Index {targetIndex.ToString(CultureInfo.InvariantCulture)} is out of range (0..{(orderedSheets.Count - 1).ToString(CultureInfo.InvariantCulture)}).");
+                }
+
+                Sheet? target = orderedSheets.FirstOrDefault(s => ReferenceEquals(s, sheet.SheetElement)
+                    || string.Equals(s.Name?.Value, sheet.Name, StringComparison.Ordinal));
+                if (target == null) {
+                    throw new ArgumentException("Worksheet not found in workbook.", nameof(sheet));
+                }
+
+                target.Remove();
+                orderedSheets.Remove(target);
+                if (targetIndex >= orderedSheets.Count) {
+                    sheets.Append(target);
+                } else {
+                    sheets.InsertBefore(target, orderedSheets[targetIndex]);
+                }
+
+                MarkSheetCacheDirty();
+                WorkbookRoot.Save();
+            });
+        }
+
+        /// <summary>
+        /// Reorders a worksheet using a zero-based target index.
+        /// </summary>
+        public void ReorderWorksheet(ExcelSheet sheet, int targetIndex) {
+            ReorderWorkSheet(sheet, targetIndex);
+        }
+
+        /// <summary>
+        /// Merges source worksheet rows into a target worksheet by appending or writing to a requested target position.
+        /// This is a workbook operation over worksheet values; callers own any data shaping or relational joins before writing.
+        /// </summary>
+        public ExcelWorksheetMergeResult MergeWorkSheets(ExcelSheet targetSheet, ExcelSheet sourceSheet, ExcelWorksheetMergeOptions? options = null) {
+            if (targetSheet == null) throw new ArgumentNullException(nameof(targetSheet));
+            if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
+            if (!ReferenceEquals(targetSheet.Document, this)) {
+                throw new ArgumentException("Target worksheet must belong to this workbook.", nameof(targetSheet));
+            }
+
+            options ??= new ExcelWorksheetMergeOptions();
+            if (options.BlankRowsBefore < 0) throw new ArgumentOutOfRangeException(nameof(options.BlankRowsBefore));
+
+            string sourceRange = string.IsNullOrWhiteSpace(options.SourceRange) ? sourceSheet.GetUsedRangeA1() : options.SourceRange!;
+            var sourceBounds = ParseRangeOrCell(sourceRange);
+            sourceRange = ToRange(sourceBounds);
+            object?[,] values;
+            using (var sourceReader = sourceSheet.Document.CreateReader()) {
+                values = sourceReader.GetSheet(sourceSheet.Name).ReadRange(sourceRange);
+            }
+
+            bool skipHeader = options.SourceHasHeader && !options.IncludeSourceHeader && values.GetLength(0) > 0;
+            int sourceRowOffset = skipHeader ? 1 : 0;
+            int rowsToCopy = Math.Max(0, values.GetLength(0) - sourceRowOffset);
+            int[] columnMap = BuildMergeColumnMap(targetSheet, sourceBounds, values, options);
+            int columnsToCopy = columnMap.Length;
+
+            int targetStartRow = options.TargetStartRow ?? GetAppendStartRow(targetSheet, options.BlankRowsBefore);
+            int targetStartColumn = GetMergeTargetStartColumn(targetSheet, sourceBounds, options);
+            if (targetStartRow < 1) throw new ArgumentOutOfRangeException(nameof(options.TargetStartRow));
+            if (targetStartColumn < 1) throw new ArgumentOutOfRangeException(nameof(options.TargetStartColumn));
+
+            EnsureMergeTargetCanWrite(targetSheet, targetStartRow, targetStartColumn, rowsToCopy, values, sourceRowOffset, columnMap, options);
+
+            for (int rowOffset = 0; rowOffset < rowsToCopy; rowOffset++) {
+                for (int columnOffset = 0; columnOffset < columnsToCopy; columnOffset++) {
+                    object? value = values[rowOffset + sourceRowOffset, columnMap[columnOffset]];
+                    if (value == null) continue;
+                    targetSheet.CellValue(targetStartRow + rowOffset, targetStartColumn + columnOffset, value);
+                }
+            }
+
+            string targetRange = BuildMergeTargetRange(targetStartRow, targetStartColumn, rowsToCopy, columnsToCopy);
+            return new ExcelWorksheetMergeResult(
+                sourceSheet.Name,
+                targetSheet.Name,
+                sourceRange,
+                targetRange,
+                rowsToCopy,
+                columnsToCopy,
+                skipHeader);
+        }
+
+        /// <summary>
+        /// Merges source worksheet rows into a target worksheet.
+        /// </summary>
+        public ExcelWorksheetMergeResult MergeWorksheets(ExcelSheet targetSheet, ExcelSheet sourceSheet, ExcelWorksheetMergeOptions? options = null) {
+            return MergeWorkSheets(targetSheet, sourceSheet, options);
+        }
+
+        /// <summary>
+        /// Alias for <see cref="MergeWorkSheets(ExcelSheet, ExcelSheet, ExcelWorksheetMergeOptions?)"/>.
+        /// </summary>
+        public ExcelWorksheetMergeResult JoinWorkSheets(ExcelSheet targetSheet, ExcelSheet sourceSheet, ExcelWorksheetMergeOptions? options = null) {
+            return MergeWorkSheets(targetSheet, sourceSheet, options);
+        }
+
+        /// <summary>
+        /// Alias for <see cref="MergeWorksheets(ExcelSheet, ExcelSheet, ExcelWorksheetMergeOptions?)"/>.
+        /// </summary>
+        public ExcelWorksheetMergeResult JoinWorksheets(ExcelSheet targetSheet, ExcelSheet sourceSheet, ExcelWorksheetMergeOptions? options = null) {
+            return MergeWorkSheets(targetSheet, sourceSheet, options);
+        }
+
+        /// <summary>
+        /// Compares the used ranges of two worksheets.
+        /// </summary>
+        public IReadOnlyList<ExcelRangeDifference> CompareWorkSheets(ExcelSheet leftSheet, ExcelSheet rightSheet, ExcelRangeCompareOptions? options = null) {
+            if (leftSheet == null) throw new ArgumentNullException(nameof(leftSheet));
+            if (rightSheet == null) throw new ArgumentNullException(nameof(rightSheet));
+            return CompareRanges(leftSheet, leftSheet.GetUsedRangeA1(), rightSheet, rightSheet.GetUsedRangeA1(), options);
+        }
+
+        /// <summary>
+        /// Compares the used ranges of two worksheets.
+        /// </summary>
+        public IReadOnlyList<ExcelRangeDifference> CompareWorksheets(ExcelSheet leftSheet, ExcelSheet rightSheet, ExcelRangeCompareOptions? options = null) {
+            return CompareWorkSheets(leftSheet, rightSheet, options);
+        }
+
+        /// <summary>
+        /// Compares two worksheet ranges and returns cell-level differences.
+        /// </summary>
+        public IReadOnlyList<ExcelRangeDifference> CompareRanges(
+            ExcelSheet leftSheet,
+            string leftRange,
+            ExcelSheet rightSheet,
+            string rightRange,
+            ExcelRangeCompareOptions? options = null) {
+            if (leftSheet == null) throw new ArgumentNullException(nameof(leftSheet));
+            if (rightSheet == null) throw new ArgumentNullException(nameof(rightSheet));
+            if (string.IsNullOrWhiteSpace(leftRange)) throw new ArgumentNullException(nameof(leftRange));
+            if (string.IsNullOrWhiteSpace(rightRange)) throw new ArgumentNullException(nameof(rightRange));
+
+            options ??= new ExcelRangeCompareOptions();
+            var leftBounds = ParseRangeOrCell(leftRange);
+            var rightBounds = ParseRangeOrCell(rightRange);
+            object?[,] leftValues;
+            object?[,] rightValues;
+
+            using (var leftReader = leftSheet.Document.CreateReader()) {
+                leftValues = leftReader.GetSheet(leftSheet.Name).ReadRange(ToRange(leftBounds));
+            }
+
+            using (var rightReader = rightSheet.Document.CreateReader()) {
+                rightValues = rightReader.GetSheet(rightSheet.Name).ReadRange(ToRange(rightBounds));
+            }
+
+            int rows = Math.Max(leftValues.GetLength(0), rightValues.GetLength(0));
+            int columns = Math.Max(leftValues.GetLength(1), rightValues.GetLength(1));
+            var differences = new List<ExcelRangeDifference>();
+            for (int rowOffset = 0; rowOffset < rows; rowOffset++) {
+                for (int columnOffset = 0; columnOffset < columns; columnOffset++) {
+                    bool hasLeft = rowOffset < leftValues.GetLength(0) && columnOffset < leftValues.GetLength(1);
+                    bool hasRight = rowOffset < rightValues.GetLength(0) && columnOffset < rightValues.GetLength(1);
+                    object? leftValue = hasLeft ? leftValues[rowOffset, columnOffset] : null;
+                    object? rightValue = hasRight ? rightValues[rowOffset, columnOffset] : null;
+                    if (hasLeft && hasRight && ValuesEqual(leftValue, rightValue, options)) {
+                        continue;
+                    }
+
+                    int leftRow = leftBounds.r1 + rowOffset;
+                    int leftColumn = leftBounds.c1 + columnOffset;
+                    int rightRow = rightBounds.r1 + rowOffset;
+                    int rightColumn = rightBounds.c1 + columnOffset;
+                    ExcelRangeDifferenceKind kind = hasLeft
+                        ? hasRight ? ExcelRangeDifferenceKind.ValueMismatch : ExcelRangeDifferenceKind.MissingFromRight
+                        : ExcelRangeDifferenceKind.MissingFromLeft;
+                    differences.Add(new ExcelRangeDifference(
+                        kind,
+                        leftRow,
+                        leftColumn,
+                        rightRow,
+                        rightColumn,
+                        A1.CellReference(leftRow, leftColumn),
+                        A1.CellReference(rightRow, rightColumn),
+                        leftValue,
+                        rightValue));
+                }
+            }
+
+            return differences;
+        }
+
+        private Sheet AppendWorksheetElement(WorksheetPart worksheetPart, string sheetName) {
+            var workbook = WorkbookRoot;
+            Sheets sheets = workbook.Sheets ?? workbook.AppendChild(new Sheets());
+            uint sheetId = ReadSheetElements()
+                .Select(sheet => sheet.SheetId?.Value ?? 0U)
+                .DefaultIfEmpty(0U)
+                .Max() + 1U;
+            id.Add(sheetId);
+            var sheet = new Sheet {
+                Id = WorkbookPartRoot.GetIdOfPart(worksheetPart),
+                SheetId = sheetId,
+                Name = sheetName
+            };
+            sheets.Append(sheet);
+            return sheet;
+        }
+
+        private static void RemoveRelationshipBackedWorksheetFeatures(Worksheet worksheet) {
+            worksheet.RemoveAllChildren<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
+            worksheet.RemoveAllChildren<LegacyDrawing>();
+            worksheet.RemoveAllChildren<LegacyDrawingHeaderFooter>();
+            worksheet.RemoveAllChildren<TableParts>();
+
+            foreach (Hyperlinks hyperlinks in worksheet.Elements<Hyperlinks>().ToList()) {
+                foreach (Hyperlink hyperlink in hyperlinks.Elements<Hyperlink>().Where(h => h.Id != null).ToList()) {
+                    hyperlink.Remove();
+                }
+
+                if (!hyperlinks.Elements<Hyperlink>().Any()) {
+                    hyperlinks.Remove();
+                }
+            }
+        }
+
+        private void CopyWorksheetTables(WorksheetPart sourcePart, WorksheetPart copiedPart) {
+            TableParts? copiedTableParts = null;
+            foreach (TableDefinitionPart sourceTablePart in sourcePart.TableDefinitionParts) {
+                Table? sourceTable = sourceTablePart.Table;
+                if (sourceTable == null) {
+                    continue;
+                }
+
+                string relationshipId = MakeUnusedRelationshipId(copiedPart);
+                TableDefinitionPart copiedTablePart = copiedPart.AddNewPart<TableDefinitionPart>(relationshipId);
+                var copiedTable = (Table)sourceTable.CloneNode(true);
+                copiedTable.Id = GetNextUniqueTableId();
+                string tableName = CreateUniqueCopiedTableName(sourceTable.Name?.Value ?? sourceTable.DisplayName?.Value);
+                copiedTable.Name = tableName;
+                copiedTable.DisplayName = tableName;
+
+                copiedTablePart.Table = copiedTable;
+                copiedTablePart.Table.Save();
+                ReserveTableName(tableName);
+
+                copiedTableParts ??= EnsureTableParts(copiedPart.Worksheet!);
+                copiedTableParts.Append(new TablePart { Id = copiedPart.GetIdOfPart(copiedTablePart) });
+            }
+
+            if (copiedTableParts != null) {
+                copiedTableParts.Count = (uint)copiedTableParts.Elements<TablePart>().Count();
+            }
+        }
+
+        private uint GetNextUniqueTableId() {
+            lock (WorksheetOperationTableIdLock) {
+                uint maxExistingId = 0;
+                foreach (WorksheetPart worksheetPart in WorkbookPartRoot.WorksheetParts) {
+                    foreach (TableDefinitionPart tablePart in worksheetPart.TableDefinitionParts) {
+                        uint? id = tablePart.Table?.Id?.Value;
+                        if (id.HasValue && id.Value > maxExistingId) {
+                            maxExistingId = id.Value;
+                        }
+                    }
+                }
+
+                return maxExistingId + 1;
+            }
+        }
+
+        private string CreateUniqueCopiedTableName(string? requestedName) {
+            const int maxLength = 255;
+            string baseName = SanitizeCopiedTableName(requestedName, maxLength);
+            HashSet<string> used = GetOrInitTableNameCache();
+            if (!used.Contains(baseName)) {
+                return baseName;
+            }
+
+            int suffix = 2;
+            while (true) {
+                string suffixText = suffix.ToString(CultureInfo.InvariantCulture);
+                int maxBaseLength = Math.Max(1, maxLength - suffixText.Length);
+                string trimmedBase = baseName.Length > maxBaseLength ? baseName.Substring(0, maxBaseLength) : baseName;
+                string candidate = trimmedBase + suffixText;
+                if (!used.Contains(candidate)) {
+                    return candidate;
+                }
+
+                suffix++;
+            }
+        }
+
+        private static string SanitizeCopiedTableName(string? requestedName, int maxLength) {
+            string source = string.IsNullOrWhiteSpace(requestedName) ? "Table" : requestedName!;
+            var sanitized = new System.Text.StringBuilder(source.Length);
+            foreach (char ch in source) {
+                sanitized.Append(char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_');
+            }
+
+            if (sanitized.Length == 0) {
+                sanitized.Append("Table");
+            }
+
+            if (char.IsDigit(sanitized[0])) {
+                sanitized.Insert(0, '_');
+            }
+
+            if (sanitized.Length > maxLength) {
+                sanitized.Length = maxLength;
+            }
+
+            return sanitized.ToString();
+        }
+
+        private static TableParts EnsureTableParts(Worksheet worksheet) {
+            TableParts? tableParts = worksheet.Elements<TableParts>().FirstOrDefault();
+            if (tableParts != null) {
+                return tableParts;
+            }
+
+            tableParts = new TableParts();
+            worksheet.Append(tableParts);
+            return tableParts;
+        }
+
+        private static string MakeUnusedRelationshipId(WorksheetPart worksheetPart) {
+            var existing = new HashSet<string>(
+                worksheetPart.Parts.Select(part => part.RelationshipId ?? string.Empty),
+                StringComparer.Ordinal);
+            int index = 1;
+            string relationshipId;
+            do {
+                relationshipId = "rId" + index.ToString(CultureInfo.InvariantCulture);
+                index++;
+            }
+            while (existing.Contains(relationshipId));
+
+            return relationshipId;
+        }
+
+        private static (int r1, int c1, int r2, int c2) ParseRangeOrCell(string a1) {
+            if (A1.TryParseRange(a1, out int r1, out int c1, out int r2, out int c2)) {
+                return (r1, c1, r2, c2);
+            }
+
+            (int row, int column) = A1.ParseCellRef(a1);
+            if (row > 0 && column > 0) {
+                return (row, column, row, column);
+            }
+
+            throw new ArgumentException($"Invalid A1 range '{a1}'.", nameof(a1));
+        }
+
+        private static string ToRange((int r1, int c1, int r2, int c2) range) {
+            return A1.CellReference(range.r1, range.c1) + ":" + A1.CellReference(range.r2, range.c2);
+        }
+
+        private static string BuildMergeTargetRange(int startRow, int startColumn, int rowCount, int columnCount) {
+            int effectiveRows = Math.Max(1, rowCount);
+            int effectiveColumns = Math.Max(1, columnCount);
+            return A1.CellReference(startRow, startColumn) + ":" +
+                A1.CellReference(startRow + effectiveRows - 1, startColumn + effectiveColumns - 1);
+        }
+
+        private static void EnsureMergeTargetCanWrite(
+            ExcelSheet targetSheet,
+            int targetStartRow,
+            int targetStartColumn,
+            int rowsToCopy,
+            object?[,] sourceValues,
+            int sourceRowOffset,
+            IReadOnlyList<int> columnMap,
+            ExcelWorksheetMergeOptions options) {
+            if (options.OverwriteExistingCells || rowsToCopy == 0 || columnMap.Count == 0) {
+                return;
+            }
+
+            var cellsToWrite = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (int rowOffset = 0; rowOffset < rowsToCopy; rowOffset++) {
+                for (int columnOffset = 0; columnOffset < columnMap.Count; columnOffset++) {
+                    object? value = sourceValues[rowOffset + sourceRowOffset, columnMap[columnOffset]];
+                    if (value == null) {
+                        continue;
+                    }
+
+                    cellsToWrite.Add(A1.CellReference(targetStartRow + rowOffset, targetStartColumn + columnOffset));
+                }
+            }
+
+            if (cellsToWrite.Count == 0) {
+                return;
+            }
+
+            int targetEndRow = targetStartRow + rowsToCopy - 1;
+            Worksheet? worksheet = targetSheet.WorksheetPart.Worksheet;
+            SheetData? sheetData = worksheet?.GetFirstChild<SheetData>();
+            if (sheetData == null) {
+                return;
+            }
+
+            foreach (Row row in sheetData.Elements<Row>()) {
+                if (row.RowIndex == null) {
+                    continue;
+                }
+
+                int rowIndex = (int)row.RowIndex.Value;
+                if (rowIndex < targetStartRow) {
+                    continue;
+                }
+
+                if (rowIndex > targetEndRow) {
+                    break;
+                }
+
+                foreach (Cell cell in row.Elements<Cell>()) {
+                    string? reference = cell.CellReference?.Value;
+                    if (string.IsNullOrEmpty(reference) || !cellsToWrite.Contains(reference!)) {
+                        continue;
+                    }
+
+                    if (CellHasContent(cell)) {
+                        throw new InvalidOperationException($"Cannot merge into worksheet '{targetSheet.Name}' because cell {reference} already contains data. Set OverwriteExistingCells to true to replace existing values.");
+                    }
+                }
+            }
+        }
+
+        private static bool CellHasContent(Cell cell) {
+            if (cell.CellFormula != null) {
+                return true;
+            }
+
+            if (cell.CellValue != null && !string.IsNullOrEmpty(cell.CellValue.Text)) {
+                return true;
+            }
+
+            return cell.InlineString != null;
+        }
+
+        private int[] BuildMergeColumnMap(
+            ExcelSheet targetSheet,
+            (int r1, int c1, int r2, int c2) sourceBounds,
+            object?[,] sourceValues,
+            ExcelWorksheetMergeOptions options) {
+            int sourceColumnCount = sourceValues.GetLength(1);
+            if (!options.MatchColumnsByHeader) {
+                return Enumerable.Range(0, sourceColumnCount).ToArray();
+            }
+
+            if (!options.SourceHasHeader) {
+                throw new ArgumentException("SourceHasHeader must be true when MatchColumnsByHeader is enabled.", nameof(options));
+            }
+
+            if (sourceValues.GetLength(0) == 0) {
+                return Enumerable.Range(0, sourceColumnCount).ToArray();
+            }
+
+            int targetStartColumn = GetMergeTargetStartColumn(targetSheet, sourceBounds, options);
+            int targetHeaderRow = GetMergeTargetHeaderRow(targetSheet, options);
+            string targetHeaderRange = A1.CellReference(targetHeaderRow, targetStartColumn) + ":" +
+                A1.CellReference(targetHeaderRow, targetStartColumn + sourceColumnCount - 1);
+            object?[,] targetHeaders;
+            using (var targetReader = targetSheet.Document.CreateReader()) {
+                targetHeaders = targetReader.GetSheet(targetSheet.Name).ReadRange(targetHeaderRange);
+            }
+
+            var sourceColumns = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            for (int column = 0; column < sourceColumnCount; column++) {
+                string header = NormalizeHeaderText(sourceValues[0, column]);
+                if (header.Length == 0) {
+                    throw new ArgumentException($"Source header at column {column + 1} is empty.", nameof(options));
+                }
+
+                if (sourceColumns.ContainsKey(header)) {
+                    throw new ArgumentException($"Source header '{header}' appears more than once.", nameof(options));
+                }
+
+                sourceColumns.Add(header, column);
+            }
+
+            var columnMap = new int[sourceColumnCount];
+            var matched = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (int column = 0; column < sourceColumnCount; column++) {
+                string targetHeader = NormalizeHeaderText(targetHeaders[0, column]);
+                if (targetHeader.Length == 0) {
+                    throw new ArgumentException($"Target header at {A1.CellReference(targetHeaderRow, targetStartColumn + column)} is empty.", nameof(options));
+                }
+
+                if (!sourceColumns.TryGetValue(targetHeader, out int sourceColumn)) {
+                    throw new ArgumentException($"Source range is missing column '{targetHeader}'.", nameof(options));
+                }
+
+                columnMap[column] = sourceColumn;
+                matched.Add(targetHeader);
+            }
+
+            foreach (string sourceHeader in sourceColumns.Keys) {
+                if (!matched.Contains(sourceHeader)) {
+                    throw new ArgumentException($"Source column '{sourceHeader}' does not exist in the target header row.", nameof(options));
+                }
+            }
+
+            return columnMap;
+        }
+
+        private int GetMergeTargetStartColumn(ExcelSheet targetSheet, (int r1, int c1, int r2, int c2) sourceBounds, ExcelWorksheetMergeOptions options) {
+            if (options.TargetStartColumn.HasValue) {
+                return options.TargetStartColumn.Value;
+            }
+
+            if (options.MatchColumnsByHeader) {
+                var targetBounds = ParseRangeOrCell(targetSheet.GetUsedRangeA1());
+                return targetBounds.c1;
+            }
+
+            return sourceBounds.c1;
+        }
+
+        private int GetMergeTargetHeaderRow(ExcelSheet targetSheet, ExcelWorksheetMergeOptions options) {
+            if (options.TargetHeaderRow.HasValue) {
+                if (options.TargetHeaderRow.Value < 1) throw new ArgumentOutOfRangeException(nameof(options.TargetHeaderRow));
+                return options.TargetHeaderRow.Value;
+            }
+
+            if (options.TargetStartRow.HasValue) {
+                if (options.TargetStartRow.Value <= 1) {
+                    throw new ArgumentException("TargetHeaderRow must be set when TargetStartRow is 1 and MatchColumnsByHeader is enabled.", nameof(options));
+                }
+
+                return options.TargetStartRow.Value - 1;
+            }
+
+            var targetBounds = ParseRangeOrCell(targetSheet.GetUsedRangeA1());
+            return targetBounds.r1;
+        }
+
+        private static string NormalizeHeaderText(object? value) {
+            return Convert.ToString(value, CultureInfo.InvariantCulture)?.Trim() ?? string.Empty;
+        }
+
+        private static int GetAppendStartRow(ExcelSheet targetSheet, int blankRowsBefore) {
+            string usedRange = targetSheet.GetUsedRangeA1();
+            var (_, _, endRow, _) = A1.ParseRange(usedRange);
+            if (IsWorksheetEffectivelyEmpty(targetSheet, usedRange)) {
+                return 1 + blankRowsBefore;
+            }
+
+            return endRow + 1 + blankRowsBefore;
+        }
+
+        private static bool IsWorksheetEffectivelyEmpty(ExcelSheet sheet, string usedRange) {
+            using var reader = sheet.Document.CreateReader();
+            object?[,] values = reader.GetSheet(sheet.Name).ReadRange(usedRange);
+            for (int row = 0; row < values.GetLength(0); row++) {
+                for (int column = 0; column < values.GetLength(1); column++) {
+                    if (values[row, column] != null) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        private static bool ValuesEqual(object? left, object? right, ExcelRangeCompareOptions options) {
+            object? normalizedLeft = NormalizeComparedValue(left, options);
+            object? normalizedRight = NormalizeComparedValue(right, options);
+
+            if (normalizedLeft is string leftText && normalizedRight is string rightText) {
+                return string.Equals(leftText, rightText, options.IgnoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+            }
+
+            return object.Equals(normalizedLeft, normalizedRight);
+        }
+
+        private static object? NormalizeComparedValue(object? value, ExcelRangeCompareOptions options) {
+            if (value == null) {
+                return options.TreatNullAndEmptyStringAsEqual ? string.Empty : null;
+            }
+
+            if (value is string text) {
+                string normalized = options.TrimStrings ? text.Trim() : text;
+                return options.TreatNullAndEmptyStringAsEqual && normalized.Length == 0 ? string.Empty : normalized;
+            }
+
+            return value;
+        }
+    }
+}
