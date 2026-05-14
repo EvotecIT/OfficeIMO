@@ -138,6 +138,157 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_InsertDataSet_CreatesWorksheetPerTableWithSafeNames() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataSetImport.xlsx");
+
+            var dataSet = new DataSet("HtmlTables");
+            var sales = new DataTable("Sales:2026");
+            sales.Columns.Add("Region", typeof(string));
+            sales.Columns.Add("Revenue", typeof(decimal));
+            sales.Rows.Add("North", 12.5m);
+            dataSet.Tables.Add(sales);
+
+            var details = new DataTable("Details");
+            details.Columns.Add("Name", typeof(string));
+            details.Rows.Add("A");
+            dataSet.Tables.Add(details);
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var results = document.InsertDataSet(dataSet, autoFit: true);
+
+                Assert.Equal(2, results.Count);
+                Assert.Equal("Sales_2026", results[0].SheetName);
+                Assert.Equal("Sales_2026", results[0].TableName);
+                Assert.Equal("A1:B2", results[0].Range);
+                Assert.Equal(1, results[0].RowCount);
+                Assert.Equal(2, results[0].ColumnCount);
+                Assert.Equal("Details", results[1].SheetName);
+                Assert.Equal("Details", results[1].TableName);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var sheets = spreadsheet.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>().ToList();
+                Assert.Contains(sheets, sheet => sheet.Name?.Value == "Sales_2026");
+                Assert.Contains(sheets, sheet => sheet.Name?.Value == "Details");
+
+                var tableReferences = spreadsheet.WorkbookPart.WorksheetParts
+                    .SelectMany(part => part.TableDefinitionParts)
+                    .Select(part => part.Table?.Reference?.Value)
+                    .ToList();
+                Assert.Contains("A1:B2", tableReferences);
+                Assert.Contains("A1:A2", tableReferences);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Test_InsertDataSet_ReturnsActualUniqueTableNames() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataSetImportUniqueTables.xlsx");
+
+            var dataSet = new DataSet("DuplicateTables");
+            var first = new DataTable("Sales:2026");
+            first.Columns.Add("Region", typeof(string));
+            first.Rows.Add("North");
+            dataSet.Tables.Add(first);
+
+            var second = new DataTable("Sales/2026");
+            second.Columns.Add("Region", typeof(string));
+            second.Rows.Add("South");
+            dataSet.Tables.Add(second);
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var results = document.InsertDataSet(dataSet);
+
+                Assert.Equal("Sales_2026", results[0].SheetName);
+                Assert.Equal("Sales_2026", results[0].TableName);
+                Assert.Equal("Sales_2026 (2)", results[1].SheetName);
+                Assert.Equal("Sales_20262", results[1].TableName);
+                document.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                var tables = document.GetTables().OrderBy(table => table.SheetIndex).ToList();
+                Assert.Equal(new[] { "Sales_2026", "Sales_20262" }, tables.Select(table => table.Name).ToArray());
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Test_InsertDataSet_CanImportPlainRangesWithoutTables() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataSetImportPlainRanges.xlsx");
+
+            var dataSet = new DataSet("PlainRanges");
+            var first = new DataTable("One");
+            first.Columns.Add("Name", typeof(string));
+            first.Rows.Add("Alpha");
+            dataSet.Tables.Add(first);
+
+            var second = new DataTable();
+            second.Columns.Add("Amount", typeof(int));
+            second.Rows.Add(5);
+            dataSet.Tables.Add(second);
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var results = document.InsertDataSet(dataSet, createTables: false, includeHeaders: false);
+
+                Assert.Equal(2, results.Count);
+                Assert.Equal("One", results[0].SheetName);
+                Assert.Null(results[0].TableName);
+                Assert.Equal("A1:A1", results[0].Range);
+                Assert.Equal("Table1", results[1].SheetName);
+                Assert.Null(results[1].TableName);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                Assert.Empty(spreadsheet.WorkbookPart!.WorksheetParts.SelectMany(part => part.TableDefinitionParts));
+
+                var sheets = spreadsheet.WorkbookPart.Workbook.Sheets!.Elements<Sheet>().ToList();
+                Assert.Contains(sheets, sheet => sheet.Name?.Value == "One");
+                Assert.Contains(sheets, sheet => sheet.Name?.Value == "Table1");
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Test_InsertDataReader_StreamsRowsAndCreatesTable() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataReaderImport.xlsx");
+
+            var source = new DataTable("ReaderData");
+            source.Columns.Add("Name", typeof(string));
+            source.Columns.Add("Amount", typeof(decimal));
+            source.Columns.Add("When", typeof(DateTime));
+            source.Rows.Add("Alpha", 10.25m, new DateTime(2026, 1, 2, 3, 4, 0));
+            source.Rows.Add("Beta", 20.50m, new DateTime(2026, 1, 3, 4, 5, 0));
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Reader");
+                using IDataReader reader = source.CreateDataReader();
+                string range = sheet.InsertDataReader(reader, tableName: "ReaderTable", autoFit: true);
+
+                Assert.Equal("A1:C3", range);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var table = worksheetPart.TableDefinitionParts.Single().Table!;
+                Assert.Equal("A1:C3", table.Reference?.Value);
+                Assert.Equal("ReaderTable", table.Name?.Value);
+
+                Cell dateCell = worksheetPart.Worksheet.Descendants<Cell>().First(cell => cell.CellReference == "C2");
+                Assert.True(dateCell.DataType == null || dateCell.DataType.Value == CellValues.Number);
+                Assert.Equal(new DateTime(2026, 1, 2, 3, 4, 0).ToOADate().ToString(CultureInfo.InvariantCulture), dateCell.CellValue!.Text);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void Test_AppendDataTableToTable_ExtendsTableAndMapsColumnsByHeader() {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTable.xlsx");
 
