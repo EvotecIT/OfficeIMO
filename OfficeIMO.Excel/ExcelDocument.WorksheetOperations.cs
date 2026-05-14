@@ -2,7 +2,6 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
-using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -507,13 +506,75 @@ namespace OfficeIMO.Excel {
                 return formula ?? string.Empty;
             }
 
-            string rewritten = formula!;
-            foreach (var mapping in tableNameMap) {
-                string pattern = @"(?<![A-Za-z0-9_\\])" + Regex.Escape(mapping.Key) + @"(?=\[)";
-                rewritten = Regex.Replace(rewritten, pattern, mapping.Value, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            var mappings = tableNameMap
+                .Where(mapping => !string.IsNullOrEmpty(mapping.Key))
+                .OrderByDescending(mapping => mapping.Key.Length)
+                .ToArray();
+            if (mappings.Length == 0) {
+                return formula!;
             }
 
-            return rewritten;
+            var rewritten = new System.Text.StringBuilder(formula!.Length);
+            bool inStringLiteral = false;
+            for (int index = 0; index < formula!.Length;) {
+                char current = formula[index];
+                if (current == '"') {
+                    rewritten.Append(current);
+                    if (inStringLiteral && index + 1 < formula.Length && formula[index + 1] == '"') {
+                        rewritten.Append(formula[index + 1]);
+                        index += 2;
+                        continue;
+                    }
+
+                    inStringLiteral = !inStringLiteral;
+                    index++;
+                    continue;
+                }
+
+                if (!inStringLiteral && TryRewriteStructuredReferenceAt(formula, index, mappings, out string? replacement, out int consumed)) {
+                    rewritten.Append(replacement);
+                    index += consumed;
+                    continue;
+                }
+
+                rewritten.Append(current);
+                index++;
+            }
+
+            return rewritten.ToString();
+        }
+
+        private static bool TryRewriteStructuredReferenceAt(
+            string formula,
+            int index,
+            KeyValuePair<string, string>[] mappings,
+            out string? replacement,
+            out int consumed) {
+            replacement = null;
+            consumed = 0;
+            foreach (var mapping in mappings) {
+                string tableName = mapping.Key;
+                if (index > 0) {
+                    char previous = formula[index - 1];
+                    if (char.IsLetterOrDigit(previous) || previous == '_' || previous == '\\') {
+                        continue;
+                    }
+                }
+
+                if (index + tableName.Length >= formula.Length || formula[index + tableName.Length] != '[') {
+                    continue;
+                }
+
+                if (string.Compare(formula, index, tableName, 0, tableName.Length, StringComparison.OrdinalIgnoreCase) != 0) {
+                    continue;
+                }
+
+                replacement = mapping.Value;
+                consumed = tableName.Length;
+                return true;
+            }
+
+            return false;
         }
 
         private static string MakeUnusedRelationshipId(WorksheetPart worksheetPart) {

@@ -139,6 +139,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CopyWorkSheetWithinWorkbook_RewritesStructuredReferencesAtomicallyOutsideStrings() {
+            string filePath = Path.Combine(_directoryWithFiles, "WorksheetCopyStructuredReferenceRewrite.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                ExcelSheet source = document.AddWorkSheet("Source");
+                source.CellValue(1, 1, "Region");
+                source.CellValue(1, 2, "Revenue");
+                source.CellValue(2, 1, "NA");
+                source.CellValue(2, 2, 100);
+                source.CellValue(1, 4, "Region");
+                source.CellValue(1, 5, "Revenue");
+                source.CellValue(2, 4, "EMEA");
+                source.CellValue(2, 5, 200);
+                source.AddTable("A1:B2", hasHeader: true, name: "Sales", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                source.AddTable("D1:E2", hasHeader: true, name: "Sales2", OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+                source.CellFormula(4, 1, "SUM(Sales[Revenue])+SUM(Sales2[Revenue])+\"Sales[Revenue]\"");
+
+                document.CopyWorkSheet(source, "Copy");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart copiedPart = GetWorksheetPartByNameForOperations(spreadsheet, "Copy");
+                var tableNamesByRange = copiedPart.TableDefinitionParts
+                    .Select(part => part.Table)
+                    .Where(table => table?.Reference?.Value != null && table.Name?.Value != null)
+                    .ToDictionary(table => table!.Reference!.Value!, table => table!.Name!.Value!);
+
+                string firstCopiedTable = tableNamesByRange["A1:B2"];
+                string secondCopiedTable = tableNamesByRange["D1:E2"];
+                Cell formulaCell = copiedPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference == "A4");
+
+                Assert.Equal($"SUM({firstCopiedTable}[Revenue])+SUM({secondCopiedTable}[Revenue])+\"Sales[Revenue]\"", formulaCell.CellFormula?.Text);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void Test_CopyWorkSheetFrom_CopiesValuesBetweenWorkbooks() {
             string sourcePath = Path.Combine(_directoryWithFiles, "WorksheetCopySource.xlsx");
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyTarget.xlsx");
