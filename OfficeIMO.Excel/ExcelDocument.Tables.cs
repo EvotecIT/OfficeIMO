@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel {
 
                     sheetLookup.TryGetValue(relId, out var sheetInfo);
                     var sheetName = sheetInfo.Name ?? string.Empty;
-                    var sheetIndex = sheetInfo.Name == null ? -1 : sheetInfo.Index;
+                    var sheetIndex = string.IsNullOrEmpty(sheetInfo.Name) ? -1 : sheetInfo.Index;
 
                     foreach (var tablePart in worksheetPart.TableDefinitionParts) {
                         var table = tablePart.Table;
