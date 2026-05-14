@@ -61,7 +61,7 @@ namespace OfficeIMO.Excel {
                             sheetIndex,
                             table.TableStyleInfo?.Name?.Value,
                             (table.HeaderRowCount?.Value ?? 1U) > 0U,
-                            table.TotalsRowShown?.Value == true,
+                            (table.TotalsRowCount?.Value ?? 0U) > 0U,
                             table.GetFirstChild<AutoFilter>() != null,
                             columns));
                     }

@@ -82,7 +82,12 @@ namespace OfficeIMO.Excel {
                 var styleInfo = table.TableStyleInfo;
                 if (styleInfo == null) {
                     styleInfo = new TableStyleInfo();
-                    table.Append(styleInfo);
+                    var extensionList = table.GetFirstChild<TableExtensionList>();
+                    if (extensionList == null) {
+                        table.Append(styleInfo);
+                    } else {
+                        table.InsertBefore(styleInfo, extensionList);
+                    }
                 }
 
                 styleInfo.Name = style.ToString();
@@ -109,6 +114,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 table.TotalsRowShown = true;
+                table.TotalsRowCount = 1U;
                 var tableColumns = table.TableColumns ?? throw new InvalidOperationException("Table columns are missing.");
                 foreach (var tc in tableColumns.Elements<TableColumn>()) {
                     var name = tc.Name?.Value ?? string.Empty;

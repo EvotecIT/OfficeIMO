@@ -7,6 +7,8 @@ using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel;
 using Xunit;
 using TableColumn = DocumentFormat.OpenXml.Spreadsheet.TableColumn;
+using TableExtensionList = DocumentFormat.OpenXml.Spreadsheet.TableExtensionList;
+using TableStyleInfo = DocumentFormat.OpenXml.Spreadsheet.TableStyleInfo;
 using TotalsRowFunctionValues = DocumentFormat.OpenXml.Spreadsheet.TotalsRowFunctionValues;
 
 namespace OfficeIMO.Tests {
@@ -275,6 +277,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_SetTableTotalsByNameRestoresTotalsRowCountAfterClear() {
+            string filePath = Path.Combine(_directoryWithFiles, "Table.TotalsRestore.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Amount");
+                sheet.CellValue(2, 1, "A");
+                sheet.CellValue(2, 2, 2d);
+                sheet.AddTable("A1:B2", true, "SalesTable", TableStyle.TableStyleMedium9);
+
+                sheet.SetTableTotalsByName("SalesTable", new Dictionary<string, TotalsRowFunctionValues> {
+                    ["Name"] = TotalsRowFunctionValues.Count,
+                    ["Amount"] = TotalsRowFunctionValues.Sum,
+                });
+                sheet.ClearTableTotals("SalesTable");
+                sheet.SetTableTotalsByName("SalesTable", new Dictionary<string, TotalsRowFunctionValues> {
+                    ["Amount"] = TotalsRowFunctionValues.Sum,
+                });
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                TableDefinitionPart tablePart = wsPart.TableDefinitionParts.First();
+                var table = tablePart.Table;
+                var columns = table.TableColumns!.Elements<TableColumn>().ToList();
+
+                Assert.True(table.TotalsRowShown?.Value);
+                Assert.Equal((uint)1, table.TotalsRowCount!.Value);
+                Assert.Null(columns[0].TotalsRowFunction);
+                Assert.Equal(TotalsRowFunctionValues.Sum, columns[1].TotalsRowFunction?.Value);
+            }
+        }
+
+        [Fact]
         public void Test_SetTableStyleUpdatesNamedTableVisualFlags() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.StyleByName.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
@@ -305,6 +342,45 @@ namespace OfficeIMO.Tests {
                 Assert.True(styleInfo.ShowLastColumn?.Value);
                 Assert.False(styleInfo.ShowRowStripes?.Value);
                 Assert.True(styleInfo.ShowColumnStripes?.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_SetTableStyleInsertsBeforeExtensionList() {
+            string filePath = Path.Combine(_directoryWithFiles, "Table.StyleBeforeExtensionList.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Amount");
+                sheet.CellValue(2, 1, "A");
+                sheet.CellValue(2, 2, 2d);
+                sheet.AddTable("A1:B2", true, "SalesTable", TableStyle.TableStyleMedium9);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                TableDefinitionPart tablePart = wsPart.TableDefinitionParts.First();
+                tablePart.Table.TableStyleInfo!.Remove();
+                tablePart.Table.Append(new TableExtensionList());
+                tablePart.Table.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                document.GetSheet("Data").SetTableStyle("SalesTable", TableStyle.TableStyleLight11);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                TableDefinitionPart tablePart = wsPart.TableDefinitionParts.First();
+                var children = tablePart.Table.ChildElements.ToList();
+                int styleIndex = children.FindIndex(child => child is TableStyleInfo);
+                int extensionIndex = children.FindIndex(child => child is TableExtensionList);
+
+                Assert.True(styleIndex >= 0);
+                Assert.True(extensionIndex >= 0);
+                Assert.True(styleIndex < extensionIndex);
             }
         }
 
