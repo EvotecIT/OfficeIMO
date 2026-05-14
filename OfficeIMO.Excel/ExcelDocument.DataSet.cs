@@ -39,15 +39,19 @@ namespace OfficeIMO.Excel {
                 string? actualTableName = null;
                 string range;
                 if (createTables) {
-                    range = sheet.InsertDataTableAsTable(
-                        table,
-                        includeHeaders: includeHeaders,
-                        tableName: requestedTableName,
-                        style: tableStyle,
-                        includeAutoFilter: includeAutoFilter,
-                        mode: mode,
-                        ct: ct);
-                    actualTableName = GetImportedTableName(sheet);
+                    if (DataTableWritesCells(table, includeHeaders)) {
+                        range = sheet.InsertDataTableAsTable(
+                            table,
+                            includeHeaders: includeHeaders,
+                            tableName: requestedTableName,
+                            style: tableStyle,
+                            includeAutoFilter: includeAutoFilter,
+                            mode: mode,
+                            ct: ct);
+                        actualTableName = GetImportedTableName(sheet);
+                    } else {
+                        range = string.Empty;
+                    }
                 } else {
                     sheet.InsertDataTable(table, includeHeaders: includeHeaders, mode: mode, ct: ct);
                     range = BuildImportedRange(table.Rows.Count, table.Columns.Count, includeHeaders);
@@ -70,14 +74,21 @@ namespace OfficeIMO.Excel {
                 .FirstOrDefault(name => !string.IsNullOrWhiteSpace(name));
         }
 
+        private static bool DataTableWritesCells(DataTable table, bool includeHeaders) {
+            return table.Columns.Count > 0 && (includeHeaders || table.Rows.Count > 0);
+        }
+
         private static string BuildImportedRange(int rowCount, int columnCount, bool includeHeaders) {
-            int rows = rowCount + (includeHeaders ? 1 : 0);
-            int columns = Math.Max(1, columnCount);
-            if (rows < 1) {
-                rows = 1;
+            if (columnCount == 0) {
+                return string.Empty;
             }
 
-            return A1.CellReference(1, 1) + ":" + A1.CellReference(rows, columns);
+            int rows = rowCount + (includeHeaders ? 1 : 0);
+            if (rows == 0) {
+                return string.Empty;
+            }
+
+            return A1.CellReference(1, 1) + ":" + A1.CellReference(rows, columnCount);
         }
     }
 }

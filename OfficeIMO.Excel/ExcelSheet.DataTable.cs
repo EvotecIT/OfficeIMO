@@ -140,7 +140,11 @@ namespace OfficeIMO.Excel {
             InsertDataTable(table, startRow, startColumn, includeHeaders, mode, ct);
 
             int rowsCount = table.Rows.Count + (includeHeaders ? 1 : 0);
-            int colsCount = Math.Max(1, table.Columns.Count);
+            if (table.Columns.Count == 0 || rowsCount == 0) {
+                return string.Empty;
+            }
+
+            int colsCount = table.Columns.Count;
             string startRef = A1.CellReference(startRow, startColumn);
             string endRef = A1.CellReference(startRow + rowsCount - 1, startColumn + colsCount - 1);
             string range = startRef + ":" + endRef;
