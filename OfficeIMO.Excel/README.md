@@ -281,8 +281,16 @@ sheet.AddPivotTable(
         new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum, "Total Sales", numberFormat: "$#,##0")
     },
     fieldOptions: new[] {
-        new ExcelPivotFieldOptions("Region", sortType: FieldSortValues.Ascending, defaultSubtotal: false)
-    });
+        new ExcelPivotFieldOptions("Region",
+            sortType: FieldSortValues.Ascending,
+            defaultSubtotal: false,
+            hiddenItems: new[] { "Legacy" }),
+        new ExcelPivotFieldOptions("Product",
+            selectedItem: "Standard")
+    },
+    pageFields: new[] { "Product" },
+    rowHeaderCaption: "Region",
+    grandTotalCaption: "Total");
 
 sheet.AddPivotChartFromRange("SalesPivot", "A1:C100", row: 12, column: 1,
     type: ExcelChartType.ColumnClustered, title: "Sales Pivot");

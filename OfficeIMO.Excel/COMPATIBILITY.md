@@ -16,7 +16,7 @@ It is intentionally honest. "Partial" means usable, not "done".
 | Tables and named ranges | Supported | Table creation and naming safeguards are in place, with worksheet/global named range helpers. |
 | Auto-fit and report ergonomics | Supported | Auto-fit, object insertion, and table/report helpers are a current strength. |
 | Charts | Partial | Common chart authoring is present, including axis titles/formats/scale/gridlines, series styling, trendlines, secondary-axis combo scenarios, and pivot-source chart metadata, but breadth and round-trip parity are still behind top-tier competitors. |
-| Pivot tables | Partial | Source-range pivot creation supports row/column/page/data fields, layouts, styles, display flags, data-field number formats, and field sort/subtotal/display options, but grouping and richer filtering remain parity targets. |
+| Pivot tables | Partial | Source-range pivot creation supports row/column/page/data fields, layouts, styles, display flags, captions, data-field number formats, field sort/subtotal/display options, field item visibility filters, and selected page-field items. Date/number grouping and advanced value/label filters remain parity targets. |
 | Formula/recalculation story | Partial | Formula authoring exists, but the package does not yet present a first-class recalculation/value-engine story comparable to EPPlus expectations. |
 | Worksheet/workbook protection | Partial | Protection helpers exist, but broader permission fidelity and compatibility proof are still needed. |
 | Encryption/password support | Roadmap | This remains a notable gap for enterprise-style workbook scenarios. |

@@ -99,10 +99,35 @@ namespace OfficeIMO.Tests {
                     destinationCell: "E2",
                     name: "SalesPivot",
                     rowFields: new[] { "Region" },
+                    pageFields: new[] { "Product" },
                     dataFields: new[] { new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum, "Total Sales", numberFormat: "$#,##0.00") },
                     fieldOptions: new[] {
-                        new ExcelPivotFieldOptions("Region", sortType: FieldSortValues.Ascending, defaultSubtotal: false, subtotalTop: true, insertBlankRow: true)
-                    });
+                        new ExcelPivotFieldOptions("Region",
+                            sortType: FieldSortValues.Ascending,
+                            defaultSubtotal: false,
+                            subtotalTop: true,
+                            insertBlankRow: true,
+                            insertPageBreak: true,
+                            compact: false,
+                            outline: true,
+                            showDropDowns: true,
+                            multipleItemSelectionAllowed: true,
+                            includeNewItemsInFilter: true,
+                            subtotalCaption: "Region subtotal",
+                            hiddenItems: new[] { "West" }),
+                        new ExcelPivotFieldOptions("Product", selectedItem: "A")
+                    },
+                    rowHeaderCaption: "Rows",
+                    columnHeaderCaption: "Columns",
+                    grandTotalCaption: "Grand total",
+                    missingCaption: "(missing)",
+                    errorCaption: "(error)",
+                    showDataDropDown: false,
+                    showDropZones: true,
+                    showDataTips: true,
+                    showMemberPropertyTips: true,
+                    fieldListSortAscending: true,
+                    customListSort: false);
 
                 document.Save(false);
             }
@@ -117,6 +142,34 @@ namespace OfficeIMO.Tests {
                 Assert.False(regionField.DefaultSubtotal!.Value);
                 Assert.True(regionField.SubtotalTop!.Value);
                 Assert.True(regionField.InsertBlankRow!.Value);
+                Assert.True(regionField.InsertPageBreak!.Value);
+                Assert.False(regionField.Compact!.Value);
+                Assert.True(regionField.Outline!.Value);
+                Assert.True(regionField.ShowDropDowns!.Value);
+                Assert.True(regionField.MultipleItemSelectionAllowed!.Value);
+                Assert.True(regionField.IncludeNewItemsInFilter!.Value);
+                Assert.Equal("Region subtotal", regionField.SubtotalCaption!.Value);
+
+                var regionItems = regionField.Items!.Elements<Item>().ToList();
+                Assert.Equal(2, regionItems.Count);
+                Assert.False(regionItems[0].Hidden?.Value ?? false);
+                Assert.True(regionItems[1].Hidden!.Value);
+
+                var pageField = pivotDefinition.PageFields!.Elements<PageField>().Single();
+                Assert.Equal(1, pageField.Field!.Value);
+                Assert.Equal(0U, pageField.Item!.Value);
+
+                Assert.Equal("Rows", pivotDefinition.RowHeaderCaption!.Value);
+                Assert.Equal("Columns", pivotDefinition.ColumnHeaderCaption!.Value);
+                Assert.Equal("Grand total", pivotDefinition.GrandTotalCaption!.Value);
+                Assert.Equal("(missing)", pivotDefinition.MissingCaption!.Value);
+                Assert.Equal("(error)", pivotDefinition.ErrorCaption!.Value);
+                Assert.False(pivotDefinition.ShowDataDropDown!.Value);
+                Assert.True(pivotDefinition.ShowDropZones!.Value);
+                Assert.True(pivotDefinition.ShowDataTips!.Value);
+                Assert.True(pivotDefinition.ShowMemberPropertyTips!.Value);
+                Assert.True(pivotDefinition.FieldListSortAscending!.Value);
+                Assert.False(pivotDefinition.CustomListSort!.Value);
 
                 var dataField = pivotDefinition.DataFields!.Elements<DataField>().Single();
                 uint numberFormatId = dataField.NumberFormatId!.Value;
@@ -129,7 +182,25 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
-                var dataField = document.GetPivotTables().Single().DataFields.Single();
+                var pivot = document.GetPivotTables().Single();
+                Assert.True(pivot.RowGrandTotals);
+                Assert.True(pivot.ColumnGrandTotals);
+                Assert.Equal("Rows", pivot.RowHeaderCaption);
+                Assert.Equal("Columns", pivot.ColumnHeaderCaption);
+                Assert.Equal("Grand total", pivot.GrandTotalCaption);
+                Assert.False(pivot.ShowDataDropDown);
+                Assert.True(pivot.ShowDropZones);
+                Assert.Contains("Product", pivot.PageFields);
+
+                var region = pivot.Fields.Single(field => field.FieldName == "Region");
+                Assert.Equal(FieldSortValues.Ascending, region.SortType);
+                Assert.False(region.DefaultSubtotal);
+                Assert.True(region.InsertPageBreak);
+                Assert.False(region.Compact);
+                Assert.True(region.Outline);
+                Assert.Contains("West", region.HiddenItems);
+
+                var dataField = pivot.DataFields.Single();
                 Assert.True(dataField.NumberFormatId >= 164);
             }
 
