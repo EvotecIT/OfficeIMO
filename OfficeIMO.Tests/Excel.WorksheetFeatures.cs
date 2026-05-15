@@ -6,6 +6,8 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Office2010.Excel;
 using OfficeIMO.Excel;
+using OfficeFormula = DocumentFormat.OpenXml.Office.Excel.Formula;
+using OfficeReferenceSequence = DocumentFormat.OpenXml.Office.Excel.ReferenceSequence;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -127,6 +129,9 @@ namespace OfficeIMO.Tests {
                     var group = groups.Elements<SparklineGroup>().FirstOrDefault();
                     Assert.NotNull(group);
                     Assert.Equal(SparklineTypeValues.Line, group!.Type?.Value);
+                    var sparkline = group.GetFirstChild<Sparklines>()!.Elements<Sparkline>().Single();
+                    Assert.Equal("B2:G2", sparkline.GetFirstChild<OfficeFormula>()!.Text);
+                    Assert.Equal("H2:H2", sparkline.GetFirstChild<OfficeReferenceSequence>()!.Text);
                 } else {
                     const string SparklineNamespace = "http://schemas.microsoft.com/office/excel/2009/9/main";
                     var unknown = wsPart.Worksheet.Descendants<OpenXmlUnknownElement>()
@@ -134,6 +139,90 @@ namespace OfficeIMO.Tests {
                         .FirstOrDefault(e => e.LocalName == "sparklineGroups" && e.NamespaceUri == SparklineNamespace);
                     Assert.NotNull(unknown);
                 }
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_WorksheetSparklines_MultiRowRangesExpandPerTargetCell() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetSparklines.MultiRow.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Sparklines");
+                for (int row = 2; row <= 4; row++) {
+                    sheet.CellValue(row, 3, (double)row);
+                    sheet.CellValue(row, 4, (double)(row + 10));
+                }
+
+                sheet.AddSparklines("C2:D4", "E2:E4", displayMarkers: true, seriesColor: "#FF0000");
+                document.Save(false);
+            }
+
+            using (var doc = SpreadsheetDocument.Open(filePath, false)) {
+                var wb = doc.WorkbookPart!;
+                var sheet = wb.Workbook.Sheets!.OfType<Sheet>().First(s => s.Name == "Sparklines");
+                var wsPart = (WorksheetPart)wb.GetPartById(sheet.Id!);
+                var group = wsPart.Worksheet.Descendants<SparklineGroup>().Single();
+                var sparklines = group.GetFirstChild<Sparklines>()!.Elements<Sparkline>().ToList();
+
+                Assert.Equal(3, sparklines.Count);
+                Assert.Equal(new[] { "C2:D2", "C3:D3", "C4:D4" },
+                    sparklines.Select(s => s.GetFirstChild<OfficeFormula>()!.Text).ToArray());
+                Assert.Equal(new[] { "E2", "E3", "E4" },
+                    sparklines.Select(s => s.GetFirstChild<OfficeReferenceSequence>()!.Text).ToArray());
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_WorksheetSparklines_MultiColumnRangesExpandPerTargetCell() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetSparklines.MultiColumn.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Sparklines");
+                for (int row = 2; row <= 4; row++) {
+                    sheet.CellValue(row, 3, (double)row);
+                    sheet.CellValue(row, 4, (double)(row + 10));
+                }
+
+                sheet.AddSparklines("C2:D4", "C5:D5", displayMarkers: true, seriesColor: "#FF0000");
+                document.Save(false);
+            }
+
+            using (var doc = SpreadsheetDocument.Open(filePath, false)) {
+                var wb = doc.WorkbookPart!;
+                var sheet = wb.Workbook.Sheets!.OfType<Sheet>().First(s => s.Name == "Sparklines");
+                var wsPart = (WorksheetPart)wb.GetPartById(sheet.Id!);
+                var group = wsPart.Worksheet.Descendants<SparklineGroup>().Single();
+                var sparklines = group.GetFirstChild<Sparklines>()!.Elements<Sparkline>().ToList();
+
+                Assert.Equal(2, sparklines.Count);
+                Assert.Equal(new[] { "C2:C4", "D2:D4" },
+                    sparklines.Select(s => s.GetFirstChild<OfficeFormula>()!.Text).ToArray());
+                Assert.Equal(new[] { "C5", "D5" },
+                    sparklines.Select(s => s.GetFirstChild<OfficeReferenceSequence>()!.Text).ToArray());
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_WorksheetSparklines_AmbiguousMultiCellLocationThrows() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetSparklines.InvalidShape.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Sparklines");
+
+                var exception = Assert.Throws<ArgumentException>(() => sheet.AddSparklines("C2:D4", "E2:F4"));
+                Assert.Equal("locationRange", exception.ParamName);
             }
         }
 
