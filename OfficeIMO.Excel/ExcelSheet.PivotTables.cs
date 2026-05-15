@@ -76,6 +76,7 @@ namespace OfficeIMO.Excel {
         /// <param name="showEmptyRows">Whether to show empty rows.</param>
         /// <param name="showEmptyColumns">Whether to show empty columns.</param>
         /// <param name="showDrill">Whether to show drill indicators.</param>
+        /// <param name="fieldOptions">Optional formatting and display options for source fields.</param>
         public void AddPivotTable(
             string sourceRange,
             string destinationCell,
@@ -92,7 +93,8 @@ namespace OfficeIMO.Excel {
             bool? showHeaders = null,
             bool? showEmptyRows = null,
             bool? showEmptyColumns = null,
-            bool? showDrill = null) {
+            bool? showDrill = null,
+            IEnumerable<ExcelPivotFieldOptions>? fieldOptions = null) {
             if (string.IsNullOrWhiteSpace(sourceRange)) throw new ArgumentNullException(nameof(sourceRange));
             if (string.IsNullOrWhiteSpace(destinationCell)) throw new ArgumentNullException(nameof(destinationCell));
             if (!A1.TryParseRange(sourceRange, out int r1, out int c1, out int r2, out int c2)) {
@@ -145,6 +147,7 @@ namespace OfficeIMO.Excel {
 
                 var workbookPart = WorkbookPartRoot;
                 var workbook = workbookPart.Workbook ??= new Workbook();
+                var fieldOptionMap = BuildPivotFieldOptionMap(fieldOptions, headerIndex);
                 uint cacheId = NextPivotCacheId(workbookPart);
 
                 var cacheDefPart = workbookPart.AddNewPart<PivotTableCacheDefinitionPart>();
@@ -194,11 +197,13 @@ namespace OfficeIMO.Excel {
 
                 var pivotFields = new PivotFields { Count = (uint)headers.Count };
                 for (int i = 0; i < headers.Count; i++) {
-                    var pivotField = new PivotField { ShowAll = true };
+                    fieldOptionMap.TryGetValue(i, out var options);
+                    var pivotField = new PivotField { ShowAll = options?.ShowAll ?? true };
                     if (pageFieldIndices.Contains(i)) pivotField.Axis = PivotTableAxisValues.AxisPage;
                     if (rowFieldIndices.Contains(i)) pivotField.Axis = PivotTableAxisValues.AxisRow;
                     if (columnFieldIndices.Contains(i)) pivotField.Axis = PivotTableAxisValues.AxisColumn;
                     if (dataFieldIndices.Contains(i)) pivotField.DataField = true;
+                    ApplyPivotFieldOptions(pivotField, options, workbookPart);
                     pivotFields.Append(pivotField);
                 }
 
@@ -226,7 +231,8 @@ namespace OfficeIMO.Excel {
                         Field = (uint)idx,
                         Subtotal = df.Function
                     };
-                    if (df.NumberFormatId.HasValue) dataField.NumberFormatId = df.NumberFormatId.Value;
+                    uint? numberFormatId = ResolveNumberFormatId(workbookPart, df.NumberFormatId, df.NumberFormat);
+                    if (numberFormatId.HasValue) dataField.NumberFormatId = numberFormatId.Value;
                     dataFieldsElement.Append(dataField);
                 }
 
@@ -344,6 +350,68 @@ namespace OfficeIMO.Excel {
             return indices;
         }
 
+        private static Dictionary<int, ExcelPivotFieldOptions> BuildPivotFieldOptionMap(IEnumerable<ExcelPivotFieldOptions>? fieldOptions,
+            IDictionary<string, int> headerIndex) {
+            var map = new Dictionary<int, ExcelPivotFieldOptions>();
+            if (fieldOptions == null) return map;
+
+            foreach (var options in fieldOptions) {
+                if (options == null || string.IsNullOrWhiteSpace(options.FieldName)) continue;
+                int idx = ResolveFieldIndex(options.FieldName, headerIndex, nameof(fieldOptions));
+                map[idx] = options;
+            }
+
+            return map;
+        }
+
+        private static void ApplyPivotFieldOptions(PivotField pivotField, ExcelPivotFieldOptions? options, WorkbookPart workbookPart) {
+            if (options == null) return;
+
+            if (options.SortType.HasValue) pivotField.SortType = options.SortType.Value;
+            if (options.DefaultSubtotal.HasValue) pivotField.DefaultSubtotal = options.DefaultSubtotal.Value;
+            if (options.SubtotalTop.HasValue) pivotField.SubtotalTop = options.SubtotalTop.Value;
+            if (options.InsertBlankRow.HasValue) pivotField.InsertBlankRow = options.InsertBlankRow.Value;
+
+            uint? numberFormatId = ResolveNumberFormatId(workbookPart, options.NumberFormatId, options.NumberFormat);
+            if (numberFormatId.HasValue) pivotField.NumberFormatId = numberFormatId.Value;
+        }
+
+        private static uint? ResolveNumberFormatId(WorkbookPart workbookPart, uint? numberFormatId, string? numberFormat) {
+            if (numberFormatId.HasValue) return numberFormatId.Value;
+            if (string.IsNullOrWhiteSpace(numberFormat)) return null;
+            return GetOrCreateNumberFormatId(workbookPart, numberFormat!.Trim());
+        }
+
+        private static uint GetOrCreateNumberFormatId(WorkbookPart workbookPart, string numberFormat) {
+            WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
+            if (stylesPart == null) {
+                stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
+            }
+
+            Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            EnsureDefaultStylePrimitives(stylesheet);
+
+            stylesheet.NumberingFormats ??= new NumberingFormats();
+            NumberingFormat? existingFormat = stylesheet.NumberingFormats.Elements<NumberingFormat>()
+                .FirstOrDefault(n => n.FormatCode != null && string.Equals(n.FormatCode.Value, numberFormat, StringComparison.Ordinal));
+
+            if (existingFormat?.NumberFormatId?.Value is uint existingId) {
+                return existingId;
+            }
+
+            uint formatId = stylesheet.NumberingFormats.Elements<NumberingFormat>().Any()
+                ? Math.Max(164U, stylesheet.NumberingFormats.Elements<NumberingFormat>().Max(n => n.NumberFormatId?.Value ?? 0U) + 1U)
+                : 164U;
+
+            stylesheet.NumberingFormats.Append(new NumberingFormat {
+                NumberFormatId = formatId,
+                FormatCode = StringValue.FromString(numberFormat)
+            });
+            stylesheet.NumberingFormats.Count = (uint)stylesheet.NumberingFormats.Count();
+            stylesPart.Stylesheet.Save();
+            return formatId;
+        }
+
         private static int ResolveFieldIndex(string field, IDictionary<string, int> headerIndex, string paramName) {
             var key = field.Trim();
             if (!headerIndex.TryGetValue(key, out int idx)) {
@@ -433,7 +501,7 @@ namespace OfficeIMO.Excel {
                 var name = ResolveFieldName(idx, cacheFields);
                 var fn = field.Subtotal?.Value ?? DataConsolidateFunctionValues.Sum;
                 var display = field.Name?.Value;
-                list.Add(new ExcelPivotDataFieldInfo(name, fn, display));
+                list.Add(new ExcelPivotDataFieldInfo(name, fn, display, field.NumberFormatId?.Value));
             }
             return list;
         }
