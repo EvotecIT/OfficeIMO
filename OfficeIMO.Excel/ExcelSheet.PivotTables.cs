@@ -91,6 +91,73 @@ namespace OfficeIMO.Excel {
         /// <param name="showEmptyRows">Whether to show empty rows.</param>
         /// <param name="showEmptyColumns">Whether to show empty columns.</param>
         /// <param name="showDrill">Whether to show drill indicators.</param>
+        public void AddPivotTable(
+            string sourceRange,
+            string destinationCell,
+            string? name,
+            IEnumerable<string>? rowFields,
+            IEnumerable<string>? columnFields,
+            IEnumerable<string>? pageFields,
+            IEnumerable<ExcelPivotDataField>? dataFields,
+            bool showRowGrandTotals,
+            bool showColumnGrandTotals,
+            string? pivotStyleName,
+            ExcelPivotLayout layout,
+            bool? dataOnRows,
+            bool? showHeaders,
+            bool? showEmptyRows,
+            bool? showEmptyColumns,
+            bool? showDrill) {
+            AddPivotTable(
+                sourceRange,
+                destinationCell,
+                name,
+                rowFields,
+                columnFields,
+                pageFields,
+                dataFields,
+                showRowGrandTotals,
+                showColumnGrandTotals,
+                pivotStyleName,
+                layout,
+                dataOnRows,
+                showHeaders,
+                showEmptyRows,
+                showEmptyColumns,
+                showDrill,
+                fieldOptions: null,
+                rowHeaderCaption: null,
+                columnHeaderCaption: null,
+                grandTotalCaption: null,
+                missingCaption: null,
+                errorCaption: null,
+                showDataDropDown: null,
+                showDropZones: null,
+                showDataTips: null,
+                showMemberPropertyTips: null,
+                fieldListSortAscending: null,
+                customListSort: null);
+        }
+
+        /// <summary>
+        /// Adds a basic pivot table based on a source range and places it at a destination cell.
+        /// </summary>
+        /// <param name="sourceRange">Source data range (including header row), e.g. "A1:D100".</param>
+        /// <param name="destinationCell">Top-left cell for the pivot table (e.g. "F2").</param>
+        /// <param name="name">Optional pivot table name. Defaults to "PivotTable1" style.</param>
+        /// <param name="rowFields">Optional row fields (header names).</param>
+        /// <param name="columnFields">Optional column fields (header names).</param>
+        /// <param name="pageFields">Optional page fields (header names) used as filters.</param>
+        /// <param name="dataFields">Optional data field definitions. Defaults to last column with Sum.</param>
+        /// <param name="showRowGrandTotals">Show row grand totals.</param>
+        /// <param name="showColumnGrandTotals">Show column grand totals.</param>
+        /// <param name="pivotStyleName">Optional pivot table style name.</param>
+        /// <param name="layout">Layout mode (Compact, Outline, Tabular).</param>
+        /// <param name="dataOnRows">Whether to show data fields on rows instead of columns.</param>
+        /// <param name="showHeaders">Whether to show field headers.</param>
+        /// <param name="showEmptyRows">Whether to show empty rows.</param>
+        /// <param name="showEmptyColumns">Whether to show empty columns.</param>
+        /// <param name="showDrill">Whether to show drill indicators.</param>
         /// <param name="fieldOptions">Optional formatting and display options for source fields.</param>
         /// <param name="rowHeaderCaption">Optional row header caption.</param>
         /// <param name="columnHeaderCaption">Optional column header caption.</param>
@@ -424,11 +491,7 @@ namespace OfficeIMO.Excel {
                 var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 int column = firstColumn + field;
                 for (int row = firstDataRow; row <= lastDataRow; row++) {
-                    if (!TryGetCellText(row, column, out string text) || string.IsNullOrWhiteSpace(text)) {
-                        continue;
-                    }
-
-                    text = text.Trim();
+                    string text = TryGetCellText(row, column, out string cellText) ? cellText.Trim() : string.Empty;
                     if (seen.Add(text)) {
                         values.Add(text);
                     }
@@ -441,13 +504,19 @@ namespace OfficeIMO.Excel {
         }
 
         private static SharedItems BuildSharedItems(IReadOnlyList<string> values) {
+            bool hasBlank = values.Any(string.IsNullOrEmpty);
             var sharedItems = new SharedItems {
                 Count = (uint)values.Count,
-                ContainsString = values.Count > 0
+                ContainsString = values.Any(value => !string.IsNullOrEmpty(value)),
+                ContainsBlank = hasBlank
             };
 
             foreach (string value in values) {
-                sharedItems.Append(new StringItem { Val = value });
+                if (string.IsNullOrEmpty(value)) {
+                    sharedItems.Append(new MissingItem());
+                } else {
+                    sharedItems.Append(new StringItem { Val = value });
+                }
             }
 
             return sharedItems;

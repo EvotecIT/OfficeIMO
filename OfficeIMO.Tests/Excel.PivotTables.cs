@@ -72,6 +72,62 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_PivotPublicCompatibilityOverloadsRemainAvailable() {
+            Assert.NotNull(typeof(ExcelPivotDataField).GetConstructor(new[] {
+                typeof(string),
+                typeof(DataConsolidateFunctionValues?),
+                typeof(string),
+                typeof(uint?)
+            }));
+
+            Assert.NotNull(typeof(ExcelPivotDataFieldInfo).GetConstructor(new[] {
+                typeof(string),
+                typeof(DataConsolidateFunctionValues),
+                typeof(string)
+            }));
+
+            Assert.NotNull(typeof(ExcelPivotTableInfo).GetConstructor(new[] {
+                typeof(string),
+                typeof(uint),
+                typeof(string),
+                typeof(string),
+                typeof(string),
+                typeof(string),
+                typeof(int),
+                typeof(string),
+                typeof(ExcelPivotLayout),
+                typeof(bool?),
+                typeof(bool?),
+                typeof(bool?),
+                typeof(bool?),
+                typeof(bool?),
+                typeof(IReadOnlyList<string>),
+                typeof(IReadOnlyList<string>),
+                typeof(IReadOnlyList<string>),
+                typeof(IReadOnlyList<ExcelPivotDataFieldInfo>)
+            }));
+
+            Assert.NotNull(typeof(ExcelSheet).GetMethod("AddPivotTable", new[] {
+                typeof(string),
+                typeof(string),
+                typeof(string),
+                typeof(IEnumerable<string>),
+                typeof(IEnumerable<string>),
+                typeof(IEnumerable<string>),
+                typeof(IEnumerable<ExcelPivotDataField>),
+                typeof(bool),
+                typeof(bool),
+                typeof(string),
+                typeof(ExcelPivotLayout),
+                typeof(bool?),
+                typeof(bool?),
+                typeof(bool?),
+                typeof(bool?),
+                typeof(bool?)
+            }));
+        }
+
+        [Fact]
         public void Test_AddPivotTable_AppliesFieldOptionsAndNumberFormats() {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableFieldOptions.xlsx");
 
@@ -94,8 +150,11 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(4, 2, "B");
                 sheet.CellValue(4, 3, 7.75);
 
+                sheet.CellValue(5, 2, "C");
+                sheet.CellValue(5, 3, 3.5);
+
                 sheet.AddPivotTable(
-                    sourceRange: "A1:C4",
+                    sourceRange: "A1:C5",
                     destinationCell: "E2",
                     name: "SalesPivot",
                     rowFields: new[] { "Region" },
@@ -137,6 +196,11 @@ namespace OfficeIMO.Tests {
                 var pivotPart = workbookPart.WorksheetParts.SelectMany(part => part.PivotTableParts).Single();
                 var pivotDefinition = pivotPart.PivotTableDefinition!;
 
+                var cacheField = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!.CacheFields!.Elements<CacheField>().ElementAt(0);
+                var sharedItems = cacheField.SharedItems!.ChildElements;
+                Assert.Equal(3, sharedItems.Count);
+                Assert.IsType<MissingItem>(sharedItems[2]);
+
                 var regionField = pivotDefinition.PivotFields!.Elements<PivotField>().ElementAt(0);
                 Assert.Equal(FieldSortValues.Ascending, regionField.SortType!.Value);
                 Assert.False(regionField.DefaultSubtotal!.Value);
@@ -151,9 +215,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Region subtotal", regionField.SubtotalCaption!.Value);
 
                 var regionItems = regionField.Items!.Elements<Item>().ToList();
-                Assert.Equal(2, regionItems.Count);
+                Assert.Equal(3, regionItems.Count);
                 Assert.False(regionItems[0].Hidden?.Value ?? false);
                 Assert.True(regionItems[1].Hidden!.Value);
+                Assert.False(regionItems[2].Hidden?.Value ?? false);
 
                 var pageField = pivotDefinition.PageFields!.Elements<PageField>().Single();
                 Assert.Equal(1, pageField.Field!.Value);
