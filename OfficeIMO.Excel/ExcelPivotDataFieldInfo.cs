@@ -8,10 +8,11 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Creates a data field info instance.
         /// </summary>
-        public ExcelPivotDataFieldInfo(string fieldName, DataConsolidateFunctionValues function, string? displayName) {
+        public ExcelPivotDataFieldInfo(string fieldName, DataConsolidateFunctionValues function, string? displayName, uint? numberFormatId = null) {
             FieldName = fieldName;
             Function = function;
             DisplayName = displayName;
+            NumberFormatId = numberFormatId;
         }
 
         /// <summary>
@@ -28,5 +29,10 @@ namespace OfficeIMO.Excel {
         /// Gets the display name for the data field.
         /// </summary>
         public string? DisplayName { get; }
+
+        /// <summary>
+        /// Gets the number format id applied to the data field.
+        /// </summary>
+        public uint? NumberFormatId { get; }
     }
 }

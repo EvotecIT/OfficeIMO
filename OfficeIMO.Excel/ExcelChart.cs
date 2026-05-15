@@ -44,6 +44,53 @@ namespace OfficeIMO.Excel {
         public ExcelChartDataRange? DataRange => _dataRange;
 
         /// <summary>
+        /// Gets whether the chart declares a pivot table source.
+        /// </summary>
+        public bool IsPivotChart => !string.IsNullOrWhiteSpace(PivotTableName);
+
+        /// <summary>
+        /// Gets the pivot table name used as this chart's pivot source, if present.
+        /// </summary>
+        public string? PivotTableName {
+            get {
+                ChartPart chartPart = GetChartPart();
+                return chartPart.ChartSpace?
+                    .GetFirstChild<C.PivotSource>()?
+                    .GetFirstChild<C.PivotTableName>()?
+                    .Text;
+            }
+        }
+
+        /// <summary>
+        /// Marks the chart as sourced from a pivot table.
+        /// </summary>
+        /// <param name="pivotTableName">Pivot table name to assign as the chart's pivot source.</param>
+        /// <param name="formatId">Pivot chart format id.</param>
+        public ExcelChart SetPivotSource(string pivotTableName, uint formatId = 0U) {
+            if (string.IsNullOrWhiteSpace(pivotTableName)) {
+                throw new ArgumentNullException(nameof(pivotTableName));
+            }
+
+            ChartPart chartPart = GetChartPart();
+            C.ChartSpace chartSpace = chartPart.ChartSpace ?? throw new InvalidOperationException("Chart space not found in chart part.");
+            chartSpace.RemoveAllChildren<C.PivotSource>();
+
+            var pivotSource = new C.PivotSource(
+                new C.PivotTableName { Text = pivotTableName.Trim() },
+                new C.FormatId { Val = formatId });
+
+            C.Chart? chart = chartSpace.GetFirstChild<C.Chart>();
+            if (chart != null) {
+                chartSpace.InsertBefore(pivotSource, chart);
+            } else {
+                chartSpace.Append(pivotSource);
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
         /// Updates the chart data (series and categories).
         /// </summary>
         public ExcelChart UpdateData(ExcelChartData data, ExcelChartDataRange? dataRange = null, bool writeToSheet = true) {

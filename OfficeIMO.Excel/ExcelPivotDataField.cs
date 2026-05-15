@@ -13,14 +13,17 @@ namespace OfficeIMO.Excel {
         /// <param name="function">Aggregation function (Sum, Count, Average, ...).</param>
         /// <param name="displayName">Optional display name for the data field.</param>
         /// <param name="numberFormatId">Optional number format id to apply to the data field.</param>
+        /// <param name="numberFormat">Optional number format code to apply to the data field.</param>
         public ExcelPivotDataField(string fieldName,
             DataConsolidateFunctionValues? function = null,
             string? displayName = null,
-            uint? numberFormatId = null) {
+            uint? numberFormatId = null,
+            string? numberFormat = null) {
             FieldName = fieldName ?? throw new ArgumentNullException(nameof(fieldName));
             Function = function ?? DataConsolidateFunctionValues.Sum;
             DisplayName = displayName;
             NumberFormatId = numberFormatId;
+            NumberFormat = numberFormat;
         }
 
         /// <summary>
@@ -42,5 +45,10 @@ namespace OfficeIMO.Excel {
         /// Gets the optional number format id for the data field.
         /// </summary>
         public uint? NumberFormatId { get; }
+
+        /// <summary>
+        /// Gets the optional number format code for the data field.
+        /// </summary>
+        public string? NumberFormat { get; }
     }
 }

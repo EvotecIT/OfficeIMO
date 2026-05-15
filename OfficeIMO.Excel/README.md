@@ -271,6 +271,32 @@ chart.SetSeriesDataLabelTemplate(0, labelTemplate)
 ```
 
 ```csharp
+// Pivot table and pivot-source chart metadata
+sheet.AddPivotTable(
+    sourceRange: "A1:C100",
+    destinationCell: "F2",
+    name: "SalesPivot",
+    rowFields: new[] { "Region" },
+    dataFields: new[] {
+        new ExcelPivotDataField("Sales", DataConsolidateFunctionValues.Sum, "Total Sales", numberFormat: "$#,##0")
+    },
+    fieldOptions: new[] {
+        new ExcelPivotFieldOptions("Region",
+            sortType: FieldSortValues.Ascending,
+            defaultSubtotal: false,
+            hiddenItems: new[] { "Legacy" }),
+        new ExcelPivotFieldOptions("Product",
+            selectedItem: "Standard")
+    },
+    pageFields: new[] { "Product" },
+    rowHeaderCaption: "Region",
+    grandTotalCaption: "Total");
+
+sheet.AddPivotChartFromRange("SalesPivot", "A1:C100", row: 12, column: 1,
+    type: ExcelChartType.ColumnClustered, title: "Sales Pivot");
+```
+
+```csharp
 // Combo chart with secondary axis
 var comboData = new ExcelChartData(
     new[] { "Q1", "Q2", "Q3", "Q4" },
