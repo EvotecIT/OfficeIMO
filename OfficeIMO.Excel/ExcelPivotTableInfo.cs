@@ -22,6 +22,33 @@ namespace OfficeIMO.Excel {
             bool? showEmptyRows,
             bool? showEmptyColumns,
             bool? showDrill,
+            IReadOnlyList<string> rowFields,
+            IReadOnlyList<string> columnFields,
+            IReadOnlyList<string> pageFields,
+            IReadOnlyList<ExcelPivotDataFieldInfo> dataFields)
+            : this(name, cacheId, location, sourceSheet, sourceRange, sheetName, sheetIndex, pivotStyle,
+                layout, dataOnRows, showHeaders, showEmptyRows, showEmptyColumns, showDrill,
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                rowFields, columnFields, pageFields, dataFields, null) {
+        }
+
+        /// <summary>
+        /// Creates a pivot table info instance.
+        /// </summary>
+        public ExcelPivotTableInfo(string name,
+            uint cacheId,
+            string? location,
+            string? sourceSheet,
+            string? sourceRange,
+            string sheetName,
+            int sheetIndex,
+            string? pivotStyle,
+            ExcelPivotLayout layout,
+            bool? dataOnRows,
+            bool? showHeaders,
+            bool? showEmptyRows,
+            bool? showEmptyColumns,
+            bool? showDrill,
             bool? rowGrandTotals,
             bool? columnGrandTotals,
             string? rowHeaderCaption,

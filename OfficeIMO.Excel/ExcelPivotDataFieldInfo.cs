@@ -8,7 +8,14 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Creates a data field info instance.
         /// </summary>
-        public ExcelPivotDataFieldInfo(string fieldName, DataConsolidateFunctionValues function, string? displayName, uint? numberFormatId = null) {
+        public ExcelPivotDataFieldInfo(string fieldName, DataConsolidateFunctionValues function, string? displayName)
+            : this(fieldName, function, displayName, null) {
+        }
+
+        /// <summary>
+        /// Creates a data field info instance.
+        /// </summary>
+        public ExcelPivotDataFieldInfo(string fieldName, DataConsolidateFunctionValues function, string? displayName, uint? numberFormatId) {
             FieldName = fieldName;
             Function = function;
             DisplayName = displayName;
