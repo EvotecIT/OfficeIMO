@@ -15,6 +15,8 @@ namespace OfficeIMO.PowerPoint {
             _slidePart = slidePart;
         }
 
+        internal SlidePart SlidePart => _slidePart;
+
         private Picture Picture => (Picture)Element;
 
         /// <summary>
@@ -196,6 +198,7 @@ namespace OfficeIMO.PowerPoint {
                 ".gif" => ImagePartType.Gif,
                 ".bmp" => ImagePartType.Bmp,
                 ".tif" or ".tiff" => ImagePartType.Tiff,
+                ".svg" => ImagePartType.Svg,
                 ".emf" => ImagePartType.Emf,
                 ".wmf" => ImagePartType.Wmf,
                 ".ico" => ImagePartType.Icon,

@@ -45,6 +45,11 @@ namespace OfficeIMO.PowerPoint {
         public IEnumerable<PowerPointPicture> Pictures => _shapes.OfType<PowerPointPicture>();
 
         /// <summary>
+        ///     Enumerates all embedded audio and video media shapes on the slide.
+        /// </summary>
+        public IEnumerable<PowerPointMedia> Media => _shapes.OfType<PowerPointMedia>();
+
+        /// <summary>
         ///     Enumerates all table shapes on the slide.
         /// </summary>
         public IEnumerable<PowerPointTable> Tables => _shapes.OfType<PowerPointTable>();
@@ -53,6 +58,11 @@ namespace OfficeIMO.PowerPoint {
         ///     Enumerates all charts on the slide.
         /// </summary>
         public IEnumerable<PowerPointChart> Charts => _shapes.OfType<PowerPointChart>();
+
+        /// <summary>
+        ///     Enumerates all SmartArt diagrams on the slide.
+        /// </summary>
+        public IEnumerable<PowerPointSmartArt> SmartArts => _shapes.OfType<PowerPointSmartArt>();
 
         /// <summary>
         ///     Retrieves shapes that are within or intersect the provided bounds.
@@ -977,6 +987,55 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Retrieves a shape by name, optionally using case-insensitive comparison.
+        /// </summary>
+        public PowerPointShape? GetShapeByName(string name, bool ignoreCase = false) {
+            if (name == null) {
+                throw new ArgumentNullException(nameof(name));
+            }
+
+            StringComparison comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            return _shapes.FirstOrDefault(shape => string.Equals(shape.Name, name, comparison));
+        }
+
+        /// <summary>
+        ///     Attempts to retrieve a shape by name.
+        /// </summary>
+        public bool TryGetShapeByName(string name, out PowerPointShape? shape, bool ignoreCase = false) {
+            shape = GetShapeByName(name, ignoreCase);
+            return shape != null;
+        }
+
+        /// <summary>
+        ///     Retrieves a typed shape by name, optionally using case-insensitive comparison.
+        /// </summary>
+        public T? GetShapeByName<T>(string name, bool ignoreCase = false) where T : PowerPointShape {
+            return GetShapeByName(name, ignoreCase) as T;
+        }
+
+        /// <summary>
+        ///     Attempts to retrieve a typed shape by name.
+        /// </summary>
+        public bool TryGetShapeByName<T>(string name, out T? shape, bool ignoreCase = false) where T : PowerPointShape {
+            shape = GetShapeByName<T>(name, ignoreCase);
+            return shape != null;
+        }
+
+        /// <summary>
+        ///     Retrieves a shape by its non-visual drawing identifier.
+        /// </summary>
+        public PowerPointShape? GetShapeById(uint id) {
+            return _shapes.FirstOrDefault(shape => shape.Id == id);
+        }
+
+        /// <summary>
+        ///     Retrieves a typed shape by its non-visual drawing identifier.
+        /// </summary>
+        public T? GetShapeById<T>(uint id) where T : PowerPointShape {
+            return GetShapeById(id) as T;
+        }
+
+        /// <summary>
         ///     Retrieves a textbox by its name.
         /// </summary>
         public PowerPointTextBox? GetTextBox(string name) {
@@ -1144,8 +1203,25 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentNullException(nameof(shape));
             }
 
+            EnsureShapeOnSlide(shape);
             shape.Element.Remove();
             _shapes.Remove(shape);
+        }
+
+        private T TrackShape<T>(T shape) where T : PowerPointShape {
+            shape.AttachTo(this);
+            _shapes.Add(shape);
+            return shape;
+        }
+
+        private void InsertTrackedShape(int index, PowerPointShape shape) {
+            shape.AttachTo(this);
+            _shapes.Insert(index, shape);
+        }
+
+        private void InsertRangeTrackedShapes(int index, IEnumerable<PowerPointShape> shapes) {
+            PowerPointShape[] tracked = shapes.Select(shape => shape.AttachTo(this)).ToArray();
+            _shapes.InsertRange(index, tracked);
         }
 
         private string GenerateUniqueName(string baseName) {
@@ -1250,7 +1326,7 @@ namespace OfficeIMO.PowerPoint {
 
                 PowerPointShape? shape = CreateShapeFromElement(element);
                 if (shape != null) {
-                    _shapes.Add(shape);
+                    TrackShape(shape);
                 }
             }
 

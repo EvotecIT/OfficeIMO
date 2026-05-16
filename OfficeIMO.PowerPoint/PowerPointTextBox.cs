@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Represents a textbox shape.
     /// </summary>
-    public class PowerPointTextBox : PowerPointShape {
+    public partial class PowerPointTextBox : PowerPointShape {
         private readonly SlidePart? _slidePart;
 
         internal PowerPointTextBox(Shape shape, SlidePart? slidePart = null) : base(shape) {

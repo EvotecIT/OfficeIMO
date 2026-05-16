@@ -10,6 +10,7 @@ namespace OfficeIMO.PowerPoint {
             ImagePartType.Gif => OpenXmlImagePartType.Gif,
             ImagePartType.Bmp => OpenXmlImagePartType.Bmp,
             ImagePartType.Tiff => OpenXmlImagePartType.Tiff,
+            ImagePartType.Svg => OpenXmlImagePartType.Svg,
             ImagePartType.Emf => OpenXmlImagePartType.Emf,
             ImagePartType.Wmf => OpenXmlImagePartType.Wmf,
             ImagePartType.Icon => OpenXmlImagePartType.Icon,

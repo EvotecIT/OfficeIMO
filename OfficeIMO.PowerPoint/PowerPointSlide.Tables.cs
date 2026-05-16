@@ -90,7 +90,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointTable tbl = new(frame, _slidePart);
             tbl.SetColumnWidthsEvenly();
             tbl.SetRowHeightsEvenly();
-            _shapes.Add(tbl);
+            TrackShape(tbl);
             return tbl;
         }
 

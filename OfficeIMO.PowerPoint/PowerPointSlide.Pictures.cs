@@ -62,8 +62,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(picture);
-            PowerPointPicture pic = new(picture, _slidePart);
-            _shapes.Add(pic);
+            PowerPointPicture pic = TrackShape(new PowerPointPicture(picture, _slidePart));
             return pic;
         }
 
@@ -129,8 +128,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(picture);
-            PowerPointPicture pic = new(picture, _slidePart);
-            _shapes.Add(pic);
+            PowerPointPicture pic = TrackShape(new PowerPointPicture(picture, _slidePart));
             return pic;
         }
 
@@ -227,6 +225,7 @@ namespace OfficeIMO.PowerPoint {
                 ".gif" => ImagePartType.Gif,
                 ".bmp" => ImagePartType.Bmp,
                 ".tif" or ".tiff" => ImagePartType.Tiff,
+                ".svg" => ImagePartType.Svg,
                 ".emf" => ImagePartType.Emf,
                 ".wmf" => ImagePartType.Wmf,
                 ".ico" => ImagePartType.Icon,

@@ -64,7 +64,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             PowerPointGroupShape grouped = new PowerPointGroupShape(group);
-            _shapes.Insert(insertIndex, grouped);
+            InsertTrackedShape(insertIndex, grouped);
             return grouped;
         }
 
@@ -100,7 +100,7 @@ namespace OfficeIMO.PowerPoint {
             group.Remove();
 
             _shapes.RemoveAt(index);
-            _shapes.InsertRange(index, results);
+            InsertRangeTrackedShapes(index, results);
             return results;
         }
     }
