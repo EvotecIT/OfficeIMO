@@ -32,8 +32,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(shape);
-            PowerPointAutoShape autoShape = new(shape);
-            _shapes.Add(autoShape);
+            PowerPointAutoShape autoShape = TrackShape(new PowerPointAutoShape(shape));
             return autoShape;
         }
 

@@ -376,6 +376,16 @@ box.ApplyTextStyle(PowerPointTextStyle.Body.WithColor("1F4E79"));
 box.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
 ```
 
+### Markdown rich text
+```csharp
+var box = slide.AddTextBox(string.Empty);
+box.SetMarkdown("""
+    # Launch plan
+    - **Owner:** Platform
+    - Track `net472` and [docs](https://example.com)
+    """);
+```
+
 ### Text box layout (margins + autofit)
 ```csharp
 using A = DocumentFormat.OpenXml.Drawing;
@@ -395,6 +405,29 @@ slide.AddPicture("logo.png",
 using var logoStream = File.OpenRead("logo.png");
 slide.AddPicture(logoStream, ImagePartType.Png,
     PowerPointUnits.Cm(23), PowerPointUnits.Cm(1.2), PowerPointUnits.Cm(5), PowerPointUnits.Cm(2));
+
+slide.AddPicture("diagram.svg",
+    PowerPointUnits.Cm(2), PowerPointUnits.Cm(2), PowerPointUnits.Cm(8), PowerPointUnits.Cm(4));
+```
+
+### Embedded audio and video
+```csharp
+var video = slide.AddVideo("demo.mp4", posterImagePath: "poster.png",
+    left: PowerPointUnits.Cm(2), top: PowerPointUnits.Cm(3),
+    width: PowerPointUnits.Cm(12), height: PowerPointUnits.Cm(6.75));
+
+var audio = slide.AddAudio("voiceover.mp3",
+    left: PowerPointUnits.Cm(2), top: PowerPointUnits.Cm(11));
+
+var mediaFrames = slide.Media;
+```
+
+### SmartArt
+```csharp
+var smartArt = slide.AddSmartArt(PowerPointSmartArtType.BasicProcess,
+    left: PowerPointUnits.Cm(2), top: PowerPointUnits.Cm(3),
+    width: PowerPointUnits.Cm(12), height: PowerPointUnits.Cm(7));
+smartArt.SetNodeText(0, "OfficeIMO-native process");
 ```
 
 ### Create and edit with streams
@@ -596,6 +629,22 @@ slide.SendToBack(shape);
 var copy = slide.DuplicateShapeCm(shape, 0.5, 0.5);
 ```
 
+### Shape lookup + metadata
+```csharp
+var title = slide.AddTextBox("Quarterly update");
+title.Name = "Hero Title";
+title.AltText = "Main slide title";
+
+var found = slide.GetShapeByName<PowerPointTextBox>("Hero Title");
+var sameShape = slide.GetShapeById(found!.Id!.Value);
+
+var copy = found.DuplicateCm(0.4, 0.4);
+copy.Name = "Hero Title Copy";
+
+found.Hidden = true;
+copy.Remove();
+```
+
 ### Slide properties
 ```csharp
 ppt.BuiltinDocumentProperties.Title = "Contoso Review";
@@ -607,6 +656,22 @@ ppt.ApplicationProperties.Company = "Contoso";
 var duplicate = ppt.DuplicateSlide(0);
 duplicate.Hidden = true;
 ```
+
+### Single-slide export and optional previews
+```csharp
+ppt.ExportSlide(0, "slide-preview-source.pptx");
+
+if (PowerPointPreviewExporter.TryExportSlides(
+        "slide-preview-source.pptx",
+        "preview",
+        out var preview,
+        PowerPointPreviewExportFormat.Png)) {
+    var pngFiles = preview.Files;
+}
+```
+
+Preview export is optional and host-dependent. OfficeIMO creates the `.pptx` with Open XML; `PowerPointPreviewExporter`
+uses installed Microsoft PowerPoint automation only when the caller explicitly asks for rendered PNG/JPEG slide previews.
 
 ### Slide layouts + theme helpers
 ```csharp
@@ -868,6 +933,13 @@ if (titleBounds != null) {
     var aligned = slide.AddTextBox("Aligned to layout");
     titleBounds.Value.ApplyTo(aligned);
 }
+
+int textLayout = ppt.GetLayoutIndex(SlideLayoutValues.Text);
+ppt.EnsureLayoutHeaderFooterPlaceholders(
+    layoutIndex: textLayout,
+    footerText: "Confidential",
+    dateTimeText: "2026-05-16",
+    slideNumberText: "#");
 ```
 
 ### Replace text
@@ -889,25 +961,30 @@ var sections = ppt.GetSections();
 - Slides: add, import, duplicate, reorder, hide, edit, and section slides
 - Sections: add, rename, and list sections
 - Shapes: basic rectangles/ellipses/lines with fill/stroke, line styles, shadows/glow/soft edges/blur/reflection; align/distribute; z-order + duplicate
-- Images: add images from file/stream (PNG/JPEG/GIF/BMP/TIFF/EMF/WMF/ICO/PCX)   
+- Images: add images from file/stream (PNG/JPEG/GIF/BMP/TIFF/SVG/EMF/WMF/ICO/PCX)
+- Media: embed audio/video with playback relationships and generated or supplied poster frames
+- SmartArt: add native Basic Process SmartArt and edit node text
 - Properties: set built‑in and application properties
 - Themes & transitions: default theme/table styles + slide transitions
 - Guides & grid: snap, spacing, and guide helpers
-- Text boxes: margins, auto-fit, vertical alignment
+- Text boxes: markdown rich text, margins, auto-fit, vertical alignment
 - Tables: styling + merged cells + sizing helpers
 - Placeholders: read/update layout placeholders
 - Backgrounds: set background images
 - Text replacement: find/replace across slides
 - Charts: add + format titles/legend/labels/series/markers
+- Export: save a slide as a standalone .pptx and optionally render previews through installed PowerPoint automation
 
 ## Feature Matrix (scope today)
 
 - 📽️ Slides
-  - ✅ Add slides; ✅ import/duplicate/reorder; ✅ hide/show; ✅ sections; ✅ set title; ✅ add text boxes; ✅ basic bullets
+  - ✅ Add slides; ✅ import/duplicate/reorder; ✅ hide/show; ✅ sections; ✅ set title; ✅ add text boxes; ✅ markdown/bullets
 - 🖼️ Media & Shapes
-  - ✅ Insert images; ✅ basic shapes (rect/ellipse/line) with fill/stroke + line styles + shadows/glow/soft edges/blur/reflection; ✅ align/distribute/arrange
+  - ✅ Insert images including SVG; ✅ embed audio/video; ✅ basic shapes (rect/ellipse/line) with fill/stroke + effects; ✅ align/distribute/arrange
 - 🗒️ Notes & Layout
-  - ✅ Speaker notes; ✅ guides/grid helpers; ⚠️ basic layout selection
+  - ✅ Speaker notes; ✅ guides/grid helpers; ✅ native footer/date/slide-number layout placeholders; ⚠️ basic layout selection
+- 🧩 SmartArt
+  - ✅ Native Basic Process diagram parts; ✅ editable node text
 - 📋 Tables
   - ⚠️ Basic styling + merged cells
 - 📊 Charts
@@ -919,8 +996,8 @@ var sections = ppt.GetSections();
 
 ## Why OfficeIMO.PowerPoint (today)
 
-- Cross‑platform, pure Open XML — no Office automation
-- Simple API surface to add slides, titles, text, bullets, and images without repair prompts
+- Cross‑platform Open XML authoring; optional PowerPoint automation is isolated to preview export
+- Simple API surface to add slides, titles, text, bullets, images, media, and SmartArt without repair prompts
 - Fluent helpers available for quick demos and templated decks
 
 ## Measurements

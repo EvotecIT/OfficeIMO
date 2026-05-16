@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
+using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -15,25 +17,123 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal OpenXmlElement Element { get; }
+        internal PowerPointSlide? OwnerSlide { get; private set; }
+
+        internal PowerPointShape AttachTo(PowerPointSlide slide) {
+            OwnerSlide = slide;
+            return this;
+        }
+
+        /// <summary>
+        ///     Numeric shape identifier stored in the PowerPoint non-visual drawing properties.
+        /// </summary>
+        public uint? Id {
+            get => GetNonVisualDrawingProperties(create: false)?.Id?.Value;
+        }
 
         /// <summary>
         ///     Name assigned to the shape.
         /// </summary>
         public string? Name {
-            get {
-                switch (Element) {
-                    case Shape s:
-                        return s.NonVisualShapeProperties?.NonVisualDrawingProperties?.Name?.Value;
-                    case Picture p:
-                        return p.NonVisualPictureProperties?.NonVisualDrawingProperties?.Name?.Value;
-                    case GraphicFrame g:
-                        return g.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties?.Name?.Value;
-                    case GroupShape g:
-                        return g.NonVisualGroupShapeProperties?.NonVisualDrawingProperties?.Name?.Value;
-                    default:
-                        return null;
-                }
+            get => GetNonVisualDrawingProperties(create: false)?.Name?.Value;
+            set {
+                NonVisualDrawingProperties drawing = GetNonVisualDrawingProperties(create: true)
+                    ?? throw new NotSupportedException("This shape type does not expose non-visual drawing properties.");
+                drawing.Name = value ?? string.Empty;
             }
+        }
+
+        /// <summary>
+        ///     Alternative text description assigned to the shape.
+        /// </summary>
+        public string? AltText {
+            get => GetNonVisualDrawingProperties(create: false)?.Description?.Value;
+            set {
+                NonVisualDrawingProperties drawing = GetNonVisualDrawingProperties(create: true)
+                    ?? throw new NotSupportedException("This shape type does not expose non-visual drawing properties.");
+                drawing.Description = value;
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets whether the shape is hidden.
+        /// </summary>
+        public bool Hidden {
+            get => GetNonVisualDrawingProperties(create: false)?.Hidden?.Value == true;
+            set {
+                NonVisualDrawingProperties drawing = GetNonVisualDrawingProperties(create: true)
+                    ?? throw new NotSupportedException("This shape type does not expose non-visual drawing properties.");
+                drawing.Hidden = value ? true : null;
+            }
+        }
+
+        /// <summary>
+        ///     Placeholder type associated with the shape, if any.
+        /// </summary>
+        public PlaceholderValues? ShapePlaceholderType => GetPlaceholderShape()?.Type?.Value;
+
+        /// <summary>
+        ///     Placeholder index associated with the shape, if any.
+        /// </summary>
+        public uint? ShapePlaceholderIndex => GetPlaceholderShape()?.Index?.Value;
+
+        /// <summary>
+        ///     Primary content type represented by this shape wrapper.
+        /// </summary>
+        public PowerPointShapeContentType ShapeContentType => Element switch {
+            GroupShape => PowerPointShapeContentType.Group,
+            Picture p when IsMediaPicture(p) => PowerPointShapeContentType.Media,
+            Picture => PowerPointShapeContentType.Picture,
+            GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null => PowerPointShapeContentType.Table,
+            GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null => PowerPointShapeContentType.Chart,
+            GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<Dgm.RelationshipIds>() != null => PowerPointShapeContentType.SmartArt,
+            Shape s when s.TextBody != null => PowerPointShapeContentType.TextBox,
+            Shape => PowerPointShapeContentType.AutoShape,
+            _ => PowerPointShapeContentType.Unknown
+        };
+
+        /// <summary>
+        ///     Removes this shape from its owning slide or parent shape tree.
+        /// </summary>
+        public void Remove() {
+            if (OwnerSlide != null) {
+                OwnerSlide.RemoveShape(this);
+                return;
+            }
+
+            Element.Remove();
+        }
+
+        /// <summary>
+        ///     Duplicates this shape on its owning slide.
+        /// </summary>
+        public PowerPointShape Duplicate(long offsetX = 0L, long offsetY = 0L) {
+            if (OwnerSlide == null) {
+                throw new InvalidOperationException("Shape duplication requires a shape attached to a slide.");
+            }
+
+            return OwnerSlide.DuplicateShape(this, offsetX, offsetY);
+        }
+
+        /// <summary>
+        ///     Duplicates this shape on its owning slide and offsets it in centimeters.
+        /// </summary>
+        public PowerPointShape DuplicateCm(double offsetXCm, double offsetYCm) {
+            return Duplicate(PowerPointUnits.FromCentimeters(offsetXCm), PowerPointUnits.FromCentimeters(offsetYCm));
+        }
+
+        /// <summary>
+        ///     Duplicates this shape on its owning slide and offsets it in inches.
+        /// </summary>
+        public PowerPointShape DuplicateInches(double offsetXInches, double offsetYInches) {
+            return Duplicate(PowerPointUnits.FromInches(offsetXInches), PowerPointUnits.FromInches(offsetYInches));
+        }
+
+        /// <summary>
+        ///     Duplicates this shape on its owning slide and offsets it in points.
+        /// </summary>
+        public PowerPointShape DuplicatePoints(double offsetXPoints, double offsetYPoints) {
+            return Duplicate(PowerPointUnits.FromPoints(offsetXPoints), PowerPointUnits.FromPoints(offsetYPoints));
         }
 
         /// <summary>
@@ -928,6 +1028,73 @@ namespace OfficeIMO.PowerPoint {
                 default:
                     throw new NotSupportedException();
             }
+        }
+
+        private NonVisualDrawingProperties? GetNonVisualDrawingProperties(bool create) {
+            switch (Element) {
+                case Shape s: {
+                    if (create) {
+                        s.NonVisualShapeProperties ??= new NonVisualShapeProperties(
+                            new NonVisualDrawingProperties(),
+                            new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
+                            new ApplicationNonVisualDrawingProperties());
+                        s.NonVisualShapeProperties.NonVisualDrawingProperties ??= new NonVisualDrawingProperties();
+                    }
+
+                    return s.NonVisualShapeProperties?.NonVisualDrawingProperties;
+                }
+                case Picture p: {
+                    if (create) {
+                        p.NonVisualPictureProperties ??= new NonVisualPictureProperties(
+                            new NonVisualDrawingProperties(),
+                            new NonVisualPictureDrawingProperties(),
+                            new ApplicationNonVisualDrawingProperties());
+                        p.NonVisualPictureProperties.NonVisualDrawingProperties ??= new NonVisualDrawingProperties();
+                    }
+
+                    return p.NonVisualPictureProperties?.NonVisualDrawingProperties;
+                }
+                case GraphicFrame g: {
+                    if (create) {
+                        g.NonVisualGraphicFrameProperties ??= new NonVisualGraphicFrameProperties(
+                            new NonVisualDrawingProperties(),
+                            new NonVisualGraphicFrameDrawingProperties(),
+                            new ApplicationNonVisualDrawingProperties());
+                        g.NonVisualGraphicFrameProperties.NonVisualDrawingProperties ??= new NonVisualDrawingProperties();
+                    }
+
+                    return g.NonVisualGraphicFrameProperties?.NonVisualDrawingProperties;
+                }
+                case GroupShape g: {
+                    if (create) {
+                        g.NonVisualGroupShapeProperties ??= new NonVisualGroupShapeProperties(
+                            new NonVisualDrawingProperties(),
+                            new NonVisualGroupShapeDrawingProperties(),
+                            new ApplicationNonVisualDrawingProperties());
+                        g.NonVisualGroupShapeProperties.NonVisualDrawingProperties ??= new NonVisualDrawingProperties();
+                    }
+
+                    return g.NonVisualGroupShapeProperties?.NonVisualDrawingProperties;
+                }
+                default:
+                    return null;
+            }
+        }
+
+        private PlaceholderShape? GetPlaceholderShape() {
+            return Element switch {
+                Shape s => s.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
+                Picture p => p.NonVisualPictureProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
+                GraphicFrame g => g.NonVisualGraphicFrameProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape,
+                _ => null
+            };
+        }
+
+        private static bool IsMediaPicture(Picture picture) {
+            ApplicationNonVisualDrawingProperties? properties =
+                picture.NonVisualPictureProperties?.ApplicationNonVisualDrawingProperties;
+            return properties?.Descendants<A.AudioFromFile>().Any() == true ||
+                   properties?.Descendants<A.VideoFromFile>().Any() == true;
         }
 
         private A.Extents GetExtents() {

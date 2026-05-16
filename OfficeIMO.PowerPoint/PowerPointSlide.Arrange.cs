@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
+using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
@@ -45,7 +46,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             parent.InsertAfter(clone, shape.Element);
-            _shapes.Insert(index + 1, duplicate);
+            InsertTrackedShape(index + 1, duplicate);
             return duplicate;
         }
 
@@ -292,13 +293,17 @@ namespace OfficeIMO.PowerPoint {
                 case Shape s:
                     return s.TextBody != null ? new PowerPointTextBox(s, _slidePart) : new PowerPointAutoShape(s);
                 case Picture p:
-                    return new PowerPointPicture(p, _slidePart);
+                    return PowerPointMedia.TryGetMediaKind(p, out PowerPointMediaKind kind)
+                        ? new PowerPointMedia(p, _slidePart, kind)
+                        : new PowerPointPicture(p, _slidePart);
                 case GroupShape g:
                     return new PowerPointGroupShape(g);
                 case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null:
                     return new PowerPointTable(g, _slidePart);
                 case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null:
                     return new PowerPointChart(g, _slidePart);
+                case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<Dgm.RelationshipIds>() != null:
+                    return new PowerPointSmartArt(g, _slidePart);
                 default:
                     return null;
             }

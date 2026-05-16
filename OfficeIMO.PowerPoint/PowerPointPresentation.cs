@@ -50,6 +50,8 @@ namespace OfficeIMO.PowerPoint {
             _document = document;
             _filePath = filePath;
             _presentationPart = document.PresentationPart ?? document.AddPresentationPart();
+            BuiltinDocumentProperties = new PowerPointBuiltinDocumentProperties(document);
+            ApplicationProperties = new PowerPointApplicationProperties(document);
             if (isNewPresentation || _presentationPart.Presentation == null) {
                 // New presentation - create with required initial structure
                 PresentationRoot = new Presentation();
@@ -102,6 +104,16 @@ namespace OfficeIMO.PowerPoint {
                 return _slides;
             }
         }
+
+        /// <summary>
+        ///     Built-in package properties for the presentation.
+        /// </summary>
+        public PowerPointBuiltinDocumentProperties BuiltinDocumentProperties { get; }
+
+        /// <summary>
+        ///     Extended application properties for the presentation.
+        /// </summary>
+        public PowerPointApplicationProperties ApplicationProperties { get; }
 
         /// <summary>
         ///     Slide size information for the presentation.
@@ -964,6 +976,45 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Ensures a native footer placeholder exists on the specified slide layout.
+        /// </summary>
+        public PowerPointTextBox EnsureLayoutFooterPlaceholderTextBox(int masterIndex = 0, int layoutIndex = 0,
+            string? text = null, PowerPointLayoutBox? bounds = null, uint? index = null) {
+            return EnsureLayoutHeaderFooterPlaceholderTextBox(masterIndex, layoutIndex, PlaceholderValues.Footer,
+                text, bounds, index ?? 10U, "Footer Placeholder");
+        }
+
+        /// <summary>
+        ///     Ensures a native date/time placeholder exists on the specified slide layout.
+        /// </summary>
+        public PowerPointTextBox EnsureLayoutDateTimePlaceholderTextBox(int masterIndex = 0, int layoutIndex = 0,
+            string? text = null, PowerPointLayoutBox? bounds = null, uint? index = null) {
+            return EnsureLayoutHeaderFooterPlaceholderTextBox(masterIndex, layoutIndex, PlaceholderValues.DateAndTime,
+                text, bounds, index ?? 11U, "Date Placeholder");
+        }
+
+        /// <summary>
+        ///     Ensures a native slide-number placeholder exists on the specified slide layout.
+        /// </summary>
+        public PowerPointTextBox EnsureLayoutSlideNumberPlaceholderTextBox(int masterIndex = 0, int layoutIndex = 0,
+            string? text = null, PowerPointLayoutBox? bounds = null, uint? index = null) {
+            return EnsureLayoutHeaderFooterPlaceholderTextBox(masterIndex, layoutIndex, PlaceholderValues.SlideNumber,
+                text, bounds, index ?? 12U, "Slide Number Placeholder");
+        }
+
+        /// <summary>
+        ///     Ensures native footer, date/time, and slide-number placeholders exist on the specified slide layout.
+        /// </summary>
+        public IReadOnlyList<PowerPointTextBox> EnsureLayoutHeaderFooterPlaceholders(int masterIndex = 0, int layoutIndex = 0,
+            string? footerText = null, string? dateTimeText = null, string? slideNumberText = null) {
+            return new[] {
+                EnsureLayoutFooterPlaceholderTextBox(masterIndex, layoutIndex, footerText),
+                EnsureLayoutDateTimePlaceholderTextBox(masterIndex, layoutIndex, dateTimeText),
+                EnsureLayoutSlideNumberPlaceholderTextBox(masterIndex, layoutIndex, slideNumberText)
+            };
+        }
+
+        /// <summary>
         ///     Replaces text across all slides.
         /// </summary>
         public int ReplaceText(string oldValue, string newValue, bool includeTables = true, bool includeNotes = false) {
@@ -1279,6 +1330,12 @@ namespace OfficeIMO.PowerPoint {
             PresentationRoot.Save();
         }
 
+        private void ValidateSlideIndex(int index) {
+            if (index < 0 || index >= _slides.Count) {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+        }
+
         /// <summary>
         ///     Moves a slide from one index to another.
         /// </summary>
@@ -1566,6 +1623,42 @@ namespace OfficeIMO.PowerPoint {
             if (destination.CanSeek) {
                 destination.Seek(0, SeekOrigin.Begin);
             }
+        }
+
+        /// <summary>
+        ///     Exports a single slide as a standalone one-slide PowerPoint presentation.
+        /// </summary>
+        /// <param name="slideIndex">Zero-based index of the slide to export.</param>
+        /// <param name="filePath">Destination .pptx path.</param>
+        public void ExportSlide(int slideIndex, string filePath) {
+            ThrowIfDisposed();
+            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+
+            ValidateSlideIndex(slideIndex);
+            string? directory = Path.GetDirectoryName(Path.GetFullPath(filePath));
+            if (!string.IsNullOrWhiteSpace(directory)) {
+                Directory.CreateDirectory(directory);
+            }
+
+            using FileStream stream = new(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
+            ExportSlide(slideIndex, stream);
+        }
+
+        /// <summary>
+        ///     Exports a single slide as a standalone one-slide PowerPoint presentation.
+        /// </summary>
+        /// <param name="slideIndex">Zero-based index of the slide to export.</param>
+        /// <param name="destination">Writable destination stream.</param>
+        public void ExportSlide(int slideIndex, Stream destination) {
+            ThrowIfDisposed();
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+
+            ValidateSlideIndex(slideIndex);
+            using PowerPointPresentation exported = Create(destination, autoSave: false);
+            exported.ImportSlide(this, slideIndex);
+            exported.Save(destination);
         }
 
         /// <summary>
@@ -2687,6 +2780,77 @@ namespace OfficeIMO.PowerPoint {
                 return new PowerPointLayoutBox(838200L, 2174875L, 7772400L, 1470025L);
             }
             return new PowerPointLayoutBox(838200L, 2174875L, 7772400L, 3962400L);
+        }
+
+        private PowerPointTextBox EnsureLayoutHeaderFooterPlaceholderTextBox(int masterIndex, int layoutIndex,
+            PlaceholderValues placeholderType, string? text, PowerPointLayoutBox? bounds, uint index, string name) {
+            ThrowIfDisposed();
+
+            SlideLayoutPart layoutPart = GetSlideLayoutPart(masterIndex, layoutIndex);
+            SetHeaderFooterFlag(layoutPart, placeholderType, true);
+
+            PowerPointTextBox textBox = EnsureLayoutPlaceholderTextBox(masterIndex, layoutIndex, placeholderType,
+                index, bounds ?? GetDefaultHeaderFooterBounds(placeholderType), name);
+            if (text != null) {
+                textBox.Text = text;
+            }
+
+            return textBox;
+        }
+
+        private PowerPointLayoutBox GetDefaultHeaderFooterBounds(PlaceholderValues placeholderType) {
+            long slideWidth = SlideSize.WidthEmus;
+            long slideHeight = SlideSize.HeightEmus;
+            long margin = PowerPointUnits.FromCentimeters(0.6);
+            long footerTop = slideHeight - PowerPointUnits.FromCentimeters(0.8);
+            long footerHeight = PowerPointUnits.FromCentimeters(0.45);
+            long sideWidth = Math.Max(PowerPointUnits.FromCentimeters(2.0), slideWidth / 5);
+            long centerWidth = Math.Max(PowerPointUnits.FromCentimeters(4.0), slideWidth / 3);
+
+            if (placeholderType == PlaceholderValues.DateAndTime) {
+                return new PowerPointLayoutBox(margin, footerTop, sideWidth, footerHeight);
+            }
+
+            if (placeholderType == PlaceholderValues.SlideNumber) {
+                return new PowerPointLayoutBox(slideWidth - margin - sideWidth, footerTop, sideWidth, footerHeight);
+            }
+
+            return new PowerPointLayoutBox((slideWidth - centerWidth) / 2, footerTop, centerWidth, footerHeight);
+        }
+
+        private static void SetHeaderFooterFlag(SlideLayoutPart layoutPart, PlaceholderValues placeholderType, bool visible) {
+            HeaderFooter headerFooter = EnsureHeaderFooter(layoutPart);
+            if (placeholderType == PlaceholderValues.Footer) {
+                headerFooter.Footer = visible;
+                return;
+            }
+
+            if (placeholderType == PlaceholderValues.DateAndTime) {
+                headerFooter.DateTime = visible;
+                return;
+            }
+
+            if (placeholderType == PlaceholderValues.SlideNumber) {
+                headerFooter.SlideNumber = visible;
+            }
+        }
+
+        private static HeaderFooter EnsureHeaderFooter(SlideLayoutPart layoutPart) {
+            SlideLayout layout = layoutPart.SlideLayout ??= new SlideLayout();
+            HeaderFooter? headerFooter = layout.GetFirstChild<HeaderFooter>();
+            if (headerFooter != null) {
+                return headerFooter;
+            }
+
+            headerFooter = new HeaderFooter();
+            SlideLayoutExtensionList? extensionList = layout.GetFirstChild<SlideLayoutExtensionList>();
+            if (extensionList != null) {
+                layout.InsertBefore(headerFooter, extensionList);
+            } else {
+                layout.AppendChild(headerFooter);
+            }
+
+            return headerFooter;
         }
 
         private void ThrowIfDisposed() {

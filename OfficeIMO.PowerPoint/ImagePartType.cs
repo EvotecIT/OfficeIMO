@@ -13,6 +13,8 @@ namespace OfficeIMO.PowerPoint {
         Bmp,
         /// <summary>Tagged Image File Format image.</summary>
         Tiff,
+        /// <summary>Scalable Vector Graphics image.</summary>
+        Svg,
         /// <summary>Enhanced Metafile image.</summary>
         Emf,
         /// <summary>Windows Metafile image.</summary>
