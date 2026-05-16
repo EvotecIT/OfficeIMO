@@ -192,20 +192,24 @@ namespace OfficeIMO.Excel {
             }
 
             return new ExcelWorksheetProtectionSnapshot {
-                AllowSelectLockedCells = protection.SelectLockedCells?.Value == true,
-                AllowSelectUnlockedCells = protection.SelectUnlockedCells?.Value == true,
-                AllowFormatCells = protection.FormatCells?.Value == true,
-                AllowFormatColumns = protection.FormatColumns?.Value == true,
-                AllowFormatRows = protection.FormatRows?.Value == true,
-                AllowInsertColumns = protection.InsertColumns?.Value == true,
-                AllowInsertRows = protection.InsertRows?.Value == true,
-                AllowInsertHyperlinks = protection.InsertHyperlinks?.Value == true,
-                AllowDeleteColumns = protection.DeleteColumns?.Value == true,
-                AllowDeleteRows = protection.DeleteRows?.Value == true,
-                AllowSort = protection.Sort?.Value == true,
-                AllowAutoFilter = protection.AutoFilter?.Value == true,
-                AllowPivotTables = protection.PivotTables?.Value == true,
+                AllowSelectLockedCells = IsProtectionActionAllowed(protection.SelectLockedCells, lockedWhenOmitted: false),
+                AllowSelectUnlockedCells = IsProtectionActionAllowed(protection.SelectUnlockedCells, lockedWhenOmitted: false),
+                AllowFormatCells = IsProtectionActionAllowed(protection.FormatCells, lockedWhenOmitted: true),
+                AllowFormatColumns = IsProtectionActionAllowed(protection.FormatColumns, lockedWhenOmitted: true),
+                AllowFormatRows = IsProtectionActionAllowed(protection.FormatRows, lockedWhenOmitted: true),
+                AllowInsertColumns = IsProtectionActionAllowed(protection.InsertColumns, lockedWhenOmitted: true),
+                AllowInsertRows = IsProtectionActionAllowed(protection.InsertRows, lockedWhenOmitted: true),
+                AllowInsertHyperlinks = IsProtectionActionAllowed(protection.InsertHyperlinks, lockedWhenOmitted: true),
+                AllowDeleteColumns = IsProtectionActionAllowed(protection.DeleteColumns, lockedWhenOmitted: true),
+                AllowDeleteRows = IsProtectionActionAllowed(protection.DeleteRows, lockedWhenOmitted: true),
+                AllowSort = IsProtectionActionAllowed(protection.Sort, lockedWhenOmitted: true),
+                AllowAutoFilter = IsProtectionActionAllowed(protection.AutoFilter, lockedWhenOmitted: true),
+                AllowPivotTables = IsProtectionActionAllowed(protection.PivotTables, lockedWhenOmitted: true),
             };
+        }
+
+        private static bool IsProtectionActionAllowed(BooleanValue? lockFlag, bool lockedWhenOmitted) {
+            return !(lockFlag?.Value ?? lockedWhenOmitted);
         }
 
         private static Dictionary<string, ExcelHyperlinkSnapshot> BuildHyperlinkMap(WorksheetPart worksheetPart) {

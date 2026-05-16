@@ -1545,6 +1545,8 @@ namespace OfficeIMO.Excel {
 
         private SavePayload PreparePackageForSave(ExcelSaveOptions? options) {
             // Ensure all worksheets have up-to-date dimensions and proper element ordering before saving
+            ApplyCalculationPolicyBeforeSave();
+
             foreach (var sheet in Sheets) {
                 sheet.UpdateSheetDimension();
                 sheet.EnsureWorksheetElementOrder();

@@ -80,11 +80,11 @@ namespace OfficeIMO.Tests {
                 var wsPart = (WorksheetPart)wb.GetPartById(sheet.Id!);
                 var protection = wsPart.Worksheet.Elements<SheetProtection>().FirstOrDefault();
                 Assert.NotNull(protection);
-                Assert.True(protection!.Sort?.Value ?? false);
-                Assert.True(protection.AutoFilter?.Value ?? false);
-                Assert.True(protection.InsertRows?.Value ?? false);
-                Assert.False(protection.SelectLockedCells?.Value ?? true);
-                Assert.False(protection.SelectUnlockedCells?.Value ?? true);
+                Assert.False(protection!.Sort?.Value ?? true);
+                Assert.False(protection.AutoFilter?.Value ?? true);
+                Assert.False(protection.InsertRows?.Value ?? true);
+                Assert.True(protection.SelectLockedCells?.Value ?? false);
+                Assert.True(protection.SelectUnlockedCells?.Value ?? false);
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
