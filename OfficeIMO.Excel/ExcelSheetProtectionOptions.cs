@@ -29,5 +29,9 @@ namespace OfficeIMO.Excel {
         public bool AllowAutoFilter { get; set; }
         /// <summary>Allow PivotTables.</summary>
         public bool AllowPivotTables { get; set; }
+        /// <summary>Optional worksheet protection password. This is Excel UI protection, not package encryption.</summary>
+        public string? Password { get; set; }
+        /// <summary>Optional precomputed legacy worksheet protection hash. When set, this value is written as-is.</summary>
+        public string? LegacyPasswordHash { get; set; }
     }
 }

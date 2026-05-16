@@ -1,0 +1,430 @@
+using System.Globalization;
+using System.Text;
+using System.Text.RegularExpressions;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Spreadsheet;
+using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+
+namespace OfficeIMO.Excel {
+    public partial class ExcelSheet {
+        /// <summary>
+        /// Returns a lightweight object wrapper for a single cell.
+        /// </summary>
+        public ExcelCell CellAt(int row, int column) => new ExcelCell(this, row, column);
+
+        /// <summary>
+        /// Returns a lightweight object wrapper for an A1 range.
+        /// </summary>
+        public ExcelRange Range(string a1Range) => new ExcelRange(this, a1Range);
+
+        /// <summary>
+        /// Returns a lightweight object wrapper for a table by name, display name, or range.
+        /// </summary>
+        public ExcelTable Table(string nameOrRange) => new ExcelTable(this, nameOrRange);
+
+        internal ExcelCellData GetCellValueSnapshot(int row, int column) {
+            var cell = GetCell(row, column);
+            string? cached = cell.CellValue?.Text;
+            if (cell.CellFormula != null) {
+                return new ExcelCellData(ExcelCellDataKind.Formula, cached, cell.CellFormula.Text, cached);
+            }
+
+            if (cell.CellValue == null && cell.InlineString == null) {
+                return new ExcelCellData(ExcelCellDataKind.Blank, null);
+            }
+
+            var type = cell.DataType?.Value;
+            if (type == DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean) {
+                return new ExcelCellData(ExcelCellDataKind.Boolean, cached == "1" || string.Equals(cached, "true", StringComparison.OrdinalIgnoreCase), cachedText: cached);
+            }
+
+            if (type == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error) {
+                return new ExcelCellData(ExcelCellDataKind.Error, cached, cachedText: cached);
+            }
+
+            string text = GetCellText(cell);
+            if (type == DocumentFormat.OpenXml.Spreadsheet.CellValues.String
+                || type == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString
+                || type == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
+                return new ExcelCellData(ExcelCellDataKind.Text, text, cachedText: text);
+            }
+
+            if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+                return new ExcelCellData(ExcelCellDataKind.Number, number, cachedText: text);
+            }
+
+            return string.IsNullOrEmpty(text)
+                ? new ExcelCellData(ExcelCellDataKind.Blank, null)
+                : new ExcelCellData(ExcelCellDataKind.Text, text, cachedText: text);
+        }
+
+        internal string GetCellFormattedText(int row, int column, IFormatProvider? provider) {
+            var value = GetCellValueSnapshot(row, column);
+            if (value.Value is IFormattable formattable) {
+                return formattable.ToString(null, provider ?? CultureInfo.CurrentCulture) ?? string.Empty;
+            }
+
+            return Convert.ToString(value.Value, provider as CultureInfo ?? CultureInfo.CurrentCulture) ?? value.CachedText ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Applies a number format to every cell in the range.
+        /// </summary>
+        public void FormatRange(string a1Range, string numberFormat) {
+            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            for (int row = r1; row <= r2; row++) {
+                for (int column = c1; column <= c2; column++) {
+                    FormatCell(row, column, numberFormat);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Applies a solid fill to every cell in the range.
+        /// </summary>
+        public void FillRange(string a1Range, string hexColor) {
+            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            for (int row = r1; row <= r2; row++) {
+                for (int column = c1; column <= c2; column++) {
+                    CellBackground(row, column, hexColor);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Clears selected parts of every cell and attached worksheet metadata in the range.
+        /// </summary>
+        public void ClearRange(string a1Range, ExcelClearOptions options = ExcelClearOptions.All) {
+            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            WriteLock(() => {
+                var ws = WorksheetRoot;
+                for (int row = r1; row <= r2; row++) {
+                    for (int column = c1; column <= c2; column++) {
+                        var cell = GetCell(row, column);
+                        if (options.HasFlag(ExcelClearOptions.Values)) {
+                            cell.CellValue = null;
+                            cell.DataType = null;
+                            cell.InlineString = null;
+                        }
+
+                        if (options.HasFlag(ExcelClearOptions.Formulas)) {
+                            cell.CellFormula = null;
+                        }
+
+                        if (options.HasFlag(ExcelClearOptions.Styles)) {
+                            cell.StyleIndex = null;
+                        }
+                    }
+                }
+
+                if (options.HasFlag(ExcelClearOptions.Comments)) {
+                    ClearCommentsInRange(r1, c1, r2, c2);
+                }
+
+                if (options.HasFlag(ExcelClearOptions.Hyperlinks)) {
+                    ClearHyperlinksInRange(ws, a1Range);
+                }
+
+                if (options.HasFlag(ExcelClearOptions.DataValidations)) {
+                    RemoveDataValidationsCore(a1Range);
+                }
+
+                if (options.HasFlag(ExcelClearOptions.ConditionalFormatting)) {
+                    ClearConditionalFormattingCore(a1Range);
+                }
+
+                if (options.HasFlag(ExcelClearOptions.Merges)) {
+                    UnmergeRangeCore(a1Range);
+                }
+
+                if (options.HasFlag(ExcelClearOptions.Sparklines)) {
+                    ClearSparklinesInRange(a1Range);
+                }
+
+                ws.Save();
+                ClearHeaderCache();
+            });
+        }
+
+        /// <summary>
+        /// Sorts a rectangular range by a 1-based column offset while moving whole row cell nodes.
+        /// </summary>
+        public void SortRangeByColumn(string a1Range, int columnOffset, bool ascending = true, bool hasHeader = true) {
+            if (columnOffset < 1) throw new ArgumentOutOfRangeException(nameof(columnOffset));
+            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            int targetColumn = c1 + columnOffset - 1;
+            if (targetColumn > c2) throw new ArgumentOutOfRangeException(nameof(columnOffset));
+
+            int firstDataRow = hasHeader ? r1 + 1 : r1;
+            if (firstDataRow >= r2) {
+                return;
+            }
+
+            WriteLock(() => {
+                var rows = new List<RowSnapshot>();
+                for (int row = firstDataRow; row <= r2; row++) {
+                    rows.Add(CaptureRow(row, c1, c2, targetColumn));
+                }
+
+                rows.Sort((left, right) => {
+                    int result = CompareSortValues(left.SortValue, right.SortValue);
+                    if (result == 0) {
+                        result = left.OriginalRow.CompareTo(right.OriginalRow);
+                    }
+                    return ascending ? result : -result;
+                });
+
+                for (int index = 0; index < rows.Count; index++) {
+                    WriteRowSnapshot(firstDataRow + index, c1, c2, rows[index]);
+                }
+
+                WorksheetRoot.Save();
+                ClearHeaderCache();
+            });
+        }
+
+        /// <summary>
+        /// Merges the specified A1 range.
+        /// </summary>
+        public void MergeRange(string a1Range) {
+            A1.ParseRange(a1Range);
+            WriteLock(() => {
+                var ws = WorksheetRoot;
+                var merges = ws.GetFirstChild<MergeCells>();
+                if (merges == null) {
+                    var customSheetViews = ws.GetFirstChild<CustomSheetViews>();
+                    merges = new MergeCells();
+                    if (customSheetViews != null) {
+                        ws.InsertBefore(merges, customSheetViews);
+                    } else {
+                        ws.Append(merges);
+                    }
+                }
+
+                if (!merges.Elements<MergeCell>().Any(m => string.Equals(m.Reference?.Value, a1Range, StringComparison.OrdinalIgnoreCase))) {
+                    merges.Append(new MergeCell { Reference = a1Range });
+                    merges.Count = (uint)merges.Elements<MergeCell>().Count();
+                }
+
+                ws.Save();
+            });
+        }
+
+        /// <summary>
+        /// Removes merge definitions that overlap the supplied A1 range.
+        /// </summary>
+        public void UnmergeRange(string a1Range) {
+            WriteLock(() => UnmergeRangeCore(a1Range));
+        }
+
+        private void UnmergeRangeCore(string a1Range) {
+            var bounds = A1.ParseRange(a1Range);
+            var merges = WorksheetRoot.GetFirstChild<MergeCells>();
+            if (merges == null) return;
+
+            foreach (var merge in merges.Elements<MergeCell>().ToList()) {
+                if (merge.Reference?.Value is string reference && RangesOverlapInclusive(bounds, A1.ParseRange(reference))) {
+                    merge.Remove();
+                }
+            }
+
+            merges.Count = (uint)merges.Elements<MergeCell>().Count();
+            WorksheetRoot.Save();
+        }
+
+        /// <summary>
+        /// Writes rich inline text runs into a cell.
+        /// </summary>
+        public void SetRichText(int row, int column, IEnumerable<ExcelRichTextRun> runs) {
+            if (runs == null) throw new ArgumentNullException(nameof(runs));
+            WriteLock(() => {
+                var cell = GetCell(row, column);
+                var inline = new InlineString();
+                foreach (var run in runs) {
+                    var text = new Text(run.Text ?? string.Empty) { Space = SpaceProcessingModeValues.Preserve };
+                    var properties = new RunProperties();
+                    if (run.Bold) properties.Append(new Bold());
+                    if (run.Italic) properties.Append(new Italic());
+                    if (run.Underline) properties.Append(new Underline());
+                    if (!string.IsNullOrWhiteSpace(run.FontColor)) properties.Append(new Color { Rgb = NormalizeHexColor(run.FontColor!) });
+                    if (!string.IsNullOrWhiteSpace(run.FontName)) properties.Append(new RunFont { Val = run.FontName });
+                    if (run.FontSize.HasValue) properties.Append(new FontSize { Val = run.FontSize.Value });
+
+                    var openXmlRun = new Run();
+                    if (properties.HasChildren) {
+                        openXmlRun.Append(properties);
+                    }
+                    openXmlRun.Append(text);
+                    inline.Append(openXmlRun);
+                }
+
+                cell.CellFormula = null;
+                cell.CellValue = null;
+                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString;
+                cell.InlineString = inline;
+                ClearHeaderCache();
+            });
+        }
+
+        /// <summary>
+        /// Reads rich inline text runs from a cell.
+        /// </summary>
+        public IReadOnlyList<ExcelRichTextRun> GetRichText(int row, int column) {
+            var cell = GetCell(row, column);
+            if (cell.InlineString == null) {
+                return Array.Empty<ExcelRichTextRun>();
+            }
+
+            var runs = new List<ExcelRichTextRun>();
+            foreach (var run in cell.InlineString.Elements<Run>()) {
+                var properties = run.RunProperties;
+                var text = run.Text?.Text ?? string.Empty;
+                runs.Add(new ExcelRichTextRun(text) {
+                    Bold = properties?.GetFirstChild<Bold>() != null,
+                    Italic = properties?.GetFirstChild<Italic>() != null,
+                    Underline = properties?.GetFirstChild<Underline>() != null,
+                    FontColor = properties?.GetFirstChild<Color>()?.Rgb?.Value,
+                    FontName = properties?.GetFirstChild<RunFont>()?.Val?.Value,
+                    FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value
+                });
+            }
+
+            return runs;
+        }
+
+        private void ClearCommentsInRange(int firstRow, int firstColumn, int lastRow, int lastColumn) {
+            var commentsPart = WorksheetCommentsPartRoot;
+            if (commentsPart?.Comments?.CommentList != null) {
+                foreach (var comment in commentsPart.Comments.CommentList.Elements<Comment>().ToList()) {
+                    if (comment.Reference?.Value is not string reference) {
+                        continue;
+                    }
+
+                    var (row, col) = A1.ParseCellRef(reference);
+                    if (row >= firstRow && row <= lastRow && col >= firstColumn && col <= lastColumn) {
+                        comment.Remove();
+                    }
+                }
+
+                commentsPart.Comments.Save();
+            }
+
+            for (int row = firstRow; row <= lastRow; row++) {
+                for (int column = firstColumn; column <= lastColumn; column++) {
+                    RemoveCommentVmlShape(row, column);
+                }
+            }
+
+            CleanupCommentArtifacts();
+        }
+
+        private RowSnapshot CaptureRow(int rowIndex, int firstColumn, int lastColumn, int sortColumn) {
+            var cells = new List<CellSnapshot>();
+            object? sortValue = null;
+            for (int column = firstColumn; column <= lastColumn; column++) {
+                var cell = GetCell(rowIndex, column);
+                var clone = (Cell)cell.CloneNode(true);
+                cells.Add(new CellSnapshot(column - firstColumn, clone));
+                if (column == sortColumn) {
+                    sortValue = GetCellValueSnapshot(rowIndex, column).Value;
+                }
+            }
+
+            return new RowSnapshot(rowIndex, cells, sortValue);
+        }
+
+        private void WriteRowSnapshot(int targetRow, int firstColumn, int lastColumn, RowSnapshot snapshot) {
+            for (int column = firstColumn; column <= lastColumn; column++) {
+                var cell = GetCell(targetRow, column);
+                cell.RemoveAllChildren();
+                cell.CellFormula = null;
+                cell.CellValue = null;
+                cell.DataType = null;
+                cell.StyleIndex = null;
+
+                var source = snapshot.Cells[column - firstColumn].Cell;
+                cell.DataType = source.DataType;
+                cell.StyleIndex = source.StyleIndex;
+                if (source.CellFormula != null) cell.CellFormula = (CellFormula)source.CellFormula.CloneNode(true);
+                if (source.CellValue != null) cell.CellValue = (CellValue)source.CellValue.CloneNode(true);
+                if (source.InlineString != null) cell.InlineString = (InlineString)source.InlineString.CloneNode(true);
+                foreach (var child in source.ChildElements.Where(c =>
+                    !(c is DocumentFormat.OpenXml.Spreadsheet.CellFormula)
+                    && !(c is DocumentFormat.OpenXml.Spreadsheet.CellValue)
+                    && !(c is InlineString))) {
+                    cell.Append(child.CloneNode(true));
+                }
+            }
+        }
+
+        private static int CompareSortValues(object? left, object? right) {
+            if (left == null && right == null) return 0;
+            if (left == null) return 1;
+            if (right == null) return -1;
+            if (left is double ld && right is double rd) return ld.CompareTo(rd);
+            if (left is IComparable comparable && left.GetType() == right.GetType()) return comparable.CompareTo(right);
+            return string.Compare(Convert.ToString(left, CultureInfo.InvariantCulture), Convert.ToString(right, CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool RangesOverlapInclusive((int r1, int c1, int r2, int c2) left, (int r1, int c1, int r2, int c2) right) {
+            return left.r1 <= right.r2 && left.r2 >= right.r1 && left.c1 <= right.c2 && left.c2 >= right.c1;
+        }
+
+        private void ClearHyperlinksInRange(Worksheet ws, string a1Range) {
+            var bounds = A1.ParseRange(a1Range);
+            var hyperlinks = ws.GetFirstChild<Hyperlinks>();
+            if (hyperlinks == null) return;
+
+            foreach (var link in hyperlinks.Elements<Hyperlink>().ToList()) {
+                if (link.Reference?.Value is string reference) {
+                    var linkBounds = reference.IndexOf(':') >= 0
+                        ? A1.ParseRange(reference)
+                        : CellAsRange(reference);
+                    if (RangesOverlapInclusive(bounds, linkBounds)) {
+                        link.Remove();
+                    }
+                }
+            }
+        }
+
+        private void ClearSparklinesInRange(string a1Range) {
+            var bounds = A1.ParseRange(a1Range);
+            foreach (var sparkline in WorksheetRoot.Descendants<DocumentFormat.OpenXml.Office2010.Excel.Sparkline>().ToList()) {
+                var reference = sparkline.ReferenceSequence?.Text;
+                if (!string.IsNullOrWhiteSpace(reference)) {
+                    var sparklineBounds = CellAsRange(reference!);
+                    if (RangesOverlapInclusive(bounds, sparklineBounds)) {
+                        sparkline.Remove();
+                    }
+                }
+            }
+        }
+
+        private static (int r1, int c1, int r2, int c2) CellAsRange(string cellRef) {
+            var parsed = A1.ParseCellRef(cellRef);
+            return (parsed.Row, parsed.Col, parsed.Row, parsed.Col);
+        }
+
+        private sealed class RowSnapshot {
+            internal RowSnapshot(int originalRow, List<CellSnapshot> cells, object? sortValue) {
+                OriginalRow = originalRow;
+                Cells = cells;
+                SortValue = sortValue;
+            }
+
+            internal int OriginalRow { get; }
+            internal List<CellSnapshot> Cells { get; }
+            internal object? SortValue { get; }
+        }
+
+        private sealed class CellSnapshot {
+            internal CellSnapshot(int offset, Cell cell) {
+                Offset = offset;
+                Cell = cell;
+            }
+
+            internal int Offset { get; }
+            internal Cell Cell { get; }
+        }
+    }
+}

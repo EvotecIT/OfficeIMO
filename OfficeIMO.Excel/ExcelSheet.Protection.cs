@@ -42,6 +42,13 @@ namespace OfficeIMO.Excel {
                 protection.Sort = opts.AllowSort;
                 protection.AutoFilter = opts.AllowAutoFilter;
                 protection.PivotTables = opts.AllowPivotTables;
+                string? hash = ExcelProtectionHash.ResolveLegacyHash(opts.Password, opts.LegacyPasswordHash);
+                if (hash != null) {
+                    protection.Password = hash;
+                } else {
+                    protection.Password = null;
+                    protection.RemoveAttribute("password", string.Empty);
+                }
 
                 EnsureWorksheetElementOrder();
                 ws.Save();
