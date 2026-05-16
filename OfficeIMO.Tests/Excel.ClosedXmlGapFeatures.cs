@@ -143,6 +143,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ClosedXmlGap_Sort_SplitsNonContiguousHyperlinkRemaps() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.SortHyperlinkRemap.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Sort");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Score");
+                sheet.CellValue(2, 1, "Hundred");
+                sheet.CellValue(2, 2, 100d);
+                sheet.CellValue(3, 1, "Two");
+                sheet.CellValue(3, 2, 2d);
+                sheet.CellValue(4, 1, "Fifty");
+                sheet.CellValue(4, 2, 50d);
+                sheet.SetHyperlink(2, 1, "https://example.com", display: "Linked", style: false);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Hyperlink hyperlink = worksheetPart.Worksheet.Descendants<Hyperlink>().Single();
+                hyperlink.Reference = "A2:A3";
+                worksheetPart.Worksheet.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets[0];
+                sheet.SortRangeByColumn("A1:B4", 2, ascending: true, hasHeader: true);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                string[] references = worksheetPart.Worksheet.Descendants<Hyperlink>()
+                    .Select(hyperlink => hyperlink.Reference?.Value ?? string.Empty)
+                    .OrderBy(reference => reference)
+                    .ToArray();
+
+                Assert.Equal(new[] { "A2", "A4" }, references);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void Test_ClosedXmlGap_WorkbookAndWorksheetProtection_PreserveLegacyHashes() {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.Protection.xlsx");
 
@@ -184,6 +230,60 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
                 Assert.True(document.IsWorkbookProtected);
                 Assert.True(document.Sheets[0].IsProtected);
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_CalculationProperties_AreInsertedBeforeLaterWorkbookNodes() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculationOrder.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("Calc");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                Workbook workbook = spreadsheet.WorkbookPart!.Workbook;
+                workbook.Append(new PivotCaches());
+                workbook.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                document.ConfigureFullCalculationOnOpen();
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                Workbook workbook = spreadsheet.WorkbookPart!.Workbook;
+                var children = workbook.ChildElements.ToList();
+                int calculationIndex = children.FindIndex(element => element is CalculationProperties);
+                int pivotCachesIndex = children.FindIndex(element => element is PivotCaches);
+
+                Assert.True(calculationIndex >= 0);
+                Assert.True(pivotCachesIndex >= 0);
+                Assert.True(calculationIndex < pivotCachesIndex);
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_Range_AcceptsSingleCellAddress() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.SingleCellRange.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Range");
+                ExcelRange range = sheet.Range("A1");
+
+                Assert.Equal("A1:A1", range.Address);
+                range.FirstCell.SetValue("single");
+                Assert.Equal("single", range.FirstCell.GetValue<string>());
+
+                range.Clear(ExcelClearOptions.Values);
+                Assert.True(range.FirstCell.GetValue().IsBlank);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }

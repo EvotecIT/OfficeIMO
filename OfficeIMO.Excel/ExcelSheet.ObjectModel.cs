@@ -390,10 +390,24 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            foreach (var link in hyperlinks.Elements<Hyperlink>()) {
-                if (link.Reference?.Value is string reference
-                    && TryRemapReferenceForSortedRange(reference, rowMap, firstRow, lastRow, firstColumn, lastColumn, out string remapped)) {
-                    link.Reference = remapped;
+            foreach (var link in hyperlinks.Elements<Hyperlink>().ToList()) {
+                if (link.Reference?.Value is not string reference
+                    || !TryRemapReferenceForSortedRange(reference, rowMap, firstRow, lastRow, firstColumn, lastColumn, out string remapped)) {
+                    continue;
+                }
+
+                var references = SplitReferenceList(remapped);
+                if (references.Length == 0) {
+                    continue;
+                }
+
+                link.Reference = references[0];
+                var insertAfter = link;
+                for (int index = 1; index < references.Length; index++) {
+                    var clone = (Hyperlink)link.CloneNode(true);
+                    clone.Reference = references[index];
+                    hyperlinks.InsertAfter(clone, insertAfter);
+                    insertAfter = clone;
                 }
             }
         }

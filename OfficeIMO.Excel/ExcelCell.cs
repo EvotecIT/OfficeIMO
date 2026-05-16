@@ -168,8 +168,10 @@ namespace OfficeIMO.Excel {
     public sealed class ExcelRange {
         internal ExcelRange(ExcelSheet sheet, string address) {
             Sheet = sheet ?? throw new ArgumentNullException(nameof(sheet));
-            Address = string.IsNullOrWhiteSpace(address) ? throw new ArgumentNullException(nameof(address)) : address;
-            var bounds = A1.ParseRange(Address);
+            if (string.IsNullOrWhiteSpace(address)) throw new ArgumentNullException(nameof(address));
+
+            var bounds = ParseRangeOrCell(address);
+            Address = ToRangeAddress(bounds.r1, bounds.c1, bounds.r2, bounds.c2);
             FirstRow = bounds.r1;
             FirstColumn = bounds.c1;
             LastRow = bounds.r2;
@@ -264,6 +266,25 @@ namespace OfficeIMO.Excel {
         public ExcelRange SetFillColor(string hexColor) {
             Sheet.FillRange(Address, hexColor);
             return this;
+        }
+
+        private static (int r1, int c1, int r2, int c2) ParseRangeOrCell(string address) {
+            if (A1.TryParseRange(address, out int r1, out int c1, out int r2, out int c2)) {
+                return (r1, c1, r2, c2);
+            }
+
+            var cell = A1.ParseCellRef(address);
+            if (cell.Row <= 0 || cell.Col <= 0) {
+                throw new ArgumentException($"Invalid A1 range or cell reference '{address}'.", nameof(address));
+            }
+
+            return (cell.Row, cell.Col, cell.Row, cell.Col);
+        }
+
+        private static string ToRangeAddress(int r1, int c1, int r2, int c2) {
+            string start = A1.CellReference(r1, c1);
+            string end = A1.CellReference(r2, c2);
+            return $"{start}:{end}";
         }
     }
 

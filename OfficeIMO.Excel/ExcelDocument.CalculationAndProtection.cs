@@ -107,13 +107,34 @@ namespace OfficeIMO.Excel {
             var properties = workbook.GetFirstChild<CalculationProperties>();
             if (properties == null) {
                 properties = new CalculationProperties();
-                workbook.Append(properties);
+            } else {
+                properties.Remove();
             }
 
+            InsertCalculationPropertiesInSchemaOrder(workbook, properties);
             properties.ForceFullCalculation = true;
             properties.FullCalculationOnLoad = true;
             properties.CalculationMode = CalculateModeValues.Auto;
             workbook.Save();
+        }
+
+        private static void InsertCalculationPropertiesInSchemaOrder(Workbook workbook, CalculationProperties properties) {
+            var laterChild = workbook.ChildElements.FirstOrDefault(child =>
+                string.Equals(child.LocalName, "oleSize", StringComparison.Ordinal)
+                || string.Equals(child.LocalName, "customWorkbookViews", StringComparison.Ordinal)
+                || string.Equals(child.LocalName, "pivotCaches", StringComparison.Ordinal)
+                || string.Equals(child.LocalName, "smartTagPr", StringComparison.Ordinal)
+                || string.Equals(child.LocalName, "smartTagTypes", StringComparison.Ordinal)
+                || string.Equals(child.LocalName, "webPublishing", StringComparison.Ordinal)
+                || string.Equals(child.LocalName, "fileRecoveryPr", StringComparison.Ordinal)
+                || string.Equals(child.LocalName, "webPublishObjects", StringComparison.Ordinal)
+                || string.Equals(child.LocalName, "extLst", StringComparison.Ordinal));
+
+            if (laterChild != null) {
+                workbook.InsertBefore(properties, laterChild);
+            } else {
+                workbook.Append(properties);
+            }
         }
 
         internal void ApplyCalculationPolicyBeforeSave() {
