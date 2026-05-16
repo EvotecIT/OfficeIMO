@@ -289,8 +289,8 @@ namespace OfficeIMO.Excel {
         /// Reads rich inline text runs from a cell.
         /// </summary>
         public IReadOnlyList<ExcelRichTextRun> GetRichText(int row, int column) {
-            var cell = GetCell(row, column);
-            if (cell.InlineString == null) {
+            var cell = TryGetExistingCell(row, column);
+            if (cell?.InlineString == null) {
                 return Array.Empty<ExcelRichTextRun>();
             }
 

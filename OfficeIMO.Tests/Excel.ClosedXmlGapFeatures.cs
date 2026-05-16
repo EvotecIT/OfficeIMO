@@ -267,6 +267,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ClosedXmlGap_FullCalculationOnOpen_PreservesManualCalculationMode() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculationMode.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("Manual");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                Workbook workbook = spreadsheet.WorkbookPart!.Workbook;
+                workbook.Append(new CalculationProperties { CalculationMode = CalculateModeValues.Manual });
+                workbook.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                document.ConfigureFullCalculationOnOpen();
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                CalculationProperties calculationProperties = spreadsheet.WorkbookPart!.Workbook.GetFirstChild<CalculationProperties>()!;
+
+                Assert.Equal(CalculateModeValues.Manual, calculationProperties.CalculationMode!.Value);
+                Assert.True(calculationProperties.ForceFullCalculation!.Value);
+                Assert.True(calculationProperties.FullCalculationOnLoad!.Value);
+            }
+        }
+
+        [Fact]
         public void Test_ClosedXmlGap_Range_AcceptsSingleCellAddress() {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.SingleCellRange.xlsx");
 
@@ -340,6 +369,28 @@ namespace OfficeIMO.Tests {
                 Assert.False(worksheet.Protection.AllowFormatCells);
                 Assert.False(worksheet.Protection.AllowSort);
                 Assert.False(worksheet.Protection.AllowAutoFilter);
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_GetRichText_DoesNotMaterializeMissingCells() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.RichTextReadMissingCell.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("RichText");
+
+                Assert.Empty(sheet.CellAt(10, 3).GetRichText());
+
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                string[] references = worksheetPart.Worksheet.Descendants<Cell>()
+                    .Select(cell => cell.CellReference?.Value ?? string.Empty)
+                    .ToArray();
+
+                Assert.DoesNotContain("C10", references);
             }
         }
 
@@ -497,6 +548,47 @@ namespace OfficeIMO.Tests {
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
                 WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 Assert.Empty(worksheetPart.Worksheet.Descendants<Cell>());
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_ClearArrayFormula_ClearsEntireSpillRange() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ClearArraySpill.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Array");
+                sheet.CellValue(1, 1, 10d);
+                sheet.CellValue(1, 2, 20d);
+                sheet.CellValue(2, 1, 30d);
+                sheet.CellValue(2, 2, 40d);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Cell anchor = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A1");
+                anchor.CellFormula = new CellFormula("SUM(C1:C2)") {
+                    FormulaType = CellFormulaValues.Array,
+                    Reference = "A1:B2"
+                };
+                worksheetPart.Worksheet.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                document.Sheets[0].ClearArrayFormula("B2");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Dictionary<string, Cell> cells = worksheetPart.Worksheet.Descendants<Cell>()
+                    .Where(cell => cell.CellReference?.Value is "A1" or "B1" or "A2" or "B2")
+                    .ToDictionary(cell => cell.CellReference!.Value!);
+
+                Assert.All(cells.Values, cell => {
+                    Assert.Null(cell.CellFormula);
+                    Assert.Null(cell.CellValue);
+                });
             }
         }
 

@@ -124,10 +124,19 @@ namespace OfficeIMO.Excel {
                 foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
                     string? reference = cell.CellFormula?.Reference?.Value;
                     if (!string.IsNullOrWhiteSpace(reference)
-                        && A1.TryParseRange(reference!, out int existingR1, out int existingC1, out int existingR2, out int existingC2)
+                        && A1.TryParseRange(reference!.Replace("$", string.Empty), out int existingR1, out int existingC1, out int existingR2, out int existingC2)
                         && RangesOverlapInclusive(bounds, (existingR1, existingC1, existingR2, existingC2))) {
-                        cell.CellFormula = null;
-                        cell.CellValue = null;
+                        for (int row = existingR1; row <= existingR2; row++) {
+                            for (int column = existingC1; column <= existingC2; column++) {
+                                var spillCell = TryGetExistingCell(row, column);
+                                if (spillCell == null) {
+                                    continue;
+                                }
+
+                                spillCell.CellFormula = null;
+                                spillCell.CellValue = null;
+                            }
+                        }
                     }
                 }
 

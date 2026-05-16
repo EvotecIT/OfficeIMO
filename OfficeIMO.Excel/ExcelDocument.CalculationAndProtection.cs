@@ -114,7 +114,6 @@ namespace OfficeIMO.Excel {
             InsertCalculationPropertiesInSchemaOrder(workbook, properties);
             properties.ForceFullCalculation = true;
             properties.FullCalculationOnLoad = true;
-            properties.CalculationMode = CalculateModeValues.Auto;
             workbook.Save();
         }
 
