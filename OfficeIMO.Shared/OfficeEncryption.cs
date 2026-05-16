@@ -106,37 +106,47 @@ namespace OfficeIMO.Shared {
             string hashName = GetHashName(options.HashAlgorithm);
             int hashSize = GetHashSize(options.HashAlgorithm);
 
-            byte[] keyDataSalt = RandomBytes(SaltSize);
-            byte[] passwordSalt = RandomBytes(SaltSize);
-            byte[] verifier = RandomBytes(SaltSize);
-            byte[] secretKey = RandomBytes(options.KeyBits / 8);
+            byte[]? keyDataSalt = null;
+            byte[]? passwordSalt = null;
+            byte[]? verifier = null;
+            byte[]? verifierHash = null;
+            byte[]? secretKey = null;
 
-            byte[] encryptedVerifierHashInput = EncryptWithPasswordDerivedKey(verifier, password, passwordSalt, options.SpinCount, hashName, options.KeyBits, VerifierHashInputBlockKey);
-            byte[] verifierHash = Hash(verifier, hashName);
-            byte[] encryptedVerifierHashValue = EncryptWithPasswordDerivedKey(verifierHash, password, passwordSalt, options.SpinCount, hashName, options.KeyBits, VerifierHashValueBlockKey);
-            byte[] encryptedKeyValue = EncryptWithPasswordDerivedKey(secretKey, password, passwordSalt, options.SpinCount, hashName, options.KeyBits, EncryptedKeyValueBlockKey);
+            try {
+                keyDataSalt = RandomBytes(SaltSize);
+                passwordSalt = RandomBytes(SaltSize);
+                verifier = RandomBytes(SaltSize);
+                secretKey = RandomBytes(options.KeyBits / 8);
 
-            byte[] encryptedPackage = EncryptPackagePayload(packageBytes, secretKey, keyDataSalt, hashName);
-            byte[] encryptedHmacKey;
-            byte[] encryptedHmacValue;
-            GenerateIntegrityParameters(encryptedPackage, secretKey, keyDataSalt, hashName, out encryptedHmacKey, out encryptedHmacValue);
+                byte[] encryptedVerifierHashInput = EncryptWithPasswordDerivedKey(verifier, password, passwordSalt, options.SpinCount, hashName, options.KeyBits, VerifierHashInputBlockKey);
+                verifierHash = Hash(verifier, hashName);
+                byte[] encryptedVerifierHashValue = EncryptWithPasswordDerivedKey(verifierHash, password, passwordSalt, options.SpinCount, hashName, options.KeyBits, VerifierHashValueBlockKey);
+                byte[] encryptedKeyValue = EncryptWithPasswordDerivedKey(secretKey, password, passwordSalt, options.SpinCount, hashName, options.KeyBits, EncryptedKeyValueBlockKey);
 
-            byte[] encryptionInfo = BuildEncryptionInfo(
-                options,
-                hashName,
-                hashSize,
-                keyDataSalt,
-                passwordSalt,
-                encryptedVerifierHashInput,
-                encryptedVerifierHashValue,
-                encryptedKeyValue,
-                encryptedHmacKey,
-                encryptedHmacValue);
+                byte[] encryptedPackage = EncryptPackagePayload(packageBytes, secretKey, keyDataSalt, hashName);
+                byte[] encryptedHmacKey;
+                byte[] encryptedHmacValue;
+                GenerateIntegrityParameters(encryptedPackage, secretKey, keyDataSalt, hashName, out encryptedHmacKey, out encryptedHmacValue);
 
-            return CompoundFile.Write(new Dictionary<string, byte[]>(StringComparer.Ordinal) {
-                ["EncryptionInfo"] = encryptionInfo,
-                ["EncryptedPackage"] = encryptedPackage
-            });
+                byte[] encryptionInfo = BuildEncryptionInfo(
+                    options,
+                    hashName,
+                    hashSize,
+                    keyDataSalt,
+                    passwordSalt,
+                    encryptedVerifierHashInput,
+                    encryptedVerifierHashValue,
+                    encryptedKeyValue,
+                    encryptedHmacKey,
+                    encryptedHmacValue);
+
+                return CompoundFile.Write(new Dictionary<string, byte[]>(StringComparer.Ordinal) {
+                    ["EncryptionInfo"] = encryptionInfo,
+                    ["EncryptedPackage"] = encryptedPackage
+                });
+            } finally {
+                Clear(keyDataSalt, passwordSalt, verifier, verifierHash, secretKey);
+            }
         }
 
         /// <summary>
@@ -153,9 +163,15 @@ namespace OfficeIMO.Shared {
             }
 
             var descriptor = AgileDescriptor.Parse(encryptionInfoBytes);
-            byte[] secretKey = DecryptSecretKey(descriptor, password);
-            VerifyIntegrity(descriptor, encryptedPackage, secretKey);
-            return DecryptPackagePayload(encryptedPackage, secretKey, descriptor.KeyDataSaltValue, descriptor.KeyDataHashAlgorithm);
+            byte[]? secretKey = null;
+
+            try {
+                secretKey = DecryptSecretKey(descriptor, password);
+                VerifyIntegrity(descriptor, encryptedPackage, secretKey);
+                return DecryptPackagePayload(encryptedPackage, secretKey, descriptor.KeyDataSaltValue, descriptor.KeyDataHashAlgorithm);
+            } finally {
+                Clear(secretKey);
+            }
         }
 
         /// <summary>
@@ -175,66 +191,109 @@ namespace OfficeIMO.Shared {
         }
 
         private static byte[] DecryptSecretKey(AgileDescriptor descriptor, string password) {
-            byte[] verifierKey = DeriveKey(
-                password,
-                descriptor.PasswordSaltValue,
-                descriptor.SpinCount,
-                descriptor.PasswordHashAlgorithm,
-                descriptor.PasswordKeyBits,
-                VerifierHashInputBlockKey);
+            byte[]? verifierKey = null;
+            byte[]? verifierIv = null;
+            byte[]? paddedVerifier = null;
+            byte[]? verifier = null;
+            byte[]? verifierHashKey = null;
+            byte[]? verifierHashIv = null;
+            byte[]? decryptedVerifierHash = null;
+            byte[]? expectedHash = null;
+            byte[]? keyKey = null;
+            byte[]? keyIv = null;
+            byte[]? decryptedKey = null;
 
-            byte[] verifier = TrimTrailingPadding(DecryptAes(descriptor.EncryptedVerifierHashInput, verifierKey, GenerateIv(descriptor.PasswordSaltValue, null, descriptor.PasswordHashAlgorithm)));
+            try {
+                verifierKey = DeriveKey(
+                    password,
+                    descriptor.PasswordSaltValue,
+                    descriptor.SpinCount,
+                    descriptor.PasswordHashAlgorithm,
+                    descriptor.PasswordKeyBits,
+                    VerifierHashInputBlockKey);
 
-            byte[] verifierHashKey = DeriveKey(
-                password,
-                descriptor.PasswordSaltValue,
-                descriptor.SpinCount,
-                descriptor.PasswordHashAlgorithm,
-                descriptor.PasswordKeyBits,
-                VerifierHashValueBlockKey);
+                verifierIv = GenerateIv(descriptor.PasswordSaltValue, null, descriptor.PasswordHashAlgorithm);
+                paddedVerifier = DecryptAes(descriptor.EncryptedVerifierHashInput, verifierKey, verifierIv);
+                verifier = TrimTrailingPadding(paddedVerifier);
 
-            byte[] decryptedVerifierHash = DecryptAes(descriptor.EncryptedVerifierHashValue, verifierHashKey, GenerateIv(descriptor.PasswordSaltValue, null, descriptor.PasswordHashAlgorithm));
-            byte[] expectedHash = Hash(verifier, descriptor.PasswordHashAlgorithm);
+                verifierHashKey = DeriveKey(
+                    password,
+                    descriptor.PasswordSaltValue,
+                    descriptor.SpinCount,
+                    descriptor.PasswordHashAlgorithm,
+                    descriptor.PasswordKeyBits,
+                    VerifierHashValueBlockKey);
 
-            if (!ConstantTimeEquals(expectedHash, 0, decryptedVerifierHash, 0, descriptor.PasswordHashSize)) {
-                throw new CryptographicException("The password is incorrect.");
+                verifierHashIv = GenerateIv(descriptor.PasswordSaltValue, null, descriptor.PasswordHashAlgorithm);
+                decryptedVerifierHash = DecryptAes(descriptor.EncryptedVerifierHashValue, verifierHashKey, verifierHashIv);
+                expectedHash = Hash(verifier, descriptor.PasswordHashAlgorithm);
+
+                if (!ConstantTimeEquals(expectedHash, 0, decryptedVerifierHash, 0, descriptor.PasswordHashSize)) {
+                    throw new CryptographicException("The password is incorrect.");
+                }
+
+                keyKey = DeriveKey(
+                    password,
+                    descriptor.PasswordSaltValue,
+                    descriptor.SpinCount,
+                    descriptor.PasswordHashAlgorithm,
+                    descriptor.PasswordKeyBits,
+                    EncryptedKeyValueBlockKey);
+
+                keyIv = GenerateIv(descriptor.PasswordSaltValue, null, descriptor.PasswordHashAlgorithm);
+                decryptedKey = DecryptAes(descriptor.EncryptedKeyValue, keyKey, keyIv);
+                byte[] secretKey = new byte[descriptor.KeyDataKeyBits / 8];
+                Buffer.BlockCopy(decryptedKey, 0, secretKey, 0, secretKey.Length);
+                return secretKey;
+            } finally {
+                Clear(verifierKey, verifierIv, paddedVerifier, verifier, verifierHashKey, verifierHashIv, decryptedVerifierHash, expectedHash, keyKey, keyIv, decryptedKey);
             }
-
-            byte[] keyKey = DeriveKey(
-                password,
-                descriptor.PasswordSaltValue,
-                descriptor.SpinCount,
-                descriptor.PasswordHashAlgorithm,
-                descriptor.PasswordKeyBits,
-                EncryptedKeyValueBlockKey);
-
-            byte[] decryptedKey = DecryptAes(descriptor.EncryptedKeyValue, keyKey, GenerateIv(descriptor.PasswordSaltValue, null, descriptor.PasswordHashAlgorithm));
-            byte[] secretKey = new byte[descriptor.KeyDataKeyBits / 8];
-            Buffer.BlockCopy(decryptedKey, 0, secretKey, 0, secretKey.Length);
-            return secretKey;
         }
 
         private static void VerifyIntegrity(AgileDescriptor descriptor, byte[] encryptedPackage, byte[] secretKey) {
-            byte[] hmacKey = DecryptAes(
-                descriptor.EncryptedHmacKey,
-                secretKey,
-                GenerateIv(descriptor.KeyDataSaltValue, HmacKeyBlockKey, descriptor.KeyDataHashAlgorithm));
+            byte[]? hmacKeyIv = null;
+            byte[]? hmacKey = null;
+            byte[]? hmacKeyTrimmed = null;
+            byte[]? actualHmac = null;
+            byte[]? expectedHmacIv = null;
+            byte[]? expectedHmac = null;
 
-            byte[] actualHmac = ComputeHmac(encryptedPackage, hmacKey.Take(descriptor.KeyDataSaltSize).ToArray(), descriptor.KeyDataHashAlgorithm);
-            byte[] expectedHmac = DecryptAes(
-                descriptor.EncryptedHmacValue,
-                secretKey,
-                GenerateIv(descriptor.KeyDataSaltValue, HmacValueBlockKey, descriptor.KeyDataHashAlgorithm));
+            try {
+                hmacKeyIv = GenerateIv(descriptor.KeyDataSaltValue, HmacKeyBlockKey, descriptor.KeyDataHashAlgorithm);
+                hmacKey = DecryptAes(
+                    descriptor.EncryptedHmacKey,
+                    secretKey,
+                    hmacKeyIv);
 
-            if (!ConstantTimeEquals(actualHmac, 0, expectedHmac, 0, actualHmac.Length)) {
-                throw new CryptographicException("The encrypted package integrity check failed.");
+                hmacKeyTrimmed = hmacKey.Take(descriptor.KeyDataSaltSize).ToArray();
+                actualHmac = ComputeHmac(encryptedPackage, hmacKeyTrimmed, descriptor.KeyDataHashAlgorithm);
+                expectedHmacIv = GenerateIv(descriptor.KeyDataSaltValue, HmacValueBlockKey, descriptor.KeyDataHashAlgorithm);
+                expectedHmac = DecryptAes(
+                    descriptor.EncryptedHmacValue,
+                    secretKey,
+                    expectedHmacIv);
+
+                if (!ConstantTimeEquals(actualHmac, 0, expectedHmac, 0, actualHmac.Length)) {
+                    throw new CryptographicException("The encrypted package integrity check failed.");
+                }
+            } finally {
+                Clear(hmacKeyIv, hmacKey, hmacKeyTrimmed, actualHmac, expectedHmacIv, expectedHmac);
             }
         }
 
         private static byte[] EncryptWithPasswordDerivedKey(byte[] data, string password, byte[] salt, int spinCount, string hashName, int keyBits, byte[] blockKey) {
-            byte[] key = DeriveKey(password, salt, spinCount, hashName, keyBits, blockKey);
-            byte[] iv = GenerateIv(salt, null, hashName);
-            return EncryptAes(PadToBlock(data), key, iv);
+            byte[]? key = null;
+            byte[]? iv = null;
+            byte[]? padded = null;
+
+            try {
+                key = DeriveKey(password, salt, spinCount, hashName, keyBits, blockKey);
+                iv = GenerateIv(salt, null, hashName);
+                padded = PadToBlock(data);
+                return EncryptAes(padded, key, iv);
+            } finally {
+                Clear(key, iv, padded);
+            }
         }
 
         private static byte[] EncryptPackagePayload(byte[] packageBytes, byte[] secretKey, byte[] keyDataSalt, string hashName) {
@@ -246,10 +305,18 @@ namespace OfficeIMO.Shared {
                 int count = Math.Min(SegmentSize, packageBytes.Length - offset);
                 byte[] plain = new byte[count];
                 Buffer.BlockCopy(packageBytes, offset, plain, 0, count);
-                byte[] block = count % BlockSize == 0 ? plain : PadToBlock(plain);
-                byte[] iv = GenerateIv(keyDataSalt, UInt32Bytes((uint)segment), hashName);
-                byte[] encrypted = EncryptAes(block, secretKey, iv);
-                output.Write(encrypted, 0, encrypted.Length);
+                byte[]? block = null;
+                byte[]? iv = null;
+                byte[]? encrypted = null;
+
+                try {
+                    block = count % BlockSize == 0 ? plain : PadToBlock(plain);
+                    iv = GenerateIv(keyDataSalt, UInt32Bytes((uint)segment), hashName);
+                    encrypted = EncryptAes(block, secretKey, iv);
+                    output.Write(encrypted, 0, encrypted.Length);
+                } finally {
+                    Clear(plain, block, iv, encrypted);
+                }
             }
 
             return output.ToArray();
@@ -279,11 +346,19 @@ namespace OfficeIMO.Shared {
                     throw new InvalidDataException("EncryptedPackage stream ended before all package data was read.");
                 }
 
-                byte[] encryptedSegment = new byte[encryptedCount];
-                Buffer.BlockCopy(encryptedPackage, encryptedOffset, encryptedSegment, 0, encryptedCount);
-                byte[] iv = GenerateIv(keyDataSalt, UInt32Bytes((uint)segment), hashName);
-                byte[] decrypted = DecryptAes(encryptedSegment, secretKey, iv);
-                Buffer.BlockCopy(decrypted, 0, packageBytes, plainOffset, plainCount);
+                byte[]? encryptedSegment = null;
+                byte[]? iv = null;
+                byte[]? decrypted = null;
+
+                try {
+                    encryptedSegment = new byte[encryptedCount];
+                    Buffer.BlockCopy(encryptedPackage, encryptedOffset, encryptedSegment, 0, encryptedCount);
+                    iv = GenerateIv(keyDataSalt, UInt32Bytes((uint)segment), hashName);
+                    decrypted = DecryptAes(encryptedSegment, secretKey, iv);
+                    Buffer.BlockCopy(decrypted, 0, packageBytes, plainOffset, plainCount);
+                } finally {
+                    Clear(encryptedSegment, iv, decrypted);
+                }
 
                 encryptedOffset += encryptedCount;
                 plainOffset += plainCount;
@@ -294,18 +369,33 @@ namespace OfficeIMO.Shared {
         }
 
         private static void GenerateIntegrityParameters(byte[] encryptedPackage, byte[] secretKey, byte[] keyDataSalt, string hashName, out byte[] encryptedHmacKey, out byte[] encryptedHmacValue) {
-            byte[] hmacKey = RandomBytes(SaltSize);
-            byte[] hmacValue = ComputeHmac(encryptedPackage, hmacKey, hashName);
+            byte[]? hmacKey = null;
+            byte[]? hmacValue = null;
+            byte[]? paddedHmacKey = null;
+            byte[]? paddedHmacValue = null;
+            byte[]? hmacKeyIv = null;
+            byte[]? hmacValueIv = null;
 
-            encryptedHmacKey = EncryptAes(
-                PadToBlock(hmacKey),
-                secretKey,
-                GenerateIv(keyDataSalt, HmacKeyBlockKey, hashName));
+            try {
+                hmacKey = RandomBytes(SaltSize);
+                hmacValue = ComputeHmac(encryptedPackage, hmacKey, hashName);
 
-            encryptedHmacValue = EncryptAes(
-                PadToBlock(hmacValue),
-                secretKey,
-                GenerateIv(keyDataSalt, HmacValueBlockKey, hashName));
+                paddedHmacKey = PadToBlock(hmacKey);
+                hmacKeyIv = GenerateIv(keyDataSalt, HmacKeyBlockKey, hashName);
+                encryptedHmacKey = EncryptAes(
+                    paddedHmacKey,
+                    secretKey,
+                    hmacKeyIv);
+
+                paddedHmacValue = PadToBlock(hmacValue);
+                hmacValueIv = GenerateIv(keyDataSalt, HmacValueBlockKey, hashName);
+                encryptedHmacValue = EncryptAes(
+                    paddedHmacValue,
+                    secretKey,
+                    hmacValueIv);
+            } finally {
+                Clear(hmacKey, hmacValue, paddedHmacKey, paddedHmacValue, hmacKeyIv, hmacValueIv);
+            }
         }
 
         private static byte[] BuildEncryptionInfo(
@@ -338,33 +428,65 @@ namespace OfficeIMO.Shared {
         }
 
         private static byte[] DeriveKey(string password, byte[] salt, int spinCount, string hashName, int keyBits, byte[] blockKey) {
-            byte[] passwordBytes = Encoding.Unicode.GetBytes(password);
-            byte[] hash = Hash(Concat(salt, passwordBytes), hashName);
+            byte[]? passwordBytes = null;
+            byte[]? initialInput = null;
+            byte[]? hash = null;
+            byte[]? iterationInput = null;
+            byte[]? finalInput = null;
+            byte[]? finalHash = null;
 
-            for (uint i = 0; i < spinCount; i++) {
-                hash = Hash(Concat(UInt32Bytes(i), hash), hashName);
-            }
+            try {
+                passwordBytes = Encoding.Unicode.GetBytes(password);
+                initialInput = Concat(salt, passwordBytes);
+                hash = Hash(initialInput, hashName);
 
-            byte[] finalHash = Hash(Concat(hash, blockKey), hashName);
-            int keyBytes = keyBits / 8;
-            byte[] result = new byte[keyBytes];
-            int copy = Math.Min(finalHash.Length, result.Length);
-            Buffer.BlockCopy(finalHash, 0, result, 0, copy);
-            for (int i = copy; i < result.Length; i++) {
-                result[i] = 0x36;
+                for (uint i = 0; i < spinCount; i++) {
+                    iterationInput = Concat(UInt32Bytes(i), hash);
+                    byte[] nextHash = Hash(iterationInput, hashName);
+                    Clear(iterationInput, hash);
+                    iterationInput = null;
+                    hash = nextHash;
+                }
+
+                finalInput = Concat(hash, blockKey);
+                finalHash = Hash(finalInput, hashName);
+                int keyBytes = keyBits / 8;
+                byte[] result = new byte[keyBytes];
+                int copy = Math.Min(finalHash.Length, result.Length);
+                Buffer.BlockCopy(finalHash, 0, result, 0, copy);
+                for (int i = copy; i < result.Length; i++) {
+                    result[i] = 0x36;
+                }
+                return result;
+            } finally {
+                Clear(passwordBytes, initialInput, hash, iterationInput, finalInput, finalHash);
             }
-            return result;
         }
 
         private static byte[] GenerateIv(byte[] salt, byte[]? blockKey, string hashName) {
-            byte[] iv = blockKey == null ? salt : Hash(Concat(salt, blockKey), hashName);
-            byte[] result = new byte[BlockSize];
-            int copy = Math.Min(iv.Length, result.Length);
-            Buffer.BlockCopy(iv, 0, result, 0, copy);
-            for (int i = copy; i < result.Length; i++) {
-                result[i] = 0x36;
+            byte[]? ivInput = null;
+            byte[]? iv = null;
+
+            try {
+                if (blockKey == null) {
+                    iv = salt;
+                } else {
+                    ivInput = Concat(salt, blockKey);
+                    iv = Hash(ivInput, hashName);
+                }
+
+                byte[] result = new byte[BlockSize];
+                int copy = Math.Min(iv.Length, result.Length);
+                Buffer.BlockCopy(iv, 0, result, 0, copy);
+                for (int i = copy; i < result.Length; i++) {
+                    result[i] = 0x36;
+                }
+                return result;
+            } finally {
+                if (blockKey != null) {
+                    Clear(ivInput, iv);
+                }
             }
-            return result;
         }
 
         private static byte[] EncryptAes(byte[] data, byte[] key, byte[] iv) {
@@ -446,6 +568,14 @@ namespace OfficeIMO.Shared {
             using var rng = RandomNumberGenerator.Create();
             rng.GetBytes(bytes);
             return bytes;
+        }
+
+        private static void Clear(params byte[]?[] buffers) {
+            foreach (var buffer in buffers) {
+                if (buffer != null) {
+                    Array.Clear(buffer, 0, buffer.Length);
+                }
+            }
         }
 
         private static byte[] PadToBlock(byte[] data) {

@@ -127,6 +127,23 @@ namespace OfficeIMO.Tests {
             Assert.Throws<CryptographicException>(() => ExcelDocument.LoadEncrypted(path, "wrong-password"));
         }
 
+        [Fact]
+        public void Excel_LoadEncrypted_WithTamperedPayload_ThrowsCryptographicException() {
+            string path = CreateTempPath(".xlsx");
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Encrypted");
+                sheet.CellValue(1, 1, "Tamper target");
+                document.SaveEncrypted(path, Password);
+            }
+
+            byte[] bytes = File.ReadAllBytes(path);
+            bytes[512 + 100] ^= 0xff;
+            File.WriteAllBytes(path, bytes);
+
+            Assert.Throws<CryptographicException>(() => ExcelDocument.LoadEncrypted(path, Password));
+        }
+
         private static string CreateTempPath(string extension) {
             string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + Guid.NewGuid().ToString("N") + extension);
             return path;
