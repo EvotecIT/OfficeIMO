@@ -37,6 +37,16 @@ doc.Sections[0].Footers.Default.AddPageNumber();
 doc.Save();
 ```
 
+## Encrypted Documents
+
+```csharp
+using var doc = WordDocument.Create("secure.docx");
+doc.AddParagraph("Confidential");
+doc.SaveEncrypted("secure.docx", "secret");
+
+using var reopened = WordDocument.LoadEncrypted("secure.docx", "secret");
+```
+
 ## Common Tasks by Example
 
 ### Paragraphs and runs

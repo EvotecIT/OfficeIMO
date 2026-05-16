@@ -55,7 +55,7 @@ Recommended additional validation:
 Do not wait for:
 
 - full EPPlus feature parity across every workbook feature
-- complete chart/pivot/encryption breadth
+- complete chart/pivot breadth
 - every planned corpus or benchmark scenario
 
 The goal is a stable, honest, and measurable Excel baseline that we can keep improving deliberately.

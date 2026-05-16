@@ -1068,6 +1068,31 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        ///     Opens a password-encrypted Office Open XML PowerPoint presentation.
+        /// </summary>
+        /// <param name="filePath">Path of the encrypted presentation file to open.</param>
+        /// <param name="password">Password used to decrypt the presentation package.</param>
+        /// <param name="readOnly">Open the decrypted package in read-only mode.</param>
+        public static PowerPointPresentation OpenEncrypted(string filePath, string password, bool readOnly = false) {
+            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            if (password == null) throw new ArgumentNullException(nameof(password));
+            if (!File.Exists(filePath)) {
+                throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
+            }
+
+            byte[] encryptedBytes = File.ReadAllBytes(filePath);
+            byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
+            var packageStream = new NonDisposingMemoryStream(packageBytes.Length + StreamBufferSize);
+            packageStream.Write(packageBytes, 0, packageBytes.Length);
+            packageStream.Position = 0;
+
+            PresentationDocument document = PresentationDocument.Open(packageStream, !readOnly);
+            PowerPointPresentation presentation = new(document, filePath, isNewPresentation: false);
+            presentation.ConfigureStreamCopy(packageStream, null, copyPackageToSourceOnDispose: false, leaveSourceStreamOpen: true);
+            return presentation;
+        }
+
+        /// <summary>
         ///     Opens a PowerPoint presentation from a stream.
         /// </summary>
         /// <param name="stream">Source stream containing the presentation package.</param>
@@ -1097,6 +1122,29 @@ namespace OfficeIMO.PowerPoint {
             PresentationDocument document = PresentationDocument.Open(packageStream, !readOnly);
             PowerPointPresentation presentation = new(document, string.Empty, isNewPresentation: false);
             presentation.ConfigureStreamCopy(packageStream, stream, shouldCopyBack, leaveSourceStreamOpen: true);
+            return presentation;
+        }
+
+        /// <summary>
+        ///     Opens a password-encrypted Office Open XML PowerPoint presentation from a stream.
+        /// </summary>
+        /// <param name="stream">Source stream containing the encrypted presentation package.</param>
+        /// <param name="password">Password used to decrypt the presentation package.</param>
+        /// <param name="readOnly">Open the decrypted package in read-only mode.</param>
+        public static PowerPointPresentation OpenEncrypted(Stream stream, string password, bool readOnly = false) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (password == null) throw new ArgumentNullException(nameof(password));
+            if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+
+            byte[] encryptedBytes = ReadAllBytes(stream);
+            byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
+            var packageStream = new NonDisposingMemoryStream(packageBytes.Length + StreamBufferSize);
+            packageStream.Write(packageBytes, 0, packageBytes.Length);
+            packageStream.Position = 0;
+
+            PresentationDocument document = PresentationDocument.Open(packageStream, !readOnly);
+            PowerPointPresentation presentation = new(document, string.Empty, isNewPresentation: false);
+            presentation.ConfigureStreamCopy(packageStream, null, copyPackageToSourceOnDispose: false, leaveSourceStreamOpen: true);
             return presentation;
         }
 
@@ -1518,6 +1566,50 @@ namespace OfficeIMO.PowerPoint {
             if (destination.CanSeek) {
                 destination.Seek(0, SeekOrigin.Begin);
             }
+        }
+
+        /// <summary>
+        ///     Saves the presentation as a password-encrypted Office Open XML package.
+        /// </summary>
+        /// <param name="filePath">Destination path for the encrypted presentation.</param>
+        /// <param name="password">Password used to encrypt the presentation package.</param>
+        /// <param name="openPowerPoint">Whether to open the saved file after writing.</param>
+        public void SaveEncrypted(string filePath, string password, bool openPowerPoint = false) {
+            ThrowIfDisposed();
+            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            if (password == null) throw new ArgumentNullException(nameof(password));
+            if (filePath.Length == 0) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
+                throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
+            }
+
+            using var packageStream = new MemoryStream();
+            Save(packageStream);
+            byte[] encryptedBytes = OfficeEncryption.EncryptPackage(packageStream.ToArray(), password);
+            using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None)) {
+                fs.Write(encryptedBytes, 0, encryptedBytes.Length);
+                fs.Flush();
+            }
+
+            if (openPowerPoint) {
+                Helpers.Open(filePath, true);
+            }
+        }
+
+        /// <summary>
+        ///     Saves the presentation as a password-encrypted Office Open XML package to a stream.
+        /// </summary>
+        /// <param name="destination">Writable stream receiving the encrypted presentation.</param>
+        /// <param name="password">Password used to encrypt the presentation package.</param>
+        public void SaveEncrypted(Stream destination, string password) {
+            ThrowIfDisposed();
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            if (password == null) throw new ArgumentNullException(nameof(password));
+            if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+
+            using var packageStream = new MemoryStream();
+            Save(packageStream);
+            OfficeEncryption.EncryptPackageToStream(packageStream.ToArray(), password, destination);
         }
 
         private void PersistPackageToSourceIfNeeded(bool persistChanges) {

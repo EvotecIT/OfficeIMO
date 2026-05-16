@@ -65,6 +65,17 @@ slide.TransitionAdvanceAfterSeconds = 4;
 ppt.Save();
 ```
 
+## Encrypted Presentations
+
+```csharp
+using var ppt = PowerPointPresentation.Create("secure.pptx");
+var slide = ppt.AddSlide();
+slide.AddTitle("Confidential");
+ppt.SaveEncrypted("secure.pptx", "secret");
+
+using var reopened = PowerPointPresentation.OpenEncrypted("secure.pptx", "secret");
+```
+
 ## Designer composition sample
 
 For business decks where you want polished placement without manually positioning every text box, use the designer
