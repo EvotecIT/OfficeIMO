@@ -7,7 +7,12 @@ namespace OfficeIMO.Excel {
 
         internal static string? ResolveLegacyHash(string? password, string? legacyHash) {
             if (!string.IsNullOrWhiteSpace(legacyHash)) {
-                return legacyHash!.Trim().ToUpperInvariant();
+                string normalized = legacyHash!.Trim().ToUpperInvariant();
+                if (normalized.Length > 4 || normalized.Any(character => !Uri.IsHexDigit(character))) {
+                    throw new ArgumentException("Legacy protection hash must be a hexadecimal value up to four characters long.", nameof(legacyHash));
+                }
+
+                return normalized;
             }
 
             return string.IsNullOrEmpty(password) ? null : ComputeLegacyPasswordHash(password!);

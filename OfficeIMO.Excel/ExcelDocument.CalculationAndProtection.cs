@@ -29,7 +29,15 @@ namespace OfficeIMO.Excel {
                 protection = new WorkbookProtection();
                 var workbookViews = workbook.GetFirstChild<BookViews>();
                 if (workbookViews != null) {
-                    workbook.InsertAfter(protection, workbookViews);
+                    workbook.InsertBefore(protection, workbookViews);
+                } else if (workbook.GetFirstChild<Sheets>() is Sheets sheets) {
+                    workbook.InsertBefore(protection, sheets);
+                } else if (workbook.GetFirstChild<WorkbookProperties>() is WorkbookProperties workbookProperties) {
+                    workbook.InsertAfter(protection, workbookProperties);
+                } else if (workbook.GetFirstChild<FileSharing>() is FileSharing fileSharing) {
+                    workbook.InsertAfter(protection, fileSharing);
+                } else if (workbook.GetFirstChild<FileVersion>() is FileVersion fileVersion) {
+                    workbook.InsertAfter(protection, fileVersion);
                 } else {
                     workbook.InsertAt(protection, 0);
                 }

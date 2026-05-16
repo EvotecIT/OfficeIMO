@@ -164,10 +164,11 @@ namespace OfficeIMO.Excel {
                 var filter = A1.ParseRange(a1Range!);
                 foreach (var conditional in WorksheetRoot.Elements<ConditionalFormatting>().ToList()) {
                     string range = conditional.SequenceOfReferences?.InnerText ?? string.Empty;
-                    bool overlaps = SplitReferenceList(range)
-                        .Any(part => RangesOverlapInclusive(filter, part.IndexOf(':') >= 0 ? A1.ParseRange(part) : CellAsRange(part)));
-                    if (overlaps) {
+                    var remaining = RemoveReferenceOverlap(range, filter);
+                    if (remaining.Count == 0) {
                         conditional.Remove();
+                    } else if (!string.Equals(range, string.Join(" ", remaining), StringComparison.OrdinalIgnoreCase)) {
+                        conditional.SequenceOfReferences = new ListValue<StringValue> { InnerText = string.Join(" ", remaining) };
                     }
                 }
             }
@@ -185,10 +186,11 @@ namespace OfficeIMO.Excel {
                 var filter = A1.ParseRange(a1Range!);
                 foreach (var validation in validations.Elements<DataValidation>().ToList()) {
                     string range = validation.SequenceOfReferences?.InnerText ?? string.Empty;
-                    bool overlaps = SplitReferenceList(range)
-                        .Any(part => RangesOverlapInclusive(filter, part.IndexOf(':') >= 0 ? A1.ParseRange(part) : CellAsRange(part)));
-                    if (overlaps) {
+                    var remaining = RemoveReferenceOverlap(range, filter);
+                    if (remaining.Count == 0) {
                         validation.Remove();
+                    } else if (!string.Equals(range, string.Join(" ", remaining), StringComparison.OrdinalIgnoreCase)) {
+                        validation.SequenceOfReferences = new ListValue<StringValue> { InnerText = string.Join(" ", remaining) };
                     }
                 }
             }
@@ -221,6 +223,50 @@ namespace OfficeIMO.Excel {
 
         private static string[] SplitReferenceList(string referenceList) {
             return referenceList.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        }
+
+        private static List<string> RemoveReferenceOverlap(string referenceList, (int r1, int c1, int r2, int c2) filter) {
+            var remaining = new List<string>();
+            foreach (string part in SplitReferenceList(referenceList)) {
+                if (!TryParseReference(part, out var bounds)) {
+                    remaining.Add(part);
+                    continue;
+                }
+
+                foreach (var segment in SubtractRange(bounds, filter)) {
+                    remaining.Add(ToReference(segment.r1, segment.c1, segment.r2, segment.c2));
+                }
+            }
+
+            return remaining;
+        }
+
+        private static IEnumerable<(int r1, int c1, int r2, int c2)> SubtractRange((int r1, int c1, int r2, int c2) source, (int r1, int c1, int r2, int c2) remove) {
+            if (!RangesOverlapInclusive(source, remove)) {
+                yield return source;
+                yield break;
+            }
+
+            int ir1 = Math.Max(source.r1, remove.r1);
+            int ic1 = Math.Max(source.c1, remove.c1);
+            int ir2 = Math.Min(source.r2, remove.r2);
+            int ic2 = Math.Min(source.c2, remove.c2);
+
+            if (source.r1 < ir1) {
+                yield return (source.r1, source.c1, ir1 - 1, source.c2);
+            }
+
+            if (ir2 < source.r2) {
+                yield return (ir2 + 1, source.c1, source.r2, source.c2);
+            }
+
+            if (source.c1 < ic1) {
+                yield return (ir1, source.c1, ir2, ic1 - 1);
+            }
+
+            if (ic2 < source.c2) {
+                yield return (ir1, ic2 + 1, ir2, source.c2);
+            }
         }
     }
 }

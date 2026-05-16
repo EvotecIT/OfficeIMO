@@ -29,6 +29,8 @@ namespace OfficeIMO.Tests {
                 sheet.Range("A1:B4").SortByColumn(2, ascending: true, hasHeader: true);
                 Assert.Equal("Alice", sheet.CellAt(2, 1).GetValue<string>());
                 Assert.Equal(10d, sheet.CellAt(2, 2).GetValue<double>());
+                Assert.True(sheet.HasComment(2, 1));
+                Assert.False(sheet.HasComment(3, 1));
 
                 sheet.Range("A1:B4").ApplyAutoFilter();
                 ExcelTable table = sheet.Range("A1:B4").CreateTable("Scores");
@@ -94,10 +96,43 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, 2d);
                 sheet.CellFormula(2, 1, "VLOOKUP(A1,B1:C2,2,FALSE)");
                 sheet.CellFormula(3, 1, "SUM(" + new string('A', 9000) + ")");
+                sheet.CellFormula(4, 1, "SUM(Calc!A1:A2)");
 
                 Assert.Equal(0, document.RecalculateSupportedFormulas());
                 Assert.False(sheet.TryGetCachedFormulaValue(2, 1, out _));
                 Assert.False(sheet.TryGetCachedFormulaValue(3, 1, out _));
+                Assert.False(sheet.TryGetCachedFormulaValue(4, 1, out _));
+
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_Sort_UsesNumericFormulaCachesAndKeepsMetadata() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.SortFormulaCaches.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Sort");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Score");
+                sheet.CellValue(2, 1, "Hundred");
+                sheet.CellValue(2, 3, 100d);
+                sheet.CellFormula(2, 2, "C2+0");
+                sheet.CellValue(3, 1, "Two");
+                sheet.CellValue(3, 3, 2d);
+                sheet.CellFormula(3, 2, "C3+0");
+                sheet.SetComment(3, 1, "moves with Two", author: "Tester");
+
+                Assert.Equal(2, document.RecalculateSupportedFormulas());
+                sheet.SortRangeByColumn("A1:B3", 2, ascending: true, hasHeader: true);
+
+                Assert.Equal("Two", sheet.CellAt(2, 1).GetValue<string>());
+                Assert.True(sheet.HasComment(2, 1));
+                Assert.Equal("Hundred", sheet.CellAt(3, 1).GetValue<string>());
 
                 document.Save();
             }
@@ -127,6 +162,12 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
+            using (ExcelDocument document = ExcelDocument.Create(Path.Combine(_directoryWithFiles, "ClosedXmlGap.InvalidProtectionHash.xlsx"))) {
+                Assert.Throws<ArgumentException>(() => document.ProtectWorkbook(new ExcelWorkbookProtectionOptions {
+                    LegacyPasswordHash = "NOPE"
+                }));
+            }
+
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
                 WorkbookProtection workbookProtection = spreadsheet.WorkbookPart!.Workbook.GetFirstChild<WorkbookProtection>()!;
                 Assert.True(workbookProtection.LockStructure!.Value);
@@ -144,6 +185,60 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.IsWorkbookProtected);
                 Assert.True(document.Sheets[0].IsProtected);
                 Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_WorkbookProtection_IsInsertedBeforeBookViews() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ProtectionBookViews.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("Protected");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                Workbook workbook = spreadsheet.WorkbookPart!.Workbook;
+                if (workbook.GetFirstChild<BookViews>() == null) {
+                    workbook.InsertBefore(new BookViews(new WorkbookView()), workbook.GetFirstChild<Sheets>());
+                    workbook.Save();
+                }
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                document.ProtectWorkbook(new ExcelWorkbookProtectionOptions { LegacyPasswordHash = "CAFE" });
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                Workbook workbook = spreadsheet.WorkbookPart!.Workbook;
+                var children = workbook.ChildElements.ToList();
+                int protectionIndex = children.FindIndex(element => element is WorkbookProtection);
+                int bookViewsIndex = children.FindIndex(element => element is BookViews);
+
+                Assert.True(protectionIndex >= 0);
+                Assert.True(bookViewsIndex >= 0);
+                Assert.True(protectionIndex < bookViewsIndex);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_ClearRange_None_DoesNotMaterializeCells() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ClearNone.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Clear");
+                sheet.ClearRange("C5:D6", ExcelClearOptions.None);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Assert.Empty(worksheetPart.Worksheet.Descendants<Cell>());
             }
         }
 
@@ -180,8 +275,19 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Allowed", validation.PromptTitle);
                 Assert.Equal("Invalid", validation.ErrorTitle);
 
+                sheet.RemoveDataValidations("B3:B3");
+                Assert.Single(sheet.GetDataValidations("B2:B2"));
+                Assert.Empty(sheet.GetDataValidations("B3:B3"));
+                Assert.Single(sheet.GetDataValidations("B4:B4"));
+
                 sheet.RemoveDataValidations("B2:B4");
                 Assert.Empty(sheet.GetDataValidations("B2:B4"));
+
+                sheet.ClearConditionalFormatting("A3:A3");
+                Assert.Equal(3, sheet.GetConditionalFormattingRules("A2:A2").Count);
+                Assert.Empty(sheet.GetConditionalFormattingRules("A3:A3"));
+                Assert.Equal(3, sheet.GetConditionalFormattingRules("A4:A4").Count);
+
                 sheet.ClearConditionalFormatting("A2:A4");
                 Assert.Empty(sheet.GetConditionalFormattingRules("A2:A4"));
 

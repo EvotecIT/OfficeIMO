@@ -26,7 +26,10 @@ namespace OfficeIMO.Excel {
             var cell = GetCell(row, column);
             string? cached = cell.CellValue?.Text;
             if (cell.CellFormula != null) {
-                return new ExcelCellData(ExcelCellDataKind.Formula, cached, cell.CellFormula.Text, cached);
+                object? formulaValue = double.TryParse(cached, NumberStyles.Float, CultureInfo.InvariantCulture, out double cachedNumber)
+                    ? cachedNumber
+                    : cached;
+                return new ExcelCellData(ExcelCellDataKind.Formula, formulaValue, cell.CellFormula.Text, cached);
             }
 
             if (cell.CellValue == null && cell.InlineString == null) {
@@ -98,21 +101,27 @@ namespace OfficeIMO.Excel {
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
             WriteLock(() => {
                 var ws = WorksheetRoot;
-                for (int row = r1; row <= r2; row++) {
-                    for (int column = c1; column <= c2; column++) {
-                        var cell = GetCell(row, column);
-                        if (options.HasFlag(ExcelClearOptions.Values)) {
-                            cell.CellValue = null;
-                            cell.DataType = null;
-                            cell.InlineString = null;
-                        }
+                bool clearCellFields = options.HasFlag(ExcelClearOptions.Values)
+                    || options.HasFlag(ExcelClearOptions.Formulas)
+                    || options.HasFlag(ExcelClearOptions.Styles);
 
-                        if (options.HasFlag(ExcelClearOptions.Formulas)) {
-                            cell.CellFormula = null;
-                        }
+                if (clearCellFields) {
+                    for (int row = r1; row <= r2; row++) {
+                        for (int column = c1; column <= c2; column++) {
+                            var cell = GetCell(row, column);
+                            if (options.HasFlag(ExcelClearOptions.Values)) {
+                                cell.CellValue = null;
+                                cell.DataType = null;
+                                cell.InlineString = null;
+                            }
 
-                        if (options.HasFlag(ExcelClearOptions.Styles)) {
-                            cell.StyleIndex = null;
+                            if (options.HasFlag(ExcelClearOptions.Formulas)) {
+                                cell.CellFormula = null;
+                            }
+
+                            if (options.HasFlag(ExcelClearOptions.Styles)) {
+                                cell.StyleIndex = null;
+                            }
                         }
                     }
                 }
@@ -178,6 +187,7 @@ namespace OfficeIMO.Excel {
                     WriteRowSnapshot(firstDataRow + index, c1, c2, rows[index]);
                 }
 
+                RemapSortedRangeMetadata(rows, firstDataRow, r2, c1, c2);
                 WorksheetRoot.Save();
                 ClearHeaderCache();
             });
@@ -318,6 +328,99 @@ namespace OfficeIMO.Excel {
             CleanupCommentArtifacts();
         }
 
+        private void RemapSortedRangeMetadata(IReadOnlyList<RowSnapshot> rows, int firstRow, int lastRow, int firstColumn, int lastColumn) {
+            var rowMap = new Dictionary<int, int>();
+            for (int index = 0; index < rows.Count; index++) {
+                int targetRow = firstRow + index;
+                if (rows[index].OriginalRow != targetRow) {
+                    rowMap[rows[index].OriginalRow] = targetRow;
+                }
+            }
+
+            if (rowMap.Count == 0) {
+                return;
+            }
+
+            RemapSortedComments(rowMap, firstRow, lastRow, firstColumn, lastColumn);
+            RemapSortedHyperlinks(rowMap, firstRow, lastRow, firstColumn, lastColumn);
+            RemapSortedDataValidations(rowMap, firstRow, lastRow, firstColumn, lastColumn);
+            RemapSortedConditionalFormatting(rowMap, firstRow, lastRow, firstColumn, lastColumn);
+        }
+
+        private void RemapSortedComments(IReadOnlyDictionary<int, int> rowMap, int firstRow, int lastRow, int firstColumn, int lastColumn) {
+            var commentsPart = WorksheetCommentsPartRoot;
+            if (commentsPart?.Comments?.CommentList == null) {
+                return;
+            }
+
+            var moved = new List<((int Row, int Col) OldCell, (int Row, int Col) NewCell)>();
+            foreach (var comment in commentsPart.Comments.CommentList.Elements<Comment>()) {
+                if (comment.Reference?.Value is not string reference) {
+                    continue;
+                }
+
+                var cell = A1.ParseCellRef(reference);
+                if (cell.Row < firstRow || cell.Row > lastRow || cell.Col < firstColumn || cell.Col > lastColumn) {
+                    continue;
+                }
+
+                if (rowMap.TryGetValue(cell.Row, out int targetRow)) {
+                    comment.Reference = A1.CellReference(targetRow, cell.Col);
+                    moved.Add((cell, (targetRow, cell.Col)));
+                }
+            }
+
+            if (moved.Count == 0) {
+                return;
+            }
+
+            commentsPart.Comments.Save();
+            foreach (var pair in moved) {
+                RemoveCommentVmlShape(pair.OldCell.Row, pair.OldCell.Col);
+            }
+
+            foreach (var pair in moved) {
+                EnsureCommentVmlShape(pair.NewCell.Row, pair.NewCell.Col);
+            }
+        }
+
+        private void RemapSortedHyperlinks(IReadOnlyDictionary<int, int> rowMap, int firstRow, int lastRow, int firstColumn, int lastColumn) {
+            var hyperlinks = WorksheetRoot.GetFirstChild<Hyperlinks>();
+            if (hyperlinks == null) {
+                return;
+            }
+
+            foreach (var link in hyperlinks.Elements<Hyperlink>()) {
+                if (link.Reference?.Value is string reference
+                    && TryRemapReferenceForSortedRange(reference, rowMap, firstRow, lastRow, firstColumn, lastColumn, out string remapped)) {
+                    link.Reference = remapped;
+                }
+            }
+        }
+
+        private void RemapSortedDataValidations(IReadOnlyDictionary<int, int> rowMap, int firstRow, int lastRow, int firstColumn, int lastColumn) {
+            var validations = WorksheetRoot.GetFirstChild<DataValidations>();
+            if (validations == null) {
+                return;
+            }
+
+            foreach (var validation in validations.Elements<DataValidation>()) {
+                if (validation.SequenceOfReferences?.InnerText is string references
+                    && TryRemapReferenceListForSortedRange(references, rowMap, firstRow, lastRow, firstColumn, lastColumn, out string remapped)) {
+                    validation.SequenceOfReferences = new ListValue<StringValue> { InnerText = remapped };
+                }
+            }
+        }
+
+        private void RemapSortedConditionalFormatting(IReadOnlyDictionary<int, int> rowMap, int firstRow, int lastRow, int firstColumn, int lastColumn) {
+            foreach (var conditional in WorksheetRoot.Elements<ConditionalFormatting>()) {
+                if (conditional.SequenceOfReferences?.InnerText is string references
+                    && TryRemapReferenceListForSortedRange(references, rowMap, firstRow, lastRow, firstColumn, lastColumn, out string remapped)) {
+                    conditional.SequenceOfReferences = new ListValue<StringValue> { InnerText = remapped };
+                }
+            }
+        }
+
         private RowSnapshot CaptureRow(int rowIndex, int firstColumn, int lastColumn, int sortColumn) {
             var cells = new List<CellSnapshot>();
             object? sortValue = null;
@@ -370,6 +473,67 @@ namespace OfficeIMO.Excel {
             return left.r1 <= right.r2 && left.r2 >= right.r1 && left.c1 <= right.c2 && left.c2 >= right.c1;
         }
 
+        private static bool TryRemapReferenceListForSortedRange(string referenceList, IReadOnlyDictionary<int, int> rowMap, int firstRow, int lastRow, int firstColumn, int lastColumn, out string remapped) {
+            bool changed = false;
+            var parts = new List<string>();
+            foreach (string part in SplitReferenceList(referenceList)) {
+                if (TryRemapReferenceForSortedRange(part, rowMap, firstRow, lastRow, firstColumn, lastColumn, out string remappedPart)) {
+                    parts.Add(remappedPart);
+                    changed = true;
+                } else {
+                    parts.Add(part);
+                }
+            }
+
+            remapped = string.Join(" ", parts);
+            return changed;
+        }
+
+        private static bool TryRemapReferenceForSortedRange(string reference, IReadOnlyDictionary<int, int> rowMap, int firstRow, int lastRow, int firstColumn, int lastColumn, out string remapped) {
+            remapped = reference;
+            var bounds = TryParseReference(reference, out var parsed) ? parsed : default;
+            if (bounds == default
+                || bounds.r1 < firstRow
+                || bounds.r2 > lastRow
+                || bounds.c1 < firstColumn
+                || bounds.c2 > lastColumn) {
+                return false;
+            }
+
+            var remappedRows = new List<int>();
+            bool changed = false;
+            for (int row = bounds.r1; row <= bounds.r2; row++) {
+                if (rowMap.TryGetValue(row, out int targetRow)) {
+                    remappedRows.Add(targetRow);
+                    changed = true;
+                } else {
+                    remappedRows.Add(row);
+                }
+            }
+
+            if (!changed) {
+                return false;
+            }
+
+            remappedRows.Sort();
+            var parts = new List<string>();
+            int runStart = remappedRows[0];
+            int previous = remappedRows[0];
+            for (int index = 1; index < remappedRows.Count; index++) {
+                if (remappedRows[index] == previous + 1) {
+                    previous = remappedRows[index];
+                    continue;
+                }
+
+                parts.Add(ToReference(runStart, bounds.c1, previous, bounds.c2));
+                runStart = previous = remappedRows[index];
+            }
+
+            parts.Add(ToReference(runStart, bounds.c1, previous, bounds.c2));
+            remapped = string.Join(" ", parts);
+            return true;
+        }
+
         private void ClearHyperlinksInRange(Worksheet ws, string a1Range) {
             var bounds = A1.ParseRange(a1Range);
             var hyperlinks = ws.GetFirstChild<Hyperlinks>();
@@ -403,6 +567,28 @@ namespace OfficeIMO.Excel {
         private static (int r1, int c1, int r2, int c2) CellAsRange(string cellRef) {
             var parsed = A1.ParseCellRef(cellRef);
             return (parsed.Row, parsed.Col, parsed.Row, parsed.Col);
+        }
+
+        private static bool TryParseReference(string reference, out (int r1, int c1, int r2, int c2) bounds) {
+            string normalized = reference.Replace("$", string.Empty);
+            if (normalized.IndexOf(':') >= 0) {
+                return A1.TryParseRange(normalized, out bounds.r1, out bounds.c1, out bounds.r2, out bounds.c2);
+            }
+
+            var cell = A1.ParseCellRef(normalized);
+            if (cell.Row <= 0 || cell.Col <= 0) {
+                bounds = default;
+                return false;
+            }
+
+            bounds = (cell.Row, cell.Col, cell.Row, cell.Col);
+            return true;
+        }
+
+        private static string ToReference(int r1, int c1, int r2, int c2) {
+            string start = A1.CellReference(r1, c1);
+            string end = A1.CellReference(r2, c2);
+            return string.Equals(start, end, StringComparison.OrdinalIgnoreCase) ? start : $"{start}:{end}";
         }
 
         private sealed class RowSnapshot {

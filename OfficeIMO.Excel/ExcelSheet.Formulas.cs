@@ -87,7 +87,9 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
                     string? reference = cell.CellFormula?.Reference?.Value;
-                    if (!string.IsNullOrWhiteSpace(reference) && RangesOverlapInclusive((r1, c1, r2, c2), A1.ParseRange(reference!))) {
+                    if (!string.IsNullOrWhiteSpace(reference)
+                        && A1.TryParseRange(reference!, out int existingR1, out int existingC1, out int existingR2, out int existingC2)
+                        && RangesOverlapInclusive((r1, c1, r2, c2), (existingR1, existingC1, existingR2, existingC2))) {
                         throw new InvalidOperationException($"Array formula range '{a1Range}' overlaps existing array formula range '{reference}'.");
                     }
                 }
@@ -121,7 +123,9 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
                     string? reference = cell.CellFormula?.Reference?.Value;
-                    if (!string.IsNullOrWhiteSpace(reference) && RangesOverlapInclusive(bounds, A1.ParseRange(reference!))) {
+                    if (!string.IsNullOrWhiteSpace(reference)
+                        && A1.TryParseRange(reference!, out int existingR1, out int existingC1, out int existingR2, out int existingC2)
+                        && RangesOverlapInclusive(bounds, (existingR1, existingC1, existingR2, existingC2))) {
                         cell.CellFormula = null;
                         cell.CellValue = null;
                     }
@@ -140,7 +144,10 @@ namespace OfficeIMO.Excel {
             try {
                 var functionMatch = SimpleFunctionFormulaRegex.Match(formula);
                 if (functionMatch.Success) {
-                    var values = ResolveFormulaArguments(functionMatch.Groups[2].Value).ToList();
+                    if (!TryResolveFormulaArguments(functionMatch.Groups[2].Value, out var values)) {
+                        return false;
+                    }
+
                     string function = functionMatch.Groups[1].Value.ToUpperInvariant();
                     if (function == "COUNTA") {
                         result = values.Count(v => v.HasValue || !string.IsNullOrEmpty(v.Text));
@@ -195,29 +202,40 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private IEnumerable<FormulaArgumentValue> ResolveFormulaArguments(string args) {
+        private bool TryResolveFormulaArguments(string args, out List<FormulaArgumentValue> values) {
+            values = new List<FormulaArgumentValue>();
             foreach (var token in args.Split(',')) {
                 string trimmed = token.Trim();
                 if (trimmed.Length == 0) continue;
                 if (trimmed.IndexOf(':') >= 0) {
-                    var (r1, c1, r2, c2) = A1.ParseRange(trimmed.Replace("$", string.Empty));
+                    if (!A1.TryParseRange(trimmed.Replace("$", string.Empty), out int r1, out int c1, out int r2, out int c2)) {
+                        values.Clear();
+                        return false;
+                    }
+
                     for (int row = r1; row <= r2; row++) {
                         for (int column = c1; column <= c2; column++) {
-                            yield return ResolveCellArgument(row, column);
+                            values.Add(ResolveCellArgument(row, column));
                         }
                     }
                     continue;
                 }
 
                 if (TryParseFormulaCellReference(trimmed, out var cellRef)) {
-                    yield return ResolveCellArgument(cellRef.Row, cellRef.Col);
+                    values.Add(ResolveCellArgument(cellRef.Row, cellRef.Col));
                     continue;
                 }
 
                 if (double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out double numeric)) {
-                    yield return new FormulaArgumentValue(numeric, trimmed);
+                    values.Add(new FormulaArgumentValue(numeric, trimmed));
+                    continue;
                 }
+
+                values.Clear();
+                return false;
             }
+
+            return true;
         }
 
         private bool TryResolveNumericOperand(string token, out double value) {

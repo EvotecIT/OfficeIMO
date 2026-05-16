@@ -62,6 +62,9 @@ namespace OfficeIMO.Excel {
             } catch (OverflowException) {
                 value = default;
                 return false;
+            } catch (ArgumentException) {
+                value = default;
+                return false;
             }
         }
 
