@@ -44,6 +44,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Word_LoadEncrypted_DoesNotAttachEncryptedPathOrAllowAutoSave() {
+            string path = CreateTempPath(".docx");
+
+            using (var document = WordDocument.Create()) {
+                document.AddParagraph("Encrypted Word content");
+                document.SaveEncrypted(path, Password);
+            }
+
+            using (var loaded = WordDocument.LoadEncrypted(path, Password)) {
+                Assert.True(string.IsNullOrEmpty(loaded.FilePath));
+            }
+
+            Assert.Throws<NotSupportedException>(() => WordDocument.LoadEncrypted(path, Password, autoSave: true));
+            Assert.Throws<NotSupportedException>(() => WordDocument.LoadEncrypted(path, Password, openSettings: new OpenSettings { AutoSave = true }));
+        }
+
+        [Fact]
         public void Excel_SaveEncrypted_And_LoadEncrypted_RoundTrips() {
             string path = CreateTempPath(".xlsx");
 
@@ -79,6 +96,24 @@ namespace OfficeIMO.Tests {
             Assert.Equal("EncryptedStream", loaded.Sheets[0].Name);
             Assert.True(loaded.Sheets[0].TryGetCellText(1, 1, out var value));
             Assert.Equal("Encrypted Excel stream content", value);
+        }
+
+        [Fact]
+        public void Excel_LoadEncrypted_DoesNotAttachEncryptedPathOrAllowAutoSave() {
+            string path = CreateTempPath(".xlsx");
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Encrypted");
+                sheet.CellValue(1, 1, "Encrypted Excel content");
+                document.SaveEncrypted(path, Password);
+            }
+
+            using (var loaded = ExcelDocument.LoadEncrypted(path, Password)) {
+                Assert.True(string.IsNullOrEmpty(loaded.FilePath));
+            }
+
+            Assert.Throws<NotSupportedException>(() => ExcelDocument.LoadEncrypted(path, Password, autoSave: true));
+            Assert.Throws<NotSupportedException>(() => ExcelDocument.LoadEncrypted(path, Password, openSettings: new OpenSettings { AutoSave = true }));
         }
 
         [Fact]

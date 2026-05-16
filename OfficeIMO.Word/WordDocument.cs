@@ -1309,22 +1309,28 @@ namespace OfficeIMO.Word {
         /// <param name="filePath">Path to the encrypted document.</param>
         /// <param name="password">Password used to decrypt the document package.</param>
         /// <param name="readOnly">Open the decrypted package in read-only mode.</param>
-        /// <param name="autoSave">Enable Open XML auto-save for the decrypted in-memory package.</param>
+        /// <param name="autoSave">Encrypted loads do not support auto-save. Use <see cref="SaveEncrypted(string,string,bool)"/> to persist encrypted changes.</param>
         /// <param name="overrideStyles">When <c>true</c>, existing styles are replaced with library versions. Ignored when <paramref name="readOnly"/> is <c>true</c>.</param>
         /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
         /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
         public static WordDocument LoadEncrypted(string filePath, string password, bool readOnly = false, bool autoSave = false, bool overrideStyles = false, OpenSettings? openSettings = null) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (password == null) throw new ArgumentNullException(nameof(password));
+            EnsureEncryptedLoadDoesNotAutoSave(autoSave, openSettings);
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
-            byte[] encryptedBytes = File.ReadAllBytes(filePath);
+            byte[] encryptedBytes;
+            using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)) {
+                using var buffer = new MemoryStream();
+                fileStream.CopyTo(buffer);
+                encryptedBytes = buffer.ToArray();
+            }
             byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             var stream = new MemoryStream(packageBytes);
-            var document = Load(stream, readOnly, autoSave, overrideStyles, openSettings);
-            document.FilePath = filePath;
+            var document = Load(stream, readOnly, autoSave: false, overrideStyles, openSettings);
+            document.FilePath = string.Empty;
             document._ownedPackageStream = stream;
             return document;
         }
@@ -1335,7 +1341,7 @@ namespace OfficeIMO.Word {
         /// <param name="stream">Readable stream containing the encrypted document.</param>
         /// <param name="password">Password used to decrypt the document package.</param>
         /// <param name="readOnly">Open the decrypted package in read-only mode.</param>
-        /// <param name="autoSave">Enable Open XML auto-save for the decrypted in-memory package.</param>
+        /// <param name="autoSave">Encrypted loads do not support auto-save. Use <see cref="SaveEncrypted(Stream,string)"/> to persist encrypted changes.</param>
         /// <param name="overrideStyles">When <c>true</c>, existing styles are replaced with library versions. Ignored when <paramref name="readOnly"/> is <c>true</c>.</param>
         /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
         /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
@@ -1343,6 +1349,7 @@ namespace OfficeIMO.Word {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+            EnsureEncryptedLoadDoesNotAutoSave(autoSave, openSettings);
 
             using var buffer = new MemoryStream();
             if (stream.CanSeek) {
@@ -1351,9 +1358,15 @@ namespace OfficeIMO.Word {
             stream.CopyTo(buffer);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(buffer.ToArray(), password);
             var packageStream = new MemoryStream(packageBytes);
-            var document = Load(packageStream, readOnly, autoSave, overrideStyles, openSettings);
+            var document = Load(packageStream, readOnly, autoSave: false, overrideStyles, openSettings);
             document._ownedPackageStream = packageStream;
             return document;
+        }
+
+        private static void EnsureEncryptedLoadDoesNotAutoSave(bool autoSave, OpenSettings? openSettings) {
+            if (autoSave || openSettings?.AutoSave == true) {
+                throw new NotSupportedException("Auto-save is not supported for encrypted Word loads. Use SaveEncrypted to persist encrypted changes.");
+            }
         }
 
         /// <summary>

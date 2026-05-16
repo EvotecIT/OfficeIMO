@@ -841,20 +841,21 @@ namespace OfficeIMO.Excel {
         /// <param name="filePath">Path to the encrypted workbook.</param>
         /// <param name="password">Password used to decrypt the workbook package.</param>
         /// <param name="readOnly">Open the decrypted workbook in read-only mode.</param>
-        /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <param name="autoSave">Encrypted loads do not support auto-save. Use <see cref="SaveEncrypted(string,string,bool,ExcelSaveOptions?)"/> to persist encrypted changes.</param>
         /// <param name="log">Optional callback invoked when normalization failures are encountered.</param>
         /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
         public static ExcelDocument LoadEncrypted(string filePath, string password, bool readOnly = false, bool autoSave = false, Action<string, Exception>? log = null, OpenSettings? openSettings = null) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (password == null) throw new ArgumentNullException(nameof(password));
+            EnsureEncryptedLoadDoesNotAutoSave(autoSave, openSettings);
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
             var encryptedBytes = ReadAllBytesCompatAsync(filePath, CancellationToken.None).GetAwaiter().GetResult();
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            return LoadFromByteArray(packageBytes, readOnly, autoSave, filePath, log, openSettings, preferFilePathOnFallback: false);
+            return LoadFromByteArray(packageBytes, readOnly, autoSave: false, filePath: null, log, openSettings, preferFilePathOnFallback: false);
         }
 
         /// <summary>
@@ -899,17 +900,18 @@ namespace OfficeIMO.Excel {
         /// <param name="stream">Input stream containing the encrypted workbook.</param>
         /// <param name="password">Password used to decrypt the workbook package.</param>
         /// <param name="readOnly">Open the decrypted workbook in read-only mode.</param>
-        /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <param name="autoSave">Encrypted loads do not support auto-save. Use <see cref="SaveEncrypted(Stream,string,ExcelSaveOptions?)"/> to persist encrypted changes.</param>
         /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
         public static ExcelDocument LoadEncrypted(Stream stream, string password, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+            EnsureEncryptedLoadDoesNotAutoSave(autoSave, openSettings);
 
             var encryptedBytes = ReadAllBytes(stream);
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            return LoadFromByteArray(packageBytes, readOnly, autoSave, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
+            return LoadFromByteArray(packageBytes, readOnly, autoSave: false, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
         }
 
         /// <summary>
@@ -972,19 +974,20 @@ namespace OfficeIMO.Excel {
         /// <param name="filePath">Path to the encrypted workbook.</param>
         /// <param name="password">Password used to decrypt the workbook package.</param>
         /// <param name="readOnly">Open the decrypted workbook in read-only mode.</param>
-        /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <param name="autoSave">Encrypted loads do not support auto-save. Use <see cref="SaveEncrypted(string,string,bool,ExcelSaveOptions?)"/> to persist encrypted changes.</param>
         /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
         public static async Task<ExcelDocument> LoadEncryptedAsync(string filePath, string password, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (password == null) throw new ArgumentNullException(nameof(password));
+            EnsureEncryptedLoadDoesNotAutoSave(autoSave, openSettings);
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
             var encryptedBytes = await ReadAllBytesCompatAsync(filePath, CancellationToken.None).ConfigureAwait(false);
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            return LoadFromByteArray(packageBytes, readOnly, autoSave, filePath, log: null, openSettings, preferFilePathOnFallback: false);
+            return LoadFromByteArray(packageBytes, readOnly, autoSave: false, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
         }
 
         /// <summary>
@@ -1030,7 +1033,7 @@ namespace OfficeIMO.Excel {
         /// <param name="stream">Input stream containing the encrypted workbook.</param>
         /// <param name="password">Password used to decrypt the workbook package.</param>
         /// <param name="readOnly">Open the decrypted workbook in read-only mode.</param>
-        /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <param name="autoSave">Encrypted loads do not support auto-save. Use <see cref="SaveEncrypted(Stream,string,ExcelSaveOptions?)"/> to persist encrypted changes.</param>
         /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
@@ -1038,10 +1041,17 @@ namespace OfficeIMO.Excel {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+            EnsureEncryptedLoadDoesNotAutoSave(autoSave, openSettings);
 
             var encryptedBytes = await ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            return LoadFromByteArray(packageBytes, readOnly, autoSave, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
+            return LoadFromByteArray(packageBytes, readOnly, autoSave: false, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
+        }
+
+        private static void EnsureEncryptedLoadDoesNotAutoSave(bool autoSave, OpenSettings? openSettings) {
+            if (autoSave || openSettings?.AutoSave == true) {
+                throw new NotSupportedException("Auto-save is not supported for encrypted Excel loads. Use SaveEncrypted to persist encrypted changes.");
+            }
         }
 
         /// <summary>

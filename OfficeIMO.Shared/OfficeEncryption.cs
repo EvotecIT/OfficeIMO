@@ -213,8 +213,7 @@ namespace OfficeIMO.Shared {
                     VerifierHashInputBlockKey);
 
                 verifierIv = GenerateIv(descriptor.PasswordSaltValue, null, descriptor.PasswordHashAlgorithm);
-                paddedVerifier = DecryptAes(descriptor.EncryptedVerifierHashInput, verifierKey, verifierIv);
-                verifier = TrimTrailingPadding(paddedVerifier);
+                verifier = DecryptAes(descriptor.EncryptedVerifierHashInput, verifierKey, verifierIv);
 
                 verifierHashKey = DeriveKey(
                     password,
