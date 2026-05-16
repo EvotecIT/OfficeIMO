@@ -192,19 +192,19 @@ namespace OfficeIMO.Excel {
             }
 
             return new ExcelWorksheetProtectionSnapshot {
-                AllowSelectLockedCells = protection.SelectLockedCells?.Value == true,
-                AllowSelectUnlockedCells = protection.SelectUnlockedCells?.Value == true,
-                AllowFormatCells = protection.FormatCells?.Value == true,
-                AllowFormatColumns = protection.FormatColumns?.Value == true,
-                AllowFormatRows = protection.FormatRows?.Value == true,
-                AllowInsertColumns = protection.InsertColumns?.Value == true,
-                AllowInsertRows = protection.InsertRows?.Value == true,
-                AllowInsertHyperlinks = protection.InsertHyperlinks?.Value == true,
-                AllowDeleteColumns = protection.DeleteColumns?.Value == true,
-                AllowDeleteRows = protection.DeleteRows?.Value == true,
-                AllowSort = protection.Sort?.Value == true,
-                AllowAutoFilter = protection.AutoFilter?.Value == true,
-                AllowPivotTables = protection.PivotTables?.Value == true,
+                AllowSelectLockedCells = protection.SelectLockedCells?.Value != true,
+                AllowSelectUnlockedCells = protection.SelectUnlockedCells?.Value != true,
+                AllowFormatCells = protection.FormatCells?.Value != true,
+                AllowFormatColumns = protection.FormatColumns?.Value != true,
+                AllowFormatRows = protection.FormatRows?.Value != true,
+                AllowInsertColumns = protection.InsertColumns?.Value != true,
+                AllowInsertRows = protection.InsertRows?.Value != true,
+                AllowInsertHyperlinks = protection.InsertHyperlinks?.Value != true,
+                AllowDeleteColumns = protection.DeleteColumns?.Value != true,
+                AllowDeleteRows = protection.DeleteRows?.Value != true,
+                AllowSort = protection.Sort?.Value != true,
+                AllowAutoFilter = protection.AutoFilter?.Value != true,
+                AllowPivotTables = protection.PivotTables?.Value != true,
             };
         }
 

@@ -261,7 +261,7 @@ namespace OfficeIMO.Excel {
         /// <exception cref="ArgumentException">Thrown when <paramref name="range"/> is not in a valid format.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the specified range overlaps with an existing table.</exception>
         public void AddTable(string range, bool hasHeader, string name, TableStyle style) {
-            AddTable(range, hasHeader, name, style, includeAutoFilter: true);
+            AddTableCore(range, hasHeader, name, style, includeAutoFilter: true);
         }
 
         /// <summary>
@@ -300,10 +300,19 @@ namespace OfficeIMO.Excel {
         /// - Order doesn't matter — the final state will be consistent regardless of operation order.
         /// </remarks>
         public void AddTable(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize) {
+            AddTableCore(range, hasHeader, name, style, includeAutoFilter, validationMode);
+        }
+
+        internal string AddTableAndGetName(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize) {
+            return AddTableCore(range, hasHeader, name, style, includeAutoFilter, validationMode);
+        }
+
+        private string AddTableCore(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
 
+            string resolvedName = string.Empty;
             WriteLock(() => {
                 var cells = range.Split(':');
                 if (cells.Length != 2) {
@@ -391,6 +400,7 @@ namespace OfficeIMO.Excel {
                 if (string.IsNullOrWhiteSpace(name)) {
                     throw new InvalidOperationException("Table name cannot be empty after validation.");
                 }
+                resolvedName = name;
                 // Reserve the final name in the workbook-level cache for fast uniqueness checks
                 _excelDocument.ReserveTableName(name);
 
@@ -491,6 +501,8 @@ namespace OfficeIMO.Excel {
 
                 WorksheetRoot.Save();
             });
+
+            return resolvedName;
         }
 
         /// <summary>

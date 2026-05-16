@@ -29,19 +29,19 @@ namespace OfficeIMO.Excel {
                 }
 
                 protection.Sheet = true;
-                protection.SelectLockedCells = opts.AllowSelectLockedCells;
-                protection.SelectUnlockedCells = opts.AllowSelectUnlockedCells;
-                protection.FormatCells = opts.AllowFormatCells;
-                protection.FormatColumns = opts.AllowFormatColumns;
-                protection.FormatRows = opts.AllowFormatRows;
-                protection.InsertColumns = opts.AllowInsertColumns;
-                protection.InsertRows = opts.AllowInsertRows;
-                protection.InsertHyperlinks = opts.AllowInsertHyperlinks;
-                protection.DeleteColumns = opts.AllowDeleteColumns;
-                protection.DeleteRows = opts.AllowDeleteRows;
-                protection.Sort = opts.AllowSort;
-                protection.AutoFilter = opts.AllowAutoFilter;
-                protection.PivotTables = opts.AllowPivotTables;
+                protection.SelectLockedCells = !opts.AllowSelectLockedCells;
+                protection.SelectUnlockedCells = !opts.AllowSelectUnlockedCells;
+                protection.FormatCells = !opts.AllowFormatCells;
+                protection.FormatColumns = !opts.AllowFormatColumns;
+                protection.FormatRows = !opts.AllowFormatRows;
+                protection.InsertColumns = !opts.AllowInsertColumns;
+                protection.InsertRows = !opts.AllowInsertRows;
+                protection.InsertHyperlinks = !opts.AllowInsertHyperlinks;
+                protection.DeleteColumns = !opts.AllowDeleteColumns;
+                protection.DeleteRows = !opts.AllowDeleteRows;
+                protection.Sort = !opts.AllowSort;
+                protection.AutoFilter = !opts.AllowAutoFilter;
+                protection.PivotTables = !opts.AllowPivotTables;
                 string? hash = ExcelProtectionHash.ResolveLegacyHash(opts.Password, opts.LegacyPasswordHash);
                 if (hash != null) {
                     protection.Password = hash;

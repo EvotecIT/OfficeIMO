@@ -223,7 +223,7 @@ namespace OfficeIMO.Tests {
                 WorksheetPart worksheetPart = spreadsheet.WorkbookPart.WorksheetParts.First();
                 SheetProtection sheetProtection = worksheetPart.Worksheet.Elements<SheetProtection>().First();
                 Assert.True(sheetProtection.Sheet!.Value);
-                Assert.True(sheetProtection.Sort!.Value);
+                Assert.False(sheetProtection.Sort!.Value);
                 Assert.Equal("BEEF", sheetProtection.Password!.Value);
             }
 
@@ -281,6 +281,132 @@ namespace OfficeIMO.Tests {
                 range.Clear(ExcelClearOptions.Values);
                 Assert.True(range.FirstCell.GetValue().IsBlank);
                 document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_RangeCreateTable_ReturnsResolvedTableName() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ResolvedTableName.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Table");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Score");
+                sheet.CellValue(2, 1, "Alpha");
+                sheet.CellValue(2, 2, 10d);
+
+                ExcelTable table = sheet.Range("A1:B2").CreateTable("My Table");
+                Assert.Equal("My_Table", table.NameOrRange);
+                Assert.Equal("A1:B2", table.Range);
+                table.SetStyle(ExcelTableStyle.TableStyleMedium4);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_ClearHyperlinks_PreservesNonOverlappingRangeSegments() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ClearHyperlinkSegments.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Links");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(2, 1, "One");
+                sheet.CellValue(3, 1, "Two");
+                sheet.CellValue(4, 1, "Three");
+                sheet.SetHyperlink(2, 1, "https://example.com", display: "Linked", style: false);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Hyperlink hyperlink = worksheetPart.Worksheet.Descendants<Hyperlink>().Single();
+                hyperlink.Reference = "A2:A4";
+                worksheetPart.Worksheet.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                document.Sheets[0].Range("A3").Clear(ExcelClearOptions.Hyperlinks);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                string[] references = worksheetPart.Worksheet.Descendants<Hyperlink>()
+                    .Select(hyperlink => hyperlink.Reference?.Value ?? string.Empty)
+                    .OrderBy(reference => reference)
+                    .ToArray();
+
+                Assert.Equal(new[] { "A2", "A4" }, references);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_Sort_RewritesRelativeFormulaRows() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.SortFormulaRows.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Sort");
+                sheet.CellValue(1, 1, "Value");
+                sheet.CellValue(1, 2, "Formula");
+                sheet.CellValue(2, 1, 2d);
+                sheet.CellValue(3, 1, 1d);
+                sheet.CellAt(2, 2).SetFormula("A2");
+                sheet.CellAt(3, 2).SetFormula("A3");
+
+                sheet.SortRangeByColumn("A1:B3", 1, ascending: true, hasHeader: true);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Dictionary<string, string?> formulas = worksheetPart.Worksheet.Descendants<Cell>()
+                    .Where(cell => cell.CellFormula != null)
+                    .ToDictionary(cell => cell.CellReference!.Value!, cell => cell.CellFormula?.Text);
+
+                Assert.Equal("A2", formulas["B2"]);
+                Assert.Equal("A3", formulas["B3"]);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_Sort_DoesNotMaterializeSparseBlankCells() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.SortSparse.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Sparse");
+                sheet.CellValue(1, 1, "Value");
+                sheet.CellValue(1, 2, "Blank");
+                sheet.CellValue(2, 1, 2d);
+                sheet.CellValue(3, 1, 1d);
+
+                sheet.SortRangeByColumn("A1:B3", 1, ascending: true, hasHeader: true);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                string[] references = worksheetPart.Worksheet.Descendants<Cell>()
+                    .Select(cell => cell.CellReference?.Value ?? string.Empty)
+                    .ToArray();
+
+                Assert.DoesNotContain("B2", references);
+                Assert.DoesNotContain("B3", references);
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {

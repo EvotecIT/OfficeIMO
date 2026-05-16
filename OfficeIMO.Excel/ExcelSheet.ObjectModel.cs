@@ -23,7 +23,15 @@ namespace OfficeIMO.Excel {
         public ExcelTable Table(string nameOrRange) => new ExcelTable(this, nameOrRange);
 
         internal ExcelCellData GetCellValueSnapshot(int row, int column) {
-            var cell = GetCell(row, column);
+            var cell = TryGetExistingCell(row, column);
+            return GetCellValueSnapshot(cell);
+        }
+
+        private ExcelCellData GetCellValueSnapshot(Cell? cell) {
+            if (cell == null) {
+                return new ExcelCellData(ExcelCellDataKind.Blank, null);
+            }
+
             string? cached = cell.CellValue?.Text;
             if (cell.CellFormula != null) {
                 object? formulaValue = double.TryParse(cached, NumberStyles.Float, CultureInfo.InvariantCulture, out double cachedNumber)
@@ -183,11 +191,12 @@ namespace OfficeIMO.Excel {
                     return ascending ? result : -result;
                 });
 
+                var rowMap = BuildSortedRowMap(rows, firstDataRow);
                 for (int index = 0; index < rows.Count; index++) {
-                    WriteRowSnapshot(firstDataRow + index, c1, c2, rows[index]);
+                    WriteRowSnapshot(firstDataRow + index, c1, c2, rows[index], rowMap);
                 }
 
-                RemapSortedRangeMetadata(rows, firstDataRow, r2, c1, c2);
+                RemapSortedRangeMetadata(rowMap, firstDataRow, r2, c1, c2);
                 WorksheetRoot.Save();
                 ClearHeaderCache();
             });
@@ -328,7 +337,7 @@ namespace OfficeIMO.Excel {
             CleanupCommentArtifacts();
         }
 
-        private void RemapSortedRangeMetadata(IReadOnlyList<RowSnapshot> rows, int firstRow, int lastRow, int firstColumn, int lastColumn) {
+        private static Dictionary<int, int> BuildSortedRowMap(IReadOnlyList<RowSnapshot> rows, int firstRow) {
             var rowMap = new Dictionary<int, int>();
             for (int index = 0; index < rows.Count; index++) {
                 int targetRow = firstRow + index;
@@ -337,6 +346,10 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            return rowMap;
+        }
+
+        private void RemapSortedRangeMetadata(IReadOnlyDictionary<int, int> rowMap, int firstRow, int lastRow, int firstColumn, int lastColumn) {
             if (rowMap.Count == 0) {
                 return;
             }
@@ -439,30 +452,42 @@ namespace OfficeIMO.Excel {
             var cells = new List<CellSnapshot>();
             object? sortValue = null;
             for (int column = firstColumn; column <= lastColumn; column++) {
-                var cell = GetCell(rowIndex, column);
-                var clone = (Cell)cell.CloneNode(true);
+                var cell = TryGetExistingCell(rowIndex, column);
+                var clone = cell == null ? null : (Cell)cell.CloneNode(true);
                 cells.Add(new CellSnapshot(column - firstColumn, clone));
                 if (column == sortColumn) {
-                    sortValue = GetCellValueSnapshot(rowIndex, column).Value;
+                    sortValue = GetCellValueSnapshot(cell).Value;
                 }
             }
 
             return new RowSnapshot(rowIndex, cells, sortValue);
         }
 
-        private void WriteRowSnapshot(int targetRow, int firstColumn, int lastColumn, RowSnapshot snapshot) {
+        private void WriteRowSnapshot(int targetRow, int firstColumn, int lastColumn, RowSnapshot snapshot, IReadOnlyDictionary<int, int> rowMap) {
             for (int column = firstColumn; column <= lastColumn; column++) {
-                var cell = GetCell(targetRow, column);
+                var source = snapshot.Cells[column - firstColumn].Cell;
+                var cell = TryGetExistingCell(targetRow, column);
+                if (source == null) {
+                    cell?.Remove();
+                    continue;
+                }
+
+                cell ??= GetCell(targetRow, column);
                 cell.RemoveAllChildren();
                 cell.CellFormula = null;
                 cell.CellValue = null;
                 cell.DataType = null;
                 cell.StyleIndex = null;
 
-                var source = snapshot.Cells[column - firstColumn].Cell;
                 cell.DataType = source.DataType;
                 cell.StyleIndex = source.StyleIndex;
-                if (source.CellFormula != null) cell.CellFormula = (CellFormula)source.CellFormula.CloneNode(true);
+                if (source.CellFormula != null) {
+                    var formula = (CellFormula)source.CellFormula.CloneNode(true);
+                    if (!string.IsNullOrEmpty(formula.Text)) {
+                        formula.Text = RewriteSortedFormulaReferences(formula.Text, rowMap, firstColumn, lastColumn);
+                    }
+                    cell.CellFormula = formula;
+                }
                 if (source.CellValue != null) cell.CellValue = (CellValue)source.CellValue.CloneNode(true);
                 if (source.InlineString != null) cell.InlineString = (InlineString)source.InlineString.CloneNode(true);
                 foreach (var child in source.ChildElements.Where(c =>
@@ -555,11 +580,19 @@ namespace OfficeIMO.Excel {
 
             foreach (var link in hyperlinks.Elements<Hyperlink>().ToList()) {
                 if (link.Reference?.Value is string reference) {
-                    var linkBounds = reference.IndexOf(':') >= 0
-                        ? A1.ParseRange(reference)
-                        : CellAsRange(reference);
-                    if (RangesOverlapInclusive(bounds, linkBounds)) {
+                    var remaining = RemoveReferenceOverlap(reference, bounds);
+                    if (remaining.Count == 0) {
                         link.Remove();
+                        continue;
+                    }
+
+                    link.Reference = remaining[0];
+                    var insertAfter = link;
+                    for (int index = 1; index < remaining.Count; index++) {
+                        var clone = (Hyperlink)link.CloneNode(true);
+                        clone.Reference = remaining[index];
+                        hyperlinks.InsertAfter(clone, insertAfter);
+                        insertAfter = clone;
                     }
                 }
             }
@@ -605,6 +638,55 @@ namespace OfficeIMO.Excel {
             return string.Equals(start, end, StringComparison.OrdinalIgnoreCase) ? start : $"{start}:{end}";
         }
 
+        private Cell? TryGetExistingCell(int row, int column) {
+            if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row));
+            if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column));
+
+            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
+            if (sheetData == null) {
+                return null;
+            }
+
+            var rowElement = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex?.Value == (uint)row);
+            if (rowElement == null) {
+                return null;
+            }
+
+            foreach (Cell cell in rowElement.Elements<Cell>()) {
+                if (cell.CellReference?.Value is string reference
+                    && GetColumnIndex(reference) == column) {
+                    return cell;
+                }
+            }
+
+            return null;
+        }
+
+        private static string RewriteSortedFormulaReferences(string formula, IReadOnlyDictionary<int, int> rowMap, int firstColumn, int lastColumn) {
+            if (rowMap.Count == 0 || string.IsNullOrEmpty(formula)) {
+                return formula;
+            }
+
+            return Regex.Replace(
+                formula,
+                @"(?<![A-Za-z0-9_\.!])(\$?)([A-Za-z]{1,3})(\$?)(\d{1,7})(?=[:),+\-*/^&=<> \t\r\n]|$)",
+                match => {
+                    bool rowAbsolute = match.Groups[3].Value == "$";
+                    if (rowAbsolute || !int.TryParse(match.Groups[4].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int row)) {
+                        return match.Value;
+                    }
+
+                    var cell = A1.ParseCellRef(match.Groups[2].Value + row.ToString(CultureInfo.InvariantCulture));
+                    if (cell.Col < firstColumn || cell.Col > lastColumn || !rowMap.TryGetValue(row, out int targetRow)) {
+                        return match.Value;
+                    }
+
+                    return match.Groups[1].Value + match.Groups[2].Value + match.Groups[3].Value + targetRow.ToString(CultureInfo.InvariantCulture);
+                },
+                RegexOptions.CultureInvariant,
+                TimeSpan.FromMilliseconds(200));
+        }
+
         private sealed class RowSnapshot {
             internal RowSnapshot(int originalRow, List<CellSnapshot> cells, object? sortValue) {
                 OriginalRow = originalRow;
@@ -618,13 +700,13 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class CellSnapshot {
-            internal CellSnapshot(int offset, Cell cell) {
+            internal CellSnapshot(int offset, Cell? cell) {
                 Offset = offset;
                 Cell = cell;
             }
 
             internal int Offset { get; }
-            internal Cell Cell { get; }
+            internal Cell? Cell { get; }
         }
     }
 }

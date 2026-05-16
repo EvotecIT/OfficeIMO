@@ -248,8 +248,8 @@ namespace OfficeIMO.Excel {
         /// Creates an Excel table over the range.
         /// </summary>
         public ExcelTable CreateTable(string name, bool hasHeader = true, TableStyle style = TableStyle.TableStyleMedium2, bool includeAutoFilter = true) {
-            Sheet.AddTable(Address, hasHeader, name, style, includeAutoFilter);
-            return Sheet.Table(name);
+            string resolvedName = Sheet.AddTableAndGetName(Address, hasHeader, name, style, includeAutoFilter);
+            return Sheet.Table(resolvedName);
         }
 
         /// <summary>
