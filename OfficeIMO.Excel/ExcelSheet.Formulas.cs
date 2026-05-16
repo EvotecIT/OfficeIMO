@@ -66,15 +66,15 @@ namespace OfficeIMO.Excel {
         /// Returns the formula text from a cell, if present.
         /// </summary>
         public string? GetFormulaText(int row, int column) {
-            return GetCell(row, column).CellFormula?.Text;
+            return TryGetExistingCell(row, column)?.CellFormula?.Text;
         }
 
         /// <summary>
         /// Tries to return a formula cell's cached value.
         /// </summary>
         public bool TryGetCachedFormulaValue(int row, int column, out string? value) {
-            var cell = GetCell(row, column);
-            value = cell.CellFormula == null ? null : cell.CellValue?.Text;
+            var cell = TryGetExistingCell(row, column);
+            value = cell?.CellFormula == null ? null : cell.CellValue?.Text;
             return value != null;
         }
 

@@ -273,8 +273,12 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorkSheet("Range");
                 ExcelRange range = sheet.Range("A1");
+                ExcelRange absoluteCellRange = sheet.Range("$B$2");
+                ExcelRange absoluteMultiCellRange = sheet.Range("$C$3:$D$4");
 
                 Assert.Equal("A1:A1", range.Address);
+                Assert.Equal("B2:B2", absoluteCellRange.Address);
+                Assert.Equal("C3:D4", absoluteMultiCellRange.Address);
                 range.FirstCell.SetValue("single");
                 Assert.Equal("single", range.FirstCell.GetValue<string>());
 
@@ -308,6 +312,34 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
                 Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_Inspection_HonorsSheetProtectionDefaults() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ProtectionDefaults.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("Defaults");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                worksheetPart.Worksheet.Append(new SheetProtection { Sheet = true });
+                worksheetPart.Worksheet.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
+                ExcelWorksheetSnapshot worksheet = Assert.Single(snapshot.Worksheets);
+
+                Assert.NotNull(worksheet.Protection);
+                Assert.True(worksheet.Protection!.AllowSelectLockedCells);
+                Assert.True(worksheet.Protection.AllowSelectUnlockedCells);
+                Assert.False(worksheet.Protection.AllowFormatCells);
+                Assert.False(worksheet.Protection.AllowSort);
+                Assert.False(worksheet.Protection.AllowAutoFilter);
             }
         }
 
@@ -465,6 +497,30 @@ namespace OfficeIMO.Tests {
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
                 WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 Assert.Empty(worksheetPart.Worksheet.Descendants<Cell>());
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_FormulaReadApis_DoNotMaterializeMissingCells() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.FormulaReadMissingCell.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Formula");
+
+                Assert.Null(sheet.GetFormulaText(10, 3));
+                Assert.False(sheet.TryGetCachedFormulaValue(10, 3, out string? cachedValue));
+                Assert.Null(cachedValue);
+
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                string[] references = worksheetPart.Worksheet.Descendants<Cell>()
+                    .Select(cell => cell.CellReference?.Value ?? string.Empty)
+                    .ToArray();
+
+                Assert.DoesNotContain("C10", references);
             }
         }
 

@@ -269,11 +269,12 @@ namespace OfficeIMO.Excel {
         }
 
         private static (int r1, int c1, int r2, int c2) ParseRangeOrCell(string address) {
-            if (A1.TryParseRange(address, out int r1, out int c1, out int r2, out int c2)) {
+            string normalizedAddress = address.Replace("$", string.Empty);
+            if (A1.TryParseRange(normalizedAddress, out int r1, out int c1, out int r2, out int c2)) {
                 return (r1, c1, r2, c2);
             }
 
-            var cell = A1.ParseCellRef(address);
+            var cell = A1.ParseCellRef(normalizedAddress);
             if (cell.Row <= 0 || cell.Col <= 0) {
                 throw new ArgumentException($"Invalid A1 range or cell reference '{address}'.", nameof(address));
             }
