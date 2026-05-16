@@ -19,7 +19,7 @@ It is intentionally honest. "Partial" means usable, not "done".
 | Pivot tables | Partial | Source-range pivot creation supports row/column/page/data fields, layouts, styles, display flags, captions, data-field number formats, field sort/subtotal/display options, field item visibility filters, and selected page-field items. Date/number grouping and advanced value/label filters remain parity targets. |
 | Formula/recalculation story | Partial | Formula authoring exists, but the package does not yet present a first-class recalculation/value-engine story comparable to EPPlus expectations. |
 | Worksheet/workbook protection | Partial | Protection helpers exist, but broader permission fidelity and compatibility proof are still needed. |
-| Encryption/password support | Roadmap | This remains a notable gap for enterprise-style workbook scenarios. |
+| Encryption/password support | Supported | Password-encrypted Office Open XML workbook open/save is available through `LoadEncrypted`, `LoadEncryptedAsync`, and `SaveEncrypted`. Worksheet/workbook protection remains a separate feature area. |
 | Streaming for very large workbooks | Partial | In-memory/file/stream workflows are strong, but the package still needs clearer large-workbook guidance and published benchmarks. |
 | Import fidelity for ugly real-world workbooks | Partial | Correctness has improved, but corpus depth is still lighter than it should be for competitive claims. |
 | Public benchmark evidence | Partial | Committed benchmark snapshots plus write/read profiles now exist. Recent local snapshots show OfficeIMO ahead of ClosedXML on covered write/read/load-edit-save workloads, including the refreshed 25,000-row report-export profile, but broader row-count and hardware coverage is still needed before making large-workbook claims. |
@@ -37,8 +37,7 @@ It is intentionally honest. "Partial" means usable, not "done".
 2. Publish and refresh benchmark result sets on stable hardware instead of relying on a single developer machine snapshot.
 3. Expand the corpus with messy, externally-authored workbooks and round-trip assertions.
 4. Formalize formula/recalculation expectations so users know what is computed versus preserved.
-5. Decide whether encryption/password support is a roadmap item or a deliberate non-goal.
-6. Keep chart/pivot expansion driven by parity tests rather than isolated feature requests.
+5. Keep chart/pivot expansion driven by parity tests rather than isolated feature requests.
 
 ## Latest Snapshot Highlights
 

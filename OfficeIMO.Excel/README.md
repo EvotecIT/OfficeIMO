@@ -58,6 +58,18 @@ stream.Position = 0;
 File.WriteAllBytes("out.xlsx", stream.ToArray());
 ```
 
+Create or open password-encrypted workbooks
+
+```csharp
+using var doc = ExcelDocument.Create("secure.xlsx");
+var sheet = doc.AddWorkSheet("Data");
+sheet.CellValue(1, 1, "Confidential");
+doc.SaveEncrypted("secure.xlsx", "secret");
+
+using var reopened = ExcelDocument.LoadEncrypted("secure.xlsx", "secret");
+var value = reopened.Sheets[0].CellValue(1, 1);
+```
+
 Append to an existing table
 
 ```csharp

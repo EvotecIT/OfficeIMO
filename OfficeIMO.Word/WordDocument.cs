@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Shared;
 using OfficeIMO.Word.Fluent;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -1303,6 +1304,59 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Loads a password-encrypted Office Open XML Word document.
+        /// </summary>
+        /// <param name="filePath">Path to the encrypted document.</param>
+        /// <param name="password">Password used to decrypt the document package.</param>
+        /// <param name="readOnly">Open the decrypted package in read-only mode.</param>
+        /// <param name="autoSave">Enable Open XML auto-save for the decrypted in-memory package.</param>
+        /// <param name="overrideStyles">When <c>true</c>, existing styles are replaced with library versions. Ignored when <paramref name="readOnly"/> is <c>true</c>.</param>
+        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
+        public static WordDocument LoadEncrypted(string filePath, string password, bool readOnly = false, bool autoSave = false, bool overrideStyles = false, OpenSettings? openSettings = null) {
+            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            if (password == null) throw new ArgumentNullException(nameof(password));
+            if (!File.Exists(filePath)) {
+                throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
+            }
+
+            byte[] encryptedBytes = File.ReadAllBytes(filePath);
+            byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
+            var stream = new MemoryStream(packageBytes);
+            var document = Load(stream, readOnly, autoSave, overrideStyles, openSettings);
+            document.FilePath = filePath;
+            document._ownedPackageStream = stream;
+            return document;
+        }
+
+        /// <summary>
+        /// Loads a password-encrypted Office Open XML Word document from a stream.
+        /// </summary>
+        /// <param name="stream">Readable stream containing the encrypted document.</param>
+        /// <param name="password">Password used to decrypt the document package.</param>
+        /// <param name="readOnly">Open the decrypted package in read-only mode.</param>
+        /// <param name="autoSave">Enable Open XML auto-save for the decrypted in-memory package.</param>
+        /// <param name="overrideStyles">When <c>true</c>, existing styles are replaced with library versions. Ignored when <paramref name="readOnly"/> is <c>true</c>.</param>
+        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
+        public static WordDocument LoadEncrypted(Stream stream, string password, bool readOnly = false, bool autoSave = false, bool overrideStyles = false, OpenSettings? openSettings = null) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (password == null) throw new ArgumentNullException(nameof(password));
+            if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+
+            using var buffer = new MemoryStream();
+            if (stream.CanSeek) {
+                stream.Seek(0, SeekOrigin.Begin);
+            }
+            stream.CopyTo(buffer);
+            byte[] packageBytes = OfficeEncryption.DecryptPackage(buffer.ToArray(), password);
+            var packageStream = new MemoryStream(packageBytes);
+            var document = Load(packageStream, readOnly, autoSave, overrideStyles, openSettings);
+            document._ownedPackageStream = packageStream;
+            return document;
+        }
+
+        /// <summary>
         /// Asynchronously loads a <see cref="WordDocument"/> from the given file.
         /// </summary>
         /// <param name="filePath">Path to the file.</param>
@@ -1488,6 +1542,49 @@ namespace OfficeIMO.Word {
             if (openWord) {
                 this.Open(filePath, true);
             }
+        }
+
+        /// <summary>
+        /// Saves the document as a password-encrypted Office Open XML package.
+        /// </summary>
+        /// <param name="filePath">Destination path. When empty, uses the current <see cref="FilePath"/>.</param>
+        /// <param name="password">Password used to encrypt the document package.</param>
+        /// <param name="openWord">Whether to open the saved file after writing.</param>
+        public void SaveEncrypted(string filePath, string password, bool openWord = false) {
+            if (password == null) throw new ArgumentNullException(nameof(password));
+            if (string.IsNullOrEmpty(filePath)) {
+                filePath = FilePath;
+            }
+            if (string.IsNullOrEmpty(filePath)) {
+                throw new InvalidOperationException("This document is not associated with a file path. Provide a file path or call SaveEncrypted(Stream, ...).");
+            }
+            if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
+                throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
+            }
+
+            byte[] packageBytes = SaveAsByteArray();
+            byte[] encryptedBytes = OfficeEncryption.EncryptPackage(packageBytes, password);
+            using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None)) {
+                fs.Write(encryptedBytes, 0, encryptedBytes.Length);
+                fs.Flush();
+            }
+            FilePath = filePath;
+
+            if (openWord) {
+                Open(filePath, true);
+            }
+        }
+
+        /// <summary>
+        /// Saves the document as a password-encrypted Office Open XML package to a stream.
+        /// </summary>
+        /// <param name="destination">Writable stream receiving the encrypted document.</param>
+        /// <param name="password">Password used to encrypt the document package.</param>
+        public void SaveEncrypted(Stream destination, string password) {
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            if (password == null) throw new ArgumentNullException(nameof(password));
+            byte[] packageBytes = SaveAsByteArray();
+            OfficeEncryption.EncryptPackageToStream(packageBytes, password, destination);
         }
 
         /// <summary>

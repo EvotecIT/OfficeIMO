@@ -836,6 +836,28 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Loads a password-encrypted Office Open XML workbook.
+        /// </summary>
+        /// <param name="filePath">Path to the encrypted workbook.</param>
+        /// <param name="password">Password used to decrypt the workbook package.</param>
+        /// <param name="readOnly">Open the decrypted workbook in read-only mode.</param>
+        /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <param name="log">Optional callback invoked when normalization failures are encountered.</param>
+        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
+        public static ExcelDocument LoadEncrypted(string filePath, string password, bool readOnly = false, bool autoSave = false, Action<string, Exception>? log = null, OpenSettings? openSettings = null) {
+            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            if (password == null) throw new ArgumentNullException(nameof(password));
+            if (!File.Exists(filePath)) {
+                throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
+            }
+
+            var encryptedBytes = ReadAllBytesCompatAsync(filePath, CancellationToken.None).GetAwaiter().GetResult();
+            var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
+            return LoadFromByteArray(packageBytes, readOnly, autoSave, filePath, log, openSettings, preferFilePathOnFallback: false);
+        }
+
+        /// <summary>
         /// Loads an existing Excel document from the provided stream.
         /// </summary>
         /// <param name="stream">Input stream containing the workbook package.</param>
@@ -869,6 +891,25 @@ namespace OfficeIMO.Excel {
                 originalStream: shouldCopyBack ? stream : null,
                 copyBackToSource: shouldCopyBack,
                 leaveOriginalStreamOpen: true);
+        }
+
+        /// <summary>
+        /// Loads a password-encrypted Office Open XML workbook from a stream.
+        /// </summary>
+        /// <param name="stream">Input stream containing the encrypted workbook.</param>
+        /// <param name="password">Password used to decrypt the workbook package.</param>
+        /// <param name="readOnly">Open the decrypted workbook in read-only mode.</param>
+        /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
+        public static ExcelDocument LoadEncrypted(Stream stream, string password, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (password == null) throw new ArgumentNullException(nameof(password));
+            if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+
+            var encryptedBytes = ReadAllBytes(stream);
+            var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
+            return LoadFromByteArray(packageBytes, readOnly, autoSave, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
         }
 
         /// <summary>
@@ -926,6 +967,27 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Asynchronously loads a password-encrypted Office Open XML workbook.
+        /// </summary>
+        /// <param name="filePath">Path to the encrypted workbook.</param>
+        /// <param name="password">Password used to decrypt the workbook package.</param>
+        /// <param name="readOnly">Open the decrypted workbook in read-only mode.</param>
+        /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
+        public static async Task<ExcelDocument> LoadEncryptedAsync(string filePath, string password, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null) {
+            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            if (password == null) throw new ArgumentNullException(nameof(password));
+            if (!File.Exists(filePath)) {
+                throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
+            }
+
+            var encryptedBytes = await ReadAllBytesCompatAsync(filePath, CancellationToken.None).ConfigureAwait(false);
+            var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
+            return LoadFromByteArray(packageBytes, readOnly, autoSave, filePath, log: null, openSettings, preferFilePathOnFallback: false);
+        }
+
+        /// <summary>
         /// Asynchronously loads an Excel document from the provided stream.
         /// </summary>
         /// <param name="stream">Input stream containing the workbook package.</param>
@@ -960,6 +1022,26 @@ namespace OfficeIMO.Excel {
                 originalStream: shouldCopyBack ? stream : null,
                 copyBackToSource: shouldCopyBack,
                 leaveOriginalStreamOpen: true);
+        }
+
+        /// <summary>
+        /// Asynchronously loads a password-encrypted Office Open XML workbook from a stream.
+        /// </summary>
+        /// <param name="stream">Input stream containing the encrypted workbook.</param>
+        /// <param name="password">Password used to decrypt the workbook package.</param>
+        /// <param name="readOnly">Open the decrypted workbook in read-only mode.</param>
+        /// <param name="autoSave">Enable auto-save on dispose.</param>
+        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
+        public static async Task<ExcelDocument> LoadEncryptedAsync(Stream stream, string password, bool readOnly = false, bool autoSave = false, OpenSettings? openSettings = null, CancellationToken cancellationToken = default) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (password == null) throw new ArgumentNullException(nameof(password));
+            if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+
+            var encryptedBytes = await ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+            var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
+            return LoadFromByteArray(packageBytes, readOnly, autoSave, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
         }
 
         /// <summary>
@@ -1205,6 +1287,45 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Saves the workbook as a password-encrypted Office Open XML package.
+        /// </summary>
+        /// <param name="filePath">Destination path. When empty, uses the original <see cref="FilePath"/>.</param>
+        /// <param name="password">Password used to encrypt the workbook package.</param>
+        /// <param name="openExcel">When true, opens the saved file in the system's associated app.</param>
+        /// <param name="saveOptions">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
+        public void SaveEncrypted(string filePath, string password, bool openExcel = false, ExcelSaveOptions? saveOptions = null) {
+            if (password == null) throw new ArgumentNullException(nameof(password));
+            if (string.IsNullOrEmpty(filePath) && string.IsNullOrEmpty(FilePath)) {
+                throw new InvalidOperationException("This workbook is not associated with a file path. Provide a file path or call SaveEncrypted(Stream, ...).");
+            }
+
+            var path = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
+            var originalFilePath = FilePath;
+            if (File.Exists(path) && new FileInfo(path).IsReadOnly) {
+                throw new IOException($"Failed to save to '{path}'. The file is read-only.");
+            }
+            EnsureDirectoryWritable(path);
+
+            var payload = PreparePackageForSave(saveOptions);
+            try {
+                var finalizedBytes = FinalizePackageBytes(payload);
+                ThrowIfOpenXmlValidationFails(finalizedBytes, saveOptions);
+                var encryptedBytes = OfficeEncryption.EncryptPackage(finalizedBytes, password);
+                CommitPreparedPackageToFile(path, encryptedBytes);
+                ReloadFromBytes(finalizedBytes);
+                FilePath = path;
+
+                if (openExcel) {
+                    Helpers.Open(path, true);
+                }
+            } catch {
+                TryRestoreDocumentState(payload);
+                FilePath = originalFilePath;
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Saves the document and writes an optional OpenXML validation report (sidecar file)
         /// next to the saved .xlsx when issues are detected. Useful to diagnose any remaining
         /// problems that could cause Excel's repair dialog.
@@ -1330,6 +1451,29 @@ namespace OfficeIMO.Excel {
                 destination.Write(finalizedBytes, 0, finalizedBytes.Length);
                 try { destination.Flush(); } catch (NotSupportedException) { }
 
+                ReloadFromBytes(finalizedBytes);
+            } catch {
+                TryRestoreDocumentState(payload);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Saves the workbook as a password-encrypted Office Open XML package to a stream.
+        /// </summary>
+        /// <param name="destination">Writable stream that receives the encrypted workbook.</param>
+        /// <param name="password">Password used to encrypt the workbook package.</param>
+        /// <param name="saveOptions">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
+        public void SaveEncrypted(Stream destination, string password, ExcelSaveOptions? saveOptions = null) {
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            if (password == null) throw new ArgumentNullException(nameof(password));
+            if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+
+            var payload = PreparePackageForSave(saveOptions);
+            try {
+                var finalizedBytes = FinalizePackageBytes(payload);
+                ThrowIfOpenXmlValidationFails(finalizedBytes, saveOptions);
+                OfficeEncryption.EncryptPackageToStream(finalizedBytes, password, destination);
                 ReloadFromBytes(finalizedBytes);
             } catch {
                 TryRestoreDocumentState(payload);
