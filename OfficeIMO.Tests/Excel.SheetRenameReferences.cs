@@ -92,7 +92,9 @@ namespace OfficeIMO.Tests {
                     .Select(f => f.Text)
                     .Where(f => !string.IsNullOrWhiteSpace(f))
                     .ToList();
-                Assert.Contains("'Renamed Data'!B2:B3", sparklineFormulas);
+                Assert.Contains("'Renamed Data'!B2", sparklineFormulas);
+                Assert.Contains("'Renamed Data'!B3", sparklineFormulas);
+                Assert.DoesNotContain(sparklineFormulas, f => f!.Contains("'Data'!", StringComparison.Ordinal));
 
                 var chartPart = worksheetPart.DrawingsPart!.ChartParts.First();
                 var chartFormulas = chartPart.ChartSpace!.Descendants<DocumentFormat.OpenXml.Drawing.Charts.Formula>()

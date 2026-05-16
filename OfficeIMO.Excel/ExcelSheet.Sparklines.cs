@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Office2010.Excel;
 using OfficeFormula = DocumentFormat.OpenXml.Office.Excel.Formula;
 using OfficeReferenceSequence = DocumentFormat.OpenXml.Office.Excel.ReferenceSequence;
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace OfficeIMO.Excel {
@@ -76,11 +77,13 @@ namespace OfficeIMO.Excel {
                 ApplyColor(lastColor, rgb => group.LastMarkerColor = new LastMarkerColor { Rgb = rgb });
 
                 var sparklines = new Sparklines();
-                var sparkline = new Sparkline {
-                    Formula = new OfficeFormula(dataRange.Trim()),
-                    ReferenceSequence = new OfficeReferenceSequence(locationRange.Trim())
-                };
-                sparklines.Append(sparkline);
+                foreach (var sparklineReference in BuildSparklineReferences(dataRange, locationRange)) {
+                    var sparkline = new Sparkline {
+                        Formula = new OfficeFormula(sparklineReference.Formula),
+                        ReferenceSequence = new OfficeReferenceSequence(sparklineReference.Location)
+                    };
+                    sparklines.Append(sparkline);
+                }
                 group.Append(sparklines);
                 groups.Append(group);
 
@@ -172,6 +175,71 @@ namespace OfficeIMO.Excel {
             return new HexBinaryValue(value.ToUpperInvariant());
         }
 
+        private static IReadOnlyList<SparklineReference> BuildSparklineReferences(string dataRange, string locationRange) {
+            string data = dataRange.Trim();
+            string location = locationRange.Trim();
+
+            if (!TryParseSparklineRange(data, out var dataAddress) || !TryParseSparklineRange(location, out var locationAddress)) {
+                return new[] { new SparklineReference(data, location) };
+            }
+
+            if (locationAddress.RowCount == 1 && locationAddress.ColumnCount == 1) {
+                return new[] { new SparklineReference(data, location) };
+            }
+
+            var references = new List<SparklineReference>();
+            if (locationAddress.ColumnCount == 1 && dataAddress.RowCount == locationAddress.RowCount) {
+                for (int offset = 0; offset < locationAddress.RowCount; offset++) {
+                    int dataRow = dataAddress.Row1 + offset;
+                    int locationRow = locationAddress.Row1 + offset;
+                    references.Add(new SparklineReference(
+                        dataAddress.ToReference(dataRow, dataAddress.Column1, dataRow, dataAddress.Column2),
+                        locationAddress.ToReference(locationRow, locationAddress.Column1, locationRow, locationAddress.Column1)));
+                }
+
+                return references;
+            }
+
+            if (locationAddress.RowCount == 1 && dataAddress.ColumnCount == locationAddress.ColumnCount) {
+                for (int offset = 0; offset < locationAddress.ColumnCount; offset++) {
+                    int dataColumn = dataAddress.Column1 + offset;
+                    int locationColumn = locationAddress.Column1 + offset;
+                    references.Add(new SparklineReference(
+                        dataAddress.ToReference(dataAddress.Row1, dataColumn, dataAddress.Row2, dataColumn),
+                        locationAddress.ToReference(locationAddress.Row1, locationColumn, locationAddress.Row1, locationColumn)));
+                }
+
+                return references;
+            }
+
+            throw new ArgumentException(
+                "LocationRange spans multiple cells, but DataRange does not match by row or by column. " +
+                "Use a single destination cell, one data row per destination row, or one data column per destination column.",
+                nameof(locationRange));
+        }
+
+        private static bool TryParseSparklineRange(string text, out SparklineRange range) {
+            string trimmed = text.Trim();
+            int separator = trimmed.LastIndexOf('!');
+            string sheetPrefix = separator >= 0 ? trimmed.Substring(0, separator + 1) : string.Empty;
+            string reference = separator >= 0 ? trimmed.Substring(separator + 1) : trimmed;
+            reference = reference.Replace("$", string.Empty);
+
+            if (A1.TryParseRange(reference, out int r1, out int c1, out int r2, out int c2)) {
+                range = new SparklineRange(sheetPrefix, r1, c1, r2, c2);
+                return true;
+            }
+
+            var cell = A1.ParseCellRef(reference);
+            if (cell.Row > 0 && cell.Col > 0) {
+                range = new SparklineRange(sheetPrefix, cell.Row, cell.Col, cell.Row, cell.Col);
+                return true;
+            }
+
+            range = default;
+            return false;
+        }
+
         private static SparklineGroups GetOrCreateSparklineGroups(Worksheet ws) {
             const string SparklineUri = "{05C60535-1F16-4fd2-B633-F4F36F0B64E0}";
 
@@ -195,6 +263,50 @@ namespace OfficeIMO.Excel {
             }
 
             return groups;
+        }
+
+        private readonly struct SparklineReference {
+            internal SparklineReference(string formula, string location) {
+                Formula = formula;
+                Location = location;
+            }
+
+            internal string Formula { get; }
+
+            internal string Location { get; }
+        }
+
+        private readonly struct SparklineRange {
+            internal SparklineRange(string sheetPrefix, int row1, int column1, int row2, int column2) {
+                SheetPrefix = sheetPrefix;
+                Row1 = row1;
+                Column1 = column1;
+                Row2 = row2;
+                Column2 = column2;
+            }
+
+            internal string SheetPrefix { get; }
+
+            internal int Row1 { get; }
+
+            internal int Column1 { get; }
+
+            internal int Row2 { get; }
+
+            internal int Column2 { get; }
+
+            internal int RowCount => Row2 - Row1 + 1;
+
+            internal int ColumnCount => Column2 - Column1 + 1;
+
+            internal string ToReference(int row1, int column1, int row2, int column2) {
+                string start = SheetPrefix + A1.CellReference(row1, column1);
+                if (row1 == row2 && column1 == column2) {
+                    return start;
+                }
+
+                return start + ":" + A1.CellReference(row2, column2);
+            }
         }
     }
 }

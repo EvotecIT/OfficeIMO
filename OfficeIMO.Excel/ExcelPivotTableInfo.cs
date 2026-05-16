@@ -25,7 +25,48 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<string> rowFields,
             IReadOnlyList<string> columnFields,
             IReadOnlyList<string> pageFields,
-            IReadOnlyList<ExcelPivotDataFieldInfo> dataFields) {
+            IReadOnlyList<ExcelPivotDataFieldInfo> dataFields)
+            : this(name, cacheId, location, sourceSheet, sourceRange, sheetName, sheetIndex, pivotStyle,
+                layout, dataOnRows, showHeaders, showEmptyRows, showEmptyColumns, showDrill,
+                null, null, null, null, null, null, null, null, null, null, null, null, null,
+                rowFields, columnFields, pageFields, dataFields, null) {
+        }
+
+        /// <summary>
+        /// Creates a pivot table info instance.
+        /// </summary>
+        public ExcelPivotTableInfo(string name,
+            uint cacheId,
+            string? location,
+            string? sourceSheet,
+            string? sourceRange,
+            string sheetName,
+            int sheetIndex,
+            string? pivotStyle,
+            ExcelPivotLayout layout,
+            bool? dataOnRows,
+            bool? showHeaders,
+            bool? showEmptyRows,
+            bool? showEmptyColumns,
+            bool? showDrill,
+            bool? rowGrandTotals,
+            bool? columnGrandTotals,
+            string? rowHeaderCaption,
+            string? columnHeaderCaption,
+            string? grandTotalCaption,
+            string? missingCaption,
+            string? errorCaption,
+            bool? showDataDropDown,
+            bool? showDropZones,
+            bool? showDataTips,
+            bool? showMemberPropertyTips,
+            bool? fieldListSortAscending,
+            bool? customListSort,
+            IReadOnlyList<string> rowFields,
+            IReadOnlyList<string> columnFields,
+            IReadOnlyList<string> pageFields,
+            IReadOnlyList<ExcelPivotDataFieldInfo> dataFields,
+            IReadOnlyList<ExcelPivotFieldInfo>? fields = null) {
             Name = name;
             CacheId = cacheId;
             Location = location;
@@ -40,10 +81,24 @@ namespace OfficeIMO.Excel {
             ShowEmptyRows = showEmptyRows;
             ShowEmptyColumns = showEmptyColumns;
             ShowDrill = showDrill;
+            RowGrandTotals = rowGrandTotals;
+            ColumnGrandTotals = columnGrandTotals;
+            RowHeaderCaption = rowHeaderCaption;
+            ColumnHeaderCaption = columnHeaderCaption;
+            GrandTotalCaption = grandTotalCaption;
+            MissingCaption = missingCaption;
+            ErrorCaption = errorCaption;
+            ShowDataDropDown = showDataDropDown;
+            ShowDropZones = showDropZones;
+            ShowDataTips = showDataTips;
+            ShowMemberPropertyTips = showMemberPropertyTips;
+            FieldListSortAscending = fieldListSortAscending;
+            CustomListSort = customListSort;
             RowFields = rowFields;
             ColumnFields = columnFields;
             PageFields = pageFields;
             DataFields = dataFields;
+            Fields = fields ?? Array.Empty<ExcelPivotFieldInfo>();
         }
 
         /// <summary>
@@ -117,6 +172,71 @@ namespace OfficeIMO.Excel {
         public bool? ShowDrill { get; }
 
         /// <summary>
+        /// Gets whether row grand totals are shown.
+        /// </summary>
+        public bool? RowGrandTotals { get; }
+
+        /// <summary>
+        /// Gets whether column grand totals are shown.
+        /// </summary>
+        public bool? ColumnGrandTotals { get; }
+
+        /// <summary>
+        /// Gets the row header caption.
+        /// </summary>
+        public string? RowHeaderCaption { get; }
+
+        /// <summary>
+        /// Gets the column header caption.
+        /// </summary>
+        public string? ColumnHeaderCaption { get; }
+
+        /// <summary>
+        /// Gets the grand total caption.
+        /// </summary>
+        public string? GrandTotalCaption { get; }
+
+        /// <summary>
+        /// Gets the missing-value caption.
+        /// </summary>
+        public string? MissingCaption { get; }
+
+        /// <summary>
+        /// Gets the error-value caption.
+        /// </summary>
+        public string? ErrorCaption { get; }
+
+        /// <summary>
+        /// Gets whether the data drop-down is shown.
+        /// </summary>
+        public bool? ShowDataDropDown { get; }
+
+        /// <summary>
+        /// Gets whether drop zones are shown.
+        /// </summary>
+        public bool? ShowDropZones { get; }
+
+        /// <summary>
+        /// Gets whether data tips are shown.
+        /// </summary>
+        public bool? ShowDataTips { get; }
+
+        /// <summary>
+        /// Gets whether member-property tips are shown.
+        /// </summary>
+        public bool? ShowMemberPropertyTips { get; }
+
+        /// <summary>
+        /// Gets whether the field list sorts ascending.
+        /// </summary>
+        public bool? FieldListSortAscending { get; }
+
+        /// <summary>
+        /// Gets whether custom-list sorting is enabled.
+        /// </summary>
+        public bool? CustomListSort { get; }
+
+        /// <summary>
         /// Gets row field names.
         /// </summary>
         public IReadOnlyList<string> RowFields { get; }
@@ -135,5 +255,10 @@ namespace OfficeIMO.Excel {
         /// Gets data fields.
         /// </summary>
         public IReadOnlyList<ExcelPivotDataFieldInfo> DataFields { get; }
+
+        /// <summary>
+        /// Gets detailed field metadata.
+        /// </summary>
+        public IReadOnlyList<ExcelPivotFieldInfo> Fields { get; }
     }
 }
