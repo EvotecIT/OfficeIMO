@@ -4,13 +4,18 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        private const int MaxSupportedFormulaLength = 8192;
+        private static readonly TimeSpan FormulaRegexTimeout = TimeSpan.FromMilliseconds(100);
+
         private static readonly Regex SimpleFunctionFormulaRegex = new Regex(
             @"^\s*=?\s*(SUM|AVERAGE|MIN|MAX|COUNT|COUNTA)\s*\(([^)]*)\)\s*$",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+            RegexOptions.IgnoreCase | RegexOptions.Compiled,
+            FormulaRegexTimeout);
 
         private static readonly Regex SimpleBinaryFormulaRegex = new Regex(
             @"^\s*=?\s*([A-Z]+[0-9]+|-?\d+(?:\.\d+)?)\s*([+\-*/])\s*([A-Z]+[0-9]+|-?\d+(?:\.\d+)?)\s*$",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+            RegexOptions.IgnoreCase | RegexOptions.Compiled,
+            FormulaRegexTimeout);
 
         /// <summary>
         /// Marks all formula cells on this sheet dirty.
@@ -128,55 +133,63 @@ namespace OfficeIMO.Excel {
 
         private bool TryEvaluateFormula(string formula, out double result) {
             result = 0;
-            var functionMatch = SimpleFunctionFormulaRegex.Match(formula);
-            if (functionMatch.Success) {
-                var values = ResolveFormulaArguments(functionMatch.Groups[2].Value).ToList();
-                string function = functionMatch.Groups[1].Value.ToUpperInvariant();
-                if (function == "COUNTA") {
-                    result = values.Count(v => v.HasValue || !string.IsNullOrEmpty(v.Text));
-                    return true;
-                }
-
-                var numbers = values.Where(v => v.Number.HasValue).Select(v => v.Number!.Value).ToList();
-                if (function == "COUNT") {
-                    result = numbers.Count;
-                    return true;
-                }
-
-                if (numbers.Count == 0) {
-                    return false;
-                }
-
-                if (function == "SUM") result = numbers.Sum();
-                else if (function == "AVERAGE") result = numbers.Average();
-                else if (function == "MIN") result = numbers.Min();
-                else if (function == "MAX") result = numbers.Max();
-                else return false;
-                return true;
+            if (string.IsNullOrWhiteSpace(formula) || formula.Length > MaxSupportedFormulaLength) {
+                return false;
             }
 
-            var binaryMatch = SimpleBinaryFormulaRegex.Match(formula);
-            if (binaryMatch.Success) {
-                if (!TryResolveNumericOperand(binaryMatch.Groups[1].Value, out double left)
-                    || !TryResolveNumericOperand(binaryMatch.Groups[3].Value, out double right)) {
-                    return false;
+            try {
+                var functionMatch = SimpleFunctionFormulaRegex.Match(formula);
+                if (functionMatch.Success) {
+                    var values = ResolveFormulaArguments(functionMatch.Groups[2].Value).ToList();
+                    string function = functionMatch.Groups[1].Value.ToUpperInvariant();
+                    if (function == "COUNTA") {
+                        result = values.Count(v => v.HasValue || !string.IsNullOrEmpty(v.Text));
+                        return true;
+                    }
+
+                    var numbers = values.Where(v => v.Number.HasValue).Select(v => v.Number!.Value).ToList();
+                    if (function == "COUNT") {
+                        result = numbers.Count;
+                        return true;
+                    }
+
+                    if (numbers.Count == 0) {
+                        return false;
+                    }
+
+                    if (function == "SUM") result = numbers.Sum();
+                    else if (function == "AVERAGE") result = numbers.Average();
+                    else if (function == "MIN") result = numbers.Min();
+                    else if (function == "MAX") result = numbers.Max();
+                    else return false;
+                    return true;
                 }
 
-                switch (binaryMatch.Groups[2].Value) {
-                    case "+":
-                        result = left + right;
-                        return true;
-                    case "-":
-                        result = left - right;
-                        return true;
-                    case "*":
-                        result = left * right;
-                        return true;
-                    case "/":
-                        if (Math.Abs(right) < double.Epsilon) return false;
-                        result = left / right;
-                        return true;
+                var binaryMatch = SimpleBinaryFormulaRegex.Match(formula);
+                if (binaryMatch.Success) {
+                    if (!TryResolveNumericOperand(binaryMatch.Groups[1].Value, out double left)
+                        || !TryResolveNumericOperand(binaryMatch.Groups[3].Value, out double right)) {
+                        return false;
+                    }
+
+                    switch (binaryMatch.Groups[2].Value) {
+                        case "+":
+                            result = left + right;
+                            return true;
+                        case "-":
+                            result = left - right;
+                            return true;
+                        case "*":
+                            result = left * right;
+                            return true;
+                        case "/":
+                            if (Math.Abs(right) < double.Epsilon) return false;
+                            result = left / right;
+                            return true;
+                    }
                 }
+            } catch (RegexMatchTimeoutException) {
+                return false;
             }
 
             return false;

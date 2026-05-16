@@ -86,6 +86,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ClosedXmlGap_CalculationPolicy_IgnoresUnsupportedOrOversizedFormulas() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculationUnsupported.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Calc");
+                sheet.CellValue(1, 1, 2d);
+                sheet.CellFormula(2, 1, "VLOOKUP(A1,B1:C2,2,FALSE)");
+                sheet.CellFormula(3, 1, "SUM(" + new string('A', 9000) + ")");
+
+                Assert.Equal(0, document.RecalculateSupportedFormulas());
+                Assert.False(sheet.TryGetCachedFormulaValue(2, 1, out _));
+                Assert.False(sheet.TryGetCachedFormulaValue(3, 1, out _));
+
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void Test_ClosedXmlGap_WorkbookAndWorksheetProtection_PreserveLegacyHashes() {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.Protection.xlsx");
 
