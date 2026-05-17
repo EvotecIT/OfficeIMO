@@ -127,6 +127,10 @@ namespace OfficeIMO.Excel {
             int maxExistingRow = 0;
             int maxExistingColumn = 0;
             foreach (var existingRow in sheetData.Elements<Row>()) {
+                if (existingRow.RowIndex == null) {
+                    return false;
+                }
+
                 if (existingRow.RowIndex != null && existingRow.RowIndex.Value >= (uint)firstRow) {
                     return false;
                 }
@@ -444,6 +448,10 @@ namespace OfficeIMO.Excel {
 
             var sheetData = GetOrCreateSheetData();
             foreach (var existingRow in sheetData.Elements<Row>()) {
+                if (existingRow.RowIndex == null) {
+                    return false;
+                }
+
                 if (existingRow.RowIndex != null && existingRow.RowIndex.Value >= (uint)firstRow) {
                     return false;
                 }

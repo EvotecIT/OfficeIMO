@@ -20,6 +20,7 @@ namespace OfficeIMO.Excel {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(stream));
             if (dataSet == null) throw new ArgumentNullException(nameof(dataSet));
+            if (dataSet.Tables.Count == 0) throw new ArgumentException("The DataSet must contain at least one DataTable.", nameof(dataSet));
 
             var model = DirectDataSetWorkbookModel.Create(dataSet, tableStyle, includeHeaders, includeAutoFilter, ct);
             if (stream.CanSeek) {

@@ -155,6 +155,10 @@ namespace OfficeIMO.Excel {
             int maxExistingRow = 0;
             int maxExistingColumn = 0;
             foreach (var existingRow in sheetData.Elements<Row>()) {
+                if (existingRow.RowIndex == null) {
+                    return false;
+                }
+
                 int existingRowIndex = checked((int)(existingRow.RowIndex?.Value ?? 0U));
                 if (existingRowIndex >= startRow) {
                     return false;

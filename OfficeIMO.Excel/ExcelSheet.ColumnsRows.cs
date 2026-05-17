@@ -64,7 +64,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool CanSkipStableAutoFitColumns(IReadOnlyList<int>? requestedColumns) {
-            if (_hasWorksheetMutations) {
+            if (_hasWorksheetMutations || _excelDocument.IsPackageDirty) {
                 return false;
             }
 

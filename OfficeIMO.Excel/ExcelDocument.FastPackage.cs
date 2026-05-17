@@ -104,6 +104,10 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
+                if (workbookPart.Workbook.ChildElements.Any(child => child is not DocumentFormat.OpenXml.Spreadsheet.Sheets)) {
+                    return false;
+                }
+
                 if (workbookPart.GetPartsOfType<ThemePart>().Any()) {
                     return false;
                 }
@@ -113,6 +117,10 @@ namespace OfficeIMO.Excel {
                 int tableIndex = 1;
                 for (int sheetIndex = 0; sheetIndex < sheets.Count; sheetIndex++) {
                     var sheet = sheets[sheetIndex];
+                    if (sheet.State != null) {
+                        return false;
+                    }
+
                     if (workbookPart.GetPartById(sheet.Id!) is not WorksheetPart worksheetPart) {
                         return false;
                     }
@@ -147,13 +155,16 @@ namespace OfficeIMO.Excel {
 
                 var sharedStrings = workbookPart.SharedStringTablePart?.SharedStringTable?
                     .Elements<SharedStringItem>()
-                    .Select(item => item.InnerText ?? string.Empty)
+                    .Select(item => item.HasChildren && item.Elements<Run>().Any() ? null : item.InnerText ?? string.Empty)
                     .ToList();
+                if (sharedStrings != null && sharedStrings.Any(item => item == null)) {
+                    return false;
+                }
 
                 model = new FastWorkbookPackageModel(
                     worksheets,
                     workbookPart.WorkbookStylesPart?.Stylesheet,
-                    sharedStrings,
+                    sharedStrings!,
                     tables);
                 return true;
             }

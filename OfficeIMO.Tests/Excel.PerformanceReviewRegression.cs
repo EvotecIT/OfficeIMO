@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
@@ -142,6 +143,163 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, table.Rows.Count);
             Assert.Equal("Alpha", table.Rows[0][0]);
             Assert.Equal(20d, table.Rows[1][1]);
+        }
+
+        [Fact]
+        public void PerformanceReview_ReadObjectsSequential_FallsBackWhenRowsHaveImplicitIndex() {
+            string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.ImplicitRowIndexReadObjects.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Score");
+                sheet.CellValue(2, 1, "Alpha");
+                sheet.CellValue(2, 2, 10d);
+                document.Save();
+            }
+
+            RemoveFirstRowIndex(filePath);
+
+            using var reader = ExcelDocumentReader.Open(filePath);
+            var rows = reader.GetSheet("Data").ReadObjects("A1:B2", ExecutionMode.Sequential);
+
+            var row = Assert.Single(rows);
+            Assert.Equal("Alpha", row["Name"]);
+            Assert.Equal(10d, row["Score"]);
+        }
+
+        [Fact]
+        public void PerformanceReview_CellValuesAppend_FallsBackWhenExistingRowsHaveImplicitIndex() {
+            string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.ImplicitRowIndexCellValues.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("Data").CellValue(1, 1, "Existing");
+                document.Save();
+            }
+
+            RemoveFirstRowIndex(filePath);
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var sheet = document.Sheets[0];
+                var cells = Enumerable.Range(2, 20)
+                    .Select(row => (row, 1, (object)("Row " + row.ToString(System.Globalization.CultureInfo.InvariantCulture))))
+                    .ToList();
+                sheet.CellValues(cells, ExecutionMode.Sequential);
+                document.Save();
+            }
+
+            AssertWorksheetHasUniqueCellReferences(filePath);
+            AssertWorksheetContainsCellReferences(filePath, "A1", "A21");
+        }
+
+        [Fact]
+        public void PerformanceReview_DataTableAppend_FallsBackWhenExistingRowsHaveImplicitIndex() {
+            string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.ImplicitRowIndexDataTable.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("Data").CellValue(1, 1, "Existing");
+                document.Save();
+            }
+
+            RemoveFirstRowIndex(filePath);
+
+            var table = new DataTable();
+            table.Columns.Add("Name", typeof(string));
+            for (int i = 0; i < 20; i++) {
+                table.Rows.Add("Row " + i.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                document.Sheets[0].InsertDataTable(table, startRow: 2, startColumn: 1);
+                document.Save();
+            }
+
+            AssertWorksheetHasUniqueCellReferences(filePath);
+            AssertWorksheetContainsCellReferences(filePath, "A1", "A22");
+        }
+
+        [Fact]
+        public void PerformanceReview_ReadRangeSequential_HonorsTypedDatesAndDecimalOption() {
+            string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.TypedDateAndDecimal.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "placeholder");
+                sheet.CellValue(1, 2, 1d);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(c => c.CellReference!.Value!);
+                cells["A1"].DataType = CellValues.Date;
+                cells["A1"].CellValue = new CellValue("2024-01-02T03:04:05");
+                cells["B1"].DataType = CellValues.Number;
+                cells["B1"].CellValue = new CellValue("123.45");
+                spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet.Save();
+            }
+
+            using var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions { NumericAsDecimal = true });
+            object?[,] values = reader.GetSheet("Data").ReadRange("A1:B1", ExecutionMode.Sequential);
+
+            var date = Assert.IsType<DateTime>(values[0, 0]);
+            Assert.Equal(new DateTime(2024, 1, 2, 3, 4, 5), date);
+            var number = Assert.IsType<decimal>(values[0, 1]);
+            Assert.Equal(123.45m, number);
+        }
+
+        [Fact]
+        public void PerformanceReview_StreamFastPackageFallback_PreservesHiddenSheetState() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(memory)) {
+                document.AddWorkSheet("Visible").CellValue(1, 1, "Visible");
+                var hidden = document.AddWorkSheet("Hidden");
+                hidden.CellValue(1, 1, "Hidden");
+                hidden.SetHidden(true);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var hiddenSheet = spreadsheet.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>().Single(sheet => sheet.Name == "Hidden");
+            Assert.Equal(SheetStateValues.Hidden, hiddenSheet.State!.Value);
+        }
+
+        [Fact]
+        public void PerformanceReview_WriteDataSet_RejectsEmptyDataSet() {
+            using var memory = new MemoryStream();
+            var dataSet = new DataSet();
+
+            var exception = Assert.Throws<ArgumentException>(() => ExcelDocument.WriteDataSet(memory, dataSet));
+            Assert.Contains("at least one DataTable", exception.Message);
+        }
+
+        private static void RemoveFirstRowIndex(string filePath) {
+            using var spreadsheet = SpreadsheetDocument.Open(filePath, true);
+            var row = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().First();
+            row.RowIndex = null;
+            spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet.Save();
+        }
+
+        private static void AssertWorksheetHasUniqueCellReferences(string filePath) {
+            using var spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            var references = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+                .Select(cell => cell.CellReference?.Value)
+                .Where(reference => !string.IsNullOrWhiteSpace(reference))
+                .ToList();
+
+            Assert.Equal(references.Count, references.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        }
+
+        private static void AssertWorksheetContainsCellReferences(string filePath, params string[] expectedReferences) {
+            using var spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            var references = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+                .Select(cell => cell.CellReference?.Value)
+                .Where(reference => !string.IsNullOrWhiteSpace(reference))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (string expectedReference in expectedReferences) {
+                Assert.Contains(expectedReference, references);
+            }
         }
     }
 }

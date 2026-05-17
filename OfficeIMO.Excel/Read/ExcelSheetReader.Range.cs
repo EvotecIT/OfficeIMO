@@ -344,6 +344,10 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
+                if (row.RowIndex == null) {
+                    return false;
+                }
+
                 int rowIndex = checked((int)row.RowIndex!.Value);
                 if (rowIndex < r1) {
                     continue;
@@ -499,6 +503,10 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
+                if (row.RowIndex == null) {
+                    return false;
+                }
+
                 int rowIndex = checked((int)row.RowIndex!.Value);
                 if (rowIndex < r1) {
                     continue;
@@ -597,13 +605,14 @@ namespace OfficeIMO.Excel {
             CancellationToken ct) {
             bool canCancel = ct.CanBeCanceled;
             int visitedCells = 0;
+            int inferredRowIndex = 0;
 
             foreach (var row in EnumerateWorksheetRows(ct)) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                int rowIndex = checked((int)row.RowIndex!.Value);
+                int rowIndex = GetSequentialRowIndex(row, ref inferredRowIndex);
                 if (rowIndex < r1) continue;
                 if (rowIndex > r2) continue;
 
@@ -764,12 +773,13 @@ namespace OfficeIMO.Excel {
         private void SnapshotCellsInto(List<CellRaw> buffer, int r1, int c1, int r2, int c2, CancellationToken ct) {
             bool canCancel = ct.CanBeCanceled;
             int visitedCells = 0;
+            int inferredRowIndex = 0;
             foreach (var row in EnumerateWorksheetRows(ct)) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                var rIndex = checked((int)row.RowIndex!.Value);
+                var rIndex = GetSequentialRowIndex(row, ref inferredRowIndex);
                 if (rIndex < r1) continue;
                 if (rIndex > r2) continue;
 
@@ -794,13 +804,14 @@ namespace OfficeIMO.Excel {
             int width = result.GetLength(1);
             bool canCancel = ct.CanBeCanceled;
             int visitedCells = 0;
+            int inferredRowIndex = 0;
 
             foreach (var row in EnumerateWorksheetRows(ct)) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                var rIndex = checked((int)row.RowIndex!.Value);
+                var rIndex = GetSequentialRowIndex(row, ref inferredRowIndex);
                 if (rIndex < r1) continue;
                 if (rIndex > r2) continue;
 
@@ -822,6 +833,16 @@ namespace OfficeIMO.Excel {
                         result[rr, cc] = value;
                 }
             }
+        }
+
+        private static int GetSequentialRowIndex(Row row, ref int inferredRowIndex) {
+            if (row.RowIndex != null) {
+                inferredRowIndex = checked((int)row.RowIndex.Value);
+            } else {
+                inferredRowIndex++;
+            }
+
+            return inferredRowIndex;
         }
 
         private bool TryFillRangeXmlFast(object?[,] result, int r1, int c1, int r2, int c2, CancellationToken ct) {
@@ -992,6 +1013,12 @@ namespace OfficeIMO.Excel {
                 return rawText == "1";
             }
 
+            if (type == "d" && rawText != null) {
+                return DateTime.TryParse(rawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var date)
+                    ? date
+                    : rawText;
+            }
+
             if (type == "str") {
                 return rawText ?? inlineText;
             }
@@ -1005,6 +1032,11 @@ namespace OfficeIMO.Excel {
                 && _styles.IsDateLike(styleIndex.Value)
                 && double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double oa)) {
                 return DateTime.FromOADate(oa);
+            }
+
+            if (_opt.NumericAsDecimal
+                && decimal.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out decimal decimalNumber)) {
+                return decimalNumber;
             }
 
             return double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double number)
