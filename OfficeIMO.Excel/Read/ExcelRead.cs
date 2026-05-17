@@ -1,4 +1,5 @@
 using System.Data;
+using System.Diagnostics.CodeAnalysis;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -49,6 +50,47 @@ namespace OfficeIMO.Excel {
         public static DataTable ReadRangeAsDataTable(string path, string sheetName, string a1Range, bool headersInFirstRow = true, ExcelReadOptions? options = null) {
             using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
             return rdr.GetSheet(sheetName).ReadRangeAsDataTable(a1Range, headersInFirstRow);
+        }
+
+        /// <summary>
+        /// Reads a named Excel table into a DataTable.
+        /// </summary>
+        /// <param name="path">Path to the .xlsx file.</param>
+        /// <param name="tableName">Excel table name or display name.</param>
+        /// <param name="headersInFirstRow">Optional override for whether the first table row is treated as headers.</param>
+        /// <param name="options">Optional read options.</param>
+        /// <returns>DataTable containing values from the named Excel table.</returns>
+        public static DataTable ReadTableAsDataTable(string path, string tableName, bool? headersInFirstRow = null, ExcelReadOptions? options = null) {
+            using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
+            return rdr.ReadTableAsDataTable(tableName, headersInFirstRow);
+        }
+
+        /// <summary>
+        /// Reads a named Excel table as dictionaries using the table header row.
+        /// </summary>
+        /// <param name="path">Path to the .xlsx file.</param>
+        /// <param name="tableName">Excel table name or display name.</param>
+        /// <param name="options">Optional read options.</param>
+        /// <returns>Materialized list of row dictionaries.</returns>
+        public static List<Dictionary<string, object?>> ReadTableObjects(string path, string tableName, ExcelReadOptions? options = null) {
+            using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
+            return rdr.ReadTableObjects(tableName).ToList();
+        }
+
+        /// <summary>
+        /// Reads a named Excel table and maps rows to instances of <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">Target type whose writable properties receive row values.</typeparam>
+        /// <param name="path">Path to the .xlsx file.</param>
+        /// <param name="tableName">Excel table name or display name.</param>
+        /// <param name="options">Optional read options.</param>
+        /// <returns>Materialized list of <typeparamref name="T"/> populated from each table row.</returns>
+        public static List<T> ReadTableObjectsAs<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+            string path,
+            string tableName,
+            ExcelReadOptions? options = null) where T : new() {
+            using var rdr = ExcelDocumentReader.Open(path, options ?? new ExcelReadOptions());
+            return rdr.ReadTableObjects<T>(tableName).ToList();
         }
 
         /// <summary>

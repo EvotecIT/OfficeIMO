@@ -30,6 +30,8 @@ namespace OfficeIMO.Excel {
         private readonly SpreadsheetDocument _spreadSheetDocument;
         private readonly ExcelDocument _excelDocument;
         private bool _isBatchOperation = false;
+        private bool _hasWorksheetMutations;
+        private bool _requiresSavePreparation;
         private readonly object _batchLock = new object();
         private static int _nextTableId = 1;
         private static readonly object _tableIdLock = new object();
@@ -86,6 +88,8 @@ namespace OfficeIMO.Excel {
             _excelDocument = excelDocument;
             _sheet = sheet;
             _spreadSheetDocument = spreadSheetDocument;
+            _hasWorksheetMutations = excelDocument.IsPackageDirty;
+            _requiresSavePreparation = excelDocument.IsPackageDirty;
 
             var workbookPart = spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
             _worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
@@ -103,6 +107,8 @@ namespace OfficeIMO.Excel {
         public ExcelSheet(ExcelDocument excelDocument, WorkbookPart workbookpart, SpreadsheetDocument spreadSheetDocument, string name) {
             _excelDocument = excelDocument;
             _spreadSheetDocument = spreadSheetDocument;
+            _hasWorksheetMutations = true;
+            _requiresSavePreparation = true;
 
             UInt32Value id = excelDocument.id.Max(v => v.Value) + 1;
             if (name == "") {
@@ -342,7 +348,10 @@ namespace OfficeIMO.Excel {
         }
 
         private void WriteLock(Action action) {
-            Locking.ExecuteWrite(_excelDocument.EnsureLock(), action);
+            Locking.ExecuteWrite(_excelDocument.EnsureLock(), () => {
+                action();
+                MarkRequiresSavePreparation();
+            });
         }
 
         private void WriteLockConditional(Action action) {
@@ -350,6 +359,7 @@ namespace OfficeIMO.Excel {
             // just execute the action directly
             if (_isBatchOperation || Locking.IsNoLock) {
                 action();
+                MarkRequiresSavePreparation();
             } else {
                 WriteLock(action);
             }
@@ -428,6 +438,14 @@ namespace OfficeIMO.Excel {
         /// </summary>
         internal void Commit() {
             _worksheetPart?.Worksheet?.Save();
+            _requiresSavePreparation = false;
+        }
+
+        internal bool RequiresSavePreparation => _requiresSavePreparation;
+
+        internal void MarkRequiresSavePreparation() {
+            _requiresSavePreparation = true;
+            _excelDocument.MarkRequiresSavePreflight();
         }
     }
 }

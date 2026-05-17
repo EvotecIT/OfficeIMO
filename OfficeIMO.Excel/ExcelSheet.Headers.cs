@@ -92,6 +92,8 @@ namespace OfficeIMO.Excel {
         /// Clears the cached header map.
         /// </summary>
         public void ClearHeaderCache() {
+            _hasWorksheetMutations = true;
+            MarkRequiresSavePreparation();
             lock (_headerMapLock) {
                 _headerMapCache = null;
                 _headerMapSourceA1 = null;

@@ -261,7 +261,7 @@ namespace OfficeIMO.Excel {
         /// <exception cref="ArgumentException">Thrown when <paramref name="range"/> is not in a valid format.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the specified range overlaps with an existing table.</exception>
         public void AddTable(string range, bool hasHeader, string name, TableStyle style) {
-            AddTableCore(range, hasHeader, name, style, includeAutoFilter: true);
+            AddTableCore(range, hasHeader, name, style, includeAutoFilter: true, ensureRangeCellsExist: true);
         }
 
         /// <summary>
@@ -300,14 +300,14 @@ namespace OfficeIMO.Excel {
         /// - Order doesn't matter — the final state will be consistent regardless of operation order.
         /// </remarks>
         public void AddTable(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize) {
-            AddTableCore(range, hasHeader, name, style, includeAutoFilter, validationMode);
+            AddTableCore(range, hasHeader, name, style, includeAutoFilter, validationMode, ensureRangeCellsExist: true);
         }
 
-        internal string AddTableAndGetName(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize) {
-            return AddTableCore(range, hasHeader, name, style, includeAutoFilter, validationMode);
+        internal string AddTableAndGetName(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize, bool ensureRangeCellsExist = true) {
+            return AddTableCore(range, hasHeader, name, style, includeAutoFilter, validationMode, ensureRangeCellsExist);
         }
 
-        private string AddTableCore(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize) {
+        private string AddTableCore(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize, bool ensureRangeCellsExist = true) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
@@ -355,7 +355,9 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                EnsureRangeCellsExist(startRowIndex, endRowIndex, startColumnIndex, endColumnIndex);
+                if (ensureRangeCellsExist) {
+                    EnsureRangeCellsExist(startRowIndex, endRowIndex, startColumnIndex, endColumnIndex);
+                }
 
                 // Generate unique table ID atomically (must be unique across the entire workbook)
                 uint tableId;

@@ -166,6 +166,7 @@ namespace OfficeIMO.Excel {
         {
             _sheetCacheDirty = true;
             _cachedSheets = null;
+            MarkPackageDirty();
         }
 
         private List<Sheet> ReadSheetElements()
@@ -307,8 +308,30 @@ namespace OfficeIMO.Excel {
         private bool _copyPackageToSourceOnDispose;
         private bool _copyPackageToFilePathOnDispose;
         private bool _leaveSourceStreamOpen = true;
+        private bool _packageContentTypesKnownNormalized;
+        private bool _requiresSavePreflight;
+        private bool _packageDirty = true;
+        private bool _packagePropertiesDirty;
+        private byte[]? _unchangedPackageBytes;
 
         private const int StreamCopyBufferSize = 81920;
+
+        internal void MarkRequiresSavePreflight() {
+            _requiresSavePreflight = true;
+            MarkPackageDirty();
+        }
+
+        internal void MarkPackageDirty() {
+            _packageDirty = true;
+            _unchangedPackageBytes = null;
+        }
+
+        internal void MarkPackagePropertiesDirty() {
+            _packagePropertiesDirty = true;
+            MarkPackageDirty();
+        }
+
+        internal bool IsPackageDirty => _packageDirty;
 
         private static async Task<byte[]> ReadAllBytesCompatAsync(string path, CancellationToken ct) {
 #if NETSTANDARD2_0 || NET472 || NET48
@@ -516,6 +539,7 @@ namespace OfficeIMO.Excel {
                 int newIndex = sharedStringTable.Elements<SharedStringItem>().Count();
                 sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
                 _sharedStringTableDirty = true;
+                MarkPackageDirty();
                 _sharedStringCache[text] = newIndex;
 
                 return newIndex;
@@ -562,8 +586,8 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (changed) {
-                    sharedStringTable.Save();
-                    _sharedStringTableDirty = false;
+                    _sharedStringTableDirty = true;
+                    MarkPackageDirty();
                 }
 
                 return result;
@@ -610,7 +634,7 @@ namespace OfficeIMO.Excel {
                 ? new NonDisposingMemoryStream(StreamBufferSize)
                 : new MemoryStream(StreamBufferSize);
 
-            var spreadSheetDocument = SpreadsheetDocument.Create(packageStream, SpreadsheetDocumentType.Workbook, true);
+            var spreadSheetDocument = SpreadsheetDocument.Create(packageStream, SpreadsheetDocumentType.Workbook, false);
             return CreateNewDocument(spreadSheetDocument, filePath: null, packageStream, stream, autoSave, leaveSourceStreamOpen: true);
         }
 
@@ -640,6 +664,11 @@ namespace OfficeIMO.Excel {
             document._copyPackageToSourceOnDispose = copyPackageToSourceOnDispose && sourceStream != null;
             document._copyPackageToFilePathOnDispose = copyPackageToFilePathOnDispose && packageStream != null && !string.IsNullOrEmpty(filePath);
             document._leaveSourceStreamOpen = leaveSourceStreamOpen;
+            document._packageContentTypesKnownNormalized = false;
+            document._requiresSavePreflight = true;
+            document._packageDirty = true;
+            document._packagePropertiesDirty = false;
+            document._unchangedPackageBytes = null;
 
             // Initialize document property helpers
             document.BuiltinDocumentProperties = new BuiltinDocumentProperties(document);
@@ -655,7 +684,9 @@ namespace OfficeIMO.Excel {
             bool copyPackageToSourceOnDispose = false,
             bool leaveSourceStreamOpen = true,
             bool copyPackageToFilePathOnDispose = false,
-            Stream? ownedOpenStream = null) {
+            Stream? ownedOpenStream = null,
+            bool packageContentTypesKnownNormalized = false,
+            byte[]? unchangedPackageBytes = null) {
             bool keepPackageStream = copyPackageToSourceOnDispose || copyPackageToFilePathOnDispose;
             var document = new ExcelDocument {
                 FilePath = filePath ?? string.Empty,
@@ -667,6 +698,11 @@ namespace OfficeIMO.Excel {
                 _copyPackageToSourceOnDispose = copyPackageToSourceOnDispose && sourceStream != null,
                 _copyPackageToFilePathOnDispose = copyPackageToFilePathOnDispose && packageStream != null && !string.IsNullOrEmpty(filePath),
                 _leaveSourceStreamOpen = leaveSourceStreamOpen,
+                _packageContentTypesKnownNormalized = packageContentTypesKnownNormalized,
+                _requiresSavePreflight = false,
+                _packageDirty = false,
+                _packagePropertiesDirty = false,
+                _unchangedPackageBytes = packageContentTypesKnownNormalized ? unchangedPackageBytes : null,
             };
 
             document.BuiltinDocumentProperties = new BuiltinDocumentProperties(document);
@@ -718,8 +754,9 @@ namespace OfficeIMO.Excel {
                 normalizedStream.Write(bytes, 0, bytes.Length);
                 normalizedStream.Position = 0;
 
-                Utilities.ExcelPackageUtilities.NormalizeContentTypes(normalizedStream, leaveOpen: true);
+                bool normalizedContentTypes = Utilities.ExcelPackageUtilities.NormalizeContentTypes(normalizedStream, leaveOpen: true);
                 normalizedStream.Position = 0;
+                byte[] unchangedPackageBytes = normalizedContentTypes ? normalizedStream.ToArray() : bytes;
 
                 var memDoc = SpreadsheetDocument.Open(normalizedStream, !readOnly, effectiveOpenSettings);
                 return CreateDocument(
@@ -729,7 +766,9 @@ namespace OfficeIMO.Excel {
                     shouldCopyBack ? originalStream : null,
                     shouldCopyBack,
                     leaveOriginalStreamOpen,
-                    copyPackageToFilePathOnDispose: shouldCopyBackToFilePath);
+                    copyPackageToFilePathOnDispose: shouldCopyBackToFilePath,
+                    packageContentTypesKnownNormalized: true,
+                    unchangedPackageBytes: unchangedPackageBytes);
             } catch (Exception ex) when (ex is InvalidDataException || ex is OpenXmlPackageException || ex is XmlException) {
                 normalizedStream?.Dispose();
                 var contextMessage = filePath != null
@@ -759,7 +798,8 @@ namespace OfficeIMO.Excel {
                     shouldCopyBack ? originalStream : null,
                     shouldCopyBack,
                     leaveOriginalStreamOpen,
-                    copyPackageToFilePathOnDispose: shouldCopyBackToFilePath);
+                    copyPackageToFilePathOnDispose: shouldCopyBackToFilePath,
+                    packageContentTypesKnownNormalized: false);
             }
         }
 
@@ -1088,6 +1128,7 @@ namespace OfficeIMO.Excel {
                 string name = ValidateOrSanitizeSheetName(workSheetName, validationMode, currentSheetName: null);
                 ExcelSheet excelSheet = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, name);
                 MarkSheetCacheDirty();
+                MarkRequiresSavePreflight();
                 return excelSheet;
             });
         }
@@ -1113,6 +1154,7 @@ namespace OfficeIMO.Excel {
                 target.Name = validatedName;
                 UpdateSheetNameReferences(currentName, validatedName);
                 WorkbookRoot.Save();
+                MarkRequiresSavePreflight();
             });
         }
 
@@ -1207,7 +1249,12 @@ namespace OfficeIMO.Excel {
         /// and header/footer references, and cleans up invalid table references.
         /// </summary>
         public void PreflightWorkbook() {
-            foreach (var sheet in Sheets) {
+            PreflightWorkbook(Sheets);
+            _requiresSavePreflight = false;
+        }
+
+        private void PreflightWorkbook(IEnumerable<ExcelSheet> sheets) {
+            foreach (var sheet in sheets) {
                 sheet.Preflight();
             }
             CleanupWorkbookViewArtifacts(save: true);
@@ -1220,7 +1267,7 @@ namespace OfficeIMO.Excel {
         /// Closes the underlying spreadsheet document.
         /// </summary>
         public void Close() {
-            this._spreadSheetDocument.Dispose();
+            Dispose();
         }
 
         private static void EnsureDirectoryWritable(string path) {
@@ -1453,15 +1500,18 @@ namespace OfficeIMO.Excel {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
-            var payload = PreparePackageForSave(options);
+            if (TryWriteUnchangedPackageToStream(destination, options)) {
+                return;
+            }
+
+            var payload = PreparePackageForSave(options, closeDocument: false);
             try {
                 var finalizedBytes = FinalizePackageBytes(payload);
                 ThrowIfOpenXmlValidationFails(finalizedBytes, options);
                 PrepareDestinationStreamForWrite(destination);
                 destination.Write(finalizedBytes, 0, finalizedBytes.Length);
                 try { destination.Flush(); } catch (NotSupportedException) { }
-
-                ReloadFromBytes(finalizedBytes);
+                MarkPackageClean(finalizedBytes);
             } catch {
                 TryRestoreDocumentState(payload);
                 throw;
@@ -1479,12 +1529,16 @@ namespace OfficeIMO.Excel {
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
-            var payload = PreparePackageForSave(saveOptions);
+            if (CanUseUnchangedPackageFastPath(saveOptions) && _unchangedPackageBytes != null) {
+                OfficeEncryption.EncryptPackageToStream(_unchangedPackageBytes, password, destination);
+                return;
+            }
+
+            var payload = PreparePackageForSave(saveOptions, closeDocument: false);
             try {
                 var finalizedBytes = FinalizePackageBytes(payload);
                 ThrowIfOpenXmlValidationFails(finalizedBytes, saveOptions);
                 OfficeEncryption.EncryptPackageToStream(finalizedBytes, password, destination);
-                ReloadFromBytes(finalizedBytes);
             } catch {
                 TryRestoreDocumentState(payload);
                 throw;
@@ -1510,15 +1564,18 @@ namespace OfficeIMO.Excel {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
-            var payload = PreparePackageForSave(options);
+            if (await TryWriteUnchangedPackageToStreamAsync(destination, options, cancellationToken).ConfigureAwait(false)) {
+                return;
+            }
+
+            var payload = PreparePackageForSave(options, closeDocument: false);
             try {
                 var finalizedBytes = FinalizePackageBytes(payload);
                 ThrowIfOpenXmlValidationFails(finalizedBytes, options);
                 PrepareDestinationStreamForWrite(destination);
                 await destination.WriteAsync(finalizedBytes, 0, finalizedBytes.Length, cancellationToken).ConfigureAwait(false);
                 try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
-
-                ReloadFromBytes(finalizedBytes);
+                MarkPackageClean(finalizedBytes);
             } catch {
                 TryRestoreDocumentState(payload);
                 throw;
@@ -1543,18 +1600,26 @@ namespace OfficeIMO.Excel {
             return SaveAsync("", openExcel, cancellationToken);
         }
 
-        private SavePayload PreparePackageForSave(ExcelSaveOptions? options) {
+        private SavePayload PreparePackageForSave(ExcelSaveOptions? options, bool closeDocument = true) {
             // Ensure all worksheets have up-to-date dimensions and proper element ordering before saving
             ApplyCalculationPolicyBeforeSave();
 
-            foreach (var sheet in Sheets) {
+            var sheets = Sheets;
+            foreach (var sheet in sheets) {
+                if (!sheet.RequiresSavePreparation) {
+                    continue;
+                }
+
                 sheet.UpdateSheetDimension();
                 sheet.EnsureWorksheetElementOrder();
                 sheet.Commit();
             }
 
-            // Always preflight to remove orphaned/empty containers that can trigger Excel repairs
-            try { PreflightWorkbook(); } catch { }
+            // Run the heavier repair sweep only when workbook-level operations requested it.
+            if (_requiresSavePreflight || options?.SafePreflight == true) {
+                try { PreflightWorkbook(sheets); } catch { }
+                _requiresSavePreflight = false;
+            }
             if (options?.SafePreflight == true) {
                 // Already performed above; branch kept for semantic clarity
             }
@@ -1579,9 +1644,11 @@ namespace OfficeIMO.Excel {
 
             var packageBytes = snapshot.ToArray();
 
-            try { _spreadSheetDocument.Dispose(); } catch { }
+            if (closeDocument) {
+                try { _spreadSheetDocument.Dispose(); } catch { }
+            }
 
-            return new SavePayload(packageBytes, propertiesSnapshot);
+            return new SavePayload(packageBytes, propertiesSnapshot, closeDocument, normalizeContentTypes: !_packageContentTypesKnownNormalized, applyPackageProperties: _packagePropertiesDirty);
         }
 
         private static void PrepareDestinationStreamForWrite(Stream destination) {
@@ -1591,6 +1658,53 @@ namespace OfficeIMO.Excel {
 
             destination.Seek(0, SeekOrigin.Begin);
             destination.SetLength(0);
+        }
+
+        private bool TryWriteUnchangedPackageToStream(Stream destination, ExcelSaveOptions? options) {
+            if (!CanUseUnchangedPackageFastPath(options) || _unchangedPackageBytes == null) {
+                return false;
+            }
+
+            PrepareDestinationStreamForWrite(destination);
+            destination.Write(_unchangedPackageBytes, 0, _unchangedPackageBytes.Length);
+            try { destination.Flush(); } catch (NotSupportedException) { }
+            return true;
+        }
+
+        private async Task<bool> TryWriteUnchangedPackageToStreamAsync(Stream destination, ExcelSaveOptions? options, CancellationToken cancellationToken) {
+            if (!CanUseUnchangedPackageFastPath(options) || _unchangedPackageBytes == null) {
+                return false;
+            }
+
+            PrepareDestinationStreamForWrite(destination);
+            await destination.WriteAsync(_unchangedPackageBytes, 0, _unchangedPackageBytes.Length, cancellationToken).ConfigureAwait(false);
+            try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
+            return true;
+        }
+
+        private bool CanUseUnchangedPackageFastPath(ExcelSaveOptions? options) {
+            return !_packageDirty
+                && _packageContentTypesKnownNormalized
+                && _unchangedPackageBytes != null
+                && !HasCalculationSaveWork()
+                && options?.SafePreflight != true
+                && options?.SafeRepairDefinedNames != true
+                && options?.ValidateOpenXml != true;
+        }
+
+        private bool HasCalculationSaveWork() {
+            return Calculation.EvaluateFormulasBeforeSave
+                || Calculation.ClearCachedFormulaResultsBeforeSave
+                || Calculation.MarkFormulasDirtyBeforeSave
+                || Calculation.ForceFullCalculationOnOpen;
+        }
+
+        private void MarkPackageClean(byte[] packageBytes) {
+            _packageDirty = false;
+            _packagePropertiesDirty = false;
+            _unchangedPackageBytes = packageBytes;
+            _packageContentTypesKnownNormalized = true;
+            _requiresSavePreflight = false;
         }
 
         private static string CreateTemporarySavePath(string targetPath) {
@@ -1705,6 +1819,10 @@ namespace OfficeIMO.Excel {
         }
 
         private void TryRestoreDocumentState(SavePayload payload) {
+            if (!payload.DocumentClosed) {
+                return;
+            }
+
             try {
                 ReloadFromBytes(payload.PackageBytes);
             } catch {
@@ -1727,6 +1845,7 @@ namespace OfficeIMO.Excel {
             _workBookPart = WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             _sharedStringTablePart = null;
             _packageStream = keepPackageStream ? mem : null;
+            MarkPackageClean(packageBytes);
 
             if (previousPackageStream != null && !ReferenceEquals(previousPackageStream, mem)) {
                 DisposeStream(previousPackageStream);
@@ -1738,6 +1857,15 @@ namespace OfficeIMO.Excel {
         }
 
         private static byte[] NormalizePackageBytes(byte[] packageBytes) {
+            using (var probe = new MemoryStream(packageBytes, writable: false)) {
+                try {
+                    if (!ExcelPackageUtilities.NeedsContentTypeNormalization(probe)) {
+                        return packageBytes;
+                    }
+                } catch {
+                }
+            }
+
             var working = new MemoryStream(packageBytes.Length + StreamBufferSize);
             working.Write(packageBytes, 0, packageBytes.Length);
             working.Position = 0;
@@ -1755,8 +1883,12 @@ namespace OfficeIMO.Excel {
         }
 
         private static byte[] FinalizePackageBytes(SavePayload payload) {
-            var withProperties = payload.Properties.ApplyTo(payload.PackageBytes);
-            return NormalizePackageBytes(withProperties);
+            var withProperties = payload.ApplyPackageProperties
+                ? payload.Properties.ApplyTo(payload.PackageBytes)
+                : payload.PackageBytes;
+            return payload.NormalizeContentTypes
+                ? NormalizePackageBytes(withProperties)
+                : withProperties;
         }
 
         private static void ThrowIfOpenXmlValidationFails(byte[] finalizedBytes, ExcelSaveOptions? options) {
@@ -1887,13 +2019,19 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class SavePayload {
-            public SavePayload(byte[] packageBytes, PackagePropertiesSnapshot properties) {
+            public SavePayload(byte[] packageBytes, PackagePropertiesSnapshot properties, bool documentClosed, bool normalizeContentTypes, bool applyPackageProperties) {
                 PackageBytes = packageBytes;
                 Properties = properties;
+                DocumentClosed = documentClosed;
+                NormalizeContentTypes = normalizeContentTypes;
+                ApplyPackageProperties = applyPackageProperties;
             }
 
             public byte[] PackageBytes { get; }
             public PackagePropertiesSnapshot Properties { get; }
+            public bool DocumentClosed { get; }
+            public bool NormalizeContentTypes { get; }
+            public bool ApplyPackageProperties { get; }
         }
 
         private bool _disposed;
@@ -1902,7 +2040,65 @@ namespace OfficeIMO.Excel {
         /// Releases resources used by the document.
         /// </summary>
         public void Dispose() {
-            DisposeAsync().GetAwaiter().GetResult();
+            if (_disposed) {
+                return;
+            }
+
+            Exception? persistenceFailure = null;
+
+            try {
+                if (this._spreadSheetDocument != null) {
+                    try {
+                        if (_copyPackageToSourceOnDispose && _sourceStream != null && !this._spreadSheetDocument.AutoSave) {
+                            if (!TryWriteSimpleWorkbookPackage(_sourceStream)) {
+                                Save(_sourceStream);
+                            }
+
+                            _copyPackageToSourceOnDispose = false;
+                        }
+
+                        if (this._spreadSheetDocument.AutoSave && this._spreadSheetDocument.FileOpenAccess != FileAccess.Read) {
+                            lock (_sharedStringLock) {
+                                if (_sharedStringTableDirty) {
+                                    _sharedStringTablePart?.SharedStringTable?.Save();
+                                    _sharedStringTableDirty = false;
+                                }
+                            }
+
+                            WorkbookRoot.Save();
+                        }
+
+                        this._spreadSheetDocument.Dispose();
+                    } catch (Exception ex) {
+                        persistenceFailure = ex;
+                    } finally {
+                        this._spreadSheetDocument = null!;
+                    }
+                }
+
+                try {
+                    PersistPackageToSourceIfNeeded();
+                } catch (Exception ex) {
+                    persistenceFailure ??= ex;
+                }
+            } finally {
+                if (_ownedOpenStream != null) {
+                    try {
+                        _ownedOpenStream.Dispose();
+                    } catch {
+                        // ignored
+                    }
+                    _ownedOpenStream = null;
+                }
+
+                _lock?.Dispose();
+                _disposed = true;
+                GC.SuppressFinalize(this);
+            }
+
+            if (persistenceFailure != null) {
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(persistenceFailure).Throw();
+            }
         }
 
         /// <summary>
@@ -1918,6 +2114,14 @@ namespace OfficeIMO.Excel {
             try {
                 if (this._spreadSheetDocument != null) {
                     try {
+                        if (_copyPackageToSourceOnDispose && _sourceStream != null && !this._spreadSheetDocument.AutoSave) {
+                            if (!TryWriteSimpleWorkbookPackage(_sourceStream)) {
+                                Save(_sourceStream);
+                            }
+
+                            _copyPackageToSourceOnDispose = false;
+                        }
+
                         if (this._spreadSheetDocument.AutoSave && this._spreadSheetDocument.FileOpenAccess != FileAccess.Read) {
                             lock (_sharedStringLock) {
                                 if (_sharedStringTableDirty) {

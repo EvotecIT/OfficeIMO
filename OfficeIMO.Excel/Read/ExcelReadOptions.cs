@@ -42,6 +42,12 @@ namespace OfficeIMO.Excel {
         public bool NumericAsDecimal { get; set; } = false;
 
         /// <summary>
+        /// When true, DataTable reads infer stable column types from the materialized range.
+        /// Mixed-type columns stay object-typed.
+        /// </summary>
+        public bool InferDataTableColumnTypes { get; set; } = true;
+
+        /// <summary>
         /// When true, typed object readers throw if selected headers cannot be mapped
         /// deterministically to writable properties.
         /// </summary>
@@ -63,11 +69,11 @@ namespace OfficeIMO.Excel {
         /// Initializes reading defaults and per-operation thresholds.
         /// </summary>
         public ExcelReadOptions() {
-            Execution.OperationThresholds["ReadRange"] = 10_000;
-            Execution.OperationThresholds["ReadRangeAsDataTable"] = 10_000;
+            Execution.OperationThresholds["ReadRange"] = 100_000;
+            Execution.OperationThresholds["ReadRangeAsDataTable"] = 100_000;
             Execution.OperationThresholds["ReadObjects"] = 10_000;
-            Execution.OperationThresholds["ReadObjectsAs"] = 10_000;
-            Execution.OperationThresholds["ReadRangeStream"] = 1_024;
+            Execution.OperationThresholds["ReadObjectsAs"] = 100_000;
+            Execution.OperationThresholds["ReadRangeStream"] = 100_000;
             Execution.OperationThresholds["ReadRows"] = 20_000;
         }
     }

@@ -249,6 +249,68 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_ReadRangeAsDataTable_InfersStableColumnTypes() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderDataTableTypedColumns.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    sheet.CellValue(1, 2, "Amount");
+                    sheet.CellValue(1, 3, "Created");
+                    sheet.CellValue(1, 4, "Active");
+                    sheet.CellValue(2, 1, "Alpha");
+                    sheet.CellValue(2, 2, 12.5d);
+                    sheet.CellValue(2, 3, new DateTime(2024, 1, 2));
+                    sheet.CellValue(2, 4, true);
+                    sheet.CellValue(3, 1, "Beta");
+                    sheet.CellValue(3, 2, 25d);
+                    sheet.CellValue(3, 3, new DateTime(2024, 1, 3));
+                    sheet.CellValue(3, 4, false);
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                DataTable table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:D3");
+
+                Assert.Equal(typeof(string), table.Columns["Name"]!.DataType);
+                Assert.Equal(typeof(double), table.Columns["Amount"]!.DataType);
+                Assert.Equal(typeof(DateTime), table.Columns["Created"]!.DataType);
+                Assert.Equal(typeof(bool), table.Columns["Active"]!.DataType);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRangeAsDataTable_KeepsMixedColumnObjectTyped() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderDataTableMixedColumn.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Mixed");
+                    sheet.CellValue(2, 1, 10d);
+                    sheet.CellValue(3, 1, "Ten");
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                DataTable table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:A3");
+
+                Assert.Equal(typeof(object), table.Columns["Mixed"]!.DataType);
+                Assert.Equal(10d, table.Rows[0]["Mixed"]);
+                Assert.Equal("Ten", table.Rows[1]["Mixed"]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Reader_ReadRangeAsDataTable_ReportsOwnExecutionDecision() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderDataTableDecision.xlsx");
             var decisions = new List<(string Operation, int Items, ExecutionMode Mode)>();

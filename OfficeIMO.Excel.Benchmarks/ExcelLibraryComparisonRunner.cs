@@ -46,6 +46,9 @@ internal static class ExcelLibraryComparisonRunner {
         var scenarioFilter = BuildScenarioFilter(scenarioFilters);
 
         var rows = ExcelBenchmarkScenarioFactory.CreateSalesRecords(rowCount);
+        var firstTableRows = rows.Take(rowCount / 2).ToList();
+        var secondTableRows = rows.Skip(rowCount / 2).ToList();
+        var salesDataSet = CreateSalesDataSet(firstTableRows, secondTableRows);
         byte[] officeImoWorkbookBytes = ExcelBenchmarkScenarioFactory.CreateWorkbookBytes(rows);
         byte[] closedXmlWorkbookBytes = CreateClosedXmlWorkbookBytes(rows);
         byte[] epPlusWorkbookBytes = CreateEpPlusWorkbookBytes(rows);
@@ -62,6 +65,12 @@ internal static class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("OfficeIMO.Excel", "Insert objects, add table, autofit, save.", () => OfficeImoWriteBulkReport(rows)),
             new LibraryComparisonCase("ClosedXML", "Insert table, apply table style, autofit, save.", () => ClosedXmlWriteBulkReport(rows)),
             new LibraryComparisonCase("EPPlus", "Manual row population, add table, autofit, save.", () => EpPlusWriteBulkReport(rows))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-dataset-tables", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Write a prepared DataSet directly as two styled worksheet tables.", () => OfficeImoWriteDataSetTables(salesDataSet)),
+            new LibraryComparisonCase("ClosedXML", "Import prepared DataTables as two styled worksheet tables and save.", () => ClosedXmlWriteDataSetTables(salesDataSet)),
+            new LibraryComparisonCase("EPPlus", "Import prepared DataTables as two styled worksheet tables and save.", () => EpPlusWriteDataSetTables(salesDataSet))
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "append-plain-rows", warmupIterations, measuredIterations, [
@@ -371,6 +380,42 @@ internal static class ExcelLibraryComparisonRunner {
         using (var package = new ExcelPackage(stream)) {
             var worksheet = package.Workbook.Worksheets.Add("Data");
             PopulateEpPlusWorksheet(worksheet, rows, includeTable: true, autoFit: true);
+            package.Save();
+        }
+
+        return checked((int)stream.Length);
+    }
+
+    private static int OfficeImoWriteDataSetTables(DataSet dataSet) {
+        using var stream = new MemoryStream();
+        ExcelDocument.WriteDataSet(stream, dataSet);
+
+        return checked((int)stream.Length);
+    }
+
+    private static int ClosedXmlWriteDataSetTables(DataSet dataSet) {
+        using var stream = new MemoryStream();
+        using (var workbook = new XLWorkbook()) {
+            foreach (DataTable dataTable in dataSet.Tables) {
+                var worksheet = workbook.Worksheets.Add(dataTable.TableName);
+                var table = worksheet.Cell(1, 1).InsertTable(dataTable, dataTable.TableName, true);
+                ExcelBenchmarkScenarioFactory.StyleClosedXmlTable(table);
+            }
+
+            workbook.SaveAs(stream);
+        }
+
+        return checked((int)stream.Length);
+    }
+
+    private static int EpPlusWriteDataSetTables(DataSet dataSet) {
+        using var stream = new MemoryStream();
+        using (var package = new ExcelPackage(stream)) {
+            foreach (DataTable dataTable in dataSet.Tables) {
+                var worksheet = package.Workbook.Worksheets.Add(dataTable.TableName);
+                worksheet.Cells["A1"].LoadFromDataTable(dataTable, true, TableStyles.Medium2);
+            }
+
             package.Save();
         }
 
@@ -972,7 +1017,8 @@ internal static class ExcelLibraryComparisonRunner {
         }
 
         if (includeTable) {
-            var table = worksheet.Tables.Add(worksheet.Cells[1, 1, rows.Count + 1, 8], "SalesData");
+            string tableName = string.Equals(worksheet.Name, "Data", StringComparison.OrdinalIgnoreCase) ? "SalesData" : worksheet.Name;
+            var table = worksheet.Tables.Add(worksheet.Cells[1, 1, rows.Count + 1, 8], tableName);
             table.TableStyle = TableStyles.Medium2;
         }
 
@@ -1040,6 +1086,25 @@ internal static class ExcelLibraryComparisonRunner {
         table.Columns.Add("Units", typeof(int));
         table.Columns.Add("Active", typeof(bool));
         table.Columns.Add("Notes", typeof(string));
+        return table;
+    }
+
+    private static DataSet CreateSalesDataSet(
+        IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> first,
+        IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> second) {
+        var dataSet = new DataSet("Sales") { Locale = CultureInfo.InvariantCulture };
+        dataSet.Tables.Add(CreateSalesDataTable(first, "SalesA"));
+        dataSet.Tables.Add(CreateSalesDataTable(second, "SalesB"));
+        return dataSet;
+    }
+
+    private static DataTable CreateSalesDataTable(IEnumerable<ExcelBenchmarkScenarioFactory.SalesRecord> rows, string tableName) {
+        var table = CreateSalesDataTable();
+        table.TableName = tableName;
+        foreach (var row in rows) {
+            table.Rows.Add(row.Id, row.Region, row.Owner, row.CreatedOn, row.Amount, row.Units, row.Active, row.Notes);
+        }
+
         return table;
     }
 

@@ -24,6 +24,10 @@ namespace OfficeIMO.Excel {
             if (startRow < 1) throw new ArgumentOutOfRangeException(nameof(startRow));
             if (startColumn < 1) throw new ArgumentOutOfRangeException(nameof(startColumn));
 
+            if (mode != ExecutionMode.Parallel && TryInsertDataTableByAppendingRows(table, startRow, startColumn, includeHeaders, ct)) {
+                return;
+            }
+
             // Prepare a flat list of cells and optional number formats
             var cells = new List<(int Row, int Col, object? Val, string? NumFmt)>(
                 (table.Rows.Count + (includeHeaders ? 1 : 0)) * Math.Max(1, table.Columns.Count));
@@ -123,6 +127,214 @@ namespace OfficeIMO.Excel {
             );
         }
 
+        private bool TryInsertDataTableByAppendingRows(DataTable table, int startRow, int startColumn, bool includeHeaders, CancellationToken ct) {
+            int columnCount = table.Columns.Count;
+            int rowsCount = table.Rows.Count + (includeHeaders ? 1 : 0);
+            if (columnCount == 0 || rowsCount == 0) {
+                return true;
+            }
+
+            if (startColumn + columnCount - 1 > A1.MaxColumns || startRow + rowsCount - 1 > A1.MaxRows) {
+                return false;
+            }
+
+            bool applied = false;
+            System.Threading.ReaderWriterLockSlim? lck = _excelDocument._lock;
+            if (lck == null) {
+                try { lck = _excelDocument.EnsureLock(); } catch { lck = null; }
+            }
+
+            Locking.ExecuteWrite(lck, () => applied = TryInsertDataTableByAppendingRowsCore(table, startRow, startColumn, includeHeaders, ct));
+            return applied;
+        }
+
+        private bool TryInsertDataTableByAppendingRowsCore(DataTable table, int startRow, int startColumn, bool includeHeaders, CancellationToken ct) {
+            var sheetData = GetOrCreateSheetData();
+            int minExistingRow = int.MaxValue;
+            int minExistingColumn = int.MaxValue;
+            int maxExistingRow = 0;
+            int maxExistingColumn = 0;
+            foreach (var existingRow in sheetData.Elements<Row>()) {
+                if (existingRow.RowIndex == null) {
+                    return false;
+                }
+
+                int existingRowIndex = checked((int)(existingRow.RowIndex?.Value ?? 0U));
+                if (existingRowIndex >= startRow) {
+                    return false;
+                }
+
+                if (existingRowIndex <= 0 || !existingRow.HasChildren) {
+                    continue;
+                }
+
+                foreach (var existingCell in existingRow.Elements<Cell>()) {
+                    int existingColumnIndex = 0;
+                    string? reference = existingCell.CellReference?.Value;
+                    if (!string.IsNullOrEmpty(reference)) {
+                        existingColumnIndex = A1.ParseColumnIndexFromCellReference(reference!);
+                    }
+
+                    if (existingColumnIndex <= 0) {
+                        continue;
+                    }
+
+                    if (existingRowIndex < minExistingRow) minExistingRow = existingRowIndex;
+                    if (existingRowIndex > maxExistingRow) maxExistingRow = existingRowIndex;
+                    if (existingColumnIndex < minExistingColumn) minExistingColumn = existingColumnIndex;
+                    if (existingColumnIndex > maxExistingColumn) maxExistingColumn = existingColumnIndex;
+                }
+            }
+
+            int columnCount = table.Columns.Count;
+            var columnNames = new string[startColumn + columnCount];
+            for (int column = startColumn; column < startColumn + columnCount; column++) {
+                columnNames[column] = GetColumnName(column);
+            }
+
+            string?[] numberFormats = BuildDataTableNumberFormats(table);
+            var stylePlanner = new StylePlanner();
+            foreach (string? numberFormat in numberFormats) {
+                stylePlanner.NoteNumberFormat(numberFormat);
+            }
+
+            stylePlanner.ApplyTo(_excelDocument);
+            var styleIndexes = new uint?[numberFormats.Length];
+            for (int i = 0; i < numberFormats.Length; i++) {
+                if (stylePlanner.TryGetCellFormatIndex(numberFormats[i], out uint styleIndex)) {
+                    styleIndexes[i] = styleIndex;
+                }
+            }
+
+            int cellCount = (table.Rows.Count + (includeHeaders ? 1 : 0)) * columnCount;
+            bool useDirectStringCells = cellCount >= 4096 && columnCount > 1;
+            Dictionary<string, int>? sharedStringIndexes = null;
+            var appendedRows = new List<OpenXmlElement>(Math.Max(1, table.Rows.Count + (includeHeaders ? 1 : 0)));
+            int rowIndex = startRow;
+
+            if (includeHeaders) {
+                appendedRows.Add(CreateDataTableHeaderRow(rowIndex++, startColumn, columnNames, table, useDirectStringCells, ref sharedStringIndexes, ct));
+            }
+
+            foreach (DataRow dataRow in table.Rows) {
+                ct.ThrowIfCancellationRequested();
+                appendedRows.Add(CreateDataTableValueRow(rowIndex++, startColumn, columnNames, dataRow, styleIndexes, useDirectStringCells, ref sharedStringIndexes, ct));
+            }
+
+            sheetData.Append(appendedRows);
+            ClearHeaderCacheForPreparedAppend();
+            int lastRow = startRow + table.Rows.Count + (includeHeaders ? 1 : 0) - 1;
+            int lastColumn = startColumn + columnCount - 1;
+            int dimensionMinRow = minExistingRow == int.MaxValue ? startRow : Math.Min(minExistingRow, startRow);
+            int dimensionMinColumn = minExistingColumn == int.MaxValue ? startColumn : Math.Min(minExistingColumn, startColumn);
+            int dimensionMaxRow = Math.Max(maxExistingRow, lastRow);
+            int dimensionMaxColumn = Math.Max(maxExistingColumn, lastColumn);
+            SetSheetDimensionReference(dimensionMinRow, dimensionMinColumn, dimensionMaxRow, dimensionMaxColumn);
+            _requiresSavePreparation = false;
+            return true;
+        }
+
+        private Row CreateDataTableHeaderRow(
+            int rowIndex,
+            int startColumn,
+            IReadOnlyList<string> columnNames,
+            DataTable table,
+            bool useDirectStringCells,
+            ref Dictionary<string, int>? sharedStringIndexes,
+            CancellationToken ct) {
+            string rowReference = rowIndex.ToString(CultureInfo.InvariantCulture);
+            var cells = new List<OpenXmlElement>(table.Columns.Count);
+            for (int offset = 0; offset < table.Columns.Count; offset++) {
+                ct.ThrowIfCancellationRequested();
+                int column = startColumn + offset;
+                var (cellValue, cellType) = CoerceDataTableAppendValue(table.Columns[offset].ColumnName, useDirectStringCells, ref sharedStringIndexes);
+                var cell = new Cell {
+                    CellReference = columnNames[column] + rowReference,
+                    CellValue = cellValue,
+                    DataType = new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType)
+                };
+
+                cells.Add(cell);
+            }
+
+            var row = new Row { RowIndex = (uint)rowIndex };
+            row.Append(cells);
+            return row;
+        }
+
+        private Row CreateDataTableValueRow(
+            int rowIndex,
+            int startColumn,
+            IReadOnlyList<string> columnNames,
+            DataRow dataRow,
+            IReadOnlyList<uint?> styleIndexes,
+            bool useDirectStringCells,
+            ref Dictionary<string, int>? sharedStringIndexes,
+            CancellationToken ct) {
+            string rowReference = rowIndex.ToString(CultureInfo.InvariantCulture);
+            int columnCount = dataRow.Table.Columns.Count;
+            var cells = new List<OpenXmlElement>(columnCount);
+            for (int offset = 0; offset < columnCount; offset++) {
+                ct.ThrowIfCancellationRequested();
+                object? value = dataRow.IsNull(offset) ? null : dataRow[offset];
+                int column = startColumn + offset;
+                var (cellValue, cellType) = CoerceDataTableAppendValue(value, useDirectStringCells, ref sharedStringIndexes);
+                var cell = new Cell {
+                    CellReference = columnNames[column] + rowReference,
+                    CellValue = cellValue,
+                    DataType = new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType)
+                };
+
+                if (offset < styleIndexes.Count && styleIndexes[offset] is uint styleIndex) {
+                    cell.StyleIndex = styleIndex;
+                }
+
+                cells.Add(cell);
+            }
+
+            var row = new Row { RowIndex = (uint)rowIndex };
+            row.Append(cells);
+            return row;
+        }
+
+        private (CellValue cellValue, DocumentFormat.OpenXml.Spreadsheet.CellValues cellType) CoerceDataTableAppendValue(
+            object? value,
+            bool useDirectStringCells,
+            ref Dictionary<string, int>? sharedStringIndexes) {
+            var indexes = sharedStringIndexes;
+            CellValue HandleString(string text) {
+                return useDirectStringCells
+                    ? CreatePlainAppendStringValue(text)
+                    : CreatePlainAppendSharedStringValue(text, ref indexes);
+            }
+
+            var (cellValue, cellType) = CoerceValueHelper.Coerce(
+                value,
+                HandleString,
+                _excelDocument.DateTimeOffsetWriteStrategy);
+            sharedStringIndexes = indexes;
+
+            if (useDirectStringCells && cellType == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) {
+                cellType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String;
+            }
+
+            return (cellValue, cellType);
+        }
+
+        private static string?[] BuildDataTableNumberFormats(DataTable table) {
+            var formats = new string?[table.Columns.Count];
+            for (int i = 0; i < table.Columns.Count; i++) {
+                Type type = table.Columns[i].DataType;
+                if (type == typeof(DateTime) || type == typeof(DateTimeOffset)) {
+                    formats[i] = "yyyy-mm-dd hh:mm";
+                } else if (type == typeof(TimeSpan)) {
+                    formats[i] = "[h]:mm:ss";
+                }
+            }
+
+            return formats;
+        }
+
         /// <summary>
         /// Inserts a DataTable and immediately creates an Excel Table over the written range.
         /// Returns the A1-style range of the created table.
@@ -150,7 +362,7 @@ namespace OfficeIMO.Excel {
             string range = startRef + ":" + endRef;
 
             // Create the Table with optional AutoFilter and style
-            AddTable(range, includeHeaders, tableName ?? string.Empty, style, includeAutoFilter);
+            AddTableAndGetName(range, includeHeaders, tableName ?? string.Empty, style, includeAutoFilter, ensureRangeCellsExist: false);
             return range;
         }
 

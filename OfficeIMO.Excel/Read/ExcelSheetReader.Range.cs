@@ -1,7 +1,10 @@
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Data;
+using System.Globalization;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -34,6 +37,10 @@ namespace OfficeIMO.Excel {
             int workload = height * width;
             if (decided == OfficeIMO.Excel.ExecutionMode.Automatic) decided = policy.Decide("ReadRange", workload);
             if (decided == OfficeIMO.Excel.ExecutionMode.Sequential) {
+                if (TryFillRangeXmlFast(result, r1, c1, r2, c2, ct)) {
+                    return result;
+                }
+
                 FillRangeSequential(result, r1, c1, r2, c2, ct);
                 return result;
             }
@@ -61,6 +68,10 @@ namespace OfficeIMO.Excel {
             int rows = r2 - r1 + 1;
             int cols = c2 - c1 + 1;
             if (CanUseSequentialRangeFastPath("ReadRangeAsDataTable", rows * cols, mode)) {
+                if (TryFillDataTableXmlFast(dt, r1, c1, r2, c2, rows, cols, headersInFirstRow, ct)) {
+                    return dt;
+                }
+
                 if (TryFillDataTableSequentialSinglePass(dt, r1, c1, r2, c2, rows, cols, headersInFirstRow, ct)) {
                     return dt;
                 }
@@ -70,6 +81,10 @@ namespace OfficeIMO.Excel {
             }
 
             var raw = SnapshotAndConvertRangeCells(r1, c1, r2, c2, "ReadRangeAsDataTable", mode, ct, rows * cols);
+
+            Type[]? columnTypes = _opt.InferDataTableColumnTypes
+                ? InferDataTableColumnTypesFromRaw(raw, r1, c1, cols, headersInFirstRow ? 1 : 0)
+                : null;
 
             if (headersInFirstRow && rows > 0) {
                 var headerValues = new object?[cols];
@@ -83,10 +98,10 @@ namespace OfficeIMO.Excel {
 
                 var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => headerValues[c]?.ToString(), _opt.NormalizeHeaders);
                 for (int c = 0; c < cols; c++) {
-                    dt.Columns.Add(headers[c], typeof(object));
+                    dt.Columns.Add(headers[c], columnTypes?[c] ?? typeof(object));
                 }
             } else {
-                for (int c = 0; c < cols; c++) dt.Columns.Add($"Column{c + 1}", typeof(object));
+                for (int c = 0; c < cols; c++) dt.Columns.Add($"Column{c + 1}", columnTypes?[c] ?? typeof(object));
             }
 
             int startRow = headersInFirstRow ? 1 : 0;
@@ -106,6 +121,68 @@ namespace OfficeIMO.Excel {
             }
 
             return dt;
+        }
+
+        private bool TryFillDataTableXmlFast(
+            DataTable dt,
+            int r1,
+            int c1,
+            int r2,
+            int c2,
+            int rows,
+            int cols,
+            bool headersInFirstRow,
+            CancellationToken ct) {
+            if (!CanUseXmlFastReader()) {
+                return false;
+            }
+
+            var values = new object?[rows, cols];
+            if (!TryFillRangeXmlFast(values, r1, c1, r2, c2, ct)) {
+                return false;
+            }
+
+            FillDataTableFromMatrix(dt, values, rows, cols, headersInFirstRow, ct);
+            return true;
+        }
+
+        private void FillDataTableFromMatrix(DataTable dt, object?[,] values, int rows, int cols, bool headersInFirstRow, CancellationToken ct) {
+            int startRow = headersInFirstRow ? 1 : 0;
+            int dataRowCount = Math.Max(0, rows - startRow);
+            Type[]? columnTypes = _opt.InferDataTableColumnTypes
+                ? InferDataTableColumnTypes(values, startRow, rows, cols)
+                : null;
+
+            if (headersInFirstRow && rows > 0) {
+                var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => values[0, c]?.ToString(), _opt.NormalizeHeaders);
+                for (int c = 0; c < cols; c++) {
+                    dt.Columns.Add(headers[c], columnTypes?[c] ?? typeof(object));
+                }
+            } else {
+                for (int c = 0; c < cols; c++) {
+                    dt.Columns.Add($"Column{c + 1}", columnTypes?[c] ?? typeof(object));
+                }
+            }
+
+            bool canCancel = ct.CanBeCanceled;
+            dt.BeginLoadData();
+            try {
+                for (int r = 0; r < dataRowCount; r++) {
+                    if (canCancel && (r & 1023) == 0) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    int sourceRow = r + startRow;
+                    var rowValues = new object?[cols];
+                    for (int c = 0; c < cols; c++) {
+                        rowValues[c] = values[sourceRow, c] ?? DBNull.Value;
+                    }
+
+                    dt.Rows.Add(rowValues);
+                }
+            } finally {
+                dt.EndLoadData();
+            }
         }
 
         /// <summary>
@@ -212,15 +289,16 @@ namespace OfficeIMO.Excel {
                 var headerValues = new object?[cols];
                 FillSequentialBuffers(r1, c1, r2, c2, cols, startRow, headerValues, rowValues, ct);
                 var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => headerValues[c]?.ToString(), _opt.NormalizeHeaders);
+                Type[]? columnTypes = _opt.InferDataTableColumnTypes ? InferDataTableColumnTypes(rowValues, cols) : null;
                 for (int c = 0; c < cols; c++) {
-                    dt.Columns.Add(headers[c], typeof(object));
+                    dt.Columns.Add(headers[c], columnTypes?[c] ?? typeof(object));
                 }
             } else {
-                for (int c = 0; c < cols; c++) {
-                    dt.Columns.Add($"Column{c + 1}", typeof(object));
-                }
-
                 FillSequentialBuffers(r1, c1, r2, c2, cols, startRow, null, rowValues, ct);
+                Type[]? columnTypes = _opt.InferDataTableColumnTypes ? InferDataTableColumnTypes(rowValues, cols) : null;
+                for (int c = 0; c < cols; c++) {
+                    dt.Columns.Add($"Column{c + 1}", columnTypes?[c] ?? typeof(object));
+                }
             }
 
             for (int r = 0; r < dataRowCount; r++) {
@@ -244,6 +322,10 @@ namespace OfficeIMO.Excel {
             int cols,
             bool headersInFirstRow,
             CancellationToken ct) {
+            if (_opt.InferDataTableColumnTypes) {
+                return false;
+            }
+
             bool canCancel = ct.CanBeCanceled;
             bool columnsReady = false;
             int startRow = headersInFirstRow ? 1 : 0;
@@ -260,6 +342,10 @@ namespace OfficeIMO.Excel {
             foreach (var row in EnumerateWorksheetRows(ct)) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
+                }
+
+                if (row.RowIndex == null) {
+                    return false;
                 }
 
                 int rowIndex = checked((int)row.RowIndex!.Value);
@@ -417,6 +503,10 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
+                if (row.RowIndex == null) {
+                    return false;
+                }
+
                 int rowIndex = checked((int)row.RowIndex!.Value);
                 if (rowIndex < r1) {
                     continue;
@@ -515,13 +605,14 @@ namespace OfficeIMO.Excel {
             CancellationToken ct) {
             bool canCancel = ct.CanBeCanceled;
             int visitedCells = 0;
+            int inferredRowIndex = 0;
 
             foreach (var row in EnumerateWorksheetRows(ct)) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                int rowIndex = checked((int)row.RowIndex!.Value);
+                int rowIndex = GetSequentialRowIndex(row, ref inferredRowIndex);
                 if (rowIndex < r1) continue;
                 if (rowIndex > r2) continue;
 
@@ -553,6 +644,79 @@ namespace OfficeIMO.Excel {
                     }
                 }
             }
+        }
+
+        private static Type[] InferDataTableColumnTypes(object?[][] rowValues, int cols) {
+            var types = new Type[cols];
+            for (int c = 0; c < cols; c++) {
+                Type? inferred = null;
+                for (int r = 0; r < rowValues.Length; r++) {
+                    object?[]? row = rowValues[r];
+                    if (row == null) {
+                        continue;
+                    }
+
+                    inferred = MergeDataTableColumnType(inferred, row[c]);
+                    if (inferred == typeof(object)) {
+                        break;
+                    }
+                }
+
+                types[c] = inferred ?? typeof(object);
+            }
+
+            return types;
+        }
+
+        private static Type[] InferDataTableColumnTypes(object?[,] values, int startRow, int rows, int cols) {
+            var types = new Type[cols];
+            for (int c = 0; c < cols; c++) {
+                Type? inferred = null;
+                for (int r = startRow; r < rows; r++) {
+                    inferred = MergeDataTableColumnType(inferred, values[r, c]);
+                    if (inferred == typeof(object)) {
+                        break;
+                    }
+                }
+
+                types[c] = inferred ?? typeof(object);
+            }
+
+            return types;
+        }
+
+        private static Type[] InferDataTableColumnTypesFromRaw(List<CellRaw> raw, int r1, int c1, int cols, int startRow) {
+            var types = new Type[cols];
+            Type?[] inferred = new Type?[cols];
+            for (int i = 0; i < raw.Count; i++) {
+                var cell = raw[i];
+                int rr = cell.Row - r1 - startRow;
+                int cc = cell.Col - c1;
+                if (rr < 0 || (uint)cc >= (uint)cols || inferred[cc] == typeof(object)) {
+                    continue;
+                }
+
+                inferred[cc] = MergeDataTableColumnType(inferred[cc], cell.TypedValue);
+            }
+
+            for (int c = 0; c < cols; c++) {
+                types[c] = inferred[c] ?? typeof(object);
+            }
+
+            return types;
+        }
+
+        private static Type? MergeDataTableColumnType(Type? current, object? value) {
+            if (value == null || value == DBNull.Value) {
+                return current;
+            }
+
+            Type next = value.GetType();
+            if (current == null || current == next) {
+                return next;
+            }
+
+            return typeof(object);
         }
 
         private List<CellRaw> SnapshotAndConvertRangeCells(
@@ -609,12 +773,13 @@ namespace OfficeIMO.Excel {
         private void SnapshotCellsInto(List<CellRaw> buffer, int r1, int c1, int r2, int c2, CancellationToken ct) {
             bool canCancel = ct.CanBeCanceled;
             int visitedCells = 0;
+            int inferredRowIndex = 0;
             foreach (var row in EnumerateWorksheetRows(ct)) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                var rIndex = checked((int)row.RowIndex!.Value);
+                var rIndex = GetSequentialRowIndex(row, ref inferredRowIndex);
                 if (rIndex < r1) continue;
                 if (rIndex > r2) continue;
 
@@ -639,13 +804,14 @@ namespace OfficeIMO.Excel {
             int width = result.GetLength(1);
             bool canCancel = ct.CanBeCanceled;
             int visitedCells = 0;
+            int inferredRowIndex = 0;
 
             foreach (var row in EnumerateWorksheetRows(ct)) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                var rIndex = checked((int)row.RowIndex!.Value);
+                var rIndex = GetSequentialRowIndex(row, ref inferredRowIndex);
                 if (rIndex < r1) continue;
                 if (rIndex > r2) continue;
 
@@ -667,6 +833,295 @@ namespace OfficeIMO.Excel {
                         result[rr, cc] = value;
                 }
             }
+        }
+
+        private static int GetSequentialRowIndex(Row row, ref int inferredRowIndex) {
+            if (row.RowIndex != null) {
+                inferredRowIndex = checked((int)row.RowIndex.Value);
+            } else {
+                inferredRowIndex++;
+            }
+
+            return inferredRowIndex;
+        }
+
+        private bool TryFillRangeXmlFast(object?[,] result, int r1, int c1, int r2, int c2, CancellationToken ct) {
+            if (!CanUseXmlFastReader()) {
+                return false;
+            }
+
+            try {
+                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                var settings = new XmlReaderSettings {
+                    DtdProcessing = DtdProcessing.Prohibit,
+                    IgnoreComments = true,
+                    IgnoreProcessingInstructions = true,
+                    IgnoreWhitespace = true,
+                    CloseInput = false
+                };
+
+                using var reader = XmlReader.Create(stream, settings);
+                bool canCancel = ct.CanBeCanceled;
+                int nextRowIndex = 1;
+                while (reader.Read()) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                        continue;
+                    }
+
+                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                    if (rowIndex <= 0) {
+                        rowIndex = nextRowIndex;
+                    }
+
+                    nextRowIndex = rowIndex + 1;
+                    if (rowIndex < r1 || rowIndex > r2) {
+                        continue;
+                    }
+
+                    ReadXmlRowIntoRange(reader, result, rowIndex, r1, c1, c2, ct);
+                }
+
+                return true;
+            } catch (XmlException) {
+                return false;
+            } catch (IOException) {
+                return false;
+            } catch (UnauthorizedAccessException) {
+                return false;
+            } catch (ObjectDisposedException) {
+                return false;
+            }
+        }
+
+        private bool CanUseXmlFastReader() {
+            return _opt.CellValueConverter == null
+                && _opt.Culture == CultureInfo.InvariantCulture
+                && CanStreamWorksheetPart();
+        }
+
+        private void ReadXmlRowIntoRange(XmlReader rowReader, object?[,] result, int rowIndex, int r1, int c1, int c2, CancellationToken ct) {
+            if (rowReader.IsEmptyElement) {
+                return;
+            }
+
+            int depth = rowReader.Depth;
+            bool canCancel = ct.CanBeCanceled;
+            int nextColumnIndex = 1;
+            while (rowReader.Read()) {
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
+                if (rowReader.NodeType == XmlNodeType.EndElement && rowReader.Depth == depth && rowReader.LocalName == "row") {
+                    return;
+                }
+
+                if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
+                    continue;
+                }
+
+                string? reference = rowReader.GetAttribute("r");
+                int columnIndex = A1.ParseColumnIndexFromCellReferenceFast(reference);
+                if (columnIndex <= 0) {
+                    if (!string.IsNullOrEmpty(reference)) {
+                        _ = ReadXmlCellValue(rowReader);
+                        continue;
+                    }
+
+                    columnIndex = nextColumnIndex;
+                }
+
+                nextColumnIndex = columnIndex + 1;
+                if (columnIndex < c1 || columnIndex > c2) {
+                    _ = ReadXmlCellValue(rowReader);
+                    continue;
+                }
+
+                int rr = rowIndex - r1;
+                int cc = columnIndex - c1;
+                if ((uint)rr >= (uint)result.GetLength(0) || (uint)cc >= (uint)result.GetLength(1)) {
+                    _ = ReadXmlCellValue(rowReader);
+                    continue;
+                }
+
+                result[rr, cc] = ReadXmlCellValue(rowReader);
+            }
+        }
+
+        private object? ReadXmlCellValue(XmlReader cellReader) {
+            string? type = cellReader.GetAttribute("t");
+            uint? styleIndex = TryParseUInt(cellReader.GetAttribute("s"), out uint parsedStyle) ? parsedStyle : null;
+
+            if (cellReader.IsEmptyElement) {
+                return _opt.FillBlanksInRanges ? null : null;
+            }
+
+            int depth = cellReader.Depth;
+            string? rawText = null;
+            string? inlineText = null;
+            string? formulaText = null;
+            bool hasNode = cellReader.Read();
+            while (hasNode) {
+                if (cellReader.NodeType == XmlNodeType.EndElement && cellReader.Depth == depth && cellReader.LocalName == "c") {
+                    break;
+                }
+
+                if (cellReader.NodeType == XmlNodeType.Element) {
+                    if (cellReader.LocalName == "v") {
+                        rawText = cellReader.ReadElementContentAsString();
+                        hasNode = true;
+                        continue;
+                    }
+
+                    if (cellReader.LocalName == "f") {
+                        formulaText = cellReader.ReadElementContentAsString();
+                        hasNode = true;
+                        continue;
+                    }
+
+                    if (cellReader.LocalName == "is") {
+                        inlineText = ReadXmlInlineString(cellReader);
+                        hasNode = true;
+                        continue;
+                    }
+                }
+
+                hasNode = cellReader.Read();
+            }
+
+            if (formulaText != null && !_opt.UseCachedFormulaResult) {
+                return formulaText;
+            }
+
+            if (formulaText != null && rawText == null) {
+                return formulaText;
+            }
+
+            if (type == "inlineStr") {
+                return inlineText;
+            }
+
+            if (type == "s") {
+                return TryParseSharedStringIndex(rawText, out int sstIndex) ? _sst.Get(sstIndex) : rawText;
+            }
+
+            if (type == "b" && rawText != null) {
+                return rawText == "1";
+            }
+
+            if (type == "d" && rawText != null) {
+                return DateTime.TryParse(rawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var date)
+                    ? date
+                    : rawText;
+            }
+
+            if (type == "str") {
+                return rawText ?? inlineText;
+            }
+
+            if (rawText == null) {
+                return inlineText;
+            }
+
+            if (_opt.TreatDatesUsingNumberFormat
+                && styleIndex is not null
+                && _styles.IsDateLike(styleIndex.Value)
+                && double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double oa)) {
+                return DateTime.FromOADate(oa);
+            }
+
+            if (_opt.NumericAsDecimal
+                && decimal.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out decimal decimalNumber)) {
+                return decimalNumber;
+            }
+
+            return double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double number)
+                ? number
+                : rawText;
+        }
+
+        private static string ReadXmlInlineString(XmlReader inlineReader) {
+            if (inlineReader.IsEmptyElement) {
+                return string.Empty;
+            }
+
+            int depth = inlineReader.Depth;
+            string? first = null;
+            System.Text.StringBuilder? builder = null;
+            while (inlineReader.Read()) {
+                if (inlineReader.NodeType == XmlNodeType.EndElement && inlineReader.Depth == depth && inlineReader.LocalName == "is") {
+                    break;
+                }
+
+                if (inlineReader.NodeType != XmlNodeType.Element || inlineReader.LocalName != "t") {
+                    continue;
+                }
+
+                string text = inlineReader.ReadElementContentAsString();
+                if (builder != null) {
+                    builder.Append(text);
+                } else if (first == null) {
+                    first = text;
+                } else {
+                    builder = new System.Text.StringBuilder(first.Length + text.Length);
+                    builder.Append(first);
+                    builder.Append(text);
+                }
+            }
+
+            return builder?.ToString() ?? first ?? string.Empty;
+        }
+
+        private static int ParsePositiveIntAttribute(string? value) {
+            if (string.IsNullOrEmpty(value)) {
+                return 0;
+            }
+
+            string text = value!;
+            int result = 0;
+            for (int i = 0; i < text.Length; i++) {
+                int digit = text[i] - '0';
+                if ((uint)digit > 9U) {
+                    return 0;
+                }
+
+                if (result > (int.MaxValue - digit) / 10) {
+                    return 0;
+                }
+
+                result = (result * 10) + digit;
+            }
+
+            return result;
+        }
+
+        private static bool TryParseUInt(string? value, out uint result) {
+            result = 0;
+            if (string.IsNullOrEmpty(value)) {
+                return false;
+            }
+
+            string text = value!;
+            uint parsed = 0;
+            for (int i = 0; i < text.Length; i++) {
+                uint digit = (uint)(text[i] - '0');
+                if (digit > 9U) {
+                    return uint.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out result);
+                }
+
+                if (parsed > (uint.MaxValue - digit) / 10U) {
+                    return uint.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out result);
+                }
+
+                parsed = (parsed * 10U) + digit;
+            }
+
+            result = parsed;
+            return true;
         }
     }
 }

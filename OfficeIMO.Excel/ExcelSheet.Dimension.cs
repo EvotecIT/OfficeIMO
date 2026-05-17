@@ -77,10 +77,20 @@ namespace OfficeIMO.Excel {
             string reference = ComputeSheetDimensionReference(ws);
 
             if (dimEl == null) {
-                ws.InsertAt(new SheetDimension { Reference = reference }, 0);
+                InsertSheetDimensionInSchemaOrder(ws, new SheetDimension { Reference = reference });
             } else {
                 dimEl.Reference = reference;
             }
+        }
+
+        private static void InsertSheetDimensionInSchemaOrder(Worksheet worksheet, SheetDimension dimension) {
+            var sheetProperties = worksheet.GetFirstChild<SheetProperties>();
+            if (sheetProperties != null) {
+                worksheet.InsertAfter(dimension, sheetProperties);
+                return;
+            }
+
+            worksheet.PrependChild(dimension);
         }
     }
 }

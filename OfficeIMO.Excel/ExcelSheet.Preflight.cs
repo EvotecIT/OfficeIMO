@@ -99,6 +99,7 @@ namespace OfficeIMO.Excel {
 
                 ws.Save();
             });
+            _requiresSavePreparation = false;
         }
     }
 }
