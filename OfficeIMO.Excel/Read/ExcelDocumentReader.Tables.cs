@@ -104,6 +104,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IEnumerable<Dictionary<string, object?>> ReadTableObjects(string tableName, ExecutionMode? mode = null, CancellationToken ct = default) {
             var table = GetTable(tableName);
+            EnsureTableHasHeaderRow(table, nameof(ReadTableObjects));
             return GetSheet(table.SheetName).ReadObjects(table.Range, mode, ct);
         }
 
@@ -115,6 +116,7 @@ namespace OfficeIMO.Excel {
             ExecutionMode? mode = null,
             CancellationToken ct = default) where T : new() {
             var table = GetTable(tableName);
+            EnsureTableHasHeaderRow(table, nameof(ReadTableObjects));
             return GetSheet(table.SheetName).ReadObjects<T>(table.Range, mode, ct);
         }
 
@@ -125,7 +127,14 @@ namespace OfficeIMO.Excel {
             string tableName,
             CancellationToken ct = default) where T : new() {
             var table = GetTable(tableName);
+            EnsureTableHasHeaderRow(table, nameof(ReadTableObjectsStream));
             return GetSheet(table.SheetName).ReadObjectsStream<T>(table.Range, ct);
+        }
+
+        private static void EnsureTableHasHeaderRow(ExcelTableInfo table, string operationName) {
+            if (!table.HasHeaderRow) {
+                throw new InvalidOperationException($"{operationName} requires table '{table.Name}' to have a header row. Use ReadTableAsDataTable(..., headersInFirstRow: false) for headerless tables.");
+            }
         }
 
         private static string? GetOpenXmlAttributeValue(OpenXmlElement element, string localName) {

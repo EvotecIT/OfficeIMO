@@ -203,38 +203,7 @@ namespace OfficeIMO.Excel {
                 return Array.Empty<T>();
             }
 
-            if (CanUseSequentialRangeFastPath("ReadObjectsAs", rows * cols, null)
-                && CanUseXmlFastReader()) {
-                return ReadObjectsStreamFastRangeIterator<T>(a1Range, r1, c1, r2, c2, rows, cols, ct);
-            }
-
             return ReadObjectsStreamIterator<T>(a1Range, r1, c1, r2, c2, cols, ct);
-        }
-
-        private IEnumerable<T> ReadObjectsStreamFastRangeIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
-            string a1Range,
-            int r1,
-            int c1,
-            int r2,
-            int c2,
-            int rows,
-            int cols,
-            CancellationToken ct) where T : new() {
-            if (TryReadObjectsFromFastRange<T>(a1Range, r1, c1, rows, cols, ct, out var result)) {
-                for (int i = 0; i < result.Count; i++) {
-                    if (ct.CanBeCanceled && (i & 1023) == 0) {
-                        ct.ThrowIfCancellationRequested();
-                    }
-
-                    yield return result[i];
-                }
-
-                yield break;
-            }
-
-            foreach (var item in ReadObjectsStreamIterator<T>(a1Range, r1, c1, r2, c2, cols, ct)) {
-                yield return item;
-            }
         }
 
         private IEnumerable<T> ReadObjectsStreamIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(

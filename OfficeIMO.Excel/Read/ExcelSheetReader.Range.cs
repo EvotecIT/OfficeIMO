@@ -906,6 +906,11 @@ namespace OfficeIMO.Excel {
                 string? reference = rowReader.GetAttribute("r");
                 int columnIndex = A1.ParseColumnIndexFromCellReferenceFast(reference);
                 if (columnIndex <= 0) {
+                    if (!string.IsNullOrEmpty(reference)) {
+                        _ = ReadXmlCellValue(rowReader);
+                        continue;
+                    }
+
                     columnIndex = nextColumnIndex;
                 }
 
@@ -968,6 +973,10 @@ namespace OfficeIMO.Excel {
             }
 
             if (formulaText != null && !_opt.UseCachedFormulaResult) {
+                return formulaText;
+            }
+
+            if (formulaText != null && rawText == null) {
                 return formulaText;
             }
 

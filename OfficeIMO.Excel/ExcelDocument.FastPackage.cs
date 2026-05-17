@@ -12,6 +12,10 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            if (_packagePropertiesDirty || _unchangedPackageBytes != null || HasCalculationSaveWork()) {
+                return false;
+            }
+
             if (!FastWorkbookPackageModel.TryCreate(_spreadSheetDocument, out var model)) {
                 return false;
             }
@@ -258,7 +262,7 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (var row in sheetData.Elements<Row>()) {
-                if (row.CustomFormat?.Value == true || row.StyleIndex != null) {
+                if (!IsSimpleRow(row)) {
                     return false;
                 }
 
@@ -279,6 +283,16 @@ namespace OfficeIMO.Excel {
             }
 
             return true;
+        }
+
+        private static bool IsSimpleRow(Row row) {
+            foreach (var attribute in row.GetAttributes()) {
+                if (!string.Equals(attribute.LocalName, "r", StringComparison.Ordinal)) {
+                    return false;
+                }
+            }
+
+            return row.CustomFormat?.Value != true && row.StyleIndex == null;
         }
 
         private static void WriteContentTypesEntry(ZipArchive archive, bool hasStyles, int worksheetCount, int tableCount) {

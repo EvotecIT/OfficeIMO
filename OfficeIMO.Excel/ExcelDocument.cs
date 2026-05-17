@@ -663,7 +663,7 @@ namespace OfficeIMO.Excel {
             document._copyPackageToSourceOnDispose = copyPackageToSourceOnDispose && sourceStream != null;
             document._copyPackageToFilePathOnDispose = copyPackageToFilePathOnDispose && packageStream != null && !string.IsNullOrEmpty(filePath);
             document._leaveSourceStreamOpen = leaveSourceStreamOpen;
-            document._packageContentTypesKnownNormalized = true;
+            document._packageContentTypesKnownNormalized = false;
             document._requiresSavePreflight = true;
             document._packageDirty = true;
             document._packagePropertiesDirty = false;

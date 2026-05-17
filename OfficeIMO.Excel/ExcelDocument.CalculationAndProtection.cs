@@ -53,6 +53,7 @@ namespace OfficeIMO.Excel {
                 protection.RemoveAttribute("workbookPassword", string.Empty);
             }
             workbook.Save();
+            MarkPackageDirty();
         }
 
         /// <summary>
@@ -64,6 +65,7 @@ namespace OfficeIMO.Excel {
             if (protection != null) {
                 workbook.RemoveChild(protection);
                 workbook.Save();
+                MarkPackageDirty();
             }
         }
 
@@ -115,6 +117,7 @@ namespace OfficeIMO.Excel {
             properties.ForceFullCalculation = true;
             properties.FullCalculationOnLoad = true;
             workbook.Save();
+            MarkPackageDirty();
         }
 
         private static void InsertCalculationPropertiesInSchemaOrder(Workbook workbook, CalculationProperties properties) {
