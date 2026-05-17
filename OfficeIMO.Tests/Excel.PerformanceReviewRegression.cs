@@ -273,6 +273,38 @@ namespace OfficeIMO.Tests {
             Assert.Contains("at least one DataTable", exception.Message);
         }
 
+        [Fact]
+        public void PerformanceReview_WriteDataSet_SerializesNonNumericFormattableValuesAsText() {
+            using var memory = new MemoryStream();
+            var id = Guid.Parse("89f22c99-1d51-4de5-b3b4-b20c4a60164f");
+            var dataSet = new DataSet();
+            var table = new DataTable("Items");
+            table.Columns.Add("Id", typeof(Guid));
+            table.Rows.Add(id);
+            dataSet.Tables.Add(table);
+
+            ExcelDocument.WriteDataSet(memory, dataSet);
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var cell = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().Single(c => c.CellReference?.Value == "A2");
+            Assert.Equal(CellValues.String, cell.DataType!.Value);
+            Assert.Equal(id.ToString(), cell.CellValue!.Text);
+        }
+
+        [Fact]
+        public void PerformanceReview_WriteDataSet_RejectsOversizedTextValues() {
+            using var memory = new MemoryStream();
+            var dataSet = new DataSet();
+            var table = new DataTable("Items");
+            table.Columns.Add("Notes", typeof(string));
+            table.Rows.Add(new string('A', 32768));
+            dataSet.Tables.Add(table);
+
+            var exception = Assert.Throws<ArgumentException>(() => ExcelDocument.WriteDataSet(memory, dataSet));
+            Assert.Contains("32,767", exception.Message);
+        }
+
         private static void RemoveFirstRowIndex(string filePath) {
             using var spreadsheet = SpreadsheetDocument.Open(filePath, true);
             var row = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().First();

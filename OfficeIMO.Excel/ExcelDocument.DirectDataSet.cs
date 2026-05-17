@@ -169,6 +169,9 @@ namespace OfficeIMO.Excel {
         }
 
         private static class DirectDataSetWorkbookWriter {
+            private const long MaxSafeInteger = 9007199254740991L;
+            private const ulong MaxSafeUnsignedInteger = 9007199254740991UL;
+
             internal static void Write(Stream stream, DirectDataSetWorkbookModel model, CancellationToken ct) {
                 using var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true);
                 WriteContentTypes(archive, model.Sheets);
@@ -370,9 +373,7 @@ namespace OfficeIMO.Excel {
                         builder.Append(" t=\"str\"><v></v></c>");
                         return;
                     case string stringValue:
-                        builder.Append(" t=\"str\"><v>");
-                        AppendEscaped(builder, Utilities.ExcelSanitizer.SanitizeString(stringValue));
-                        builder.Append("</v></c>");
+                        AppendStringCell(builder, stringValue);
                         return;
                     case bool boolValue:
                         builder.Append(" t=\"b\"><v>");
@@ -388,18 +389,61 @@ namespace OfficeIMO.Excel {
                     case TimeSpan timeSpan:
                         text = timeSpan.TotalDays.ToString(CultureInfo.InvariantCulture);
                         break;
-                    case IFormattable formattable:
-                        text = formattable.ToString(null, CultureInfo.InvariantCulture) ?? string.Empty;
+                    case double doubleValue:
+                        text = doubleValue.ToString(CultureInfo.InvariantCulture);
                         break;
+                    case float floatValue:
+                        text = floatValue.ToString(CultureInfo.InvariantCulture);
+                        break;
+                    case decimal decimalValue:
+                        text = decimalValue.ToString(CultureInfo.InvariantCulture);
+                        break;
+                    case sbyte sbyteValue:
+                        text = sbyteValue.ToString(CultureInfo.InvariantCulture);
+                        break;
+                    case byte byteValue:
+                        text = byteValue.ToString(CultureInfo.InvariantCulture);
+                        break;
+                    case short shortValue:
+                        text = shortValue.ToString(CultureInfo.InvariantCulture);
+                        break;
+                    case ushort ushortValue:
+                        text = ushortValue.ToString(CultureInfo.InvariantCulture);
+                        break;
+                    case int intValue:
+                        text = intValue.ToString(CultureInfo.InvariantCulture);
+                        break;
+                    case uint uintValue:
+                        text = uintValue.ToString(CultureInfo.InvariantCulture);
+                        break;
+                    case long longValue when longValue >= -MaxSafeInteger && longValue <= MaxSafeInteger:
+                        text = longValue.ToString(CultureInfo.InvariantCulture);
+                        break;
+                    case ulong ulongValue when ulongValue <= MaxSafeUnsignedInteger:
+                        text = ulongValue.ToString(CultureInfo.InvariantCulture);
+                        break;
+#if NET6_0_OR_GREATER
+                    case DateOnly dateOnly:
+                        text = dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate().ToString(CultureInfo.InvariantCulture);
+                        break;
+                    case TimeOnly timeOnly:
+                        text = timeOnly.ToTimeSpan().TotalDays.ToString(CultureInfo.InvariantCulture);
+                        break;
+#endif
                     default:
-                        builder.Append(" t=\"str\"><v>");
-                        AppendEscaped(builder, Utilities.ExcelSanitizer.SanitizeString(value.ToString() ?? string.Empty));
-                        builder.Append("</v></c>");
+                        AppendStringCell(builder, value.ToString() ?? string.Empty);
                         return;
                 }
 
                 builder.Append("><v>");
                 AppendEscaped(builder, text);
+                builder.Append("</v></c>");
+            }
+
+            private static void AppendStringCell(StringBuilder builder, string text) {
+                CoerceValueHelper.ValidateSharedStringLength(text, "value");
+                builder.Append(" t=\"str\"><v>");
+                AppendEscaped(builder, Utilities.ExcelSanitizer.SanitizeString(text));
                 builder.Append("</v></c>");
             }
 
