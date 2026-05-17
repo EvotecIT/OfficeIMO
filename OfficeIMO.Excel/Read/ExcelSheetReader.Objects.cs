@@ -35,6 +35,10 @@ namespace OfficeIMO.Excel {
             }
 
             if (decided != OfficeIMO.Excel.ExecutionMode.Parallel) {
+                if (TryReadObjectsFromFastRange<T>(a1Range, r1, c1, rows, cols, ct, out var rangeResult)) {
+                    return rangeResult;
+                }
+
                 if (TryReadObjectsSequentialSinglePass<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var fastResult)) {
                     return fastResult;
                 }
@@ -120,6 +124,70 @@ namespace OfficeIMO.Excel {
             return result;
         }
 
+        private bool TryReadObjectsFromFastRange<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+            string a1Range,
+            int r1,
+            int c1,
+            int rows,
+            int cols,
+            CancellationToken ct,
+            out List<T> result) where T : new() {
+            result = [];
+
+            if (_opt.CellValueConverter != null
+                || _opt.TypeConverter != null
+                || !CanUseXmlFastReader()) {
+                return false;
+            }
+
+            object?[,] values = ReadRange(a1Range, OfficeIMO.Excel.ExecutionMode.Sequential, ct);
+            var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => values[0, c]?.ToString(), _opt.NormalizeHeaders);
+            var headerBindings = GetTypedHeaderBindings<T>(headers, a1Range);
+            var bindings = headerBindings.Bindings;
+
+            int dataRowCount = rows - 1;
+            result = new List<T>(dataRowCount);
+            bool canCancel = ct.CanBeCanceled;
+            for (int r = 1; r < rows; r++) {
+                if (canCancel && (r & 1023) == 0) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
+                var target = new T();
+                for (int c = 0; c < cols; c++) {
+                    var binding = bindings[c];
+                    if (binding == null) {
+                        continue;
+                    }
+
+                    object? value = values[r, c];
+                    if (value == null) {
+                        if (binding.IsNullable) {
+                            binding.SetValue(target, null);
+                        }
+
+                        continue;
+                    }
+
+                    if (_opt.TreatDatesUsingNumberFormat
+                        && value is DateTime
+                        && IsNumericBindingDestination(binding.DestinationType)) {
+                        result = [];
+                        return false;
+                    }
+
+                    object? converted = TryChangeType(value, binding, _opt.Culture);
+                    if (converted is not null || binding.IsNullable) {
+                        binding.SetValue(target, converted);
+                    }
+                }
+
+                result.Add(target);
+            }
+
+            return true;
+        }
+
         /// <summary>
         /// Streams a rectangular range and maps each data row into an instance of T without materializing the full result set first.
         /// Header cells are matched to public writable properties on T by name (case-insensitive).
@@ -135,7 +203,38 @@ namespace OfficeIMO.Excel {
                 return Array.Empty<T>();
             }
 
+            if (CanUseSequentialRangeFastPath("ReadObjectsAs", rows * cols, null)
+                && CanUseXmlFastReader()) {
+                return ReadObjectsStreamFastRangeIterator<T>(a1Range, r1, c1, r2, c2, rows, cols, ct);
+            }
+
             return ReadObjectsStreamIterator<T>(a1Range, r1, c1, r2, c2, cols, ct);
+        }
+
+        private IEnumerable<T> ReadObjectsStreamFastRangeIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+            string a1Range,
+            int r1,
+            int c1,
+            int r2,
+            int c2,
+            int rows,
+            int cols,
+            CancellationToken ct) where T : new() {
+            if (TryReadObjectsFromFastRange<T>(a1Range, r1, c1, rows, cols, ct, out var result)) {
+                for (int i = 0; i < result.Count; i++) {
+                    if (ct.CanBeCanceled && (i & 1023) == 0) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    yield return result[i];
+                }
+
+                yield break;
+            }
+
+            foreach (var item in ReadObjectsStreamIterator<T>(a1Range, r1, c1, r2, c2, cols, ct)) {
+                yield return item;
+            }
         }
 
         private IEnumerable<T> ReadObjectsStreamIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(

@@ -23,6 +23,13 @@ namespace OfficeIMO.Excel.Utilities {
 
         internal static bool NormalizeContentTypes(Stream packageStream, bool leaveOpen = false) {
             if (packageStream == null || !packageStream.CanRead || !packageStream.CanSeek) return false;
+            long originalPosition = packageStream.Position;
+            if (!NeedsContentTypeNormalization(packageStream)) {
+                packageStream.Position = originalPosition;
+                return false;
+            }
+
+            packageStream.Position = originalPosition;
             using var archive = new ZipArchive(packageStream, ZipArchiveMode.Update, leaveOpen: leaveOpen);
             var entry = archive.GetEntry(ContentTypesEntry);
             if (entry == null) {
@@ -117,6 +124,76 @@ namespace OfficeIMO.Excel.Utilities {
             document.Save(writer);
             writer.Flush();
             return true;
+        }
+
+        internal static bool NeedsContentTypeNormalization(Stream packageStream) {
+            try {
+                using var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: true);
+                var entry = archive.GetEntry(ContentTypesEntry);
+                if (entry == null) {
+                    return true;
+                }
+
+                string xml;
+                using (var entryStream = entry.Open())
+                using (var reader = new StreamReader(entryStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: false)) {
+                    xml = reader.ReadToEnd();
+                }
+
+                if (string.IsNullOrWhiteSpace(xml)) {
+                    return true;
+                }
+
+                XDocument document;
+                try {
+                    document = XDocument.Parse(xml, LoadOptions.None);
+                } catch {
+                    return true;
+                }
+
+                var root = document.Root;
+                if (root == null) {
+                    return true;
+                }
+
+                XNamespace ns = root.Name.Namespace;
+                int xmlDefaultCount = 0;
+                bool xmlDefaultIsCorrect = false;
+                bool workbookOverrideIsCorrect = false;
+                bool appPropsOverrideIsCorrect = false;
+                bool corePropsOverrideIsCorrect = false;
+
+                foreach (var element in root.Elements()) {
+                    if (element.Name == ns + "Default"
+                        && string.Equals((string?)element.Attribute("Extension"), "xml", StringComparison.OrdinalIgnoreCase)) {
+                        xmlDefaultCount++;
+                        xmlDefaultIsCorrect = string.Equals((string?)element.Attribute("ContentType"), "application/xml", StringComparison.OrdinalIgnoreCase);
+                        continue;
+                    }
+
+                    if (element.Name != ns + "Override") {
+                        continue;
+                    }
+
+                    string? partName = (string?)element.Attribute("PartName");
+                    string? contentType = (string?)element.Attribute("ContentType");
+                    if (string.Equals(partName, WorkbookOverridePart, StringComparison.OrdinalIgnoreCase)) {
+                        workbookOverrideIsCorrect = string.Equals(contentType, WorkbookContentType, StringComparison.OrdinalIgnoreCase);
+                    } else if (string.Equals(partName, AppPropsOverridePart, StringComparison.OrdinalIgnoreCase)) {
+                        appPropsOverrideIsCorrect = string.Equals(contentType, AppPropsContentType, StringComparison.OrdinalIgnoreCase);
+                    } else if (string.Equals(partName, CorePropsOverridePart, StringComparison.OrdinalIgnoreCase)) {
+                        corePropsOverrideIsCorrect = string.Equals(contentType, CorePropsContentType, StringComparison.OrdinalIgnoreCase);
+                    }
+                }
+
+                return xmlDefaultCount != 1
+                    || !xmlDefaultIsCorrect
+                    || !workbookOverrideIsCorrect
+                    || !appPropsOverrideIsCorrect
+                    || !corePropsOverrideIsCorrect;
+            } catch {
+                return true;
+            }
         }
 
         internal static ContentTypesSummary GetContentTypesSummary(string packagePath) {

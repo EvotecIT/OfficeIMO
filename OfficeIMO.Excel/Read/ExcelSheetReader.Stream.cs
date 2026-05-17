@@ -38,6 +38,16 @@ namespace OfficeIMO.Excel {
             int nextToYield = 0;
             int chunkIndex = 0;
 
+            if (decided != OfficeIMO.Excel.ExecutionMode.Parallel
+                && estRows <= BufferedRangeStreamRowLimit
+                && CanUseXmlFastReader()) {
+                foreach (var chunk in ReadBufferedRangeStreamFromFastRange(a1Range, r1, c1, chunkRows, ct)) {
+                    yield return chunk;
+                }
+
+                yield break;
+            }
+
             if (estRows <= BufferedRangeStreamRowLimit) {
                 foreach (var chunk in ReadBufferedRows(EnumerateWorksheetRows(ct), r1, c1, r2, c2, decided, ct)) {
                     yield return chunk;
@@ -182,6 +192,32 @@ namespace OfficeIMO.Excel {
             int GetWindowIndex(int rowIndex) => (rowIndex - r1) / chunkRows;
 
             int GetWindowStartRow(int index) => r1 + (index * chunkRows);
+
+            IEnumerable<RangeChunk> ReadBufferedRangeStreamFromFastRange(string range, int firstRow, int firstColumn, int rowsPerChunk, CancellationToken token) {
+                object?[,] values = ReadRange(range, OfficeIMO.Excel.ExecutionMode.Sequential, token);
+                int height = values.GetLength(0);
+                int width = values.GetLength(1);
+                bool matrixCanCancel = token.CanBeCanceled;
+
+                for (int offset = 0; offset < height; offset += rowsPerChunk) {
+                    if (matrixCanCancel) {
+                        token.ThrowIfCancellationRequested();
+                    }
+
+                    int rowCount = Math.Min(rowsPerChunk, height - offset);
+                    var outRows = new object?[rowCount][];
+                    for (int r = 0; r < rowCount; r++) {
+                        var rowValues = new object?[width];
+                        for (int c = 0; c < width; c++) {
+                            rowValues[c] = values[offset + r, c];
+                        }
+
+                        outRows[r] = rowValues;
+                    }
+
+                    yield return new RangeChunk(firstRow + offset, rowCount, firstColumn, width, outRows);
+                }
+            }
 
             IEnumerable<RangeChunk> ReadBufferedRows(IEnumerable<Row> sourceRows, int rr1, int cc1, int rr2, int cc2, OfficeIMO.Excel.ExecutionMode executionMode, CancellationToken token) {
                 int windowCount = GetWindowIndex(rr2) + 1;

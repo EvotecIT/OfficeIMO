@@ -22,6 +22,7 @@ int measuredIterations = ParsePositiveOption(args, "--iterations", "--measured-i
 var scenarioFilter = BuildScenarioFilter(ParseOptionValues(args, "--scenario", "--scenarios"));
 
 var rows = CreateSalesRecords(rowCount);
+var salesDataSet = CreateSalesDataSet(rows);
 int topDataRows = Math.Min(rowCount, 100);
 byte[] workbookBytes = CreateWorkbookBytes(rows);
 byte[] formulaWorkbookBytes = CreateFormulaWorkbookBytes(rowCount);
@@ -30,6 +31,7 @@ byte[] sparseWorkbookBytes = CreateSparseWorkbookBytes(SparseLastRow);
 var scenarios = new List<LegacyComparisonScenario>();
 
 AddScenario(scenarios, scenarioFilter, "write-bulk-report", LibraryName, "EPPlus 4.x manual row population, add table, autofit, save.", () => WriteBulkReport(rows), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "write-dataset-tables", LibraryName, "EPPlus 4.x import prepared DataTables as two styled worksheet tables and save.", () => WriteDataSetTables(salesDataSet), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "append-plain-rows", LibraryName, "EPPlus 4.x append equivalent row/cell values.", () => AppendPlainRows(rows), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "read-range", LibraryName, "EPPlus 4.x iterate used data cells from workbook.", () => ReadRange(workbookBytes), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "read-top-range", LibraryName, "EPPlus 4.x read the first 100 data rows from a larger sheet.", () => ReadRange(workbookBytes, topDataRows), warmupIterations, measuredIterations);
@@ -150,6 +152,20 @@ static int WriteBulkReport(IReadOnlyList<SalesRecord> rows) {
     using (var package = new ExcelPackage(stream)) {
         var worksheet = package.Workbook.Worksheets.Add("Data");
         PopulateWorksheet(worksheet, rows, includeTable: true, autoFit: true);
+        package.Save();
+    }
+
+    return checked((int)stream.Length);
+}
+
+static int WriteDataSetTables(DataSet dataSet) {
+    using var stream = new MemoryStream();
+    using (var package = new ExcelPackage(stream)) {
+        foreach (DataTable dataTable in dataSet.Tables) {
+            var worksheet = package.Workbook.Worksheets.Add(dataTable.TableName);
+            worksheet.Cells["A1"].LoadFromDataTable(dataTable, true, TableStyles.Medium2);
+        }
+
         package.Save();
     }
 
@@ -395,7 +411,8 @@ static void PopulateWorksheet(ExcelWorksheet worksheet, IReadOnlyList<SalesRecor
     }
 
     if (includeTable) {
-        var table = worksheet.Tables.Add(worksheet.Cells[1, 1, rows.Count + 1, 8], "SalesData");
+        string tableName = string.Equals(worksheet.Name, "Data", StringComparison.OrdinalIgnoreCase) ? "SalesData" : worksheet.Name;
+        var table = worksheet.Tables.Add(worksheet.Cells[1, 1, rows.Count + 1, 8], tableName);
         table.TableStyle = TableStyles.Medium2;
     }
 
@@ -501,6 +518,23 @@ static DataTable CreateSalesDataTable() {
     table.Columns.Add("Units", typeof(int));
     table.Columns.Add("Active", typeof(bool));
     table.Columns.Add("Notes", typeof(string));
+    return table;
+}
+
+static DataSet CreateSalesDataSet(IReadOnlyList<SalesRecord> rows) {
+    var dataSet = new DataSet("Sales") { Locale = CultureInfo.InvariantCulture };
+    dataSet.Tables.Add(CreateSalesDataTableFromRows(rows.Take(rows.Count / 2), "SalesA"));
+    dataSet.Tables.Add(CreateSalesDataTableFromRows(rows.Skip(rows.Count / 2), "SalesB"));
+    return dataSet;
+}
+
+static DataTable CreateSalesDataTableFromRows(IEnumerable<SalesRecord> rows, string tableName) {
+    var table = CreateSalesDataTable();
+    table.TableName = tableName;
+    foreach (var row in rows) {
+        table.Rows.Add(row.Id, row.Region, row.Owner, row.CreatedOn, row.Amount, row.Units, row.Active, row.Notes);
+    }
+
     return table;
 }
 

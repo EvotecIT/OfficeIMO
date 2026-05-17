@@ -15,6 +15,10 @@ namespace OfficeIMO.Excel {
         /// <param name="mode">Overrides how the auto-fit work is scheduled across columns.</param>
         /// <param name="ct">Cancels the auto-fit pass while widths are being measured or applied.</param>
         public void AutoFitColumns(ExecutionMode? mode = null, CancellationToken ct = default) {
+            if (CanSkipStableAutoFitColumns(null)) {
+                return;
+            }
+
             var planWatch = EffectiveExecution.OnTiming == null ? null : System.Diagnostics.Stopwatch.StartNew();
             var measurementPlan = BuildAutoFitMeasurementPlanForAllColumns(ct);
             if (planWatch != null) {
@@ -35,6 +39,10 @@ namespace OfficeIMO.Excel {
             if (columnIndexes == null) return;
             var list = columnIndexes.Where(i => i > 0).Distinct().OrderBy(i => i).ToList();
             if (list.Count == 0) return;
+            if (CanSkipStableAutoFitColumns(list)) {
+                return;
+            }
+
             AutoFitColumnsInternal(list, mode, ct);
         }
 
@@ -48,7 +56,116 @@ namespace OfficeIMO.Excel {
             var skip = new HashSet<int>(columnsToSkip ?? Array.Empty<int>());
             var remaining = GetAllColumnIndices().Where(i => i > 0 && !skip.Contains(i)).OrderBy(i => i).ToList();
             if (remaining.Count == 0) return;
+            if (CanSkipStableAutoFitColumns(remaining)) {
+                return;
+            }
+
             AutoFitColumnsInternal(remaining, mode, ct);
+        }
+
+        private bool CanSkipStableAutoFitColumns(IReadOnlyList<int>? requestedColumns) {
+            if (_hasWorksheetMutations) {
+                return false;
+            }
+
+            var worksheet = WorksheetRoot;
+            var columns = worksheet.GetFirstChild<Columns>();
+            if (columns == null) {
+                return false;
+            }
+
+            IEnumerable<int> targetColumns;
+            if (requestedColumns != null) {
+                targetColumns = requestedColumns;
+            } else if (TryGetDimensionColumnBounds(worksheet, out int firstColumn, out int lastColumn)) {
+                targetColumns = Enumerable.Range(firstColumn, lastColumn - firstColumn + 1);
+            } else if (TryGetSheetDataColumnBounds(worksheet, out firstColumn, out lastColumn)) {
+                targetColumns = Enumerable.Range(firstColumn, lastColumn - firstColumn + 1);
+            } else {
+                return false;
+            }
+
+            foreach (int columnIndex in targetColumns) {
+                bool hasStableWidth = false;
+                foreach (var column in columns.Elements<Column>()) {
+                    uint min = column.Min?.Value ?? 0U;
+                    uint max = column.Max?.Value ?? 0U;
+                    if (min <= (uint)columnIndex
+                        && max >= (uint)columnIndex
+                        && column.Width != null
+                        && column.CustomWidth?.Value == true
+                        && column.BestFit?.Value == true) {
+                        hasStableWidth = true;
+                        break;
+                    }
+                }
+
+                if (!hasStableWidth) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TryGetDimensionColumnBounds(Worksheet worksheet, out int firstColumn, out int lastColumn) {
+            firstColumn = 0;
+            lastColumn = 0;
+            string? reference = worksheet.SheetDimension?.Reference?.Value;
+            if (string.IsNullOrWhiteSpace(reference)) {
+                return false;
+            }
+
+            if (reference!.IndexOf(':') >= 0) {
+                if (!A1.TryParseRange(reference, out _, out firstColumn, out _, out lastColumn)) {
+                    return false;
+                }
+            } else {
+                var parsed = A1.ParseCellRef(reference);
+                firstColumn = parsed.Col;
+                lastColumn = parsed.Col;
+            }
+
+            return firstColumn > 0 && lastColumn >= firstColumn;
+        }
+
+        private static bool TryGetSheetDataColumnBounds(Worksheet worksheet, out int firstColumn, out int lastColumn) {
+            firstColumn = int.MaxValue;
+            lastColumn = 0;
+
+            SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
+            if (sheetData == null) {
+                firstColumn = 0;
+                return false;
+            }
+
+            foreach (var row in sheetData.Elements<Row>()) {
+                foreach (var cell in row.Elements<Cell>()) {
+                    string? reference = cell.CellReference?.Value;
+                    if (string.IsNullOrEmpty(reference)) {
+                        continue;
+                    }
+
+                    var parsed = A1.ParseCellRef(reference!);
+                    if (parsed.Col <= 0) {
+                        continue;
+                    }
+
+                    if (parsed.Col < firstColumn) {
+                        firstColumn = parsed.Col;
+                    }
+
+                    if (parsed.Col > lastColumn) {
+                        lastColumn = parsed.Col;
+                    }
+                }
+            }
+
+            if (firstColumn == int.MaxValue) {
+                firstColumn = 0;
+            }
+
+            return firstColumn > 0 && lastColumn >= firstColumn;
         }
 
         private void AutoFitColumnsInternal(IReadOnlyList<int> columnsList, ExecutionMode? mode, CancellationToken ct) {
@@ -92,6 +209,8 @@ namespace OfficeIMO.Excel {
                     if (EffectiveExecution.SaveWorksheetAfterAutoFit) {
                         worksheet.Save();
                     }
+                    MarkRequiresSavePreparation();
+                    _hasWorksheetMutations = false;
                     if (applyWatch != null) {
                         applyWatch.Stop();
                         EffectiveExecution.ReportTiming("AutoFitColumns.ApplyWidths", applyWatch.Elapsed);
@@ -114,6 +233,8 @@ namespace OfficeIMO.Excel {
                     if (EffectiveExecution.SaveWorksheetAfterAutoFit) {
                         worksheet.Save();
                     }
+                    MarkRequiresSavePreparation();
+                    _hasWorksheetMutations = false;
                     if (applyWatch != null) {
                         applyWatch.Stop();
                         EffectiveExecution.ReportTiming("AutoFitColumns.ApplyWidths", applyWatch.Elapsed);
@@ -163,6 +284,8 @@ namespace OfficeIMO.Excel {
             var targetColumns = new Dictionary<int, int>();
             var measurements = new List<AutoFitMeasurement>();
             var uniqueMeasurements = new HashSet<AutoFitMeasurementKey>();
+            var sharedStringMeasurements = new HashSet<(int TargetIndex, uint StyleIndex, int SharedStringId)>();
+            var simpleTextMaxLengths = new Dictionary<(int TargetIndex, uint StyleIndex), int>();
             var textContext = CreateAutoFitTextContext();
 
             foreach (var row in sheetData.Elements<Row>()) {
@@ -181,7 +304,7 @@ namespace OfficeIMO.Excel {
                         columnsList.Add(columnIndex);
                     }
 
-                    AddAutoFitMeasurement(cell, targetIndex, textContext, uniqueMeasurements, measurements);
+                    AddAutoFitMeasurement(cell, targetIndex, textContext, uniqueMeasurements, sharedStringMeasurements, simpleTextMaxLengths, measurements);
                 }
             }
 
@@ -217,6 +340,8 @@ namespace OfficeIMO.Excel {
 
             var measurements = new List<AutoFitMeasurement>();
             var uniqueMeasurements = new HashSet<AutoFitMeasurementKey>();
+            var sharedStringMeasurements = new HashSet<(int TargetIndex, uint StyleIndex, int SharedStringId)>();
+            var simpleTextMaxLengths = new Dictionary<(int TargetIndex, uint StyleIndex), int>();
             var textContext = CreateAutoFitTextContext();
             foreach (var row in sheetData.Elements<Row>()) {
                 ct.ThrowIfCancellationRequested();
@@ -232,7 +357,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    AddAutoFitMeasurement(cell, targetIndex, textContext, uniqueMeasurements, measurements);
+                    AddAutoFitMeasurement(cell, targetIndex, textContext, uniqueMeasurements, sharedStringMeasurements, simpleTextMaxLengths, measurements);
                 }
             }
 
@@ -244,17 +369,124 @@ namespace OfficeIMO.Excel {
             int targetIndex,
             AutoFitTextContext textContext,
             HashSet<AutoFitMeasurementKey> uniqueMeasurements,
+            HashSet<(int TargetIndex, uint StyleIndex, int SharedStringId)> sharedStringMeasurements,
+            Dictionary<(int TargetIndex, uint StyleIndex), int> simpleTextMaxLengths,
             List<AutoFitMeasurement> measurements) {
+            uint styleIndex = cell.StyleIndex?.Value ?? 0U;
+            if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString
+                && TryGetSharedStringIndex(cell, out int sharedStringId)
+                && !sharedStringMeasurements.Add((targetIndex, styleIndex, sharedStringId))) {
+                return;
+            }
+
+            if (TryAddDateAutoFitSampleMeasurement(cell, targetIndex, styleIndex, textContext, uniqueMeasurements, measurements)) {
+                return;
+            }
+
+            if (CanSkipRawSimpleAutoFitMeasurement(cell, targetIndex, styleIndex, textContext, simpleTextMaxLengths)) {
+                return;
+            }
+
             string text = GetCellAutoFitText(cell, textContext);
             if (string.IsNullOrWhiteSpace(text)) {
                 return;
             }
 
-            uint styleIndex = cell.StyleIndex?.Value ?? 0U;
+            if (CanUseSimpleAutoFitLengthShortcut(cell, text)) {
+                var simpleKey = (targetIndex, styleIndex);
+                if (simpleTextMaxLengths.TryGetValue(simpleKey, out int maxLength) && text.Length <= maxLength) {
+                    return;
+                }
+
+                simpleTextMaxLengths[simpleKey] = text.Length;
+            }
+
             var runs = GetCellAutoFitRichTextRuns(cell, textContext);
             if (uniqueMeasurements.Add(new AutoFitMeasurementKey(targetIndex, styleIndex, text, runs))) {
                 measurements.Add(new AutoFitMeasurement(targetIndex, styleIndex, text, runs));
             }
+        }
+
+        private bool TryAddDateAutoFitSampleMeasurement(
+            Cell cell,
+            int targetIndex,
+            uint styleIndex,
+            AutoFitTextContext textContext,
+            HashSet<AutoFitMeasurementKey> uniqueMeasurements,
+            List<AutoFitMeasurement> measurements) {
+            var dataType = cell.DataType?.Value;
+            if (dataType != null && dataType != DocumentFormat.OpenXml.Spreadsheet.CellValues.Number) {
+                return false;
+            }
+
+            string raw = cell.CellValue?.InnerText ?? string.Empty;
+            if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out _)) {
+                return false;
+            }
+
+            uint numberFormatId = GetCellNumberFormatId(cell, textContext);
+            string? formatCode = GetNumberFormatCode(numberFormatId, textContext);
+            if (!IsDateNumberFormat(numberFormatId, formatCode)
+                || !TryGetAutoFitDateSample(numberFormatId, formatCode, out string sample)) {
+                return false;
+            }
+
+            if (uniqueMeasurements.Add(new AutoFitMeasurementKey(targetIndex, styleIndex, sample, null))) {
+                measurements.Add(new AutoFitMeasurement(targetIndex, styleIndex, sample, null));
+            }
+
+            return true;
+        }
+
+        private bool CanSkipRawSimpleAutoFitMeasurement(
+            Cell cell,
+            int targetIndex,
+            uint styleIndex,
+            AutoFitTextContext textContext,
+            Dictionary<(int TargetIndex, uint StyleIndex), int> simpleTextMaxLengths) {
+            var dataType = cell.DataType?.Value;
+            if (dataType != null && dataType != DocumentFormat.OpenXml.Spreadsheet.CellValues.Number) {
+                return false;
+            }
+
+            string raw = cell.CellValue?.InnerText ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(raw)) {
+                return false;
+            }
+
+            uint numberFormatId = GetCellNumberFormatId(cell, textContext);
+            string? formatCode = GetNumberFormatCode(numberFormatId, textContext);
+            if (numberFormatId != 0U
+                && !string.IsNullOrWhiteSpace(formatCode)
+                && !string.Equals(formatCode, "General", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            for (int i = 0; i < raw.Length; i++) {
+                if (!IsSimpleAutoFitCharacter(raw[i])) {
+                    return false;
+                }
+            }
+
+            var simpleKey = (targetIndex, styleIndex);
+            return simpleTextMaxLengths.TryGetValue(simpleKey, out int maxLength) && raw.Length <= maxLength;
+        }
+
+        private static bool CanUseSimpleAutoFitLengthShortcut(Cell cell, string text) {
+            var dataType = cell.DataType?.Value;
+            if (dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString
+                || dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
+                return false;
+            }
+
+            for (int i = 0; i < text.Length; i++) {
+                char current = text[i];
+                if (current == '\n' || current == '\r' || !IsSimpleAutoFitCharacter(current)) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private double[] CalculateColumnWidths(IReadOnlyList<int> columnsList, CancellationToken ct) {

@@ -243,6 +243,10 @@ namespace OfficeIMO.Excel {
         }
 
         private void ApplyAutomaticCellFormatting(Cell cell, object? value, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>? dataType) {
+            if (!RequiresAutomaticCellFormatting(value, dataType)) {
+                return;
+            }
+
             bool wroteNumber = dataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
 
             // Automatically apply date format for DateTime values
@@ -260,6 +264,13 @@ namespace OfficeIMO.Excel {
             if (value is string s && (s.Contains("\n") || s.Contains("\r"))) {
                 ApplyWrapText(cell);
             }
+        }
+
+        private static bool RequiresAutomaticCellFormatting(object? value, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>? dataType) {
+            bool wroteNumber = dataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
+            return (wroteNumber && (value is DateTime || value is DateTimeOffset))
+                || value is TimeSpan
+                || value is string s && (s.Contains("\n") || s.Contains("\r"));
         }
 
         private void ApplyAutomaticCellFormattingForAppendedCell(

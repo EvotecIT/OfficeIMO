@@ -1,6 +1,5 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
-using System.Collections.Concurrent;
 using System.Globalization;
 
 namespace OfficeIMO.Excel {
@@ -10,27 +9,36 @@ namespace OfficeIMO.Excel {
     /// and fixes up prepared cell values to reference shared string indices.
     /// </summary>
     internal sealed class SharedStringPlanner {
-        private readonly ConcurrentDictionary<string, byte> _distinct = new();
         private Dictionary<string, int>? _finalIndex;
 
         public string Note(string? s) {
             // Clamp and strip illegal XML control characters defensively
-            var safe = Utilities.ExcelSanitizer.SanitizeString(s);
-            _distinct.TryAdd(safe, 0);
-            return safe;
+            return Utilities.ExcelSanitizer.SanitizeString(s);
         }
 
         /// <summary>
         /// Apply collected strings to the document's SharedStringTable and build final index mapping.
         /// Must be called inside a serialized apply stage (under document write lock).
         /// </summary>
-        public void ApplyTo(ExcelDocument doc) {
-            if (_distinct.IsEmpty) {
+        public void ApplyTo(
+            (int Row, int Col, CellValue Val, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> Type)[] prepared,
+            ExcelDocument doc) {
+            HashSet<string>? distinct = null;
+            for (int i = 0; i < prepared.Length; i++) {
+                if (prepared[i].Type?.Value != DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) {
+                    continue;
+                }
+
+                distinct ??= new HashSet<string>(StringComparer.Ordinal);
+                distinct.Add(prepared[i].Val?.Text ?? string.Empty);
+            }
+
+            if (distinct == null || distinct.Count == 0) {
                 _finalIndex = new Dictionary<string, int>(0);
                 return;
             }
 
-            _finalIndex = doc.GetSharedStringIndices(_distinct.Keys);
+            _finalIndex = doc.GetSharedStringIndices(distinct);
         }
 
         /// <summary>
@@ -57,7 +65,7 @@ namespace OfficeIMO.Excel {
         /// Must be called inside serialized apply stage.
         /// </summary>
         public void ApplyAndFixup((int Row, int Col, CellValue Val, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> Type)[] prepared, ExcelDocument doc) {
-            ApplyTo(doc);
+            ApplyTo(prepared, doc);
             for (int i = 0; i < prepared.Length; i++) {
                 Fixup(ref prepared[i]);
             }

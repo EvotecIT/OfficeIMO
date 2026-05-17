@@ -28,19 +28,19 @@ namespace OfficeIMO.Excel {
         /// <summary>Company property stored in the Extended File Properties part.</summary>
         public string Company {
             get => _spreadsheetDocument.ExtendedFilePropertiesPart?.Properties?.Company?.Text ?? string.Empty;
-            set { var p = EnsureProperties(); p.Company ??= new Company(); p.Company.Text = value; }
+            set { var p = EnsureProperties(); p.Company ??= new Company(); p.Company.Text = value; _document.MarkPackagePropertiesDirty(); }
         }
 
         /// <summary>Manager property stored in the Extended File Properties part.</summary>
         public string Manager {
             get => _spreadsheetDocument.ExtendedFilePropertiesPart?.Properties?.Manager?.Text ?? string.Empty;
-            set { var p = EnsureProperties(); p.Manager ??= new Manager(); p.Manager.Text = value; }
+            set { var p = EnsureProperties(); p.Manager ??= new Manager(); p.Manager.Text = value; _document.MarkPackagePropertiesDirty(); }
         }
 
         /// <summary>Application name (producer) stored in the Extended File Properties part.</summary>
         public string ApplicationName {
             get => _spreadsheetDocument.ExtendedFilePropertiesPart?.Properties?.Application?.Text ?? string.Empty;
-            set { var p = EnsureProperties(); p.Application ??= new Application(); p.Application.Text = value; }
+            set { var p = EnsureProperties(); p.Application ??= new Application(); p.Application.Text = value; _document.MarkPackagePropertiesDirty(); }
         }
     }
 }

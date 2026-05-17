@@ -221,6 +221,56 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private static bool TryGetAutoFitDateSample(uint numberFormatId, string? formatCode, out string sample) {
+            sample = string.Empty;
+            if (numberFormatId == 46U || (formatCode?.IndexOf("[h]", StringComparison.OrdinalIgnoreCase) ?? -1) >= 0) {
+                return false;
+            }
+
+            switch (numberFormatId) {
+                case 14:
+                    sample = "12/31/9999";
+                    return true;
+                case 15:
+                    sample = "30-Sep-99";
+                    return true;
+                case 16:
+                    sample = "30-Sep";
+                    return true;
+                case 17:
+                    sample = "Sep-99";
+                    return true;
+                case 18:
+                    sample = "12:00 PM";
+                    return true;
+                case 19:
+                    sample = "12:00:00 PM";
+                    return true;
+                case 20:
+                    sample = "23:59";
+                    return true;
+                case 21:
+                    sample = "23:59:59";
+                    return true;
+                case 22:
+                    sample = "12/31/9999 23:59";
+                    return true;
+                case 45:
+                    sample = "59:59";
+                    return true;
+                case 47:
+                    sample = "59:59.0";
+                    return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(formatCode)) {
+                return false;
+            }
+
+            sample = new DateTime(2099, 12, 31, 23, 59, 59).ToString(TranslateExcelDateFormat(formatCode!), CultureInfo.InvariantCulture);
+            return true;
+        }
+
         private static string TranslateExcelDateFormat(string formatCode) {
             string section = SelectNumberFormatSection(formatCode, 0);
             string normalized = StripNumberFormatDecorations(section);
