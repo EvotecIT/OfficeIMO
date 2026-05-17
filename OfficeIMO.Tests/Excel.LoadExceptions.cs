@@ -135,10 +135,7 @@ namespace OfficeIMO.Tests {
             File.Copy(sourcePath, filePath, overwrite: true);
 
             RewriteContentTypes(filePath, root => {
-                XNamespace ns = root.Name.Namespace;
-                var appOverride = root.Elements(ns + "Override")
-                    .FirstOrDefault(e => string.Equals((string?)e.Attribute("PartName"), "/docProps/app.xml", StringComparison.OrdinalIgnoreCase))
-                    ?? throw new InvalidOperationException("Missing /docProps/app.xml override.");
+                var appOverride = GetOrAddAppPropertiesOverride(root);
                 appOverride.SetAttributeValue("ContentType", "application/xml");
             });
 
@@ -187,10 +184,7 @@ namespace OfficeIMO.Tests {
             File.Copy(sourcePath, filePath, overwrite: true);
 
             RewriteContentTypes(filePath, root => {
-                XNamespace ns = root.Name.Namespace;
-                var appOverride = root.Elements(ns + "Override")
-                    .FirstOrDefault(e => string.Equals((string?)e.Attribute("PartName"), "/docProps/app.xml", StringComparison.OrdinalIgnoreCase))
-                    ?? throw new InvalidOperationException("Missing /docProps/app.xml override.");
+                var appOverride = GetOrAddAppPropertiesOverride(root);
                 appOverride.SetAttributeValue("ContentType", "application/xml");
             });
 
@@ -206,10 +200,7 @@ namespace OfficeIMO.Tests {
             File.Copy(sourcePath, filePath, overwrite: true);
 
             RewriteContentTypes(filePath, root => {
-                XNamespace ns = root.Name.Namespace;
-                var appOverride = root.Elements(ns + "Override")
-                    .FirstOrDefault(e => string.Equals((string?)e.Attribute("PartName"), "/docProps/app.xml", StringComparison.OrdinalIgnoreCase))
-                    ?? throw new InvalidOperationException("Missing /docProps/app.xml override.");
+                var appOverride = GetOrAddAppPropertiesOverride(root);
                 appOverride.SetAttributeValue("ContentType", "application/xml");
             });
 
@@ -263,6 +254,21 @@ namespace OfficeIMO.Tests {
             using var writer = XmlWriter.Create(replacementStream, settings);
             document.Save(writer);
             writer.Flush();
+        }
+
+        private static XElement GetOrAddAppPropertiesOverride(XElement root) {
+            XNamespace ns = root.Name.Namespace;
+            var appOverride = root.Elements(ns + "Override")
+                .FirstOrDefault(e => string.Equals((string?)e.Attribute("PartName"), "/docProps/app.xml", StringComparison.OrdinalIgnoreCase));
+            if (appOverride != null) {
+                return appOverride;
+            }
+
+            appOverride = new XElement(ns + "Override",
+                new XAttribute("PartName", "/docProps/app.xml"),
+                new XAttribute("ContentType", "application/vnd.openxmlformats-officedocument.extended-properties+xml"));
+            root.Add(appOverride);
+            return appOverride;
         }
 
     }
