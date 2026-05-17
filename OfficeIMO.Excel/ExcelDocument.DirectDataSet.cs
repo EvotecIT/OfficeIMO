@@ -64,6 +64,7 @@ namespace OfficeIMO.Excel {
                     string sheetName = GetUniqueName(SanitizeSheetName(requestedName), usedSheetNames, 31);
                     string tableName = GetUniqueName(SanitizeTableName(requestedName), usedTableNames, 255);
                     int rowCount = table.Rows.Count + (includeHeaders ? 1 : 0);
+                    ValidateWorksheetBounds(table, rowCount);
                     string range = table.Columns.Count == 0 || rowCount == 0
                         ? string.Empty
                         : "A1:" + A1.CellReference(rowCount, table.Columns.Count);
@@ -75,6 +76,16 @@ namespace OfficeIMO.Excel {
                 }
 
                 return new DirectDataSetWorkbookModel(sheets, results);
+            }
+
+            private static void ValidateWorksheetBounds(DataTable table, int rowCount) {
+                if (table.Columns.Count > A1.MaxColumns) {
+                    throw new ArgumentException($"DataTable '{table.TableName}' has {table.Columns.Count.ToString(CultureInfo.InvariantCulture)} columns, exceeding Excel's maximum of {A1.MaxColumns.ToString(CultureInfo.InvariantCulture)} columns.", nameof(table));
+                }
+
+                if (rowCount > A1.MaxRows) {
+                    throw new ArgumentException($"DataTable '{table.TableName}' has {rowCount.ToString(CultureInfo.InvariantCulture)} worksheet rows including headers, exceeding Excel's maximum of {A1.MaxRows.ToString(CultureInfo.InvariantCulture)} rows.", nameof(table));
+                }
             }
 
             private static string GetUniqueName(string baseName, HashSet<string> used, int maxLength) {

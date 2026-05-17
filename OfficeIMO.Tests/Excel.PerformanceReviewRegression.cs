@@ -399,6 +399,64 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Closed", text);
         }
 
+        [Fact]
+        public void PerformanceReview_StreamLoadCopyWorksheet_PersistsInsteadOfWritingUnchangedPackage() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(memory)) {
+                document.AddWorkSheet("Source").CellValue(1, 1, "Copied");
+            }
+
+            memory.Position = 0;
+            using (var document = ExcelDocument.Load(memory, autoSave: true)) {
+                document.CopyWorkSheet("Source", "Copy");
+            }
+
+            memory.Position = 0;
+            using var loaded = ExcelDocument.Load(memory, readOnly: true);
+            Assert.Contains(loaded.Sheets, sheet => sheet.Name == "Copy");
+        }
+
+        [Fact]
+        public void PerformanceReview_StreamFastPackage_PreservesColumnPhoneticAttribute() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(memory)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Value");
+                var worksheet = sheet.WorksheetPart.Worksheet;
+                var sheetData = worksheet.GetFirstChild<SheetData>()!;
+                var columns = new Columns(new Column {
+                    Min = 1U,
+                    Max = 1U,
+                    Width = 12D,
+                    CustomWidth = true,
+                    Phonetic = true
+                });
+                worksheet.InsertBefore(columns, sheetData);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var column = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.GetFirstChild<Columns>()!.Elements<Column>().Single();
+            Assert.True(column.Phonetic!.Value);
+        }
+
+        [Fact]
+        public void PerformanceReview_WriteDataSet_RejectsTooManyColumns() {
+            using var memory = new MemoryStream();
+            var dataSet = new DataSet();
+            var table = new DataTable("TooWide");
+            for (int i = 0; i <= A1.MaxColumns; i++) {
+                table.Columns.Add("Column" + i.ToString(CultureInfo.InvariantCulture));
+            }
+
+            dataSet.Tables.Add(table);
+
+            var exception = Assert.Throws<ArgumentException>(() => ExcelDocument.WriteDataSet(memory, dataSet));
+            Assert.Contains(A1.MaxColumns.ToString(CultureInfo.InvariantCulture), exception.Message);
+        }
+
         private static void RemoveFirstRowIndex(string filePath) {
             using var spreadsheet = SpreadsheetDocument.Open(filePath, true);
             var row = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().First();

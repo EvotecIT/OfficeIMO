@@ -508,6 +508,7 @@ namespace OfficeIMO.Excel {
                 AppendUIntAttribute(builder, "style", column.Style);
                 AppendByteAttribute(builder, "outlineLevel", column.OutlineLevel);
                 AppendBooleanAttribute(builder, "collapsed", column.Collapsed);
+                AppendBooleanAttribute(builder, "phonetic", column.Phonetic);
                 builder.Append("/>");
             }
 

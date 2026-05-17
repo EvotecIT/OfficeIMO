@@ -166,6 +166,7 @@ namespace OfficeIMO.Excel {
         {
             _sheetCacheDirty = true;
             _cachedSheets = null;
+            MarkPackageDirty();
         }
 
         private List<Sheet> ReadSheetElements()
