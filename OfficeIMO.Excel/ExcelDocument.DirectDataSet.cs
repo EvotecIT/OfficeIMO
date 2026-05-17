@@ -353,6 +353,10 @@ namespace OfficeIMO.Excel {
             private static uint? GetStyleIndex(Type dataType) {
                 if (dataType == typeof(DateTime) || dataType == typeof(DateTimeOffset)) return 1U;
                 if (dataType == typeof(TimeSpan)) return 2U;
+#if NET6_0_OR_GREATER
+                if (dataType == typeof(DateOnly)) return 1U;
+                if (dataType == typeof(TimeOnly)) return 2U;
+#endif
                 return null;
             }
 
@@ -384,7 +388,11 @@ namespace OfficeIMO.Excel {
                         text = dateTime.ToOADate().ToString(CultureInfo.InvariantCulture);
                         break;
                     case DateTimeOffset dateTimeOffset:
-                        text = dateTimeOffset.LocalDateTime.ToOADate().ToString(CultureInfo.InvariantCulture);
+                        if (!TryFormatDateTimeOffsetSerial(dateTimeOffset, out text)) {
+                            AppendStringCell(builder, dateTimeOffset.ToString("o", CultureInfo.InvariantCulture));
+                            return;
+                        }
+
                         break;
                     case TimeSpan timeSpan:
                         text = timeSpan.TotalDays.ToString(CultureInfo.InvariantCulture);
@@ -438,6 +446,25 @@ namespace OfficeIMO.Excel {
                 builder.Append("><v>");
                 AppendEscaped(builder, text);
                 builder.Append("</v></c>");
+            }
+
+            private static bool TryFormatDateTimeOffsetSerial(DateTimeOffset value, out string text) {
+                try {
+                    var excelEpoch = DateTime.FromOADate(0);
+                    if (value.UtcDateTime < excelEpoch) {
+                        text = string.Empty;
+                        return false;
+                    }
+
+                    text = value.LocalDateTime.ToOADate().ToString(CultureInfo.InvariantCulture);
+                    return true;
+                } catch (ArgumentException) {
+                    text = string.Empty;
+                    return false;
+                } catch (OverflowException) {
+                    text = string.Empty;
+                    return false;
+                }
             }
 
             private static void AppendStringCell(StringBuilder builder, string text) {

@@ -284,7 +284,7 @@ namespace OfficeIMO.Excel {
             string end = A1.CellReference(maxRow, maxColumn);
             string reference = start == end ? start : start + ":" + end;
             if (dimension == null) {
-                worksheet.InsertAt(new SheetDimension { Reference = reference }, 0);
+                InsertSheetDimensionInSchemaOrder(worksheet, new SheetDimension { Reference = reference });
             } else {
                 dimension.Reference = reference;
             }

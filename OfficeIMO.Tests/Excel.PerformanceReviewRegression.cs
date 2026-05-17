@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -303,6 +305,98 @@ namespace OfficeIMO.Tests {
 
             var exception = Assert.Throws<ArgumentException>(() => ExcelDocument.WriteDataSet(memory, dataSet));
             Assert.Contains("32,767", exception.Message);
+        }
+
+        [Fact]
+        public void PerformanceReview_WriteDataSet_FallsBackForOutOfRangeDateTimeOffset() {
+            using var memory = new MemoryStream();
+            var value = DateTimeOffset.MinValue;
+            var dataSet = new DataSet();
+            var table = new DataTable("Items");
+            table.Columns.Add("When", typeof(DateTimeOffset));
+            table.Rows.Add(value);
+            dataSet.Tables.Add(table);
+
+            ExcelDocument.WriteDataSet(memory, dataSet);
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var cell = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().Single(c => c.CellReference?.Value == "A2");
+            Assert.Equal(CellValues.String, cell.DataType!.Value);
+            Assert.Equal(value.ToString("o", CultureInfo.InvariantCulture), cell.CellValue!.Text);
+        }
+
+#if NET6_0_OR_GREATER
+        [Fact]
+        public void PerformanceReview_WriteDataSet_AppliesDateOnlyAndTimeOnlyStyles() {
+            using var memory = new MemoryStream();
+            var dataSet = new DataSet();
+            var table = new DataTable("Items");
+            table.Columns.Add("Date", typeof(DateOnly));
+            table.Columns.Add("Time", typeof(TimeOnly));
+            table.Rows.Add(new DateOnly(2026, 5, 17), new TimeOnly(14, 30, 0));
+            dataSet.Tables.Add(table);
+
+            ExcelDocument.WriteDataSet(memory, dataSet);
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(c => c.CellReference!.Value!);
+            Assert.Equal(1U, cells["A2"].StyleIndex!.Value);
+            Assert.Equal(2U, cells["B2"].StyleIndex!.Value);
+        }
+#endif
+
+        [Fact]
+        public void PerformanceReview_CellValuesAppend_InsertsMissingDimensionAfterSheetProperties() {
+            string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.DimensionOrder.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("Data").CellValue(1, 1, "Existing");
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet;
+                worksheet.GetFirstChild<SheetDimension>()?.Remove();
+                if (worksheet.GetFirstChild<SheetProperties>() == null) {
+                    worksheet.PrependChild(new SheetProperties());
+                }
+
+                worksheet.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var cells = Enumerable.Range(2, 20)
+                    .Select(row => (row, 1, (object)("Row " + row.ToString(CultureInfo.InvariantCulture))))
+                    .ToList();
+                document.Sheets[0].CellValues(cells, ExecutionMode.Sequential);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet;
+                var children = worksheet.ChildElements.ToList();
+                int propertiesIndex = children.FindIndex(element => element is SheetProperties);
+                int dimensionIndex = children.FindIndex(element => element is SheetDimension);
+                Assert.True(propertiesIndex >= 0);
+                Assert.True(dimensionIndex > propertiesIndex);
+                Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+            }
+        }
+
+        [Fact]
+        public void PerformanceReview_StreamCreateClose_PersistsWorkbook() {
+            using var memory = new MemoryStream();
+
+            var document = ExcelDocument.Create(memory);
+            document.AddWorkSheet("Data").CellValue(1, 1, "Closed");
+            document.Close();
+
+            memory.Position = 0;
+            using var loaded = ExcelDocument.Load(memory, readOnly: true);
+            Assert.True(loaded.Sheets[0].TryGetCellText(1, 1, out string? text));
+            Assert.Equal("Closed", text);
         }
 
         private static void RemoveFirstRowIndex(string filePath) {

@@ -1266,7 +1266,7 @@ namespace OfficeIMO.Excel {
         /// Closes the underlying spreadsheet document.
         /// </summary>
         public void Close() {
-            this._spreadSheetDocument.Dispose();
+            Dispose();
         }
 
         private static void EnsureDirectoryWritable(string path) {
