@@ -5,6 +5,8 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -415,6 +417,67 @@ namespace OfficeIMO.Tests {
             Assert.Contains("/docProps/app.xml", contentTypes);
             Assert.Contains("metadata/core-properties", packageRelationships);
             Assert.Contains("extended-properties", packageRelationships);
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertDataSet_NamedRangeAfterDeferredImportSkipsDirectPackageAndPersists() {
+            string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.InsertDataSetNamedRangeFallback.xlsx");
+            var dataSet = new DataSet("Export");
+            var table = new DataTable("Items");
+            table.Columns.Add("Name", typeof(string));
+            table.Rows.Add("Alpha");
+            dataSet.Tables.Add(table);
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.InsertDataSet(dataSet);
+                document.SetNamedRange("ExportNames", "'Items'!A1:A2", save: false);
+
+                document.Save();
+
+                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            using var spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            var definedName = spreadsheet.WorkbookPart!.Workbook.DefinedNames!.Elements<DefinedName>().Single(name => name.Name == "ExportNames");
+            Assert.Equal("'Items'!$A$1:$A$2", definedName.Text);
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertDataSet_CalculationPolicySkipsDirectPackage() {
+            string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.InsertDataSetCalculationFallback.xlsx");
+            var dataSet = new DataSet("Export");
+            var table = new DataTable("Items");
+            table.Columns.Add("Value", typeof(int));
+            table.Rows.Add(1);
+            dataSet.Tables.Add(table);
+
+            using var document = ExcelDocument.Create(filePath);
+            document.InsertDataSet(dataSet);
+            document.Calculation.ForceFullCalculationOnOpen = true;
+
+            document.Save();
+
+            Assert.Equal(ExcelSavePackageWriter.StandardPackage, document.LastSaveDiagnostics.Writer);
+            Assert.False(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            Assert.Contains("Calculation", document.LastSaveDiagnostics.FastPackageSkipReason, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task PerformanceReview_InsertDataSet_AsyncDirectFileSaveHonorsCancellation() {
+            string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.InsertDataSetCancelledSave.xlsx");
+            var dataSet = new DataSet("Export");
+            var table = new DataTable("Items");
+            table.Columns.Add("Value", typeof(int));
+            table.Rows.Add(1);
+            dataSet.Tables.Add(table);
+
+            using var document = ExcelDocument.Create(filePath);
+            document.InsertDataSet(dataSet);
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+
+            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+                document.SaveAsync(filePath, openExcel: false, options: null, cancellationToken: cancellation.Token));
         }
 
         private static string ReadZipEntry(ZipArchive archive, string entryName) {

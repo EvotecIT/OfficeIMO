@@ -184,8 +184,18 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            if (HasCalculationSaveWork()) {
+                skipReason = "Calculation save policy requires the standard package finalization path.";
+                return false;
+            }
+
             if (_packagePropertiesDirty) {
                 skipReason = "Package properties changed.";
+                return false;
+            }
+
+            if (WorkbookRoot.DefinedNames?.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>().Any() == true) {
+                skipReason = "Workbook defined names require the standard package finalization path.";
                 return false;
             }
 
@@ -239,6 +249,8 @@ namespace OfficeIMO.Excel {
                 FilePath = targetPath;
                 LastSaveDiagnostics = ExcelSaveDiagnostics.DirectDataSetPackage();
                 return true;
+            } catch (OperationCanceledException) {
+                throw;
             } catch (Exception ex) {
                 skipReason = "Direct DataSet package writer failed: " + ex.Message;
                 if (packageBytes != null) {
