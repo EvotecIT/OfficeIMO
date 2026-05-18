@@ -199,6 +199,11 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            if (HasWorkbookContentOutsideDirectDataSetImport(allowSheets: true)) {
+                skipReason = "Workbook-level metadata requires the standard package finalization path.";
+                return false;
+            }
+
             var candidate = _directDataSetSaveCandidate;
             if (candidate == null || !candidate.IsValid) {
                 skipReason = "No valid direct DataSet save candidate is available.";

@@ -1,5 +1,6 @@
 using System.Data;
 using System.Threading;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -85,12 +86,28 @@ namespace OfficeIMO.Excel {
         private bool CanRegisterDirectDataSetSaveCandidate(DataSet dataSet, bool createTables, bool includeHeaders, bool autoFit) {
             return dataSet.Tables.Count > 0
                 && !_packagePropertiesDirty
-                && (WorkbookRoot.Sheets == null || !WorkbookRoot.Sheets.OfType<DocumentFormat.OpenXml.Spreadsheet.Sheet>().Any());
+                && !HasWorkbookContentOutsideDirectDataSetImport(allowSheets: false);
         }
 
         private bool CanDeferDirectDataSetImport(DataSet dataSet, bool createTables, bool includeHeaders, bool autoFit) {
             return CanRegisterDirectDataSetSaveCandidate(dataSet, createTables, includeHeaders, autoFit)
                 && !_materializingDeferredDataSetImport;
+        }
+
+        private bool HasWorkbookContentOutsideDirectDataSetImport(bool allowSheets) {
+            foreach (var child in WorkbookRoot.ChildElements) {
+                if (child is Sheets sheets) {
+                    if (!allowSheets && sheets.OfType<Sheet>().Any()) {
+                        return true;
+                    }
+
+                    continue;
+                }
+
+                return true;
+            }
+
+            return false;
         }
 
         private static string? GetImportedTableName(ExcelSheet sheet) {

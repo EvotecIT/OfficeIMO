@@ -480,6 +480,59 @@ namespace OfficeIMO.Tests {
                 document.SaveAsync(filePath, openExcel: false, options: null, cancellationToken: cancellation.Token));
         }
 
+        [Fact]
+        public void PerformanceReview_InsertDataSet_WorkbookProtectionBeforeDeferredImportSkipsDirectPackageAndPersists() {
+            string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.InsertDataSetProtectedWorkbookFallback.xlsx");
+            var dataSet = new DataSet("Export");
+            var table = new DataTable("Items");
+            table.Columns.Add("Value", typeof(int));
+            table.Rows.Add(1);
+            dataSet.Tables.Add(table);
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.ProtectWorkbook();
+                document.InsertDataSet(dataSet);
+
+                document.Save();
+
+                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            using var spreadsheet = SpreadsheetDocument.Open(filePath, false);
+            var protection = spreadsheet.WorkbookPart!.Workbook.GetFirstChild<WorkbookProtection>();
+            Assert.NotNull(protection);
+            Assert.True(protection!.LockStructure?.Value ?? false);
+        }
+
+        [Fact]
+        public async Task PerformanceReview_SimplePackageAsyncFileSaveHonorsCancellation() {
+            string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.SimplePackageCancelledFileSave.xlsx");
+
+            using var document = ExcelDocument.Create(filePath);
+            var sheet = document.AddWorkSheet("Data");
+            sheet.CellValue(1, 1, "Value");
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+
+            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+                document.SaveAsync(filePath, openExcel: false, options: null, cancellationToken: cancellation.Token));
+        }
+
+        [Fact]
+        public async Task PerformanceReview_SimplePackageAsyncStreamSaveHonorsCancellation() {
+            string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.SimplePackageCancelledStreamSave.xlsx");
+
+            using var document = ExcelDocument.Create(filePath);
+            var sheet = document.AddWorkSheet("Data");
+            sheet.CellValue(1, 1, "Value");
+            using var destination = new MemoryStream();
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+
+            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+                document.SaveAsync(destination, options: null, cancellationToken: cancellation.Token));
+        }
+
         private static string ReadZipEntry(ZipArchive archive, string entryName) {
             var entry = archive.GetEntry(entryName) ?? throw new InvalidOperationException("Missing ZIP entry '" + entryName + "'.");
             using var stream = entry.Open();

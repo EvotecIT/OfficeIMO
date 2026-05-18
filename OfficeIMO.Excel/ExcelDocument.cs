@@ -1536,7 +1536,8 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (TrySaveWithSimplePackageToFile(target, options, out string? fastPackageSkipReason)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (TrySaveWithSimplePackageToFile(target, options, out string? fastPackageSkipReason, cancellationToken)) {
                 if (openExcel) {
                     Open(target, true);
                 }
@@ -1670,7 +1671,8 @@ namespace OfficeIMO.Excel {
             }
 
             PrepareWorkbookForSave(options);
-            if (TryWriteSimpleWorkbookPackage(destination, options, updateDocumentState: true, out string? fastPackageSkipReason)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (TryWriteSimpleWorkbookPackage(destination, options, updateDocumentState: true, out string? fastPackageSkipReason, cancellationToken)) {
                 LastSaveDiagnostics = ExcelSaveDiagnostics.SimplePackage();
                 return;
             }
@@ -1905,7 +1907,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private bool TrySaveWithSimplePackageToFile(string targetPath, ExcelSaveOptions? options, out string? skipReason) {
+        private bool TrySaveWithSimplePackageToFile(string targetPath, ExcelSaveOptions? options, out string? skipReason, CancellationToken ct = default) {
             skipReason = null;
             var temporaryPath = CreateTemporarySavePath(targetPath);
             byte[]? packageBytes = null;
@@ -1913,11 +1915,12 @@ namespace OfficeIMO.Excel {
             try {
                 PrepareWorkbookForSave(options);
                 using (var fs = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
-                    if (!TryWriteSimpleWorkbookPackage(fs, options, updateDocumentState: false, out skipReason)) {
+                    if (!TryWriteSimpleWorkbookPackage(fs, options, updateDocumentState: false, out skipReason, ct)) {
                         return false;
                     }
                 }
 
+                ct.ThrowIfCancellationRequested();
                 packageBytes = File.ReadAllBytes(temporaryPath);
 
                 try { _spreadSheetDocument.Dispose(); } catch { }
@@ -1928,6 +1931,8 @@ namespace OfficeIMO.Excel {
                 FilePath = targetPath;
                 LastSaveDiagnostics = ExcelSaveDiagnostics.SimplePackage();
                 return true;
+            } catch (OperationCanceledException) {
+                throw;
             } catch (Exception ex) {
                 skipReason = "Simple package writer failed: " + ex.Message;
                 if (packageBytes != null) {

@@ -2,7 +2,7 @@ using OfficeIMO.Excel.Benchmarks;
 using BenchmarkDotNet.Running;
 using System.Globalization;
 
-if (args.Length == 0 || HasSwitch(args, "--help") || HasSwitch(args, "-h") || HasSwitch(args, "/?")) {
+if (HasSwitch(args, "--help") || HasSwitch(args, "-h") || HasSwitch(args, "/?")) {
     WriteUsage();
     return;
 }

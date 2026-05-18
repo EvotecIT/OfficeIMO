@@ -3,17 +3,20 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
 using System.IO.Compression;
+using System.Threading;
 using System.Xml;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
-        private bool TryWriteSimpleWorkbookPackage(Stream destination, ExcelSaveOptions? options, bool updateDocumentState, out string? skipReason) {
+        private bool TryWriteSimpleWorkbookPackage(Stream destination, ExcelSaveOptions? options, bool updateDocumentState, out string? skipReason, CancellationToken ct = default) {
             skipReason = null;
 
             if (destination == null || !destination.CanWrite || !destination.CanSeek) {
                 skipReason = "Destination stream must be writable and seekable.";
                 return false;
             }
+
+            ct.ThrowIfCancellationRequested();
 
             if (options?.DisableFastPackageWriter == true) {
                 skipReason = "Fast package writer was disabled by save options.";
@@ -50,8 +53,9 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            ct.ThrowIfCancellationRequested();
             PrepareDestinationStreamForWrite(destination);
-            FastWorkbookPackageWriter.Write(destination, model);
+            FastWorkbookPackageWriter.Write(destination, model, ct);
 
             destination.Flush();
             destination.Seek(0, SeekOrigin.Begin);
@@ -68,9 +72,11 @@ namespace OfficeIMO.Excel {
         }
 
         private static class FastWorkbookPackageWriter {
-            internal static void Write(Stream destination, FastWorkbookPackageModel model) {
+            internal static void Write(Stream destination, FastWorkbookPackageModel model, CancellationToken ct) {
                 using (var archive = new ZipArchive(destination, ZipArchiveMode.Create, leaveOpen: true)) {
+                    ct.ThrowIfCancellationRequested();
                     WriteContentTypesEntry(archive, model.HasStyles, model.HasSharedStrings, model.Worksheets.Count, model.Tables.Count);
+                    ct.ThrowIfCancellationRequested();
                     WriteTextEntry(archive, "_rels/.rels",
                         "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
                         "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
@@ -80,6 +86,7 @@ namespace OfficeIMO.Excel {
                         "</Relationships>");
                     WriteCorePropertiesEntry(archive);
                     WriteAppPropertiesEntry(archive);
+                    ct.ThrowIfCancellationRequested();
                     WriteWorkbookEntry(archive, model);
                     WriteWorkbookRelationshipsEntry(archive, model.Worksheets, model.HasStyles, model.HasSharedStrings);
                     if (model.Stylesheet != null) {
@@ -91,6 +98,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     foreach (var worksheet in model.Worksheets) {
+                        ct.ThrowIfCancellationRequested();
                         WriteWorksheetEntry(archive, worksheet);
                         if (worksheet.HasRelationships) {
                             WriteWorksheetRelationshipsEntry(archive, worksheet);
@@ -98,6 +106,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     for (int i = 0; i < model.Tables.Count; i++) {
+                        ct.ThrowIfCancellationRequested();
                         WriteTextEntry(
                             archive,
                             string.Format(CultureInfo.InvariantCulture, "xl/tables/table{0}.xml", i + 1),
