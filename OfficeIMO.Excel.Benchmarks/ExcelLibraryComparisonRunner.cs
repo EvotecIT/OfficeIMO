@@ -49,6 +49,7 @@ internal static class ExcelLibraryComparisonRunner {
         var firstTableRows = rows.Take(rowCount / 2).ToList();
         var secondTableRows = rows.Skip(rowCount / 2).ToList();
         var salesDataSet = CreateSalesDataSet(firstTableRows, secondTableRows);
+        var sparseDataSet = CreateSparseDataSet(rowCount);
         byte[] officeImoWorkbookBytes = ExcelBenchmarkScenarioFactory.CreateWorkbookBytes(rows);
         byte[] closedXmlWorkbookBytes = CreateClosedXmlWorkbookBytes(rows);
         byte[] epPlusWorkbookBytes = CreateEpPlusWorkbookBytes(rows);
@@ -68,9 +69,27 @@ internal static class ExcelLibraryComparisonRunner {
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-dataset-tables", warmupIterations, measuredIterations, [
-            new LibraryComparisonCase("OfficeIMO.Excel", "Write a prepared DataSet directly as two styled worksheet tables.", () => OfficeImoWriteDataSetTables(salesDataSet)),
+            new LibraryComparisonCase("OfficeIMO.Excel", "Insert a prepared DataSet through the normal workbook API and save.", () => OfficeImoWriteDataSetTables(salesDataSet)),
             new LibraryComparisonCase("ClosedXML", "Import prepared DataTables as two styled worksheet tables and save.", () => ClosedXmlWriteDataSetTables(salesDataSet)),
             new LibraryComparisonCase("EPPlus", "Import prepared DataTables as two styled worksheet tables and save.", () => EpPlusWriteDataSetTables(salesDataSet))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-dataset-tables-autofit", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Insert a prepared DataSet through the normal workbook API with AutoFit and save.", () => OfficeImoWriteDataSetTables(salesDataSet, autoFit: true)),
+            new LibraryComparisonCase("ClosedXML", "Import prepared DataTables as two styled worksheet tables, adjust columns, and save.", () => ClosedXmlWriteDataSetTables(salesDataSet, autoFit: true)),
+            new LibraryComparisonCase("EPPlus", "Import prepared DataTables as two styled worksheet tables, autofit columns, and save.", () => EpPlusWriteDataSetTables(salesDataSet, autoFit: true))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-dataset-headerless-tables", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Insert a prepared DataSet as headerless tables through the normal workbook API and save.", () => OfficeImoWriteDataSetTables(salesDataSet, includeHeaders: false)),
+            new LibraryComparisonCase("ClosedXML", "Import prepared DataTables as headerless styled worksheet tables and save.", () => ClosedXmlWriteDataSetTables(salesDataSet, includeHeaders: false)),
+            new LibraryComparisonCase("EPPlus", "Import prepared DataTables as headerless styled worksheet tables and save.", () => EpPlusWriteDataSetTables(salesDataSet, includeHeaders: false))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-dataset-sparse-tables", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Insert a sparse prepared DataSet through the normal workbook API and save.", () => OfficeImoWriteDataSetTables(sparseDataSet)),
+            new LibraryComparisonCase("ClosedXML", "Import sparse prepared DataTables as styled worksheet tables and save.", () => ClosedXmlWriteDataSetTables(sparseDataSet)),
+            new LibraryComparisonCase("EPPlus", "Import sparse prepared DataTables as styled worksheet tables and save.", () => EpPlusWriteDataSetTables(sparseDataSet))
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "append-plain-rows", warmupIterations, measuredIterations, [
@@ -386,20 +405,33 @@ internal static class ExcelLibraryComparisonRunner {
         return checked((int)stream.Length);
     }
 
-    private static int OfficeImoWriteDataSetTables(DataSet dataSet) {
+    private static int OfficeImoWriteDataSetTables(DataSet dataSet, bool autoFit = false, bool includeHeaders = true) {
         using var stream = new MemoryStream();
-        ExcelDocument.WriteDataSet(stream, dataSet);
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            document.InsertDataSet(dataSet, includeHeaders: includeHeaders, autoFit: autoFit);
+            document.Save(stream);
+            if (document.LastSaveDiagnostics.Writer != ExcelSavePackageWriter.DirectDataSetPackage) {
+                throw new InvalidOperationException("OfficeIMO DataSet comparison did not use the direct DataSet package writer: " + document.LastSaveDiagnostics.FastPackageSkipReason);
+            }
+        }
 
         return checked((int)stream.Length);
     }
 
-    private static int ClosedXmlWriteDataSetTables(DataSet dataSet) {
+    private static int ClosedXmlWriteDataSetTables(DataSet dataSet, bool autoFit = false, bool includeHeaders = true) {
         using var stream = new MemoryStream();
         using (var workbook = new XLWorkbook()) {
             foreach (DataTable dataTable in dataSet.Tables) {
                 var worksheet = workbook.Worksheets.Add(dataTable.TableName);
                 var table = worksheet.Cell(1, 1).InsertTable(dataTable, dataTable.TableName, true);
+                if (!includeHeaders) {
+                    table.ShowHeaderRow = false;
+                }
+
                 ExcelBenchmarkScenarioFactory.StyleClosedXmlTable(table);
+                if (autoFit) {
+                    worksheet.Columns().AdjustToContents();
+                }
             }
 
             workbook.SaveAs(stream);
@@ -408,12 +440,15 @@ internal static class ExcelLibraryComparisonRunner {
         return checked((int)stream.Length);
     }
 
-    private static int EpPlusWriteDataSetTables(DataSet dataSet) {
+    private static int EpPlusWriteDataSetTables(DataSet dataSet, bool autoFit = false, bool includeHeaders = true) {
         using var stream = new MemoryStream();
         using (var package = new ExcelPackage(stream)) {
             foreach (DataTable dataTable in dataSet.Tables) {
                 var worksheet = package.Workbook.Worksheets.Add(dataTable.TableName);
-                worksheet.Cells["A1"].LoadFromDataTable(dataTable, true, TableStyles.Medium2);
+                worksheet.Cells["A1"].LoadFromDataTable(dataTable, includeHeaders, TableStyles.Medium2);
+                if (autoFit && worksheet.Dimension != null) {
+                    worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
+                }
             }
 
             package.Save();
@@ -1103,6 +1138,50 @@ internal static class ExcelLibraryComparisonRunner {
         table.TableName = tableName;
         foreach (var row in rows) {
             table.Rows.Add(row.Id, row.Region, row.Owner, row.CreatedOn, row.Amount, row.Units, row.Active, row.Notes);
+        }
+
+        return table;
+    }
+
+    private static DataSet CreateSparseDataSet(int rowCount) {
+        int firstCount = rowCount / 2;
+        int secondCount = rowCount - firstCount;
+        var dataSet = new DataSet("Sparse") { Locale = CultureInfo.InvariantCulture };
+        dataSet.Tables.Add(CreateSparseDataTable(firstCount, "SparseA", 0));
+        dataSet.Tables.Add(CreateSparseDataTable(secondCount, "SparseB", firstCount));
+        return dataSet;
+    }
+
+    private static DataTable CreateSparseDataTable(int rowCount, string tableName, int offset) {
+        var table = new DataTable(tableName) { Locale = CultureInfo.InvariantCulture };
+        table.Columns.Add("Id", typeof(int));
+        table.Columns.Add("Name", typeof(string));
+        table.Columns.Add("Region", typeof(string));
+        table.Columns.Add("Owner", typeof(string));
+        table.Columns.Add("CreatedOn", typeof(DateTime));
+        table.Columns.Add("Amount", typeof(double));
+        table.Columns.Add("Units", typeof(int));
+        table.Columns.Add("Active", typeof(bool));
+        table.Columns.Add("Notes", typeof(string));
+        table.Columns.Add("OptionalCode", typeof(string));
+        table.Columns.Add("ReviewDate", typeof(DateTime));
+        table.Columns.Add("Score", typeof(double));
+
+        for (int i = 0; i < rowCount; i++) {
+            int id = offset + i + 1;
+            table.Rows.Add(
+                id,
+                "Item " + id.ToString(CultureInfo.InvariantCulture),
+                id % 3 == 0 ? DBNull.Value : "Region " + (id % 5).ToString(CultureInfo.InvariantCulture),
+                id % 4 == 0 ? DBNull.Value : "Owner " + (id % 7).ToString(CultureInfo.InvariantCulture),
+                id % 5 == 0 ? DBNull.Value : new DateTime(2026, 1, 1).AddDays(id % 365),
+                id % 2 == 0 ? DBNull.Value : Math.Round(id * 12.345, 2),
+                id % 6 == 0 ? DBNull.Value : id % 17,
+                id % 7 == 0 ? DBNull.Value : id % 2 == 0,
+                id % 3 == 0 ? DBNull.Value : "Sparse note " + id.ToString(CultureInfo.InvariantCulture),
+                id % 8 == 0 ? "C" + id.ToString(CultureInfo.InvariantCulture) : DBNull.Value,
+                id % 9 == 0 ? new DateTime(2026, 6, 1).AddDays(id % 30) : DBNull.Value,
+                id % 10 == 0 ? Math.Round(id / 10D, 2) : DBNull.Value);
         }
 
         return table;

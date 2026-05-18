@@ -2,6 +2,11 @@ using OfficeIMO.Excel.Benchmarks;
 using BenchmarkDotNet.Running;
 using System.Globalization;
 
+if (args.Length == 0 || HasSwitch(args, "--help") || HasSwitch(args, "-h") || HasSwitch(args, "/?")) {
+    WriteUsage();
+    return;
+}
+
 if (IsCommand(args, "--snapshot", "snapshot")) {
     bool hasOutputPath = HasOutputPath(args);
     int rowCount = ParseRowCount(args, startIndex: hasOutputPath ? 2 : 1);
@@ -64,6 +69,19 @@ if (IsCommand(args, "--compare-libraries", "compare-libraries", "compare")) {
 }
 
 BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
+
+static void WriteUsage() {
+    Console.WriteLine("OfficeIMO.Excel benchmark helpers");
+    Console.WriteLine();
+    Console.WriteLine("Commands:");
+    Console.WriteLine("  snapshot [output] [--rows N] [--website-data path]");
+    Console.WriteLine("  write-profile [output] [--rows N]");
+    Console.WriteLine("  read-profile [output] [--rows N] [--warmup N] [--iterations N]");
+    Console.WriteLine("  compare [output] [--rows N] [--scenario name] [--skip-legacy-epplus] [--warmup N] [--iterations N]");
+    Console.WriteLine();
+    Console.WriteLine("Example:");
+    Console.WriteLine("  compare .tmp\\officeimo.excel.library-comparison.json --rows 25000 --scenario write-dataset-tables --skip-legacy-epplus");
+}
 
 static bool IsCommand(string[] args, params string[] names)
     => args.Length >= 1 && names.Any(name => string.Equals(args[0], name, StringComparison.OrdinalIgnoreCase));

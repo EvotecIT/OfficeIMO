@@ -361,8 +361,12 @@ namespace OfficeIMO.Excel {
             string endRef = A1.CellReference(startRow + rowsCount - 1, startColumn + colsCount - 1);
             string range = startRef + ":" + endRef;
 
+            string[]? headerNames = includeHeaders
+                ? table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray()
+                : null;
+
             // Create the Table with optional AutoFilter and style
-            AddTableAndGetName(range, includeHeaders, tableName ?? string.Empty, style, includeAutoFilter, ensureRangeCellsExist: false);
+            AddTableAndGetName(range, includeHeaders, tableName ?? string.Empty, style, includeAutoFilter, ensureRangeCellsExist: false, headerNames: headerNames);
             return range;
         }
 

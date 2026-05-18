@@ -26,7 +26,17 @@ namespace OfficeIMO.Excel {
             CancellationToken ct = default) {
             if (dataSet == null) throw new ArgumentNullException(nameof(dataSet));
 
+            if (!_materializingDeferredDataSetImport) {
+                MaterializeDeferredDataSetImport();
+            }
+
+            if (CanDeferDirectDataSetImport(dataSet, createTables, includeHeaders, autoFit)
+                && TryRegisterDeferredDirectDataSetImport(dataSet, createTables, tableStyle, includeHeaders, includeAutoFilter, autoFit, ct, out var deferredResults)) {
+                return deferredResults;
+            }
+
             var results = new List<ExcelDataSetImportResult>();
+            bool canRegisterDirectSaveCandidate = CanRegisterDirectDataSetSaveCandidate(dataSet, createTables, includeHeaders, autoFit);
             int tableIndex = 1;
             foreach (DataTable table in dataSet.Tables) {
                 ct.ThrowIfCancellationRequested();
@@ -65,7 +75,22 @@ namespace OfficeIMO.Excel {
                 tableIndex++;
             }
 
+            if (canRegisterDirectSaveCandidate) {
+                RegisterDirectDataSetSaveCandidate(dataSet, createTables, tableStyle, includeHeaders, includeAutoFilter, autoFit, results);
+            }
+
             return results;
+        }
+
+        private bool CanRegisterDirectDataSetSaveCandidate(DataSet dataSet, bool createTables, bool includeHeaders, bool autoFit) {
+            return dataSet.Tables.Count > 0
+                && !_packagePropertiesDirty
+                && (WorkbookRoot.Sheets == null || !WorkbookRoot.Sheets.OfType<DocumentFormat.OpenXml.Spreadsheet.Sheet>().Any());
+        }
+
+        private bool CanDeferDirectDataSetImport(DataSet dataSet, bool createTables, bool includeHeaders, bool autoFit) {
+            return CanRegisterDirectDataSetSaveCandidate(dataSet, createTables, includeHeaders, autoFit)
+                && !_materializingDeferredDataSetImport;
         }
 
         private static string? GetImportedTableName(ExcelSheet sheet) {

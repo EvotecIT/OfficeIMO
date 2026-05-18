@@ -1,11 +1,13 @@
 using System.Data;
 using System.Globalization;
-using System.IO.Compression;
+using System.ComponentModel;
 using System.Text;
 using System.Threading;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        private static DateTime DefaultDateTimeOffsetWriteStrategy(DateTimeOffset value) => value.LocalDateTime;
+
         /// <summary>
         /// Writes a DataSet directly to an XLSX package, using one worksheet and one Excel table per DataTable.
         /// This path is intended for export workloads where the caller does not need to keep editing the workbook object.
@@ -22,7 +24,7 @@ namespace OfficeIMO.Excel {
             if (dataSet == null) throw new ArgumentNullException(nameof(dataSet));
             if (dataSet.Tables.Count == 0) throw new ArgumentException("The DataSet must contain at least one DataTable.", nameof(dataSet));
 
-            var model = DirectDataSetWorkbookModel.Create(dataSet, tableStyle, includeHeaders, includeAutoFilter, ct);
+            var model = DirectDataSetWorkbookModel.Create(dataSet, createTables: true, tableStyle, includeHeaders, includeAutoFilter, autoFit: false, DefaultDateTimeOffsetWriteStrategy, ct);
             if (stream.CanSeek) {
                 PrepareDestinationStreamForWrite(stream);
             }
@@ -35,22 +37,251 @@ namespace OfficeIMO.Excel {
             return model.Results;
         }
 
+        private void RegisterDirectDataSetSaveCandidate(
+            DataSet dataSet,
+            bool createTables,
+            TableStyle tableStyle,
+            bool includeHeaders,
+            bool includeAutoFilter,
+            bool autoFit,
+            IReadOnlyList<ExcelDataSetImportResult> results) {
+            ClearDirectDataSetSaveCandidate();
+
+            try {
+                var model = DirectDataSetWorkbookModel.Create(
+                    dataSet,
+                    createTables,
+                    tableStyle,
+                    includeHeaders,
+                    includeAutoFilter,
+                    autoFit,
+                    _dateTimeOffsetWriteStrategy,
+                    CancellationToken.None,
+                    results);
+                _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(dataSet, model, ClearDirectDataSetSaveCandidate, isDeferred: false, subscribeToSourceChanges: true);
+            } catch {
+                ClearDirectDataSetSaveCandidate();
+            }
+        }
+
+        private bool TryRegisterDeferredDirectDataSetImport(
+            DataSet dataSet,
+            bool createTables,
+            TableStyle tableStyle,
+            bool includeHeaders,
+            bool includeAutoFilter,
+            bool autoFit,
+            CancellationToken ct,
+            out IReadOnlyList<ExcelDataSetImportResult> results) {
+            results = Array.Empty<ExcelDataSetImportResult>();
+            ClearDirectDataSetSaveCandidate();
+
+            try {
+                var model = DirectDataSetWorkbookModel.Create(
+                    dataSet,
+                    createTables,
+                    tableStyle,
+                    includeHeaders,
+                    includeAutoFilter,
+                    autoFit,
+                    _dateTimeOffsetWriteStrategy,
+                    ct,
+                    snapshotTables: true);
+                _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(dataSet, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
+                _packageDirty = true;
+                _unchangedPackageBytes = null;
+                _requiresSavePreflight = false;
+                results = model.Results;
+                return true;
+            } catch {
+                ClearDirectDataSetSaveCandidate();
+                return false;
+            }
+        }
+
+        private void ClearDirectDataSetSaveCandidate() {
+            var candidate = _directDataSetSaveCandidate;
+            if (candidate == null) {
+                return;
+            }
+
+            _directDataSetSaveCandidate = null;
+            candidate.Dispose();
+        }
+
+        private void MaterializeDeferredDataSetImport() {
+            if (_materializingDeferredDataSetImport) {
+                return;
+            }
+
+            var candidate = _directDataSetSaveCandidate;
+            if (candidate == null || !candidate.IsDeferred) {
+                return;
+            }
+
+            _directDataSetSaveCandidate = null;
+            candidate.Dispose();
+
+            _materializingDeferredDataSetImport = true;
+            try {
+                MaterializeDirectDataSetModel(candidate.Model);
+            } finally {
+                _materializingDeferredDataSetImport = false;
+            }
+        }
+
+        private void MaterializeDirectDataSetModel(DirectDataSetWorkbookModel model) {
+            foreach (var sheetModel in model.Sheets) {
+                ExcelSheet sheet = AddWorkSheet(sheetModel.SheetName, SheetNameValidationMode.Strict);
+                if (sheetModel.Range.Length == 0) {
+                    continue;
+                }
+
+                if (sheetModel.HasTable) {
+                    sheet.InsertDataTableAsTable(
+                        sheetModel.Table.ToDataTable(),
+                        includeHeaders: sheetModel.IncludeHeaders,
+                        tableName: sheetModel.TableName,
+                        style: sheetModel.TableStyle,
+                        includeAutoFilter: sheetModel.IncludeAutoFilter);
+                } else {
+                    sheet.InsertDataTable(
+                        sheetModel.Table.ToDataTable(),
+                        includeHeaders: sheetModel.IncludeHeaders);
+                }
+
+                if (sheetModel.AutoFitColumns && sheetModel.Table.ColumnCount > 0) {
+                    sheet.AutoFitColumnsFor(Enumerable.Range(1, sheetModel.Table.ColumnCount));
+                }
+            }
+        }
+
+        private bool TryWriteDirectDataSetPackage(
+            Stream destination,
+            ExcelSaveOptions? options,
+            bool updateDocumentState,
+            CancellationToken ct,
+            out string? skipReason) {
+            skipReason = null;
+
+            if (destination == null || !destination.CanWrite) {
+                skipReason = "Destination stream must be writable.";
+                return false;
+            }
+
+            if (options?.DisableFastPackageWriter == true) {
+                skipReason = "Fast package writer was disabled by save options.";
+                return false;
+            }
+
+            if (options?.ValidateOpenXml == true) {
+                skipReason = "Open XML validation requires the standard package finalization path.";
+                return false;
+            }
+
+            if (options?.SafePreflight == true || options?.SafeRepairDefinedNames == true) {
+                skipReason = "Save preflight options require the standard package finalization path.";
+                return false;
+            }
+
+            if (_packagePropertiesDirty) {
+                skipReason = "Package properties changed.";
+                return false;
+            }
+
+            var candidate = _directDataSetSaveCandidate;
+            if (candidate == null || !candidate.IsValid) {
+                skipReason = "No valid direct DataSet save candidate is available.";
+                ClearDirectDataSetSaveCandidate();
+                return false;
+            }
+
+            ct.ThrowIfCancellationRequested();
+            PrepareDestinationStreamForWrite(destination);
+            DirectDataSetWorkbookWriter.Write(destination, candidate.Model, ct);
+            try { destination.Flush(); } catch (NotSupportedException) { }
+            if (destination.CanSeek) {
+                destination.Seek(0, SeekOrigin.Begin);
+            }
+
+            if (updateDocumentState) {
+                _packageDirty = false;
+                _packagePropertiesDirty = false;
+                _requiresSavePreflight = false;
+                _unchangedPackageBytes = null;
+                _packageContentTypesKnownNormalized = true;
+                _simplePackageContentKnown = true;
+            }
+
+            return true;
+        }
+
+        private bool TrySaveDirectDataSetPackageToFile(string targetPath, ExcelSaveOptions? options, CancellationToken ct, out string? skipReason) {
+            skipReason = null;
+            var temporaryPath = CreateTemporarySavePath(targetPath);
+            byte[]? packageBytes = null;
+
+            try {
+                using (var fs = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
+                    if (!TryWriteDirectDataSetPackage(fs, options, updateDocumentState: false, ct, out skipReason)) {
+                        return false;
+                    }
+                }
+
+                packageBytes = File.ReadAllBytes(temporaryPath);
+
+                try { _spreadSheetDocument.Dispose(); } catch { }
+                ReplaceTargetFile(temporaryPath, targetPath);
+                temporaryPath = string.Empty;
+                ClearDirectDataSetSaveCandidate();
+                ReloadFromBytes(packageBytes, simplePackageContentKnown: true);
+
+                FilePath = targetPath;
+                LastSaveDiagnostics = ExcelSaveDiagnostics.DirectDataSetPackage();
+                return true;
+            } catch (Exception ex) {
+                skipReason = "Direct DataSet package writer failed: " + ex.Message;
+                if (packageBytes != null) {
+                    try {
+                        ClearDirectDataSetSaveCandidate();
+                        ReloadFromBytes(packageBytes, simplePackageContentKnown: true);
+                    } catch {
+                    }
+                }
+
+                return false;
+            } finally {
+                DeleteFileIfExists(temporaryPath);
+            }
+        }
+
         private sealed class DirectDataSetWorkbookModel {
-            private DirectDataSetWorkbookModel(IReadOnlyList<DirectDataSetSheetModel> sheets, IReadOnlyList<ExcelDataSetImportResult> results) {
+            private DirectDataSetWorkbookModel(
+                IReadOnlyList<DirectDataSetSheetModel> sheets,
+                IReadOnlyList<ExcelDataSetImportResult> results,
+                Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy) {
                 Sheets = sheets;
                 Results = results;
+                DateTimeOffsetWriteStrategy = dateTimeOffsetWriteStrategy;
             }
 
             internal IReadOnlyList<DirectDataSetSheetModel> Sheets { get; }
 
             internal IReadOnlyList<ExcelDataSetImportResult> Results { get; }
 
+            internal Func<DateTimeOffset, DateTime> DateTimeOffsetWriteStrategy { get; }
+
             internal static DirectDataSetWorkbookModel Create(
                 DataSet dataSet,
+                bool createTables,
                 TableStyle tableStyle,
                 bool includeHeaders,
                 bool includeAutoFilter,
-                CancellationToken ct) {
+                bool autoFit,
+                Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
+                CancellationToken ct,
+                IReadOnlyList<ExcelDataSetImportResult>? importResults = null,
+                bool snapshotTables = false) {
                 var sheets = new List<DirectDataSetSheetModel>();
                 var results = new List<ExcelDataSetImportResult>();
                 var usedSheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -58,33 +289,81 @@ namespace OfficeIMO.Excel {
                 int index = 1;
                 foreach (DataTable table in dataSet.Tables) {
                     ct.ThrowIfCancellationRequested();
+                    var tableModel = snapshotTables
+                        ? DirectDataSetTableModel.Snapshot(table, ct)
+                        : DirectDataSetTableModel.Reference(table);
                     string requestedName = string.IsNullOrWhiteSpace(table.TableName)
                         ? "Table" + index.ToString(CultureInfo.InvariantCulture)
                         : table.TableName;
-                    string sheetName = GetUniqueName(SanitizeSheetName(requestedName), usedSheetNames, 31);
-                    string tableName = GetUniqueName(SanitizeTableName(requestedName), usedTableNames, 255);
-                    int rowCount = table.Rows.Count + (includeHeaders ? 1 : 0);
-                    ValidateWorksheetBounds(table, rowCount);
-                    string range = table.Columns.Count == 0 || rowCount == 0
+                    ExcelDataSetImportResult? importResult = importResults != null && index <= importResults.Count
+                        ? importResults[index - 1]
+                        : null;
+                    string sheetName = importResult?.SheetName ?? GetUniqueSheetName(SanitizeSheetName(requestedName), usedSheetNames);
+                    usedSheetNames.Add(sheetName);
+                    string tableName = importResult?.TableName ?? GetUniqueName(SanitizeTableName(requestedName), usedTableNames, 255);
+                    usedTableNames.Add(tableName);
+                    int rowCount = tableModel.RowCount + (includeHeaders ? 1 : 0);
+                    ValidateWorksheetBounds(tableModel, rowCount, requestedName);
+                    string range = importResult?.Range ?? (tableModel.ColumnCount == 0 || rowCount == 0
                         ? string.Empty
-                        : "A1:" + A1.CellReference(rowCount, table.Columns.Count);
+                        : "A1:" + A1.CellReference(rowCount, tableModel.ColumnCount));
 
-                    var sheet = new DirectDataSetSheetModel(index, sheetName, tableName, range, table, tableStyle, includeHeaders, includeAutoFilter);
+                    bool hasTable = createTables && range.Length > 0;
+                    double[]? columnWidths = autoFit && tableModel.ColumnCount > 0
+                        ? tableModel.CalculateColumnWidths(includeHeaders, dateTimeOffsetWriteStrategy, ct)
+                        : null;
+                    var sheet = new DirectDataSetSheetModel(index, sheetName, hasTable ? tableName : null, range, tableModel, tableStyle, includeHeaders, includeAutoFilter, hasTable, autoFit, columnWidths);
                     sheets.Add(sheet);
-                    results.Add(new ExcelDataSetImportResult(sheetName, range.Length == 0 ? null : tableName, range, table.Rows.Count, table.Columns.Count));
+                    results.Add(new ExcelDataSetImportResult(sheetName, hasTable ? tableName : null, range, tableModel.RowCount, tableModel.ColumnCount));
                     index++;
                 }
 
-                return new DirectDataSetWorkbookModel(sheets, results);
+                return new DirectDataSetWorkbookModel(sheets, results, dateTimeOffsetWriteStrategy ?? DefaultDateTimeOffsetWriteStrategy);
             }
 
-            private static void ValidateWorksheetBounds(DataTable table, int rowCount) {
-                if (table.Columns.Count > A1.MaxColumns) {
-                    throw new ArgumentException($"DataTable '{table.TableName}' has {table.Columns.Count.ToString(CultureInfo.InvariantCulture)} columns, exceeding Excel's maximum of {A1.MaxColumns.ToString(CultureInfo.InvariantCulture)} columns.", nameof(table));
+            private static string GetUniqueSheetName(string baseName, HashSet<string> used) {
+                string trimmed = baseName;
+                if (string.IsNullOrWhiteSpace(trimmed)) {
+                    int defaultIndex = 1;
+                    string defaultCandidate = "Sheet1";
+                    while (used.Contains(defaultCandidate)) {
+                        defaultIndex++;
+                        defaultCandidate = "Sheet" + defaultIndex.ToString(CultureInfo.InvariantCulture);
+                    }
+
+                    return defaultCandidate;
+                }
+
+                if (trimmed.Length > 31) {
+                    trimmed = trimmed.Substring(0, 31);
+                }
+
+                if (!used.Contains(trimmed)) {
+                    return trimmed;
+                }
+
+                int suffix = 2;
+                while (true) {
+                    string suffixText = " (" + suffix.ToString(CultureInfo.InvariantCulture) + ")";
+                    int prefixLength = Math.Max(1, 31 - suffixText.Length);
+                    string candidate = trimmed.Length > prefixLength
+                        ? trimmed.Substring(0, prefixLength) + suffixText
+                        : trimmed + suffixText;
+                    if (!used.Contains(candidate)) {
+                        return candidate;
+                    }
+
+                    suffix++;
+                }
+            }
+
+            private static void ValidateWorksheetBounds(DirectDataSetTableModel table, int rowCount, string requestedName) {
+                if (table.ColumnCount > A1.MaxColumns) {
+                    throw new ArgumentException($"DataTable '{requestedName}' has {table.ColumnCount.ToString(CultureInfo.InvariantCulture)} columns, exceeding Excel's maximum of {A1.MaxColumns.ToString(CultureInfo.InvariantCulture)} columns.", nameof(table));
                 }
 
                 if (rowCount > A1.MaxRows) {
-                    throw new ArgumentException($"DataTable '{table.TableName}' has {rowCount.ToString(CultureInfo.InvariantCulture)} worksheet rows including headers, exceeding Excel's maximum of {A1.MaxRows.ToString(CultureInfo.InvariantCulture)} rows.", nameof(table));
+                    throw new ArgumentException($"DataTable '{requestedName}' has {rowCount.ToString(CultureInfo.InvariantCulture)} worksheet rows including headers, exceeding Excel's maximum of {A1.MaxRows.ToString(CultureInfo.InvariantCulture)} rows.", nameof(table));
                 }
             }
 
@@ -114,13 +393,15 @@ namespace OfficeIMO.Excel {
             }
 
             private static string SanitizeSheetName(string name) {
-                var builder = new StringBuilder(name.Length);
-                foreach (char ch in name) {
+                string baseName = (name ?? string.Empty).Trim();
+                baseName = baseName.Trim('\'', ' ');
+                var builder = new StringBuilder(baseName.Length);
+                foreach (char ch in baseName) {
                     builder.Append(ch is ':' or '\\' or '/' or '?' or '*' or '[' or ']' ? '_' : ch);
                 }
 
-                string value = builder.ToString().Trim('\'');
-                return string.IsNullOrWhiteSpace(value) ? "Table" : value;
+                string value = _multipleUnderscoresRegex.Replace(builder.ToString().Trim(), "_");
+                return value.Trim('_');
             }
 
             private static string SanitizeTableName(string name) {
@@ -146,12 +427,15 @@ namespace OfficeIMO.Excel {
             internal DirectDataSetSheetModel(
                 int index,
                 string sheetName,
-                string tableName,
+                string? tableName,
                 string range,
-                DataTable table,
+                DirectDataSetTableModel table,
                 TableStyle tableStyle,
                 bool includeHeaders,
-                bool includeAutoFilter) {
+                bool includeAutoFilter,
+                bool hasTable,
+                bool autoFitColumns,
+                double[]? columnWidths) {
                 Index = index;
                 SheetName = sheetName;
                 TableName = tableName;
@@ -160,360 +444,432 @@ namespace OfficeIMO.Excel {
                 TableStyle = tableStyle;
                 IncludeHeaders = includeHeaders;
                 IncludeAutoFilter = includeAutoFilter;
+                HasTable = hasTable;
+                AutoFitColumns = autoFitColumns;
+                ColumnWidths = columnWidths;
             }
 
             internal int Index { get; }
 
             internal string SheetName { get; }
 
-            internal string TableName { get; }
+            internal string? TableName { get; }
 
             internal string Range { get; }
 
-            internal DataTable Table { get; }
+            internal DirectDataSetTableModel Table { get; }
 
             internal TableStyle TableStyle { get; }
 
             internal bool IncludeHeaders { get; }
 
             internal bool IncludeAutoFilter { get; }
+
+            internal bool HasTable { get; }
+
+            internal bool AutoFitColumns { get; }
+
+            internal double[]? ColumnWidths { get; }
         }
 
-        private static class DirectDataSetWorkbookWriter {
-            private const long MaxSafeInteger = 9007199254740991L;
-            private const ulong MaxSafeUnsignedInteger = 9007199254740991UL;
+        private sealed class DirectDataSetTableModel {
+            private readonly DataTable? _sourceTable;
+            private readonly DirectDataSetColumnModel[]? _columns;
+            private readonly object?[][]? _rows;
 
-            internal static void Write(Stream stream, DirectDataSetWorkbookModel model, CancellationToken ct) {
-                using var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true);
-                WriteContentTypes(archive, model.Sheets);
-                WriteTextEntry(archive, "_rels/.rels",
-                    "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
-                    "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
-                    "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/>" +
-                    "</Relationships>");
-                WriteWorkbook(archive, model.Sheets);
-                WriteWorkbookRelationships(archive, model.Sheets.Count);
-                WriteStyles(archive);
-                foreach (var sheet in model.Sheets) {
+            private DirectDataSetTableModel(DataTable sourceTable) {
+                _sourceTable = sourceTable;
+                _columns = CreateColumns(sourceTable);
+            }
+
+            private DirectDataSetTableModel(DirectDataSetColumnModel[] columns, object?[][] rows) {
+                _columns = columns;
+                _rows = rows;
+            }
+
+            internal static DirectDataSetTableModel Reference(DataTable table) => new DirectDataSetTableModel(table);
+
+            internal static DirectDataSetTableModel Snapshot(DataTable table, CancellationToken ct) {
+                var columns = CreateColumns(table);
+
+                var rows = new object?[table.Rows.Count][];
+                for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
                     ct.ThrowIfCancellationRequested();
-                    WriteWorksheet(archive, sheet, ct);
-                    if (sheet.Range.Length > 0) {
-                        WriteTextEntry(archive, $"xl/worksheets/_rels/sheet{sheet.Index}.xml.rels",
-                            "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
-                            "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
-                            $"<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/table\" Target=\"../tables/table{sheet.Index}.xml\"/>" +
-                            "</Relationships>");
-                        WriteTable(archive, sheet);
-                    }
-                }
-            }
-
-            private static void WriteContentTypes(ZipArchive archive, IReadOnlyList<DirectDataSetSheetModel> sheets) {
-                var builder = new StringBuilder(1024 + sheets.Count * 260);
-                builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-                builder.Append("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">");
-                builder.Append("<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>");
-                builder.Append("<Default Extension=\"xml\" ContentType=\"application/xml\"/>");
-                builder.Append("<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>");
-                builder.Append("<Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>");
-                foreach (var sheet in sheets) {
-                    builder.Append("<Override PartName=\"/xl/worksheets/sheet");
-                    builder.Append(sheet.Index.ToString(CultureInfo.InvariantCulture));
-                    builder.Append(".xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>");
-                    if (sheet.Range.Length > 0) {
-                        builder.Append("<Override PartName=\"/xl/tables/table");
-                        builder.Append(sheet.Index.ToString(CultureInfo.InvariantCulture));
-                        builder.Append(".xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml\"/>");
-                    }
-                }
-
-                builder.Append("</Types>");
-                WriteTextEntry(archive, "[Content_Types].xml", builder.ToString());
-            }
-
-            private static void WriteWorkbook(ZipArchive archive, IReadOnlyList<DirectDataSetSheetModel> sheets) {
-                var builder = new StringBuilder(256 + sheets.Count * 120);
-                builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-                builder.Append("<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets>");
-                foreach (var sheet in sheets) {
-                    builder.Append("<sheet name=\"");
-                    AppendEscaped(builder, sheet.SheetName);
-                    builder.Append("\" sheetId=\"");
-                    builder.Append(sheet.Index.ToString(CultureInfo.InvariantCulture));
-                    builder.Append("\" r:id=\"rId");
-                    builder.Append(sheet.Index.ToString(CultureInfo.InvariantCulture));
-                    builder.Append("\"/>");
-                }
-
-                builder.Append("</sheets></workbook>");
-                WriteTextEntry(archive, "xl/workbook.xml", builder.ToString());
-            }
-
-            private static void WriteWorkbookRelationships(ZipArchive archive, int sheetCount) {
-                var builder = new StringBuilder(384 + sheetCount * 160);
-                builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-                builder.Append("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">");
-                for (int i = 1; i <= sheetCount; i++) {
-                    builder.Append("<Relationship Id=\"rId");
-                    builder.Append(i.ToString(CultureInfo.InvariantCulture));
-                    builder.Append("\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet");
-                    builder.Append(i.ToString(CultureInfo.InvariantCulture));
-                    builder.Append(".xml\"/>");
-                }
-
-                builder.Append("<Relationship Id=\"rId");
-                builder.Append((sheetCount + 1).ToString(CultureInfo.InvariantCulture));
-                builder.Append("\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>");
-                builder.Append("</Relationships>");
-                WriteTextEntry(archive, "xl/_rels/workbook.xml.rels", builder.ToString());
-            }
-
-            private static void WriteStyles(ZipArchive archive) {
-                WriteTextEntry(archive, "xl/styles.xml",
-                    "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
-                    "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">" +
-                    "<numFmts count=\"2\"><numFmt numFmtId=\"164\" formatCode=\"yyyy-mm-dd hh:mm\"/><numFmt numFmtId=\"165\" formatCode=\"[h]:mm:ss\"/></numFmts>" +
-                    "<fonts count=\"1\"><font><sz val=\"11\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/><scheme val=\"minor\"/></font></fonts>" +
-                    "<fills count=\"2\"><fill><patternFill patternType=\"none\"/></fill><fill><patternFill patternType=\"gray125\"/></fill></fills>" +
-                    "<borders count=\"1\"><border><left/><right/><top/><bottom/><diagonal/></border></borders>" +
-                    "<cellStyleXfs count=\"1\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/></cellStyleXfs>" +
-                    "<cellXfs count=\"3\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\"/><xf numFmtId=\"164\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyNumberFormat=\"1\"/><xf numFmtId=\"165\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyNumberFormat=\"1\"/></cellXfs>" +
-                    "<cellStyles count=\"1\"><cellStyle name=\"Normal\" xfId=\"0\" builtinId=\"0\"/></cellStyles>" +
-                    "<tableStyles count=\"0\" defaultTableStyle=\"TableStyleMedium2\" defaultPivotStyle=\"PivotStyleLight16\"/>" +
-                    "</styleSheet>");
-            }
-
-            private static void WriteWorksheet(ZipArchive archive, DirectDataSetSheetModel sheet, CancellationToken ct) {
-                var builder = new StringBuilder(Math.Max(4096, (sheet.Table.Rows.Count + 1) * Math.Max(1, sheet.Table.Columns.Count) * 40));
-                builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-                builder.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">");
-                builder.Append("<dimension ref=\"");
-                AppendEscaped(builder, sheet.Range.Length == 0 ? "A1" : sheet.Range);
-                builder.Append("\"/><sheetData>");
-                int rowIndex = 1;
-                if (sheet.IncludeHeaders) {
-                    builder.Append("<row r=\"1\">");
-                    for (int c = 0; c < sheet.Table.Columns.Count; c++) {
-                        AppendCell(builder, 1, c + 1, sheet.Table.Columns[c].ColumnName, null);
+                    DataRow row = table.Rows[rowIndex];
+                    var values = new object?[columns.Length];
+                    for (int columnIndex = 0; columnIndex < columns.Length; columnIndex++) {
+                        object? value = row[columnIndex];
+                        values[columnIndex] = value == DBNull.Value ? null : value;
                     }
 
-                    builder.Append("</row>");
-                    rowIndex++;
+                    rows[rowIndex] = values;
                 }
 
-                foreach (DataRow row in sheet.Table.Rows) {
+                return new DirectDataSetTableModel(columns, rows);
+            }
+
+            private static DirectDataSetColumnModel[] CreateColumns(DataTable table) {
+                var columns = new DirectDataSetColumnModel[table.Columns.Count];
+                for (int i = 0; i < columns.Length; i++) {
+                    columns[i] = new DirectDataSetColumnModel(table.Columns[i].ColumnName, table.Columns[i].DataType);
+                }
+
+                return columns;
+            }
+
+            internal int ColumnCount => _columns!.Length;
+
+            internal int RowCount => _sourceTable?.Rows.Count ?? _rows!.Length;
+
+            internal string GetColumnName(int index) => _columns![index].Name;
+
+            internal Type GetColumnType(int index) => _columns![index].DataType;
+
+            internal DirectDataSetRowModel GetRow(int rowIndex) {
+                if (_sourceTable != null) {
+                    return DirectDataSetRowModel.FromDataRow(_sourceTable.Rows[rowIndex]);
+                }
+
+                return DirectDataSetRowModel.FromSnapshot(_rows![rowIndex]);
+            }
+
+            internal double[] CalculateColumnWidths(bool includeHeaders, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, CancellationToken ct) {
+                int columnCount = ColumnCount;
+                var widths = new double[columnCount];
+                if (columnCount == 0) {
+                    return widths;
+                }
+
+                if (includeHeaders) {
+                    for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+                        widths[columnIndex] = Math.Max(widths[columnIndex], EstimateAutoFitWidth(GetColumnName(columnIndex)));
+                    }
+                }
+
+                int rowCount = RowCount;
+                for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                     ct.ThrowIfCancellationRequested();
-                    builder.Append("<row r=\"");
-                    builder.Append(rowIndex.ToString(CultureInfo.InvariantCulture));
-                    builder.Append("\">");
-                    for (int c = 0; c < sheet.Table.Columns.Count; c++) {
-                        object? value = row.IsNull(c) ? null : row[c];
-                        AppendCell(builder, rowIndex, c + 1, value, GetStyleIndex(sheet.Table.Columns[c].DataType));
+                    var row = GetRow(rowIndex);
+                    for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+                        widths[columnIndex] = Math.Max(widths[columnIndex], EstimateAutoFitWidth(row.GetValue(columnIndex), dateTimeOffsetWriteStrategy));
                     }
-
-                    builder.Append("</row>");
-                    rowIndex++;
                 }
 
-                builder.Append("</sheetData>");
-                if (sheet.Range.Length > 0) {
-                    builder.Append("<tableParts count=\"1\"><tablePart r:id=\"rId1\"/></tableParts>");
-                }
-
-                builder.Append("</worksheet>");
-                WriteTextEntry(archive, $"xl/worksheets/sheet{sheet.Index}.xml", builder.ToString());
+                return widths;
             }
 
-            private static void WriteTable(ZipArchive archive, DirectDataSetSheetModel sheet) {
-                var builder = new StringBuilder(512 + sheet.Table.Columns.Count * 80);
-                builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-                builder.Append("<table xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" id=\"");
-                builder.Append(sheet.Index.ToString(CultureInfo.InvariantCulture));
-                builder.Append("\" name=\"");
-                AppendEscaped(builder, sheet.TableName);
-                builder.Append("\" displayName=\"");
-                AppendEscaped(builder, sheet.TableName);
-                builder.Append("\" ref=\"");
-                AppendEscaped(builder, sheet.Range);
-                builder.Append("\" headerRowCount=\"");
-                builder.Append(sheet.IncludeHeaders ? "1" : "0");
-                builder.Append("\" totalsRowShown=\"0\">");
-                if (sheet.IncludeAutoFilter && sheet.IncludeHeaders) {
-                    builder.Append("<autoFilter ref=\"");
-                    AppendEscaped(builder, sheet.Range);
-                    builder.Append("\"/>");
+            private static double EstimateAutoFitWidth(string text) {
+                if (string.IsNullOrEmpty(text)) {
+                    return 0D;
                 }
 
-                builder.Append("<tableColumns count=\"");
-                builder.Append(sheet.Table.Columns.Count.ToString(CultureInfo.InvariantCulture));
-                builder.Append("\">");
-                for (int i = 0; i < sheet.Table.Columns.Count; i++) {
-                    builder.Append("<tableColumn id=\"");
-                    builder.Append((i + 1).ToString(CultureInfo.InvariantCulture));
-                    builder.Append("\" name=\"");
-                    AppendEscaped(builder, string.IsNullOrWhiteSpace(sheet.Table.Columns[i].ColumnName) ? "Column" + (i + 1).ToString(CultureInfo.InvariantCulture) : sheet.Table.Columns[i].ColumnName);
-                    builder.Append("\"/>");
+                int maxLineLength = 0;
+                int currentLineLength = 0;
+                for (int i = 0; i < text.Length; i++) {
+                    char current = text[i];
+                    if (current == '\r' || current == '\n') {
+                        if (currentLineLength > maxLineLength) {
+                            maxLineLength = currentLineLength;
+                        }
+
+                        currentLineLength = 0;
+                        if (current == '\r' && i + 1 < text.Length && text[i + 1] == '\n') {
+                            i++;
+                        }
+                    } else {
+                        currentLineLength++;
+                    }
                 }
 
-                builder.Append("</tableColumns><tableStyleInfo name=\"");
-                builder.Append(sheet.TableStyle.ToString());
-                builder.Append("\" showFirstColumn=\"0\" showLastColumn=\"0\" showRowStripes=\"1\" showColumnStripes=\"0\"/></table>");
-                WriteTextEntry(archive, $"xl/tables/table{sheet.Index}.xml", builder.ToString());
+                if (currentLineLength > maxLineLength) {
+                    maxLineLength = currentLineLength;
+                }
+
+                if (maxLineLength == 0) {
+                    return 0D;
+                }
+
+                return Math.Min(255D, Math.Max(1D, maxLineLength + 2D));
             }
 
-            private static uint? GetStyleIndex(Type dataType) {
-                if (dataType == typeof(DateTime) || dataType == typeof(DateTimeOffset)) return 1U;
-                if (dataType == typeof(TimeSpan)) return 2U;
-#if NET6_0_OR_GREATER
-                if (dataType == typeof(DateOnly)) return 1U;
-                if (dataType == typeof(TimeOnly)) return 2U;
-#endif
-                return null;
-            }
-
-            private static void AppendCell(StringBuilder builder, int row, int column, object? value, uint? styleIndex) {
-                builder.Append("<c r=\"");
-                builder.Append(A1.CellReference(row, column));
-                builder.Append('"');
-                if (styleIndex.HasValue) {
-                    builder.Append(" s=\"");
-                    builder.Append(styleIndex.Value.ToString(CultureInfo.InvariantCulture));
-                    builder.Append('"');
-                }
-
-                string text;
+            private static double EstimateAutoFitWidth(object? value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy) {
                 switch (value) {
                     case null:
                     case DBNull:
-                        builder.Append(" t=\"str\"><v></v></c>");
-                        return;
+                        return 0D;
                     case string stringValue:
-                        AppendStringCell(builder, stringValue);
-                        return;
+                        return EstimateAutoFitWidth(stringValue);
                     case bool boolValue:
-                        builder.Append(" t=\"b\"><v>");
-                        builder.Append(boolValue ? "1" : "0");
-                        builder.Append("</v></c>");
-                        return;
+                        return EstimateAutoFitWidthFromLength(boolValue ? 4 : 5);
                     case DateTime dateTime:
-                        text = dateTime.ToOADate().ToString(CultureInfo.InvariantCulture);
-                        break;
+                        _ = dateTime;
+                        return EstimateAutoFitWidthFromLength(16);
                     case DateTimeOffset dateTimeOffset:
-                        if (!TryFormatDateTimeOffsetSerial(dateTimeOffset, out text)) {
-                            AppendStringCell(builder, dateTimeOffset.ToString("o", CultureInfo.InvariantCulture));
-                            return;
+                        try {
+                            _ = dateTimeOffsetWriteStrategy(dateTimeOffset);
+                            return EstimateAutoFitWidthFromLength(16);
+                        } catch (ArgumentException) {
+                            return EstimateAutoFitWidth(dateTimeOffset.ToString("o", CultureInfo.InvariantCulture));
+                        } catch (OverflowException) {
+                            return EstimateAutoFitWidth(dateTimeOffset.ToString("o", CultureInfo.InvariantCulture));
                         }
-
-                        break;
                     case TimeSpan timeSpan:
-                        text = timeSpan.TotalDays.ToString(CultureInfo.InvariantCulture);
-                        break;
+                        return EstimateAutoFitWidthFromLength(CountFormattedCharacters(timeSpan));
                     case double doubleValue:
-                        text = doubleValue.ToString(CultureInfo.InvariantCulture);
-                        break;
+                        return EstimateAutoFitWidthFromLength(CountFormattedCharacters(doubleValue));
                     case float floatValue:
-                        text = floatValue.ToString(CultureInfo.InvariantCulture);
-                        break;
+                        return EstimateAutoFitWidthFromLength(CountFormattedCharacters(floatValue));
                     case decimal decimalValue:
-                        text = decimalValue.ToString(CultureInfo.InvariantCulture);
-                        break;
+                        return EstimateAutoFitWidthFromLength(CountFormattedCharacters(decimalValue));
                     case sbyte sbyteValue:
-                        text = sbyteValue.ToString(CultureInfo.InvariantCulture);
-                        break;
+                        return EstimateAutoFitWidthFromLength(CountSignedIntegerCharacters(sbyteValue));
                     case byte byteValue:
-                        text = byteValue.ToString(CultureInfo.InvariantCulture);
-                        break;
+                        return EstimateAutoFitWidthFromLength(CountUnsignedIntegerCharacters(byteValue));
                     case short shortValue:
-                        text = shortValue.ToString(CultureInfo.InvariantCulture);
-                        break;
+                        return EstimateAutoFitWidthFromLength(CountSignedIntegerCharacters(shortValue));
                     case ushort ushortValue:
-                        text = ushortValue.ToString(CultureInfo.InvariantCulture);
-                        break;
+                        return EstimateAutoFitWidthFromLength(CountUnsignedIntegerCharacters(ushortValue));
                     case int intValue:
-                        text = intValue.ToString(CultureInfo.InvariantCulture);
-                        break;
+                        return EstimateAutoFitWidthFromLength(CountSignedIntegerCharacters(intValue));
                     case uint uintValue:
-                        text = uintValue.ToString(CultureInfo.InvariantCulture);
-                        break;
-                    case long longValue when longValue >= -MaxSafeInteger && longValue <= MaxSafeInteger:
-                        text = longValue.ToString(CultureInfo.InvariantCulture);
-                        break;
-                    case ulong ulongValue when ulongValue <= MaxSafeUnsignedInteger:
-                        text = ulongValue.ToString(CultureInfo.InvariantCulture);
-                        break;
+                        return EstimateAutoFitWidthFromLength(CountUnsignedIntegerCharacters(uintValue));
+                    case long longValue:
+                        return EstimateAutoFitWidthFromLength(CountSignedIntegerCharacters(longValue));
+                    case ulong ulongValue:
+                        return EstimateAutoFitWidthFromLength(CountUnsignedIntegerCharacters(ulongValue));
 #if NET6_0_OR_GREATER
                     case DateOnly dateOnly:
-                        text = dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate().ToString(CultureInfo.InvariantCulture);
-                        break;
+                        _ = dateOnly;
+                        return EstimateAutoFitWidthFromLength(10);
                     case TimeOnly timeOnly:
-                        text = timeOnly.ToTimeSpan().TotalDays.ToString(CultureInfo.InvariantCulture);
-                        break;
+                        _ = timeOnly;
+                        return EstimateAutoFitWidthFromLength(8);
 #endif
+                    case IFormattable formattable:
+                        return EstimateAutoFitWidth(formattable.ToString(null, CultureInfo.InvariantCulture) ?? string.Empty);
                     default:
-                        AppendStringCell(builder, value.ToString() ?? string.Empty);
-                        return;
+                        return EstimateAutoFitWidth(value.ToString() ?? string.Empty);
                 }
-
-                builder.Append("><v>");
-                AppendEscaped(builder, text);
-                builder.Append("</v></c>");
             }
 
-            private static bool TryFormatDateTimeOffsetSerial(DateTimeOffset value, out string text) {
+            private static double EstimateAutoFitWidthFromLength(int length) {
+                if (length <= 0) {
+                    return 0D;
+                }
+
+                return Math.Min(255D, Math.Max(1D, length + 2D));
+            }
+
+            private static int CountFormattedCharacters(double value) {
+#if NET6_0_OR_GREATER
+                Span<char> buffer = stackalloc char[32];
+                if (value.TryFormat(buffer, out int written, provider: CultureInfo.InvariantCulture)) {
+                    return written;
+                }
+#endif
+                return value.ToString(CultureInfo.InvariantCulture).Length;
+            }
+
+            private static int CountFormattedCharacters(float value) {
+#if NET6_0_OR_GREATER
+                Span<char> buffer = stackalloc char[32];
+                if (value.TryFormat(buffer, out int written, provider: CultureInfo.InvariantCulture)) {
+                    return written;
+                }
+#endif
+                return value.ToString(CultureInfo.InvariantCulture).Length;
+            }
+
+            private static int CountFormattedCharacters(decimal value) {
+#if NET6_0_OR_GREATER
+                Span<char> buffer = stackalloc char[64];
+                if (value.TryFormat(buffer, out int written, provider: CultureInfo.InvariantCulture)) {
+                    return written;
+                }
+#endif
+                return value.ToString(CultureInfo.InvariantCulture).Length;
+            }
+
+            private static int CountFormattedCharacters(TimeSpan value) {
+#if NET6_0_OR_GREATER
+                Span<char> buffer = stackalloc char[32];
+                if (value.TryFormat(buffer, out int written, "c", CultureInfo.InvariantCulture)) {
+                    return written;
+                }
+#endif
+                return value.ToString("c", CultureInfo.InvariantCulture).Length;
+            }
+
+            private static int CountSignedIntegerCharacters(long value) {
+                if (value < 0) {
+                    ulong magnitude = (ulong)(-(value + 1)) + 1UL;
+                    return 1 + CountUnsignedIntegerCharacters(magnitude);
+                }
+
+                return CountUnsignedIntegerCharacters((ulong)value);
+            }
+
+            private static int CountUnsignedIntegerCharacters(ulong value) {
+                int count = 1;
+                while (value >= 10UL) {
+                    value /= 10UL;
+                    count++;
+                }
+
+                return count;
+            }
+
+            internal DataTable ToDataTable() {
+                if (_sourceTable != null) {
+                    return _sourceTable;
+                }
+
+                var table = new DataTable { Locale = CultureInfo.InvariantCulture };
+                foreach (var column in _columns!) {
+                    table.Columns.Add(column.Name, column.DataType);
+                }
+
+                table.BeginLoadData();
                 try {
-                    var excelEpoch = DateTime.FromOADate(0);
-                    if (value.UtcDateTime < excelEpoch) {
-                        text = string.Empty;
-                        return false;
-                    }
+                    foreach (var row in _rows!) {
+                        var values = new object?[row.Length];
+                        for (int i = 0; i < row.Length; i++) {
+                            values[i] = row[i] ?? DBNull.Value;
+                        }
 
-                    text = value.LocalDateTime.ToOADate().ToString(CultureInfo.InvariantCulture);
-                    return true;
-                } catch (ArgumentException) {
-                    text = string.Empty;
-                    return false;
-                } catch (OverflowException) {
-                    text = string.Empty;
-                    return false;
+                        table.Rows.Add(values);
+                    }
+                } finally {
+                    table.EndLoadData();
+                }
+
+                return table;
+            }
+        }
+
+        private readonly struct DirectDataSetRowModel {
+            private readonly DataRow? _sourceRow;
+            private readonly object?[]? _snapshotValues;
+
+            private DirectDataSetRowModel(DataRow? sourceRow, object?[]? snapshotValues) {
+                _sourceRow = sourceRow;
+                _snapshotValues = snapshotValues;
+            }
+
+            internal static DirectDataSetRowModel FromDataRow(DataRow row) => new DirectDataSetRowModel(row, null);
+
+            internal static DirectDataSetRowModel FromSnapshot(object?[] values) => new DirectDataSetRowModel(null, values);
+
+            internal object? GetValue(int columnIndex) {
+                object? value = _sourceRow != null
+                    ? _sourceRow[columnIndex]
+                    : _snapshotValues![columnIndex];
+                return value == DBNull.Value ? null : value;
+            }
+        }
+
+        private sealed class DirectDataSetColumnModel {
+            internal DirectDataSetColumnModel(string name, Type dataType) {
+                Name = name;
+                DataType = dataType;
+            }
+
+            internal string Name { get; }
+
+            internal Type DataType { get; }
+        }
+
+        private sealed class DirectDataSetSaveCandidate : IDisposable {
+            private readonly DataSet _dataSet;
+            private readonly Action _invalidate;
+            private bool _disposed;
+
+            internal DirectDataSetSaveCandidate(DataSet dataSet, DirectDataSetWorkbookModel model, Action invalidate, bool isDeferred, bool subscribeToSourceChanges) {
+                _dataSet = dataSet;
+                Model = model;
+                _invalidate = invalidate;
+                IsDeferred = isDeferred;
+                if (subscribeToSourceChanges) {
+                    Subscribe(dataSet);
                 }
             }
 
-            private static void AppendStringCell(StringBuilder builder, string text) {
-                CoerceValueHelper.ValidateSharedStringLength(text, "value");
-                builder.Append(" t=\"str\"><v>");
-                AppendEscaped(builder, Utilities.ExcelSanitizer.SanitizeString(text));
-                builder.Append("</v></c>");
+            internal DirectDataSetWorkbookModel Model { get; }
+
+            internal bool IsDeferred { get; }
+
+            internal bool IsValid { get; private set; } = true;
+
+            private void Subscribe(DataSet dataSet) {
+                dataSet.Tables.CollectionChanged += OnCollectionChanged;
+                foreach (DataTable table in dataSet.Tables) {
+                    Subscribe(table);
+                }
             }
 
-            private static void WriteTextEntry(ZipArchive archive, string path, string text) {
-                var entry = archive.CreateEntry(path, CompressionLevel.Fastest);
-                using var stream = entry.Open();
-                using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-                writer.Write(text);
+            private void Subscribe(DataTable table) {
+                table.Columns.CollectionChanged += OnCollectionChanged;
+                table.RowChanged += OnDataChanged;
+                table.RowChanging += OnDataChanging;
+                table.RowDeleted += OnDataChanged;
+                table.RowDeleting += OnDataChanging;
+                table.ColumnChanged += OnColumnChanged;
+                table.ColumnChanging += OnColumnChanging;
+                table.TableCleared += OnDataChanged;
+                table.TableClearing += OnDataChanging;
             }
 
-            private static void AppendEscaped(StringBuilder builder, string value) {
-                foreach (char ch in value) {
-                    switch (ch) {
-                        case '&':
-                            builder.Append("&amp;");
-                            break;
-                        case '<':
-                            builder.Append("&lt;");
-                            break;
-                        case '>':
-                            builder.Append("&gt;");
-                            break;
-                        case '"':
-                            builder.Append("&quot;");
-                            break;
-                        case '\'':
-                            builder.Append("&apos;");
-                            break;
-                        default:
-                            builder.Append(ch);
-                            break;
-                    }
+            private void Unsubscribe(DataSet dataSet) {
+                dataSet.Tables.CollectionChanged -= OnCollectionChanged;
+                foreach (DataTable table in dataSet.Tables) {
+                    Unsubscribe(table);
+                }
+            }
+
+            private void Unsubscribe(DataTable table) {
+                table.Columns.CollectionChanged -= OnCollectionChanged;
+                table.RowChanged -= OnDataChanged;
+                table.RowChanging -= OnDataChanging;
+                table.RowDeleted -= OnDataChanged;
+                table.RowDeleting -= OnDataChanging;
+                table.ColumnChanged -= OnColumnChanged;
+                table.ColumnChanging -= OnColumnChanging;
+                table.TableCleared -= OnDataChanged;
+                table.TableClearing -= OnDataChanging;
+            }
+
+            private void OnCollectionChanged(object? sender, CollectionChangeEventArgs e) => Invalidate();
+
+            private void OnDataChanged(object sender, DataRowChangeEventArgs e) => Invalidate();
+
+            private void OnDataChanging(object sender, DataRowChangeEventArgs e) => Invalidate();
+
+            private void OnDataChanged(object sender, DataTableClearEventArgs e) => Invalidate();
+
+            private void OnDataChanging(object sender, DataTableClearEventArgs e) => Invalidate();
+
+            private void OnColumnChanged(object sender, DataColumnChangeEventArgs e) => Invalidate();
+
+            private void OnColumnChanging(object sender, DataColumnChangeEventArgs e) => Invalidate();
+
+            private void Invalidate() {
+                if (!IsValid) {
+                    return;
+                }
+
+                IsValid = false;
+                _invalidate();
+            }
+
+            public void Dispose() {
+                if (_disposed) {
+                    return;
+                }
+
+                _disposed = true;
+                try {
+                    Unsubscribe(_dataSet);
+                } catch {
                 }
             }
         }

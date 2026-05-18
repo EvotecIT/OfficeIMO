@@ -89,11 +89,13 @@ doc.Save();
 What to expect
 
 - Noticeable wins on:
+  - simple `DataSet` exports through normal `InsertDataSet(...)` + `Save(...)`,
   - `AutoFitColumns/Rows` (thousands of rows),
   - bulk cell writes (`CellValues(...)`),
   - object→table transforms (when mapping + formatting is non‑trivial).
 - Small ranges may remain sequential (overhead would dominate); thresholds are configurable.
 - Exceptions are avoided in hot loops (e.g., header styling uses `TryGetColumnIndexByHeader`), so perf is stable.
+- Saves automatically use fast package writers when the workbook shape is eligible. Inspect `doc.LastSaveDiagnostics` to see which writer was used or why the save fell back; use `ExcelSaveOptions.DisableFastPackageWriter` only when you explicitly want to force the standard save path.
 
 Design choices you’ll run into
 

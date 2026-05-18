@@ -303,11 +303,11 @@ namespace OfficeIMO.Excel {
             AddTableCore(range, hasHeader, name, style, includeAutoFilter, validationMode, ensureRangeCellsExist: true);
         }
 
-        internal string AddTableAndGetName(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize, bool ensureRangeCellsExist = true) {
-            return AddTableCore(range, hasHeader, name, style, includeAutoFilter, validationMode, ensureRangeCellsExist);
+        internal string AddTableAndGetName(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize, bool ensureRangeCellsExist = true, IReadOnlyList<string>? headerNames = null) {
+            return AddTableCore(range, hasHeader, name, style, includeAutoFilter, validationMode, ensureRangeCellsExist, headerNames);
         }
 
-        private string AddTableCore(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize, bool ensureRangeCellsExist = true) {
+        private string AddTableCore(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize, bool ensureRangeCellsExist = true, IReadOnlyList<string>? headerNames = null) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
@@ -359,25 +359,8 @@ namespace OfficeIMO.Excel {
                     EnsureRangeCellsExist(startRowIndex, endRowIndex, startColumnIndex, endColumnIndex);
                 }
 
-                // Generate unique table ID atomically (must be unique across the entire workbook)
-                uint tableId;
                 var swScan = System.Diagnostics.Stopwatch.StartNew();
-                lock (_tableIdLock) {
-                    // Get max existing table ID across all sheets to ensure uniqueness when opening existing files
-                    uint maxExistingId = 0;
-                    var wbPart = WorkbookPartRoot;
-                    foreach (var ws in wbPart.WorksheetParts) {
-                        foreach (var part in ws.TableDefinitionParts) {
-                            var idv = part.Table?.Id?.Value;
-                            if (idv != null && idv.Value > maxExistingId)
-                                maxExistingId = idv.Value;
-                        }
-                    }
-                    // Ensure _nextTableId always advances beyond any seen IDs
-                    var next = Math.Max(_nextTableId, (int)(maxExistingId + 1));
-                    tableId = (uint)next;
-                    _nextTableId = next + 1;
-                }
+                uint tableId = _excelDocument.AllocateTableId();
                 swScan.Stop();
                 EffectiveExecution.ReportTiming("AddTable.ScanExistingIds", swScan.Elapsed);
 
@@ -421,8 +404,15 @@ namespace OfficeIMO.Excel {
                     string baseName = $"Column{i + 1}";
                     string headerValue = string.Empty;
                     bool headerCellIsSharedString = false;
+                    bool headerValueProvided = false;
                     // If the table has headers, try to get the actual header value
-                    if (hasHeader && startRowIndex > 0) {
+                    if (hasHeader && headerNames != null && i < headerNames.Count) {
+                        headerValueProvided = true;
+                        headerValue = headerNames[(int)i] ?? string.Empty;
+                        if (!string.IsNullOrWhiteSpace(headerValue)) {
+                            baseName = headerValue;
+                        }
+                    } else if (hasHeader && startRowIndex > 0) {
                         var headerCell = GetCell(startRowIndex, startColumnIndex + (int)i);
                         if (headerCell != null) {
                             headerCellIsSharedString = headerCell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString;
@@ -439,7 +429,10 @@ namespace OfficeIMO.Excel {
                     }
                     tableColumns.Append(new TableColumn { Id = i + 1, Name = candidate });
 
-                    if (hasHeader && (!headerCellIsSharedString || !string.Equals(headerValue, candidate, System.StringComparison.Ordinal))) {
+                    bool shouldRewriteHeader = headerValueProvided
+                        ? !string.Equals(headerValue, candidate, System.StringComparison.Ordinal)
+                        : (!headerCellIsSharedString || !string.Equals(headerValue, candidate, System.StringComparison.Ordinal));
+                    if (hasHeader && shouldRewriteHeader) {
                         CellValueCore(startRowIndex, startColumnIndex + (int)i, candidate);
                     }
                 }
