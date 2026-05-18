@@ -33,8 +33,6 @@ namespace OfficeIMO.Excel {
         private bool _hasWorksheetMutations;
         private bool _requiresSavePreparation;
         private readonly object _batchLock = new object();
-        private static int _nextTableId = 1;
-        private static readonly object _tableIdLock = new object();
         private static int _instancesCreated;
 
         internal static int InstancesCreatedForTests => Volatile.Read(ref _instancesCreated);

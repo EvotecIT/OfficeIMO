@@ -23,6 +23,11 @@ namespace OfficeIMO.Excel {
         public bool SafePreflight { get; set; }
 
         /// <summary>
+        /// When true, disables direct fast package writers and always uses the standard save finalization path.
+        /// </summary>
+        public bool DisableFastPackageWriter { get; set; }
+
+        /// <summary>
         /// Returns an options instance with all features disabled.
         /// </summary>
         public static ExcelSaveOptions None => new ExcelSaveOptions();

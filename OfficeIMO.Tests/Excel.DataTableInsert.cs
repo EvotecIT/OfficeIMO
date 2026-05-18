@@ -241,6 +241,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Table1", results[1].SheetName);
                 Assert.Null(results[1].TableName);
                 document.Save();
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {

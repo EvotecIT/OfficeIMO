@@ -1,5 +1,6 @@
 using System.Data;
 using System.Threading;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -26,7 +27,17 @@ namespace OfficeIMO.Excel {
             CancellationToken ct = default) {
             if (dataSet == null) throw new ArgumentNullException(nameof(dataSet));
 
+            if (!_materializingDeferredDataSetImport) {
+                MaterializeDeferredDataSetImport();
+            }
+
+            if (CanDeferDirectDataSetImport(dataSet, createTables, includeHeaders, autoFit)
+                && TryRegisterDeferredDirectDataSetImport(dataSet, createTables, tableStyle, includeHeaders, includeAutoFilter, autoFit, ct, out var deferredResults)) {
+                return deferredResults;
+            }
+
             var results = new List<ExcelDataSetImportResult>();
+            bool canRegisterDirectSaveCandidate = CanRegisterDirectDataSetSaveCandidate(dataSet, createTables, includeHeaders, autoFit);
             int tableIndex = 1;
             foreach (DataTable table in dataSet.Tables) {
                 ct.ThrowIfCancellationRequested();
@@ -65,7 +76,38 @@ namespace OfficeIMO.Excel {
                 tableIndex++;
             }
 
+            if (canRegisterDirectSaveCandidate) {
+                RegisterDirectDataSetSaveCandidate(dataSet, createTables, tableStyle, includeHeaders, includeAutoFilter, autoFit, results);
+            }
+
             return results;
+        }
+
+        private bool CanRegisterDirectDataSetSaveCandidate(DataSet dataSet, bool createTables, bool includeHeaders, bool autoFit) {
+            return dataSet.Tables.Count > 0
+                && !_packagePropertiesDirty
+                && !HasWorkbookContentOutsideDirectDataSetImport(allowSheets: false);
+        }
+
+        private bool CanDeferDirectDataSetImport(DataSet dataSet, bool createTables, bool includeHeaders, bool autoFit) {
+            return CanRegisterDirectDataSetSaveCandidate(dataSet, createTables, includeHeaders, autoFit)
+                && !_materializingDeferredDataSetImport;
+        }
+
+        private bool HasWorkbookContentOutsideDirectDataSetImport(bool allowSheets) {
+            foreach (var child in WorkbookRoot.ChildElements) {
+                if (child is Sheets sheets) {
+                    if (!allowSheets && sheets.OfType<Sheet>().Any()) {
+                        return true;
+                    }
+
+                    continue;
+                }
+
+                return true;
+            }
+
+            return false;
         }
 
         private static string? GetImportedTableName(ExcelSheet sheet) {
