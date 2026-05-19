@@ -655,7 +655,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertDataSet_SparseNullValuesUseDirectDataSetPackageWithoutEmptyCells() {
+        public void PerformanceReview_InsertDataSet_SparseNullValuesUseDirectDataSetPackageWithExplicitEmptyCells() {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.InsertDataSetDirectSaveSparseNulls.xlsx");
             var dataSet = new DataSet("Export");
             var table = new DataTable("Items");
@@ -678,15 +678,19 @@ namespace OfficeIMO.Tests {
             var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!;
             var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             Assert.True(cells.ContainsKey("A2"));
-            Assert.False(cells.ContainsKey("B2"));
+            Assert.True(cells.ContainsKey("B2"));
             Assert.True(cells.ContainsKey("C2"));
             Assert.True(cells.ContainsKey("B3"));
-            Assert.False(cells.ContainsKey("C3"));
+            Assert.True(cells.ContainsKey("C3"));
+            Assert.Equal(CellValues.String, cells["B2"].DataType!.Value);
+            Assert.Equal(string.Empty, cells["B2"].CellValue!.Text);
+            Assert.Equal(CellValues.String, cells["C3"].DataType!.Value);
+            Assert.Equal(string.Empty, cells["C3"].CellValue!.Text);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
         [Fact]
-        public void PerformanceReview_InsertDataSet_AllNullRowsUseDirectDataSetPackageWithoutEmptyRows() {
+        public void PerformanceReview_InsertDataSet_AllNullRowsUseDirectDataSetPackageWithExplicitEmptyRows() {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.InsertDataSetDirectSaveAllNullRows.xlsx");
             var dataSet = new DataSet("Export");
             var table = new DataTable("Items");
@@ -708,9 +712,67 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(filePath, false);
             var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!;
             var sheetData = worksheet.GetFirstChild<SheetData>()!;
-            Assert.DoesNotContain(sheetData.Elements<Row>(), row => row.RowIndex?.Value == 3U);
+            Assert.Contains(sheetData.Elements<Row>(), row => row.RowIndex?.Value == 3U);
+            var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal(CellValues.String, cells["A3"].DataType!.Value);
+            Assert.Equal(string.Empty, cells["A3"].CellValue!.Text);
+            Assert.Equal(CellValues.String, cells["B3"].DataType!.Value);
+            Assert.Equal(string.Empty, cells["B3"].CellValue!.Text);
             var tableDefinition = spreadsheet.WorkbookPart.WorksheetParts.First().TableDefinitionParts.Single().Table!;
             Assert.Equal("A1:B4", tableDefinition.Reference!.Value);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertDataTable_DirectPackagePreservesLargeIntegerNumberCells() {
+            using var memory = new MemoryStream();
+            var table = new DataTable("Numbers");
+            table.Columns.Add("Value", typeof(long));
+            table.Rows.Add(long.MaxValue);
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertDataTable(table);
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!;
+            var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Cell valueCell = cells["A2"];
+            Assert.Equal(CellValues.Number, valueCell.DataType!.Value);
+            Assert.Equal(long.MaxValue.ToString(CultureInfo.InvariantCulture), valueCell.CellValue!.Text);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_CellValues_DirectPackagePreservesExplicitNullCells() {
+            using var memory = new MemoryStream();
+            var cells = new (int Row, int Column, object Value)[] {
+                (1, 1, "Id"),
+                (2, 1, 1),
+                (3, 1, null!)
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValues(cells);
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!;
+            var writtenCells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal(CellValues.String, writtenCells["A3"].DataType!.Value);
+            Assert.Equal(string.Empty, writtenCells["A3"].CellValue!.Text);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 

@@ -273,6 +273,10 @@ namespace OfficeIMO.Excel.Fluent {
         private static bool CanUseRowsFromDataTable(IReadOnlyList<string> headers) {
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (string header in headers) {
+                if (string.IsNullOrWhiteSpace(header)) {
+                    return false;
+                }
+
                 if (!seen.Add(header)) {
                     return false;
                 }

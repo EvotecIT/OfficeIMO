@@ -6,8 +6,6 @@ using System.Threading;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private static class DirectDataSetWorkbookWriter {
-            private const long MaxSafeInteger = 9007199254740991L;
-            private const ulong MaxSafeUnsignedInteger = 9007199254740991UL;
             private const int XmlWriterBufferSize = 65536;
             private const string DateStyleAttribute = " s=\"1\"";
             private const string TimeStyleAttribute = " s=\"2\"";
@@ -176,10 +174,6 @@ namespace OfficeIMO.Excel {
                         var sourceRow = sheet.Table.GetRow(sourceRowIndex);
                         for (int c = 0; c < columnCount; c++) {
                             object? value = sourceRow.GetValue(c);
-                            if (IsBlankCellValue(value)) {
-                                continue;
-                            }
-
                             if (!rowStarted) {
                                 writer.Write("<row r=\"");
                                 writer.Write(rowReference);
@@ -204,10 +198,6 @@ namespace OfficeIMO.Excel {
                         var sourceRow = sheet.Table.GetRow(sourceRowIndex);
                         for (int c = 0; c < columnCount; c++) {
                             object? value = sourceRow.GetValue(c);
-                            if (IsBlankCellValue(value)) {
-                                continue;
-                            }
-
                             if (!rowStarted) {
                                 writer.Write("<row r=\"");
                                 writer.Write(rowReference);
@@ -385,8 +375,6 @@ namespace OfficeIMO.Excel {
                 return CreateStyleAttribute(value.GetType());
             }
 
-            private static bool IsBlankCellValue(object? value) => value == null || value == DBNull.Value;
-
             private static void WriteCell(TextWriter writer, string rowReference, string cellReferencePrefix, object? value, string? styleAttribute, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy) {
                 writer.Write(cellReferencePrefix);
                 writer.Write(rowReference);
@@ -465,10 +453,10 @@ namespace OfficeIMO.Excel {
                     case uint uintValue:
                         WriteRawValueCell(writer, uintValue);
                         return;
-                    case long longValue when longValue >= -MaxSafeInteger && longValue <= MaxSafeInteger:
+                    case long longValue:
                         WriteRawValueCell(writer, longValue);
                         return;
-                    case ulong ulongValue when ulongValue <= MaxSafeUnsignedInteger:
+                    case ulong ulongValue:
                         WriteRawValueCell(writer, ulongValue);
                         return;
 #if NET6_0_OR_GREATER
@@ -511,31 +499,31 @@ namespace OfficeIMO.Excel {
             }
 
             private static void WriteRawValueCell(TextWriter writer, double value) {
-                writer.Write("><v>");
+                writer.Write(" t=\"n\"><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
 
             private static void WriteRawValueCell(TextWriter writer, float value) {
-                writer.Write("><v>");
+                writer.Write(" t=\"n\"><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
 
             private static void WriteRawValueCell(TextWriter writer, decimal value) {
-                writer.Write("><v>");
+                writer.Write(" t=\"n\"><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
 
             private static void WriteRawValueCell(TextWriter writer, long value) {
-                writer.Write("><v>");
+                writer.Write(" t=\"n\"><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
 
             private static void WriteRawValueCell(TextWriter writer, ulong value) {
-                writer.Write("><v>");
+                writer.Write(" t=\"n\"><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
