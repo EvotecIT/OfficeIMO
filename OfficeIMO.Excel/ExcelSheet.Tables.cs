@@ -507,11 +507,12 @@ namespace OfficeIMO.Excel {
                     hasHeader,
                     style,
                     includeAutoFilter);
-                if (promotedDirectSaveCandidate) {
-                    _excelDocument.PreserveDirectDataSetSaveCandidateForNextDirtyMark();
-                }
 
                 if (deferPartSave) {
+                    if (promotedDirectSaveCandidate) {
+                        _excelDocument.PreserveDirectDataSetSaveCandidateForNextDirtyMark();
+                    }
+
                     MarkRequiresSavePreparation();
                 } else {
                     WorksheetRoot.Save();

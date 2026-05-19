@@ -1929,9 +1929,39 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal("Alpha", cells["A1"].CellValue!.Text);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
             Assert.Equal("10", cells["B1"].CellValue!.Text);
             Assert.Empty(worksheetPart.TableDefinitionParts);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertDataTableHeaderlessThenAddTable_UsesGeneratedColumnNames() {
+            using var memory = new MemoryStream();
+            var table = new DataTable("Sales");
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("Score", typeof(int));
+            table.Rows.Add("Alpha", 10);
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertDataTable(table, includeHeaders: false);
+                sheet.AddTable("A1:B1", hasHeader: false, name: "HeaderlessSales", style: OfficeIMO.Excel.TableStyle.TableStyleMedium9, includeAutoFilter: true);
+
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
+            Assert.Equal("10", cells["B1"].CellValue!.Text);
+            var tableDefinition = worksheetPart.TableDefinitionParts.Single().Table!;
+            Assert.Equal("0", tableDefinition.HeaderRowCount!.Value.ToString(CultureInfo.InvariantCulture));
+            var columns = tableDefinition.TableColumns!.Elements<TableColumn>().ToList();
+            Assert.Equal("Column1", columns[0].Name!.Value);
+            Assert.Equal("Column2", columns[1].Name!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
@@ -1985,6 +2015,32 @@ namespace OfficeIMO.Tests {
             using var loaded = ExcelDocument.Load(memory, readOnly: true);
             Assert.True(loaded.Sheets[0].TryGetCellText(5, 1, out string? text));
             Assert.Equal("Manual edit", text);
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertDataTable_HiddenSheetSkipsDirectPackageAndPreservesState() {
+            using var memory = new MemoryStream();
+            var table = new DataTable("Sales");
+            table.Columns.Add("Name", typeof(string));
+            table.Rows.Add("Alpha");
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.SetHidden(true);
+                sheet.InsertDataTable(table);
+
+                document.Save(memory);
+
+                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var workbookSheet = spreadsheet.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>().Single();
+            Assert.Equal(SheetStateValues.Hidden, workbookSheet.State!.Value);
+            var cells = spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet!.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
         [Fact]

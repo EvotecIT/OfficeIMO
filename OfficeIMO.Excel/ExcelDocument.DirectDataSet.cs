@@ -157,9 +157,14 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            DataTable promotedTable = sheetModel.Table.ToDataTable();
+            if (!includeHeaders) {
+                promotedTable = CreateHeaderlessDirectSaveTable(promotedTable);
+            }
+
             RegisterDirectTabularSaveCandidate(
                 sheet,
-                sheetModel.Table.ToDataTable(),
+                promotedTable,
                 includeHeaders,
                 range,
                 tableName,
@@ -169,6 +174,32 @@ namespace OfficeIMO.Excel {
                 autoFit: false);
 
             return _directDataSetSaveCandidate != null && _directDataSetSaveCandidate.IsValid;
+        }
+
+        private static DataTable CreateHeaderlessDirectSaveTable(DataTable source) {
+            var table = new DataTable(source.TableName) {
+                Locale = CultureInfo.InvariantCulture
+            };
+
+            for (int i = 0; i < source.Columns.Count; i++) {
+                table.Columns.Add("Column" + (i + 1).ToString(CultureInfo.InvariantCulture), source.Columns[i].DataType);
+            }
+
+            table.BeginLoadData();
+            try {
+                foreach (DataRow sourceRow in source.Rows) {
+                    var row = table.NewRow();
+                    for (int i = 0; i < source.Columns.Count; i++) {
+                        row[i] = sourceRow.IsNull(i) ? DBNull.Value : sourceRow[i];
+                    }
+
+                    table.Rows.Add(row);
+                }
+            } finally {
+                table.EndLoadData();
+            }
+
+            return table;
         }
 
         private bool TryRegisterDeferredDirectDataSetImport(

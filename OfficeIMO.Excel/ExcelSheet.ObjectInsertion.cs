@@ -195,6 +195,10 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            if (SheetElement.State != null && SheetElement.State.Value != SheetStateValues.Visible) {
+                return false;
+            }
+
             if (WorksheetPart.DrawingsPart != null || WorksheetPart.WorksheetCommentsPart != null || WorksheetPart.ExternalRelationships.Any()) {
                 return false;
             }
