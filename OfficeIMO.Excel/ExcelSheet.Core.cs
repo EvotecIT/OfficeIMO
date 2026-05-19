@@ -32,6 +32,7 @@ namespace OfficeIMO.Excel {
         private bool _isBatchOperation = false;
         private bool _hasWorksheetMutations;
         private bool _requiresSavePreparation;
+        private readonly List<TableDefinitionPart> _pendingTableDefinitionPartSaves = new();
         private readonly object _batchLock = new object();
         private static int _instancesCreated;
 
@@ -435,6 +436,14 @@ namespace OfficeIMO.Excel {
         /// Persists pending changes on this worksheet to its underlying OpenXml part.
         /// </summary>
         internal void Commit() {
+            if (_pendingTableDefinitionPartSaves.Count > 0) {
+                foreach (var tableDefinitionPart in _pendingTableDefinitionPartSaves) {
+                    tableDefinitionPart.Table?.Save();
+                }
+
+                _pendingTableDefinitionPartSaves.Clear();
+            }
+
             _worksheetPart?.Worksheet?.Save();
             _requiresSavePreparation = false;
         }
@@ -444,6 +453,14 @@ namespace OfficeIMO.Excel {
         internal void MarkRequiresSavePreparation() {
             _requiresSavePreparation = true;
             _excelDocument.MarkRequiresSavePreflight();
+        }
+
+        internal void DeferTableDefinitionPartSave(TableDefinitionPart tableDefinitionPart) {
+            if (!_pendingTableDefinitionPartSaves.Contains(tableDefinitionPart)) {
+                _pendingTableDefinitionPartSaves.Add(tableDefinitionPart);
+            }
+
+            MarkRequiresSavePreparation();
         }
     }
 }

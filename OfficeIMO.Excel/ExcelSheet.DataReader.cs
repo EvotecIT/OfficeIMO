@@ -73,7 +73,8 @@ namespace OfficeIMO.Excel {
                 A1.CellReference(startRow + occupiedRows - 1, startColumn + headers.Length - 1);
 
             if (createTable) {
-                AddTable(range, includeHeaders, tableName ?? string.Empty, style, includeAutoFilter);
+                string[]? headerNames = includeHeaders ? headers : null;
+                AddTableAndGetName(range, includeHeaders, tableName ?? string.Empty, style, includeAutoFilter, headerNames: headerNames);
             }
 
             if (autoFit) {
@@ -82,7 +83,6 @@ namespace OfficeIMO.Excel {
 
             return range;
         }
-
         private static string[] BuildReaderHeaders(IDataReader reader) {
             var headers = new List<string>(reader.FieldCount);
             for (int i = 0; i < reader.FieldCount; i++) {
@@ -116,7 +116,6 @@ namespace OfficeIMO.Excel {
 
             return types;
         }
-
         private static void EnsureUniqueReaderHeaders(IList<string> headers) {
             var seen = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             for (int i = 0; i < headers.Count; i++) {
@@ -138,12 +137,22 @@ namespace OfficeIMO.Excel {
         private static string? GetReaderNumberFormat(Type fieldType, object? value) {
             Type type = Nullable.GetUnderlyingType(fieldType) ?? fieldType;
             if (type == typeof(DateTime) || type == typeof(DateTimeOffset) || value is DateTime || value is DateTimeOffset) {
-                return "yyyy-mm-dd hh:mm";
+                return DataTableDateTimeNumberFormat;
             }
 
             if (type == typeof(TimeSpan) || value is TimeSpan) {
-                return "[h]:mm:ss";
+                return DataTableTimeSpanNumberFormat;
             }
+
+#if NET6_0_OR_GREATER
+            if (type == typeof(DateOnly) || value is DateOnly) {
+                return DataTableDateTimeNumberFormat;
+            }
+
+            if (type == typeof(TimeOnly) || value is TimeOnly) {
+                return DataTableTimeSpanNumberFormat;
+            }
+#endif
 
             return null;
         }

@@ -6,11 +6,11 @@ using System.Threading;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private static class DirectDataSetWorkbookWriter {
-            private const long MaxSafeInteger = 9007199254740991L;
-            private const ulong MaxSafeUnsignedInteger = 9007199254740991UL;
             private const int XmlWriterBufferSize = 65536;
+            private const string DateStyleAttribute = " s=\"1\"";
+            private const string TimeStyleAttribute = " s=\"2\"";
             private static readonly UTF8Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-            private static readonly DateTime ExcelDateTimeOffsetEpoch = DateTime.FromOADate(0);
+            private static readonly DateTime ExcelMinimumSupportedDateTimeOffset = DateTime.FromOADate(2);
 
             internal static void Write(Stream stream, DirectDataSetWorkbookModel model, CancellationToken ct) {
                 using var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true);
@@ -151,44 +151,69 @@ namespace OfficeIMO.Excel {
                 writer.Write("<sheetData>");
                 int columnCount = sheet.Table.ColumnCount;
                 int rowCount = sheet.Table.RowCount;
-                string[] columnReferences = CreateColumnReferences(columnCount);
-                string?[] styleAttributes = CreateStyleAttributes(sheet.Table);
+                string[] cellReferencePrefixes = CreateCellReferencePrefixes(columnCount);
+                string?[]? styleAttributes = CreateStyleAttributes(sheet.Table);
+                bool[]? valueStyleColumns = CreateValueStyleColumns(sheet.Table);
                 int rowIndex = 1;
                 if (sheet.IncludeHeaders) {
+                    const string headerRowReference = "1";
                     writer.Write("<row r=\"1\">");
                     for (int c = 0; c < columnCount; c++) {
-                        WriteCell(writer, 1, columnReferences[c], sheet.Table.GetColumnName(c), null, dateTimeOffsetWriteStrategy);
+                        WriteCell(writer, headerRowReference, cellReferencePrefixes[c], sheet.Table.GetColumnName(c), null, dateTimeOffsetWriteStrategy);
                     }
 
                     writer.Write("</row>");
                     rowIndex++;
                 }
 
-                for (int sourceRowIndex = 0; sourceRowIndex < rowCount; sourceRowIndex++) {
-                    ct.ThrowIfCancellationRequested();
-                    var sourceRow = sheet.Table.GetRow(sourceRowIndex);
-                    bool rowStarted = false;
-                    for (int c = 0; c < columnCount; c++) {
-                        object? value = sourceRow.GetValue(c);
-                        if (IsBlankCellValue(value)) {
-                            continue;
+                if (valueStyleColumns == null) {
+                    for (int sourceRowIndex = 0; sourceRowIndex < rowCount; sourceRowIndex++) {
+                        ct.ThrowIfCancellationRequested();
+                        bool rowStarted = false;
+                        string rowReference = rowIndex.ToString(CultureInfo.InvariantCulture);
+                        var sourceRow = sheet.Table.GetRow(sourceRowIndex);
+                        for (int c = 0; c < columnCount; c++) {
+                            object? value = sourceRow.GetValue(c);
+                            if (!rowStarted) {
+                                writer.Write("<row r=\"");
+                                writer.Write(rowReference);
+                                writer.Write("\">");
+                                rowStarted = true;
+                            }
+
+                            WriteCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], dateTimeOffsetWriteStrategy);
                         }
 
-                        if (!rowStarted) {
-                            writer.Write("<row r=\"");
-                            WriteInvariant(writer, rowIndex);
-                            writer.Write("\">");
-                            rowStarted = true;
+                        if (rowStarted) {
+                            writer.Write("</row>");
                         }
 
-                        WriteCell(writer, rowIndex, columnReferences[c], value, styleAttributes[c], dateTimeOffsetWriteStrategy);
+                        rowIndex++;
                     }
+                } else {
+                    for (int sourceRowIndex = 0; sourceRowIndex < rowCount; sourceRowIndex++) {
+                        ct.ThrowIfCancellationRequested();
+                        bool rowStarted = false;
+                        string rowReference = rowIndex.ToString(CultureInfo.InvariantCulture);
+                        var sourceRow = sheet.Table.GetRow(sourceRowIndex);
+                        for (int c = 0; c < columnCount; c++) {
+                            object? value = sourceRow.GetValue(c);
+                            if (!rowStarted) {
+                                writer.Write("<row r=\"");
+                                writer.Write(rowReference);
+                                writer.Write("\">");
+                                rowStarted = true;
+                            }
 
-                    if (rowStarted) {
-                        writer.Write("</row>");
+                            WriteCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], valueStyleColumns[c], dateTimeOffsetWriteStrategy);
+                        }
+
+                        if (rowStarted) {
+                            writer.Write("</row>");
+                        }
+
+                        rowIndex++;
                     }
-
-                    rowIndex++;
                 }
 
                 writer.Write("</sheetData>");
@@ -199,23 +224,42 @@ namespace OfficeIMO.Excel {
                 writer.Write("</worksheet>");
             }
 
-            private static string[] CreateColumnReferences(int columnCount) {
+            private static string[] CreateCellReferencePrefixes(int columnCount) {
                 var columns = new string[columnCount];
                 for (int i = 0; i < columnCount; i++) {
-                    columns[i] = A1.ColumnIndexToLetters(i + 1);
+                    columns[i] = "<c r=\"" + A1.ColumnIndexToLetters(i + 1);
                 }
 
                 return columns;
             }
 
-            private static string?[] CreateStyleAttributes(DirectDataSetTableModel table) {
-                var styleAttributes = new string?[table.ColumnCount];
-                for (int i = 0; i < styleAttributes.Length; i++) {
-                    uint? styleIndex = GetStyleIndex(table.GetColumnType(i));
-                    styleAttributes[i] = styleIndex.HasValue ? " s=\"" + styleIndex.Value.ToString(CultureInfo.InvariantCulture) + "\"" : null;
+            private static string?[]? CreateStyleAttributes(DirectDataSetTableModel table) {
+                string?[]? styleAttributes = null;
+                for (int i = 0; i < table.ColumnCount; i++) {
+                    string? styleAttribute = CreateStyleAttribute(table.GetColumnType(i));
+                    if (styleAttribute == null) {
+                        continue;
+                    }
+
+                    styleAttributes ??= new string?[table.ColumnCount];
+                    styleAttributes[i] = styleAttribute;
                 }
 
                 return styleAttributes;
+            }
+
+            private static bool[]? CreateValueStyleColumns(DirectDataSetTableModel table) {
+                bool[]? valueStyleColumns = null;
+                for (int i = 0; i < table.ColumnCount; i++) {
+                    if (table.GetColumnType(i) != typeof(object)) {
+                        continue;
+                    }
+
+                    valueStyleColumns ??= new bool[table.ColumnCount];
+                    valueStyleColumns[i] = true;
+                }
+
+                return valueStyleColumns;
             }
 
             private static void WriteColumns(TextWriter writer, double[]? columnWidths) {
@@ -314,17 +358,47 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            private static bool IsBlankCellValue(object? value) => value == null || value == DBNull.Value;
+            private static string? CreateStyleAttribute(Type dataType) {
+                uint? styleIndex = GetStyleIndex(dataType);
+                return styleIndex switch {
+                    1U => DateStyleAttribute,
+                    2U => TimeStyleAttribute,
+                    _ => null
+                };
+            }
 
-            private static void WriteCell(TextWriter writer, int rowIndex, string columnReference, object? value, string? styleAttribute, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy) {
-                writer.Write("<c r=\"");
-                writer.Write(columnReference);
-                WriteInvariant(writer, rowIndex);
+            private static string? CreateStyleAttributeForValue(object? value) {
+                if (value == null || value == DBNull.Value) {
+                    return null;
+                }
+
+                return CreateStyleAttribute(value.GetType());
+            }
+
+            private static void WriteCell(TextWriter writer, string rowReference, string cellReferencePrefix, object? value, string? styleAttribute, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy) {
+                writer.Write(cellReferencePrefix);
+                writer.Write(rowReference);
                 writer.Write('"');
                 if (styleAttribute != null) {
                     writer.Write(styleAttribute);
                 }
 
+                WriteCellValue(writer, value, dateTimeOffsetWriteStrategy);
+            }
+
+            private static void WriteCell(TextWriter writer, string rowReference, string cellReferencePrefix, object? value, string? styleAttribute, bool useValueStyle, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy) {
+                writer.Write(cellReferencePrefix);
+                writer.Write(rowReference);
+                writer.Write('"');
+                string? effectiveStyleAttribute = styleAttribute ?? (useValueStyle ? CreateStyleAttributeForValue(value) : null);
+                if (effectiveStyleAttribute != null) {
+                    writer.Write(effectiveStyleAttribute);
+                }
+
+                WriteCellValue(writer, value, dateTimeOffsetWriteStrategy);
+            }
+
+            private static void WriteCellValue(TextWriter writer, object? value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy) {
                 switch (value) {
                     case null:
                     case DBNull:
@@ -379,10 +453,10 @@ namespace OfficeIMO.Excel {
                     case uint uintValue:
                         WriteRawValueCell(writer, uintValue);
                         return;
-                    case long longValue when longValue >= -MaxSafeInteger && longValue <= MaxSafeInteger:
+                    case long longValue:
                         WriteRawValueCell(writer, longValue);
                         return;
-                    case ulong ulongValue when ulongValue <= MaxSafeUnsignedInteger:
+                    case ulong ulongValue:
                         WriteRawValueCell(writer, ulongValue);
                         return;
 #if NET6_0_OR_GREATER
@@ -401,7 +475,7 @@ namespace OfficeIMO.Excel {
 
             private static bool TryGetDateTimeOffsetSerial(DateTimeOffset value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, out double serial) {
                 try {
-                    if (value.UtcDateTime < ExcelDateTimeOffsetEpoch) {
+                    if (value.UtcDateTime < ExcelMinimumSupportedDateTimeOffset) {
                         serial = 0D;
                         return false;
                     }
@@ -420,36 +494,36 @@ namespace OfficeIMO.Excel {
             private static void WriteStringCell(TextWriter writer, string text) {
                 CoerceValueHelper.ValidateSharedStringLength(text, "value");
                 writer.Write(" t=\"str\"><v>");
-                WriteEscaped(writer, Utilities.ExcelSanitizer.SanitizeString(text));
+                WriteSanitizedEscaped(writer, text);
                 writer.Write("</v></c>");
             }
 
             private static void WriteRawValueCell(TextWriter writer, double value) {
-                writer.Write("><v>");
+                writer.Write(" t=\"n\"><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
 
             private static void WriteRawValueCell(TextWriter writer, float value) {
-                writer.Write("><v>");
+                writer.Write(" t=\"n\"><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
 
             private static void WriteRawValueCell(TextWriter writer, decimal value) {
-                writer.Write("><v>");
+                writer.Write(" t=\"n\"><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
 
             private static void WriteRawValueCell(TextWriter writer, long value) {
-                writer.Write("><v>");
+                writer.Write(" t=\"n\"><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
 
             private static void WriteRawValueCell(TextWriter writer, ulong value) {
-                writer.Write("><v>");
+                writer.Write(" t=\"n\"><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
@@ -584,6 +658,30 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            private static void WriteSanitizedEscaped(TextWriter writer, string value) {
+                int start = 0;
+                for (int i = 0; i < value.Length; i++) {
+                    char current = value[i];
+                    if (!IsInvalidXmlControl(current) && !IsXmlEscape(current)) {
+                        continue;
+                    }
+
+                    if (i > start) {
+                        WriteSlice(writer, value, start, i - start);
+                    }
+
+                    if (!IsInvalidXmlControl(current)) {
+                        WriteEscapedCharacter(writer, current);
+                    }
+
+                    start = i + 1;
+                }
+
+                if (start < value.Length) {
+                    WriteSlice(writer, value, start, value.Length - start);
+                }
+            }
+
             private static void WriteSlice(TextWriter writer, string value, int startIndex, int length) {
 #if NET6_0_OR_GREATER
                 writer.Write(value.AsSpan(startIndex, length));
@@ -594,18 +692,19 @@ namespace OfficeIMO.Excel {
 
             private static int IndexOfXmlEscape(string value, int startIndex = 0) {
                 for (int i = startIndex; i < value.Length; i++) {
-                    switch (value[i]) {
-                        case '&':
-                        case '<':
-                        case '>':
-                        case '"':
-                        case '\'':
-                            return i;
+                    if (IsXmlEscape(value[i])) {
+                        return i;
                     }
                 }
 
                 return -1;
             }
+
+            private static bool IsInvalidXmlControl(char value)
+                => value < 0x20 && value != '\t' && value != '\n' && value != '\r';
+
+            private static bool IsXmlEscape(char value)
+                => value is '&' or '<' or '>' or '"' or '\'';
 
             private static void AppendEscapedCharacter(StringBuilder builder, char value) {
                 switch (value) {
@@ -646,6 +745,7 @@ namespace OfficeIMO.Excel {
                         break;
                 }
             }
+
         }
 
     }

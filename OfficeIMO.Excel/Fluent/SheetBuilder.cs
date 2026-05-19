@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Data;
 using OfficeColor = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Excel.Fluent {
@@ -60,8 +61,8 @@ namespace OfficeIMO.Excel.Fluent {
             var paths = options.Columns?.ToList() ?? flattener.GetPaths(typeof(T), options);
             var headers = paths.Select(p => TransformHeader(p, options)).ToList();
             int startRow = _currentRow;
-            HeaderRow(headers.Cast<object?>().ToArray());
 
+            var rowValues = new List<object?[]>();
             int dataRows = 0;
             foreach (var item in enumerable) {
                 var dict = flattener.Flatten(item, options);
@@ -70,12 +71,12 @@ namespace OfficeIMO.Excel.Fluent {
                     if (collectionPath != null && dict[collectionPath] is IEnumerable coll) {
                         var list = coll.Cast<object?>().ToList();
                         if (list.Count == 0) {
-                            Row(r => r.Values(paths.Select(p => dict.TryGetValue(p, out var v) ? v : null).ToArray()));
+                            rowValues.Add(paths.Select(p => dict.TryGetValue(p, out var v) ? v : null).ToArray());
                             dataRows++;
                         } else {
                             foreach (var element in list) {
-                                var rowValues = paths.Select(p => p == collectionPath ? element : dict.TryGetValue(p, out var v) ? v : (options.DefaultValues.TryGetValue(p, out var d) ? d : null)).ToArray();
-                                Row(r => r.Values(rowValues));
+                                var values = paths.Select(p => p == collectionPath ? element : dict.TryGetValue(p, out var v) ? v : (options.DefaultValues.TryGetValue(p, out var d) ? d : null)).ToArray();
+                                rowValues.Add(values);
                                 dataRows++;
                             }
                         }
@@ -83,11 +84,21 @@ namespace OfficeIMO.Excel.Fluent {
                     }
                 }
 
-                Row(r => r.Values(paths.Select(p => dict.TryGetValue(p, out var v) ? v : (options.DefaultValues.TryGetValue(p, out var d) ? d : null)).ToArray()));
+                rowValues.Add(paths.Select(p => dict.TryGetValue(p, out var v) ? v : (options.DefaultValues.TryGetValue(p, out var d) ? d : null)).ToArray());
                 dataRows++;
             }
 
-            int endRow = startRow + dataRows;
+            if (CanUseRowsFromDataTable(headers)) {
+                var table = CreateRowsFromDataTable(headers, rowValues);
+                Sheet.InsertOwnedDataTable(table, startRow, startColumn: 1, includeHeaders: true);
+            } else {
+                var cells = new List<(int Row, int Column, object Value)>((dataRows + 1) * Math.Max(1, headers.Count));
+                AddRowsFromCellValues(cells, startRow, headers, rowValues);
+                Sheet.CellValues(cells);
+            }
+
+            _currentRow = startRow + dataRows + 1;
+            int endRow = _currentRow - 1;
             _lastRange = $"A{startRow}:{ColumnLetter(headers.Count)}{endRow}";
 
             return this;
@@ -257,6 +268,104 @@ namespace OfficeIMO.Excel.Fluent {
                 HeaderCase.Title => string.Join(" ", path.Split('.').Select(s => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s.ToLowerInvariant()))),
                 _ => path
             };
+        }
+
+        private static bool CanUseRowsFromDataTable(IReadOnlyList<string> headers) {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string header in headers) {
+                if (string.IsNullOrWhiteSpace(header)) {
+                    return false;
+                }
+
+                if (!seen.Add(header)) {
+                    return false;
+                }
+            }
+
+            return headers.Count > 0;
+        }
+
+        private static DataTable CreateRowsFromDataTable(IReadOnlyList<string> headers, IReadOnlyList<object?[]> rowValues) {
+            var table = new DataTable("RowsFrom") {
+                Locale = CultureInfo.InvariantCulture
+            };
+
+            var columnTypes = InferRowsFromColumnTypes(rowValues, headers.Count);
+            for (int i = 0; i < headers.Count; i++) {
+                table.Columns.Add(headers[i], columnTypes[i]);
+            }
+
+            table.BeginLoadData();
+            try {
+                foreach (object?[] values in rowValues) {
+                    var row = new object[headers.Count];
+                    for (int i = 0; i < headers.Count; i++) {
+                        row[i] = CoerceRowsFromDataTableValue(i < values.Length ? values[i] : null, columnTypes[i]);
+                    }
+
+                    table.Rows.Add(row);
+                }
+            } finally {
+                table.EndLoadData();
+            }
+
+            return table;
+        }
+
+        private static Type[] InferRowsFromColumnTypes(IReadOnlyList<object?[]> rowValues, int columnCount) {
+            var columnTypes = new Type[columnCount];
+            for (int column = 0; column < columnCount; column++) {
+                Type? inferred = null;
+                for (int row = 0; row < rowValues.Count; row++) {
+                    object? value = column < rowValues[row].Length ? rowValues[row][column] : null;
+                    if (IsRowsFromBlankValue(value)) {
+                        continue;
+                    }
+
+                    Type valueType = Nullable.GetUnderlyingType(value!.GetType()) ?? value.GetType();
+                    if (inferred == null) {
+                        inferred = valueType;
+                        continue;
+                    }
+
+                    if (inferred != valueType) {
+                        inferred = typeof(object);
+                        break;
+                    }
+                }
+
+                columnTypes[column] = inferred ?? typeof(string);
+            }
+
+            return columnTypes;
+        }
+
+        private static bool IsRowsFromBlankValue(object? value) {
+            return value == null || value == DBNull.Value || value is string text && text.Length == 0;
+        }
+
+        private static object CoerceRowsFromDataTableValue(object? value, Type columnType) {
+            if (IsRowsFromBlankValue(value)) {
+                return columnType == typeof(string) || columnType == typeof(object)
+                    ? string.Empty
+                    : DBNull.Value;
+            }
+
+            return value!;
+        }
+
+        private static void AddRowsFromCellValues(List<(int Row, int Column, object Value)> cells, int startRow, IReadOnlyList<string> headers, IReadOnlyList<object?[]> rowValues) {
+            for (int i = 0; i < headers.Count; i++) {
+                cells.Add((startRow, i + 1, headers[i]));
+            }
+
+            for (int r = 0; r < rowValues.Count; r++) {
+                object?[] values = rowValues[r];
+                for (int c = 0; c < headers.Count; c++) {
+                    object? value = c < values.Length ? values[c] : null;
+                    cells.Add((startRow + r + 1, c + 1, value ?? string.Empty));
+                }
+            }
         }
 
         private static string ColumnLetter(int column) {

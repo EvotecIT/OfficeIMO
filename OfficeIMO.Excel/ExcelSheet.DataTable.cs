@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        private const string DataTableDateTimeNumberFormat = "yyyy-mm-dd hh:mm";
+        private const string DataTableTimeSpanNumberFormat = "[h]:mm:ss";
+
         /// <summary>
         /// Inserts a DataTable into the worksheet starting at the specified cell.
         /// Uses the batch CellValues compute/apply model with SharedString and Style planners.
@@ -20,11 +23,25 @@ namespace OfficeIMO.Excel {
         /// <param name="ct">Cancellation token.</param>
         public void InsertDataTable(DataTable table, int startRow = 1, int startColumn = 1, bool includeHeaders = true,
             ExecutionMode? mode = null, CancellationToken ct = default) {
+            InsertDataTableCore(table, startRow, startColumn, includeHeaders, mode, ct, copyDirectSaveTable: true);
+        }
+
+        internal void InsertOwnedDataTable(DataTable table, int startRow = 1, int startColumn = 1, bool includeHeaders = true,
+            ExecutionMode? mode = null, CancellationToken ct = default, bool registerDirectSaveCandidate = true) {
+            InsertDataTableCore(table, startRow, startColumn, includeHeaders, mode, ct, copyDirectSaveTable: false, registerDirectSaveCandidate);
+        }
+
+        private void InsertDataTableCore(DataTable table, int startRow, int startColumn, bool includeHeaders,
+            ExecutionMode? mode, CancellationToken ct, bool copyDirectSaveTable, bool registerDirectSaveCandidate = true) {
             if (table == null) throw new ArgumentNullException(nameof(table));
             if (startRow < 1) throw new ArgumentOutOfRangeException(nameof(startRow));
             if (startColumn < 1) throw new ArgumentOutOfRangeException(nameof(startColumn));
 
+            bool canRegisterDirectSave = registerDirectSaveCandidate
+                && mode != ExecutionMode.Parallel
+                && CanRegisterDirectTabularSaveCandidate(startRow, startColumn, table.Columns.Count);
             if (mode != ExecutionMode.Parallel && TryInsertDataTableByAppendingRows(table, startRow, startColumn, includeHeaders, ct)) {
+                RegisterDirectDataTableSaveCandidateIfPossible(table, startRow, startColumn, includeHeaders, canRegisterDirectSave, copyDirectSaveTable);
                 return;
             }
 
@@ -44,17 +61,7 @@ namespace OfficeIMO.Excel {
                 for (int c = 0; c < table.Columns.Count; c++) {
                     var col = table.Columns[c];
                     object? value = dr.IsNull(c) ? null : dr[c];
-                    string? fmt = null;
-                    var t = col.DataType;
-                    if (t == typeof(DateTime) || t == typeof(DateTimeOffset)) {
-                        // General purpose date-time format; users can restyle later
-                        fmt = "yyyy-mm-dd hh:mm";
-                    } else if (t == typeof(TimeSpan)) {
-                        fmt = "[h]:mm:ss";
-                    }
-
-                    if (fmt is null && value is TimeSpan)
-                        fmt = "[h]:mm:ss";
+                    string? fmt = GetDataTableNumberFormat(col.DataType, value);
                     cells.Add((row, startColumn + c, value, fmt));
                 }
                 row++;
@@ -125,6 +132,31 @@ namespace OfficeIMO.Excel {
                 },
                 ct: ct
             );
+
+            RegisterDirectDataTableSaveCandidateIfPossible(table, startRow, startColumn, includeHeaders, canRegisterDirectSave, copyDirectSaveTable);
+        }
+
+        private void RegisterDirectDataTableSaveCandidateIfPossible(DataTable table, int startRow, int startColumn, bool includeHeaders, bool canRegisterDirectSave, bool copyDirectSaveTable) {
+            if (!canRegisterDirectSave) {
+                return;
+            }
+
+            string range = BuildDataTableInsertedRange(table, startRow, startColumn, includeHeaders);
+            if (range.Length == 0) {
+                return;
+            }
+
+            _excelDocument.RegisterDirectTabularSaveCandidate(this, table, includeHeaders, range, copyTable: copyDirectSaveTable);
+        }
+
+        private static string BuildDataTableInsertedRange(DataTable table, int startRow, int startColumn, bool includeHeaders) {
+            int rowsCount = table.Rows.Count + (includeHeaders ? 1 : 0);
+            if (table.Columns.Count == 0 || rowsCount == 0) {
+                return string.Empty;
+            }
+
+            return A1.CellReference(startRow, startColumn) + ":" +
+                A1.CellReference(startRow + rowsCount - 1, startColumn + table.Columns.Count - 1);
         }
 
         private bool TryInsertDataTableByAppendingRows(DataTable table, int startRow, int startColumn, bool includeHeaders, CancellationToken ct) {
@@ -194,8 +226,21 @@ namespace OfficeIMO.Excel {
 
             string?[] numberFormats = BuildDataTableNumberFormats(table);
             var stylePlanner = new StylePlanner();
+            bool hasObjectColumn = false;
+            foreach (DataColumn column in table.Columns) {
+                if (column.DataType == typeof(object)) {
+                    hasObjectColumn = true;
+                    break;
+                }
+            }
+
             foreach (string? numberFormat in numberFormats) {
                 stylePlanner.NoteNumberFormat(numberFormat);
+            }
+
+            if (hasObjectColumn) {
+                stylePlanner.NoteNumberFormat(DataTableDateTimeNumberFormat);
+                stylePlanner.NoteNumberFormat(DataTableTimeSpanNumberFormat);
             }
 
             stylePlanner.ApplyTo(_excelDocument);
@@ -203,6 +248,18 @@ namespace OfficeIMO.Excel {
             for (int i = 0; i < numberFormats.Length; i++) {
                 if (stylePlanner.TryGetCellFormatIndex(numberFormats[i], out uint styleIndex)) {
                     styleIndexes[i] = styleIndex;
+                }
+            }
+
+            uint? objectDateTimeStyleIndex = null;
+            uint? objectTimeSpanStyleIndex = null;
+            if (hasObjectColumn) {
+                if (stylePlanner.TryGetCellFormatIndex(DataTableDateTimeNumberFormat, out uint dateTimeStyleIndex)) {
+                    objectDateTimeStyleIndex = dateTimeStyleIndex;
+                }
+
+                if (stylePlanner.TryGetCellFormatIndex(DataTableTimeSpanNumberFormat, out uint timeSpanStyleIndex)) {
+                    objectTimeSpanStyleIndex = timeSpanStyleIndex;
                 }
             }
 
@@ -218,7 +275,7 @@ namespace OfficeIMO.Excel {
 
             foreach (DataRow dataRow in table.Rows) {
                 ct.ThrowIfCancellationRequested();
-                appendedRows.Add(CreateDataTableValueRow(rowIndex++, startColumn, columnNames, dataRow, styleIndexes, useDirectStringCells, ref sharedStringIndexes, ct));
+                appendedRows.Add(CreateDataTableValueRow(rowIndex++, startColumn, columnNames, dataRow, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, ct));
             }
 
             sheetData.Append(appendedRows);
@@ -268,6 +325,8 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<string> columnNames,
             DataRow dataRow,
             IReadOnlyList<uint?> styleIndexes,
+            uint? objectDateTimeStyleIndex,
+            uint? objectTimeSpanStyleIndex,
             bool useDirectStringCells,
             ref Dictionary<string, int>? sharedStringIndexes,
             CancellationToken ct) {
@@ -287,6 +346,8 @@ namespace OfficeIMO.Excel {
 
                 if (offset < styleIndexes.Count && styleIndexes[offset] is uint styleIndex) {
                     cell.StyleIndex = styleIndex;
+                } else if (TryGetObjectDataTableValueStyleIndex(value, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, out uint objectValueStyleIndex)) {
+                    cell.StyleIndex = objectValueStyleIndex;
                 }
 
                 cells.Add(cell);
@@ -324,15 +385,61 @@ namespace OfficeIMO.Excel {
         private static string?[] BuildDataTableNumberFormats(DataTable table) {
             var formats = new string?[table.Columns.Count];
             for (int i = 0; i < table.Columns.Count; i++) {
-                Type type = table.Columns[i].DataType;
-                if (type == typeof(DateTime) || type == typeof(DateTimeOffset)) {
-                    formats[i] = "yyyy-mm-dd hh:mm";
-                } else if (type == typeof(TimeSpan)) {
-                    formats[i] = "[h]:mm:ss";
-                }
+                formats[i] = GetDataTableNumberFormat(table.Columns[i].DataType, value: null);
             }
 
             return formats;
+        }
+
+        private static string? GetDataTableNumberFormat(Type type, object? value) {
+            if (type == typeof(DateTime) || type == typeof(DateTimeOffset) || value is DateTime || value is DateTimeOffset) {
+                return DataTableDateTimeNumberFormat;
+            }
+
+            if (type == typeof(TimeSpan) || value is TimeSpan) {
+                return DataTableTimeSpanNumberFormat;
+            }
+
+#if NET6_0_OR_GREATER
+            if (type == typeof(DateOnly) || value is DateOnly) {
+                return DataTableDateTimeNumberFormat;
+            }
+
+            if (type == typeof(TimeOnly) || value is TimeOnly) {
+                return DataTableTimeSpanNumberFormat;
+            }
+#endif
+
+            return null;
+        }
+
+        private static bool TryGetObjectDataTableValueStyleIndex(object? value, uint? dateTimeStyleIndex, uint? timeSpanStyleIndex, out uint styleIndex) {
+            styleIndex = 0U;
+            if (value is DateTime || value is DateTimeOffset
+#if NET6_0_OR_GREATER
+                || value is DateOnly
+#endif
+                ) {
+                if (dateTimeStyleIndex.HasValue) {
+                    styleIndex = dateTimeStyleIndex.Value;
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (value is TimeSpan
+#if NET6_0_OR_GREATER
+                || value is TimeOnly
+#endif
+                ) {
+                if (timeSpanStyleIndex.HasValue) {
+                    styleIndex = timeSpanStyleIndex.Value;
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -349,7 +456,20 @@ namespace OfficeIMO.Excel {
             bool includeAutoFilter = true,
             ExecutionMode? mode = null,
             CancellationToken ct = default) {
-            InsertDataTable(table, startRow, startColumn, includeHeaders, mode, ct);
+            if (table == null) throw new ArgumentNullException(nameof(table));
+
+            bool canRegisterDirectSave = mode != ExecutionMode.Parallel
+                && CanRegisterDirectTabularSaveCandidate(startRow, startColumn, table.Columns.Count);
+
+            InsertDataTableCore(
+                table,
+                startRow,
+                startColumn,
+                includeHeaders,
+                mode,
+                ct,
+                copyDirectSaveTable: true,
+                registerDirectSaveCandidate: false);
 
             int rowsCount = table.Rows.Count + (includeHeaders ? 1 : 0);
             if (table.Columns.Count == 0 || rowsCount == 0) {
@@ -366,8 +486,51 @@ namespace OfficeIMO.Excel {
                 : null;
 
             // Create the Table with optional AutoFilter and style
-            AddTableAndGetName(range, includeHeaders, tableName ?? string.Empty, style, includeAutoFilter, ensureRangeCellsExist: false, headerNames: headerNames);
+            string actualTableName = AddTableAndGetName(range, includeHeaders, tableName ?? string.Empty, style, includeAutoFilter, ensureRangeCellsExist: false, headerNames: headerNames, deferPartSave: canRegisterDirectSave, skipExistingTableScan: canRegisterDirectSave);
+            if (canRegisterDirectSave) {
+                DataTable directSaveTable = includeHeaders
+                    ? table
+                    : CreateHeaderlessDirectSaveTable(table);
+                _excelDocument.RegisterDirectTabularSaveCandidate(
+                    this,
+                    directSaveTable,
+                    includeHeaders,
+                    range,
+                    actualTableName,
+                    createTable: true,
+                    style,
+                    includeAutoFilter,
+                    autoFit: false,
+                    copyTable: includeHeaders);
+            }
+
             return range;
+        }
+
+        private static DataTable CreateHeaderlessDirectSaveTable(DataTable source) {
+            var table = new DataTable(source.TableName) {
+                Locale = CultureInfo.InvariantCulture
+            };
+
+            for (int i = 0; i < source.Columns.Count; i++) {
+                table.Columns.Add("Column" + (i + 1).ToString(CultureInfo.InvariantCulture), source.Columns[i].DataType);
+            }
+
+            table.BeginLoadData();
+            try {
+                foreach (DataRow sourceRow in source.Rows) {
+                    var row = table.NewRow();
+                    for (int i = 0; i < source.Columns.Count; i++) {
+                        row[i] = sourceRow.IsNull(i) ? DBNull.Value : sourceRow[i];
+                    }
+
+                    table.Rows.Add(row);
+                }
+            } finally {
+                table.EndLoadData();
+            }
+
+            return table;
         }
 
         /// <summary>

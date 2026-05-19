@@ -48,6 +48,7 @@ internal static class ExcelLibraryComparisonRunner {
         var rows = ExcelBenchmarkScenarioFactory.CreateSalesRecords(rowCount);
         var firstTableRows = rows.Take(rowCount / 2).ToList();
         var secondTableRows = rows.Skip(rowCount / 2).ToList();
+        var salesDataTable = CreateSalesDataTable(rows, "SalesData");
         var salesDataSet = CreateSalesDataSet(firstTableRows, secondTableRows);
         var sparseDataSet = CreateSparseDataSet(rowCount);
         byte[] officeImoWorkbookBytes = ExcelBenchmarkScenarioFactory.CreateWorkbookBytes(rows);
@@ -90,6 +91,42 @@ internal static class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("OfficeIMO.Excel", "Insert a sparse prepared DataSet through the normal workbook API and save.", () => OfficeImoWriteDataSetTables(sparseDataSet)),
             new LibraryComparisonCase("ClosedXML", "Import sparse prepared DataTables as styled worksheet tables and save.", () => ClosedXmlWriteDataSetTables(sparseDataSet)),
             new LibraryComparisonCase("EPPlus", "Import sparse prepared DataTables as styled worksheet tables and save.", () => EpPlusWriteDataSetTables(sparseDataSet))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-datatable-direct", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Insert a prepared DataTable through the normal worksheet API and save.", () => OfficeImoWriteDataTable(salesDataTable)),
+            new LibraryComparisonCase("ClosedXML", "Import a prepared DataTable and save.", () => ClosedXmlWriteDataTable(salesDataTable)),
+            new LibraryComparisonCase("EPPlus", "Import a prepared DataTable and save.", () => EpPlusWriteDataTable(salesDataTable))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-datatable-table-direct", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Insert a prepared DataTable as a styled table through the normal worksheet API and save.", () => OfficeImoWriteDataTableAsTable(salesDataTable)),
+            new LibraryComparisonCase("ClosedXML", "Import a prepared DataTable as a styled worksheet table and save.", () => ClosedXmlWriteDataTable(salesDataTable, includeTable: true)),
+            new LibraryComparisonCase("EPPlus", "Import a prepared DataTable as a styled worksheet table and save.", () => EpPlusWriteDataTable(salesDataTable, includeTable: true))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-datareader-table", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Stream a DataTable-backed IDataReader as a styled table through the normal worksheet API and save.", () => OfficeImoWriteDataReaderTable(salesDataTable)),
+            new LibraryComparisonCase("ClosedXML", "Import the same prepared data as a styled worksheet table and save.", () => ClosedXmlWriteDataTable(salesDataTable, includeTable: true)),
+            new LibraryComparisonCase("EPPlus", "Import the same prepared data as a styled worksheet table and save.", () => EpPlusWriteDataTable(salesDataTable, includeTable: true))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalues-rectangle-direct", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Write a complete A1 rectangle with CellValues and save.", () => OfficeImoWriteCellValuesRectangle(rows)),
+            new LibraryComparisonCase("ClosedXML", "Write the same complete A1 rectangle and save.", () => ClosedXmlWriteSalesRows(rows, includeAllColumns: true)),
+            new LibraryComparisonCase("EPPlus", "Write the same complete A1 rectangle and save.", () => EpPlusWriteSalesRows(rows, includeAllColumns: true))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-insertobjects-direct", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Insert typed objects through the normal worksheet API and save.", () => OfficeImoWriteInsertObjects(rows)),
+            new LibraryComparisonCase("ClosedXML", "Insert the same typed objects and save.", () => ClosedXmlWriteDataTable(salesDataTable)),
+            new LibraryComparisonCase("EPPlus", "Import the same typed objects and save.", () => EpPlusWriteDataTable(salesDataTable))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-fluent-rowsfrom-direct", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Write typed rows through the fluent RowsFrom API and save.", () => OfficeImoWriteFluentRowsFrom(rows)),
+            new LibraryComparisonCase("ClosedXML", "Insert the same typed rows and save.", () => ClosedXmlWriteDataTable(salesDataTable)),
+            new LibraryComparisonCase("EPPlus", "Import the same typed rows and save.", () => EpPlusWriteDataTable(salesDataTable))
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "append-plain-rows", warmupIterations, measuredIterations, [
@@ -410,12 +447,89 @@ internal static class ExcelLibraryComparisonRunner {
         using (var document = ExcelDocument.Create(stream, autoSave: false)) {
             document.InsertDataSet(dataSet, includeHeaders: includeHeaders, autoFit: autoFit);
             document.Save(stream);
-            if (document.LastSaveDiagnostics.Writer != ExcelSavePackageWriter.DirectDataSetPackage) {
-                throw new InvalidOperationException("OfficeIMO DataSet comparison did not use the direct DataSet package writer: " + document.LastSaveDiagnostics.FastPackageSkipReason);
-            }
+            AssertOfficeImoDirectPackageWriter(document, "DataSet comparison");
         }
 
         return checked((int)stream.Length);
+    }
+
+    private static int OfficeImoWriteDataTable(DataTable dataTable) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            var sheet = document.AddWorkSheet("Data");
+            sheet.InsertDataTable(dataTable);
+            document.Save(stream);
+            AssertOfficeImoDirectPackageWriter(document, "DataTable comparison");
+        }
+
+        return checked((int)stream.Length);
+    }
+
+    private static int OfficeImoWriteDataTableAsTable(DataTable dataTable) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            var sheet = document.AddWorkSheet("Data");
+            sheet.InsertDataTableAsTable(dataTable, tableName: "SalesData", style: TableStyle.TableStyleMedium2);
+            document.Save(stream);
+            AssertOfficeImoDirectPackageWriter(document, "DataTable table comparison");
+        }
+
+        return checked((int)stream.Length);
+    }
+
+    private static int OfficeImoWriteDataReaderTable(DataTable dataTable) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false))
+        using (var reader = dataTable.CreateDataReader()) {
+            var sheet = document.AddWorkSheet("Data");
+            sheet.InsertDataReader(reader, tableName: "SalesData", style: TableStyle.TableStyleMedium2);
+            document.Save(stream);
+        }
+
+        return checked((int)stream.Length);
+    }
+
+    private static int OfficeImoWriteCellValuesRectangle(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            var sheet = document.AddWorkSheet("Data");
+            sheet.CellValues(BuildSalesCells(rows));
+            document.Save(stream);
+            AssertOfficeImoDirectPackageWriter(document, "CellValues rectangle comparison");
+        }
+
+        return checked((int)stream.Length);
+    }
+
+    private static int OfficeImoWriteInsertObjects(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            var sheet = document.AddWorkSheet("Data");
+            ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
+            document.Save(stream);
+            AssertOfficeImoDirectPackageWriter(document, "InsertObjects comparison");
+        }
+
+        return checked((int)stream.Length);
+    }
+
+    private static int OfficeImoWriteFluentRowsFrom(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            document.AsFluent()
+                .Sheet("Data", sheet => sheet.RowsFrom(rows))
+                .End()
+                .Save(stream);
+            AssertOfficeImoDirectPackageWriter(document, "Fluent RowsFrom comparison");
+        }
+
+        return checked((int)stream.Length);
+    }
+
+    private static void AssertOfficeImoDirectPackageWriter(ExcelDocument document, string scenario) {
+        if (document.LastSaveDiagnostics.Writer != ExcelSavePackageWriter.DirectDataSetPackage) {
+            throw new InvalidOperationException("OfficeIMO " + scenario + " did not use the direct DataSet package writer: " + document.LastSaveDiagnostics.FastPackageSkipReason);
+        }
     }
 
     private static int ClosedXmlWriteDataSetTables(DataSet dataSet, bool autoFit = false, bool includeHeaders = true) {
@@ -440,6 +554,27 @@ internal static class ExcelLibraryComparisonRunner {
         return checked((int)stream.Length);
     }
 
+    private static int ClosedXmlWriteDataTable(DataTable dataTable, bool includeTable = false) {
+        using var stream = new MemoryStream();
+        using (var workbook = new XLWorkbook()) {
+            var worksheet = workbook.Worksheets.Add("Data");
+            if (includeTable) {
+                var table = worksheet.Cell(1, 1).InsertTable(dataTable, "SalesData", true);
+                ExcelBenchmarkScenarioFactory.StyleClosedXmlTable(table);
+            } else {
+                for (int i = 0; i < dataTable.Columns.Count; i++) {
+                    worksheet.Cell(1, i + 1).Value = dataTable.Columns[i].ColumnName;
+                }
+
+                worksheet.Cell(2, 1).InsertData(dataTable.Rows.Cast<DataRow>().Select(row => dataTable.Columns.Cast<DataColumn>().Select(column => row[column]).ToArray()));
+            }
+
+            workbook.SaveAs(stream);
+        }
+
+        return checked((int)stream.Length);
+    }
+
     private static int EpPlusWriteDataSetTables(DataSet dataSet, bool autoFit = false, bool includeHeaders = true) {
         using var stream = new MemoryStream();
         using (var package = new ExcelPackage(stream)) {
@@ -451,6 +586,17 @@ internal static class ExcelLibraryComparisonRunner {
                 }
             }
 
+            package.Save();
+        }
+
+        return checked((int)stream.Length);
+    }
+
+    private static int EpPlusWriteDataTable(DataTable dataTable, bool includeTable = false) {
+        using var stream = new MemoryStream();
+        using (var package = new ExcelPackage(stream)) {
+            var worksheet = package.Workbook.Worksheets.Add("Data");
+            worksheet.Cells["A1"].LoadFromDataTable(dataTable, true, includeTable ? TableStyles.Medium2 : TableStyles.None);
             package.Save();
         }
 
@@ -514,6 +660,28 @@ internal static class ExcelLibraryComparisonRunner {
                 worksheet.Cells[r, 4].Value = row.Amount;
             }
 
+            package.Save();
+        }
+
+        return checked((int)stream.Length);
+    }
+
+    private static int ClosedXmlWriteSalesRows(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows, bool includeAllColumns) {
+        using var stream = new MemoryStream();
+        using (var workbook = new XLWorkbook()) {
+            var worksheet = workbook.Worksheets.Add("Data");
+            WriteSalesRows(worksheet, rows, includeAllColumns);
+            workbook.SaveAs(stream);
+        }
+
+        return checked((int)stream.Length);
+    }
+
+    private static int EpPlusWriteSalesRows(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows, bool includeAllColumns) {
+        using var stream = new MemoryStream();
+        using (var package = new ExcelPackage(stream)) {
+            var worksheet = package.Workbook.Worksheets.Add("Data");
+            WriteSalesRows(worksheet, rows, includeAllColumns);
             package.Save();
         }
 
@@ -1036,6 +1204,37 @@ internal static class ExcelLibraryComparisonRunner {
         return cells;
     }
 
+    private static (int Row, int Column, object Value)[] BuildSalesCells(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
+        var cells = new (int Row, int Column, object Value)[(rows.Count + 1) * 8];
+        int offset = 0;
+        AddSalesHeaderCells(cells, ref offset);
+        for (int i = 0; i < rows.Count; i++) {
+            var row = rows[i];
+            int rowNumber = i + 2;
+            cells[offset++] = (rowNumber, 1, row.Id);
+            cells[offset++] = (rowNumber, 2, row.Region);
+            cells[offset++] = (rowNumber, 3, row.Owner);
+            cells[offset++] = (rowNumber, 4, row.CreatedOn);
+            cells[offset++] = (rowNumber, 5, row.Amount);
+            cells[offset++] = (rowNumber, 6, row.Units);
+            cells[offset++] = (rowNumber, 7, row.Active);
+            cells[offset++] = (rowNumber, 8, row.Notes);
+        }
+
+        return cells;
+    }
+
+    private static void AddSalesHeaderCells((int Row, int Column, object Value)[] cells, ref int offset) {
+        cells[offset++] = (1, 1, "Id");
+        cells[offset++] = (1, 2, "Region");
+        cells[offset++] = (1, 3, "Owner");
+        cells[offset++] = (1, 4, "CreatedOn");
+        cells[offset++] = (1, 5, "Amount");
+        cells[offset++] = (1, 6, "Units");
+        cells[offset++] = (1, 7, "Active");
+        cells[offset++] = (1, 8, "Notes");
+    }
+
     private static void PopulateEpPlusWorksheet(ExcelWorksheet worksheet, IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows, bool includeTable, bool autoFit) {
         WriteHeaders(worksheet);
         for (int i = 0; i < rows.Count; i++) {
@@ -1078,6 +1277,57 @@ internal static class ExcelLibraryComparisonRunner {
         worksheet.Cells[1, 6].Value = "Units";
         worksheet.Cells[1, 7].Value = "Active";
         worksheet.Cells[1, 8].Value = "Notes";
+    }
+
+    private static void WriteSalesRows(IXLWorksheet worksheet, IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows, bool includeAllColumns) {
+        WriteFullHeaders(worksheet);
+        for (int i = 0; i < rows.Count; i++) {
+            var row = rows[i];
+            int r = i + 2;
+            worksheet.Cell(r, 1).Value = row.Id;
+            worksheet.Cell(r, 2).Value = row.Region;
+            worksheet.Cell(r, 3).Value = row.Owner;
+            worksheet.Cell(r, 4).Value = includeAllColumns ? row.CreatedOn : row.Amount;
+            if (!includeAllColumns) {
+                continue;
+            }
+
+            worksheet.Cell(r, 5).Value = row.Amount;
+            worksheet.Cell(r, 6).Value = row.Units;
+            worksheet.Cell(r, 7).Value = row.Active;
+            worksheet.Cell(r, 8).Value = row.Notes;
+        }
+    }
+
+    private static void WriteSalesRows(ExcelWorksheet worksheet, IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows, bool includeAllColumns) {
+        WriteHeaders(worksheet);
+        for (int i = 0; i < rows.Count; i++) {
+            var row = rows[i];
+            int r = i + 2;
+            worksheet.Cells[r, 1].Value = row.Id;
+            worksheet.Cells[r, 2].Value = row.Region;
+            worksheet.Cells[r, 3].Value = row.Owner;
+            worksheet.Cells[r, 4].Value = includeAllColumns ? row.CreatedOn : row.Amount;
+            if (!includeAllColumns) {
+                continue;
+            }
+
+            worksheet.Cells[r, 5].Value = row.Amount;
+            worksheet.Cells[r, 6].Value = row.Units;
+            worksheet.Cells[r, 7].Value = row.Active;
+            worksheet.Cells[r, 8].Value = row.Notes;
+        }
+    }
+
+    private static void WriteFullHeaders(IXLWorksheet worksheet) {
+        worksheet.Cell(1, 1).Value = "Id";
+        worksheet.Cell(1, 2).Value = "Region";
+        worksheet.Cell(1, 3).Value = "Owner";
+        worksheet.Cell(1, 4).Value = "CreatedOn";
+        worksheet.Cell(1, 5).Value = "Amount";
+        worksheet.Cell(1, 6).Value = "Units";
+        worksheet.Cell(1, 7).Value = "Active";
+        worksheet.Cell(1, 8).Value = "Notes";
     }
 
     private static void WriteAppendHeaders(ExcelWorksheet worksheet) {

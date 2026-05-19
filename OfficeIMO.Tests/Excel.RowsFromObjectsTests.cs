@@ -72,6 +72,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void RowsFrom_PreservesBlankHeadersAfterTrim() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            var data = new[] {
+                new Person { Name = "Alice" }
+            };
+
+            using (var doc = ExcelDocument.Create(filePath)) {
+                doc.AsFluent()
+                    .Sheet("People", s => s.RowsFrom(data, o => {
+                        o.Columns = new[] { nameof(Person.Name) };
+                        o.HeaderPrefixTrimPaths = new[] { nameof(Person.Name) };
+                    }))
+                    .End()
+                    .Save();
+            }
+
+            using (var document = SpreadsheetDocument.Open(filePath, false)) {
+                var workbookPart = document.WorkbookPart;
+                Assert.NotNull(workbookPart);
+                var wsPart = workbookPart.WorksheetParts.First();
+                Assert.Equal("", GetCellValue(document, wsPart, "A1"));
+                Assert.Equal("Alice", GetCellValue(document, wsPart, "A2"));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void RowsFrom_NullPolicyAndFormatter() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             var data = new[] {

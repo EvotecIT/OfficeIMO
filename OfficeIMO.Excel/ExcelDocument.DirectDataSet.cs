@@ -64,6 +64,144 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        internal void RegisterDirectTabularSaveCandidate(
+            ExcelSheet sheet,
+            DataTable table,
+            bool includeHeaders,
+            string range,
+            string? tableName = null,
+            bool createTable = false,
+            TableStyle tableStyle = TableStyle.TableStyleMedium2,
+            bool includeAutoFilter = false,
+            bool autoFit = false,
+            bool copyTable = true) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (table == null) throw new ArgumentNullException(nameof(table));
+            if (!ReferenceEquals(sheet.Document, this)) {
+                return;
+            }
+
+            ClearDirectDataSetSaveCandidate();
+
+            try {
+                bool shouldCopyTable = copyTable || table.DataSet != null;
+                if (shouldCopyTable) {
+                    string requestedName = string.IsNullOrWhiteSpace(table.TableName) ? sheet.Name : table.TableName;
+                    var tableModel = DirectDataSetTableModel.Snapshot(table, CancellationToken.None);
+                    var model = DirectDataSetWorkbookModel.CreateSingle(
+                        sheet.Name,
+                        requestedName,
+                        createTable ? tableName : null,
+                        range,
+                        tableModel,
+                        createTable,
+                        tableStyle,
+                        includeHeaders,
+                        includeAutoFilter,
+                        autoFit,
+                        _dateTimeOffsetWriteStrategy,
+                        CancellationToken.None);
+                    var snapshotOwner = new DataSet("ObjectExport") { Locale = CultureInfo.InvariantCulture };
+                    _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(snapshotOwner, model, ClearDirectDataSetSaveCandidate, isDeferred: false, subscribeToSourceChanges: false);
+                } else {
+                    var dataSet = new DataSet("ObjectExport") {
+                        Locale = CultureInfo.InvariantCulture
+                    };
+                    if (string.IsNullOrWhiteSpace(table.TableName)) {
+                        table.TableName = sheet.Name;
+                    }
+
+                    dataSet.Tables.Add(table);
+                    var results = new[] {
+                        new ExcelDataSetImportResult(sheet.Name, createTable ? tableName : null, range, table.Rows.Count, table.Columns.Count)
+                    };
+                    var model = DirectDataSetWorkbookModel.Create(
+                        dataSet,
+                        createTables: createTable,
+                        tableStyle,
+                        includeHeaders,
+                        includeAutoFilter,
+                        autoFit,
+                        _dateTimeOffsetWriteStrategy,
+                        CancellationToken.None,
+                        results);
+                    _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(dataSet, model, ClearDirectDataSetSaveCandidate, isDeferred: false, subscribeToSourceChanges: false);
+                }
+            } catch {
+                ClearDirectDataSetSaveCandidate();
+            }
+        }
+
+        internal bool TryPromoteDirectTabularSaveCandidateToTable(
+            ExcelSheet sheet,
+            string range,
+            string tableName,
+            bool includeHeaders,
+            TableStyle tableStyle,
+            bool includeAutoFilter) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (!ReferenceEquals(sheet.Document, this)) {
+                return false;
+            }
+
+            var candidate = _directDataSetSaveCandidate;
+            if (candidate == null || !candidate.IsValid || candidate.IsDeferred || candidate.Model.Sheets.Count != 1) {
+                return false;
+            }
+
+            var sheetModel = candidate.Model.Sheets[0];
+            if (sheetModel.HasTable
+                || !string.Equals(sheetModel.SheetName, sheet.Name, StringComparison.Ordinal)
+                || !string.Equals(sheetModel.Range, range, StringComparison.OrdinalIgnoreCase)
+                || sheetModel.IncludeHeaders != includeHeaders) {
+                return false;
+            }
+
+            DataTable promotedTable = sheetModel.Table.ToDataTable();
+            if (!includeHeaders) {
+                promotedTable = CreateHeaderlessDirectSaveTable(promotedTable);
+            }
+
+            RegisterDirectTabularSaveCandidate(
+                sheet,
+                promotedTable,
+                includeHeaders,
+                range,
+                tableName,
+                createTable: true,
+                tableStyle,
+                includeAutoFilter,
+                autoFit: false);
+
+            return _directDataSetSaveCandidate != null && _directDataSetSaveCandidate.IsValid;
+        }
+
+        private static DataTable CreateHeaderlessDirectSaveTable(DataTable source) {
+            var table = new DataTable(source.TableName) {
+                Locale = CultureInfo.InvariantCulture
+            };
+
+            for (int i = 0; i < source.Columns.Count; i++) {
+                table.Columns.Add("Column" + (i + 1).ToString(CultureInfo.InvariantCulture), source.Columns[i].DataType);
+            }
+
+            table.BeginLoadData();
+            try {
+                foreach (DataRow sourceRow in source.Rows) {
+                    var row = table.NewRow();
+                    for (int i = 0; i < source.Columns.Count; i++) {
+                        row[i] = sourceRow.IsNull(i) ? DBNull.Value : sourceRow[i];
+                    }
+
+                    table.Rows.Add(row);
+                }
+            } finally {
+                table.EndLoadData();
+            }
+
+            return table;
+        }
+
         private bool TryRegisterDeferredDirectDataSetImport(
             DataSet dataSet,
             bool createTables,
@@ -338,6 +476,33 @@ namespace OfficeIMO.Excel {
                 return new DirectDataSetWorkbookModel(sheets, results, dateTimeOffsetWriteStrategy ?? DefaultDateTimeOffsetWriteStrategy);
             }
 
+            internal static DirectDataSetWorkbookModel CreateSingle(
+                string sheetName,
+                string requestedName,
+                string? tableName,
+                string range,
+                DirectDataSetTableModel tableModel,
+                bool createTable,
+                TableStyle tableStyle,
+                bool includeHeaders,
+                bool includeAutoFilter,
+                bool autoFit,
+                Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
+                CancellationToken ct) {
+                int rowCount = tableModel.RowCount + (includeHeaders ? 1 : 0);
+                ValidateWorksheetBounds(tableModel, rowCount, requestedName);
+                bool hasTable = createTable && range.Length > 0;
+                string? resolvedTableName = hasTable
+                    ? string.IsNullOrWhiteSpace(tableName) ? SanitizeTableName(requestedName) : tableName
+                    : null;
+                double[]? columnWidths = autoFit && tableModel.ColumnCount > 0
+                    ? tableModel.CalculateColumnWidths(includeHeaders, dateTimeOffsetWriteStrategy, ct)
+                    : null;
+                var sheet = new DirectDataSetSheetModel(1, sheetName, resolvedTableName, range, tableModel, tableStyle, includeHeaders, includeAutoFilter, hasTable, autoFit, columnWidths);
+                var result = new ExcelDataSetImportResult(sheetName, resolvedTableName, range, tableModel.RowCount, tableModel.ColumnCount);
+                return new DirectDataSetWorkbookModel([sheet], [result], dateTimeOffsetWriteStrategy ?? DefaultDateTimeOffsetWriteStrategy);
+            }
+
             private static string GetUniqueSheetName(string baseName, HashSet<string> used) {
                 string trimmed = baseName;
                 if (string.IsNullOrWhiteSpace(trimmed)) {
@@ -543,11 +708,16 @@ namespace OfficeIMO.Excel {
             internal Type GetColumnType(int index) => _columns![index].DataType;
 
             internal DirectDataSetRowModel GetRow(int rowIndex) {
-                if (_sourceTable != null) {
-                    return DirectDataSetRowModel.FromDataRow(_sourceTable.Rows[rowIndex]);
-                }
+                return _sourceTable != null
+                    ? new DirectDataSetRowModel(_sourceTable.Rows[rowIndex])
+                    : new DirectDataSetRowModel(_rows![rowIndex]);
+            }
 
-                return DirectDataSetRowModel.FromSnapshot(_rows![rowIndex]);
+            internal object? GetValue(int rowIndex, int columnIndex) {
+                object? value = _sourceTable != null
+                    ? _sourceTable.Rows[rowIndex][columnIndex]
+                    : _rows![rowIndex][columnIndex];
+                return value == DBNull.Value ? null : value;
             }
 
             internal double[] CalculateColumnWidths(bool includeHeaders, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, CancellationToken ct) {
@@ -566,9 +736,8 @@ namespace OfficeIMO.Excel {
                 int rowCount = RowCount;
                 for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                     ct.ThrowIfCancellationRequested();
-                    var row = GetRow(rowIndex);
                     for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-                        widths[columnIndex] = Math.Max(widths[columnIndex], EstimateAutoFitWidth(row.GetValue(columnIndex), dateTimeOffsetWriteStrategy));
+                        widths[columnIndex] = Math.Max(widths[columnIndex], EstimateAutoFitWidth(GetValue(rowIndex, columnIndex), dateTimeOffsetWriteStrategy));
                     }
                 }
 
@@ -766,21 +935,22 @@ namespace OfficeIMO.Excel {
 
         private readonly struct DirectDataSetRowModel {
             private readonly DataRow? _sourceRow;
-            private readonly object?[]? _snapshotValues;
+            private readonly object?[]? _values;
 
-            private DirectDataSetRowModel(DataRow? sourceRow, object?[]? snapshotValues) {
+            internal DirectDataSetRowModel(DataRow sourceRow) {
                 _sourceRow = sourceRow;
-                _snapshotValues = snapshotValues;
+                _values = null;
             }
 
-            internal static DirectDataSetRowModel FromDataRow(DataRow row) => new DirectDataSetRowModel(row, null);
-
-            internal static DirectDataSetRowModel FromSnapshot(object?[] values) => new DirectDataSetRowModel(null, values);
+            internal DirectDataSetRowModel(object?[] values) {
+                _sourceRow = null;
+                _values = values;
+            }
 
             internal object? GetValue(int columnIndex) {
                 object? value = _sourceRow != null
                     ? _sourceRow[columnIndex]
-                    : _snapshotValues![columnIndex];
+                    : _values![columnIndex];
                 return value == DBNull.Value ? null : value;
             }
         }

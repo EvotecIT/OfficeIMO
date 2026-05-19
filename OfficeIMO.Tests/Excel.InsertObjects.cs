@@ -67,34 +67,32 @@ namespace OfficeIMO.Tests {
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
                 WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
-                SharedStringTablePart shared = spreadsheet.WorkbookPart!.SharedStringTablePart!;
-
                 Cell header1 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "A1");
                 Cell header2 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "B1");
                 Cell header3 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "C1");
                 Cell header4 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "D1");
-                Assert.Equal("Name", shared.SharedStringTable!.ElementAt(int.Parse(header1.CellValue!.Text)).InnerText);
-                Assert.Equal("Age", shared.SharedStringTable!.ElementAt(int.Parse(header2.CellValue!.Text)).InnerText);
-                Assert.Equal("Address.City", shared.SharedStringTable!.ElementAt(int.Parse(header3.CellValue!.Text)).InnerText);
-                Assert.Equal("Address.Zip", shared.SharedStringTable!.ElementAt(int.Parse(header4.CellValue!.Text)).InnerText);
+                Assert.Equal("Name", GetCellText(spreadsheet, header1));
+                Assert.Equal("Age", GetCellText(spreadsheet, header2));
+                Assert.Equal("Address.City", GetCellText(spreadsheet, header3));
+                Assert.Equal("Address.Zip", GetCellText(spreadsheet, header4));
 
                 Cell name1 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "A2");
                 Cell age1 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "B2");
                 Cell city1 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "C2");
                 Cell zip1 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "D2");
-                Assert.Equal("Alice", shared.SharedStringTable!.ElementAt(int.Parse(name1.CellValue!.Text)).InnerText);
+                Assert.Equal("Alice", GetCellText(spreadsheet, name1));
                 Assert.Equal("30", age1.CellValue!.Text);
-                Assert.Equal("London", shared.SharedStringTable!.ElementAt(int.Parse(city1.CellValue!.Text)).InnerText);
-                Assert.Equal("SW1", shared.SharedStringTable!.ElementAt(int.Parse(zip1.CellValue!.Text)).InnerText);
+                Assert.Equal("London", GetCellText(spreadsheet, city1));
+                Assert.Equal("SW1", GetCellText(spreadsheet, zip1));
 
                 Cell name2 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "A3");
                 Cell age2 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "B3");
                 Cell city2 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "C3");
                 Cell zip2 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "D3");
-                Assert.Equal("Bob", shared.SharedStringTable!.ElementAt(int.Parse(name2.CellValue!.Text)).InnerText);
+                Assert.Equal("Bob", GetCellText(spreadsheet, name2));
                 Assert.Equal("40", age2.CellValue!.Text);
-                Assert.Equal("Paris", shared.SharedStringTable!.ElementAt(int.Parse(city2.CellValue!.Text)).InnerText);
-                Assert.Equal("75001", shared.SharedStringTable!.ElementAt(int.Parse(zip2.CellValue!.Text)).InnerText);
+                Assert.Equal("Paris", GetCellText(spreadsheet, city2));
+                Assert.Equal("75001", GetCellText(spreadsheet, zip2));
             }
         }
 
@@ -122,34 +120,32 @@ namespace OfficeIMO.Tests {
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
                 WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
-                SharedStringTablePart shared = spreadsheet.WorkbookPart!.SharedStringTablePart!;
-
                 Cell header1 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "A1");
                 Cell header2 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "B1");
                 Cell header3 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "C1");
                 Cell header4 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "D1");
-                Assert.Equal("Name", shared.SharedStringTable!.ElementAt(int.Parse(header1.CellValue!.Text)).InnerText);
-                Assert.Equal("Age", shared.SharedStringTable!.ElementAt(int.Parse(header2.CellValue!.Text)).InnerText);
-                Assert.Equal("Address.City", shared.SharedStringTable!.ElementAt(int.Parse(header3.CellValue!.Text)).InnerText);
-                Assert.Equal("Address.Zip", shared.SharedStringTable!.ElementAt(int.Parse(header4.CellValue!.Text)).InnerText);
+                Assert.Equal("Name", GetCellText(spreadsheet, header1));
+                Assert.Equal("Age", GetCellText(spreadsheet, header2));
+                Assert.Equal("Address.City", GetCellText(spreadsheet, header3));
+                Assert.Equal("Address.Zip", GetCellText(spreadsheet, header4));
 
                 Cell name1 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "A2");
                 Cell age1 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "B2");
                 Cell city1 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "C2");
                 Cell zip1 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "D2");
-                Assert.Equal("Alice", shared.SharedStringTable!.ElementAt(int.Parse(name1.CellValue!.Text)).InnerText);
+                Assert.Equal("Alice", GetCellText(spreadsheet, name1));
                 Assert.Equal("30", age1.CellValue!.Text);
-                Assert.Equal("London", shared.SharedStringTable!.ElementAt(int.Parse(city1.CellValue!.Text)).InnerText);
-                Assert.Equal("SW1", shared.SharedStringTable!.ElementAt(int.Parse(zip1.CellValue!.Text)).InnerText);
+                Assert.Equal("London", GetCellText(spreadsheet, city1));
+                Assert.Equal("SW1", GetCellText(spreadsheet, zip1));
 
                 Cell name2 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "A3");
                 Cell age2 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "B3");
                 Cell city2 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "C3");
                 Cell zip2 = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "D3");
-                Assert.Equal("Bob", shared.SharedStringTable!.ElementAt(int.Parse(name2.CellValue!.Text)).InnerText);
+                Assert.Equal("Bob", GetCellText(spreadsheet, name2));
                 Assert.Equal("40", age2.CellValue!.Text);
-                Assert.Equal("Paris", shared.SharedStringTable!.ElementAt(int.Parse(city2.CellValue!.Text)).InnerText);
-                Assert.Equal("75001", shared.SharedStringTable!.ElementAt(int.Parse(zip2.CellValue!.Text)).InnerText);
+                Assert.Equal("Paris", GetCellText(spreadsheet, city2));
+                Assert.Equal("75001", GetCellText(spreadsheet, zip2));
             }
         }
 
@@ -226,6 +222,15 @@ namespace OfficeIMO.Tests {
 
         private static string GetCellText(Cell cell, SharedStringTablePart shared) {
             if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString) {
+                return shared.SharedStringTable!.ElementAt(int.Parse(cell.CellValue!.Text)).InnerText;
+            }
+
+            return cell.CellValue?.Text ?? string.Empty;
+        }
+
+        private static string GetCellText(SpreadsheetDocument spreadsheet, Cell cell) {
+            if (cell.DataType != null && cell.DataType.Value == CellValues.SharedString) {
+                SharedStringTablePart shared = spreadsheet.WorkbookPart!.SharedStringTablePart!;
                 return shared.SharedStringTable!.ElementAt(int.Parse(cell.CellValue!.Text)).InnerText;
             }
 

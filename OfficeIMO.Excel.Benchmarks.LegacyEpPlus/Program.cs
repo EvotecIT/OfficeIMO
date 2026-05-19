@@ -22,6 +22,7 @@ int measuredIterations = ParsePositiveOption(args, "--iterations", "--measured-i
 var scenarioFilter = BuildScenarioFilter(ParseOptionValues(args, "--scenario", "--scenarios"));
 
 var rows = CreateSalesRecords(rowCount);
+var salesDataTable = CreateSalesDataTableFromRows(rows, "SalesData");
 var salesDataSet = CreateSalesDataSet(rows);
 int topDataRows = Math.Min(rowCount, 100);
 byte[] workbookBytes = CreateWorkbookBytes(rows);
@@ -32,6 +33,12 @@ var scenarios = new List<LegacyComparisonScenario>();
 
 AddScenario(scenarios, scenarioFilter, "write-bulk-report", LibraryName, "EPPlus 4.x manual row population, add table, autofit, save.", () => WriteBulkReport(rows), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "write-dataset-tables", LibraryName, "EPPlus 4.x import prepared DataTables as two styled worksheet tables and save.", () => WriteDataSetTables(salesDataSet), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "write-datatable-direct", LibraryName, "EPPlus 4.x import a prepared DataTable and save.", () => WriteDataTable(salesDataTable), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "write-datatable-table-direct", LibraryName, "EPPlus 4.x import a prepared DataTable as a styled worksheet table and save.", () => WriteDataTable(salesDataTable, includeTable: true), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "write-datareader-table-direct", LibraryName, "EPPlus 4.x import equivalent prepared data as a styled worksheet table and save.", () => WriteDataTable(salesDataTable, includeTable: true), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "write-cellvalues-rectangle-direct", LibraryName, "EPPlus 4.x write the same complete A1 rectangle and save.", () => WriteEquivalentSalesRows(rows), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "write-insertobjects-direct", LibraryName, "EPPlus 4.x import equivalent typed object data and save.", () => WriteDataTable(salesDataTable), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "write-fluent-rowsfrom-direct", LibraryName, "EPPlus 4.x import equivalent typed row data and save.", () => WriteDataTable(salesDataTable), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "append-plain-rows", LibraryName, "EPPlus 4.x append equivalent row/cell values.", () => AppendPlainRows(rows), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "read-range", LibraryName, "EPPlus 4.x iterate used data cells from workbook.", () => ReadRange(workbookBytes), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "read-top-range", LibraryName, "EPPlus 4.x read the first 100 data rows from a larger sheet.", () => ReadRange(workbookBytes, topDataRows), warmupIterations, measuredIterations);
@@ -166,6 +173,28 @@ static int WriteDataSetTables(DataSet dataSet) {
             worksheet.Cells["A1"].LoadFromDataTable(dataTable, true, TableStyles.Medium2);
         }
 
+        package.Save();
+    }
+
+    return checked((int)stream.Length);
+}
+
+static int WriteDataTable(DataTable dataTable, bool includeTable = false) {
+    using var stream = new MemoryStream();
+    using (var package = new ExcelPackage(stream)) {
+        var worksheet = package.Workbook.Worksheets.Add("Data");
+        worksheet.Cells["A1"].LoadFromDataTable(dataTable, true, includeTable ? TableStyles.Medium2 : TableStyles.None);
+        package.Save();
+    }
+
+    return checked((int)stream.Length);
+}
+
+static int WriteEquivalentSalesRows(IReadOnlyList<SalesRecord> rows) {
+    using var stream = new MemoryStream();
+    using (var package = new ExcelPackage(stream)) {
+        var worksheet = package.Workbook.Worksheets.Add("Data");
+        PopulateWorksheet(worksheet, rows, includeTable: false, autoFit: false);
         package.Save();
     }
 
