@@ -1,4 +1,5 @@
 using System;
+using System.Data;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
@@ -26,15 +27,31 @@ namespace OfficeIMO.Excel {
             }
             var list = cells as IList<(int Row, int Column, object Value)> ?? cells.ToList();
             if (list.Count == 0) return;
+            DataTable? directSaveTable = null;
+            string? directSaveRange = null;
+            bool directSaveIncludeHeaders = false;
+            if (mode != ExecutionMode.Parallel
+                && TryCreateDirectCellValuesSaveTable(list, out DataTable? candidateTable, out bool candidateIncludeHeaders, out string? candidateRange)
+                && CanRegisterDirectTabularSaveCandidate(1, 1, candidateTable.Columns.Count)) {
+                directSaveTable = candidateTable;
+                directSaveIncludeHeaders = candidateIncludeHeaders;
+                directSaveRange = candidateRange;
+            }
+
+            if (TryInsertDirectCellValuesTableAndRegisterSaveCandidate(directSaveTable, directSaveIncludeHeaders, directSaveRange)) {
+                return;
+            }
 
             // Single cell: trivially sequential
             if (list.Count == 1) {
                 var single = list[0];
                 CellValue(single.Row, single.Column, single.Value);
+                RegisterDirectCellValuesSaveCandidateIfPossible(directSaveTable, directSaveIncludeHeaders, directSaveRange);
                 return;
             }
 
             if (list.Count > DirectSequentialCellWriteLimit && TryApplyPlainCellsByAppendingRows(list, ct)) {
+                RegisterDirectCellValuesSaveCandidateIfPossible(directSaveTable, directSaveIncludeHeaders, directSaveRange);
                 return;
             }
 
@@ -87,6 +104,8 @@ namespace OfficeIMO.Excel {
                 },
                 ct: ct
             );
+
+            RegisterDirectCellValuesSaveCandidateIfPossible(directSaveTable, directSaveIncludeHeaders, directSaveRange);
         }
 
         /// <summary>
@@ -103,6 +122,193 @@ namespace OfficeIMO.Excel {
                 },
                 dateTimeOffsetStrategy);
             return (cellValue, new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType));
+        }
+
+        private void RegisterDirectCellValuesSaveCandidateIfPossible(DataTable? table, bool includeHeaders, string? range) {
+            if (table == null || string.IsNullOrEmpty(range)) {
+                return;
+            }
+
+            _excelDocument.RegisterDirectTabularSaveCandidate(this, table, includeHeaders, range, copyTable: false);
+        }
+
+        private bool TryInsertDirectCellValuesTableAndRegisterSaveCandidate(DataTable? table, bool includeHeaders, string? range) {
+            if (table == null || string.IsNullOrEmpty(range)) {
+                return false;
+            }
+
+            InsertOwnedDataTable(table, startRow: 1, startColumn: 1, includeHeaders: includeHeaders, registerDirectSaveCandidate: false);
+            _excelDocument.RegisterDirectTabularSaveCandidate(this, table, includeHeaders, range, copyTable: false);
+            return true;
+        }
+
+        private static bool TryCreateDirectCellValuesSaveTable(
+            IList<(int Row, int Column, object Value)> cells,
+            out DataTable table,
+            out bool includeHeaders,
+            out string range) {
+            table = new DataTable();
+            includeHeaders = false;
+            range = string.Empty;
+
+            if (!TryGetCompleteA1Rectangle(cells, out int rowCount, out int columnCount)) {
+                return false;
+            }
+
+            includeHeaders = CanTreatFirstCellValuesRowAsHeaders(cells, columnCount, rowCount);
+            int dataStartIndex = includeHeaders ? columnCount : 0;
+            if (!TryInferDirectCellValuesColumnTypes(cells, dataStartIndex, columnCount, out Type[] columnTypes)) {
+                return false;
+            }
+
+            table = new DataTable("Cells") {
+                Locale = CultureInfo.InvariantCulture
+            };
+
+            for (int column = 0; column < columnCount; column++) {
+                string columnName = includeHeaders
+                    ? Convert.ToString(cells[column].Value, CultureInfo.InvariantCulture) ?? string.Empty
+                    : "Column" + (column + 1).ToString(CultureInfo.InvariantCulture);
+                table.Columns.Add(columnName, columnTypes[column]);
+            }
+
+            table.BeginLoadData();
+            try {
+                for (int index = dataStartIndex; index < cells.Count; index += columnCount) {
+                    DataRow row = table.NewRow();
+                    for (int column = 0; column < columnCount; column++) {
+                        Type columnType = columnTypes[column];
+                        object? value = cells[index + column].Value;
+                        row[column] = CoerceDirectCellValuesTableValue(value, columnType);
+                    }
+
+                    table.Rows.Add(row);
+                }
+            } finally {
+                table.EndLoadData();
+            }
+
+            range = A1.CellReference(1, 1) + ":" + A1.CellReference(rowCount, columnCount);
+            return true;
+        }
+
+        private static bool TryGetCompleteA1Rectangle(IList<(int Row, int Column, object Value)> cells, out int rowCount, out int columnCount) {
+            rowCount = 0;
+            columnCount = 0;
+            if (cells.Count == 0 || cells[0].Row != 1 || cells[0].Column != 1) {
+                return false;
+            }
+
+            while (columnCount < cells.Count && cells[columnCount].Row == 1) {
+                if (cells[columnCount].Column != columnCount + 1) {
+                    return false;
+                }
+
+                columnCount++;
+            }
+
+            if (columnCount == 0 || cells.Count % columnCount != 0) {
+                return false;
+            }
+
+            rowCount = cells.Count / columnCount;
+            for (int index = columnCount; index < cells.Count; index++) {
+                int expectedRow = (index / columnCount) + 1;
+                int expectedColumn = (index % columnCount) + 1;
+                if (cells[index].Row != expectedRow || cells[index].Column != expectedColumn) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool CanTreatFirstCellValuesRowAsHeaders(IList<(int Row, int Column, object Value)> cells, int columnCount, int rowCount) {
+            if (rowCount < 2) {
+                return false;
+            }
+
+            var headers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (int column = 0; column < columnCount; column++) {
+                if (cells[column].Value is not string header || string.IsNullOrWhiteSpace(header)) {
+                    return false;
+                }
+
+                if (!headers.Add(header)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TryInferDirectCellValuesColumnTypes(
+            IList<(int Row, int Column, object Value)> cells,
+            int dataStartIndex,
+            int columnCount,
+            out Type[] columnTypes) {
+            columnTypes = new Type[columnCount];
+            for (int column = 0; column < columnCount; column++) {
+                Type? inferred = null;
+                for (int index = dataStartIndex + column; index < cells.Count; index += columnCount) {
+                    object? value = cells[index].Value;
+                    if (IsDirectCellValuesBlankValue(value)) {
+                        continue;
+                    }
+
+                    Type valueType = NormalizeDirectCellValuesColumnType(value!.GetType());
+                    if (inferred == null) {
+                        inferred = valueType;
+                        continue;
+                    }
+
+                    if (inferred != valueType) {
+                        if (IsDirectCellValuesStyleSensitiveType(inferred) || IsDirectCellValuesStyleSensitiveType(valueType)) {
+                            return false;
+                        }
+
+                        inferred = typeof(object);
+                    }
+                }
+
+                columnTypes[column] = inferred ?? typeof(string);
+            }
+
+            return true;
+        }
+
+        private static Type NormalizeDirectCellValuesColumnType(Type type) {
+            type = Nullable.GetUnderlyingType(type) ?? type;
+            if (type == typeof(DBNull) || type == typeof(void)) {
+                return typeof(object);
+            }
+
+            return type;
+        }
+
+        private static bool IsDirectCellValuesStyleSensitiveType(Type type) {
+            return type == typeof(DateTime)
+                || type == typeof(DateTimeOffset)
+                || type == typeof(TimeSpan)
+#if NET6_0_OR_GREATER
+                || type == typeof(DateOnly)
+                || type == typeof(TimeOnly)
+#endif
+                ;
+        }
+
+        private static bool IsDirectCellValuesBlankValue(object? value) {
+            return value == null || value == DBNull.Value;
+        }
+
+        private static object CoerceDirectCellValuesTableValue(object? value, Type columnType) {
+            if (IsDirectCellValuesBlankValue(value)) {
+                return columnType == typeof(string) || columnType == typeof(object)
+                    ? string.Empty
+                    : DBNull.Value;
+            }
+
+            return value!;
         }
 
         private bool TryApplyPlainCellsByAppendingRows(IList<(int Row, int Column, object Value)> source, CancellationToken ct) {

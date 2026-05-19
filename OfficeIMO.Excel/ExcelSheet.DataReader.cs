@@ -36,6 +36,11 @@ namespace OfficeIMO.Excel {
             if (reader.FieldCount < 1) throw new ArgumentException("Data reader must expose at least one field.", nameof(reader));
 
             string[] headers = BuildReaderHeaders(reader);
+            bool canRegisterDirectSave = CanRegisterDirectTabularSaveCandidate(startRow, startColumn, headers.Length);
+            if (canRegisterDirectSave) {
+                return InsertDataReaderAsOwnedTable(reader, headers, startRow, startColumn, includeHeaders, tableName, style, includeAutoFilter, createTable, autoFit, ct);
+            }
+
             Type[] fieldTypes = BuildReaderFieldTypes(reader);
             int row = startRow;
             if (includeHeaders) {
@@ -73,12 +78,75 @@ namespace OfficeIMO.Excel {
                 A1.CellReference(startRow + occupiedRows - 1, startColumn + headers.Length - 1);
 
             if (createTable) {
-                AddTable(range, includeHeaders, tableName ?? string.Empty, style, includeAutoFilter);
+                string[]? headerNames = includeHeaders ? headers : null;
+                AddTableAndGetName(range, includeHeaders, tableName ?? string.Empty, style, includeAutoFilter, headerNames: headerNames);
             }
 
             if (autoFit) {
                 AutoFitColumnsFor(Enumerable.Range(startColumn, headers.Length));
             }
+
+            return range;
+        }
+
+        private string InsertDataReaderAsOwnedTable(
+            IDataReader reader,
+            IReadOnlyList<string> headers,
+            int startRow,
+            int startColumn,
+            bool includeHeaders,
+            string? tableName,
+            TableStyle style,
+            bool includeAutoFilter,
+            bool createTable,
+            bool autoFit,
+            CancellationToken ct) {
+            DataTable table = CreateReaderOwnedWriteTable(headers, tableName ?? Name, includeHeaders);
+            table.BeginLoadData();
+            try {
+                var values = new object[headers.Count];
+                while (reader.Read()) {
+                    ct.ThrowIfCancellationRequested();
+                    FillReaderValues(reader, values);
+                    table.Rows.Add(values);
+                }
+            } finally {
+                table.EndLoadData();
+            }
+
+            int occupiedRows = table.Rows.Count + (includeHeaders ? 1 : 0);
+            if (occupiedRows == 0) {
+                return string.Empty;
+            }
+
+            InsertOwnedDataTable(table, startRow, startColumn, includeHeaders, ct: ct, registerDirectSaveCandidate: false);
+            string range = A1.CellReference(startRow, startColumn) + ":" +
+                A1.CellReference(startRow + occupiedRows - 1, startColumn + headers.Count - 1);
+
+            string? actualTableName = null;
+            if (createTable) {
+                string[]? headerNames = includeHeaders ? headers.ToArray() : null;
+                actualTableName = AddTableAndGetName(range, includeHeaders, tableName ?? string.Empty, style, includeAutoFilter, headerNames: headerNames, deferPartSave: true, skipExistingTableScan: true);
+            }
+
+            if (autoFit) {
+                AutoFitColumnsFor(Enumerable.Range(startColumn, headers.Count));
+            }
+
+            DataTable candidateTable = !includeHeaders && createTable
+                ? CreateHeaderlessDirectSaveTable(table)
+                : table;
+            _excelDocument.RegisterDirectTabularSaveCandidate(
+                this,
+                candidateTable,
+                includeHeaders,
+                range,
+                actualTableName,
+                createTable,
+                style,
+                includeAutoFilter,
+                autoFit,
+                copyTable: false);
 
             return range;
         }
@@ -117,6 +185,28 @@ namespace OfficeIMO.Excel {
             return types;
         }
 
+        private static DataTable CreateReaderOwnedWriteTable(IReadOnlyList<string> headers, string tableName, bool includeHeaders) {
+            var table = new DataTable(string.IsNullOrWhiteSpace(tableName) ? "DataReader" : tableName) {
+                Locale = CultureInfo.InvariantCulture
+            };
+
+            for (int i = 0; i < headers.Count; i++) {
+                string columnName = includeHeaders
+                    ? headers[i]
+                    : "Column" + (i + 1).ToString(CultureInfo.InvariantCulture);
+                table.Columns.Add(columnName, typeof(object));
+            }
+
+            return table;
+        }
+
+        private static void FillReaderValues(IDataRecord reader, object[] values) {
+            int copied = reader.GetValues(values);
+            for (int i = copied; i < values.Length; i++) {
+                values[i] = DBNull.Value;
+            }
+        }
+
         private static void EnsureUniqueReaderHeaders(IList<string> headers) {
             var seen = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             for (int i = 0; i < headers.Count; i++) {
@@ -138,12 +228,22 @@ namespace OfficeIMO.Excel {
         private static string? GetReaderNumberFormat(Type fieldType, object? value) {
             Type type = Nullable.GetUnderlyingType(fieldType) ?? fieldType;
             if (type == typeof(DateTime) || type == typeof(DateTimeOffset) || value is DateTime || value is DateTimeOffset) {
-                return "yyyy-mm-dd hh:mm";
+                return DataTableDateTimeNumberFormat;
             }
 
             if (type == typeof(TimeSpan) || value is TimeSpan) {
-                return "[h]:mm:ss";
+                return DataTableTimeSpanNumberFormat;
             }
+
+#if NET6_0_OR_GREATER
+            if (type == typeof(DateOnly) || value is DateOnly) {
+                return DataTableDateTimeNumberFormat;
+            }
+
+            if (type == typeof(TimeOnly) || value is TimeOnly) {
+                return DataTableTimeSpanNumberFormat;
+            }
+#endif
 
             return null;
         }

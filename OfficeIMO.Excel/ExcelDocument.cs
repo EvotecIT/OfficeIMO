@@ -315,6 +315,7 @@ namespace OfficeIMO.Excel {
         private bool _requiresSavePreflight;
         private bool _packageDirty = true;
         private bool _packagePropertiesDirty;
+        private bool _preserveDirectDataSetSaveCandidateForNextDirtyMark;
         private byte[]? _unchangedPackageBytes;
         private bool _simplePackageContentKnown;
         private DirectDataSetSaveCandidate? _directDataSetSaveCandidate;
@@ -335,10 +336,14 @@ namespace OfficeIMO.Excel {
         internal void MarkPackageDirty() {
             _packageDirty = true;
             _unchangedPackageBytes = null;
-            if (_directDataSetSaveCandidate?.IsDeferred == true && !_materializingDeferredDataSetImport) {
-                MaterializeDeferredDataSetImport();
-            } else {
-                ClearDirectDataSetSaveCandidate();
+            try {
+                if (_directDataSetSaveCandidate?.IsDeferred == true && !_materializingDeferredDataSetImport) {
+                    MaterializeDeferredDataSetImport();
+                } else if (!_preserveDirectDataSetSaveCandidateForNextDirtyMark) {
+                    ClearDirectDataSetSaveCandidate();
+                }
+            } finally {
+                _preserveDirectDataSetSaveCandidateForNextDirtyMark = false;
             }
         }
 
@@ -348,6 +353,12 @@ namespace OfficeIMO.Excel {
         }
 
         internal bool IsPackageDirty => _packageDirty;
+
+        internal bool HasPackagePropertiesDirty => _packagePropertiesDirty;
+
+        internal void PreserveDirectDataSetSaveCandidateForNextDirtyMark() {
+            _preserveDirectDataSetSaveCandidateForNextDirtyMark = true;
+        }
 
         private static async Task<byte[]> ReadAllBytesCompatAsync(string path, CancellationToken ct) {
 #if NETSTANDARD2_0 || NET472 || NET48

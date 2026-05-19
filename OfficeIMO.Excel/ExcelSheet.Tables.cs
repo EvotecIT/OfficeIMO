@@ -303,11 +303,11 @@ namespace OfficeIMO.Excel {
             AddTableCore(range, hasHeader, name, style, includeAutoFilter, validationMode, ensureRangeCellsExist: true);
         }
 
-        internal string AddTableAndGetName(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize, bool ensureRangeCellsExist = true, IReadOnlyList<string>? headerNames = null) {
-            return AddTableCore(range, hasHeader, name, style, includeAutoFilter, validationMode, ensureRangeCellsExist, headerNames);
+        internal string AddTableAndGetName(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize, bool ensureRangeCellsExist = true, IReadOnlyList<string>? headerNames = null, bool deferPartSave = false, bool skipExistingTableScan = false) {
+            return AddTableCore(range, hasHeader, name, style, includeAutoFilter, validationMode, ensureRangeCellsExist, headerNames, deferPartSave, skipExistingTableScan);
         }
 
-        private string AddTableCore(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize, bool ensureRangeCellsExist = true, IReadOnlyList<string>? headerNames = null) {
+        private string AddTableCore(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize, bool ensureRangeCellsExist = true, IReadOnlyList<string>? headerNames = null, bool deferPartSave = false, bool skipExistingTableScan = false) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
@@ -333,25 +333,27 @@ namespace OfficeIMO.Excel {
 
                 uint columnsCount = (uint)(endColumnIndex - startColumnIndex + 1);
 
-                foreach (var existingPart in _worksheetPart.TableDefinitionParts) {
-                    var existingRange = existingPart.Table?.Reference?.Value;
-                    if (string.IsNullOrEmpty(existingRange)) continue;
-                    var existingCells = existingRange!.Split(':');
-                    if (existingCells.Length != 2) continue;
-                    string existingStartRef = existingCells[0];
-                    string existingEndRef = existingCells[1];
+                if (!skipExistingTableScan) {
+                    foreach (var existingPart in _worksheetPart.TableDefinitionParts) {
+                        var existingRange = existingPart.Table?.Reference?.Value;
+                        if (string.IsNullOrEmpty(existingRange)) continue;
+                        var existingCells = existingRange!.Split(':');
+                        if (existingCells.Length != 2) continue;
+                        string existingStartRef = existingCells[0];
+                        string existingEndRef = existingCells[1];
 
-                    int existingStartColumn = GetColumnIndex(existingStartRef);
-                    int existingEndColumn = GetColumnIndex(existingEndRef);
-                    int existingStartRow = GetRowIndex(existingStartRef);
-                    int existingEndRow = GetRowIndex(existingEndRef);
+                        int existingStartColumn = GetColumnIndex(existingStartRef);
+                        int existingEndColumn = GetColumnIndex(existingEndRef);
+                        int existingStartRow = GetRowIndex(existingStartRef);
+                        int existingEndRow = GetRowIndex(existingEndRef);
 
-                    bool overlaps = startColumnIndex <= existingEndColumn &&
-                                    endColumnIndex >= existingStartColumn &&
-                                    startRowIndex <= existingEndRow &&
-                                    endRowIndex >= existingStartRow;
-                    if (overlaps) {
-                        throw new InvalidOperationException("The specified range overlaps with an existing table.");
+                        bool overlaps = startColumnIndex <= existingEndColumn &&
+                                        endColumnIndex >= existingStartColumn &&
+                                        startRowIndex <= existingEndRow &&
+                                        endRowIndex >= existingStartRow;
+                        if (overlaps) {
+                            throw new InvalidOperationException("The specified range overlaps with an existing table.");
+                        }
                     }
                 }
 
@@ -480,7 +482,11 @@ namespace OfficeIMO.Excel {
                 });
 
                 tableDefinitionPart.Table = table;
-                tableDefinitionPart.Table.Save();
+                if (deferPartSave) {
+                    DeferTableDefinitionPartSave(tableDefinitionPart);
+                } else {
+                    tableDefinitionPart.Table.Save();
+                }
 
                 var tableParts = WorksheetRoot.Elements<TableParts>().FirstOrDefault();
                 if (tableParts == null) {
@@ -494,7 +500,22 @@ namespace OfficeIMO.Excel {
                     tableParts.Append(new TablePart { Id = relId });
                 tableParts.Count = (uint)tableParts.Elements<TablePart>().Count();
 
-                WorksheetRoot.Save();
+                bool promotedDirectSaveCandidate = _excelDocument.TryPromoteDirectTabularSaveCandidateToTable(
+                    this,
+                    range,
+                    resolvedName,
+                    hasHeader,
+                    style,
+                    includeAutoFilter);
+                if (promotedDirectSaveCandidate) {
+                    _excelDocument.PreserveDirectDataSetSaveCandidateForNextDirtyMark();
+                }
+
+                if (deferPartSave) {
+                    MarkRequiresSavePreparation();
+                } else {
+                    WorksheetRoot.Save();
+                }
             });
 
             return resolvedName;
