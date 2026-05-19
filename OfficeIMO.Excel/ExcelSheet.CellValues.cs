@@ -31,6 +31,7 @@ namespace OfficeIMO.Excel {
             string? directSaveRange = null;
             bool directSaveIncludeHeaders = false;
             if (mode != ExecutionMode.Parallel
+                && !ContainsDirectCellValuesAutomaticFormattingText(list)
                 && TryCreateDirectCellValuesSaveTable(list, out DataTable? candidateTable, out bool candidateIncludeHeaders, out string? candidateRange)
                 && CanRegisterDirectTabularSaveCandidate(1, 1, candidateTable.Columns.Count)) {
                 directSaveTable = candidateTable;
@@ -140,6 +141,16 @@ namespace OfficeIMO.Excel {
             InsertOwnedDataTable(table, startRow: 1, startColumn: 1, includeHeaders: includeHeaders, registerDirectSaveCandidate: false);
             _excelDocument.RegisterDirectTabularSaveCandidate(this, table, includeHeaders, range!, copyTable: false);
             return true;
+        }
+
+        private static bool ContainsDirectCellValuesAutomaticFormattingText(IList<(int Row, int Column, object Value)> cells) {
+            for (int i = 0; i < cells.Count; i++) {
+                if (cells[i].Value is string text && (text.IndexOf('\r') >= 0 || text.IndexOf('\n') >= 0)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool TryCreateDirectCellValuesSaveTable(

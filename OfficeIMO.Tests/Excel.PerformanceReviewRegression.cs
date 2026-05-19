@@ -1565,6 +1565,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_CellValues_NewlineStringSkipsDirectPackageAndPreservesWrapFormatting() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValues(new[] {
+                    (1, 1, (object)"Line 1\nLine 2")
+                });
+
+                document.Save(memory);
+
+                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cell = worksheetPart.Worksheet.Descendants<Cell>().Single(c => c.CellReference!.Value == "A1");
+            Assert.NotNull(cell.StyleIndex);
+
+            var stylesheet = spreadsheet.WorkbookPart.WorkbookStylesPart!.Stylesheet!;
+            var format = stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)cell.StyleIndex!.Value);
+            Assert.True(format.Alignment!.WrapText!.Value);
+            Assert.True(format.ApplyAlignment!.Value);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
         public void PerformanceReview_InsertObjects_ExplicitSelectorsUseDirectPackageWhenWorkbookIsClean() {
             using var memory = new MemoryStream();
             var rows = new[] {
@@ -1618,6 +1646,36 @@ namespace OfficeIMO.Tests {
             using var loaded = ExcelDocument.Load(memory, readOnly: true);
             Assert.True(loaded.Sheets[0].TryGetCellText(1, 1, out string? loadedHeader));
             Assert.Equal(string.Empty, loadedHeader);
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_DictionaryWhitespaceHeaderPreservesHeader() {
+            using var memory = new MemoryStream();
+            var rows = new List<Dictionary<string, object?>> {
+                new Dictionary<string, object?> {
+                    [" "] = "Alpha"
+                }
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows);
+
+                Assert.True(sheet.TryGetCellText(1, 1, out string? header));
+                Assert.Equal(" ", header);
+
+                document.Save(memory);
+
+                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal(" ", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
         [Fact]

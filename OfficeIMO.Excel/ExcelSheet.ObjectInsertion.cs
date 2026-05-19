@@ -45,7 +45,8 @@ namespace OfficeIMO.Excel {
 
             DataTable? directSaveTable = null;
             string? directSaveRange = null;
-            bool canRegisterDirectSave = CanRegisterDirectTabularSaveCandidate(startRow, 1, headers.Count);
+            bool hasBlankDisplayHeader = includeHeaders && headers.Any(string.IsNullOrWhiteSpace);
+            bool canRegisterDirectSave = !hasBlankDisplayHeader && CanRegisterDirectTabularSaveCandidate(startRow, 1, headers.Count);
             if (canRegisterDirectSave) {
                 try {
                     directSaveTable = CreateObjectExportTable(headers, flattenedItems, Name);
@@ -80,7 +81,7 @@ namespace OfficeIMO.Excel {
             }
 
             // Use the batch CellValues path with planner + execution policy    
-            CellValues(cells, null);
+            CellValues(cells, hasBlankDisplayHeader ? ExecutionMode.Parallel : null);
             if (canRegisterDirectSave && directSaveTable != null && !string.IsNullOrEmpty(directSaveRange)) {
                 _excelDocument.RegisterDirectTabularSaveCandidate(this, directSaveTable, includeHeaders, directSaveRange!, copyTable: false);
             }
