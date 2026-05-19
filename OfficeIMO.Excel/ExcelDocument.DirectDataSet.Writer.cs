@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
             private const string DateStyleAttribute = " s=\"1\"";
             private const string TimeStyleAttribute = " s=\"2\"";
             private static readonly UTF8Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-            private static readonly DateTime ExcelDateTimeOffsetEpoch = DateTime.FromOADate(0);
+            private static readonly DateTime ExcelMinimumSupportedDateTimeOffset = DateTime.FromOADate(2);
 
             internal static void Write(Stream stream, DirectDataSetWorkbookModel model, CancellationToken ct) {
                 using var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true);
@@ -487,7 +487,7 @@ namespace OfficeIMO.Excel {
 
             private static bool TryGetDateTimeOffsetSerial(DateTimeOffset value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, out double serial) {
                 try {
-                    if (value.UtcDateTime < ExcelDateTimeOffsetEpoch) {
+                    if (value.UtcDateTime < ExcelMinimumSupportedDateTimeOffset) {
                         serial = 0D;
                         return false;
                     }

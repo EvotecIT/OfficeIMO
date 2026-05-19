@@ -81,8 +81,8 @@ namespace OfficeIMO.Excel {
 
             // Use the batch CellValues path with planner + execution policy    
             CellValues(cells, null);
-            if (canRegisterDirectSave && directSaveTable != null && directSaveRange != null) {
-                _excelDocument.RegisterDirectTabularSaveCandidate(this, directSaveTable, includeHeaders, directSaveRange, copyTable: false);
+            if (canRegisterDirectSave && directSaveTable != null && !string.IsNullOrEmpty(directSaveRange)) {
+                _excelDocument.RegisterDirectTabularSaveCandidate(this, directSaveTable, includeHeaders, directSaveRange!, copyTable: false);
             }
         }
 
@@ -134,7 +134,8 @@ namespace OfficeIMO.Excel {
 
             DataTable? directSaveTable = null;
             string? directSaveRange = null;
-            bool canRegisterDirectSave = CanRegisterDirectTabularSaveCandidate(startRow, 1, normalizedColumns.Length);
+            bool hasBlankDisplayHeader = includeHeaders && normalizedColumns.Any(column => string.IsNullOrWhiteSpace(column.Header));
+            bool canRegisterDirectSave = !hasBlankDisplayHeader && CanRegisterDirectTabularSaveCandidate(startRow, 1, normalizedColumns.Length);
             if (canRegisterDirectSave) {
                 try {
                     directSaveTable = CreateObjectExportTable(normalizedColumns.Select(column => column.Header).ToList(), values, Name);
@@ -168,9 +169,9 @@ namespace OfficeIMO.Excel {
                 row++;
             }
 
-            CellValues(cells, null);
-            if (canRegisterDirectSave && directSaveTable != null && directSaveRange != null) {
-                _excelDocument.RegisterDirectTabularSaveCandidate(this, directSaveTable, includeHeaders, directSaveRange, copyTable: false);
+            CellValues(cells, hasBlankDisplayHeader ? ExecutionMode.Parallel : null);
+            if (canRegisterDirectSave && directSaveTable != null && !string.IsNullOrEmpty(directSaveRange)) {
+                _excelDocument.RegisterDirectTabularSaveCandidate(this, directSaveTable, includeHeaders, directSaveRange!, copyTable: false);
             }
         }
 
@@ -180,7 +181,7 @@ namespace OfficeIMO.Excel {
             }
 
             InsertOwnedDataTable(table, startRow, startColumn: 1, includeHeaders: includeHeaders, registerDirectSaveCandidate: false);
-            _excelDocument.RegisterDirectTabularSaveCandidate(this, table, includeHeaders, range, copyTable: false);
+            _excelDocument.RegisterDirectTabularSaveCandidate(this, table, includeHeaders, range!, copyTable: false);
             return true;
         }
 

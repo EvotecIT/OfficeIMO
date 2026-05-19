@@ -129,7 +129,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            _excelDocument.RegisterDirectTabularSaveCandidate(this, table, includeHeaders, range, copyTable: false);
+            _excelDocument.RegisterDirectTabularSaveCandidate(this, table, includeHeaders, range!, copyTable: false);
         }
 
         private bool TryInsertDirectCellValuesTableAndRegisterSaveCandidate(DataTable? table, bool includeHeaders, string? range) {
@@ -138,7 +138,7 @@ namespace OfficeIMO.Excel {
             }
 
             InsertOwnedDataTable(table, startRow: 1, startColumn: 1, includeHeaders: includeHeaders, registerDirectSaveCandidate: false);
-            _excelDocument.RegisterDirectTabularSaveCandidate(this, table, includeHeaders, range, copyTable: false);
+            _excelDocument.RegisterDirectTabularSaveCandidate(this, table, includeHeaders, range!, copyTable: false);
             return true;
         }
 

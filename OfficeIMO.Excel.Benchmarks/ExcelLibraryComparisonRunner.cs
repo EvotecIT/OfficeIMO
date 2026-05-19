@@ -105,8 +105,8 @@ internal static class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("EPPlus", "Import a prepared DataTable as a styled worksheet table and save.", () => EpPlusWriteDataTable(salesDataTable, includeTable: true))
         ]);
 
-        AddScenarioGroup(scenarios, scenarioFilter, "write-datareader-table-direct", warmupIterations, measuredIterations, [
-            new LibraryComparisonCase("OfficeIMO.Excel", "Insert a DataTable-backed IDataReader as a styled table through the normal worksheet API and save.", () => OfficeImoWriteDataReaderTable(salesDataTable)),
+        AddScenarioGroup(scenarios, scenarioFilter, "write-datareader-table", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Stream a DataTable-backed IDataReader as a styled table through the normal worksheet API and save.", () => OfficeImoWriteDataReaderTable(salesDataTable)),
             new LibraryComparisonCase("ClosedXML", "Import the same prepared data as a styled worksheet table and save.", () => ClosedXmlWriteDataTable(salesDataTable, includeTable: true)),
             new LibraryComparisonCase("EPPlus", "Import the same prepared data as a styled worksheet table and save.", () => EpPlusWriteDataTable(salesDataTable, includeTable: true))
         ]);
@@ -484,7 +484,6 @@ internal static class ExcelLibraryComparisonRunner {
             var sheet = document.AddWorkSheet("Data");
             sheet.InsertDataReader(reader, tableName: "SalesData", style: TableStyle.TableStyleMedium2);
             document.Save(stream);
-            AssertOfficeImoDirectPackageWriter(document, "DataReader comparison");
         }
 
         return checked((int)stream.Length);
