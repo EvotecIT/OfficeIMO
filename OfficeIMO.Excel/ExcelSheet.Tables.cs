@@ -435,6 +435,7 @@ namespace OfficeIMO.Excel {
                         ? !string.Equals(headerValue, candidate, System.StringComparison.Ordinal)
                         : (!headerCellIsSharedString || !string.Equals(headerValue, candidate, System.StringComparison.Ordinal));
                     if (hasHeader && shouldRewriteHeader) {
+                        _excelDocument.PreserveDirectDataSetSaveCandidateForNextDirtyMark();
                         CellValueCore(startRowIndex, startColumnIndex + (int)i, candidate);
                     }
                 }
@@ -515,6 +516,12 @@ namespace OfficeIMO.Excel {
 
                     MarkRequiresSavePreparation();
                 } else {
+                    if (promotedDirectSaveCandidate) {
+                        _excelDocument.PreserveDirectDataSetSaveCandidateForNextDirtyMark();
+                        _excelDocument.MarkPackageDirty();
+                        _excelDocument.PreserveDirectDataSetSaveCandidateForNextDirtyMark();
+                    }
+
                     WorksheetRoot.Save();
                 }
             });
