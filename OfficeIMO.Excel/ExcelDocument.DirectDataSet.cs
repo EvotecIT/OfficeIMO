@@ -3,6 +3,8 @@ using System.Globalization;
 using System.ComponentModel;
 using System.Text;
 using System.Threading;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -132,6 +134,152 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        internal bool RegisterDeferredDirectTabularSaveCandidate(
+            ExcelSheet sheet,
+            DataTable table,
+            bool includeHeaders,
+            string range,
+            string? tableName = null,
+            bool createTable = false,
+            TableStyle tableStyle = TableStyle.TableStyleMedium2,
+            bool includeAutoFilter = false,
+            bool autoFit = false,
+            bool copyTable = false) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (table == null) throw new ArgumentNullException(nameof(table));
+            if (!ReferenceEquals(sheet.Document, this)) {
+                return false;
+            }
+
+            ClearDirectDataSetSaveCandidate();
+
+            try {
+                string requestedName = string.IsNullOrWhiteSpace(table.TableName) ? sheet.Name : table.TableName;
+                var tableModel = copyTable || table.DataSet != null
+                    ? DirectDataSetTableModel.Snapshot(table, CancellationToken.None)
+                    : DirectDataSetTableModel.Reference(table);
+                var model = DirectDataSetWorkbookModel.CreateSingle(
+                    sheet.Name,
+                    requestedName,
+                    createTable ? tableName : null,
+                    range,
+                    tableModel,
+                    createTable,
+                    tableStyle,
+                    includeHeaders,
+                    includeAutoFilter,
+                    autoFit,
+                    _dateTimeOffsetWriteStrategy,
+                    CancellationToken.None);
+                var owner = new DataSet("DeferredTabularExport") { Locale = CultureInfo.InvariantCulture };
+                _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(owner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
+                _packageDirty = true;
+                _unchangedPackageBytes = null;
+                _requiresSavePreflight = false;
+                return true;
+            } catch {
+                ClearDirectDataSetSaveCandidate();
+                return false;
+            }
+        }
+
+        internal bool RegisterDeferredDirectTabularSaveCandidate(
+            ExcelSheet sheet,
+            string tableNameForModel,
+            IReadOnlyList<string> columnNames,
+            IReadOnlyList<Type> columnTypes,
+            object?[][] rows,
+            bool includeHeaders,
+            string range,
+            string? tableName = null,
+            bool createTable = false,
+            TableStyle tableStyle = TableStyle.TableStyleMedium2,
+            bool includeAutoFilter = false,
+            bool autoFit = false) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
+            if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
+            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            if (!ReferenceEquals(sheet.Document, this)) {
+                return false;
+            }
+
+            ClearDirectDataSetSaveCandidate();
+
+            try {
+                string requestedName = string.IsNullOrWhiteSpace(tableNameForModel) ? sheet.Name : tableNameForModel;
+                var tableModel = DirectDataSetTableModel.FromRows(columnNames, columnTypes, rows);
+                var model = DirectDataSetWorkbookModel.CreateSingle(
+                    sheet.Name,
+                    requestedName,
+                    createTable ? tableName : null,
+                    range,
+                    tableModel,
+                    createTable,
+                    tableStyle,
+                    includeHeaders,
+                    includeAutoFilter,
+                    autoFit,
+                    _dateTimeOffsetWriteStrategy,
+                    CancellationToken.None);
+                var owner = new DataSet("DeferredTabularExport") { Locale = CultureInfo.InvariantCulture };
+                _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(owner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
+                _packageDirty = true;
+                _unchangedPackageBytes = null;
+                _requiresSavePreflight = false;
+                return true;
+            } catch {
+                ClearDirectDataSetSaveCandidate();
+                return false;
+            }
+        }
+
+        internal void RegisterDirectTabularSaveCandidate(
+            ExcelSheet sheet,
+            string tableNameForModel,
+            IReadOnlyList<string> columnNames,
+            IReadOnlyList<Type> columnTypes,
+            object?[][] rows,
+            bool includeHeaders,
+            string range,
+            string? tableName = null,
+            bool createTable = false,
+            TableStyle tableStyle = TableStyle.TableStyleMedium2,
+            bool includeAutoFilter = false,
+            bool autoFit = false) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
+            if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
+            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            if (!ReferenceEquals(sheet.Document, this)) {
+                return;
+            }
+
+            ClearDirectDataSetSaveCandidate();
+
+            try {
+                string requestedName = string.IsNullOrWhiteSpace(tableNameForModel) ? sheet.Name : tableNameForModel;
+                var tableModel = DirectDataSetTableModel.FromRows(columnNames, columnTypes, rows);
+                var model = DirectDataSetWorkbookModel.CreateSingle(
+                    sheet.Name,
+                    requestedName,
+                    createTable ? tableName : null,
+                    range,
+                    tableModel,
+                    createTable,
+                    tableStyle,
+                    includeHeaders,
+                    includeAutoFilter,
+                    autoFit,
+                    _dateTimeOffsetWriteStrategy,
+                    CancellationToken.None);
+                var owner = new DataSet("TabularExport") { Locale = CultureInfo.InvariantCulture };
+                _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(owner, model, ClearDirectDataSetSaveCandidate, isDeferred: false, subscribeToSourceChanges: false);
+            } catch {
+                ClearDirectDataSetSaveCandidate();
+            }
+        }
+
         internal bool TryPromoteDirectTabularSaveCandidateToTable(
             ExcelSheet sheet,
             string range,
@@ -145,7 +293,7 @@ namespace OfficeIMO.Excel {
             }
 
             var candidate = _directDataSetSaveCandidate;
-            if (candidate == null || !candidate.IsValid || candidate.IsDeferred || candidate.Model.Sheets.Count != 1) {
+            if (candidate == null || !candidate.IsValid || candidate.Model.Sheets.Count != 1) {
                 return false;
             }
 
@@ -162,18 +310,102 @@ namespace OfficeIMO.Excel {
                 promotedTable = CreateHeaderlessDirectSaveTable(promotedTable);
             }
 
-            RegisterDirectTabularSaveCandidate(
-                sheet,
-                promotedTable,
-                includeHeaders,
-                range,
-                tableName,
-                createTable: true,
-                tableStyle,
-                includeAutoFilter,
-                autoFit: false);
+            if (candidate.IsDeferred) {
+                RegisterDeferredDirectTabularSaveCandidate(
+                    sheet,
+                    promotedTable,
+                    includeHeaders,
+                    range,
+                    tableName,
+                    createTable: true,
+                    tableStyle,
+                    includeAutoFilter,
+                    autoFit: false);
+            } else {
+                RegisterDirectTabularSaveCandidate(
+                    sheet,
+                    promotedTable,
+                    includeHeaders,
+                    range,
+                    tableName,
+                    createTable: true,
+                    tableStyle,
+                    includeAutoFilter,
+                    autoFit: false);
+            }
 
             return _directDataSetSaveCandidate != null && _directDataSetSaveCandidate.IsValid;
+        }
+
+        internal bool TryGetDirectTabularSaveCandidateHeaders(
+            ExcelSheet sheet,
+            string range,
+            bool includeHeaders,
+            out IReadOnlyList<string>? headers) {
+            headers = null;
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (!ReferenceEquals(sheet.Document, this)) {
+                return false;
+            }
+
+            var candidate = _directDataSetSaveCandidate;
+            if (candidate == null || !candidate.IsValid || candidate.Model.Sheets.Count != 1) {
+                return false;
+            }
+
+            var sheetModel = candidate.Model.Sheets[0];
+            if (sheetModel.HasTable
+                || !string.Equals(sheetModel.SheetName, sheet.Name, StringComparison.Ordinal)
+                || !string.Equals(sheetModel.Range, range, StringComparison.OrdinalIgnoreCase)
+                || sheetModel.IncludeHeaders != includeHeaders
+                || sheetModel.Table.ColumnCount <= 0) {
+                return false;
+            }
+
+            var candidateHeaders = new string[sheetModel.Table.ColumnCount];
+            for (int i = 0; i < candidateHeaders.Length; i++) {
+                candidateHeaders[i] = sheetModel.Table.GetColumnName(i);
+            }
+
+            headers = candidateHeaders;
+            return true;
+        }
+
+        internal bool TryEnableDirectTabularSaveCandidateAutoFit(ExcelSheet sheet) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (!ReferenceEquals(sheet.Document, this)) {
+                return false;
+            }
+
+            var candidate = _directDataSetSaveCandidate;
+            if (candidate == null || !candidate.IsValid || candidate.Model.Sheets.Count != 1) {
+                return false;
+            }
+
+            var sheetModel = candidate.Model.Sheets[0];
+            if (!string.Equals(sheetModel.SheetName, sheet.Name, StringComparison.Ordinal)
+                || sheetModel.AutoFitColumns
+                || sheetModel.Table.ColumnCount <= 0) {
+                return false;
+            }
+
+            try {
+                var model = candidate.Model.WithAutoFitColumns(sheet.Name, _dateTimeOffsetWriteStrategy, CancellationToken.None);
+                _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(
+                    candidate.Owner,
+                    model,
+                    candidate.InvalidateCallback,
+                    candidate.IsDeferred,
+                    subscribeToSourceChanges: false);
+                candidate.Dispose();
+                _packageDirty = true;
+                _unchangedPackageBytes = null;
+                _requiresSavePreflight = false;
+                return true;
+            } catch {
+                ClearDirectDataSetSaveCandidate();
+                return false;
+            }
         }
 
         private static DataTable CreateHeaderlessDirectSaveTable(DataTable source) {
@@ -247,7 +479,7 @@ namespace OfficeIMO.Excel {
             candidate.Dispose();
         }
 
-        private void MaterializeDeferredDataSetImport() {
+        internal void MaterializeDeferredDataSetImport() {
             if (_materializingDeferredDataSetImport) {
                 return;
             }
@@ -270,11 +502,14 @@ namespace OfficeIMO.Excel {
 
         private void MaterializeDirectDataSetModel(DirectDataSetWorkbookModel model) {
             foreach (var sheetModel in model.Sheets) {
-                ExcelSheet sheet = AddWorkSheet(sheetModel.SheetName, SheetNameValidationMode.Strict);
+                ExcelSheet sheet = TryGetExistingSheet(sheetModel.SheetName)
+                    ?? AddWorkSheet(sheetModel.SheetName, SheetNameValidationMode.Strict);
                 if (sheetModel.Range.Length == 0) {
                     continue;
                 }
 
+                ResetWorksheetForDirectDataSetMaterialization(sheet.WorksheetPart);
+                using var noLock = sheet.BeginNoLock();
                 if (sheetModel.HasTable) {
                     sheet.InsertDataTableAsTable(
                         sheetModel.Table.ToDataTable(),
@@ -292,6 +527,34 @@ namespace OfficeIMO.Excel {
                     sheet.AutoFitColumnsFor(Enumerable.Range(1, sheetModel.Table.ColumnCount));
                 }
             }
+        }
+
+        private ExcelSheet? TryGetExistingSheet(string sheetName) {
+            var sheetElement = WorkbookRoot.Sheets?
+                .OfType<Sheet>()
+                .FirstOrDefault(sheet => string.Equals(sheet.Name?.Value, sheetName, StringComparison.Ordinal));
+            if (sheetElement?.Id == null) {
+                return null;
+            }
+
+            if (WorkbookPartRoot.GetPartById(sheetElement.Id!) is not WorksheetPart) {
+                return null;
+            }
+
+            return new ExcelSheet(this, _spreadSheetDocument, sheetElement);
+        }
+
+        private void ResetWorksheetForDirectDataSetMaterialization(WorksheetPart worksheetPart) {
+            foreach (var tablePart in worksheetPart.TableDefinitionParts.ToList()) {
+                string? tableName = tablePart.Table?.Name?.Value;
+                if (!string.IsNullOrWhiteSpace(tableName)) {
+                    RemoveReservedTableName(tableName!);
+                }
+
+                worksheetPart.DeletePart(tablePart);
+            }
+
+            worksheetPart.Worksheet = new Worksheet(new SheetData());
         }
 
         private bool TryWriteDirectDataSetPackage(
@@ -425,6 +688,37 @@ namespace OfficeIMO.Excel {
             internal IReadOnlyList<ExcelDataSetImportResult> Results { get; }
 
             internal Func<DateTimeOffset, DateTime> DateTimeOffsetWriteStrategy { get; }
+
+            internal DirectDataSetWorkbookModel WithAutoFitColumns(
+                string sheetName,
+                Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
+                CancellationToken ct) {
+                var sheets = new DirectDataSetSheetModel[Sheets.Count];
+                for (int i = 0; i < Sheets.Count; i++) {
+                    ct.ThrowIfCancellationRequested();
+                    var sheet = Sheets[i];
+                    if (!string.Equals(sheet.SheetName, sheetName, StringComparison.Ordinal)) {
+                        sheets[i] = sheet;
+                        continue;
+                    }
+
+                    double[] columnWidths = sheet.Table.CalculateColumnWidths(sheet.IncludeHeaders, dateTimeOffsetWriteStrategy, ct);
+                    sheets[i] = new DirectDataSetSheetModel(
+                        sheet.Index,
+                        sheet.SheetName,
+                        sheet.TableName,
+                        sheet.Range,
+                        sheet.Table,
+                        sheet.TableStyle,
+                        sheet.IncludeHeaders,
+                        sheet.IncludeAutoFilter,
+                        sheet.HasTable,
+                        autoFitColumns: true,
+                        columnWidths);
+                }
+
+                return new DirectDataSetWorkbookModel(sheets, Results, dateTimeOffsetWriteStrategy ?? DateTimeOffsetWriteStrategy);
+            }
 
             internal static DirectDataSetWorkbookModel Create(
                 DataSet dataSet,
@@ -670,6 +964,19 @@ namespace OfficeIMO.Excel {
             }
 
             internal static DirectDataSetTableModel Reference(DataTable table) => new DirectDataSetTableModel(table);
+
+            internal static DirectDataSetTableModel FromRows(IReadOnlyList<string> columnNames, IReadOnlyList<Type> columnTypes, object?[][] rows) {
+                if (columnNames.Count != columnTypes.Count) {
+                    throw new ArgumentException("Column name and type counts must match.", nameof(columnTypes));
+                }
+
+                var columns = new DirectDataSetColumnModel[columnNames.Count];
+                for (int i = 0; i < columns.Length; i++) {
+                    columns[i] = new DirectDataSetColumnModel(columnNames[i], columnTypes[i]);
+                }
+
+                return new DirectDataSetTableModel(columns, rows);
+            }
 
             internal static DirectDataSetTableModel Snapshot(DataTable table, CancellationToken ct) {
                 var columns = CreateColumns(table);
@@ -982,6 +1289,10 @@ namespace OfficeIMO.Excel {
             }
 
             internal DirectDataSetWorkbookModel Model { get; }
+
+            internal DataSet Owner => _dataSet;
+
+            internal Action InvalidateCallback => _invalidate;
 
             internal bool IsDeferred { get; }
 

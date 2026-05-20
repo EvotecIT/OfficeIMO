@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Data;
+using System.Reflection;
 using OfficeColor = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Excel.Fluent {
@@ -58,9 +59,13 @@ namespace OfficeIMO.Excel.Fluent {
             var enumerable = data.ToList();
             if (!enumerable.Any()) return this;
 
+            int startRow = _currentRow;
+            if (configure == null && TryRowsFromSimpleDirectSave(enumerable, startRow)) {
+                return this;
+            }
+
             var paths = options.Columns?.ToList() ?? flattener.GetPaths(typeof(T), options);
             var headers = paths.Select(p => TransformHeader(p, options)).ToList();
-            int startRow = _currentRow;
 
             var rowValues = new List<object?[]>();
             int dataRows = 0;
@@ -90,7 +95,11 @@ namespace OfficeIMO.Excel.Fluent {
 
             if (CanUseRowsFromDataTable(headers)) {
                 var table = CreateRowsFromDataTable(headers, rowValues);
-                Sheet.InsertOwnedDataTable(table, startRow, startColumn: 1, includeHeaders: true);
+                int tableEndRow = startRow + dataRows;
+                string range = $"A{startRow}:{ColumnLetter(headers.Count)}{tableEndRow}";
+                if (!Sheet.TryInsertOwnedDataTableAsDeferredDirectSave(table, startRow, includeHeaders: true, range: range)) {
+                    Sheet.InsertOwnedDataTable(table, startRow, startColumn: 1, includeHeaders: true);
+                }
             } else {
                 var cells = new List<(int Row, int Column, object Value)>((dataRows + 1) * Math.Max(1, headers.Count));
                 AddRowsFromCellValues(cells, startRow, headers, rowValues);
@@ -102,6 +111,38 @@ namespace OfficeIMO.Excel.Fluent {
             _lastRange = $"A{startRow}:{ColumnLetter(headers.Count)}{endRow}";
 
             return this;
+        }
+
+        private bool TryRowsFromSimpleDirectSave<T>(IReadOnlyList<T> rows, int startRow) {
+            if (Sheet == null || startRow != 1) {
+                return false;
+            }
+
+            var properties = GetSimpleRowsFromProperties(typeof(T));
+            if (properties.Length == 0) {
+                return false;
+            }
+
+            if (properties.Any(property => !IsRowsFromDirectSaveScalarType(property.PropertyType))) {
+                return false;
+            }
+
+            var headers = properties.Select(property => property.Name).ToArray();
+            if (!CanUseRowsFromDataTable(headers)) {
+                return false;
+            }
+
+            var columnTypes = InferRowsFromPropertyColumnTypes(properties, rows);
+            var directRows = CreateRowsFromSimpleRows(properties, columnTypes, rows);
+            int tableEndRow = startRow + rows.Count;
+            string range = $"A{startRow}:{ColumnLetter(headers.Length)}{tableEndRow}";
+            if (!Sheet.TryInsertRowsAsDeferredDirectSave("RowsFrom", headers, columnTypes, directRows, startRow, includeHeaders: true, range: range)) {
+                return false;
+            }
+
+            _currentRow = tableEndRow + 1;
+            _lastRange = range;
+            return true;
         }
 
         /// <summary>Adds a table over the last added block (from RowsFrom) using the specified name.</summary>
@@ -310,6 +351,78 @@ namespace OfficeIMO.Excel.Fluent {
             }
 
             return table;
+        }
+
+        private static object?[][] CreateRowsFromSimpleRows<T>(IReadOnlyList<PropertyInfo> properties, IReadOnlyList<Type> columnTypes, IReadOnlyList<T> rows) {
+            var directRows = new object?[rows.Count][];
+            for (int r = 0; r < rows.Count; r++) {
+                var row = new object?[properties.Count];
+                for (int c = 0; c < properties.Count; c++) {
+                    row[c] = CoerceRowsFromDataTableValue(properties[c].GetValue(rows[r]), columnTypes[c]);
+                }
+
+                directRows[r] = row;
+            }
+
+            return directRows;
+        }
+
+        private static PropertyInfo[] GetSimpleRowsFromProperties(Type type)
+            => type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(property => property.GetIndexParameters().Length == 0 && property.GetMethod != null)
+                .OrderBy(property => property.MetadataToken)
+                .ToArray();
+
+        private static bool IsRowsFromDirectSaveScalarType(Type type) {
+            type = Nullable.GetUnderlyingType(type) ?? type;
+            if (type == typeof(string)) {
+                return true;
+            }
+
+            if (typeof(System.Collections.IEnumerable).IsAssignableFrom(type)) {
+                return false;
+            }
+
+            return type.IsPrimitive
+                || type.IsEnum
+                || type == typeof(decimal)
+                || type == typeof(DateTime)
+                || type == typeof(DateTimeOffset)
+                || type == typeof(TimeSpan)
+                || type == typeof(Guid);
+        }
+
+        private static Type[] InferRowsFromPropertyColumnTypes<T>(IReadOnlyList<PropertyInfo> properties, IReadOnlyList<T> rows) {
+            var columnTypes = new Type[properties.Count];
+            for (int column = 0; column < properties.Count; column++) {
+                Type declaredType = Nullable.GetUnderlyingType(properties[column].PropertyType) ?? properties[column].PropertyType;
+                if (!declaredType.IsValueType || Nullable.GetUnderlyingType(properties[column].PropertyType) != null) {
+                    Type? inferred = null;
+                    for (int row = 0; row < rows.Count; row++) {
+                        object? value = properties[column].GetValue(rows[row]);
+                        if (IsRowsFromBlankValue(value)) {
+                            continue;
+                        }
+
+                        Type valueType = Nullable.GetUnderlyingType(value!.GetType()) ?? value.GetType();
+                        if (inferred == null) {
+                            inferred = valueType;
+                            continue;
+                        }
+
+                        if (inferred != valueType) {
+                            inferred = typeof(object);
+                            break;
+                        }
+                    }
+
+                    columnTypes[column] = inferred ?? (declaredType == typeof(string) ? typeof(string) : typeof(object));
+                } else {
+                    columnTypes[column] = declaredType;
+                }
+            }
+
+            return columnTypes;
         }
 
         private static Type[] InferRowsFromColumnTypes(IReadOnlyList<object?[]> rowValues, int columnCount) {

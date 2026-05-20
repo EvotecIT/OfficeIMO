@@ -136,8 +136,34 @@ namespace OfficeIMO.Excel {
         }
 
         private static byte[] ReadAllBytes(Stream stream) {
+            if (stream is MemoryStream memoryStream) {
+                return memoryStream.ToArray();
+            }
+
             if (stream.CanSeek) {
                 stream.Seek(0, SeekOrigin.Begin);
+                long length = stream.Length;
+                if (length > int.MaxValue) {
+                    throw new IOException("Workbook stream is too large to read into memory.");
+                }
+
+                var bytes = new byte[(int)length];
+                int offset = 0;
+                while (offset < bytes.Length) {
+                    int read = stream.Read(bytes, offset, bytes.Length - offset);
+                    if (read == 0) {
+                        break;
+                    }
+
+                    offset += read;
+                }
+
+                if (offset == bytes.Length) {
+                    return bytes;
+                }
+
+                Array.Resize(ref bytes, offset);
+                return bytes;
             }
 
             using var buffer = new MemoryStream();

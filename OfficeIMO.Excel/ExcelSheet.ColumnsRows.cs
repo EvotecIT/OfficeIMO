@@ -15,6 +15,10 @@ namespace OfficeIMO.Excel {
         /// <param name="mode">Overrides how the auto-fit work is scheduled across columns.</param>
         /// <param name="ct">Cancels the auto-fit pass while widths are being measured or applied.</param>
         public void AutoFitColumns(ExecutionMode? mode = null, CancellationToken ct = default) {
+            if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this)) {
+                return;
+            }
+
             if (CanSkipStableAutoFitColumns(null)) {
                 return;
             }
@@ -37,6 +41,7 @@ namespace OfficeIMO.Excel {
         /// <param name="ct">Cancels the auto-fit pass for the selected columns.</param>
         public void AutoFitColumnsFor(IEnumerable<int> columnIndexes, ExecutionMode? mode = null, CancellationToken ct = default) {
             if (columnIndexes == null) return;
+            _excelDocument.MaterializeDeferredDataSetImport();
             var list = columnIndexes.Where(i => i > 0).Distinct().OrderBy(i => i).ToList();
             if (list.Count == 0) return;
             if (CanSkipStableAutoFitColumns(list)) {
@@ -53,6 +58,7 @@ namespace OfficeIMO.Excel {
         /// <param name="mode">Overrides how the auto-fit work is scheduled for the remaining columns.</param>
         /// <param name="ct">Cancels the auto-fit pass before it completes.</param>
         public void AutoFitColumnsExcept(IEnumerable<int> columnsToSkip, ExecutionMode? mode = null, CancellationToken ct = default) {
+            _excelDocument.MaterializeDeferredDataSetImport();
             var skip = new HashSet<int>(columnsToSkip ?? Array.Empty<int>());
             var remaining = GetAllColumnIndices().Where(i => i > 0 && !skip.Contains(i)).OrderBy(i => i).ToList();
             if (remaining.Count == 0) return;
@@ -1261,6 +1267,7 @@ namespace OfficeIMO.Excel {
         /// <param name="width">The column width.</param>
         public void SetColumnWidth(int columnIndex, double width) {
             width = NormalizeColumnWidth(width);
+            _excelDocument.MaterializeDeferredDataSetImport();
             WriteLock(() => {
                 var worksheet = WorksheetRoot;
                 var columns = worksheet.GetFirstChild<Columns>();
@@ -1291,6 +1298,7 @@ namespace OfficeIMO.Excel {
         /// <param name="columnIndex">1-based column index.</param>
         /// <param name="hidden">True to hide the column; false to show it.</param>
         public void SetColumnHidden(int columnIndex, bool hidden) {
+            _excelDocument.MaterializeDeferredDataSetImport();
             WriteLock(() => {
                 var worksheet = WorksheetRoot;
                 var columns = worksheet.GetFirstChild<Columns>();

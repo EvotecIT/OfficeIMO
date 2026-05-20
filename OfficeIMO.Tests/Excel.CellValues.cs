@@ -75,5 +75,25 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(formats, n => n.FormatCode != null && n.FormatCode.Value == "0.00");
             }
         }
+
+        [Fact]
+        public void Test_CellValues_WritesCellsImmediately() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesImmediate.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValues(new[] {
+                    (1, 1, (object)"Name"),
+                    (1, 2, (object)"Amount"),
+                    (2, 1, (object)"Alpha"),
+                    (2, 2, (object)10)
+                });
+
+                Assert.True(sheet.TryGetCellText(2, 1, out var value));
+                Assert.Equal("Alpha", value);
+            }
+
+            File.Delete(filePath);
+        }
     }
 }

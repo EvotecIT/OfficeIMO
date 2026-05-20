@@ -1,0 +1,2784 @@
+{
+  "GeneratedAtUtc": "2026-05-19T20:30:47.3553631Z",
+  "Framework": ".NET 8.0.27",
+  "MachineName": "EVOMAGIC",
+  "BuildConfiguration": "Release",
+  "RowCount": 25000,
+  "WarmupIterations": 1,
+  "MeasuredIterations": 3,
+  "Notes": "Local opt-in comparison. Not intended for CI gating.",
+  "Scenarios": [
+    {
+      "Scenario": "write-bulk-report",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Insert objects, add table, autofit, save.",
+      "OutputMetric": 1419181,
+      "AverageMilliseconds": 95.32206666666667,
+      "MedianMilliseconds": 91.7548,
+      "StandardDeviationMilliseconds": 7.64902937393584,
+      "StandardErrorMilliseconds": 4.416169168081212,
+      "SamplesMilliseconds": [
+        104.1031,
+        91.7548,
+        90.1083
+      ],
+      "AverageAllocatedBytes": 34065168,
+      "MedianAllocatedBytes": 34065168,
+      "SamplesAllocatedBytes": [
+        34065168,
+        34065168,
+        34065168
+      ]
+    },
+    {
+      "Scenario": "write-bulk-report",
+      "Library": "ClosedXML",
+      "Notes": "Insert table, apply table style, autofit, save.",
+      "OutputMetric": 1168291,
+      "AverageMilliseconds": 949.7154666666667,
+      "MedianMilliseconds": 940.4308,
+      "StandardDeviationMilliseconds": 38.800303353625104,
+      "StandardErrorMilliseconds": 22.401365585854595,
+      "SamplesMilliseconds": [
+        992.3158,
+        916.3998,
+        940.4308
+      ],
+      "AverageAllocatedBytes": 579540586.6666666,
+      "MedianAllocatedBytes": 579541352,
+      "SamplesAllocatedBytes": [
+        579536656,
+        579541352,
+        579543752
+      ]
+    },
+    {
+      "Scenario": "write-bulk-report",
+      "Library": "EPPlus",
+      "Notes": "Manual row population, add table, autofit, save.",
+      "OutputMetric": 1117162,
+      "AverageMilliseconds": 382.40260000000006,
+      "MedianMilliseconds": 374.6701,
+      "StandardDeviationMilliseconds": 21.25662320901418,
+      "StandardErrorMilliseconds": 12.272517131786785,
+      "SamplesMilliseconds": [
+        366.0946,
+        406.4431,
+        374.6701
+      ],
+      "AverageAllocatedBytes": 261078098.66666666,
+      "MedianAllocatedBytes": 261078224,
+      "SamplesAllocatedBytes": [
+        261078304,
+        261077768,
+        261078224
+      ]
+    },
+    {
+      "Scenario": "write-bulk-report",
+      "Library": "MiniExcel",
+      "Notes": "Streaming object export with table styling and auto-width configuration.",
+      "OutputMetric": 1557637,
+      "AverageMilliseconds": 85.78486666666667,
+      "MedianMilliseconds": 85.8864,
+      "StandardDeviationMilliseconds": 1.6125990832607244,
+      "StandardErrorMilliseconds": 0.931034514815523,
+      "SamplesMilliseconds": [
+        84.1239,
+        87.3443,
+        85.8864
+      ],
+      "AverageAllocatedBytes": 128563632,
+      "MedianAllocatedBytes": 128563632,
+      "SamplesAllocatedBytes": [
+        128563632,
+        128563632,
+        128563632
+      ]
+    },
+    {
+      "Scenario": "write-dataset-tables",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Insert a prepared DataSet through the normal workbook API and save.",
+      "OutputMetric": 1409478,
+      "AverageMilliseconds": 43.403999999999996,
+      "MedianMilliseconds": 41.1854,
+      "StandardDeviationMilliseconds": 4.504886749963865,
+      "StandardErrorMilliseconds": 2.600897577760416,
+      "SamplesMilliseconds": [
+        41.1854,
+        48.5879,
+        40.4387
+      ],
+      "AverageAllocatedBytes": 13934472,
+      "MedianAllocatedBytes": 13934472,
+      "SamplesAllocatedBytes": [
+        13934472,
+        13934472,
+        13934472
+      ]
+    },
+    {
+      "Scenario": "write-dataset-tables",
+      "Library": "ClosedXML",
+      "Notes": "Import prepared DataTables as two styled worksheet tables and save.",
+      "OutputMetric": 1166353,
+      "AverageMilliseconds": 455.1564,
+      "MedianMilliseconds": 443.1596,
+      "StandardDeviationMilliseconds": 38.591431215232205,
+      "StandardErrorMilliseconds": 22.280773200527243,
+      "SamplesMilliseconds": [
+        443.1596,
+        498.3214,
+        423.9882
+      ],
+      "AverageAllocatedBytes": 176132024,
+      "MedianAllocatedBytes": 176133304,
+      "SamplesAllocatedBytes": [
+        176133304,
+        176135944,
+        176126824
+      ]
+    },
+    {
+      "Scenario": "write-dataset-tables",
+      "Library": "EPPlus",
+      "Notes": "Import prepared DataTables as two styled worksheet tables and save.",
+      "OutputMetric": 1127016,
+      "AverageMilliseconds": 325.72253333333333,
+      "MedianMilliseconds": 322.422,
+      "StandardDeviationMilliseconds": 9.248009691459735,
+      "StandardErrorMilliseconds": 5.339340884832547,
+      "SamplesMilliseconds": [
+        336.168,
+        322.422,
+        318.5776
+      ],
+      "AverageAllocatedBytes": 113475749.33333333,
+      "MedianAllocatedBytes": 113475816,
+      "SamplesAllocatedBytes": [
+        113475816,
+        113475616,
+        113475816
+      ]
+    },
+    {
+      "Scenario": "write-dataset-tables",
+      "Library": "MiniExcel",
+      "Notes": "Streaming DataSet export with one sheet per table.",
+      "OutputMetric": 1548102,
+      "AverageMilliseconds": 85.17880000000001,
+      "MedianMilliseconds": 84.4917,
+      "StandardDeviationMilliseconds": 3.686688287609901,
+      "StandardErrorMilliseconds": 2.1285104752698167,
+      "SamplesMilliseconds": [
+        81.884,
+        89.1607,
+        84.4917
+      ],
+      "AverageAllocatedBytes": 99414496,
+      "MedianAllocatedBytes": 99414016,
+      "SamplesAllocatedBytes": [
+        99414016,
+        99415456,
+        99414016
+      ]
+    },
+    {
+      "Scenario": "write-dataset-tables-autofit",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Insert a prepared DataSet through the normal workbook API with AutoFit and save.",
+      "OutputMetric": 1409749,
+      "AverageMilliseconds": 45.411699999999996,
+      "MedianMilliseconds": 45.9176,
+      "StandardDeviationMilliseconds": 1.66386827303125,
+      "StandardErrorMilliseconds": 0.96063479533067,
+      "SamplesMilliseconds": [
+        46.7639,
+        45.9176,
+        43.5536
+      ],
+      "AverageAllocatedBytes": 13935277.333333334,
+      "MedianAllocatedBytes": 13935456,
+      "SamplesAllocatedBytes": [
+        13934920,
+        13935456,
+        13935456
+      ]
+    },
+    {
+      "Scenario": "write-dataset-tables-autofit",
+      "Library": "ClosedXML",
+      "Notes": "Import prepared DataTables as two styled worksheet tables, adjust columns, and save.",
+      "OutputMetric": 1166682,
+      "AverageMilliseconds": 908.1002333333332,
+      "MedianMilliseconds": 897.352,
+      "StandardDeviationMilliseconds": 64.96149134805427,
+      "StandardErrorMilliseconds": 37.50553451675868,
+      "SamplesMilliseconds": [
+        849.1832,
+        897.352,
+        977.7655
+      ],
+      "AverageAllocatedBytes": 563297128,
+      "MedianAllocatedBytes": 563297768,
+      "SamplesAllocatedBytes": [
+        563297768,
+        563292488,
+        563301128
+      ]
+    },
+    {
+      "Scenario": "write-dataset-tables-autofit",
+      "Library": "EPPlus",
+      "Notes": "Import prepared DataTables as two styled worksheet tables, autofit columns, and save.",
+      "OutputMetric": 1127310,
+      "AverageMilliseconds": 406.05490000000003,
+      "MedianMilliseconds": 406.81,
+      "StandardDeviationMilliseconds": 8.261073025339993,
+      "StandardErrorMilliseconds": 4.7695327349752015,
+      "SamplesMilliseconds": [
+        406.81,
+        413.9125,
+        397.4422
+      ],
+      "AverageAllocatedBytes": 200097514.66666666,
+      "MedianAllocatedBytes": 200097376,
+      "SamplesAllocatedBytes": [
+        200097792,
+        200097376,
+        200097376
+      ]
+    },
+    {
+      "Scenario": "write-dataset-tables-autofit",
+      "Library": "MiniExcel",
+      "Notes": "Streaming DataSet export with MiniExcel auto-width configuration.",
+      "OutputMetric": 1548305,
+      "AverageMilliseconds": 111.38736666666667,
+      "MedianMilliseconds": 111.4586,
+      "StandardDeviationMilliseconds": 4.609462825897761,
+      "StandardErrorMilliseconds": 2.6612746033516452,
+      "SamplesMilliseconds": [
+        111.4586,
+        106.7427,
+        115.9608
+      ],
+      "AverageAllocatedBytes": 131966917.33333333,
+      "MedianAllocatedBytes": 131966440,
+      "SamplesAllocatedBytes": [
+        131966432,
+        131966440,
+        131967880
+      ]
+    },
+    {
+      "Scenario": "write-dataset-headerless-tables",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Insert a prepared DataSet as headerless tables through the normal workbook API and save.",
+      "OutputMetric": 1426993,
+      "AverageMilliseconds": 49.32073333333333,
+      "MedianMilliseconds": 51.2921,
+      "StandardDeviationMilliseconds": 4.270829247737884,
+      "StandardErrorMilliseconds": 2.4657644158443945,
+      "SamplesMilliseconds": [
+        51.2921,
+        44.4203,
+        52.2498
+      ],
+      "AverageAllocatedBytes": 16760000,
+      "MedianAllocatedBytes": 16760000,
+      "SamplesAllocatedBytes": [
+        16760000,
+        16760000,
+        16760000
+      ]
+    },
+    {
+      "Scenario": "write-dataset-headerless-tables",
+      "Library": "ClosedXML",
+      "Notes": "Import prepared DataTables as headerless styled worksheet tables and save.",
+      "OutputMetric": 1163654,
+      "AverageMilliseconds": 465.3570666666667,
+      "MedianMilliseconds": 460.2969,
+      "StandardDeviationMilliseconds": 35.24187093136989,
+      "StandardErrorMilliseconds": 20.346903668972452,
+      "SamplesMilliseconds": [
+        502.8555,
+        432.9188,
+        460.2969
+      ],
+      "AverageAllocatedBytes": 176148778.66666666,
+      "MedianAllocatedBytes": 176152032,
+      "SamplesAllocatedBytes": [
+        176152032,
+        176153016,
+        176141288
+      ]
+    },
+    {
+      "Scenario": "write-dataset-headerless-tables",
+      "Library": "EPPlus",
+      "Notes": "Import prepared DataTables as headerless styled worksheet tables and save.",
+      "OutputMetric": 1125866,
+      "AverageMilliseconds": 423.08500000000004,
+      "MedianMilliseconds": 422.8893,
+      "StandardDeviationMilliseconds": 21.291424551447914,
+      "StandardErrorMilliseconds": 12.29260969620906,
+      "SamplesMilliseconds": [
+        422.8893,
+        401.8921,
+        444.4736
+      ],
+      "AverageAllocatedBytes": 113915885.33333333,
+      "MedianAllocatedBytes": 113916064,
+      "SamplesAllocatedBytes": [
+        113916064,
+        113915528,
+        113916064
+      ]
+    },
+    {
+      "Scenario": "write-dataset-headerless-tables",
+      "Library": "MiniExcel",
+      "Notes": "Streaming DataSet export without header rows.",
+      "OutputMetric": 1556873,
+      "AverageMilliseconds": 94.36663333333333,
+      "MedianMilliseconds": 92.8125,
+      "StandardDeviationMilliseconds": 9.826807592159996,
+      "StandardErrorMilliseconds": 5.673510008608233,
+      "SamplesMilliseconds": [
+        92.8125,
+        85.4095,
+        104.8779
+      ],
+      "AverageAllocatedBytes": 99417000,
+      "MedianAllocatedBytes": 99417000,
+      "SamplesAllocatedBytes": [
+        99417000,
+        99417000,
+        99417000
+      ]
+    },
+    {
+      "Scenario": "write-dataset-sparse-tables",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Insert a sparse prepared DataSet through the normal workbook API and save.",
+      "OutputMetric": 1932037,
+      "AverageMilliseconds": 63.646466666666676,
+      "MedianMilliseconds": 62.5638,
+      "StandardDeviationMilliseconds": 3.0544679296619495,
+      "StandardErrorMilliseconds": 1.7634978814214055,
+      "SamplesMilliseconds": [
+        61.2808,
+        67.0948,
+        62.5638
+      ],
+      "AverageAllocatedBytes": 23070832,
+      "MedianAllocatedBytes": 23070832,
+      "SamplesAllocatedBytes": [
+        23070832,
+        23070832,
+        23070832
+      ]
+    },
+    {
+      "Scenario": "write-dataset-sparse-tables",
+      "Library": "ClosedXML",
+      "Notes": "Import sparse prepared DataTables as styled worksheet tables and save.",
+      "OutputMetric": 1556363,
+      "AverageMilliseconds": 717.7084,
+      "MedianMilliseconds": 749.7774,
+      "StandardDeviationMilliseconds": 67.95044236235702,
+      "StandardErrorMilliseconds": 39.23120618946098,
+      "SamplesMilliseconds": [
+        749.7774,
+        763.6896,
+        639.6582
+      ],
+      "AverageAllocatedBytes": 287110568,
+      "MedianAllocatedBytes": 287113768,
+      "SamplesAllocatedBytes": [
+        287114248,
+        287113768,
+        287103688
+      ]
+    },
+    {
+      "Scenario": "write-dataset-sparse-tables",
+      "Library": "EPPlus",
+      "Notes": "Import sparse prepared DataTables as styled worksheet tables and save.",
+      "OutputMetric": 1423789,
+      "AverageMilliseconds": 544.8736666666667,
+      "MedianMilliseconds": 551.1762,
+      "StandardDeviationMilliseconds": 12.635764322878707,
+      "StandardErrorMilliseconds": 7.295261933230691,
+      "SamplesMilliseconds": [
+        553.1185,
+        530.3263,
+        551.1762
+      ],
+      "AverageAllocatedBytes": 138981421.33333334,
+      "MedianAllocatedBytes": 138981600,
+      "SamplesAllocatedBytes": [
+        138981600,
+        138981064,
+        138981600
+      ]
+    },
+    {
+      "Scenario": "write-dataset-sparse-tables",
+      "Library": "MiniExcel",
+      "Notes": "Streaming sparse DataSet export with one sheet per table.",
+      "OutputMetric": 1863344,
+      "AverageMilliseconds": 125.80576666666667,
+      "MedianMilliseconds": 127.4497,
+      "StandardDeviationMilliseconds": 4.78777161561967,
+      "StandardErrorMilliseconds": 2.764221231096466,
+      "SamplesMilliseconds": [
+        120.4126,
+        127.4497,
+        129.555
+      ],
+      "AverageAllocatedBytes": 110724242.66666667,
+      "MedianAllocatedBytes": 110724216,
+      "SamplesAllocatedBytes": [
+        110724216,
+        110724296,
+        110724216
+      ]
+    },
+    {
+      "Scenario": "write-datatable-direct",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Insert a prepared DataTable through the normal worksheet API and save.",
+      "OutputMetric": 1418199,
+      "AverageMilliseconds": 46.54253333333333,
+      "MedianMilliseconds": 50.2558,
+      "StandardDeviationMilliseconds": 6.548305161897492,
+      "StandardErrorMilliseconds": 3.780665747957333,
+      "SamplesMilliseconds": [
+        50.3902,
+        50.2558,
+        38.9816
+      ],
+      "AverageAllocatedBytes": 15526056,
+      "MedianAllocatedBytes": 15526056,
+      "SamplesAllocatedBytes": [
+        15526056,
+        15526056,
+        15526056
+      ]
+    },
+    {
+      "Scenario": "write-datatable-direct",
+      "Library": "ClosedXML",
+      "Notes": "Import a prepared DataTable and save.",
+      "OutputMetric": 1167283,
+      "AverageMilliseconds": 318.7470666666666,
+      "MedianMilliseconds": 319.424,
+      "StandardDeviationMilliseconds": 7.667145306001011,
+      "StandardErrorMilliseconds": 4.426628406335659,
+      "SamplesMilliseconds": [
+        326.0533,
+        319.424,
+        310.7639
+      ],
+      "AverageAllocatedBytes": 106705912,
+      "MedianAllocatedBytes": 106705912,
+      "SamplesAllocatedBytes": [
+        106705912,
+        106705912,
+        106705912
+      ]
+    },
+    {
+      "Scenario": "write-datatable-direct",
+      "Library": "EPPlus",
+      "Notes": "Import a prepared DataTable and save.",
+      "OutputMetric": 1117022,
+      "AverageMilliseconds": 319.0221666666667,
+      "MedianMilliseconds": 327.1503,
+      "StandardDeviationMilliseconds": 17.038353186365562,
+      "StandardErrorMilliseconds": 9.837097798696076,
+      "SamplesMilliseconds": [
+        330.4744,
+        299.4418,
+        327.1503
+      ],
+      "AverageAllocatedBytes": 120256213.33333333,
+      "MedianAllocatedBytes": 120256392,
+      "SamplesAllocatedBytes": [
+        120256392,
+        120255856,
+        120256392
+      ]
+    },
+    {
+      "Scenario": "write-datatable-direct",
+      "Library": "MiniExcel",
+      "Notes": "Streaming DataTable export and save.",
+      "OutputMetric": 1557554,
+      "AverageMilliseconds": 92.56513333333334,
+      "MedianMilliseconds": 93.2104,
+      "StandardDeviationMilliseconds": 2.619304832075366,
+      "StandardErrorMilliseconds": 1.5122563498884,
+      "SamplesMilliseconds": [
+        94.8015,
+        89.6835,
+        93.2104
+      ],
+      "AverageAllocatedBytes": 94611712,
+      "MedianAllocatedBytes": 94611712,
+      "SamplesAllocatedBytes": [
+        94611712,
+        94611712,
+        94611712
+      ]
+    },
+    {
+      "Scenario": "write-datatable-table-direct",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Insert a prepared DataTable as a styled table through the normal worksheet API and save.",
+      "OutputMetric": 1419047,
+      "AverageMilliseconds": 47.5302,
+      "MedianMilliseconds": 45.3038,
+      "StandardDeviationMilliseconds": 5.829497806844081,
+      "StandardErrorMilliseconds": 3.3656621280217633,
+      "SamplesMilliseconds": [
+        45.3038,
+        54.1448,
+        43.142
+      ],
+      "AverageAllocatedBytes": 16000568,
+      "MedianAllocatedBytes": 16000568,
+      "SamplesAllocatedBytes": [
+        16000568,
+        16000568,
+        16000568
+      ]
+    },
+    {
+      "Scenario": "write-datatable-table-direct",
+      "Library": "ClosedXML",
+      "Notes": "Import a prepared DataTable as a styled worksheet table and save.",
+      "OutputMetric": 1168107,
+      "AverageMilliseconds": 487.9656333333333,
+      "MedianMilliseconds": 490.142,
+      "StandardDeviationMilliseconds": 20.01807804519038,
+      "StandardErrorMilliseconds": 11.557442748049603,
+      "SamplesMilliseconds": [
+        466.9483,
+        506.8066,
+        490.142
+      ],
+      "AverageAllocatedBytes": 177561328,
+      "MedianAllocatedBytes": 177559968,
+      "SamplesAllocatedBytes": [
+        177567048,
+        177556968,
+        177559968
+      ]
+    },
+    {
+      "Scenario": "write-datatable-table-direct",
+      "Library": "EPPlus",
+      "Notes": "Import a prepared DataTable as a styled worksheet table and save.",
+      "OutputMetric": 1117023,
+      "AverageMilliseconds": 325.4581,
+      "MedianMilliseconds": 325.6613,
+      "StandardDeviationMilliseconds": 15.872575538960273,
+      "StandardErrorMilliseconds": 9.164035760151384,
+      "SamplesMilliseconds": [
+        325.6613,
+        309.4849,
+        341.2281
+      ],
+      "AverageAllocatedBytes": 120256229.33333333,
+      "MedianAllocatedBytes": 120256408,
+      "SamplesAllocatedBytes": [
+        120256408,
+        120255872,
+        120256408
+      ]
+    },
+    {
+      "Scenario": "write-datatable-table-direct",
+      "Library": "MiniExcel",
+      "Notes": "Streaming DataTable export with table styling configuration.",
+      "OutputMetric": 1557557,
+      "AverageMilliseconds": 102.05156666666666,
+      "MedianMilliseconds": 95.7476,
+      "StandardDeviationMilliseconds": 11.513149673453107,
+      "StandardErrorMilliseconds": 6.647120063188604,
+      "SamplesMilliseconds": [
+        95.7476,
+        115.34,
+        95.0671
+      ],
+      "AverageAllocatedBytes": 94612000,
+      "MedianAllocatedBytes": 94612000,
+      "SamplesAllocatedBytes": [
+        94612000,
+        94612000,
+        94612000
+      ]
+    },
+    {
+      "Scenario": "write-datareader-table",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Stream a DataTable-backed IDataReader as a styled table through the normal worksheet API and save.",
+      "OutputMetric": 1419047,
+      "AverageMilliseconds": 90.01076666666665,
+      "MedianMilliseconds": 92.466,
+      "StandardDeviationMilliseconds": 5.928943560477983,
+      "StandardErrorMilliseconds": 3.423077160652062,
+      "SamplesMilliseconds": [
+        92.466,
+        83.2486,
+        94.3177
+      ],
+      "AverageAllocatedBytes": 26418960,
+      "MedianAllocatedBytes": 26418960,
+      "SamplesAllocatedBytes": [
+        26418960,
+        26418960,
+        26418960
+      ]
+    },
+    {
+      "Scenario": "write-datareader-table",
+      "Library": "ClosedXML",
+      "Notes": "Import the same prepared data as a styled worksheet table and save.",
+      "OutputMetric": 1168107,
+      "AverageMilliseconds": 515.3171333333333,
+      "MedianMilliseconds": 518.7329,
+      "StandardDeviationMilliseconds": 30.213113272937186,
+      "StandardErrorMilliseconds": 17.44354908118694,
+      "SamplesMilliseconds": [
+        483.5413,
+        543.6772,
+        518.7329
+      ],
+      "AverageAllocatedBytes": 177560848,
+      "MedianAllocatedBytes": 177561408,
+      "SamplesAllocatedBytes": [
+        177561888,
+        177561408,
+        177559248
+      ]
+    },
+    {
+      "Scenario": "write-datareader-table",
+      "Library": "EPPlus",
+      "Notes": "Import the same prepared data as a styled worksheet table and save.",
+      "OutputMetric": 1117023,
+      "AverageMilliseconds": 354.2402666666667,
+      "MedianMilliseconds": 337.3297,
+      "StandardDeviationMilliseconds": 30.235515506492263,
+      "StandardErrorMilliseconds": 17.456483016760412,
+      "SamplesMilliseconds": [
+        336.2435,
+        389.1476,
+        337.3297
+      ],
+      "AverageAllocatedBytes": 120256282.66666667,
+      "MedianAllocatedBytes": 120256408,
+      "SamplesAllocatedBytes": [
+        120256408,
+        120255872,
+        120256568
+      ]
+    },
+    {
+      "Scenario": "write-datareader-table",
+      "Library": "MiniExcel",
+      "Notes": "Stream the same DataTable-backed IDataReader and save.",
+      "OutputMetric": 1557533,
+      "AverageMilliseconds": 98.91193333333335,
+      "MedianMilliseconds": 98.9011,
+      "StandardDeviationMilliseconds": 0.27900778364292356,
+      "StandardErrorMilliseconds": 0.1610852189922428,
+      "SamplesMilliseconds": [
+        98.9011,
+        99.1962,
+        98.6385
+      ],
+      "AverageAllocatedBytes": 94412840,
+      "MedianAllocatedBytes": 94412840,
+      "SamplesAllocatedBytes": [
+        94412840,
+        94412840,
+        94412840
+      ]
+    },
+    {
+      "Scenario": "write-cellvalues-rectangle-direct",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Write a complete A1 rectangle with CellValues and save.",
+      "OutputMetric": 1418199,
+      "AverageMilliseconds": 42.899699999999996,
+      "MedianMilliseconds": 42.6845,
+      "StandardDeviationMilliseconds": 4.333909008043434,
+      "StandardErrorMilliseconds": 2.5021835324372206,
+      "SamplesMilliseconds": [
+        42.6845,
+        38.6774,
+        47.3372
+      ],
+      "AverageAllocatedBytes": 18927200,
+      "MedianAllocatedBytes": 18927200,
+      "SamplesAllocatedBytes": [
+        18927200,
+        18927200,
+        18927200
+      ]
+    },
+    {
+      "Scenario": "write-cellvalues-rectangle-direct",
+      "Library": "ClosedXML",
+      "Notes": "Write the same complete A1 rectangle and save.",
+      "OutputMetric": 1167283,
+      "AverageMilliseconds": 333.93283333333335,
+      "MedianMilliseconds": 334.183,
+      "StandardDeviationMilliseconds": 14.67474934856926,
+      "StandardErrorMilliseconds": 8.472470486686749,
+      "SamplesMilliseconds": [
+        348.4809,
+        319.1346,
+        334.183
+      ],
+      "AverageAllocatedBytes": 215701592,
+      "MedianAllocatedBytes": 215701592,
+      "SamplesAllocatedBytes": [
+        215701592,
+        215701592,
+        215701592
+      ]
+    },
+    {
+      "Scenario": "write-cellvalues-rectangle-direct",
+      "Library": "EPPlus",
+      "Notes": "Write the same complete A1 rectangle and save.",
+      "OutputMetric": 1116138,
+      "AverageMilliseconds": 326.42536666666666,
+      "MedianMilliseconds": 327.2118,
+      "StandardDeviationMilliseconds": 16.18268827368718,
+      "StandardErrorMilliseconds": 9.343079431025094,
+      "SamplesMilliseconds": [
+        309.8638,
+        342.2005,
+        327.2118
+      ],
+      "AverageAllocatedBytes": 216934789.33333334,
+      "MedianAllocatedBytes": 216934968,
+      "SamplesAllocatedBytes": [
+        216934968,
+        216934432,
+        216934968
+      ]
+    },
+    {
+      "Scenario": "write-cellvalues-rectangle-direct",
+      "Library": "MiniExcel",
+      "Notes": "Streaming typed row export with the same columns and headers.",
+      "OutputMetric": 1557556,
+      "AverageMilliseconds": 68.98336666666667,
+      "MedianMilliseconds": 67.2327,
+      "StandardDeviationMilliseconds": 3.6689107829617993,
+      "StandardErrorMilliseconds": 2.1182466281757155,
+      "SamplesMilliseconds": [
+        73.1997,
+        67.2327,
+        66.5177
+      ],
+      "AverageAllocatedBytes": 95495176,
+      "MedianAllocatedBytes": 95495176,
+      "SamplesAllocatedBytes": [
+        95495176,
+        95495176,
+        95495176
+      ]
+    },
+    {
+      "Scenario": "write-insertobjects-direct",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Insert typed objects through the normal worksheet API and save.",
+      "OutputMetric": 1418199,
+      "AverageMilliseconds": 34.39656666666667,
+      "MedianMilliseconds": 34.1458,
+      "StandardDeviationMilliseconds": 0.8218618882350796,
+      "StandardErrorMilliseconds": 0.4745021824092173,
+      "SamplesMilliseconds": [
+        33.7293,
+        35.3146,
+        34.1458
+      ],
+      "AverageAllocatedBytes": 15727312,
+      "MedianAllocatedBytes": 15727312,
+      "SamplesAllocatedBytes": [
+        15727312,
+        15727312,
+        15727312
+      ]
+    },
+    {
+      "Scenario": "write-insertobjects-direct",
+      "Library": "ClosedXML",
+      "Notes": "Insert the same typed objects and save.",
+      "OutputMetric": 1167283,
+      "AverageMilliseconds": 293.0117333333333,
+      "MedianMilliseconds": 296.8389,
+      "StandardDeviationMilliseconds": 18.448326535036557,
+      "StandardErrorMilliseconds": 10.651146291101472,
+      "SamplesMilliseconds": [
+        272.95,
+        309.2463,
+        296.8389
+      ],
+      "AverageAllocatedBytes": 106705912,
+      "MedianAllocatedBytes": 106705912,
+      "SamplesAllocatedBytes": [
+        106705912,
+        106705912,
+        106705912
+      ]
+    },
+    {
+      "Scenario": "write-insertobjects-direct",
+      "Library": "EPPlus",
+      "Notes": "Import the same typed objects and save.",
+      "OutputMetric": 1117022,
+      "AverageMilliseconds": 267.1725,
+      "MedianMilliseconds": 264.7219,
+      "StandardDeviationMilliseconds": 4.867261274063686,
+      "StandardErrorMilliseconds": 2.81011460679691,
+      "SamplesMilliseconds": [
+        264.7219,
+        264.0176,
+        272.778
+      ],
+      "AverageAllocatedBytes": 120256213.33333333,
+      "MedianAllocatedBytes": 120256392,
+      "SamplesAllocatedBytes": [
+        120256392,
+        120255856,
+        120256392
+      ]
+    },
+    {
+      "Scenario": "write-insertobjects-direct",
+      "Library": "MiniExcel",
+      "Notes": "Streaming typed object export and save.",
+      "OutputMetric": 1557556,
+      "AverageMilliseconds": 70.2385,
+      "MedianMilliseconds": 69.2168,
+      "StandardDeviationMilliseconds": 1.8850190900890043,
+      "StandardErrorMilliseconds": 1.0883162790904701,
+      "SamplesMilliseconds": [
+        72.4138,
+        69.0849,
+        69.2168
+      ],
+      "AverageAllocatedBytes": 95495176,
+      "MedianAllocatedBytes": 95495176,
+      "SamplesAllocatedBytes": [
+        95495176,
+        95495176,
+        95495176
+      ]
+    },
+    {
+      "Scenario": "write-fluent-rowsfrom-direct",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Write typed rows through the fluent RowsFrom API and save.",
+      "OutputMetric": 1418199,
+      "AverageMilliseconds": 37.11403333333333,
+      "MedianMilliseconds": 36.0708,
+      "StandardDeviationMilliseconds": 2.5462266480683393,
+      "StandardErrorMilliseconds": 1.4700646406800544,
+      "SamplesMilliseconds": [
+        40.0162,
+        36.0708,
+        35.2551
+      ],
+      "AverageAllocatedBytes": 15928552,
+      "MedianAllocatedBytes": 15928552,
+      "SamplesAllocatedBytes": [
+        15928552,
+        15928552,
+        15928552
+      ]
+    },
+    {
+      "Scenario": "write-fluent-rowsfrom-direct",
+      "Library": "ClosedXML",
+      "Notes": "Insert the same typed rows and save.",
+      "OutputMetric": 1167283,
+      "AverageMilliseconds": 284.2257666666667,
+      "MedianMilliseconds": 288.5785,
+      "StandardDeviationMilliseconds": 17.794163360308154,
+      "StandardErrorMilliseconds": 10.273465006078089,
+      "SamplesMilliseconds": [
+        299.4397,
+        288.5785,
+        264.6591
+      ],
+      "AverageAllocatedBytes": 106705912,
+      "MedianAllocatedBytes": 106705912,
+      "SamplesAllocatedBytes": [
+        106705912,
+        106705912,
+        106705912
+      ]
+    },
+    {
+      "Scenario": "write-fluent-rowsfrom-direct",
+      "Library": "EPPlus",
+      "Notes": "Import the same typed rows and save.",
+      "OutputMetric": 1117022,
+      "AverageMilliseconds": 263.66076666666663,
+      "MedianMilliseconds": 260.0382,
+      "StandardDeviationMilliseconds": 8.475090456351092,
+      "StandardErrorMilliseconds": 4.893095756380731,
+      "SamplesMilliseconds": [
+        257.599,
+        273.3451,
+        260.0382
+      ],
+      "AverageAllocatedBytes": 120256213.33333333,
+      "MedianAllocatedBytes": 120256392,
+      "SamplesAllocatedBytes": [
+        120256392,
+        120255856,
+        120256392
+      ]
+    },
+    {
+      "Scenario": "write-fluent-rowsfrom-direct",
+      "Library": "MiniExcel",
+      "Notes": "Streaming typed row export and save.",
+      "OutputMetric": 1557555,
+      "AverageMilliseconds": 64.0129,
+      "MedianMilliseconds": 64.1583,
+      "StandardDeviationMilliseconds": 2.7282074627857726,
+      "StandardErrorMilliseconds": 1.575131313044512,
+      "SamplesMilliseconds": [
+        66.6655,
+        64.1583,
+        61.2149
+      ],
+      "AverageAllocatedBytes": 95495176,
+      "MedianAllocatedBytes": 95495176,
+      "SamplesAllocatedBytes": [
+        95495176,
+        95495176,
+        95495176
+      ]
+    },
+    {
+      "Scenario": "append-plain-rows",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Append prepared plain cells with CellValues parallel mode.",
+      "OutputMetric": 637521,
+      "AverageMilliseconds": 20.102999999999998,
+      "MedianMilliseconds": 19.9335,
+      "StandardDeviationMilliseconds": 0.4527093438399525,
+      "StandardErrorMilliseconds": 0.26137186153065545,
+      "SamplesMilliseconds": [
+        20.616,
+        19.7595,
+        19.9335
+      ],
+      "AverageAllocatedBytes": 14789152,
+      "MedianAllocatedBytes": 14789152,
+      "SamplesAllocatedBytes": [
+        14789152,
+        14789152,
+        14789152
+      ]
+    },
+    {
+      "Scenario": "append-plain-rows",
+      "Library": "ClosedXML",
+      "Notes": "Append equivalent row/cell values.",
+      "OutputMetric": 553601,
+      "AverageMilliseconds": 149.53843333333336,
+      "MedianMilliseconds": 148.0892,
+      "StandardDeviationMilliseconds": 12.655239194236247,
+      "StandardErrorMilliseconds": 7.3065057554514,
+      "SamplesMilliseconds": [
+        162.8559,
+        148.0892,
+        137.6702
+      ],
+      "AverageAllocatedBytes": 106734736,
+      "MedianAllocatedBytes": 106734736,
+      "SamplesAllocatedBytes": [
+        106734736,
+        106734736,
+        106734736
+      ]
+    },
+    {
+      "Scenario": "append-plain-rows",
+      "Library": "EPPlus",
+      "Notes": "Append equivalent row/cell values.",
+      "OutputMetric": 538189,
+      "AverageMilliseconds": 146.04850000000002,
+      "MedianMilliseconds": 146.1261,
+      "StandardDeviationMilliseconds": 6.161666496168059,
+      "StandardErrorMilliseconds": 3.557439810219327,
+      "SamplesMilliseconds": [
+        152.171,
+        139.8484,
+        146.1261
+      ],
+      "AverageAllocatedBytes": 102782901.33333333,
+      "MedianAllocatedBytes": 102783080,
+      "SamplesAllocatedBytes": [
+        102783080,
+        102782544,
+        102783080
+      ]
+    },
+    {
+      "Scenario": "append-plain-rows",
+      "Library": "MiniExcel",
+      "Notes": "Streaming export of equivalent four-column row/cell values.",
+      "OutputMetric": 657741,
+      "AverageMilliseconds": 32.82553333333333,
+      "MedianMilliseconds": 30.4316,
+      "StandardDeviationMilliseconds": 4.4008334680300445,
+      "StandardErrorMilliseconds": 2.5408223874258606,
+      "SamplesMilliseconds": [
+        37.9044,
+        30.1406,
+        30.4316
+      ],
+      "AverageAllocatedBytes": 59640688,
+      "MedianAllocatedBytes": 59640688,
+      "SamplesAllocatedBytes": [
+        59640688,
+        59640688,
+        59640688
+      ]
+    },
+    {
+      "Scenario": "read-range",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Read A1 range with automatic execution policy.",
+      "OutputMetric": 1077929724,
+      "AverageMilliseconds": 272.87963333333335,
+      "MedianMilliseconds": 268.4438,
+      "StandardDeviationMilliseconds": 14.90587630913841,
+      "StandardErrorMilliseconds": 8.605911699588328,
+      "SamplesMilliseconds": [
+        289.4999,
+        268.4438,
+        260.6952
+      ],
+      "AverageAllocatedBytes": 214179360,
+      "MedianAllocatedBytes": 214177736,
+      "SamplesAllocatedBytes": [
+        214162992,
+        214177736,
+        214197352
+      ]
+    },
+    {
+      "Scenario": "read-range",
+      "Library": "ClosedXML",
+      "Notes": "Iterate used data cells from workbook.",
+      "OutputMetric": 1077929724,
+      "AverageMilliseconds": 343.34263333333337,
+      "MedianMilliseconds": 342.5085,
+      "StandardDeviationMilliseconds": 5.848781908511662,
+      "StandardErrorMilliseconds": 3.3767958093106216,
+      "SamplesMilliseconds": [
+        337.9557,
+        349.5637,
+        342.5085
+      ],
+      "AverageAllocatedBytes": 203682090.66666666,
+      "MedianAllocatedBytes": 203682928,
+      "SamplesAllocatedBytes": [
+        203678304,
+        203682928,
+        203685040
+      ]
+    },
+    {
+      "Scenario": "read-range",
+      "Library": "EPPlus",
+      "Notes": "Iterate used data cells from workbook.",
+      "OutputMetric": 1077929724,
+      "AverageMilliseconds": 163.18263333333334,
+      "MedianMilliseconds": 163.9755,
+      "StandardDeviationMilliseconds": 5.266949986788681,
+      "StandardErrorMilliseconds": 3.0408749926807412,
+      "SamplesMilliseconds": [
+        168.0082,
+        163.9755,
+        157.5642
+      ],
+      "AverageAllocatedBytes": 180293336,
+      "MedianAllocatedBytes": 180293336,
+      "SamplesAllocatedBytes": [
+        180293336,
+        180293336,
+        180293336
+      ]
+    },
+    {
+      "Scenario": "read-range",
+      "Library": "MiniExcel",
+      "Notes": "Stream used data rows from workbook.",
+      "OutputMetric": 1077929724,
+      "AverageMilliseconds": 132.04136666666668,
+      "MedianMilliseconds": 131.0231,
+      "StandardDeviationMilliseconds": 3.4756325846287717,
+      "StandardErrorMilliseconds": 2.006657408339656,
+      "SamplesMilliseconds": [
+        131.0231,
+        135.9124,
+        129.1886
+      ],
+      "AverageAllocatedBytes": 194517960,
+      "MedianAllocatedBytes": 194517960,
+      "SamplesAllocatedBytes": [
+        194517960,
+        194517960,
+        194517960
+      ]
+    },
+    {
+      "Scenario": "read-range",
+      "Library": "Sylvan.Data.Excel",
+      "Notes": "Forward-only DbDataReader scan over the same workbook payload.",
+      "OutputMetric": 1077929724,
+      "AverageMilliseconds": 41.41453333333333,
+      "MedianMilliseconds": 41.4575,
+      "StandardDeviationMilliseconds": 0.7727464159304359,
+      "StandardErrorMilliseconds": 0.44614535125275573,
+      "SamplesMilliseconds": [
+        42.1649,
+        41.4575,
+        40.6212
+      ],
+      "AverageAllocatedBytes": 408096,
+      "MedianAllocatedBytes": 408096,
+      "SamplesAllocatedBytes": [
+        408096,
+        408096,
+        408096
+      ]
+    },
+    {
+      "Scenario": "read-top-range",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Read the first 100 data rows from a larger sheet.",
+      "OutputMetric": 1806718686,
+      "AverageMilliseconds": 2.018966666666667,
+      "MedianMilliseconds": 1.9973,
+      "StandardDeviationMilliseconds": 0.09085864479141943,
+      "StandardErrorMilliseconds": 0.0524572630285306,
+      "SamplesMilliseconds": [
+        1.9973,
+        1.9409,
+        2.1187
+      ],
+      "AverageAllocatedBytes": 1137621.3333333333,
+      "MedianAllocatedBytes": 1137376,
+      "SamplesAllocatedBytes": [
+        1138112,
+        1137376,
+        1137376
+      ]
+    },
+    {
+      "Scenario": "read-top-range",
+      "Library": "ClosedXML",
+      "Notes": "Read the first 100 data rows from a larger sheet.",
+      "OutputMetric": 1806718686,
+      "AverageMilliseconds": 337.48883333333333,
+      "MedianMilliseconds": 335.921,
+      "StandardDeviationMilliseconds": 6.353821348081284,
+      "StandardErrorMilliseconds": 3.66838046569752,
+      "SamplesMilliseconds": [
+        332.0657,
+        335.921,
+        344.4798
+      ],
+      "AverageAllocatedBytes": 189130888,
+      "MedianAllocatedBytes": 189132208,
+      "SamplesAllocatedBytes": [
+        189127648,
+        189132208,
+        189132808
+      ]
+    },
+    {
+      "Scenario": "read-top-range",
+      "Library": "EPPlus",
+      "Notes": "Read the first 100 data rows from a larger sheet.",
+      "OutputMetric": 1806718686,
+      "AverageMilliseconds": 128.29336666666666,
+      "MedianMilliseconds": 127.7658,
+      "StandardDeviationMilliseconds": 1.689788703753616,
+      "StandardErrorMilliseconds": 0.975599962985739,
+      "SamplesMilliseconds": [
+        130.184,
+        127.7658,
+        126.9303
+      ],
+      "AverageAllocatedBytes": 96516669.33333333,
+      "MedianAllocatedBytes": 96516696,
+      "SamplesAllocatedBytes": [
+        96516696,
+        96516696,
+        96516616
+      ]
+    },
+    {
+      "Scenario": "read-top-range",
+      "Library": "MiniExcel",
+      "Notes": "Stream the first 100 data rows from a larger sheet.",
+      "OutputMetric": 1806718686,
+      "AverageMilliseconds": 0.9260333333333334,
+      "MedianMilliseconds": 0.8046,
+      "StandardDeviationMilliseconds": 0.22618488749987997,
+      "StandardErrorMilliseconds": 0.13058790568468093,
+      "SamplesMilliseconds": [
+        0.7865,
+        1.187,
+        0.8046
+      ],
+      "AverageAllocatedBytes": 923653.3333333334,
+      "MedianAllocatedBytes": 926392,
+      "SamplesAllocatedBytes": [
+        926392,
+        926392,
+        918176
+      ]
+    },
+    {
+      "Scenario": "read-top-range",
+      "Library": "Sylvan.Data.Excel",
+      "Notes": "Forward-only DbDataReader scan of the first 100 data rows.",
+      "OutputMetric": 1806718686,
+      "AverageMilliseconds": 0.4287666666666667,
+      "MedianMilliseconds": 0.4258,
+      "StandardDeviationMilliseconds": 0.024783529476919416,
+      "StandardErrorMilliseconds": 0.01430877741496845,
+      "SamplesMilliseconds": [
+        0.4549,
+        0.4056,
+        0.4258
+      ],
+      "AverageAllocatedBytes": 374232,
+      "MedianAllocatedBytes": 374232,
+      "SamplesAllocatedBytes": [
+        374232,
+        374232,
+        374232
+      ]
+    },
+    {
+      "Scenario": "read-datatable",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Materialize A1 range as a DataTable.",
+      "OutputMetric": 1077929724,
+      "AverageMilliseconds": 318.28473333333335,
+      "MedianMilliseconds": 311.8262,
+      "StandardDeviationMilliseconds": 11.593818990019349,
+      "StandardErrorMilliseconds": 6.693694514823466,
+      "SamplesMilliseconds": [
+        331.6694,
+        311.3586,
+        311.8262
+      ],
+      "AverageAllocatedBytes": 223327408,
+      "MedianAllocatedBytes": 223331936,
+      "SamplesAllocatedBytes": [
+        223312016,
+        223338272,
+        223331936
+      ]
+    },
+    {
+      "Scenario": "read-datatable",
+      "Library": "ClosedXML",
+      "Notes": "Manual DataTable materialization from worksheet rows.",
+      "OutputMetric": 1077929724,
+      "AverageMilliseconds": 368.22613333333334,
+      "MedianMilliseconds": 372.7683,
+      "StandardDeviationMilliseconds": 15.140473599703995,
+      "StandardErrorMilliseconds": 8.741356508447524,
+      "SamplesMilliseconds": [
+        372.7683,
+        380.5756,
+        351.3345
+      ],
+      "AverageAllocatedBytes": 218898949.33333334,
+      "MedianAllocatedBytes": 218899808,
+      "SamplesAllocatedBytes": [
+        218899808,
+        218889792,
+        218907248
+      ]
+    },
+    {
+      "Scenario": "read-datatable",
+      "Library": "EPPlus",
+      "Notes": "Manual DataTable materialization from worksheet rows.",
+      "OutputMetric": 1077929724,
+      "AverageMilliseconds": 190.2295333333333,
+      "MedianMilliseconds": 179.9057,
+      "StandardDeviationMilliseconds": 18.14574732777169,
+      "StandardErrorMilliseconds": 10.476452104335918,
+      "SamplesMilliseconds": [
+        179.9057,
+        211.1817,
+        179.6012
+      ],
+      "AverageAllocatedBytes": 195509320,
+      "MedianAllocatedBytes": 195509320,
+      "SamplesAllocatedBytes": [
+        195509320,
+        195509320,
+        195509320
+      ]
+    },
+    {
+      "Scenario": "read-datatable",
+      "Library": "MiniExcel",
+      "Notes": "Materialize worksheet rows through QueryAsDataTable.",
+      "OutputMetric": 1077929724,
+      "AverageMilliseconds": 165.32273333333333,
+      "MedianMilliseconds": 160.8493,
+      "StandardDeviationMilliseconds": 8.579628538773296,
+      "StandardErrorMilliseconds": 4.953450846407758,
+      "SamplesMilliseconds": [
+        160.8493,
+        175.2146,
+        159.9043
+      ],
+      "AverageAllocatedBytes": 189258624,
+      "MedianAllocatedBytes": 189258624,
+      "SamplesAllocatedBytes": [
+        189258624,
+        189258624,
+        189258624
+      ]
+    },
+    {
+      "Scenario": "read-datatable",
+      "Library": "Sylvan.Data.Excel",
+      "Notes": "Materialize worksheet rows from DbDataReader into a DataTable.",
+      "OutputMetric": 1077929724,
+      "AverageMilliseconds": 53.210366666666665,
+      "MedianMilliseconds": 53.5299,
+      "StandardDeviationMilliseconds": 0.619804262112913,
+      "StandardErrorMilliseconds": 0.35784415757576765,
+      "SamplesMilliseconds": [
+        52.496,
+        53.6052,
+        53.5299
+      ],
+      "AverageAllocatedBytes": 15624080,
+      "MedianAllocatedBytes": 15624080,
+      "SamplesAllocatedBytes": [
+        15624080,
+        15624080,
+        15624080
+      ]
+    },
+    {
+      "Scenario": "read-range-stream",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Stream A1 range in row chunks with automatic execution policy.",
+      "OutputMetric": 1077929724,
+      "AverageMilliseconds": 78.52483333333333,
+      "MedianMilliseconds": 78.5837,
+      "StandardDeviationMilliseconds": 1.3270795655624135,
+      "StandardErrorMilliseconds": 0.7661897444135111,
+      "SamplesMilliseconds": [
+        77.1693,
+        78.5837,
+        79.8215
+      ],
+      "AverageAllocatedBytes": 27717424,
+      "MedianAllocatedBytes": 27717424,
+      "SamplesAllocatedBytes": [
+        27717424,
+        27717424,
+        27717424
+      ]
+    },
+    {
+      "Scenario": "read-range-stream",
+      "Library": "ClosedXML",
+      "Notes": "Iterate used data cells row-by-row.",
+      "OutputMetric": 1077929724,
+      "AverageMilliseconds": 342.3859,
+      "MedianMilliseconds": 338.4897,
+      "StandardDeviationMilliseconds": 10.84278286188558,
+      "StandardErrorMilliseconds": 6.260083604074301,
+      "SamplesMilliseconds": [
+        354.6384,
+        334.0296,
+        338.4897
+      ],
+      "AverageAllocatedBytes": 203678368,
+      "MedianAllocatedBytes": 203677648,
+      "SamplesAllocatedBytes": [
+        203680648,
+        203677648,
+        203676808
+      ]
+    },
+    {
+      "Scenario": "read-range-stream",
+      "Library": "EPPlus",
+      "Notes": "Iterate used data cells row-by-row.",
+      "OutputMetric": 1077929724,
+      "AverageMilliseconds": 161.46686666666665,
+      "MedianMilliseconds": 160.4596,
+      "StandardDeviationMilliseconds": 3.0115061619285064,
+      "StandardErrorMilliseconds": 1.73869389325564,
+      "SamplesMilliseconds": [
+        160.4596,
+        159.0881,
+        164.8529
+      ],
+      "AverageAllocatedBytes": 180293309.33333334,
+      "MedianAllocatedBytes": 180293336,
+      "SamplesAllocatedBytes": [
+        180293336,
+        180293336,
+        180293256
+      ]
+    },
+    {
+      "Scenario": "read-range-stream",
+      "Library": "MiniExcel",
+      "Notes": "Stream used data rows with deferred execution.",
+      "OutputMetric": 1077929724,
+      "AverageMilliseconds": 130.79656666666668,
+      "MedianMilliseconds": 130.1582,
+      "StandardDeviationMilliseconds": 2.0964563108572856,
+      "StandardErrorMilliseconds": 1.2103896154177436,
+      "SamplesMilliseconds": [
+        130.1582,
+        129.0935,
+        133.138
+      ],
+      "AverageAllocatedBytes": 194515194.66666666,
+      "MedianAllocatedBytes": 194517960,
+      "SamplesAllocatedBytes": [
+        194517960,
+        194517960,
+        194509664
+      ]
+    },
+    {
+      "Scenario": "read-range-stream",
+      "Library": "Sylvan.Data.Excel",
+      "Notes": "Forward-only DbDataReader stream over used data rows.",
+      "OutputMetric": 1077929724,
+      "AverageMilliseconds": 42.94636666666667,
+      "MedianMilliseconds": 43.5822,
+      "StandardDeviationMilliseconds": 1.859644343236987,
+      "StandardErrorMilliseconds": 1.0736661621648393,
+      "SamplesMilliseconds": [
+        40.8522,
+        43.5822,
+        44.4047
+      ],
+      "AverageAllocatedBytes": 408096,
+      "MedianAllocatedBytes": 408096,
+      "SamplesAllocatedBytes": [
+        408096,
+        408096,
+        408096
+      ]
+    },
+    {
+      "Scenario": "read-top-range-stream",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Stream the first 100 data rows from a larger sheet.",
+      "OutputMetric": 1806718686,
+      "AverageMilliseconds": 2.090066666666667,
+      "MedianMilliseconds": 2.0746,
+      "StandardDeviationMilliseconds": 0.04954496274429257,
+      "StandardErrorMilliseconds": 0.028604797577407297,
+      "SamplesMilliseconds": [
+        2.0501,
+        2.1455,
+        2.0746
+      ],
+      "AverageAllocatedBytes": 1140928,
+      "MedianAllocatedBytes": 1140928,
+      "SamplesAllocatedBytes": [
+        1140928,
+        1140928,
+        1140928
+      ]
+    },
+    {
+      "Scenario": "read-top-range-stream",
+      "Library": "ClosedXML",
+      "Notes": "Read the first 100 data rows from a larger sheet row-by-row.",
+      "OutputMetric": 1806718686,
+      "AverageMilliseconds": 329.81776666666667,
+      "MedianMilliseconds": 324.2973,
+      "StandardDeviationMilliseconds": 11.25750815115554,
+      "StandardErrorMilliseconds": 6.499525361474057,
+      "SamplesMilliseconds": [
+        322.3861,
+        324.2973,
+        342.7699
+      ],
+      "AverageAllocatedBytes": 189135928,
+      "MedianAllocatedBytes": 189135208,
+      "SamplesAllocatedBytes": [
+        189132928,
+        189135208,
+        189139648
+      ]
+    },
+    {
+      "Scenario": "read-top-range-stream",
+      "Library": "EPPlus",
+      "Notes": "Read the first 100 data rows from a larger sheet row-by-row.",
+      "OutputMetric": 1806718686,
+      "AverageMilliseconds": 126.90413333333333,
+      "MedianMilliseconds": 128.0839,
+      "StandardDeviationMilliseconds": 2.7740558652149265,
+      "StandardErrorMilliseconds": 1.6016019005288982,
+      "SamplesMilliseconds": [
+        123.7352,
+        128.0839,
+        128.8933
+      ],
+      "AverageAllocatedBytes": 96516669.33333333,
+      "MedianAllocatedBytes": 96516696,
+      "SamplesAllocatedBytes": [
+        96516696,
+        96516696,
+        96516616
+      ]
+    },
+    {
+      "Scenario": "read-top-range-stream",
+      "Library": "MiniExcel",
+      "Notes": "Stream the first 100 data rows with deferred execution.",
+      "OutputMetric": 1806718686,
+      "AverageMilliseconds": 0.8114666666666667,
+      "MedianMilliseconds": 0.8132,
+      "StandardDeviationMilliseconds": 0.015871147826585656,
+      "StandardErrorMilliseconds": 0.009163211470027573,
+      "SamplesMilliseconds": [
+        0.8264,
+        0.7948,
+        0.8132
+      ],
+      "AverageAllocatedBytes": 923493.3333333334,
+      "MedianAllocatedBytes": 926232,
+      "SamplesAllocatedBytes": [
+        926232,
+        926232,
+        918016
+      ]
+    },
+    {
+      "Scenario": "read-top-range-stream",
+      "Library": "Sylvan.Data.Excel",
+      "Notes": "Forward-only DbDataReader stream of the first 100 data rows.",
+      "OutputMetric": 1806718686,
+      "AverageMilliseconds": 0.39643333333333336,
+      "MedianMilliseconds": 0.3941,
+      "StandardDeviationMilliseconds": 0.00530031445608027,
+      "StandardErrorMilliseconds": 0.003060137978007609,
+      "SamplesMilliseconds": [
+        0.3927,
+        0.3941,
+        0.4025
+      ],
+      "AverageAllocatedBytes": 374232,
+      "MedianAllocatedBytes": 374232,
+      "SamplesAllocatedBytes": [
+        374232,
+        374232,
+        374232
+      ]
+    },
+    {
+      "Scenario": "large-sparse-column-read",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Read A1:A100001 with only first and last rows populated.",
+      "OutputMetric": 1893721815,
+      "AverageMilliseconds": 1.6383333333333334,
+      "MedianMilliseconds": 1.6349,
+      "StandardDeviationMilliseconds": 0.05503038554592671,
+      "StandardErrorMilliseconds": 0.03177180790854968,
+      "SamplesMilliseconds": [
+        1.6349,
+        1.695,
+        1.5851
+      ],
+      "AverageAllocatedBytes": 295888,
+      "MedianAllocatedBytes": 295888,
+      "SamplesAllocatedBytes": [
+        295888,
+        295888,
+        295888
+      ]
+    },
+    {
+      "Scenario": "large-sparse-column-read",
+      "Library": "ClosedXML",
+      "Notes": "Read A1:A100001 with only first and last rows populated.",
+      "OutputMetric": 1893721815,
+      "AverageMilliseconds": 3.195766666666667,
+      "MedianMilliseconds": 3.2422,
+      "StandardDeviationMilliseconds": 0.10782876857932382,
+      "StandardErrorMilliseconds": 0.06225496856565847,
+      "SamplesMilliseconds": [
+        3.2422,
+        3.0725,
+        3.2726
+      ],
+      "AverageAllocatedBytes": 4498005.333333333,
+      "MedianAllocatedBytes": 4497760,
+      "SamplesAllocatedBytes": [
+        4498496,
+        4497760,
+        4497760
+      ]
+    },
+    {
+      "Scenario": "large-sparse-column-read",
+      "Library": "EPPlus",
+      "Notes": "Read A1:A100001 with only first and last rows populated.",
+      "OutputMetric": 1893721815,
+      "AverageMilliseconds": 30.022133333333333,
+      "MedianMilliseconds": 30.6551,
+      "StandardDeviationMilliseconds": 1.1313232178883859,
+      "StandardErrorMilliseconds": 0.6531697643883333,
+      "SamplesMilliseconds": [
+        30.6551,
+        30.6953,
+        28.716
+      ],
+      "AverageAllocatedBytes": 44104448,
+      "MedianAllocatedBytes": 44104448,
+      "SamplesAllocatedBytes": [
+        44104448,
+        44104448,
+        44104448
+      ]
+    },
+    {
+      "Scenario": "large-sparse-column-read",
+      "Library": "MiniExcel",
+      "Notes": "Stream A1:A100001 with only first and last rows populated.",
+      "OutputMetric": 1893721815,
+      "AverageMilliseconds": 11.603200000000001,
+      "MedianMilliseconds": 11.5668,
+      "StandardDeviationMilliseconds": 0.5826533789484108,
+      "StandardErrorMilliseconds": 0.3363950851801101,
+      "SamplesMilliseconds": [
+        11.0396,
+        11.5668,
+        12.2032
+      ],
+      "AverageAllocatedBytes": 47303293.333333336,
+      "MedianAllocatedBytes": 47306032,
+      "SamplesAllocatedBytes": [
+        47306032,
+        47306032,
+        47297816
+      ]
+    },
+    {
+      "Scenario": "large-sparse-column-read",
+      "Library": "Sylvan.Data.Excel",
+      "Notes": "Forward-only DbDataReader sparse-column scan.",
+      "OutputMetric": 1893721815,
+      "AverageMilliseconds": 0.9899333333333334,
+      "MedianMilliseconds": 0.9383,
+      "StandardDeviationMilliseconds": 0.10477148148868248,
+      "StandardErrorMilliseconds": 0.060489843040886726,
+      "SamplesMilliseconds": [
+        0.9383,
+        0.921,
+        1.1105
+      ],
+      "AverageAllocatedBytes": 324128,
+      "MedianAllocatedBytes": 324128,
+      "SamplesAllocatedBytes": [
+        324128,
+        324128,
+        324128
+      ]
+    },
+    {
+      "Scenario": "large-sparse-row-read",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Read A1:A100001 as rows with only first and last rows populated.",
+      "OutputMetric": 1893721815,
+      "AverageMilliseconds": 1.7227,
+      "MedianMilliseconds": 1.7182,
+      "StandardDeviationMilliseconds": 0.09782765457681177,
+      "StandardErrorMilliseconds": 0.056480822704112,
+      "SamplesMilliseconds": [
+        1.8227,
+        1.6272,
+        1.7182
+      ],
+      "AverageAllocatedBytes": 295960,
+      "MedianAllocatedBytes": 295960,
+      "SamplesAllocatedBytes": [
+        295960,
+        295960,
+        295960
+      ]
+    },
+    {
+      "Scenario": "large-sparse-row-read",
+      "Library": "ClosedXML",
+      "Notes": "Read A1:A100001 as rows with only first and last rows populated.",
+      "OutputMetric": 1893721815,
+      "AverageMilliseconds": 3.0912333333333333,
+      "MedianMilliseconds": 3.0953,
+      "StandardDeviationMilliseconds": 0.12914802876286316,
+      "StandardErrorMilliseconds": 0.07456364917154858,
+      "SamplesMilliseconds": [
+        3.0953,
+        3.2183,
+        2.9601
+      ],
+      "AverageAllocatedBytes": 4497760,
+      "MedianAllocatedBytes": 4497760,
+      "SamplesAllocatedBytes": [
+        4497760,
+        4497760,
+        4497760
+      ]
+    },
+    {
+      "Scenario": "large-sparse-row-read",
+      "Library": "EPPlus",
+      "Notes": "Read A1:A100001 as rows with only first and last rows populated.",
+      "OutputMetric": 1893721815,
+      "AverageMilliseconds": 28.122666666666664,
+      "MedianMilliseconds": 28.6845,
+      "StandardDeviationMilliseconds": 1.3738930247051022,
+      "StandardErrorMilliseconds": 0.79321750765124,
+      "SamplesMilliseconds": [
+        26.5569,
+        28.6845,
+        29.1266
+      ],
+      "AverageAllocatedBytes": 44104448,
+      "MedianAllocatedBytes": 44104448,
+      "SamplesAllocatedBytes": [
+        44104448,
+        44104448,
+        44104448
+      ]
+    },
+    {
+      "Scenario": "large-sparse-row-read",
+      "Library": "MiniExcel",
+      "Notes": "Stream A1:A100001 rows with only first and last rows populated.",
+      "OutputMetric": 1893721815,
+      "AverageMilliseconds": 11.2149,
+      "MedianMilliseconds": 11.1025,
+      "StandardDeviationMilliseconds": 0.3722523472054947,
+      "StandardErrorMilliseconds": 0.21491999286556243,
+      "SamplesMilliseconds": [
+        10.9118,
+        11.1025,
+        11.6304
+      ],
+      "AverageAllocatedBytes": 47303293.333333336,
+      "MedianAllocatedBytes": 47306032,
+      "SamplesAllocatedBytes": [
+        47306032,
+        47306032,
+        47297816
+      ]
+    },
+    {
+      "Scenario": "large-sparse-row-read",
+      "Library": "Sylvan.Data.Excel",
+      "Notes": "Forward-only DbDataReader sparse-row scan.",
+      "OutputMetric": 1893721815,
+      "AverageMilliseconds": 0.9276666666666668,
+      "MedianMilliseconds": 0.9209,
+      "StandardDeviationMilliseconds": 0.02797075854054257,
+      "StandardErrorMilliseconds": 0.016148924972820278,
+      "SamplesMilliseconds": [
+        0.9209,
+        0.9584,
+        0.9037
+      ],
+      "AverageAllocatedBytes": 324128,
+      "MedianAllocatedBytes": 324128,
+      "SamplesAllocatedBytes": [
+        324128,
+        324128,
+        324128
+      ]
+    },
+    {
+      "Scenario": "read-objects",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Typed materialization with ReadObjects\u003CT\u003E.",
+      "OutputMetric": -257963401,
+      "AverageMilliseconds": 350.0776333333333,
+      "MedianMilliseconds": 373.1927,
+      "StandardDeviationMilliseconds": 48.369316580900055,
+      "StandardErrorMilliseconds": 27.926037948500877,
+      "SamplesMilliseconds": [
+        294.4876,
+        382.5526,
+        373.1927
+      ],
+      "AverageAllocatedBytes": 215767269.33333334,
+      "MedianAllocatedBytes": 215801192,
+      "SamplesAllocatedBytes": [
+        215801192,
+        215692056,
+        215808560
+      ]
+    },
+    {
+      "Scenario": "read-objects",
+      "Library": "ClosedXML",
+      "Notes": "Manual typed materialization from worksheet rows.",
+      "OutputMetric": -257963401,
+      "AverageMilliseconds": 425.86476666666664,
+      "MedianMilliseconds": 467.4938,
+      "StandardDeviationMilliseconds": 75.83862832754382,
+      "StandardErrorMilliseconds": 43.7854524798794,
+      "SamplesMilliseconds": [
+        338.3287,
+        471.7718,
+        467.4938
+      ],
+      "AverageAllocatedBytes": 205478050.66666666,
+      "MedianAllocatedBytes": 205481320,
+      "SamplesAllocatedBytes": [
+        205482384,
+        205470448,
+        205481320
+      ]
+    },
+    {
+      "Scenario": "read-objects",
+      "Library": "EPPlus",
+      "Notes": "Manual typed materialization from worksheet rows.",
+      "OutputMetric": -257963401,
+      "AverageMilliseconds": 240.45803333333333,
+      "MedianMilliseconds": 244.9801,
+      "StandardDeviationMilliseconds": 12.828004465361445,
+      "StandardErrorMilliseconds": 7.406251831242153,
+      "SamplesMilliseconds": [
+        250.4126,
+        225.9814,
+        244.9801
+      ],
+      "AverageAllocatedBytes": 192603816,
+      "MedianAllocatedBytes": 192603816,
+      "SamplesAllocatedBytes": [
+        192603816,
+        192603816,
+        192603816
+      ]
+    },
+    {
+      "Scenario": "read-objects",
+      "Library": "MiniExcel",
+      "Notes": "Typed row materialization through Query\u003CT\u003E.",
+      "OutputMetric": -257963401,
+      "AverageMilliseconds": 196.94086666666666,
+      "MedianMilliseconds": 199.11,
+      "StandardDeviationMilliseconds": 9.151575244368225,
+      "StandardErrorMilliseconds": 5.28366443084511,
+      "SamplesMilliseconds": [
+        199.11,
+        186.8996,
+        204.813
+      ],
+      "AverageAllocatedBytes": 191162304,
+      "MedianAllocatedBytes": 191162304,
+      "SamplesAllocatedBytes": [
+        191162304,
+        191162304,
+        191162304
+      ]
+    },
+    {
+      "Scenario": "read-objects",
+      "Library": "Sylvan.Data.Excel",
+      "Notes": "Manual typed materialization from DbDataReader.",
+      "OutputMetric": -257963401,
+      "AverageMilliseconds": 63.73166666666666,
+      "MedianMilliseconds": 64.7859,
+      "StandardDeviationMilliseconds": 6.285709096301966,
+      "StandardErrorMilliseconds": 3.6290558387976195,
+      "SamplesMilliseconds": [
+        64.7859,
+        56.9855,
+        69.4236
+      ],
+      "AverageAllocatedBytes": 2208096,
+      "MedianAllocatedBytes": 2208096,
+      "SamplesAllocatedBytes": [
+        2208096,
+        2208096,
+        2208096
+      ]
+    },
+    {
+      "Scenario": "read-objects-stream",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Streaming typed materialization with ReadObjectsStream\u003CT\u003E.",
+      "OutputMetric": 2062179120,
+      "AverageMilliseconds": 84.0965,
+      "MedianMilliseconds": 81.7051,
+      "StandardDeviationMilliseconds": 4.217681959323151,
+      "StandardErrorMilliseconds": 2.43507981457145,
+      "SamplesMilliseconds": [
+        81.618,
+        81.7051,
+        88.9664
+      ],
+      "AverageAllocatedBytes": 10596040,
+      "MedianAllocatedBytes": 10596040,
+      "SamplesAllocatedBytes": [
+        10596040,
+        10596040,
+        10596040
+      ]
+    },
+    {
+      "Scenario": "read-objects-stream",
+      "Library": "ClosedXML",
+      "Notes": "Manual typed materialization from worksheet rows.",
+      "OutputMetric": -257963401,
+      "AverageMilliseconds": 467.4320333333333,
+      "MedianMilliseconds": 475.5264,
+      "StandardDeviationMilliseconds": 26.04772743183817,
+      "StandardErrorMilliseconds": 15.038662444549766,
+      "SamplesMilliseconds": [
+        475.5264,
+        438.2981,
+        488.4716
+      ],
+      "AverageAllocatedBytes": 205475533.33333334,
+      "MedianAllocatedBytes": 205475144,
+      "SamplesAllocatedBytes": [
+        205475144,
+        205476328,
+        205475128
+      ]
+    },
+    {
+      "Scenario": "read-objects-stream",
+      "Library": "EPPlus",
+      "Notes": "Manual typed materialization from worksheet rows.",
+      "OutputMetric": -257963401,
+      "AverageMilliseconds": 232.96963333333335,
+      "MedianMilliseconds": 231.2487,
+      "StandardDeviationMilliseconds": 5.165763628287041,
+      "StandardErrorMilliseconds": 2.9824550213615013,
+      "SamplesMilliseconds": [
+        228.884,
+        238.7762,
+        231.2487
+      ],
+      "AverageAllocatedBytes": 192603789.33333334,
+      "MedianAllocatedBytes": 192603816,
+      "SamplesAllocatedBytes": [
+        192603816,
+        192603816,
+        192603736
+      ]
+    },
+    {
+      "Scenario": "read-objects-stream",
+      "Library": "MiniExcel",
+      "Notes": "Streaming typed materialization through deferred Query\u003CT\u003E.",
+      "OutputMetric": -257963401,
+      "AverageMilliseconds": 190.20786666666666,
+      "MedianMilliseconds": 189.4819,
+      "StandardDeviationMilliseconds": 7.148749807017539,
+      "StandardErrorMilliseconds": 4.127332625450862,
+      "SamplesMilliseconds": [
+        183.4498,
+        189.4819,
+        197.6919
+      ],
+      "AverageAllocatedBytes": 191159565.33333334,
+      "MedianAllocatedBytes": 191162304,
+      "SamplesAllocatedBytes": [
+        191162304,
+        191162304,
+        191154088
+      ]
+    },
+    {
+      "Scenario": "read-objects-stream",
+      "Library": "Sylvan.Data.Excel",
+      "Notes": "Forward-only typed materialization from DbDataReader.",
+      "OutputMetric": -257963401,
+      "AverageMilliseconds": 56.3401,
+      "MedianMilliseconds": 58.9102,
+      "StandardDeviationMilliseconds": 4.565899553209643,
+      "StandardErrorMilliseconds": 2.63612333613838,
+      "SamplesMilliseconds": [
+        51.0684,
+        58.9102,
+        59.0417
+      ],
+      "AverageAllocatedBytes": 2208096,
+      "MedianAllocatedBytes": 2208096,
+      "SamplesAllocatedBytes": [
+        2208096,
+        2208096,
+        2208096
+      ]
+    },
+    {
+      "Scenario": "autofit-existing",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Load existing workbook, autofit columns, save.",
+      "OutputMetric": 1419181,
+      "AverageMilliseconds": 538.5592,
+      "MedianMilliseconds": 546.7183,
+      "StandardDeviationMilliseconds": 33.634932132085545,
+      "StandardErrorMilliseconds": 19.419137120634385,
+      "SamplesMilliseconds": [
+        501.5953,
+        567.364,
+        546.7183
+      ],
+      "AverageAllocatedBytes": 139414466.66666666,
+      "MedianAllocatedBytes": 139414456,
+      "SamplesAllocatedBytes": [
+        139414456,
+        139414456,
+        139414488
+      ]
+    },
+    {
+      "Scenario": "autofit-existing",
+      "Library": "ClosedXML",
+      "Notes": "Load existing workbook, autofit columns, save.",
+      "OutputMetric": 1168289,
+      "AverageMilliseconds": 1862.2254,
+      "MedianMilliseconds": 1881.4748,
+      "StandardDeviationMilliseconds": 72.24797293232524,
+      "StandardErrorMilliseconds": 41.712386620882775,
+      "SamplesMilliseconds": [
+        1881.4748,
+        1922.8991,
+        1782.3023
+      ],
+      "AverageAllocatedBytes": 849906048,
+      "MedianAllocatedBytes": 849902360,
+      "SamplesAllocatedBytes": [
+        849913584,
+        849902200,
+        849902360
+      ]
+    },
+    {
+      "Scenario": "autofit-existing",
+      "Library": "EPPlus",
+      "Notes": "Load existing workbook, autofit columns, save.",
+      "OutputMetric": 1117162,
+      "AverageMilliseconds": 522.0245666666666,
+      "MedianMilliseconds": 541.9354,
+      "StandardDeviationMilliseconds": 34.540022498882834,
+      "StandardErrorMilliseconds": 19.941691287545737,
+      "SamplesMilliseconds": [
+        482.1412,
+        541.9354,
+        541.9971
+      ],
+      "AverageAllocatedBytes": 256971586.66666666,
+      "MedianAllocatedBytes": 256970856,
+      "SamplesAllocatedBytes": [
+        256970856,
+        256970856,
+        256973048
+      ]
+    },
+    {
+      "Scenario": "large-shared-strings",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Write repeated and distinct text-heavy cells.",
+      "OutputMetric": 532778,
+      "AverageMilliseconds": 22.117266666666666,
+      "MedianMilliseconds": 20.8387,
+      "StandardDeviationMilliseconds": 2.2184406828521093,
+      "StandardErrorMilliseconds": 1.2808173254258826,
+      "SamplesMilliseconds": [
+        20.8342,
+        24.6789,
+        20.8387
+      ],
+      "AverageAllocatedBytes": 20967696,
+      "MedianAllocatedBytes": 20967696,
+      "SamplesAllocatedBytes": [
+        20967696,
+        20967696,
+        20967696
+      ]
+    },
+    {
+      "Scenario": "large-shared-strings",
+      "Library": "ClosedXML",
+      "Notes": "Write repeated and distinct text-heavy cells.",
+      "OutputMetric": 471143,
+      "AverageMilliseconds": 139.09086666666667,
+      "MedianMilliseconds": 145.1539,
+      "StandardDeviationMilliseconds": 12.623313836046913,
+      "StandardErrorMilliseconds": 7.288073641306813,
+      "SamplesMilliseconds": [
+        124.5799,
+        145.1539,
+        147.5388
+      ],
+      "AverageAllocatedBytes": 106743072,
+      "MedianAllocatedBytes": 106743072,
+      "SamplesAllocatedBytes": [
+        106743072,
+        106743072,
+        106743072
+      ]
+    },
+    {
+      "Scenario": "large-shared-strings",
+      "Library": "EPPlus",
+      "Notes": "Write repeated and distinct text-heavy cells.",
+      "OutputMetric": 455388,
+      "AverageMilliseconds": 140.95406666666665,
+      "MedianMilliseconds": 142.0968,
+      "StandardDeviationMilliseconds": 4.489336789920447,
+      "StandardErrorMilliseconds": 2.5919198041434606,
+      "SamplesMilliseconds": [
+        142.0968,
+        136.0038,
+        144.7616
+      ],
+      "AverageAllocatedBytes": 86436197.33333333,
+      "MedianAllocatedBytes": 86436376,
+      "SamplesAllocatedBytes": [
+        86436376,
+        86435840,
+        86436376
+      ]
+    },
+    {
+      "Scenario": "large-shared-strings",
+      "Library": "MiniExcel",
+      "Notes": "Streaming export of repeated and distinct text-heavy cells.",
+      "OutputMetric": 594917,
+      "AverageMilliseconds": 37.28236666666666,
+      "MedianMilliseconds": 37.6911,
+      "StandardDeviationMilliseconds": 5.831253506179724,
+      "StandardErrorMilliseconds": 3.366675781505813,
+      "SamplesMilliseconds": [
+        37.6911,
+        42.8985,
+        31.2575
+      ],
+      "AverageAllocatedBytes": 75530496,
+      "MedianAllocatedBytes": 75530496,
+      "SamplesAllocatedBytes": [
+        75530496,
+        75530496,
+        75530496
+      ]
+    },
+    {
+      "Scenario": "formula-heavy-read",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Read formula text with cached formula results disabled.",
+      "OutputMetric": 56816628,
+      "AverageMilliseconds": 39.09353333333333,
+      "MedianMilliseconds": 37.9534,
+      "StandardDeviationMilliseconds": 4.064748087315294,
+      "StandardErrorMilliseconds": 2.346783402399502,
+      "SamplesMilliseconds": [
+        43.6066,
+        35.7206,
+        37.9534
+      ],
+      "AverageAllocatedBytes": 15845832,
+      "MedianAllocatedBytes": 15845832,
+      "SamplesAllocatedBytes": [
+        15845832,
+        15845832,
+        15845832
+      ]
+    },
+    {
+      "Scenario": "formula-heavy-read",
+      "Library": "ClosedXML",
+      "Notes": "Read formula A1 text from formula cells.",
+      "OutputMetric": 56816628,
+      "AverageMilliseconds": 265.0138,
+      "MedianMilliseconds": 264.2912,
+      "StandardDeviationMilliseconds": 2.844393285043426,
+      "StandardErrorMilliseconds": 1.642211228800986,
+      "SamplesMilliseconds": [
+        264.2912,
+        262.6004,
+        268.1498
+      ],
+      "AverageAllocatedBytes": 91986176,
+      "MedianAllocatedBytes": 91986176,
+      "SamplesAllocatedBytes": [
+        91986176,
+        91986176,
+        91986176
+      ]
+    },
+    {
+      "Scenario": "formula-heavy-read",
+      "Library": "EPPlus",
+      "Notes": "Read formula text from formula cells.",
+      "OutputMetric": 56816628,
+      "AverageMilliseconds": 121.16090000000001,
+      "MedianMilliseconds": 123.8491,
+      "StandardDeviationMilliseconds": 12.124603722596465,
+      "StandardErrorMilliseconds": 7.0001432230586085,
+      "SamplesMilliseconds": [
+        107.9178,
+        131.7158,
+        123.8491
+      ],
+      "AverageAllocatedBytes": 77601752,
+      "MedianAllocatedBytes": 77601752,
+      "SamplesAllocatedBytes": [
+        77601752,
+        77601752,
+        77601752
+      ]
+    },
+    {
+      "Scenario": "shared-string-read",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Read repeated shared string payload.",
+      "OutputMetric": 1835164459,
+      "AverageMilliseconds": 71.02876666666667,
+      "MedianMilliseconds": 73.4022,
+      "StandardDeviationMilliseconds": 4.58758772813483,
+      "StandardErrorMilliseconds": 2.648645009769668,
+      "SamplesMilliseconds": [
+        73.9434,
+        65.7407,
+        73.4022
+      ],
+      "AverageAllocatedBytes": 26609368,
+      "MedianAllocatedBytes": 26609368,
+      "SamplesAllocatedBytes": [
+        26609368,
+        26609368,
+        26609368
+      ]
+    },
+    {
+      "Scenario": "shared-string-read",
+      "Library": "ClosedXML",
+      "Notes": "Read repeated shared string payload.",
+      "OutputMetric": 1835164459,
+      "AverageMilliseconds": 266.4305333333333,
+      "MedianMilliseconds": 281.013,
+      "StandardDeviationMilliseconds": 30.247412758339053,
+      "StandardErrorMilliseconds": 17.463351898316773,
+      "SamplesMilliseconds": [
+        286.6242,
+        281.013,
+        231.6544
+      ],
+      "AverageAllocatedBytes": 114668984,
+      "MedianAllocatedBytes": 114668984,
+      "SamplesAllocatedBytes": [
+        114668984,
+        114668984,
+        114668984
+      ]
+    },
+    {
+      "Scenario": "shared-string-read",
+      "Library": "EPPlus",
+      "Notes": "Read repeated shared string payload.",
+      "OutputMetric": 1835164459,
+      "AverageMilliseconds": 111.8154,
+      "MedianMilliseconds": 111.2299,
+      "StandardDeviationMilliseconds": 4.02263557757846,
+      "StandardErrorMilliseconds": 2.3224697335666895,
+      "SamplesMilliseconds": [
+        108.1176,
+        111.2299,
+        116.0987
+      ],
+      "AverageAllocatedBytes": 100912624,
+      "MedianAllocatedBytes": 100912624,
+      "SamplesAllocatedBytes": [
+        100912624,
+        100912624,
+        100912624
+      ]
+    },
+    {
+      "Scenario": "shared-string-read",
+      "Library": "MiniExcel",
+      "Notes": "Stream repeated shared string payload.",
+      "OutputMetric": 1835164459,
+      "AverageMilliseconds": 83.99866666666667,
+      "MedianMilliseconds": 85.2284,
+      "StandardDeviationMilliseconds": 3.6354860821262083,
+      "StandardErrorMilliseconds": 2.0989488681507043,
+      "SamplesMilliseconds": [
+        86.8598,
+        85.2284,
+        79.9078
+      ],
+      "AverageAllocatedBytes": 98368061.33333333,
+      "MedianAllocatedBytes": 98370800,
+      "SamplesAllocatedBytes": [
+        98370800,
+        98370800,
+        98362584
+      ]
+    },
+    {
+      "Scenario": "shared-string-read",
+      "Library": "Sylvan.Data.Excel",
+      "Notes": "Forward-only DbDataReader read of repeated shared string payload.",
+      "OutputMetric": 1835164459,
+      "AverageMilliseconds": 30.521533333333334,
+      "MedianMilliseconds": 30.4821,
+      "StandardDeviationMilliseconds": 0.7404379537363899,
+      "StandardErrorMilliseconds": 0.4274920519079204,
+      "SamplesMilliseconds": [
+        29.8016,
+        31.2809,
+        30.4821
+      ],
+      "AverageAllocatedBytes": 2502496,
+      "MedianAllocatedBytes": 2502496,
+      "SamplesAllocatedBytes": [
+        2502496,
+        2502496,
+        2502496
+      ]
+    },
+    {
+      "Scenario": "write-bulk-report",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x manual row population, add table, autofit, save.",
+      "OutputMetric": 1115510,
+      "AverageMilliseconds": 589.046,
+      "MedianMilliseconds": 594.9759,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        594.9759,
+        531.0478,
+        641.1143
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "write-dataset-tables",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x import prepared DataTables as two styled worksheet tables and save.",
+      "OutputMetric": 1125150,
+      "AverageMilliseconds": 279.6223333333333,
+      "MedianMilliseconds": 276.2196,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        292.0241,
+        270.6233,
+        276.2196
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "write-datatable-direct",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x import a prepared DataTable and save.",
+      "OutputMetric": 1115288,
+      "AverageMilliseconds": 282.34043333333335,
+      "MedianMilliseconds": 281.3569,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        268.7028,
+        281.3569,
+        296.9616
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "write-datatable-table-direct",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x import a prepared DataTable as a styled worksheet table and save.",
+      "OutputMetric": 1115289,
+      "AverageMilliseconds": 306.70056666666665,
+      "MedianMilliseconds": 309.1719,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        295.8373,
+        309.1719,
+        315.0925
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "write-datareader-table-direct",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x import equivalent prepared data as a styled worksheet table and save.",
+      "OutputMetric": 1115289,
+      "AverageMilliseconds": 281.54530000000005,
+      "MedianMilliseconds": 275.2823,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        305.9701,
+        275.2823,
+        263.3835
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "write-cellvalues-rectangle-direct",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x write the same complete A1 rectangle and save.",
+      "OutputMetric": 1114428,
+      "AverageMilliseconds": 294.1684666666667,
+      "MedianMilliseconds": 299.4175,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        304.3761,
+        299.4175,
+        278.7118
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "write-insertobjects-direct",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x import equivalent typed object data and save.",
+      "OutputMetric": 1115288,
+      "AverageMilliseconds": 273.8360333333333,
+      "MedianMilliseconds": 281.6969,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        292.8394,
+        281.6969,
+        246.9718
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "write-fluent-rowsfrom-direct",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x import equivalent typed row data and save.",
+      "OutputMetric": 1115288,
+      "AverageMilliseconds": 254.83513333333335,
+      "MedianMilliseconds": 256.9667,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        259.8928,
+        256.9667,
+        247.6459
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "append-plain-rows",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x append equivalent row/cell values.",
+      "OutputMetric": 536492,
+      "AverageMilliseconds": 128.73456666666667,
+      "MedianMilliseconds": 127.5453,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        134.4529,
+        127.5453,
+        124.2055
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "read-range",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x iterate used data cells from workbook.",
+      "OutputMetric": 1077929724,
+      "AverageMilliseconds": 206.60806666666667,
+      "MedianMilliseconds": 193.6334,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        232.7779,
+        193.6334,
+        193.4129
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "read-top-range",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x read the first 100 data rows from a larger sheet.",
+      "OutputMetric": 1806718686,
+      "AverageMilliseconds": 168.81570000000002,
+      "MedianMilliseconds": 168.5515,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        161.7985,
+        168.5515,
+        176.0971
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "read-datatable",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x manual DataTable materialization from worksheet rows.",
+      "OutputMetric": 1077929724,
+      "AverageMilliseconds": 216.64466666666667,
+      "MedianMilliseconds": 204.1477,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        241.8474,
+        203.9389,
+        204.1477
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "read-range-stream",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x iterate used data cells row-by-row.",
+      "OutputMetric": 1077929724,
+      "AverageMilliseconds": 194.2741,
+      "MedianMilliseconds": 200.948,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        200.948,
+        180.8677,
+        201.0066
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "read-top-range-stream",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x read the first 100 data rows from a larger sheet row-by-row.",
+      "OutputMetric": 1806718686,
+      "AverageMilliseconds": 163.4767,
+      "MedianMilliseconds": 160.2692,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        160.2692,
+        156.0733,
+        174.0876
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "large-sparse-column-read",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x read A1:A100001 with only first and last rows populated.",
+      "OutputMetric": 1893721815,
+      "AverageMilliseconds": 11.3448,
+      "MedianMilliseconds": 12.0135,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        9.7151,
+        12.3058,
+        12.0135
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "large-sparse-row-read",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x read A1:A100001 as rows with only first and last rows populated.",
+      "OutputMetric": 1893721815,
+      "AverageMilliseconds": 15.235933333333334,
+      "MedianMilliseconds": 15.3883,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        15.648,
+        14.6715,
+        15.3883
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "read-objects",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x manual typed materialization from worksheet rows.",
+      "OutputMetric": -257963401,
+      "AverageMilliseconds": 196.6005,
+      "MedianMilliseconds": 192.1171,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        206.2758,
+        191.4086,
+        192.1171
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "read-objects-stream",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x manual typed materialization from worksheet rows.",
+      "OutputMetric": -257963401,
+      "AverageMilliseconds": 205.09543333333332,
+      "MedianMilliseconds": 200.4238,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        222.3144,
+        200.4238,
+        192.5481
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "autofit-existing",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x load existing workbook, autofit columns, save.",
+      "OutputMetric": 1115510,
+      "AverageMilliseconds": 736.3374,
+      "MedianMilliseconds": 734.9453,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        734.9453,
+        716.9402,
+        757.1267
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "large-shared-strings",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x write repeated and distinct text-heavy cells.",
+      "OutputMetric": 453674,
+      "AverageMilliseconds": 105.19259999999998,
+      "MedianMilliseconds": 106.167,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        106.167,
+        100.6426,
+        108.7682
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "formula-heavy-read",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x read formula text from formula cells.",
+      "OutputMetric": 56816628,
+      "AverageMilliseconds": 79.28326666666666,
+      "MedianMilliseconds": 75.8807,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        86.4316,
+        75.8807,
+        75.5375
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "shared-string-read",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x read repeated shared string payload.",
+      "OutputMetric": 1835164459,
+      "AverageMilliseconds": 94.46246666666667,
+      "MedianMilliseconds": 95.6748,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        96.7814,
+        90.9312,
+        95.6748
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    }
+  ]
+}

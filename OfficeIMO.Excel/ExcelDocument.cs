@@ -316,6 +316,7 @@ namespace OfficeIMO.Excel {
         private bool _packageDirty = true;
         private bool _packagePropertiesDirty;
         private bool _preserveDirectDataSetSaveCandidateForNextDirtyMark;
+        private int _directDataSetSaveCandidatePreservationDepth;
         private byte[]? _unchangedPackageBytes;
         private bool _simplePackageContentKnown;
         private DirectDataSetSaveCandidate? _directDataSetSaveCandidate;
@@ -336,10 +337,14 @@ namespace OfficeIMO.Excel {
         internal void MarkPackageDirty() {
             _packageDirty = true;
             _unchangedPackageBytes = null;
+            bool preserveDirectCandidate = _preserveDirectDataSetSaveCandidateForNextDirtyMark
+                || _directDataSetSaveCandidatePreservationDepth > 0;
             try {
-                if (_directDataSetSaveCandidate?.IsDeferred == true && !_materializingDeferredDataSetImport) {
+                if (_directDataSetSaveCandidate?.IsDeferred == true
+                    && !_materializingDeferredDataSetImport
+                    && !preserveDirectCandidate) {
                     MaterializeDeferredDataSetImport();
-                } else if (!_preserveDirectDataSetSaveCandidateForNextDirtyMark) {
+                } else if (!preserveDirectCandidate) {
                     ClearDirectDataSetSaveCandidate();
                 }
             } finally {
@@ -356,8 +361,35 @@ namespace OfficeIMO.Excel {
 
         internal bool HasPackagePropertiesDirty => _packagePropertiesDirty;
 
+        internal bool IsMaterializingDeferredDataSetImport => _materializingDeferredDataSetImport;
+
         internal void PreserveDirectDataSetSaveCandidateForNextDirtyMark() {
             _preserveDirectDataSetSaveCandidateForNextDirtyMark = true;
+        }
+
+        internal IDisposable PreserveDirectDataSetSaveCandidateDuringDirtyMarks() {
+            _directDataSetSaveCandidatePreservationDepth++;
+            return new DirectDataSetSaveCandidatePreservationScope(this);
+        }
+
+        private sealed class DirectDataSetSaveCandidatePreservationScope : IDisposable {
+            private ExcelDocument? _document;
+
+            internal DirectDataSetSaveCandidatePreservationScope(ExcelDocument document) {
+                _document = document;
+            }
+
+            public void Dispose() {
+                var document = _document;
+                if (document == null) {
+                    return;
+                }
+
+                _document = null;
+                if (document._directDataSetSaveCandidatePreservationDepth > 0) {
+                    document._directDataSetSaveCandidatePreservationDepth--;
+                }
+            }
         }
 
         private static async Task<byte[]> ReadAllBytesCompatAsync(string path, CancellationToken ct) {

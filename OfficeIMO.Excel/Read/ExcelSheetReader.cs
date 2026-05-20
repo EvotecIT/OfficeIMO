@@ -115,6 +115,7 @@ namespace OfficeIMO.Excel {
         private bool HasWorksheetPartStreamContent() {
             try {
                 using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                RewindWorksheetStream(stream);
                 return !stream.CanSeek || stream.Length > 0;
             } catch (IOException) {
                 return false;
@@ -122,6 +123,12 @@ namespace OfficeIMO.Excel {
                 return false;
             } catch (ObjectDisposedException) {
                 return false;
+            }
+        }
+
+        private static void RewindWorksheetStream(Stream stream) {
+            if (stream.CanSeek) {
+                stream.Position = 0;
             }
         }
 
@@ -279,7 +286,8 @@ namespace OfficeIMO.Excel {
             }
 
             if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && _styles.IsDateLike(styleIndex.Value)) {
-                if (double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var oa)) {
+                if (TryParseInvariantDoubleFast(rawText, out var oa)
+                    || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa)) {
                     value = DateTime.FromOADate(oa);
                 } else {
                     value = rawText;
@@ -289,12 +297,12 @@ namespace OfficeIMO.Excel {
             }
 
             if (_opt.NumericAsDecimal) {
-                if (decimal.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out var dec)) {
+                if (TryParseRawDecimal(rawText, out var dec)) {
                     value = dec;
                     return true;
                 }
 
-                if (double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out var dbl)) {
+                if (TryParseRawDouble(rawText, out var dbl)) {
                     value = dbl;
                     return true;
                 }
@@ -303,7 +311,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out var num)) {
+            if (TryParseRawDouble(rawText, out var num)) {
                 value = num;
             } else {
                 value = rawText;
@@ -337,6 +345,90 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
+        private static bool TryParseInvariantDoubleFast(string? rawText, out double value) {
+            value = 0;
+            if (string.IsNullOrEmpty(rawText)) {
+                return false;
+            }
+
+            string text = rawText!;
+            int length = text.Length;
+            int index = 0;
+            bool negative = false;
+            if (text[0] == '-') {
+                negative = true;
+                index = 1;
+                if (index == length) {
+                    return false;
+                }
+            } else if (text[0] == '+') {
+                index = 1;
+                if (index == length) {
+                    return false;
+                }
+            }
+
+            long whole = 0;
+            bool hasDigit = false;
+            for (; index < length; index++) {
+                char ch = text[index];
+                int digit = ch - '0';
+                if ((uint)digit > 9U) {
+                    break;
+                }
+
+                if (whole > (long.MaxValue - digit) / 10) {
+                    return false;
+                }
+
+                whole = (whole * 10) + digit;
+                hasDigit = true;
+            }
+
+            double parsed = whole;
+            if (index < length && text[index] == '.') {
+                index++;
+                double scale = 0.1D;
+                for (; index < length; index++) {
+                    char ch = text[index];
+                    int digit = ch - '0';
+                    if ((uint)digit > 9U) {
+                        break;
+                    }
+
+                    parsed += digit * scale;
+                    scale *= 0.1D;
+                    hasDigit = true;
+                }
+            }
+
+            if (!hasDigit || index != length) {
+                return false;
+            }
+
+            value = negative ? -parsed : parsed;
+            return true;
+        }
+
+        private bool TryParseRawDouble(string rawText, out double value) {
+            if (_opt.Culture != CultureInfo.InvariantCulture
+                && double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out value)) {
+                return true;
+            }
+
+            return TryParseInvariantDoubleFast(rawText, out value)
+                || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value);
+        }
+
+        private bool TryParseRawDecimal(string rawText, out decimal value) {
+            if (decimal.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out value)) {
+                return true;
+            }
+
+            return _opt.Culture != CultureInfo.InvariantCulture
+                && decimal.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value);
+        }
+
         private object? ConvertByHints(CellValues? type, uint? styleIndex, string? rawText, string? inlineText) {
             // Custom converter hook (cell-level). If provided and handled, honor it.
             var hook = _opt.CellValueConverter;
@@ -355,17 +447,18 @@ namespace OfficeIMO.Excel {
 
             if (type == CellValues.Number && rawText != null) {
                 if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && _styles.IsDateLike(styleIndex.Value)) {
-                    if (double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var oa))
+                    if (TryParseInvariantDoubleFast(rawText, out var oa)
+                        || double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
                         return System.DateTime.FromOADate(oa);
                 }
                 if (_opt.NumericAsDecimal) {
-                    if (decimal.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, _opt.Culture, out var dec))
+                    if (TryParseRawDecimal(rawText, out var dec))
                         return dec;
-                    if (double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, _opt.Culture, out var dbl))
+                    if (TryParseRawDouble(rawText, out var dbl))
                         return dbl;
                     return rawText;
                 } else {
-                    if (double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, _opt.Culture, out var num))
+                    if (TryParseRawDouble(rawText, out var num))
                         return num;
                 }
                 return rawText;
@@ -385,18 +478,19 @@ namespace OfficeIMO.Excel {
 
             if (rawText != null) {
                 if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && _styles.IsDateLike(styleIndex.Value)) {
-                    if (double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var oa))
+                    if (TryParseInvariantDoubleFast(rawText, out var oa)
+                        || double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
                         return System.DateTime.FromOADate(oa);
                     return rawText;
                 }
 
                 if (_opt.NumericAsDecimal) {
-                    if (decimal.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, _opt.Culture, out var dec2))
+                    if (TryParseRawDecimal(rawText, out var dec2))
                         return dec2;
-                    if (double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, _opt.Culture, out var dbl2))
+                    if (TryParseRawDouble(rawText, out var dbl2))
                         return dbl2;
                 } else {
-                    if (double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, _opt.Culture, out var num))
+                    if (TryParseRawDouble(rawText, out var num))
                         return num;
                 }
                 return rawText;

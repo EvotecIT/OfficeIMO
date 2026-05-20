@@ -332,6 +332,16 @@ namespace OfficeIMO.Excel {
                 }
 
                 uint columnsCount = (uint)(endColumnIndex - startColumnIndex + 1);
+                bool canUseDirectCandidateRange = _excelDocument.TryGetDirectTabularSaveCandidateHeaders(
+                    this,
+                    range,
+                    hasHeader,
+                    out IReadOnlyList<string>? directCandidateHeaders);
+                if (canUseDirectCandidateRange) {
+                    ensureRangeCellsExist = false;
+                    skipExistingTableScan = true;
+                    headerNames ??= directCandidateHeaders;
+                }
 
                 if (!skipExistingTableScan) {
                     foreach (var existingPart in _worksheetPart.TableDefinitionParts) {
@@ -435,7 +445,7 @@ namespace OfficeIMO.Excel {
                         ? !string.Equals(headerValue, candidate, System.StringComparison.Ordinal)
                         : (!headerCellIsSharedString || !string.Equals(headerValue, candidate, System.StringComparison.Ordinal));
                     if (hasHeader && shouldRewriteHeader) {
-                        _excelDocument.PreserveDirectDataSetSaveCandidateForNextDirtyMark();
+                        using var preserveDirectCandidate = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
                         CellValueCore(startRowIndex, startColumnIndex + (int)i, candidate);
                     }
                 }

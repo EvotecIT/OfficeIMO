@@ -30,7 +30,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 distinct ??= new HashSet<string>(StringComparer.Ordinal);
-                distinct.Add(prepared[i].Val?.Text ?? string.Empty);
+                distinct.Add(GetPreparedText(prepared[i].Val));
             }
 
             if (distinct == null || distinct.Count == 0) {
@@ -49,7 +49,7 @@ namespace OfficeIMO.Excel {
             if (prepared.Type?.Value != DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) return;
 
             // prepared.Val.Text currently holds the raw string; replace with index text
-            var text = prepared.Val?.Text ?? string.Empty;
+            var text = GetPreparedText(prepared.Val);
             if (_finalIndex.TryGetValue(text, out int idx)) {
                 prepared.Val = new CellValue(idx.ToString(CultureInfo.InvariantCulture));
             } else {
@@ -69,6 +69,10 @@ namespace OfficeIMO.Excel {
             for (int i = 0; i < prepared.Length; i++) {
                 Fixup(ref prepared[i]);
             }
+        }
+
+        private static string GetPreparedText(CellValue? value) {
+            return value?.InnerText ?? string.Empty;
         }
     }
 }

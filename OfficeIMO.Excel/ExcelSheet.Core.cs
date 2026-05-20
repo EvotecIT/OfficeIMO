@@ -360,6 +360,7 @@ namespace OfficeIMO.Excel {
                 action();
                 MarkRequiresSavePreparation();
             } else {
+                _excelDocument.MaterializeDeferredDataSetImport();
                 WriteLock(action);
             }
         }

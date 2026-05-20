@@ -199,6 +199,96 @@ namespace OfficeIMO.Excel {
             return hasNonZeroRowDigit ? col : 0;
         }
 
+        internal static int ParseColumnIndexFromCellReferenceWithKnownRowFast(string? cellRef) {
+            if (string.IsNullOrEmpty(cellRef)) return 0;
+
+            string text = cellRef!;
+            int length = text.Length;
+            char first = text[0];
+            char last = text[length - 1];
+            if (!char.IsWhiteSpace(first) && last >= '0' && last <= '9') {
+                int commonIndex = 0;
+                int commonCol = 0;
+                for (; commonIndex < length; commonIndex++) {
+                    char ch = ToUpperAscii(text[commonIndex]);
+                    if (ch < 'A' || ch > 'Z') {
+                        break;
+                    }
+
+                    int value = ch - 'A' + 1;
+                    if (commonCol > (int.MaxValue - value) / 26) {
+                        return 0;
+                    }
+
+                    commonCol = (commonCol * 26) + value;
+                }
+
+                if (commonIndex == 0 || commonIndex == length) {
+                    return 0;
+                }
+
+                bool commonHasNonZeroRowDigit = false;
+                for (; commonIndex < length; commonIndex++) {
+                    char ch = text[commonIndex];
+                    if (ch < '0' || ch > '9') {
+                        return 0;
+                    }
+
+                    commonHasNonZeroRowDigit |= ch != '0';
+                }
+
+                return commonHasNonZeroRowDigit ? commonCol : 0;
+            }
+
+            int index = 0;
+            while (index < length && char.IsWhiteSpace(text[index])) {
+                index++;
+            }
+
+            int col = 0;
+            int letterStart = index;
+            for (; index < length; index++) {
+                char ch = ToUpperAscii(text[index]);
+                if (ch < 'A' || ch > 'Z') {
+                    break;
+                }
+
+                int value = ch - 'A' + 1;
+                if (col > (int.MaxValue - value) / 26) {
+                    return 0;
+                }
+
+                col = (col * 26) + value;
+            }
+
+            if (index == letterStart || index == length) {
+                return 0;
+            }
+
+            bool hasNonZeroRowDigit = false;
+            for (; index < length; index++) {
+                char ch = text[index];
+                if (ch >= '0' && ch <= '9') {
+                    hasNonZeroRowDigit |= ch != '0';
+                    continue;
+                }
+
+                if (!char.IsWhiteSpace(ch)) {
+                    return 0;
+                }
+
+                while (++index < length) {
+                    if (!char.IsWhiteSpace(text[index])) {
+                        return 0;
+                    }
+                }
+
+                break;
+            }
+
+            return hasNonZeroRowDigit ? col : 0;
+        }
+
         private static int ParseColumnIndexFromTrimmedCellReference(string text, int start, int end) {
             int col = 0;
 

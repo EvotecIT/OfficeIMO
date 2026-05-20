@@ -38,8 +38,10 @@ namespace OfficeIMO.Excel {
             if (startColumn < 1) throw new ArgumentOutOfRangeException(nameof(startColumn));
 
             bool canRegisterDirectSave = registerDirectSaveCandidate
+                && !_excelDocument.IsMaterializingDeferredDataSetImport
                 && mode != ExecutionMode.Parallel
                 && CanRegisterDirectTabularSaveCandidate(startRow, startColumn, table.Columns.Count);
+
             if (mode != ExecutionMode.Parallel && TryInsertDataTableByAppendingRows(table, startRow, startColumn, includeHeaders, ct)) {
                 RegisterDirectDataTableSaveCandidateIfPossible(table, startRow, startColumn, includeHeaders, canRegisterDirectSave, copyDirectSaveTable);
                 return;
@@ -458,18 +460,9 @@ namespace OfficeIMO.Excel {
             CancellationToken ct = default) {
             if (table == null) throw new ArgumentNullException(nameof(table));
 
-            bool canRegisterDirectSave = mode != ExecutionMode.Parallel
+            bool canRegisterDirectSave = !_excelDocument.IsMaterializingDeferredDataSetImport
+                && mode != ExecutionMode.Parallel
                 && CanRegisterDirectTabularSaveCandidate(startRow, startColumn, table.Columns.Count);
-
-            InsertDataTableCore(
-                table,
-                startRow,
-                startColumn,
-                includeHeaders,
-                mode,
-                ct,
-                copyDirectSaveTable: true,
-                registerDirectSaveCandidate: false);
 
             int rowsCount = table.Rows.Count + (includeHeaders ? 1 : 0);
             if (table.Columns.Count == 0 || rowsCount == 0) {
@@ -480,6 +473,16 @@ namespace OfficeIMO.Excel {
             string startRef = A1.CellReference(startRow, startColumn);
             string endRef = A1.CellReference(startRow + rowsCount - 1, startColumn + colsCount - 1);
             string range = startRef + ":" + endRef;
+
+            InsertDataTableCore(
+                table,
+                startRow,
+                startColumn,
+                includeHeaders,
+                mode,
+                ct,
+                copyDirectSaveTable: true,
+                registerDirectSaveCandidate: false);
 
             string[]? headerNames = includeHeaders
                 ? table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray()

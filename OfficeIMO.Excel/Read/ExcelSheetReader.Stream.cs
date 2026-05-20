@@ -1,6 +1,8 @@
 using DocumentFormat.OpenXml.Spreadsheet;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -8,6 +10,7 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public sealed partial class ExcelSheetReader {
         private const int BufferedRangeStreamRowLimit = 4_096;
+        private const int OrderedBufferedRangeStreamCellLimit = 1_000_000;
 
         /// <summary>
         /// Lazily reads a rectangular A1 range as ordered row chunks. DOM traversal is single-threaded;
@@ -27,8 +30,37 @@ namespace OfficeIMO.Excel {
             int estRows = Math.Max(0, r2 - r1 + 1);
             var policy = _opt.Execution;
             var decided = mode ?? policy.Mode;
-            if (decided == OfficeIMO.Excel.ExecutionMode.Automatic)
+            bool automaticDecision = decided == OfficeIMO.Excel.ExecutionMode.Automatic;
+            if (automaticDecision) {
                 decided = policy.Decide("ReadRangeStream", estRows);
+            }
+
+            if (CanUseAutomaticXmlStreamFastPath(automaticDecision, decided)) {
+                if (chunkRows >= estRows) {
+                    foreach (var chunk in ReadRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, ct)) {
+                        yield return chunk;
+                    }
+
+                    yield break;
+                }
+
+                if (ShouldUseOrderedBufferedXmlStream(estRows, c1, c2)
+                    && TryReadOrderedBufferedRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, estRows, ct, out var automaticChunks)) {
+                    foreach (var chunk in automaticChunks) {
+                        yield return chunk;
+                    }
+
+                    yield break;
+                }
+
+                if (RowsAreSortedWithinRangeXmlFast(r1, r2, ct)) {
+                    foreach (var chunk in ReadRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, ct)) {
+                        yield return chunk;
+                    }
+
+                    yield break;
+                }
+            }
 
             int dop = (decided == OfficeIMO.Excel.ExecutionMode.Parallel)
                 ? (policy.MaxDegreeOfParallelism ?? System.Environment.ProcessorCount)
@@ -41,6 +73,22 @@ namespace OfficeIMO.Excel {
             if (decided != OfficeIMO.Excel.ExecutionMode.Parallel
                 && estRows <= BufferedRangeStreamRowLimit
                 && CanUseXmlFastReader()) {
+                if (chunkRows >= estRows) {
+                    foreach (var chunk in ReadRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, ct)) {
+                        yield return chunk;
+                    }
+
+                    yield break;
+                }
+
+                if (TryReadBufferedRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, estRows, ct, out var chunks)) {
+                    foreach (var chunk in chunks) {
+                        yield return chunk;
+                    }
+
+                    yield break;
+                }
+
                 foreach (var chunk in ReadBufferedRangeStreamFromFastRange(a1Range, r1, c1, chunkRows, ct)) {
                     yield return chunk;
                 }
@@ -50,6 +98,16 @@ namespace OfficeIMO.Excel {
 
             if (estRows <= BufferedRangeStreamRowLimit) {
                 foreach (var chunk in ReadBufferedRows(EnumerateWorksheetRows(ct), r1, c1, r2, c2, decided, ct)) {
+                    yield return chunk;
+                }
+
+                yield break;
+            }
+
+            if (decided != OfficeIMO.Excel.ExecutionMode.Parallel
+                && CanUseXmlFastReader()
+                && RowsAreSortedWithinRangeXmlFast(r1, r2, ct)) {
+                foreach (var chunk in ReadRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, ct)) {
                     yield return chunk;
                 }
 
@@ -346,6 +404,382 @@ namespace OfficeIMO.Excel {
                         throw ex.InnerExceptions[0];
                     }
                 }
+            }
+        }
+
+        private static bool ShouldUseOrderedBufferedXmlStream(int estimatedRows, int firstColumn, int lastColumn) {
+            int width = lastColumn - firstColumn + 1;
+            return width > 0
+                && estimatedRows > 0
+                && ((long)estimatedRows * width) <= OrderedBufferedRangeStreamCellLimit;
+        }
+
+        private bool CanUseAutomaticXmlStreamFastPath(bool automaticDecision, OfficeIMO.Excel.ExecutionMode decided) {
+            return automaticDecision
+                && decided != OfficeIMO.Excel.ExecutionMode.Parallel
+                && CanUseXmlFastReader();
+        }
+
+        private IEnumerable<RangeChunk> ReadRangeStreamXmlFast(int r1, int c1, int r2, int c2, int chunkRows, CancellationToken ct) {
+            using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+            RewindWorksheetStream(stream);
+            var settings = new XmlReaderSettings {
+                    DtdProcessing = DtdProcessing.Prohibit,
+                    IgnoreComments = true,
+                    IgnoreProcessingInstructions = true,
+                    IgnoreWhitespace = true,
+                    CloseInput = false
+                };
+
+                using var reader = XmlReader.Create(stream, settings);
+            bool canCancel = ct.CanBeCanceled;
+            int width = c2 - c1 + 1;
+            int currentWindow = -1;
+            int currentStartRow = 0;
+            object?[][]? currentRows = null;
+            int nextRowIndex = 1;
+
+            while (reader.Read()) {
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
+                if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                    continue;
+                }
+
+                int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                if (rowIndex <= 0) {
+                    rowIndex = nextRowIndex;
+                }
+
+                nextRowIndex = rowIndex + 1;
+                if (rowIndex < r1 || rowIndex > r2) {
+                    SkipXmlElement(reader, "row");
+                    continue;
+                }
+
+                int window = (rowIndex - r1) / chunkRows;
+                if (currentRows != null && window != currentWindow) {
+                    yield return new RangeChunk(currentStartRow, currentRows.Length, c1, width, currentRows);
+                    currentRows = null;
+                }
+
+                if (currentRows == null) {
+                    currentWindow = window;
+                    currentStartRow = r1 + (window * chunkRows);
+                    int rowCount = Math.Min(chunkRows, r2 - currentStartRow + 1);
+                    currentRows = new object?[rowCount][];
+                    for (int i = 0; i < rowCount; i++) {
+                        currentRows[i] = new object?[width];
+                    }
+                }
+
+                ReadXmlRowIntoChunk(reader, currentRows, rowIndex, currentStartRow, c1, c2, ct);
+            }
+
+            if (currentRows != null) {
+                yield return new RangeChunk(currentStartRow, currentRows.Length, c1, width, currentRows);
+            }
+        }
+
+        private bool TryReadOrderedBufferedRangeStreamXmlFast(
+            int r1,
+            int c1,
+            int r2,
+            int c2,
+            int chunkRows,
+            int estimatedRows,
+            CancellationToken ct,
+            out RangeChunk[] chunks) {
+            chunks = Array.Empty<RangeChunk>();
+            int width = c2 - c1 + 1;
+            var chunkMap = new Dictionary<int, RangeChunk>(Math.Max(1, Math.Min(((estimatedRows - 1) / chunkRows) + 1, 256)));
+
+            try {
+                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                RewindWorksheetStream(stream);
+                var settings = new XmlReaderSettings {
+                    DtdProcessing = DtdProcessing.Prohibit,
+                    IgnoreComments = true,
+                    IgnoreProcessingInstructions = true,
+                    IgnoreWhitespace = true,
+                    CloseInput = false
+                };
+
+                using var reader = XmlReader.Create(stream, settings);
+                bool canCancel = ct.CanBeCanceled;
+                int nextRowIndex = 1;
+                while (reader.Read()) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                        continue;
+                    }
+
+                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                    if (rowIndex <= 0) {
+                        rowIndex = nextRowIndex;
+                    }
+
+                    nextRowIndex = rowIndex + 1;
+                    if (rowIndex < r1 || rowIndex > r2) {
+                        SkipXmlElement(reader, "row");
+                        continue;
+                    }
+
+                    int window = (rowIndex - r1) / chunkRows;
+                    if (!chunkMap.TryGetValue(window, out var chunk)) {
+                        int startRow = r1 + (window * chunkRows);
+                        int rowCount = Math.Min(chunkRows, r2 - startRow + 1);
+                        var rows = new object?[rowCount][];
+                        for (int row = 0; row < rowCount; row++) {
+                            rows[row] = new object?[width];
+                        }
+
+                        chunk = new RangeChunk(startRow, rowCount, c1, width, rows);
+                        chunkMap.Add(window, chunk);
+                    }
+
+                    ReadXmlRowIntoChunk(reader, chunk.Rows, rowIndex, chunk.StartRow, c1, c2, ct);
+                }
+
+                if (chunkMap.Count == 0) {
+                    return true;
+                }
+
+                int index = 0;
+                chunks = new RangeChunk[chunkMap.Count];
+                foreach (int window in chunkMap.Keys.OrderBy(static key => key)) {
+                    chunks[index++] = chunkMap[window];
+                }
+
+                return true;
+            } catch (XmlException) {
+                chunks = Array.Empty<RangeChunk>();
+                return false;
+            } catch (IOException) {
+                chunks = Array.Empty<RangeChunk>();
+                return false;
+            } catch (UnauthorizedAccessException) {
+                chunks = Array.Empty<RangeChunk>();
+                return false;
+            } catch (ObjectDisposedException) {
+                chunks = Array.Empty<RangeChunk>();
+                return false;
+            }
+        }
+
+        private bool TryReadBufferedRangeStreamXmlFast(
+            int r1,
+            int c1,
+            int r2,
+            int c2,
+            int chunkRows,
+            int estimatedRows,
+            CancellationToken ct,
+            out RangeChunk[] chunks) {
+            int width = c2 - c1 + 1;
+            int windowCount = ((estimatedRows - 1) / chunkRows) + 1;
+            chunks = new RangeChunk[windowCount];
+            for (int window = 0; window < chunks.Length; window++) {
+                int startRow = r1 + (window * chunkRows);
+                int rowCount = Math.Min(chunkRows, r2 - startRow + 1);
+                var rows = new object?[rowCount][];
+                for (int row = 0; row < rowCount; row++) {
+                    rows[row] = new object?[width];
+                }
+
+                chunks[window] = new RangeChunk(startRow, rowCount, c1, width, rows);
+            }
+
+            try {
+                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                RewindWorksheetStream(stream);
+                var settings = new XmlReaderSettings {
+                    DtdProcessing = DtdProcessing.Prohibit,
+                    IgnoreComments = true,
+                    IgnoreProcessingInstructions = true,
+                    IgnoreWhitespace = true,
+                    CloseInput = false
+                };
+
+                using var reader = XmlReader.Create(stream, settings);
+                bool canCancel = ct.CanBeCanceled;
+                int nextRowIndex = 1;
+                while (reader.Read()) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                        continue;
+                    }
+
+                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                    if (rowIndex <= 0) {
+                        rowIndex = nextRowIndex;
+                    }
+
+                    nextRowIndex = rowIndex + 1;
+                    if (rowIndex < r1 || rowIndex > r2) {
+                        SkipXmlElement(reader, "row");
+                        continue;
+                    }
+
+                    int window = (rowIndex - r1) / chunkRows;
+                    if ((uint)window >= (uint)chunks.Length) {
+                        SkipXmlElement(reader, "row");
+                        continue;
+                    }
+
+                    var chunk = chunks[window];
+                    ReadXmlRowIntoChunk(reader, chunk.Rows, rowIndex, chunk.StartRow, c1, c2, ct);
+                }
+
+                return true;
+            } catch (XmlException) {
+                chunks = Array.Empty<RangeChunk>();
+                return false;
+            } catch (IOException) {
+                chunks = Array.Empty<RangeChunk>();
+                return false;
+            } catch (UnauthorizedAccessException) {
+                chunks = Array.Empty<RangeChunk>();
+                return false;
+            } catch (ObjectDisposedException) {
+                chunks = Array.Empty<RangeChunk>();
+                return false;
+            }
+        }
+
+        private void ReadXmlRowIntoChunk(XmlReader rowReader, object?[][] rows, int rowIndex, int startRow, int c1, int c2, CancellationToken ct) {
+            if (rowReader.IsEmptyElement) {
+                return;
+            }
+
+            int rowOffset = rowIndex - startRow;
+            if ((uint)rowOffset >= (uint)rows.Length) {
+                return;
+            }
+
+            object?[] rowValues = rows[rowOffset];
+            int depth = rowReader.Depth;
+            bool canCancel = ct.CanBeCanceled;
+            int nextColumnIndex = 1;
+            ulong seenColumns = 0;
+            while (rowReader.Read()) {
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
+                if (rowReader.NodeType == XmlNodeType.EndElement && rowReader.Depth == depth && rowReader.LocalName == "row") {
+                    return;
+                }
+
+                if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
+                    continue;
+                }
+
+                string? reference = rowReader.GetAttribute("r");
+                int columnIndex = A1.ParseColumnIndexFromCellReferenceWithKnownRowFast(reference);
+                if (columnIndex <= 0) {
+                    if (!string.IsNullOrEmpty(reference)) {
+                        SkipXmlElement(rowReader, "c");
+                        continue;
+                    }
+
+                    columnIndex = nextColumnIndex;
+                }
+
+                nextColumnIndex = columnIndex + 1;
+                if (columnIndex < c1 || columnIndex > c2) {
+                    SkipXmlElement(rowReader, "c");
+                    continue;
+                }
+
+                int columnOffset = columnIndex - c1;
+                if ((uint)columnOffset >= (uint)rowValues.Length) {
+                    SkipXmlElement(rowReader, "c");
+                    continue;
+                }
+
+                rowValues[columnOffset] = ReadXmlCellValue(rowReader);
+                if (MarkRequestedColumnSeen(columnOffset, rowValues.Length, ref seenColumns)) {
+                    SkipXmlElementContent(rowReader, depth, "row");
+                    return;
+                }
+            }
+        }
+
+        private bool RowsAreSortedWithinRangeXmlFast(int firstRow, int lastRow, CancellationToken token) {
+            try {
+                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                RewindWorksheetStream(stream);
+                var settings = new XmlReaderSettings {
+                    DtdProcessing = DtdProcessing.Prohibit,
+                    IgnoreComments = true,
+                    IgnoreProcessingInstructions = true,
+                    IgnoreWhitespace = true,
+                    CloseInput = false
+                };
+
+                using var reader = XmlReader.Create(stream, settings);
+                bool canCancel = token.CanBeCanceled;
+                bool hasPrevious = false;
+                bool sawRowAfterRange = false;
+                int previous = 0;
+                int nextRowIndex = 1;
+
+                while (reader.Read()) {
+                    if (canCancel) {
+                        token.ThrowIfCancellationRequested();
+                    }
+
+                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                        continue;
+                    }
+
+                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                    if (rowIndex <= 0) {
+                        rowIndex = nextRowIndex;
+                    }
+
+                    nextRowIndex = rowIndex + 1;
+                    if (rowIndex < firstRow) {
+                        SkipXmlElement(reader, "row");
+                        continue;
+                    }
+
+                    if (rowIndex > lastRow) {
+                        sawRowAfterRange = true;
+                        SkipXmlElement(reader, "row");
+                        continue;
+                    }
+
+                    if (sawRowAfterRange) {
+                        return false;
+                    }
+
+                    if (hasPrevious && rowIndex <= previous) {
+                        return false;
+                    }
+
+                    previous = rowIndex;
+                    hasPrevious = true;
+                }
+
+                return true;
+            } catch (XmlException) {
+                return false;
+            } catch (IOException) {
+                return false;
+            } catch (UnauthorizedAccessException) {
+                return false;
+            } catch (ObjectDisposedException) {
+                return false;
             }
         }
 

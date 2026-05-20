@@ -1,0 +1,144 @@
+{
+  "GeneratedAtUtc": "2026-05-19T20:32:21.9652697Z",
+  "Framework": ".NET 8.0.27",
+  "MachineName": "EVOMAGIC",
+  "BuildConfiguration": "Release",
+  "RowCount": 25000,
+  "WarmupIterations": 1,
+  "MeasuredIterations": 3,
+  "Notes": "Dense HelloWorld grid comparison. Generates an A1:J(row count) workbook filled with HelloWorld and compares dense and streaming reads.",
+  "Scenarios": [
+    {
+      "Scenario": "dense-helloworld-read-range",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Read A1:J(row count) HelloWorld grid with ReadRange.",
+      "OutputMetric": -472470144,
+      "AverageMilliseconds": 62.70323333333334,
+      "MedianMilliseconds": 62.5324,
+      "StandardDeviationMilliseconds": 4.051052424165029,
+      "StandardErrorMilliseconds": 2.3388762075929654,
+      "SamplesMilliseconds": [
+        66.837,
+        58.7403,
+        62.5324
+      ],
+      "AverageAllocatedBytes": 26303560,
+      "MedianAllocatedBytes": 26303560,
+      "SamplesAllocatedBytes": [
+        26303560,
+        26303560,
+        26303560
+      ]
+    },
+    {
+      "Scenario": "dense-helloworld-read-range",
+      "Library": "MiniExcel",
+      "Notes": "Stream A1:J(row count) HelloWorld grid with QueryRange.",
+      "OutputMetric": -472470144,
+      "AverageMilliseconds": 181.00929999999997,
+      "MedianMilliseconds": 180.8028,
+      "StandardDeviationMilliseconds": 8.218595920837075,
+      "StandardErrorMilliseconds": 4.745008567256046,
+      "SamplesMilliseconds": [
+        189.3292,
+        180.8028,
+        172.8959
+      ],
+      "AverageAllocatedBytes": 220517168,
+      "MedianAllocatedBytes": 220517168,
+      "SamplesAllocatedBytes": [
+        220517168,
+        220517168,
+        220517168
+      ]
+    },
+    {
+      "Scenario": "dense-helloworld-read-range",
+      "Library": "Sylvan.Data.Excel",
+      "Notes": "Forward-only DbDataReader scan of A1:J(row count) HelloWorld grid.",
+      "OutputMetric": -472470144,
+      "AverageMilliseconds": 48.00393333333333,
+      "MedianMilliseconds": 47.4835,
+      "StandardDeviationMilliseconds": 2.6437518119773133,
+      "StandardErrorMilliseconds": 1.5263708203156627,
+      "SamplesMilliseconds": [
+        45.6591,
+        47.4835,
+        50.8692
+      ],
+      "AverageAllocatedBytes": 385216,
+      "MedianAllocatedBytes": 385216,
+      "SamplesAllocatedBytes": [
+        385216,
+        385216,
+        385216
+      ]
+    },
+    {
+      "Scenario": "dense-helloworld-read-stream",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Stream A1:J(row count) HelloWorld grid with ReadRangeStream.",
+      "OutputMetric": -472470144,
+      "AverageMilliseconds": 107.85356666666667,
+      "MedianMilliseconds": 104.5179,
+      "StandardDeviationMilliseconds": 13.685557494064076,
+      "StandardErrorMilliseconds": 7.901360303207995,
+      "SamplesMilliseconds": [
+        122.8986,
+        96.1442,
+        104.5179
+      ],
+      "AverageAllocatedBytes": 27972216,
+      "MedianAllocatedBytes": 27972216,
+      "SamplesAllocatedBytes": [
+        27972216,
+        27972216,
+        27972216
+      ]
+    },
+    {
+      "Scenario": "dense-helloworld-read-stream",
+      "Library": "MiniExcel",
+      "Notes": "Stream A1:J(row count) HelloWorld grid with QueryRange.",
+      "OutputMetric": -472470144,
+      "AverageMilliseconds": 201.97353333333334,
+      "MedianMilliseconds": 200.5387,
+      "StandardDeviationMilliseconds": 3.97078592262707,
+      "StandardErrorMilliseconds": 2.2925343213231155,
+      "SamplesMilliseconds": [
+        198.9196,
+        200.5387,
+        206.4623
+      ],
+      "AverageAllocatedBytes": 220517168,
+      "MedianAllocatedBytes": 220517168,
+      "SamplesAllocatedBytes": [
+        220517168,
+        220517168,
+        220517168
+      ]
+    },
+    {
+      "Scenario": "dense-helloworld-read-stream",
+      "Library": "Sylvan.Data.Excel",
+      "Notes": "Forward-only DbDataReader stream of A1:J(row count) HelloWorld grid.",
+      "OutputMetric": -472470144,
+      "AverageMilliseconds": 59.328066666666665,
+      "MedianMilliseconds": 56.1252,
+      "StandardDeviationMilliseconds": 5.862325419433258,
+      "StandardErrorMilliseconds": 3.3846151589869775,
+      "SamplesMilliseconds": [
+        56.1252,
+        55.7649,
+        66.0941
+      ],
+      "AverageAllocatedBytes": 385216,
+      "MedianAllocatedBytes": 385216,
+      "SamplesAllocatedBytes": [
+        385216,
+        385216,
+        385216
+      ]
+    }
+  ]
+}

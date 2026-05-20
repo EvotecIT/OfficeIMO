@@ -4,6 +4,8 @@ using System.Threading;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        private const int DirectDataReaderSaveCandidateRowLimit = 65536;
+
         /// <summary>
         /// Streams rows from an <see cref="IDataReader"/> (including provider-owned DbDataReader implementations) into the worksheet and optionally creates an Excel table.
         /// The caller owns the connection, command, query, and provider.
@@ -37,6 +39,10 @@ namespace OfficeIMO.Excel {
 
             string[] headers = BuildReaderHeaders(reader);
             Type[] fieldTypes = BuildReaderFieldTypes(reader);
+            bool canRegisterDirectSave = !_excelDocument.IsMaterializingDeferredDataSetImport
+                && CanRegisterDirectTabularSaveCandidate(startRow, startColumn, headers.Length);
+            List<object?[]>? directRows = canRegisterDirectSave ? new List<object?[]>() : null;
+
             int row = startRow;
             if (includeHeaders) {
                 for (int i = 0; i < headers.Length; i++) {
@@ -49,8 +55,14 @@ namespace OfficeIMO.Excel {
             int dataRows = 0;
             while (reader.Read()) {
                 ct.ThrowIfCancellationRequested();
+                object?[]? directRow = directRows != null ? new object?[headers.Length] : null;
                 for (int i = 0; i < headers.Length; i++) {
-                    object? value = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                    bool isDbNull = reader.IsDBNull(i);
+                    object? value = isDbNull ? null : reader.GetValue(i);
+                    if (directRow != null) {
+                        directRow[i] = isDbNull ? DBNull.Value : value;
+                    }
+
                     int column = startColumn + i;
                     CellValue(row, column, value);
 
@@ -62,6 +74,13 @@ namespace OfficeIMO.Excel {
 
                 row++;
                 dataRows++;
+                if (directRows != null) {
+                    if (directRows.Count < DirectDataReaderSaveCandidateRowLimit) {
+                        directRows.Add(directRow!);
+                    } else {
+                        directRows = null;
+                    }
+                }
             }
 
             int occupiedRows = dataRows + (includeHeaders ? 1 : 0);
@@ -72,17 +91,78 @@ namespace OfficeIMO.Excel {
             string range = A1.CellReference(startRow, startColumn) + ":" +
                 A1.CellReference(startRow + occupiedRows - 1, startColumn + headers.Length - 1);
 
+            string? actualTableName = null;
             if (createTable) {
                 string[]? headerNames = includeHeaders ? headers : null;
-                AddTableAndGetName(range, includeHeaders, tableName ?? string.Empty, style, includeAutoFilter, headerNames: headerNames);
+                actualTableName = AddTableAndGetName(range, includeHeaders, tableName ?? string.Empty, style, includeAutoFilter, headerNames: headerNames);
             }
 
             if (autoFit) {
                 AutoFitColumnsFor(Enumerable.Range(startColumn, headers.Length));
             }
 
+            RegisterDirectDataReaderSaveCandidateIfPossible(
+                directRows,
+                headers,
+                fieldTypes,
+                includeHeaders,
+                range,
+                actualTableName,
+                createTable,
+                style,
+                includeAutoFilter,
+                autoFit,
+                canRegisterDirectSave);
+
             return range;
         }
+
+        private void RegisterDirectDataReaderSaveCandidateIfPossible(
+            List<object?[]>? directRows,
+            IReadOnlyList<string> headers,
+            IReadOnlyList<Type> fieldTypes,
+            bool includeHeaders,
+            string range,
+            string? tableName,
+            bool createTable,
+            TableStyle style,
+            bool includeAutoFilter,
+            bool autoFit,
+            bool canRegisterDirectSave) {
+            if (!canRegisterDirectSave || directRows == null || range.Length == 0) {
+                return;
+            }
+
+            string[] columnNames = includeHeaders
+                ? headers.ToArray()
+                : Enumerable.Range(1, headers.Count)
+                    .Select(index => "Column" + index.ToString(CultureInfo.InvariantCulture))
+                    .ToArray();
+            Type[] columnTypes = new Type[fieldTypes.Count];
+            for (int i = 0; i < fieldTypes.Count; i++) {
+                Type fieldType = fieldTypes[i];
+                if (fieldType == typeof(DBNull) || fieldType == typeof(void)) {
+                    fieldType = typeof(object);
+                }
+
+                columnTypes[i] = Nullable.GetUnderlyingType(fieldType) ?? fieldType;
+            }
+
+            _excelDocument.RegisterDirectTabularSaveCandidate(
+                this,
+                "ReaderData",
+                columnNames,
+                columnTypes,
+                directRows.ToArray(),
+                includeHeaders,
+                range,
+                tableName,
+                createTable,
+                style,
+                includeAutoFilter,
+                autoFit);
+        }
+
         private static string[] BuildReaderHeaders(IDataReader reader) {
             var headers = new List<string>(reader.FieldCount);
             for (int i = 0; i < reader.FieldCount; i++) {
