@@ -233,6 +233,49 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_FastReaders_DoNotStopAtOutOfOrderRowsBeyondRange() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderFastOutOfOrderRowsBeyondRange.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Header");
+                    sheet.CellValue(2, 1, "InRange");
+                    sheet.CellValue(5, 1, "Outside");
+                    document.Save();
+                }
+
+                MoveWorksheetRowToEnd(filePath, 2U);
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var sheetReader = reader.GetSheet("Data");
+
+                object?[,] range = sheetReader.ReadRange("A1:A2");
+                Assert.Equal("Header", range[0, 0]);
+                Assert.Equal("InRange", range[1, 0]);
+
+                var column = sheetReader.ReadColumn("A1:A2").ToArray();
+                Assert.Equal(new object?[] { "Header", "InRange" }, column);
+
+                var table = sheetReader.ReadRangeAsDataTable("A1:A2", headersInFirstRow: false);
+                Assert.Equal("Header", table.Rows[0][0]);
+                Assert.Equal("InRange", table.Rows[1][0]);
+
+                var singleChunk = Assert.Single(sheetReader.ReadRangeStream("A1:A2", chunkRows: 2));
+                Assert.Equal("Header", singleChunk.Rows[0][0]);
+                Assert.Equal("InRange", singleChunk.Rows[1][0]);
+
+                var bufferedChunks = sheetReader.ReadRangeStream("A1:A2", chunkRows: 1).ToList();
+                Assert.Equal(new[] { 1, 2 }, bufferedChunks.Select(chunk => chunk.StartRow).ToArray());
+                Assert.Equal("InRange", bufferedChunks[1].Rows[0][0]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Reader_RowReaders_HandleOutOfOrderCellsWithinRow() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderRowReadersOutOfOrderCells.xlsx");
 

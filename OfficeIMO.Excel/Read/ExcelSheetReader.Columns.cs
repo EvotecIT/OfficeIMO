@@ -122,7 +122,6 @@ namespace OfficeIMO.Excel {
                 using var reader = XmlReader.Create(stream, settings);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                bool sawLastRequestedRow = false;
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -139,16 +138,8 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        if (rowIndex > r2 && sawLastRequestedRow) {
-                            break;
-                        }
-
                         SkipXmlElement(reader, "row");
                         continue;
-                    }
-
-                    if (rowIndex == r2) {
-                        sawLastRequestedRow = true;
                     }
 
                     int rowOffset = rowIndex - r1;

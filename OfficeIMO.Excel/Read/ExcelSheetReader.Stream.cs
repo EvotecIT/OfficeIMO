@@ -438,7 +438,6 @@ namespace OfficeIMO.Excel {
             int currentStartRow = 0;
             object?[][]? currentRows = null;
             int nextRowIndex = 1;
-            bool sawLastRequestedRow = false;
 
             while (reader.Read()) {
                 if (canCancel) {
@@ -456,16 +455,8 @@ namespace OfficeIMO.Excel {
 
                 nextRowIndex = rowIndex + 1;
                 if (rowIndex < r1 || rowIndex > r2) {
-                    if (rowIndex > r2 && sawLastRequestedRow) {
-                        break;
-                    }
-
                     SkipXmlElement(reader, "row");
                     continue;
-                }
-
-                if (rowIndex == r2) {
-                    sawLastRequestedRow = true;
                 }
 
                 int window = (rowIndex - r1) / chunkRows;
@@ -519,7 +510,6 @@ namespace OfficeIMO.Excel {
                 using var reader = XmlReader.Create(stream, settings);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                bool sawLastRequestedRow = false;
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -536,16 +526,8 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        if (rowIndex > r2 && sawLastRequestedRow) {
-                            break;
-                        }
-
                         SkipXmlElement(reader, "row");
                         continue;
-                    }
-
-                    if (rowIndex == r2) {
-                        sawLastRequestedRow = true;
                     }
 
                     int window = (rowIndex - r1) / chunkRows;
@@ -627,7 +609,6 @@ namespace OfficeIMO.Excel {
                 using var reader = XmlReader.Create(stream, settings);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                bool sawLastRequestedRow = false;
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -644,16 +625,8 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        if (rowIndex > r2 && sawLastRequestedRow) {
-                            break;
-                        }
-
                         SkipXmlElement(reader, "row");
                         continue;
-                    }
-
-                    if (rowIndex == r2) {
-                        sawLastRequestedRow = true;
                     }
 
                     int window = (rowIndex - r1) / chunkRows;

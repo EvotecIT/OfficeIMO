@@ -208,7 +208,6 @@ namespace OfficeIMO.Excel {
                 using var reader = XmlReader.Create(stream, settings);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                bool sawLastRequestedRow = false;
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -225,16 +224,8 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        if (rowIndex > r2 && sawLastRequestedRow) {
-                            break;
-                        }
-
                         SkipXmlElement(reader, "row");
                         continue;
-                    }
-
-                    if (rowIndex == r2) {
-                        sawLastRequestedRow = true;
                     }
 
                     bool isHeaderRow = headersInFirstRow && rowIndex == r1;
@@ -366,7 +357,6 @@ namespace OfficeIMO.Excel {
                 using var reader = XmlReader.Create(stream, settings);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                bool sawLastRequestedRow = false;
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -383,16 +373,8 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        if (rowIndex > r2 && sawLastRequestedRow) {
-                            break;
-                        }
-
                         SkipXmlElement(reader, "row");
                         continue;
-                    }
-
-                    if (rowIndex == r2) {
-                        sawLastRequestedRow = true;
                     }
 
                     if (headersInFirstRow && rowIndex == r1) {
@@ -1206,7 +1188,6 @@ namespace OfficeIMO.Excel {
                 using var reader = XmlReader.Create(stream, settings);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                bool sawLastRequestedRow = false;
                 int width = result.GetLength(1);
                 while (reader.Read()) {
                     if (canCancel) {
@@ -1224,16 +1205,8 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        if (rowIndex > r2 && sawLastRequestedRow) {
-                            break;
-                        }
-
                         SkipXmlElement(reader, "row");
                         continue;
-                    }
-
-                    if (rowIndex == r2) {
-                        sawLastRequestedRow = true;
                     }
 
                     ReadXmlRowIntoRange(reader, result, rowIndex, r1, c1, c2, width, ct);
