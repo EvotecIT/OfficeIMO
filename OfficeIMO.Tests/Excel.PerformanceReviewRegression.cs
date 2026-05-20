@@ -1727,6 +1727,73 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_DataTableDeferredThenAppend_MaterializesBeforeFallbackSave() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertDataTable(CreateSingleColumnDataTable("First", "Alpha"));
+                sheet.InsertDataTable(CreateSingleColumnDataTable("Second", "Beta"), startRow: 3, includeHeaders: false);
+
+                document.Save(memory);
+
+                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var loaded = ExcelDocument.Load(memory, readOnly: true);
+            Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? first));
+            Assert.True(loaded.Sheets[0].TryGetCellText(3, 1, out string? second));
+            Assert.Equal("Alpha", first);
+            Assert.Equal("Beta", second);
+        }
+
+        [Fact]
+        public void PerformanceReview_DataTableDeferredThenParallelWrite_MaterializesBeforeFallbackSave() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertDataTable(CreateSingleColumnDataTable("First", "Alpha"));
+                sheet.InsertDataTable(CreateSingleColumnDataTable("Second", "Beta"), startRow: 3, includeHeaders: false, mode: ExecutionMode.Parallel);
+
+                document.Save(memory);
+
+                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var loaded = ExcelDocument.Load(memory, readOnly: true);
+            Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? first));
+            Assert.True(loaded.Sheets[0].TryGetCellText(3, 1, out string? second));
+            Assert.Equal("Alpha", first);
+            Assert.Equal("Beta", second);
+        }
+
+        [Fact]
+        public void PerformanceReview_DataReaderDeferredThenAppend_MaterializesBeforeFallbackSave() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertDataTable(CreateSingleColumnDataTable("First", "Alpha"));
+                using var reader = CreateSingleColumnDataTable("Second", "Beta").CreateDataReader();
+                sheet.InsertDataReader(reader, startRow: 3, includeHeaders: false, createTable: false);
+
+                document.Save(memory);
+
+                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var loaded = ExcelDocument.Load(memory, readOnly: true);
+            Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? first));
+            Assert.True(loaded.Sheets[0].TryGetCellText(3, 1, out string? second));
+            Assert.Equal("Alpha", first);
+            Assert.Equal("Beta", second);
+        }
+
+        [Fact]
         public void PerformanceReview_CellValuesHeaderThenAppend_WorkbookMutationInvalidatesDirectPackageCandidate() {
             using var memory = new MemoryStream();
 
@@ -2880,6 +2947,16 @@ namespace OfficeIMO.Tests {
             foreach (string expectedReference in expectedReferences) {
                 Assert.Contains(expectedReference, references);
             }
+        }
+
+        private static DataTable CreateSingleColumnDataTable(string name, params string[] values) {
+            var table = new DataTable(name);
+            table.Columns.Add("Name", typeof(string));
+            foreach (string value in values) {
+                table.Rows.Add(value);
+            }
+
+            return table;
         }
 
         private static string? GetCellNumberFormatCode(SpreadsheetDocument spreadsheet, Cell cell) {

@@ -57,6 +57,8 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            _excelDocument.MaterializeDeferredDataSetImport();
+
             if (mode != ExecutionMode.Parallel && TryInsertDataTableByAppendingRows(table, startRow, startColumn, includeHeaders, ct)) {
                 RegisterDirectDataTableSaveCandidateIfPossible(table, startRow, startColumn, includeHeaders, canRegisterDirectSave, copyDirectSaveTable);
                 return;

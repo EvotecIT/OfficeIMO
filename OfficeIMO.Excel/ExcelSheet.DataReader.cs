@@ -62,6 +62,8 @@ namespace OfficeIMO.Excel {
                 return deferredRange;
             }
 
+            _excelDocument.MaterializeDeferredDataSetImport();
+
             if (TryInsertDataReaderByAppendingRows(
                     reader,
                     startRow,
