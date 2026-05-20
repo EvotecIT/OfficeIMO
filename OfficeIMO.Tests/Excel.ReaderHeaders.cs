@@ -1122,7 +1122,7 @@ namespace OfficeIMO.Tests {
                 var loadedSheet = loadedDocument.GetSheet("Data");
                 var map = loadedSheet.GetHeaderMap();
 
-                string expectedHeader = DateTime.FromOADate(serialValue).ToString();
+                string expectedHeader = DateTime.FromOADate(serialValue).ToString(CultureInfo.InvariantCulture);
                 Assert.True(map.ContainsKey(expectedHeader));
                 Assert.False(map.ContainsKey(serialValue.ToString(CultureInfo.InvariantCulture)));
             } finally {
