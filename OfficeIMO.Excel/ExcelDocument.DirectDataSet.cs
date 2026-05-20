@@ -134,7 +134,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal void RegisterDeferredDirectTabularSaveCandidate(
+        internal bool RegisterDeferredDirectTabularSaveCandidate(
             ExcelSheet sheet,
             DataTable table,
             bool includeHeaders,
@@ -148,7 +148,7 @@ namespace OfficeIMO.Excel {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (table == null) throw new ArgumentNullException(nameof(table));
             if (!ReferenceEquals(sheet.Document, this)) {
-                return;
+                return false;
             }
 
             ClearDirectDataSetSaveCandidate();
@@ -176,12 +176,14 @@ namespace OfficeIMO.Excel {
                 _packageDirty = true;
                 _unchangedPackageBytes = null;
                 _requiresSavePreflight = false;
+                return true;
             } catch {
                 ClearDirectDataSetSaveCandidate();
+                return false;
             }
         }
 
-        internal void RegisterDeferredDirectTabularSaveCandidate(
+        internal bool RegisterDeferredDirectTabularSaveCandidate(
             ExcelSheet sheet,
             string tableNameForModel,
             IReadOnlyList<string> columnNames,
@@ -199,7 +201,7 @@ namespace OfficeIMO.Excel {
             if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
             if (rows == null) throw new ArgumentNullException(nameof(rows));
             if (!ReferenceEquals(sheet.Document, this)) {
-                return;
+                return false;
             }
 
             ClearDirectDataSetSaveCandidate();
@@ -225,8 +227,10 @@ namespace OfficeIMO.Excel {
                 _packageDirty = true;
                 _unchangedPackageBytes = null;
                 _requiresSavePreflight = false;
+                return true;
             } catch {
                 ClearDirectDataSetSaveCandidate();
+                return false;
             }
         }
 

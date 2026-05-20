@@ -1928,9 +1928,10 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
-                    if (TryParseInvariantDoubleFast(rawText, out double doubleValue)
-                        || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out doubleValue)
-                        || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out doubleValue)) {
+                    if ((_opt.Culture != CultureInfo.InvariantCulture
+                            && double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out double doubleValue))
+                        || TryParseInvariantDoubleFast(rawText, out doubleValue)
+                        || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out doubleValue)) {
                         binding.SetDouble(target, doubleValue);
                         return true;
                     }
@@ -2060,9 +2061,10 @@ namespace OfficeIMO.Excel {
             }
 
             if (destinationType == typeof(double)) {
-                if (TryParseInvariantDoubleFast(rawText, out double doubleValue)
-                    || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out doubleValue)
-                    || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out doubleValue)) {
+                if ((_opt.Culture != CultureInfo.InvariantCulture
+                        && double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out double doubleValue))
+                    || TryParseInvariantDoubleFast(rawText, out doubleValue)
+                    || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out doubleValue)) {
                     converted = doubleValue;
                     return true;
                 }

@@ -1906,6 +1906,63 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_InsertObjectsThenSubsetAutoFit_MaterializesDeferredRowsBeforeMeasuring() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha Region With Longer Name", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                document.Execution.SaveWorksheetAfterAutoFit = false;
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AutoFitColumnsFor(new[] { 1 });
+
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var columns = worksheetPart.Worksheet.GetFirstChild<Columns>();
+            Assert.NotNull(columns);
+            var firstColumn = columns!.Elements<Column>().FirstOrDefault(column => column.Min?.Value == 1U && column.Max?.Value == 1U);
+            Assert.NotNull(firstColumn);
+            Assert.True(firstColumn!.Width?.Value > 10D);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_DuplicateExplicitHeadersFallBackBeforeTablePromotion() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Name", row => row.Score));
+                sheet.AddTable("A1:B2", hasHeader: true, name: "DuplicateHeaders", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+
+                document.Save(memory);
+
+                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            Assert.Equal("A1:B2", worksheetPart.TableDefinitionParts.Single().Table!.Reference!.Value);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
         public void PerformanceReview_InsertObjectsThenAddTable_LaterMutationInvalidatesDirectPackageCandidate() {
             using var memory = new MemoryStream();
             var rows = new[] {

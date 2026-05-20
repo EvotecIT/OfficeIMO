@@ -63,6 +63,10 @@ namespace OfficeIMO.Tests {
             public decimal? OptionalAmount { get; set; }
         }
 
+        private sealed class CultureDoubleTypedRow {
+            public double Amount { get; set; }
+        }
+
         private sealed class DateStyledNumericTypedRow {
             public double NumericValue { get; set; }
             public DateTime DateValue { get; set; }
@@ -1238,6 +1242,31 @@ namespace OfficeIMO.Tests {
                 var typed = Assert.Single(reader.GetSheet("Data").ReadObjects<ExactFriendlyPrecedenceRow>("A1:B2"));
 
                 Assert.Equal("ExactValue", typed.FirstName);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_TypedObjects_ParsesDoubleTextWithConfiguredCultureFirst() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderCultureDoubleTyped.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Amount");
+                    sheet.CellValue(2, 1, "1,23");
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions {
+                    Culture = CultureInfo.GetCultureInfo("pl-PL")
+                });
+                var row = Assert.Single(reader.GetSheet("Data").ReadObjects<CultureDoubleTypedRow>("A1:A2"));
+
+                Assert.Equal(1.23d, row.Amount, precision: 10);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

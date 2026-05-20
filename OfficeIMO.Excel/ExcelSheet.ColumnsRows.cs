@@ -41,6 +41,7 @@ namespace OfficeIMO.Excel {
         /// <param name="ct">Cancels the auto-fit pass for the selected columns.</param>
         public void AutoFitColumnsFor(IEnumerable<int> columnIndexes, ExecutionMode? mode = null, CancellationToken ct = default) {
             if (columnIndexes == null) return;
+            _excelDocument.MaterializeDeferredDataSetImport();
             var list = columnIndexes.Where(i => i > 0).Distinct().OrderBy(i => i).ToList();
             if (list.Count == 0) return;
             if (CanSkipStableAutoFitColumns(list)) {
@@ -57,6 +58,7 @@ namespace OfficeIMO.Excel {
         /// <param name="mode">Overrides how the auto-fit work is scheduled for the remaining columns.</param>
         /// <param name="ct">Cancels the auto-fit pass before it completes.</param>
         public void AutoFitColumnsExcept(IEnumerable<int> columnsToSkip, ExecutionMode? mode = null, CancellationToken ct = default) {
+            _excelDocument.MaterializeDeferredDataSetImport();
             var skip = new HashSet<int>(columnsToSkip ?? Array.Empty<int>());
             var remaining = GetAllColumnIndices().Where(i => i > 0 && !skip.Contains(i)).OrderBy(i => i).ToList();
             if (remaining.Count == 0) return;

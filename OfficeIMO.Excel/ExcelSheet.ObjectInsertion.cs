@@ -133,10 +133,12 @@ namespace OfficeIMO.Excel {
             if (!hasBlankDisplayHeader && CanRegisterDirectTabularSaveCandidate(startRow, 1, normalizedColumns.Length)) {
                 try {
                     var headers = normalizedColumns.Select(column => column.Header).ToArray();
-                    var columnTypes = InferObjectExportColumnTypes(values, normalizedColumns.Length);
-                    directSaveRange = BuildObjectExportRange(startRow, normalizedColumns.Length, rows.Count, includeHeaders);
-                    if (TryInsertRowsAsDeferredDirectSave(Name, headers, columnTypes, values, startRow, includeHeaders, directSaveRange)) {
-                        return;
+                    if (!HasDuplicateObjectExportHeaders(headers)) {
+                        var columnTypes = InferObjectExportColumnTypes(values, normalizedColumns.Length);
+                        directSaveRange = BuildObjectExportRange(startRow, normalizedColumns.Length, rows.Count, includeHeaders);
+                        if (TryInsertRowsAsDeferredDirectSave(Name, headers, columnTypes, values, startRow, includeHeaders, directSaveRange)) {
+                            return;
+                        }
                     }
                 } catch {
                     // Direct-save registration is opportunistic; fall back to the normal cell path.
@@ -176,8 +178,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            _excelDocument.RegisterDeferredDirectTabularSaveCandidate(this, table, includeHeaders, range);
-            return true;
+            return _excelDocument.RegisterDeferredDirectTabularSaveCandidate(this, table, includeHeaders, range);
         }
 
         internal bool TryInsertRowsAsDeferredDirectSave(
@@ -199,7 +200,11 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            _excelDocument.RegisterDeferredDirectTabularSaveCandidate(
+            if (HasDuplicateObjectExportHeaders(columnNames)) {
+                return false;
+            }
+
+            return _excelDocument.RegisterDeferredDirectTabularSaveCandidate(
                 this,
                 tableNameForModel,
                 columnNames,
@@ -207,7 +212,17 @@ namespace OfficeIMO.Excel {
                 rows,
                 includeHeaders,
                 range);
-            return true;
+        }
+
+        private static bool HasDuplicateObjectExportHeaders(IEnumerable<string> columnNames) {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var columnName in columnNames) {
+                if (!seen.Add(columnName ?? string.Empty)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private bool CanRegisterDirectTabularSaveCandidate(int startRow, int startColumn, int columnCount) {
