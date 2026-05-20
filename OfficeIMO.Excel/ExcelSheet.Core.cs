@@ -34,6 +34,12 @@ namespace OfficeIMO.Excel {
         private bool _requiresSavePreparation;
         private readonly List<TableDefinitionPart> _pendingTableDefinitionPartSaves = new();
         private readonly object _batchLock = new object();
+        private Row? _lastAccessedRow;
+        private int _lastAccessedRowIndex;
+        private Cell? _lastAccessedCell;
+        private int _lastAccessedCellRowIndex;
+        private int _lastAccessedCellColumnIndex;
+        private SheetData? _sheetDataCache;
         private static int _instancesCreated;
 
         internal static int InstancesCreatedForTests => Volatile.Read(ref _instancesCreated);
@@ -152,30 +158,55 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(column));
             }
 
-            SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
-            if (sheetData == null) {
-                sheetData = WorksheetRoot.AppendChild(new SheetData());
-            }
+            SheetData sheetData = GetOrCreateSheetData();
 
-            // Find or create row with proper ordering
             Row? rowElement = null;
             Row? insertAfterRow = null;
-            foreach (Row r in sheetData.Elements<Row>()) {
-                if (r.RowIndex != null) {
-                    if (r.RowIndex.Value == (uint)row) {
-                        rowElement = r;
-                        break;
+            bool createdRowElement = false;
+            if (_lastAccessedRow != null && ReferenceEquals(_lastAccessedRow.Parent, sheetData)) {
+                if (_lastAccessedRowIndex == row) {
+                    rowElement = _lastAccessedRow;
+                } else if (_lastAccessedRowIndex < row) {
+                    insertAfterRow = _lastAccessedRow;
+                    for (Row? next = _lastAccessedRow.NextSibling<Row>(); next != null; next = next.NextSibling<Row>()) {
+                        if (next.RowIndex == null) {
+                            continue;
+                        }
+
+                        int nextRowIndex = (int)next.RowIndex.Value;
+                        if (nextRowIndex == row) {
+                            rowElement = next;
+                            break;
+                        }
+
+                        if (nextRowIndex > row) {
+                            break;
+                        }
+
+                        insertAfterRow = next;
                     }
-                    if (r.RowIndex.Value < (uint)row) {
-                        insertAfterRow = r;
-                    } else {
-                        break;
+                }
+            }
+
+            if (rowElement == null && insertAfterRow == null) {
+                foreach (Row r in sheetData.Elements<Row>()) {
+                    if (r.RowIndex != null) {
+                        if (r.RowIndex.Value == (uint)row) {
+                            rowElement = r;
+                            break;
+                        }
+                        if (r.RowIndex.Value < (uint)row) {
+                            insertAfterRow = r;
+                        } else {
+                            break;
+                        }
                     }
                 }
             }
 
             if (rowElement == null) {
                 rowElement = new Row { RowIndex = (uint)row };
+                createdRowElement = true;
                 if (insertAfterRow != null) {
                     sheetData.InsertAfter(rowElement, insertAfterRow);
                 } else {
@@ -189,32 +220,71 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            string cellReference = A1.CellReference(row, column);
+            if (createdRowElement) {
+                Cell createdCell = new Cell { CellReference = A1.CellReference(row, column) };
+                rowElement.Append(createdCell);
+                _lastAccessedRow = rowElement;
+                _lastAccessedRowIndex = row;
+                _lastAccessedCell = createdCell;
+                _lastAccessedCellRowIndex = row;
+                _lastAccessedCellColumnIndex = column;
+                return createdCell;
+            }
 
             // Find or create cell with proper ordering (by numeric column index)
             Cell? cell = null;
             Cell? insertAfterCell = null;
             int targetColumnIndex = column;
-            foreach (Cell c in rowElement.Elements<Cell>()) {
-                if (c.CellReference?.Value is not string existingRefValue || existingRefValue.Length == 0) {
-                    continue;
-                }
 
-                int existingColumnIndex = GetColumnIndex(existingRefValue);
-                if (existingColumnIndex == targetColumnIndex) {
-                    cell = c;
+            if (_lastAccessedCell != null
+                && _lastAccessedCellRowIndex == row
+                && ReferenceEquals(_lastAccessedCell.Parent, rowElement)) {
+                if (_lastAccessedCellColumnIndex == targetColumnIndex) {
+                    cell = _lastAccessedCell;
+                } else if (_lastAccessedCellColumnIndex < targetColumnIndex) {
+                    insertAfterCell = _lastAccessedCell;
+                    for (Cell? next = _lastAccessedCell.NextSibling<Cell>(); next != null; next = next.NextSibling<Cell>()) {
+                        if (next.CellReference?.Value is not string nextRefValue || nextRefValue.Length == 0) {
+                            continue;
+                        }
+
+                        int nextColumnIndex = GetColumnIndex(nextRefValue);
+                        if (nextColumnIndex == targetColumnIndex) {
+                            cell = next;
+                            break;
+                        }
+
+                        if (nextColumnIndex > targetColumnIndex) {
+                            break;
+                        }
+
+                        insertAfterCell = next;
+                    }
+                }
+            }
+
+            if (cell == null && insertAfterCell == null) {
+                foreach (Cell c in rowElement.Elements<Cell>()) {
+                    if (c.CellReference?.Value is not string existingRefValue || existingRefValue.Length == 0) {
+                        continue;
+                    }
+
+                    int existingColumnIndex = GetColumnIndex(existingRefValue);
+                    if (existingColumnIndex == targetColumnIndex) {
+                        cell = c;
+                        break;
+                    }
+                    if (existingColumnIndex < targetColumnIndex) {
+                        insertAfterCell = c;
+                        continue;
+                    }
+                    // existingColumnIndex > targetColumnIndex => insert before this cell
                     break;
                 }
-                if (existingColumnIndex < targetColumnIndex) {
-                    insertAfterCell = c;
-                    continue;
-                }
-                // existingColumnIndex > targetColumnIndex => insert before this cell
-                break;
             }
 
             if (cell == null) {
-                cell = new Cell { CellReference = cellReference };
+                cell = new Cell { CellReference = A1.CellReference(row, column) };
                 if (insertAfterCell != null) {
                     rowElement.InsertAfter(cell, insertAfterCell);
                 } else {
@@ -236,11 +306,22 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            _lastAccessedRow = rowElement;
+            _lastAccessedRowIndex = row;
+            _lastAccessedCell = cell;
+            _lastAccessedCellRowIndex = row;
+            _lastAccessedCellColumnIndex = column;
             return cell;
         }
 
         private SheetData GetOrCreateSheetData() {
-            return WorksheetRoot.GetFirstChild<SheetData>() ?? WorksheetRoot.AppendChild(new SheetData());
+            var worksheet = WorksheetRoot;
+            if (_sheetDataCache != null && ReferenceEquals(_sheetDataCache.Parent, worksheet)) {
+                return _sheetDataCache;
+            }
+
+            _sheetDataCache = worksheet.GetFirstChild<SheetData>() ?? worksheet.AppendChild(new SheetData());
+            return _sheetDataCache;
         }
 
         private Row GetOrCreateRowElement(SheetData sheetData, int rowIndex) {

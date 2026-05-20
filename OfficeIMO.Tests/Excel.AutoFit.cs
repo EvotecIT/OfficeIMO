@@ -520,6 +520,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AutoFitColumns_SkipsAlreadyStableBestFitColumns() {
+            string filePath = Path.Combine(_directoryWithFiles, "AutoFit.StableBestFit.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Very long text that should expand the first column");
+                sheet.CellValue(1, 2, "Short");
+                sheet.AutoFitColumns();
+                document.Save();
+            }
+
+            var timings = new List<string>();
+            using (var document = ExcelDocument.Load(filePath)) {
+                document.Execution.OnTiming = (operation, _) => timings.Add(operation);
+                var sheet = document.Sheets.First();
+                sheet.AutoFitColumns();
+                document.Save();
+            }
+
+            Assert.DoesNotContain(timings, operation => operation.StartsWith("AutoFitColumns.", StringComparison.Ordinal));
+        }
+
+        [Fact]
         public void Test_AutoFit_UsesRichInlineStringRunFontsForColumnWidth() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.RichInlineString.xlsx");
 

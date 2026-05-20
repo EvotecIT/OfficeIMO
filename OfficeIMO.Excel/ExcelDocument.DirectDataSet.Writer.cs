@@ -211,9 +211,8 @@ namespace OfficeIMO.Excel {
                         ct.ThrowIfCancellationRequested();
                         bool rowStarted = false;
                         string rowReference = rowIndex.ToString(CultureInfo.InvariantCulture);
-                        var sourceRow = sheet.Table.GetRow(sourceRowIndex);
                         for (int c = 0; c < columnCount; c++) {
-                            object? value = sourceRow.GetValue(c);
+                            object? value = sheet.Table.GetValue(sourceRowIndex, c);
                             if (!rowStarted) {
                                 writer.Write("<row r=\"");
                                 writer.Write(rowReference);
@@ -235,9 +234,8 @@ namespace OfficeIMO.Excel {
                         ct.ThrowIfCancellationRequested();
                         bool rowStarted = false;
                         string rowReference = rowIndex.ToString(CultureInfo.InvariantCulture);
-                        var sourceRow = sheet.Table.GetRow(sourceRowIndex);
                         for (int c = 0; c < columnCount; c++) {
-                            object? value = sourceRow.GetValue(c);
+                            object? value = sheet.Table.GetValue(sourceRowIndex, c);
                             if (!rowStarted) {
                                 writer.Write("<row r=\"");
                                 writer.Write(rowReference);
@@ -446,12 +444,12 @@ namespace OfficeIMO.Excel {
                         return null;
                     }
 
-                    var indexes = new Dictionary<string, int>(counts.Count, StringComparer.Ordinal);
+                    var indexes = counts;
                     var values = new string[counts.Count];
                     int nextIndex = 0;
-                    foreach (var entry in counts) {
-                        indexes.Add(entry.Key, nextIndex);
+                    foreach (var entry in indexes) {
                         values[nextIndex] = entry.Key;
+                        indexes[entry.Key] = nextIndex;
                         nextIndex++;
                     }
 

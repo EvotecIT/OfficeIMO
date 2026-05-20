@@ -371,6 +371,28 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
+        internal bool ShouldMaterializeDeferredDirectTabularSaveCandidateForTable(ExcelSheet sheet, string range, bool includeHeaders) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (!ReferenceEquals(sheet.Document, this)) {
+                return false;
+            }
+
+            var candidate = _directDataSetSaveCandidate;
+            if (candidate == null || !candidate.IsValid || !candidate.IsDeferred) {
+                return false;
+            }
+
+            if (candidate.Model.Sheets.Count != 1) {
+                return true;
+            }
+
+            var sheetModel = candidate.Model.Sheets[0];
+            return sheetModel.HasTable
+                || !string.Equals(sheetModel.SheetName, sheet.Name, StringComparison.Ordinal)
+                || !string.Equals(sheetModel.Range, range, StringComparison.OrdinalIgnoreCase)
+                || sheetModel.IncludeHeaders != includeHeaders;
+        }
+
         internal bool TryEnableDirectTabularSaveCandidateAutoFit(ExcelSheet sheet) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (!ReferenceEquals(sheet.Document, this)) {
@@ -787,7 +809,7 @@ namespace OfficeIMO.Excel {
                 ValidateWorksheetBounds(tableModel, rowCount, requestedName);
                 bool hasTable = createTable && range.Length > 0;
                 string? resolvedTableName = hasTable
-                    ? string.IsNullOrWhiteSpace(tableName) ? SanitizeTableName(requestedName) : tableName
+                    ? SanitizeTableName(string.IsNullOrWhiteSpace(tableName) ? requestedName : tableName!)
                     : null;
                 double[]? columnWidths = autoFit && tableModel.ColumnCount > 0
                     ? tableModel.CalculateColumnWidths(includeHeaders, dateTimeOffsetWriteStrategy, ct)
@@ -1014,12 +1036,6 @@ namespace OfficeIMO.Excel {
 
             internal Type GetColumnType(int index) => _columns![index].DataType;
 
-            internal DirectDataSetRowModel GetRow(int rowIndex) {
-                return _sourceTable != null
-                    ? new DirectDataSetRowModel(_sourceTable.Rows[rowIndex])
-                    : new DirectDataSetRowModel(_rows![rowIndex]);
-            }
-
             internal object? GetValue(int rowIndex, int columnIndex) {
                 object? value = _sourceTable != null
                     ? _sourceTable.Rows[rowIndex][columnIndex]
@@ -1237,28 +1253,6 @@ namespace OfficeIMO.Excel {
                 }
 
                 return table;
-            }
-        }
-
-        private readonly struct DirectDataSetRowModel {
-            private readonly DataRow? _sourceRow;
-            private readonly object?[]? _values;
-
-            internal DirectDataSetRowModel(DataRow sourceRow) {
-                _sourceRow = sourceRow;
-                _values = null;
-            }
-
-            internal DirectDataSetRowModel(object?[] values) {
-                _sourceRow = null;
-                _values = values;
-            }
-
-            internal object? GetValue(int columnIndex) {
-                object? value = _sourceRow != null
-                    ? _sourceRow[columnIndex]
-                    : _values![columnIndex];
-                return value == DBNull.Value ? null : value;
             }
         }
 

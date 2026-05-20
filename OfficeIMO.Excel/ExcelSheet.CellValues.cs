@@ -39,10 +39,23 @@ namespace OfficeIMO.Excel {
                 directSaveCandidate = candidate;
             }
 
+            if (directSaveCandidate != null
+                && (directSaveCandidate.IncludeHeaders
+                    ? mode != ExecutionMode.Parallel
+                    : mode == ExecutionMode.Parallel)
+                && RegisterDeferredDirectCellValuesSaveCandidateIfPossible(directSaveCandidate)) {
+                return;
+            }
+
             if (mode == ExecutionMode.Parallel
                 && !ContainsDirectCellValuesAutomaticFormattingText(list)
                 && TryCreateDirectCellValuesAppendCandidate(list, out DirectCellValuesSaveCandidate? appendCandidate)) {
                 appendSaveCandidate = appendCandidate;
+            }
+
+            if (appendSaveCandidate != null
+                && RegisterDeferredDirectCellValuesSaveCandidateIfPossible(appendSaveCandidate)) {
+                return;
             }
 
             // Single cell: trivially sequential
@@ -133,6 +146,21 @@ namespace OfficeIMO.Excel {
             }
 
             _excelDocument.RegisterDirectTabularSaveCandidate(
+                this,
+                "Cells",
+                candidate.ColumnNames,
+                candidate.ColumnTypes,
+                candidate.Rows,
+                candidate.IncludeHeaders,
+                candidate.Range);
+        }
+
+        private bool RegisterDeferredDirectCellValuesSaveCandidateIfPossible(DirectCellValuesSaveCandidate candidate) {
+            if (string.IsNullOrEmpty(candidate.Range)) {
+                return false;
+            }
+
+            return _excelDocument.RegisterDeferredDirectTabularSaveCandidate(
                 this,
                 "Cells",
                 candidate.ColumnNames,

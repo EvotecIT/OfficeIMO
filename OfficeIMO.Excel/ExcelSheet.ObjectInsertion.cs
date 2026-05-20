@@ -5,6 +5,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -25,6 +26,10 @@ namespace OfficeIMO.Excel {
 
             var list = items.Cast<object?>().ToList();
             if (list.Count == 0) {
+                return;
+            }
+
+            if (TryInsertSimpleObjectRowsAsDeferredDirectSave(list, includeHeaders, startRow)) {
                 return;
             }
 
@@ -268,6 +273,92 @@ namespace OfficeIMO.Excel {
             }
 
             return A1.CellReference(startRow, 1) + ":" + A1.CellReference(startRow + rowCount - 1, columnCount);
+        }
+
+        private bool TryInsertSimpleObjectRowsAsDeferredDirectSave(
+            IReadOnlyList<object?> rows,
+            bool includeHeaders,
+            int startRow) {
+            if (rows.Count == 0) {
+                return false;
+            }
+
+            Type rowType = rows[0]?.GetType() ?? typeof(object);
+            if (rowType == typeof(object)) {
+                return false;
+            }
+
+            var properties = GetSimpleObjectExportProperties(rowType);
+            if (properties.Length == 0) {
+                return false;
+            }
+
+            if (!CanRegisterDirectTabularSaveCandidate(startRow, 1, properties.Length)) {
+                return false;
+            }
+
+            var headers = new string[properties.Length];
+            for (int i = 0; i < headers.Length; i++) {
+                headers[i] = properties[i].Name;
+            }
+
+            if (HasDuplicateObjectExportHeaders(headers)) {
+                return false;
+            }
+
+            var values = new object?[rows.Count][];
+            for (int r = 0; r < rows.Count; r++) {
+                object? row = rows[r];
+                if (row == null || row.GetType() != rowType) {
+                    return false;
+                }
+
+                var rowValues = new object?[properties.Length];
+                for (int c = 0; c < properties.Length; c++) {
+                    rowValues[c] = properties[c].GetValue(row, null);
+                }
+
+                values[r] = rowValues;
+            }
+
+            var columnTypes = InferSimpleObjectExportColumnTypes(properties);
+            string range = BuildObjectExportRange(startRow, properties.Length, rows.Count, includeHeaders);
+            return TryInsertRowsAsDeferredDirectSave(Name, headers, columnTypes, values, startRow, includeHeaders, range);
+        }
+
+        private static PropertyInfo[] GetSimpleObjectExportProperties(Type type) {
+            var properties = type.GetProperties().Where(property => property.CanRead).ToArray();
+            if (properties.Length == 0) {
+                return Array.Empty<PropertyInfo>();
+            }
+
+            for (int i = 0; i < properties.Length; i++) {
+                if (properties[i].GetIndexParameters().Length != 0
+                    || !IsSimpleObjectExportScalarType(properties[i].PropertyType)) {
+                    return Array.Empty<PropertyInfo>();
+                }
+            }
+
+            return properties;
+        }
+
+        private static Type[] InferSimpleObjectExportColumnTypes(IReadOnlyList<PropertyInfo> properties) {
+            var columnTypes = new Type[properties.Count];
+            for (int i = 0; i < columnTypes.Length; i++) {
+                columnTypes[i] = Nullable.GetUnderlyingType(properties[i].PropertyType) ?? properties[i].PropertyType;
+            }
+
+            return columnTypes;
+        }
+
+        private static bool IsSimpleObjectExportScalarType(Type type) {
+            type = Nullable.GetUnderlyingType(type) ?? type;
+            return type.IsPrimitive
+                || type == typeof(string)
+                || type == typeof(decimal)
+                || type == typeof(DateTime)
+                || type == typeof(DateTimeOffset)
+                || type == typeof(Guid);
         }
 
         private static object?[][] CreateObjectExportRows(IReadOnlyList<string> headers, IReadOnlyList<Dictionary<string, object?>> rows) {

@@ -27,6 +27,7 @@ namespace OfficeIMO.Excel {
         internal List<UInt32Value> id = new List<UInt32Value>() { 0 };
         private readonly Dictionary<string, int> _sharedStringCache = new Dictionary<string, int>();
         private readonly object _sharedStringLock = new object();
+        private int _sharedStringTableCount = -1;
         // Workbook-level cache of table names for fast uniqueness checks
         private HashSet<string>? _tableNameCache;
         private readonly object _tableMetadataLock = new object();
@@ -569,11 +570,13 @@ namespace OfficeIMO.Excel {
 
                 // Check if we're in a NoLock scope or already have a lock - if so, initialize without locking
                 if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld)) {
-                    if (_workBookPart.GetPartsOfType<SharedStringTablePart>().Any()) {
-                        _sharedStringTablePart = _workBookPart.GetPartsOfType<SharedStringTablePart>().First();
+                    var existingPart = _workBookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
+                    if (existingPart != null) {
+                        _sharedStringTablePart = existingPart;
                     } else {
                         _sharedStringTablePart = _workBookPart.AddNewPart<SharedStringTablePart>();
                         _sharedStringTablePart.SharedStringTable = new SharedStringTable();
+                        _sharedStringTableCount = 0;
                     }
                     return _sharedStringTablePart!;
                 }
@@ -582,11 +585,13 @@ namespace OfficeIMO.Excel {
                 return Locking.ExecuteWrite(EnsureLock(), () => {
                     // Double-check inside the lock
                     if (_sharedStringTablePart == null) {
-                        if (_workBookPart.GetPartsOfType<SharedStringTablePart>().Any()) {
-                            _sharedStringTablePart = _workBookPart.GetPartsOfType<SharedStringTablePart>().First();
+                        var existingPart = _workBookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
+                        if (existingPart != null) {
+                            _sharedStringTablePart = existingPart;
                         } else {
                             _sharedStringTablePart = _workBookPart.AddNewPart<SharedStringTablePart>();
                             _sharedStringTablePart.SharedStringTable = new SharedStringTable();
+                            _sharedStringTableCount = 0;
                         }
                     }
                     return _sharedStringTablePart;
@@ -602,24 +607,17 @@ namespace OfficeIMO.Excel {
                 }
 
                 var sharedStringTable = SharedStringTablePart.SharedStringTable ??= new SharedStringTable();
+                int tableCount = EnsureSharedStringCacheAndCount(sharedStringTable);
 
-                // If cache is empty, rebuild it
-                if (_sharedStringCache.Count == 0) {
-                    int idx = 0;
-                    foreach (SharedStringItem item in sharedStringTable.Elements<SharedStringItem>()) {
-                        _sharedStringCache[item.InnerText] = idx;
-                        idx++;
-                    }
-
-                    // Check again after rebuilding cache
-                    if (_sharedStringCache.TryGetValue(text, out int foundIndex)) {
-                        return foundIndex;
-                    }
+                // Check again after rebuilding cache
+                if (_sharedStringCache.TryGetValue(text, out int foundIndex)) {
+                    return foundIndex;
                 }
 
                 // Add new string
-                int newIndex = sharedStringTable.Elements<SharedStringItem>().Count();
+                int newIndex = tableCount;
                 sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
+                _sharedStringTableCount = newIndex + 1;
                 _sharedStringTableDirty = true;
                 MarkPackageDirty();
                 _sharedStringCache[text] = newIndex;
@@ -635,17 +633,7 @@ namespace OfficeIMO.Excel {
 
             lock (_sharedStringLock) {
                 var sharedStringTable = SharedStringTablePart.SharedStringTable ??= new SharedStringTable();
-                int tableCount;
-
-                if (_sharedStringCache.Count == 0) {
-                    tableCount = 0;
-                    foreach (SharedStringItem item in sharedStringTable.Elements<SharedStringItem>()) {
-                        _sharedStringCache[item.InnerText] = tableCount;
-                        tableCount++;
-                    }
-                } else {
-                    tableCount = sharedStringTable.Elements<SharedStringItem>().Count();
-                }
+                int tableCount = EnsureSharedStringCacheAndCount(sharedStringTable);
 
                 var result = new Dictionary<string, int>(StringComparer.Ordinal);
                 bool changed = false;
@@ -667,6 +655,8 @@ namespace OfficeIMO.Excel {
                     changed = true;
                 }
 
+                _sharedStringTableCount = tableCount;
+
                 if (changed) {
                     _sharedStringTableDirty = true;
                     MarkPackageDirty();
@@ -674,6 +664,22 @@ namespace OfficeIMO.Excel {
 
                 return result;
             }
+        }
+
+        private int EnsureSharedStringCacheAndCount(SharedStringTable sharedStringTable) {
+            if (_sharedStringCache.Count == 0) {
+                int idx = 0;
+                foreach (SharedStringItem item in sharedStringTable.Elements<SharedStringItem>()) {
+                    _sharedStringCache[item.InnerText] = idx;
+                    idx++;
+                }
+
+                _sharedStringTableCount = idx;
+            } else if (_sharedStringTableCount < 0) {
+                _sharedStringTableCount = sharedStringTable.Elements<SharedStringItem>().Count();
+            }
+
+            return _sharedStringTableCount;
         }
 
         /// <summary>
@@ -2042,6 +2048,9 @@ namespace OfficeIMO.Excel {
             _spreadSheetDocument = SpreadsheetDocument.Open(mem, true, reopenSettings);
             _workBookPart = WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             _sharedStringTablePart = null;
+            _sharedStringCache.Clear();
+            _sharedStringTableCount = -1;
+            _sharedStringTableDirty = false;
             _cachedSheets = null;
             _sheetCacheDirty = true;
             _packageStream = keepPackageStream ? mem : null;

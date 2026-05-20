@@ -384,6 +384,10 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             if (items == null) throw new ArgumentNullException(nameof(items));
 
+            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
+                _excelDocument.MaterializeDeferredDataSetImport();
+            }
+
             var joined = string.Join(",", items.Select(i => i?.Replace("\"", "\"\"") ?? string.Empty));
             var formula = "\"" + joined + "\""; // e.g., "New,Processed,Hold"
 
@@ -412,6 +416,10 @@ namespace OfficeIMO.Excel {
         public void ValidationListNamedRange(string a1Range, string namedRange, bool allowBlank = true) {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             if (string.IsNullOrWhiteSpace(namedRange)) throw new ArgumentNullException(nameof(namedRange));
+
+            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
+                _excelDocument.MaterializeDeferredDataSetImport();
+            }
 
             var normalizedNamedRange = namedRange.Trim();
             if (!normalizedNamedRange.StartsWith("=", StringComparison.Ordinal)) {
@@ -444,6 +452,10 @@ namespace OfficeIMO.Excel {
         public void ValidationListRange(string a1Range, string sourceA1Range, string? sourceSheetName = null, bool allowBlank = true) {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             if (string.IsNullOrWhiteSpace(sourceA1Range)) throw new ArgumentNullException(nameof(sourceA1Range));
+
+            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
+                _excelDocument.MaterializeDeferredDataSetImport();
+            }
 
             var normalizedSourceRange = sourceA1Range.Trim();
             if (normalizedSourceRange.StartsWith("=", StringComparison.Ordinal)) {

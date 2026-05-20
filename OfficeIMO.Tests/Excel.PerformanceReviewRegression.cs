@@ -104,6 +104,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_StreamFastPackage_PreservesPlainFormulas() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Formulas");
+                for (int row = 1; row <= 5; row++) {
+                    sheet.CellValue(row, 1, (double)row);
+                    sheet.CellValue(row, 2, (double)(row + 1));
+                    sheet.CellValue(row, 3, (double)(row + 2));
+                    sheet.CellFormula(row, 4, $"SUM(A{row}:C{row})");
+                }
+
+                document.Save(memory);
+
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!;
+            var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("SUM(A5:C5)", cells["D5"].CellFormula!.Text);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
         public void PerformanceReview_ReadRangeFormulaWithoutCachedValue_ReturnsFormulaText() {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.FormulaWithoutCache.xlsx");
 
@@ -1507,6 +1533,70 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_CellValuesHeaderlessRectangleParallel_UsesDeferredDirectPackageWithSharedStrings() {
+            using var memory = new MemoryStream();
+            var cells = new List<(int Row, int Column, object Value)>();
+
+            for (int row = 1; row <= 700; row++) {
+                cells.Add((row, 1, (object)("Repeated value " + (row % 12).ToString(CultureInfo.InvariantCulture))));
+                cells.Add((row, 2, (object)("Distinct value " + row.ToString(CultureInfo.InvariantCulture))));
+                cells.Add((row, 3, (object)("Long segment " + new string((char)('A' + (row % 26)), 48))));
+            }
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                document.AddWorkSheet("Strings").CellValues(cells, ExecutionMode.Parallel);
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var savedCells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+
+            Assert.NotNull(spreadsheet.WorkbookPart.SharedStringTablePart);
+            Assert.Equal(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString, savedCells["A1"].DataType!.Value);
+            Assert.Equal("Repeated value 1", GetSpreadsheetCellText(spreadsheet, savedCells["A1"]));
+            Assert.Equal("Distinct value 700", GetSpreadsheetCellText(spreadsheet, savedCells["B700"]));
+            Assert.Empty(worksheetPart.TableDefinitionParts);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_CellValuesHeaderlessRectangleThenHeaderedTable_MaterializesBeforeHeaderRepair() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValues(new[] {
+                    (1, 1, (object)"Name"),
+                    (1, 2, (object)"Name"),
+                    (2, 1, (object)"Alpha"),
+                    (2, 2, (object)"Beta")
+                }, ExecutionMode.Parallel);
+                sheet.AddTable("A1:B2", hasHeader: true, name: "RepairedHeaders", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+
+                document.Save(memory);
+
+                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var savedCells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Name", GetSpreadsheetCellText(spreadsheet, savedCells["A1"]));
+            Assert.Equal("Name (2)", GetSpreadsheetCellText(spreadsheet, savedCells["B1"]));
+            var tableDefinition = worksheetPart.TableDefinitionParts.Single().Table!;
+            var columns = tableDefinition.TableColumns!.Elements<TableColumn>().ToList();
+            Assert.Equal("Name", columns[0].Name!.Value);
+            Assert.Equal("Name (2)", columns[1].Name!.Value);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
         public void PerformanceReview_CellValuesHeaderThenAppend_UsesDirectPackageWhenWorkbookIsClean() {
             using var memory = new MemoryStream();
 
@@ -1538,6 +1628,39 @@ namespace OfficeIMO.Tests {
             Assert.Equal("20", cells["B3"].CellValue!.Text);
             Assert.Empty(worksheetPart.TableDefinitionParts);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_CellValuesHeaderThenAppend_MaterializesForReadBeforeSave() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValues(new[] {
+                    (1, 1, (object)"Name"),
+                    (1, 2, (object)"Score")
+                }, ExecutionMode.Sequential);
+                sheet.CellValues(new[] {
+                    (2, 1, (object)"Alpha"),
+                    (2, 2, (object)10),
+                    (3, 1, (object)"Beta"),
+                    (3, 2, (object)20)
+                }, ExecutionMode.Parallel);
+
+                Assert.True(sheet.TryGetCellText(3, 2, out string? score));
+                Assert.Equal("20", score);
+
+                document.Save(memory);
+
+                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var loaded = ExcelDocument.Load(memory, readOnly: true);
+            Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? name));
+            Assert.True(loaded.Sheets[0].TryGetCellText(3, 2, out string? scoreAfterSave));
+            Assert.Equal("Alpha", name);
+            Assert.Equal("20", scoreAfterSave);
         }
 
         [Fact]
@@ -1697,6 +1820,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_CellValueObjectMixed_ReusesDateAndDurationStyles() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
+                for (int row = 1; row <= 20; row++) {
+                    object? name = "Item " + row.ToString(CultureInfo.InvariantCulture);
+                    object? created = start.AddDays(row);
+                    object? duration = TimeSpan.FromMinutes(row * 7);
+                    object? offset = new DateTimeOffset(start.AddHours(row), TimeSpan.Zero);
+                    sheet.CellValue(row, 1, name);
+                    sheet.CellValue(row, 2, created);
+                    sheet.CellValue(row, 3, duration);
+                    sheet.CellValue(row, 4, offset);
+                }
+
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!;
+            var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            uint dateStyle = cells["B1"].StyleIndex!.Value;
+            uint durationStyle = cells["C1"].StyleIndex!.Value;
+            Assert.Equal(dateStyle, cells["B20"].StyleIndex!.Value);
+            Assert.Equal(dateStyle, cells["D20"].StyleIndex!.Value);
+            Assert.Equal(durationStyle, cells["C20"].StyleIndex!.Value);
+            Assert.NotEqual(dateStyle, durationStyle);
+
+            var formats = spreadsheet.WorkbookPart.WorkbookStylesPart!.Stylesheet!.CellFormats!.Elements<CellFormat>().ToList();
+            Assert.Equal(14U, formats[(int)dateStyle].NumberFormatId!.Value);
+            Assert.Equal(46U, formats[(int)durationStyle].NumberFormatId!.Value);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
         public void PerformanceReview_InsertObjects_ExplicitSelectorsUseDirectPackageWhenWorkbookIsClean() {
             using var memory = new MemoryStream();
             var rows = new[] {
@@ -1802,6 +1963,14 @@ namespace OfficeIMO.Tests {
 
             memory.Position = 0;
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!;
+            var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Name", cells["A1"].CellValue!.Text);
+            Assert.Equal("Score", cells["B1"].CellValue!.Text);
+            Assert.Equal("Created", cells["C1"].CellValue!.Text);
+            Assert.Equal("Alpha", cells["A2"].CellValue!.Text);
+            Assert.Equal("10", cells["B2"].CellValue!.Text);
+            Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
@@ -2297,6 +2466,38 @@ namespace OfficeIMO.Tests {
             Assert.Equal(SheetStateValues.Hidden, workbookSheet.State!.Value);
             var cells = spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet!.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertDataTableAsTable_SourceMutationAfterInsertDoesNotChangeDirectCandidate() {
+            using var memory = new MemoryStream();
+            var table = new DataTable("Sales");
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("Score", typeof(int));
+            table.Rows.Add("Alpha", 10);
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                Assert.Equal("A1:B2", sheet.InsertDataTableAsTable(table, tableName: "Sales Table"));
+                table.Rows[0]["Name"] = "Changed";
+                table.Rows.Add("Late", 20);
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Alpha", cells["A2"].CellValue!.Text);
+            Assert.False(cells.ContainsKey("A3"));
+            var tableDefinition = worksheetPart.TableDefinitionParts.Single().Table!;
+            Assert.Equal("A1:B2", tableDefinition.Reference!.Value);
+            Assert.Equal("Sales_Table", tableDefinition.Name!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
