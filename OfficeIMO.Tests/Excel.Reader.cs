@@ -35,6 +35,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_OpenPath_DetachesFromSourceFile() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderOpenPathDetached.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Value");
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                File.Delete(filePath);
+                Assert.False(File.Exists(filePath));
+
+                object?[,] values = reader.GetSheet("Data").ReadRange("A1:A1");
+                Assert.Equal("Value", values[0, 0]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Reader_OpenStream_CopiesSeekableStreamAndLeavesSourceOpen() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderOpenStreamCopiesSeekable.xlsx");
 

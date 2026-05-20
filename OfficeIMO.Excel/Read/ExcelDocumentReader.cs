@@ -33,16 +33,11 @@ namespace OfficeIMO.Excel {
                 throw new FileNotFoundException($"File '{path}' doesn't exist.", path);
             }
 
-            try {
-                var doc = SpreadsheetDocument.Open(path, false);
-                return new ExcelDocumentReader(doc, options ?? new ExcelReadOptions(), owns: true);
-            } catch (Exception ex) when (IsRecoverableOpenException(ex)) {
-                return OpenFromBytes(
-                    File.ReadAllBytes(path),
-                    options,
-                    normalizeContentTypes: true,
-                    contextMessage: $"Failed to open '{path}' after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.");
-            }
+            return OpenFromBytes(
+                File.ReadAllBytes(path),
+                options,
+                normalizeContentTypes: false,
+                contextMessage: $"Failed to open '{path}' after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.");
         }
 
         /// <summary>

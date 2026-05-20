@@ -30,7 +30,12 @@ namespace OfficeIMO.Excel {
             int estRows = Math.Max(0, r2 - r1 + 1);
             var policy = _opt.Execution;
             var decided = mode ?? policy.Mode;
-            if (CanUseAutomaticXmlStreamFastPath(decided, policy)) {
+            bool automaticDecision = decided == OfficeIMO.Excel.ExecutionMode.Automatic;
+            if (automaticDecision) {
+                decided = policy.Decide("ReadRangeStream", estRows);
+            }
+
+            if (CanUseAutomaticXmlStreamFastPath(automaticDecision, decided)) {
                 if (chunkRows >= estRows) {
                     foreach (var chunk in ReadRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, ct)) {
                         yield return chunk;
@@ -56,9 +61,6 @@ namespace OfficeIMO.Excel {
                     yield break;
                 }
             }
-
-            if (decided == OfficeIMO.Excel.ExecutionMode.Automatic)
-                decided = policy.Decide("ReadRangeStream", estRows);
 
             int dop = (decided == OfficeIMO.Excel.ExecutionMode.Parallel)
                 ? (policy.MaxDegreeOfParallelism ?? System.Environment.ProcessorCount)
@@ -412,9 +414,9 @@ namespace OfficeIMO.Excel {
                 && ((long)estimatedRows * width) <= OrderedBufferedRangeStreamCellLimit;
         }
 
-        private bool CanUseAutomaticXmlStreamFastPath(OfficeIMO.Excel.ExecutionMode decided, OfficeIMO.Excel.ExecutionPolicy policy) {
-            return decided == OfficeIMO.Excel.ExecutionMode.Automatic
-                && policy.OnDecision == null
+        private bool CanUseAutomaticXmlStreamFastPath(bool automaticDecision, OfficeIMO.Excel.ExecutionMode decided) {
+            return automaticDecision
+                && decided != OfficeIMO.Excel.ExecutionMode.Parallel
                 && CanUseXmlFastReader();
         }
 

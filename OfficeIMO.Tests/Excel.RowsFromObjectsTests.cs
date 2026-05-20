@@ -72,6 +72,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void RowsFrom_DefaultOptions_JoinCollectionsBeforeDirectSaveShortcut() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            var data = new[] {
+                new Person { Name = "Alice", Age = 30, Tags = new List<string> { "a", "b" } }
+            };
+
+            using (var doc = ExcelDocument.Create(filePath)) {
+                doc.AsFluent()
+                    .Sheet("People", s => s.RowsFrom(data))
+                    .End()
+                    .Save();
+            }
+
+            using (var document = SpreadsheetDocument.Open(filePath, false)) {
+                var workbookPart = document.WorkbookPart;
+                Assert.NotNull(workbookPart);
+                var wsPart = workbookPart.WorksheetParts.First();
+                Assert.Equal("Tags", GetCellValue(document, wsPart, "D1"));
+                Assert.Equal("a,b", GetCellValue(document, wsPart, "D2"));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void RowsFrom_PreservesBlankHeadersAfterTrim() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             var data = new[] {

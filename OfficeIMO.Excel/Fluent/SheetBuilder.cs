@@ -123,6 +123,10 @@ namespace OfficeIMO.Excel.Fluent {
                 return false;
             }
 
+            if (properties.Any(property => !IsRowsFromDirectSaveScalarType(property.PropertyType))) {
+                return false;
+            }
+
             var headers = properties.Select(property => property.Name).ToArray();
             if (!CanUseRowsFromDataTable(headers)) {
                 return false;
@@ -368,6 +372,25 @@ namespace OfficeIMO.Excel.Fluent {
                 .Where(property => property.GetIndexParameters().Length == 0 && property.GetMethod != null)
                 .OrderBy(property => property.MetadataToken)
                 .ToArray();
+
+        private static bool IsRowsFromDirectSaveScalarType(Type type) {
+            type = Nullable.GetUnderlyingType(type) ?? type;
+            if (type == typeof(string)) {
+                return true;
+            }
+
+            if (typeof(System.Collections.IEnumerable).IsAssignableFrom(type)) {
+                return false;
+            }
+
+            return type.IsPrimitive
+                || type.IsEnum
+                || type == typeof(decimal)
+                || type == typeof(DateTime)
+                || type == typeof(DateTimeOffset)
+                || type == typeof(TimeSpan)
+                || type == typeof(Guid);
+        }
 
         private static Type[] InferRowsFromPropertyColumnTypes<T>(IReadOnlyList<PropertyInfo> properties, IReadOnlyList<T> rows) {
             var columnTypes = new Type[properties.Count];
