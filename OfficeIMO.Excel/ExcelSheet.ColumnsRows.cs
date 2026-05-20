@@ -80,33 +80,42 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            IEnumerable<int> targetColumns;
+            IReadOnlyList<int> targetColumns;
             if (requestedColumns != null) {
                 targetColumns = requestedColumns;
             } else if (TryGetDimensionColumnBounds(worksheet, out int firstColumn, out int lastColumn)) {
-                targetColumns = Enumerable.Range(firstColumn, lastColumn - firstColumn + 1);
+                targetColumns = Enumerable.Range(firstColumn, lastColumn - firstColumn + 1).ToArray();
             } else if (TryGetSheetDataColumnBounds(worksheet, out firstColumn, out lastColumn)) {
-                targetColumns = Enumerable.Range(firstColumn, lastColumn - firstColumn + 1);
+                targetColumns = Enumerable.Range(firstColumn, lastColumn - firstColumn + 1).ToArray();
             } else {
                 return false;
             }
 
-            foreach (int columnIndex in targetColumns) {
-                bool hasStableWidth = false;
-                foreach (var column in columns.Elements<Column>()) {
-                    uint min = column.Min?.Value ?? 0U;
-                    uint max = column.Max?.Value ?? 0U;
-                    if (min <= (uint)columnIndex
-                        && max >= (uint)columnIndex
-                        && column.Width != null
-                        && column.CustomWidth?.Value == true
-                        && column.BestFit?.Value == true) {
-                        hasStableWidth = true;
-                        break;
-                    }
+            bool[] stableColumns = new bool[A1.MaxColumns + 1];
+            foreach (var column in columns.Elements<Column>()) {
+                if (column.Width == null
+                    || column.CustomWidth?.Value != true
+                    || column.BestFit?.Value != true) {
+                    continue;
                 }
 
-                if (!hasStableWidth) {
+                uint min = column.Min?.Value ?? 0U;
+                uint max = column.Max?.Value ?? 0U;
+                if (min == 0U || max < min || min > A1.MaxColumns) {
+                    continue;
+                }
+
+                int start = (int)Math.Max(1U, min);
+                int end = (int)Math.Min((uint)A1.MaxColumns, max);
+                for (int i = start; i <= end; i++) {
+                    stableColumns[i] = true;
+                }
+            }
+
+            foreach (int columnIndex in targetColumns) {
+                if (columnIndex <= 0
+                    || columnIndex > A1.MaxColumns
+                    || !stableColumns[columnIndex]) {
                     return false;
                 }
             }
@@ -208,9 +217,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     var applyWatch = EffectiveExecution.OnTiming == null ? null : System.Diagnostics.Stopwatch.StartNew();
-                    for (int i = 0; i < columnsList.Count; i++) {
-                        SetColumnWidthCore(columnsList[i], computed[i]);
-                    }
+                    SetColumnWidthsCore(columnsList, computed);
 
                     if (EffectiveExecution.SaveWorksheetAfterAutoFit) {
                         worksheet.Save();
@@ -233,9 +240,7 @@ namespace OfficeIMO.Excel {
                 applySequential: () => {
                     var worksheet = WorksheetRoot;
                     var applyWatch = EffectiveExecution.OnTiming == null ? null : System.Diagnostics.Stopwatch.StartNew();
-                    for (int i = 0; i < columnsList.Count; i++) {
-                        SetColumnWidthCore(columnsList[i], computed[i]);
-                    }
+                    SetColumnWidthsCore(columnsList, computed);
                     if (EffectiveExecution.SaveWorksheetAfterAutoFit) {
                         worksheet.Save();
                     }
@@ -686,6 +691,59 @@ namespace OfficeIMO.Excel {
                 columns = worksheet.InsertAt(new Columns(), 0);
             }
 
+            SetColumnWidthCore(columns, columnIndex, width);
+
+            if (columns.Elements<Column>().Any()) {
+                ReorderColumns(columns);
+            } else {
+                columns.Remove();
+            }
+        }
+
+        private void SetColumnWidthsCore(IReadOnlyList<int> columnIndexes, double[] widths) {
+            var worksheet = WorksheetRoot;
+            var columns = worksheet.GetFirstChild<Columns>();
+            if (columns == null) {
+                columns = worksheet.InsertAt(new Columns(), 0);
+            }
+
+            if (!columns.Elements<Column>().Any()) {
+                for (int i = 0; i < columnIndexes.Count; i++) {
+                    double width = NormalizeColumnWidth(widths[i]);
+                    if (width <= 0) {
+                        continue;
+                    }
+
+                    columns.Append(new Column {
+                        Min = (uint)columnIndexes[i],
+                        Max = (uint)columnIndexes[i],
+                        Width = width,
+                        CustomWidth = true,
+                        BestFit = true
+                    });
+                }
+
+                if (columns.Elements<Column>().Any()) {
+                    ReorderColumns(columns);
+                } else {
+                    columns.Remove();
+                }
+
+                return;
+            }
+
+            for (int i = 0; i < columnIndexes.Count; i++) {
+                SetColumnWidthCore(columns, columnIndexes[i], widths[i]);
+            }
+
+            if (columns.Elements<Column>().Any()) {
+                ReorderColumns(columns);
+            } else {
+                columns.Remove();
+            }
+        }
+
+        private static void SetColumnWidthCore(Columns columns, int columnIndex, double width) {
             Column? column = columns.Elements<Column>()
                 .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
 
@@ -705,12 +763,6 @@ namespace OfficeIMO.Excel {
                 column.BestFit = true;
             } else if (column != null) {
                 column.Remove();
-            }
-
-            if (columns.Elements<Column>().Any()) {
-                ReorderColumns(columns);
-            } else {
-                columns.Remove();
             }
         }
 
@@ -1337,6 +1389,10 @@ namespace OfficeIMO.Excel {
         /// <param name="topRows">Number of rows at the top to freeze.</param>
         /// <param name="leftCols">Number of columns on the left to freeze.</param>
         public void Freeze(int topRows = 0, int leftCols = 0) {
+            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
+                _excelDocument.MaterializeDeferredDataSetImport();
+            }
+
             WriteLock(() => {
                 Worksheet worksheet = WorksheetRoot;
                 SheetViews? sheetViews = worksheet.GetFirstChild<SheetViews>();

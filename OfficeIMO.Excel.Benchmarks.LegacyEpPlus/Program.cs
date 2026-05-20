@@ -35,8 +35,16 @@ AddScenario(scenarios, scenarioFilter, "write-bulk-report", LibraryName, "EPPlus
 AddScenario(scenarios, scenarioFilter, "write-dataset-tables", LibraryName, "EPPlus 4.x import prepared DataTables as two styled worksheet tables and save.", () => WriteDataSetTables(salesDataSet), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "write-datatable-direct", LibraryName, "EPPlus 4.x import a prepared DataTable and save.", () => WriteDataTable(salesDataTable), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "write-datatable-table-direct", LibraryName, "EPPlus 4.x import a prepared DataTable as a styled worksheet table and save.", () => WriteDataTable(salesDataTable, includeTable: true), warmupIterations, measuredIterations);
-AddScenario(scenarios, scenarioFilter, "write-datareader-table-direct", LibraryName, "EPPlus 4.x import equivalent prepared data as a styled worksheet table and save.", () => WriteDataTable(salesDataTable, includeTable: true), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "write-datareader-table", LibraryName, "EPPlus 4.x import equivalent prepared data as a styled worksheet table and save.", () => WriteDataTable(salesDataTable, includeTable: true), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "write-datareader-table-autofit", LibraryName, "EPPlus 4.x import equivalent prepared data as a styled worksheet table, autofit columns, and save.", () => WriteDataTable(salesDataTable, includeTable: true, autoFit: true), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "write-datareader-plain", LibraryName, "EPPlus 4.x import equivalent prepared data as plain worksheet rows and save.", () => WriteDataTable(salesDataTable), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "write-cellvalues-rectangle-direct", LibraryName, "EPPlus 4.x write the same complete A1 rectangle and save.", () => WriteEquivalentSalesRows(rows), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "write-cellvalue-strings", LibraryName, "EPPlus 4.x assign repeated and distinct text-heavy cells one by one and save.", () => WriteSharedStrings(rowCount), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "write-cellvalue-numbers", LibraryName, "EPPlus 4.x assign numeric cells one by one and save.", () => WriteCellValueNumbers(rowCount), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "write-cellvalue-scalars", LibraryName, "EPPlus 4.x assign decimal and boolean cells one by one and save.", () => WriteCellValueScalars(rowCount), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "write-cellvalue-temporal", LibraryName, "EPPlus 4.x assign date and duration cells one by one and save.", () => WriteCellValueTemporal(rowCount), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "write-cellvalue-object-mixed", LibraryName, "EPPlus 4.x assign mixed object-typed cells one by one and save.", () => WriteCellValueObjectMixed(rowCount), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "write-cellformula", LibraryName, "EPPlus 4.x assign numeric cells and row formulas one by one and save.", () => WriteCellFormula(rowCount), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "write-insertobjects-direct", LibraryName, "EPPlus 4.x import equivalent typed object data and save.", () => WriteDataTable(salesDataTable), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "write-fluent-rowsfrom-direct", LibraryName, "EPPlus 4.x import equivalent typed row data and save.", () => WriteDataTable(salesDataTable), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "append-plain-rows", LibraryName, "EPPlus 4.x append equivalent row/cell values.", () => AppendPlainRows(rows), warmupIterations, measuredIterations);
@@ -179,11 +187,15 @@ static int WriteDataSetTables(DataSet dataSet) {
     return checked((int)stream.Length);
 }
 
-static int WriteDataTable(DataTable dataTable, bool includeTable = false) {
+static int WriteDataTable(DataTable dataTable, bool includeTable = false, bool autoFit = false) {
     using var stream = new MemoryStream();
     using (var package = new ExcelPackage(stream)) {
         var worksheet = package.Workbook.Worksheets.Add("Data");
         worksheet.Cells["A1"].LoadFromDataTable(dataTable, true, includeTable ? TableStyles.Medium2 : TableStyles.None);
+        if (autoFit && worksheet.Dimension != null) {
+            worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
+        }
+
         package.Save();
     }
 
@@ -330,6 +342,94 @@ static int WriteSharedStrings(int rowCount) {
             worksheet.Cells[row, 1].Value = "Repeated value " + (row % 12);
             worksheet.Cells[row, 2].Value = "Distinct value " + row.ToString(CultureInfo.InvariantCulture);
             worksheet.Cells[row, 3].Value = "Long segment " + new string((char)('A' + (row % 26)), 48);
+        }
+
+        package.Save();
+    }
+
+    return checked((int)stream.Length);
+}
+
+static int WriteCellValueNumbers(int rowCount) {
+    using var stream = new MemoryStream();
+    using (var package = new ExcelPackage(stream)) {
+        var worksheet = package.Workbook.Worksheets.Add("Numbers");
+        for (int row = 1; row <= rowCount; row++) {
+            worksheet.Cells[row, 1].Value = row * 1.25d;
+            worksheet.Cells[row, 2].Value = row + 0.5d;
+            worksheet.Cells[row, 3].Value = row % 17;
+        }
+
+        package.Save();
+    }
+
+    return checked((int)stream.Length);
+}
+
+static int WriteCellValueScalars(int rowCount) {
+    using var stream = new MemoryStream();
+    using (var package = new ExcelPackage(stream)) {
+        var worksheet = package.Workbook.Worksheets.Add("Scalars");
+        for (int row = 1; row <= rowCount; row++) {
+            worksheet.Cells[row, 1].Value = row * 10.75m;
+            worksheet.Cells[row, 2].Value = row % 2 == 0;
+            worksheet.Cells[row, 3].Value = row % 3 == 0;
+        }
+
+        package.Save();
+    }
+
+    return checked((int)stream.Length);
+}
+
+static int WriteCellValueTemporal(int rowCount) {
+    using var stream = new MemoryStream();
+    using (var package = new ExcelPackage(stream)) {
+        var worksheet = package.Workbook.Worksheets.Add("Temporal");
+        var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
+        for (int row = 1; row <= rowCount; row++) {
+            worksheet.Cells[row, 1].Value = start.AddDays(row);
+            worksheet.Cells[row, 2].Value = TimeSpan.FromMinutes(row * 7);
+            worksheet.Cells[row, 3].Value = start.AddHours(row % 24);
+        }
+
+        package.Save();
+    }
+
+    return checked((int)stream.Length);
+}
+
+static int WriteCellValueObjectMixed(int rowCount) {
+    using var stream = new MemoryStream();
+    using (var package = new ExcelPackage(stream)) {
+        var worksheet = package.Workbook.Worksheets.Add("Objects");
+        var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
+        for (int row = 1; row <= rowCount; row++) {
+            object? name = "Item " + (row % 12).ToString(CultureInfo.InvariantCulture);
+            object? amount = (double)row * 1.25d;
+            object? active = row % 2 == 0;
+            object? created = start.AddDays(row);
+            worksheet.Cells[row, 1].Value = name;
+            worksheet.Cells[row, 2].Value = amount;
+            worksheet.Cells[row, 3].Value = active;
+            worksheet.Cells[row, 4].Value = created;
+        }
+
+        package.Save();
+    }
+
+    return checked((int)stream.Length);
+}
+
+static int WriteCellFormula(int rowCount) {
+    using var stream = new MemoryStream();
+    using (var package = new ExcelPackage(stream)) {
+        var worksheet = package.Workbook.Worksheets.Add("Formulas");
+        for (int row = 1; row <= rowCount; row++) {
+            worksheet.Cells[row, 1].Value = (double)row;
+            worksheet.Cells[row, 2].Value = (double)(row % 17);
+            worksheet.Cells[row, 3].Value = (double)(row % 29);
+            worksheet.Cells[row, 4].Formula = $"SUM(A{row}:C{row})";
         }
 
         package.Save();

@@ -154,6 +154,10 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(range));
             }
 
+            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
+                _excelDocument.MaterializeDeferredDataSetImport();
+            }
+
             WriteLock(() => {
                 // SMART DETECTION: Check if there's a table on this range
                 // If there is, we'll add the AutoFilter to the table instead of the worksheet
@@ -274,6 +278,10 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
+            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
+                _excelDocument.MaterializeDeferredDataSetImport();
+            }
+
             return _worksheetPart.TableDefinitionParts
                 .Select(part => part.Table)
                 .FirstOrDefault(table => string.Equals(table?.Name?.Value ?? table?.DisplayName?.Value, tableName, StringComparison.OrdinalIgnoreCase))
@@ -310,6 +318,10 @@ namespace OfficeIMO.Excel {
         private string AddTableCore(string range, bool hasHeader, string name, TableStyle style, bool includeAutoFilter, TableNameValidationMode validationMode = TableNameValidationMode.Sanitize, bool ensureRangeCellsExist = true, IReadOnlyList<string>? headerNames = null, bool deferPartSave = false, bool skipExistingTableScan = false) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
+            }
+
+            if (_excelDocument.ShouldMaterializeDeferredDirectTabularSaveCandidateForTable(this, range, hasHeader)) {
+                _excelDocument.MaterializeDeferredDataSetImport();
             }
 
             string resolvedName = string.Empty;

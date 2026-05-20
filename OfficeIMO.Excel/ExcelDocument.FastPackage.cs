@@ -71,6 +71,8 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
+        private static readonly System.Text.UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
+
         private static class FastWorkbookPackageWriter {
             internal static void Write(Stream destination, FastWorkbookPackageModel model, CancellationToken ct) {
                 using (var archive = new ZipArchive(destination, ZipArchiveMode.Create, leaveOpen: true)) {
@@ -661,10 +663,15 @@ namespace OfficeIMO.Excel {
         }
 
         private static void WriteSharedStringsEntry(ZipArchive archive, SharedStringTable sharedStrings) {
-            WriteTextEntry(
-                archive,
-                "xl/sharedStrings.xml",
-                "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + sharedStrings.OuterXml);
+            WriteOpenXmlElementEntry(archive, "xl/sharedStrings.xml", sharedStrings);
+        }
+
+        private static void WriteOpenXmlElementEntry(ZipArchive archive, string path, OpenXmlElement element) {
+            var entry = archive.CreateEntry(path, CompressionLevel.Fastest);
+            using var stream = entry.Open();
+            using var writer = CreateFastXmlWriter(stream);
+            writer.WriteStartDocument();
+            element.WriteTo(writer);
         }
 
         private static void WriteWorksheetRelationshipsEntry(ZipArchive archive, FastWorksheetPackageModel worksheet) {
@@ -702,7 +709,7 @@ namespace OfficeIMO.Excel {
             string dimension = worksheet.SheetDimension?.Reference?.Value ?? ExcelSheet.ComputeSheetDimensionReference(worksheet);
             var builder = new System.Text.StringBuilder(4096);
             using var stream = entry.Open();
-            using var writer = new StreamWriter(stream, new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            using var writer = new StreamWriter(stream, Utf8NoBom);
 
             builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
             builder.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"");
@@ -894,7 +901,7 @@ namespace OfficeIMO.Excel {
 
             builder.Append('>');
             if (cell.CellFormula != null) {
-                builder.Append(cell.CellFormula.OuterXml);
+                AppendCellFormula(builder, cell.CellFormula);
             }
 
             if (cell.InlineString != null) {
@@ -912,10 +919,21 @@ namespace OfficeIMO.Excel {
             builder.Append("</c>");
         }
 
+        private static void AppendCellFormula(System.Text.StringBuilder builder, CellFormula formula) {
+            if (formula.HasAttributes) {
+                builder.Append(formula.OuterXml);
+                return;
+            }
+
+            builder.Append("<f>");
+            AppendXmlEscaped(builder, formula.Text ?? string.Empty);
+            builder.Append("</f>");
+        }
+
         private static void WriteTextEntry(ZipArchive archive, string path, string text) {
             var entry = archive.CreateEntry(path, CompressionLevel.Fastest);
             using var stream = entry.Open();
-            using var writer = new StreamWriter(stream, new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            using var writer = new StreamWriter(stream, Utf8NoBom);
             writer.Write(text);
         }
 
@@ -957,7 +975,7 @@ namespace OfficeIMO.Excel {
 
         private static XmlWriter CreateFastXmlWriter(Stream stream) =>
             XmlWriter.Create(stream, new XmlWriterSettings {
-                Encoding = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+                Encoding = Utf8NoBom,
                 CloseOutput = false,
                 Indent = false,
                 OmitXmlDeclaration = false

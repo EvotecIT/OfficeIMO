@@ -12,6 +12,7 @@ using OfficeOpenXml;
 using OfficeOpenXml.Table;
 using Sylvan.Data.Excel;
 using SylvanExcelDataReader = Sylvan.Data.Excel.ExcelDataReader;
+using SylvanExcelDataWriter = Sylvan.Data.Excel.ExcelDataWriter;
 
 namespace OfficeIMO.Excel.Benchmarks;
 
@@ -156,11 +157,62 @@ internal static class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("MiniExcel", "Stream the same DataTable-backed IDataReader and save.", () => MiniExcelWriteDataReaderTable(salesDataTable))
         ]);
 
+        AddScenarioGroup(scenarios, scenarioFilter, "write-datareader-table-autofit", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Stream a DataTable-backed IDataReader as a styled table, AutoFit, and save.", () => OfficeImoWriteDataReaderTable(salesDataTable, autoFit: true)),
+            new LibraryComparisonCase("ClosedXML", "Import the same prepared data as a styled worksheet table, adjust columns, and save.", () => ClosedXmlWriteDataTable(salesDataTable, includeTable: true, autoFit: true)),
+            new LibraryComparisonCase("EPPlus", "Import the same prepared data as a styled worksheet table, autofit columns, and save.", () => EpPlusWriteDataTable(salesDataTable, includeTable: true, autoFit: true)),
+            new LibraryComparisonCase("MiniExcel", "Stream the same DataTable-backed IDataReader with table styling and auto-width configuration.", () => MiniExcelWriteDataReaderTable(salesDataTable, autoFit: true))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-datareader-plain", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Stream a DataTable-backed IDataReader as plain worksheet rows through the normal worksheet API and save.", () => OfficeImoWriteDataReaderPlain(salesDataTable)),
+            new LibraryComparisonCase("ClosedXML", "Import the same prepared data as plain worksheet rows and save.", () => ClosedXmlWriteDataTable(salesDataTable)),
+            new LibraryComparisonCase("EPPlus", "Import the same prepared data as plain worksheet rows and save.", () => EpPlusWriteDataTable(salesDataTable)),
+            new LibraryComparisonCase("MiniExcel", "Stream the same DataTable-backed IDataReader as plain worksheet rows and save.", () => MiniExcelWriteDataReaderPlain(salesDataTable)),
+            new LibraryComparisonCase("Sylvan.Data.Excel", "Stream the same DataTable-backed DbDataReader through ExcelDataWriter and save.", () => SylvanWriteDataReaderPlain(salesDataTable))
+        ]);
+
         AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalues-rectangle-direct", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Write a complete A1 rectangle with CellValues and save.", () => OfficeImoWriteCellValuesRectangle(rows)),
             new LibraryComparisonCase("ClosedXML", "Write the same complete A1 rectangle and save.", () => ClosedXmlWriteSalesRows(rows, includeAllColumns: true)),
             new LibraryComparisonCase("EPPlus", "Write the same complete A1 rectangle and save.", () => EpPlusWriteSalesRows(rows, includeAllColumns: true)),
             new LibraryComparisonCase("MiniExcel", "Streaming typed row export with the same columns and headers.", () => MiniExcelWriteSalesRows(rows))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalue-strings", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Assign repeated and distinct text-heavy cells one by one and save.", () => OfficeImoWriteCellValueStrings(rowCount)),
+            new LibraryComparisonCase("ClosedXML", "Assign repeated and distinct text-heavy cells one by one and save.", () => ClosedXmlWriteSharedStrings(rowCount)),
+            new LibraryComparisonCase("EPPlus", "Assign repeated and distinct text-heavy cells one by one and save.", () => EpPlusWriteSharedStrings(rowCount))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalue-numbers", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Assign numeric cells one by one and save.", () => OfficeImoWriteCellValueNumbers(rowCount)),
+            new LibraryComparisonCase("ClosedXML", "Assign numeric cells one by one and save.", () => ClosedXmlWriteCellValueNumbers(rowCount)),
+            new LibraryComparisonCase("EPPlus", "Assign numeric cells one by one and save.", () => EpPlusWriteCellValueNumbers(rowCount))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalue-scalars", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Assign decimal and boolean cells one by one and save.", () => OfficeImoWriteCellValueScalars(rowCount)),
+            new LibraryComparisonCase("ClosedXML", "Assign decimal and boolean cells one by one and save.", () => ClosedXmlWriteCellValueScalars(rowCount)),
+            new LibraryComparisonCase("EPPlus", "Assign decimal and boolean cells one by one and save.", () => EpPlusWriteCellValueScalars(rowCount))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalue-temporal", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Assign date and duration cells one by one and save.", () => OfficeImoWriteCellValueTemporal(rowCount)),
+            new LibraryComparisonCase("ClosedXML", "Assign date and duration cells one by one and save.", () => ClosedXmlWriteCellValueTemporal(rowCount)),
+            new LibraryComparisonCase("EPPlus", "Assign date and duration cells one by one and save.", () => EpPlusWriteCellValueTemporal(rowCount))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalue-object-mixed", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Assign mixed object-typed cells one by one and save.", () => OfficeImoWriteCellValueObjectMixed(rowCount)),
+            new LibraryComparisonCase("ClosedXML", "Assign mixed object-typed cells one by one and save.", () => ClosedXmlWriteCellValueObjectMixed(rowCount)),
+            new LibraryComparisonCase("EPPlus", "Assign mixed object-typed cells one by one and save.", () => EpPlusWriteCellValueObjectMixed(rowCount))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-cellformula", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Assign numeric cells and row formulas one by one and save.", () => OfficeImoWriteCellFormula(rowCount)),
+            new LibraryComparisonCase("ClosedXML", "Assign numeric cells and row formulas one by one and save.", () => ClosedXmlWriteCellFormula(rowCount)),
+            new LibraryComparisonCase("EPPlus", "Assign numeric cells and row formulas one by one and save.", () => EpPlusWriteCellFormula(rowCount))
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-insertobjects-direct", warmupIterations, measuredIterations, [
@@ -425,11 +477,62 @@ internal static class ExcelLibraryComparisonRunner {
             new PackageProfileCase("MiniExcel", "Stream the same DataTable-backed IDataReader and save.", () => MiniExcelWriteDataReaderTableBytes(salesDataTable))
         ]);
 
+        AddPackageProfileGroup(scenarios, scenarioFilter, "write-datareader-table-autofit", warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Stream a DataTable-backed IDataReader as a styled table, AutoFit, and save.", () => OfficeImoWriteDataReaderTableBytes(salesDataTable, autoFit: true)),
+            new PackageProfileCase("ClosedXML", "Import the same prepared data as a styled worksheet table, adjust columns, and save.", () => ClosedXmlWriteDataTableBytes(salesDataTable, includeTable: true, autoFit: true)),
+            new PackageProfileCase("EPPlus", "Import the same prepared data as a styled worksheet table, autofit columns, and save.", () => EpPlusWriteDataTableBytes(salesDataTable, includeTable: true, autoFit: true)),
+            new PackageProfileCase("MiniExcel", "Stream the same DataTable-backed IDataReader with table styling and auto-width configuration.", () => MiniExcelWriteDataReaderTableBytes(salesDataTable, autoFit: true))
+        ]);
+
+        AddPackageProfileGroup(scenarios, scenarioFilter, "write-datareader-plain", warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Stream a DataTable-backed IDataReader as plain worksheet rows through the normal worksheet API and save.", () => OfficeImoWriteDataReaderPlainBytes(salesDataTable)),
+            new PackageProfileCase("ClosedXML", "Import the same prepared data as plain worksheet rows and save.", () => ClosedXmlWriteDataTableBytes(salesDataTable)),
+            new PackageProfileCase("EPPlus", "Import the same prepared data as plain worksheet rows and save.", () => EpPlusWriteDataTableBytes(salesDataTable)),
+            new PackageProfileCase("MiniExcel", "Stream the same DataTable-backed IDataReader as plain worksheet rows and save.", () => MiniExcelWriteDataReaderPlainBytes(salesDataTable)),
+            new PackageProfileCase("Sylvan.Data.Excel", "Stream the same DataTable-backed DbDataReader through ExcelDataWriter and save.", () => SylvanWriteDataReaderPlainBytes(salesDataTable))
+        ]);
+
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-cellvalues-rectangle-direct", warmupIterations, measuredIterations, [
             new PackageProfileCase("OfficeIMO.Excel", "Write a complete A1 rectangle with CellValues and save.", () => OfficeImoWriteCellValuesRectangleBytes(rows)),
             new PackageProfileCase("ClosedXML", "Write the same complete A1 rectangle and save.", () => ClosedXmlWriteSalesRowsBytes(rows, includeAllColumns: true)),
             new PackageProfileCase("EPPlus", "Write the same complete A1 rectangle and save.", () => EpPlusWriteSalesRowsBytes(rows, includeAllColumns: true)),
             new PackageProfileCase("MiniExcel", "Streaming typed row export with the same columns and headers.", () => MiniExcelWriteSalesRowsBytes(rows))
+        ]);
+
+        AddPackageProfileGroup(scenarios, scenarioFilter, "write-cellvalue-strings", warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Assign repeated and distinct text-heavy cells one by one and save.", () => OfficeImoWriteCellValueStringsBytes(rowCount)),
+            new PackageProfileCase("ClosedXML", "Assign repeated and distinct text-heavy cells one by one and save.", () => ClosedXmlWriteSharedStringsBytes(rowCount)),
+            new PackageProfileCase("EPPlus", "Assign repeated and distinct text-heavy cells one by one and save.", () => EpPlusWriteSharedStringsBytes(rowCount))
+        ]);
+
+        AddPackageProfileGroup(scenarios, scenarioFilter, "write-cellvalue-numbers", warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Assign numeric cells one by one and save.", () => OfficeImoWriteCellValueNumbersBytes(rowCount)),
+            new PackageProfileCase("ClosedXML", "Assign numeric cells one by one and save.", () => ClosedXmlWriteCellValueNumbersBytes(rowCount)),
+            new PackageProfileCase("EPPlus", "Assign numeric cells one by one and save.", () => EpPlusWriteCellValueNumbersBytes(rowCount))
+        ]);
+
+        AddPackageProfileGroup(scenarios, scenarioFilter, "write-cellvalue-scalars", warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Assign decimal and boolean cells one by one and save.", () => OfficeImoWriteCellValueScalarsBytes(rowCount)),
+            new PackageProfileCase("ClosedXML", "Assign decimal and boolean cells one by one and save.", () => ClosedXmlWriteCellValueScalarsBytes(rowCount)),
+            new PackageProfileCase("EPPlus", "Assign decimal and boolean cells one by one and save.", () => EpPlusWriteCellValueScalarsBytes(rowCount))
+        ]);
+
+        AddPackageProfileGroup(scenarios, scenarioFilter, "write-cellvalue-temporal", warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Assign date and duration cells one by one and save.", () => OfficeImoWriteCellValueTemporalBytes(rowCount)),
+            new PackageProfileCase("ClosedXML", "Assign date and duration cells one by one and save.", () => ClosedXmlWriteCellValueTemporalBytes(rowCount)),
+            new PackageProfileCase("EPPlus", "Assign date and duration cells one by one and save.", () => EpPlusWriteCellValueTemporalBytes(rowCount))
+        ]);
+
+        AddPackageProfileGroup(scenarios, scenarioFilter, "write-cellvalue-object-mixed", warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Assign mixed object-typed cells one by one and save.", () => OfficeImoWriteCellValueObjectMixedBytes(rowCount)),
+            new PackageProfileCase("ClosedXML", "Assign mixed object-typed cells one by one and save.", () => ClosedXmlWriteCellValueObjectMixedBytes(rowCount)),
+            new PackageProfileCase("EPPlus", "Assign mixed object-typed cells one by one and save.", () => EpPlusWriteCellValueObjectMixedBytes(rowCount))
+        ]);
+
+        AddPackageProfileGroup(scenarios, scenarioFilter, "write-cellformula", warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Assign numeric cells and row formulas one by one and save.", () => OfficeImoWriteCellFormulaBytes(rowCount)),
+            new PackageProfileCase("ClosedXML", "Assign numeric cells and row formulas one by one and save.", () => ClosedXmlWriteCellFormulaBytes(rowCount)),
+            new PackageProfileCase("EPPlus", "Assign numeric cells and row formulas one by one and save.", () => EpPlusWriteCellFormulaBytes(rowCount))
         ]);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-insertobjects-direct", warmupIterations, measuredIterations, [
@@ -1039,15 +1142,30 @@ internal static class ExcelLibraryComparisonRunner {
         return stream.ToArray();
     }
 
-    private static int OfficeImoWriteDataReaderTable(DataTable dataTable)
-        => ByteCount(OfficeImoWriteDataReaderTableBytes(dataTable));
+    private static int OfficeImoWriteDataReaderTable(DataTable dataTable, bool autoFit = false)
+        => ByteCount(OfficeImoWriteDataReaderTableBytes(dataTable, autoFit));
 
-    private static byte[] OfficeImoWriteDataReaderTableBytes(DataTable dataTable) {
+    private static byte[] OfficeImoWriteDataReaderTableBytes(DataTable dataTable, bool autoFit = false) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream, autoSave: false))
         using (var reader = dataTable.CreateDataReader()) {
             var sheet = document.AddWorkSheet("Data");
-            sheet.InsertDataReader(reader, tableName: "SalesData", style: TableStyle.TableStyleMedium2);
+            sheet.InsertDataReader(reader, tableName: "SalesData", style: TableStyle.TableStyleMedium2, autoFit: autoFit);
+            document.Save(stream);
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int OfficeImoWriteDataReaderPlain(DataTable dataTable)
+        => ByteCount(OfficeImoWriteDataReaderPlainBytes(dataTable));
+
+    private static byte[] OfficeImoWriteDataReaderPlainBytes(DataTable dataTable) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false))
+        using (var reader = dataTable.CreateDataReader()) {
+            var sheet = document.AddWorkSheet("Data");
+            sheet.InsertDataReader(reader, createTable: false);
             document.Save(stream);
         }
 
@@ -1131,10 +1249,10 @@ internal static class ExcelLibraryComparisonRunner {
         return stream.ToArray();
     }
 
-    private static int ClosedXmlWriteDataTable(DataTable dataTable, bool includeTable = false)
-        => ByteCount(ClosedXmlWriteDataTableBytes(dataTable, includeTable));
+    private static int ClosedXmlWriteDataTable(DataTable dataTable, bool includeTable = false, bool autoFit = false)
+        => ByteCount(ClosedXmlWriteDataTableBytes(dataTable, includeTable, autoFit));
 
-    private static byte[] ClosedXmlWriteDataTableBytes(DataTable dataTable, bool includeTable = false) {
+    private static byte[] ClosedXmlWriteDataTableBytes(DataTable dataTable, bool includeTable = false, bool autoFit = false) {
         using var stream = new MemoryStream();
         using (var workbook = new XLWorkbook()) {
             var worksheet = workbook.Worksheets.Add("Data");
@@ -1147,6 +1265,10 @@ internal static class ExcelLibraryComparisonRunner {
                 }
 
                 worksheet.Cell(2, 1).InsertData(dataTable.Rows.Cast<DataRow>().Select(row => dataTable.Columns.Cast<DataColumn>().Select(column => row[column]).ToArray()));
+            }
+
+            if (autoFit) {
+                worksheet.ColumnsUsed().AdjustToContents();
             }
 
             workbook.SaveAs(stream);
@@ -1175,14 +1297,18 @@ internal static class ExcelLibraryComparisonRunner {
         return stream.ToArray();
     }
 
-    private static int EpPlusWriteDataTable(DataTable dataTable, bool includeTable = false)
-        => ByteCount(EpPlusWriteDataTableBytes(dataTable, includeTable));
+    private static int EpPlusWriteDataTable(DataTable dataTable, bool includeTable = false, bool autoFit = false)
+        => ByteCount(EpPlusWriteDataTableBytes(dataTable, includeTable, autoFit));
 
-    private static byte[] EpPlusWriteDataTableBytes(DataTable dataTable, bool includeTable = false) {
+    private static byte[] EpPlusWriteDataTableBytes(DataTable dataTable, bool includeTable = false, bool autoFit = false) {
         using var stream = new MemoryStream();
         using (var package = new ExcelPackage(stream)) {
             var worksheet = package.Workbook.Worksheets.Add("Data");
             worksheet.Cells["A1"].LoadFromDataTable(dataTable, true, includeTable ? TableStyles.Medium2 : TableStyles.None);
+            if (autoFit && worksheet.Dimension != null) {
+                worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
+            }
+
             package.Save();
         }
 
@@ -1231,10 +1357,21 @@ internal static class ExcelLibraryComparisonRunner {
         return stream.ToArray();
     }
 
-    private static int MiniExcelWriteDataReaderTable(DataTable dataTable)
-        => ByteCount(MiniExcelWriteDataReaderTableBytes(dataTable));
+    private static int MiniExcelWriteDataReaderTable(DataTable dataTable, bool autoFit = false)
+        => ByteCount(MiniExcelWriteDataReaderTableBytes(dataTable, autoFit));
 
-    private static byte[] MiniExcelWriteDataReaderTableBytes(DataTable dataTable) {
+    private static byte[] MiniExcelWriteDataReaderTableBytes(DataTable dataTable, bool autoFit = false) {
+        return MiniExcelWriteDataReaderBytes(dataTable, includeTable: true, autoFit: autoFit);
+    }
+
+    private static int MiniExcelWriteDataReaderPlain(DataTable dataTable)
+        => ByteCount(MiniExcelWriteDataReaderPlainBytes(dataTable));
+
+    private static byte[] MiniExcelWriteDataReaderPlainBytes(DataTable dataTable) {
+        return MiniExcelWriteDataReaderBytes(dataTable, includeTable: false, autoFit: false);
+    }
+
+    private static byte[] MiniExcelWriteDataReaderBytes(DataTable dataTable, bool includeTable, bool autoFit) {
         using var stream = new MemoryStream();
         using var reader = dataTable.CreateDataReader();
         MiniExcelApi.SaveAs(
@@ -1242,7 +1379,22 @@ internal static class ExcelLibraryComparisonRunner {
             reader,
             sheetName: "Data",
             excelType: MiniExcelLibs.ExcelType.XLSX,
-            configuration: CreateMiniExcelConfiguration(includeTable: true));
+            configuration: CreateMiniExcelConfiguration(includeTable: includeTable, autoFit: autoFit));
+        return stream.ToArray();
+    }
+
+    private static int SylvanWriteDataReaderPlain(DataTable dataTable)
+        => ByteCount(SylvanWriteDataReaderPlainBytes(dataTable));
+
+    private static byte[] SylvanWriteDataReaderPlainBytes(DataTable dataTable) {
+        using var stream = new MemoryStream();
+        using (var writer = SylvanExcelDataWriter.Create(stream, ExcelWorkbookType.ExcelXml, new ExcelDataWriterOptions {
+            OwnsStream = false
+        }))
+        using (var reader = dataTable.CreateDataReader()) {
+            writer.Write(reader, "Data");
+        }
+
         return stream.ToArray();
     }
 
@@ -2265,6 +2417,128 @@ internal static class ExcelLibraryComparisonRunner {
         return stream.ToArray();
     }
 
+    private static int OfficeImoWriteCellValueStrings(int rowCount)
+        => ByteCount(OfficeImoWriteCellValueStringsBytes(rowCount));
+
+    private static byte[] OfficeImoWriteCellValueStringsBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            var sheet = document.AddWorkSheet("Strings");
+            for (int row = 1; row <= rowCount; row++) {
+                sheet.CellValue(row, 1, "Repeated value " + (row % 12));
+                sheet.CellValue(row, 2, "Distinct value " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.CellValue(row, 3, "Long segment " + new string((char)('A' + (row % 26)), 48));
+            }
+
+            document.Save(stream);
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int OfficeImoWriteCellValueNumbers(int rowCount)
+        => ByteCount(OfficeImoWriteCellValueNumbersBytes(rowCount));
+
+    private static byte[] OfficeImoWriteCellValueNumbersBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            var sheet = document.AddWorkSheet("Numbers");
+            for (int row = 1; row <= rowCount; row++) {
+                sheet.CellValue(row, 1, (double)row * 1.25d);
+                sheet.CellValue(row, 2, (double)row + 0.5d);
+                sheet.CellValue(row, 3, (double)(row % 17));
+            }
+
+            document.Save(stream);
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int OfficeImoWriteCellValueScalars(int rowCount)
+        => ByteCount(OfficeImoWriteCellValueScalarsBytes(rowCount));
+
+    private static byte[] OfficeImoWriteCellValueScalarsBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            var sheet = document.AddWorkSheet("Scalars");
+            for (int row = 1; row <= rowCount; row++) {
+                sheet.CellValue(row, 1, row * 10.75m);
+                sheet.CellValue(row, 2, row % 2 == 0);
+                sheet.CellValue(row, 3, row % 3 == 0);
+            }
+
+            document.Save(stream);
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int OfficeImoWriteCellValueTemporal(int rowCount)
+        => ByteCount(OfficeImoWriteCellValueTemporalBytes(rowCount));
+
+    private static byte[] OfficeImoWriteCellValueTemporalBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            var sheet = document.AddWorkSheet("Temporal");
+            var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
+            for (int row = 1; row <= rowCount; row++) {
+                sheet.CellValue(row, 1, start.AddDays(row));
+                sheet.CellValue(row, 2, TimeSpan.FromMinutes(row * 7));
+                sheet.CellValue(row, 3, start.AddHours(row % 24));
+            }
+
+            document.Save(stream);
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int OfficeImoWriteCellValueObjectMixed(int rowCount)
+        => ByteCount(OfficeImoWriteCellValueObjectMixedBytes(rowCount));
+
+    private static byte[] OfficeImoWriteCellValueObjectMixedBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            var sheet = document.AddWorkSheet("Objects");
+            var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
+            for (int row = 1; row <= rowCount; row++) {
+                object? name = "Item " + (row % 12).ToString(CultureInfo.InvariantCulture);
+                object? amount = (double)row * 1.25d;
+                object? active = row % 2 == 0;
+                object? created = start.AddDays(row);
+                sheet.CellValue(row, 1, name);
+                sheet.CellValue(row, 2, amount);
+                sheet.CellValue(row, 3, active);
+                sheet.CellValue(row, 4, created);
+            }
+
+            document.Save(stream);
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int OfficeImoWriteCellFormula(int rowCount)
+        => ByteCount(OfficeImoWriteCellFormulaBytes(rowCount));
+
+    private static byte[] OfficeImoWriteCellFormulaBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            var sheet = document.AddWorkSheet("Formulas");
+            for (int row = 1; row <= rowCount; row++) {
+                sheet.CellValue(row, 1, (double)row);
+                sheet.CellValue(row, 2, (double)(row % 17));
+                sheet.CellValue(row, 3, (double)(row % 29));
+                sheet.CellFormula(row, 4, $"SUM(A{row}:C{row})");
+            }
+
+            document.Save(stream);
+        }
+
+        return stream.ToArray();
+    }
+
     private static int ClosedXmlWriteSharedStrings(int rowCount)
         => ByteCount(ClosedXmlWriteSharedStringsBytes(rowCount));
 
@@ -2284,6 +2558,109 @@ internal static class ExcelLibraryComparisonRunner {
         return stream.ToArray();
     }
 
+    private static int ClosedXmlWriteCellValueNumbers(int rowCount)
+        => ByteCount(ClosedXmlWriteCellValueNumbersBytes(rowCount));
+
+    private static byte[] ClosedXmlWriteCellValueNumbersBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var workbook = new XLWorkbook()) {
+            var worksheet = workbook.Worksheets.Add("Numbers");
+            for (int row = 1; row <= rowCount; row++) {
+                worksheet.Cell(row, 1).Value = row * 1.25d;
+                worksheet.Cell(row, 2).Value = row + 0.5d;
+                worksheet.Cell(row, 3).Value = row % 17;
+            }
+
+            workbook.SaveAs(stream);
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int ClosedXmlWriteCellValueScalars(int rowCount)
+        => ByteCount(ClosedXmlWriteCellValueScalarsBytes(rowCount));
+
+    private static byte[] ClosedXmlWriteCellValueScalarsBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var workbook = new XLWorkbook()) {
+            var worksheet = workbook.Worksheets.Add("Scalars");
+            for (int row = 1; row <= rowCount; row++) {
+                worksheet.Cell(row, 1).Value = row * 10.75m;
+                worksheet.Cell(row, 2).Value = row % 2 == 0;
+                worksheet.Cell(row, 3).Value = row % 3 == 0;
+            }
+
+            workbook.SaveAs(stream);
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int ClosedXmlWriteCellValueTemporal(int rowCount)
+        => ByteCount(ClosedXmlWriteCellValueTemporalBytes(rowCount));
+
+    private static byte[] ClosedXmlWriteCellValueTemporalBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var workbook = new XLWorkbook()) {
+            var worksheet = workbook.Worksheets.Add("Temporal");
+            var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
+            for (int row = 1; row <= rowCount; row++) {
+                worksheet.Cell(row, 1).Value = start.AddDays(row);
+                worksheet.Cell(row, 2).Value = TimeSpan.FromMinutes(row * 7);
+                worksheet.Cell(row, 3).Value = start.AddHours(row % 24);
+            }
+
+            workbook.SaveAs(stream);
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int ClosedXmlWriteCellValueObjectMixed(int rowCount)
+        => ByteCount(ClosedXmlWriteCellValueObjectMixedBytes(rowCount));
+
+    private static byte[] ClosedXmlWriteCellValueObjectMixedBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var workbook = new XLWorkbook()) {
+            var worksheet = workbook.Worksheets.Add("Objects");
+            var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
+            for (int row = 1; row <= rowCount; row++) {
+                object? name = "Item " + (row % 12).ToString(CultureInfo.InvariantCulture);
+                object? amount = (double)row * 1.25d;
+                object? active = row % 2 == 0;
+                object? created = start.AddDays(row);
+                worksheet.Cell(row, 1).Value = XLCellValue.FromObject(name, CultureInfo.InvariantCulture);
+                worksheet.Cell(row, 2).Value = XLCellValue.FromObject(amount, CultureInfo.InvariantCulture);
+                worksheet.Cell(row, 3).Value = XLCellValue.FromObject(active, CultureInfo.InvariantCulture);
+                worksheet.Cell(row, 4).Value = XLCellValue.FromObject(created, CultureInfo.InvariantCulture);
+            }
+
+            workbook.SaveAs(stream);
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int ClosedXmlWriteCellFormula(int rowCount)
+        => ByteCount(ClosedXmlWriteCellFormulaBytes(rowCount));
+
+    private static byte[] ClosedXmlWriteCellFormulaBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var workbook = new XLWorkbook()) {
+            var worksheet = workbook.Worksheets.Add("Formulas");
+            for (int row = 1; row <= rowCount; row++) {
+                worksheet.Cell(row, 1).Value = (double)row;
+                worksheet.Cell(row, 2).Value = (double)(row % 17);
+                worksheet.Cell(row, 3).Value = (double)(row % 29);
+                worksheet.Cell(row, 4).FormulaA1 = $"SUM(A{row}:C{row})";
+            }
+
+            workbook.SaveAs(stream);
+        }
+
+        return stream.ToArray();
+    }
+
     private static int EpPlusWriteSharedStrings(int rowCount)
         => ByteCount(EpPlusWriteSharedStringsBytes(rowCount));
 
@@ -2295,6 +2672,109 @@ internal static class ExcelLibraryComparisonRunner {
                 worksheet.Cells[row, 1].Value = "Repeated value " + (row % 12);
                 worksheet.Cells[row, 2].Value = "Distinct value " + row.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 worksheet.Cells[row, 3].Value = "Long segment " + new string((char)('A' + (row % 26)), 48);
+            }
+
+            package.Save();
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int EpPlusWriteCellValueNumbers(int rowCount)
+        => ByteCount(EpPlusWriteCellValueNumbersBytes(rowCount));
+
+    private static byte[] EpPlusWriteCellValueNumbersBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var package = new ExcelPackage(stream)) {
+            var worksheet = package.Workbook.Worksheets.Add("Numbers");
+            for (int row = 1; row <= rowCount; row++) {
+                worksheet.Cells[row, 1].Value = row * 1.25d;
+                worksheet.Cells[row, 2].Value = row + 0.5d;
+                worksheet.Cells[row, 3].Value = row % 17;
+            }
+
+            package.Save();
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int EpPlusWriteCellValueScalars(int rowCount)
+        => ByteCount(EpPlusWriteCellValueScalarsBytes(rowCount));
+
+    private static byte[] EpPlusWriteCellValueScalarsBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var package = new ExcelPackage(stream)) {
+            var worksheet = package.Workbook.Worksheets.Add("Scalars");
+            for (int row = 1; row <= rowCount; row++) {
+                worksheet.Cells[row, 1].Value = row * 10.75m;
+                worksheet.Cells[row, 2].Value = row % 2 == 0;
+                worksheet.Cells[row, 3].Value = row % 3 == 0;
+            }
+
+            package.Save();
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int EpPlusWriteCellValueTemporal(int rowCount)
+        => ByteCount(EpPlusWriteCellValueTemporalBytes(rowCount));
+
+    private static byte[] EpPlusWriteCellValueTemporalBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var package = new ExcelPackage(stream)) {
+            var worksheet = package.Workbook.Worksheets.Add("Temporal");
+            var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
+            for (int row = 1; row <= rowCount; row++) {
+                worksheet.Cells[row, 1].Value = start.AddDays(row);
+                worksheet.Cells[row, 2].Value = TimeSpan.FromMinutes(row * 7);
+                worksheet.Cells[row, 3].Value = start.AddHours(row % 24);
+            }
+
+            package.Save();
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int EpPlusWriteCellValueObjectMixed(int rowCount)
+        => ByteCount(EpPlusWriteCellValueObjectMixedBytes(rowCount));
+
+    private static byte[] EpPlusWriteCellValueObjectMixedBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var package = new ExcelPackage(stream)) {
+            var worksheet = package.Workbook.Worksheets.Add("Objects");
+            var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
+            for (int row = 1; row <= rowCount; row++) {
+                object? name = "Item " + (row % 12).ToString(CultureInfo.InvariantCulture);
+                object? amount = (double)row * 1.25d;
+                object? active = row % 2 == 0;
+                object? created = start.AddDays(row);
+                worksheet.Cells[row, 1].Value = name;
+                worksheet.Cells[row, 2].Value = amount;
+                worksheet.Cells[row, 3].Value = active;
+                worksheet.Cells[row, 4].Value = created;
+            }
+
+            package.Save();
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int EpPlusWriteCellFormula(int rowCount)
+        => ByteCount(EpPlusWriteCellFormulaBytes(rowCount));
+
+    private static byte[] EpPlusWriteCellFormulaBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var package = new ExcelPackage(stream)) {
+            var worksheet = package.Workbook.Worksheets.Add("Formulas");
+            for (int row = 1; row <= rowCount; row++) {
+                worksheet.Cells[row, 1].Value = (double)row;
+                worksheet.Cells[row, 2].Value = (double)(row % 17);
+                worksheet.Cells[row, 3].Value = (double)(row % 29);
+                worksheet.Cells[row, 4].Formula = $"SUM(A{row}:C{row})";
             }
 
             package.Save();

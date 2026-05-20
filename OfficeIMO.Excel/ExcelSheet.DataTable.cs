@@ -42,6 +42,23 @@ namespace OfficeIMO.Excel {
                 && mode != ExecutionMode.Parallel
                 && CanRegisterDirectTabularSaveCandidate(startRow, startColumn, table.Columns.Count);
 
+            if (canRegisterDirectSave
+                && TryInsertDataTableAsDeferredDirectSave(
+                    table,
+                    startRow,
+                    startColumn,
+                    includeHeaders,
+                    copyDirectSaveTable,
+                    createTable: false,
+                    tableName: null,
+                    style: TableStyle.TableStyleMedium2,
+                    includeAutoFilter: false,
+                    ct)) {
+                return;
+            }
+
+            _excelDocument.MaterializeDeferredDataSetImport();
+
             if (mode != ExecutionMode.Parallel && TryInsertDataTableByAppendingRows(table, startRow, startColumn, includeHeaders, ct)) {
                 RegisterDirectDataTableSaveCandidateIfPossible(table, startRow, startColumn, includeHeaders, canRegisterDirectSave, copyDirectSaveTable);
                 return;
@@ -159,6 +176,44 @@ namespace OfficeIMO.Excel {
 
             return A1.CellReference(startRow, startColumn) + ":" +
                 A1.CellReference(startRow + rowsCount - 1, startColumn + table.Columns.Count - 1);
+        }
+
+        private bool TryInsertDataTableAsDeferredDirectSave(
+            DataTable table,
+            int startRow,
+            int startColumn,
+            bool includeHeaders,
+            bool copyDirectSaveTable,
+            bool createTable,
+            string? tableName,
+            TableStyle style,
+            bool includeAutoFilter,
+            CancellationToken ct) {
+            string range = BuildDataTableInsertedRange(table, startRow, startColumn, includeHeaders);
+            if (range.Length == 0) {
+                return true;
+            }
+
+            DataTable directSaveTable = table;
+            bool directSaveIncludesHeaders = includeHeaders;
+            if (createTable && !includeHeaders) {
+                directSaveTable = CreateHeaderlessDirectSaveTable(table);
+                directSaveIncludesHeaders = false;
+                copyDirectSaveTable = false;
+            }
+
+            ct.ThrowIfCancellationRequested();
+            return _excelDocument.RegisterDeferredDirectTabularSaveCandidate(
+                this,
+                directSaveTable,
+                directSaveIncludesHeaders,
+                range,
+                tableName,
+                createTable,
+                style,
+                includeAutoFilter,
+                autoFit: false,
+                copyTable: copyDirectSaveTable);
         }
 
         private bool TryInsertDataTableByAppendingRows(DataTable table, int startRow, int startColumn, bool includeHeaders, CancellationToken ct) {
@@ -302,7 +357,7 @@ namespace OfficeIMO.Excel {
             ref Dictionary<string, int>? sharedStringIndexes,
             CancellationToken ct) {
             string rowReference = rowIndex.ToString(CultureInfo.InvariantCulture);
-            var cells = new List<OpenXmlElement>(table.Columns.Count);
+            var row = new Row { RowIndex = (uint)rowIndex };
             for (int offset = 0; offset < table.Columns.Count; offset++) {
                 ct.ThrowIfCancellationRequested();
                 int column = startColumn + offset;
@@ -313,11 +368,9 @@ namespace OfficeIMO.Excel {
                     DataType = new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType)
                 };
 
-                cells.Add(cell);
+                row.Append(cell);
             }
 
-            var row = new Row { RowIndex = (uint)rowIndex };
-            row.Append(cells);
             return row;
         }
 
@@ -334,10 +387,14 @@ namespace OfficeIMO.Excel {
             CancellationToken ct) {
             string rowReference = rowIndex.ToString(CultureInfo.InvariantCulture);
             int columnCount = dataRow.Table.Columns.Count;
-            var cells = new List<OpenXmlElement>(columnCount);
+            var row = new Row { RowIndex = (uint)rowIndex };
             for (int offset = 0; offset < columnCount; offset++) {
                 ct.ThrowIfCancellationRequested();
-                object? value = dataRow.IsNull(offset) ? null : dataRow[offset];
+                object? value = dataRow[offset];
+                if (value == DBNull.Value) {
+                    value = null;
+                }
+
                 int column = startColumn + offset;
                 var (cellValue, cellType) = CoerceDataTableAppendValue(value, useDirectStringCells, ref sharedStringIndexes);
                 var cell = new Cell {
@@ -352,11 +409,9 @@ namespace OfficeIMO.Excel {
                     cell.StyleIndex = objectValueStyleIndex;
                 }
 
-                cells.Add(cell);
+                row.Append(cell);
             }
 
-            var row = new Row { RowIndex = (uint)rowIndex };
-            row.Append(cells);
             return row;
         }
 
@@ -474,6 +529,21 @@ namespace OfficeIMO.Excel {
             string endRef = A1.CellReference(startRow + rowsCount - 1, startColumn + colsCount - 1);
             string range = startRef + ":" + endRef;
 
+            if (canRegisterDirectSave
+                && TryInsertDataTableAsDeferredDirectSave(
+                    table,
+                    startRow,
+                    startColumn,
+                    includeHeaders,
+                    copyDirectSaveTable: true,
+                    createTable: true,
+                    tableName,
+                    style,
+                    includeAutoFilter,
+                    ct)) {
+                return range;
+            }
+
             InsertDataTableCore(
                 table,
                 startRow,
@@ -557,6 +627,10 @@ namespace OfficeIMO.Excel {
             if (dataTable == null) throw new ArgumentNullException(nameof(dataTable));
             if (tableName == null) throw new ArgumentNullException(nameof(tableName));
             if (string.IsNullOrWhiteSpace(tableName)) throw new ArgumentException("Table name cannot be empty.", nameof(tableName));
+
+            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
+                _excelDocument.MaterializeDeferredDataSetImport();
+            }
 
             var tableDefinitionPart = FindTableDefinitionPart(tableName);
             var table = tableDefinitionPart?.Table;

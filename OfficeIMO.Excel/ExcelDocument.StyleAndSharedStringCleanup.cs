@@ -143,6 +143,7 @@ namespace OfficeIMO.Excel {
             if (sharedStringTableChanged) {
                 sharedStringTable.Save();
                 _sharedStringCache.Clear();
+                _sharedStringTableCount = itemCount;
             }
         }
 
