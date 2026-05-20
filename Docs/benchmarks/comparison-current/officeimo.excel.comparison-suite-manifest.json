@@ -1,0 +1,67 @@
+{
+  "GeneratedAtUtc": "2026-05-19T20:32:22.0061881Z",
+  "Framework": ".NET 8.0.27",
+  "MachineName": "EVOMAGIC",
+  "RowCounts": [
+    2500,
+    25000
+  ],
+  "WarmupIterations": 1,
+  "MeasuredIterations": 3,
+  "IncludeLegacyEpPlus": true,
+  "IncludePackageProfile": true,
+  "IncludeDenseHelloWorld": true,
+  "ScenarioFilters": [],
+  "PackageScenarioFilters": [],
+  "DenseHelloWorldScenarios": [
+    "dense-helloworld-read-range",
+    "dense-helloworld-read-stream"
+  ],
+  "Artifacts": [
+    {
+      "Kind": "speed-comparison",
+      "RowCount": 2500,
+      "Path": ".\\Docs\\benchmarks\\comparison-current\\officeimo.excel.comparison-speed-2500.json"
+    },
+    {
+      "Kind": "package-profile",
+      "RowCount": 2500,
+      "Path": ".\\Docs\\benchmarks\\comparison-current\\officeimo.excel.comparison-package-2500.json"
+    },
+    {
+      "Kind": "dense-helloworld-comparison",
+      "RowCount": 2500,
+      "Path": ".\\Docs\\benchmarks\\comparison-current\\officeimo.excel.comparison-dense-helloworld-2500.json"
+    },
+    {
+      "Kind": "speed-comparison",
+      "RowCount": 25000,
+      "Path": ".\\Docs\\benchmarks\\comparison-current\\officeimo.excel.comparison-speed-25000.json"
+    },
+    {
+      "Kind": "package-profile",
+      "RowCount": 25000,
+      "Path": ".\\Docs\\benchmarks\\comparison-current\\officeimo.excel.comparison-package-25000.json"
+    },
+    {
+      "Kind": "dense-helloworld-comparison",
+      "RowCount": 25000,
+      "Path": ".\\Docs\\benchmarks\\comparison-current\\officeimo.excel.comparison-dense-helloworld-25000.json"
+    },
+    {
+      "Kind": "summary-markdown",
+      "RowCount": 0,
+      "Path": ".\\Docs\\benchmarks\\comparison-current\\officeimo.excel.comparison-summary.md"
+    },
+    {
+      "Kind": "summary-csv",
+      "RowCount": 0,
+      "Path": ".\\Docs\\benchmarks\\comparison-current\\officeimo.excel.comparison-summary.csv"
+    },
+    {
+      "Kind": "summary-json",
+      "RowCount": 0,
+      "Path": ".\\Docs\\benchmarks\\comparison-current\\officeimo.excel.comparison-summary.json"
+    }
+  ]
+}

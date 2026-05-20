@@ -8,7 +8,7 @@ It measures representative Excel workloads rather than synthetic single-cell ope
 - workbook read/materialization
 - load/edit/save round-trips
 
-The built-in comparison baselines are `ClosedXML`, current `EPPlus`, and legacy `EPPlus 4.5.3.3`. The current EPPlus path is an explicit local benchmark command and configures EPPlus for non-commercial local benchmark use; the legacy EPPlus path runs in a separate helper project so the two EPPlus package generations do not share one process. These comparisons are intentionally not wired into CI.
+The built-in comparison baselines are `ClosedXML`, current `EPPlus`, `MiniExcel`, read-side `ExcelDataReader`, read-side `Sylvan.Data.Excel`, and legacy `EPPlus 4.5.3.3`. The current EPPlus path is an explicit local benchmark command and configures EPPlus for non-commercial local benchmark use; each library is included only where its public surface maps to the scenario being measured; the legacy EPPlus path runs in a separate helper project so the two EPPlus package generations do not share one process. These comparisons are intentionally not wired into CI.
 
 Run all benchmark classes with:
 
@@ -69,7 +69,7 @@ dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\
 
 The read profile measures automatic, forced sequential, and forced parallel variants in rotated groups for each read API. This keeps mode comparisons from depending on fixed scenario order and makes first-sample outliers visible in the raw sample list.
 
-Generate a local library comparison against ClosedXML and EPPlus:
+Generate a local library comparison where each library has a comparable public surface:
 
 ```powershell
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare --rows 2500
@@ -88,10 +88,46 @@ By default this also launches the isolated legacy EPPlus helper. The helper acce
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare --rows 2500 --scenario read-range --scenario read-objects --scenario read-objects-stream
 ```
 
+Package size can be profiled separately from the speed comparison. This keeps timed samples clean and then generates one extra workbook per library to break the `.xlsx` ZIP into worksheet, shared-string, style, table, relationship, document-property, and other parts:
+
+```powershell
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- package-profile --out .\Docs\benchmarks\officeimo.excel.package-profile.json --rows 25000 --scenario write-datatable-table-direct --scenario write-datatable-direct --scenario large-shared-strings
+```
+
+The package profile is intended for opt-in size investigation, especially when speed is already ahead and a smaller package might matter for email attachments, sync, storage, or slow network transfer. Treat it as diagnostic evidence before changing defaults.
+
+For release-style evidence, use the comparison suite command. It runs the normal speed comparison, the package profile, and the dense `HelloWorld` read shape for the same row counts, then writes a manifest that records the artifact paths and benchmark settings:
+
+```powershell
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- comparison-suite --out-dir .\Docs\benchmarks\comparison-current --row-set 2500,25000 --warmup 1 --iterations 3
+```
+
+The suite also writes `officeimo.excel.comparison-summary.md`, `.csv`, and `.json`. Those summary files are the decision layer: one table with row count, artifact kind, scenario, library, mean, standard deviation, standard error, ratio to OfficeIMO, ratio to best, allocation, allocation ratio, package size, package-size ratio, winner/loss status, and package-part metrics where available. The standard-deviation and standard-error columns come from the lightweight rotated runner, while allocations use `GC.GetAllocatedBytesForCurrentThread`; use the BenchmarkDotNet benchmark classes when a publication-grade `Error` column is required.
+
+The suite deliberately writes the dense `HelloWorld` benchmark as a separate artifact because it uses a different generated fixture from the normal report/sales scenarios. Pass `--skip-dense-helloworld` only when you want a faster local tuning run.
+
+During tuning, use a smaller scenario set before launching the full matrix:
+
+```powershell
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- comparison-suite --out-dir $env:TEMP\officeimo-excel-suite-smoke --row-set 1000 --warmup 1 --iterations 1 --skip-legacy-epplus --scenario write-datatable-direct --scenario read-range --scenario large-shared-strings
+```
+
 Focused write-path tuning can target the automatic direct package writer scenarios without changing user-facing API usage:
 
 ```powershell
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare --rows 2500 --scenario write-datatable-direct --scenario write-datareader-table --scenario write-cellvalues-rectangle-direct
+```
+
+The comparison harness has opt-in dense and streaming read scenarios for a simple `A1:J(row count)` workbook where every cell contains `HelloWorld`. It generates the workbook shape locally and compares matching read APIs, so it can be run at full scale without also creating the normal sales/report fixtures:
+
+```powershell
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare --out .\Docs\benchmarks\officeimo.excel.dense-helloworld.json --rows 1000000 --warmup 1 --iterations 3 --skip-legacy-epplus --scenario dense-helloworld-read-range --scenario dense-helloworld-read-stream
+```
+
+For a quick smoke check before the full proof run, lower `--rows`:
+
+```powershell
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare --out $env:TEMP\officeimo.excel.helloworld-smoke.json --rows 1000 --warmup 1 --iterations 1 --skip-legacy-epplus --scenario dense-helloworld-read-range --scenario dense-helloworld-read-stream
 ```
 
 The comparison command defaults to one warmup and three measured samples so quick checks stay quick. For less noisy local tuning, increase the sample count; the same settings are passed through to the isolated legacy EPPlus helper:
@@ -100,9 +136,9 @@ The comparison command defaults to one warmup and three measured samples so quic
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare --rows 2500 --scenario read-range --warmup 2 --iterations 7
 ```
 
-Current-library comparison scenarios measure OfficeIMO, ClosedXML, and current EPPlus in rotated groups for each scenario so fixed library order does not decide the numbers. Legacy EPPlus still runs in a separate process because it uses a different package generation.
+Current-library comparison scenarios measure OfficeIMO and the included baselines in rotated groups for each scenario so fixed library order does not decide the numbers. Comparable read scenarios use one canonical generated workbook payload where the library APIs can all read the same file shape. Read-only libraries participate only in read scenarios, and legacy EPPlus still runs in a separate process because it uses a different package generation.
 
-The comparison command covers bulk report writes, automatic direct package writer paths (`InsertDataTable`, `InsertDataTableAsTable`, complete-rectangle `CellValues`, `InsertObjects`, and fluent `RowsFrom`), streaming `InsertDataReader`, append-style writes, dense range reads, bounded top-of-sheet reads, DataTable materialization, streaming range reads, bounded streaming reads, large sparse reads, eager and streaming typed object materialization, AutoFit on an existing workbook, large shared-string payloads, formula text reads, and shared-string reads. Read scenarios record deterministic value checksums as `OutputMetric`, so local comparisons can confirm that each library read equivalent content instead of only touching the same number of rows. The command fails if a read checksum differs across libraries, including legacy EPPlus. Write and AutoFit scenarios keep package-size metrics because each library serializes workbook parts differently. The comparison and read-profile JSON include the benchmark build configuration, and performance artifacts should be produced with `-c Release`. The command writes JSON under `Docs\benchmarks` by default and does not participate in CI.
+The comparison command covers bulk report writes, automatic direct package writer paths (`InsertDataTable`, `InsertDataTableAsTable`, complete-rectangle `CellValues`, `InsertObjects`, and fluent `RowsFrom`), streaming `InsertDataReader`, append-style writes, dense range reads, first-column reads from wider sheets, bounded top-of-sheet and bottom-of-sheet reads, DataTable materialization, streaming range reads, bounded streaming reads with default and small chunk sizes, large sparse reads, eager and streaming typed object materialization, AutoFit on an existing workbook, large shared-string payloads, formula text reads, shared-string reads, and the opt-in dense `HelloWorld` grid read. Read scenarios record deterministic value checksums as `OutputMetric`, so local comparisons can confirm that each library read equivalent content instead of only touching the same number of rows. The command fails if a read checksum differs across libraries, including legacy EPPlus. Libraries are skipped for scenarios where their public APIs do not expose an equivalent operation. Write and AutoFit scenarios keep package-size metrics because each library serializes workbook parts differently. The comparison and package-profile JSON include mean, median, standard deviation, standard error, raw timing samples, mean allocation, median allocation, and raw allocation samples. The comparison and read-profile JSON include the benchmark build configuration, and performance artifacts should be produced with `-c Release`. The command writes JSON under `Docs\benchmarks` by default and does not participate in CI.
 
 The write profile also accepts `--rows`, which is the preferred way to investigate 25,000+ row report-export costs without running the full BenchmarkDotNet suite:
 

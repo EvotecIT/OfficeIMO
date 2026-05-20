@@ -58,6 +58,11 @@ namespace OfficeIMO.Tests {
             public double? Amount { get; set; }
         }
 
+        private sealed class DecimalTypedRow {
+            public decimal Amount { get; set; }
+            public decimal? OptionalAmount { get; set; }
+        }
+
         private sealed class DateStyledNumericTypedRow {
             public double NumericValue { get; set; }
             public DateTime DateValue { get; set; }
@@ -282,6 +287,62 @@ namespace OfficeIMO.Tests {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        [Fact]
+        public void Reader_ReadRangeAsDataTable_MapsMemoryPackageWithInferredTypes() {
+            var expectedDate = new DateTime(2024, 1, 2);
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(memory)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(1, 2, "Amount");
+                sheet.CellValue(1, 3, "Created");
+                sheet.CellValue(1, 4, "Active");
+                sheet.CellValue(2, 1, "Alpha");
+                sheet.CellValue(2, 2, 12.5d);
+                sheet.CellValue(2, 3, expectedDate);
+                sheet.CellValue(2, 4, true);
+            }
+
+            using var reader = ExcelDocumentReader.Open(memory.ToArray());
+            DataTable table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:D2");
+
+            Assert.Equal(typeof(string), table.Columns["Name"]!.DataType);
+            Assert.Equal(typeof(double), table.Columns["Amount"]!.DataType);
+            Assert.Equal(typeof(DateTime), table.Columns["Created"]!.DataType);
+            Assert.Equal(typeof(bool), table.Columns["Active"]!.DataType);
+            DataRow row = Assert.Single(table.Rows.Cast<DataRow>());
+            Assert.Equal("Alpha", row["Name"]);
+            Assert.Equal(12.5d, row["Amount"]);
+            Assert.Equal(expectedDate, row["Created"]);
+            Assert.Equal(true, row["Active"]);
+        }
+
+        [Fact]
+        public void Reader_ReadColumn_MapsMemoryPackageWithWideRows() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(memory)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Id");
+                sheet.CellValue(1, 2, "Name");
+                sheet.CellValue(1, 3, "Amount");
+                sheet.CellValue(2, 1, 1);
+                sheet.CellValue(2, 2, "Alpha");
+                sheet.CellValue(2, 3, 12.5d);
+                sheet.CellValue(3, 1, 2);
+                sheet.CellValue(3, 2, "Beta");
+                sheet.CellValue(3, 3, 25d);
+            }
+
+            using var reader = ExcelDocumentReader.Open(memory.ToArray());
+            var values = reader.GetSheet("Data").ReadColumn("A1:A3").ToList();
+
+            Assert.Equal("Id", values[0]);
+            Assert.Equal(1, Convert.ToInt32(values[1], CultureInfo.InvariantCulture));
+            Assert.Equal(2, Convert.ToInt32(values[2], CultureInfo.InvariantCulture));
         }
 
         [Fact]
@@ -1227,6 +1288,91 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_TypedObjects_HandleOutOfOrderCellsWithinWideRows() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderTypedOutOfOrderCellsWithinWideRows.xlsx");
+            var expectedDate = new DateTime(2024, 5, 12, 9, 30, 0);
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Score");
+                    sheet.CellValue(1, 2, "Active");
+                    sheet.CellValue(1, 3, "CreatedOn");
+                    sheet.CellValue(1, 4, "Amount");
+                    sheet.CellValue(1, 5, "Ignored");
+                    sheet.CellValue(2, 1, 42);
+                    sheet.CellValue(2, 2, true);
+                    sheet.CellValue(2, 3, expectedDate);
+                    sheet.CellValue(2, 4, 123.45);
+                    sheet.CellValue(2, 5, "tail");
+                    document.Save();
+                }
+
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                    var row = worksheetPart.Worksheet!.GetFirstChild<SheetData>()!.Elements<Row>().Single(r => r.RowIndex?.Value == 2U);
+                    var cells = row.Elements<Cell>().ToDictionary(c => c.CellReference!.Value!);
+                    row.RemoveAllChildren<Cell>();
+                    row.Append(cells["C2"]);
+                    row.Append(cells["A2"]);
+                    row.Append(cells["E2"]);
+                    row.Append(cells["B2"]);
+                    row.Append(cells["D2"]);
+                    worksheetPart.Worksheet.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var sheetReader = reader.GetSheet("Data");
+
+                var rowFromMaterializedReader = Assert.Single(sheetReader.ReadObjects<NullableTypedRow>("A1:E2"));
+                Assert.Equal(42, rowFromMaterializedReader.Score);
+                Assert.True(rowFromMaterializedReader.Active);
+                Assert.Equal(expectedDate, rowFromMaterializedReader.CreatedOn);
+                Assert.Equal(123.45, rowFromMaterializedReader.Amount);
+
+                var rowFromStreamingReader = Assert.Single(sheetReader.ReadObjectsStream<NullableTypedRow>("A1:E2"));
+                Assert.Equal(42, rowFromStreamingReader.Score);
+                Assert.True(rowFromStreamingReader.Active);
+                Assert.Equal(expectedDate, rowFromStreamingReader.CreatedOn);
+                Assert.Equal(123.45, rowFromStreamingReader.Amount);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_TypedObjects_MapDecimalValueTypes() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderDecimalTypedHeaders.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Amount");
+                    sheet.CellValue(1, 2, "OptionalAmount");
+                    sheet.CellValue(2, 1, 123.45m);
+                    sheet.CellValue(2, 2, 678.90m);
+                    sheet.CellValue(3, 1, 11.25m);
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var rows = reader.GetSheet("Data").ReadObjects<DecimalTypedRow>("A1:B3").ToList();
+
+                Assert.Equal(2, rows.Count);
+                Assert.Equal(123.45m, rows[0].Amount);
+                Assert.Equal(678.90m, rows[0].OptionalAmount);
+                Assert.Equal(11.25m, rows[1].Amount);
+                Assert.Null(rows[1].OptionalAmount);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Reader_TypedObjects_ParallelKeepsDateStyledNumericTargetsNumeric() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderDateStyledNumericTypedHeaders.xlsx");
             const double serialValue = 1.5d;
@@ -1358,6 +1504,61 @@ namespace OfficeIMO.Tests {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        [Fact]
+        public void Reader_TypedObjectsStream_MapsRowsFromMemoryPackage() {
+            var expectedDate = new DateTime(2024, 3, 2);
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(memory)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Score");
+                sheet.CellValue(1, 2, "Active");
+                sheet.CellValue(1, 3, "CreatedOn");
+                sheet.CellValue(1, 4, "Amount");
+                sheet.CellValue(2, 1, 42);
+                sheet.CellValue(2, 2, true);
+                sheet.CellValue(2, 3, expectedDate);
+                sheet.CellValue(2, 4, 123.45);
+            }
+
+            using var reader = ExcelDocumentReader.Open(memory.ToArray());
+            var row = Assert.Single(reader.GetSheet("Data").ReadObjectsStream<NullableTypedRow>("A1:D2"));
+
+            Assert.Equal(42, row.Score);
+            Assert.True(row.Active);
+            Assert.Equal(expectedDate, row.CreatedOn);
+            Assert.Equal(123.45, row.Amount);
+        }
+
+        [Fact]
+        public void Reader_TypedObjects_AutomaticUsesSinglePassForMemoryPackage() {
+            var expectedDate = new DateTime(2024, 3, 2);
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(memory)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Score");
+                sheet.CellValue(1, 2, "Active");
+                sheet.CellValue(1, 3, "CreatedOn");
+                sheet.CellValue(1, 4, "Amount");
+                sheet.CellValue(2, 1, 42);
+                sheet.CellValue(2, 2, true);
+                sheet.CellValue(2, 3, expectedDate);
+                sheet.CellValue(2, 4, 123.45);
+            }
+
+            var options = new ExcelReadOptions();
+            options.Execution.OperationThresholds["ReadObjectsAs"] = 1;
+
+            using var reader = ExcelDocumentReader.Open(memory.ToArray(), options);
+            var row = Assert.Single(reader.GetSheet("Data").ReadObjects<NullableTypedRow>("A1:D2"));
+
+            Assert.Equal(42, row.Score);
+            Assert.True(row.Active);
+            Assert.Equal(expectedDate, row.CreatedOn);
+            Assert.Equal(123.45, row.Amount);
         }
 
         [Fact]

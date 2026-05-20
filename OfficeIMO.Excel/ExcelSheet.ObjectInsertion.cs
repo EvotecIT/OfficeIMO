@@ -43,21 +43,19 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            DataTable? directSaveTable = null;
             string? directSaveRange = null;
             bool hasBlankDisplayHeader = includeHeaders && headers.Any(string.IsNullOrWhiteSpace);
-            bool canRegisterDirectSave = !hasBlankDisplayHeader && CanRegisterDirectTabularSaveCandidate(startRow, 1, headers.Count);
-            if (canRegisterDirectSave) {
+            if (!hasBlankDisplayHeader && CanRegisterDirectTabularSaveCandidate(startRow, 1, headers.Count)) {
                 try {
-                    directSaveTable = CreateObjectExportTable(headers, flattenedItems, Name);
                     directSaveRange = BuildObjectExportRange(startRow, headers.Count, flattenedItems.Count, includeHeaders);
+                    var columnTypes = InferObjectExportColumnTypes(flattenedItems, headers);
+                    var directRows = CreateObjectExportRows(headers, flattenedItems);
+                    if (TryInsertRowsAsDeferredDirectSave(Name, headers, columnTypes, directRows, startRow, includeHeaders, directSaveRange)) {
+                        return;
+                    }
                 } catch {
-                    canRegisterDirectSave = false;
+                    // Direct-save registration is opportunistic; fall back to the normal cell path.
                 }
-            }
-
-            if (TryInsertObjectExportTableAndRegisterDirectSave(directSaveTable, includeHeaders, startRow, directSaveRange, canRegisterDirectSave)) {
-                return;
             }
 
             int headerRows = includeHeaders ? 1 : 0;
@@ -80,11 +78,8 @@ namespace OfficeIMO.Excel {
                 row++;
             }
 
-            // Use the batch CellValues path with planner + execution policy    
+            // Use the batch CellValues path with planner + execution policy
             CellValues(cells, hasBlankDisplayHeader ? ExecutionMode.Parallel : null);
-            if (canRegisterDirectSave && directSaveTable != null && !string.IsNullOrEmpty(directSaveRange)) {
-                _excelDocument.RegisterDirectTabularSaveCandidate(this, directSaveTable, includeHeaders, directSaveRange!, copyTable: false);
-            }
         }
 
         /// <summary>
@@ -133,21 +128,19 @@ namespace OfficeIMO.Excel {
                 values[r] = rowValues;
             }
 
-            DataTable? directSaveTable = null;
             string? directSaveRange = null;
             bool hasBlankDisplayHeader = includeHeaders && normalizedColumns.Any(column => string.IsNullOrWhiteSpace(column.Header));
-            bool canRegisterDirectSave = !hasBlankDisplayHeader && CanRegisterDirectTabularSaveCandidate(startRow, 1, normalizedColumns.Length);
-            if (canRegisterDirectSave) {
+            if (!hasBlankDisplayHeader && CanRegisterDirectTabularSaveCandidate(startRow, 1, normalizedColumns.Length)) {
                 try {
-                    directSaveTable = CreateObjectExportTable(normalizedColumns.Select(column => column.Header).ToList(), values, Name);
+                    var headers = normalizedColumns.Select(column => column.Header).ToArray();
+                    var columnTypes = InferObjectExportColumnTypes(values, normalizedColumns.Length);
                     directSaveRange = BuildObjectExportRange(startRow, normalizedColumns.Length, rows.Count, includeHeaders);
+                    if (TryInsertRowsAsDeferredDirectSave(Name, headers, columnTypes, values, startRow, includeHeaders, directSaveRange)) {
+                        return;
+                    }
                 } catch {
-                    canRegisterDirectSave = false;
+                    // Direct-save registration is opportunistic; fall back to the normal cell path.
                 }
-            }
-
-            if (TryInsertObjectExportTableAndRegisterDirectSave(directSaveTable, includeHeaders, startRow, directSaveRange, canRegisterDirectSave)) {
-                return;
             }
 
             int headerRows = includeHeaders ? 1 : 0;
@@ -171,18 +164,49 @@ namespace OfficeIMO.Excel {
             }
 
             CellValues(cells, hasBlankDisplayHeader ? ExecutionMode.Parallel : null);
-            if (canRegisterDirectSave && directSaveTable != null && !string.IsNullOrEmpty(directSaveRange)) {
-                _excelDocument.RegisterDirectTabularSaveCandidate(this, directSaveTable, includeHeaders, directSaveRange!, copyTable: false);
-            }
         }
 
-        private bool TryInsertObjectExportTableAndRegisterDirectSave(DataTable? table, bool includeHeaders, int startRow, string? range, bool canRegisterDirectSave) {
-            if (!canRegisterDirectSave || table == null || string.IsNullOrEmpty(range)) {
+        internal bool TryInsertOwnedDataTableAsDeferredDirectSave(DataTable table, int startRow, bool includeHeaders, string range) {
+            if (table == null) throw new ArgumentNullException(nameof(table));
+            if (string.IsNullOrEmpty(range)) {
                 return false;
             }
 
-            InsertOwnedDataTable(table, startRow, startColumn: 1, includeHeaders: includeHeaders, registerDirectSaveCandidate: false);
-            _excelDocument.RegisterDirectTabularSaveCandidate(this, table, includeHeaders, range!, copyTable: false);
+            if (!CanRegisterDirectTabularSaveCandidate(startRow, 1, table.Columns.Count)) {
+                return false;
+            }
+
+            _excelDocument.RegisterDeferredDirectTabularSaveCandidate(this, table, includeHeaders, range);
+            return true;
+        }
+
+        internal bool TryInsertRowsAsDeferredDirectSave(
+            string tableNameForModel,
+            IReadOnlyList<string> columnNames,
+            IReadOnlyList<Type> columnTypes,
+            object?[][] rows,
+            int startRow,
+            bool includeHeaders,
+            string range) {
+            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
+            if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
+            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            if (string.IsNullOrEmpty(range)) {
+                return false;
+            }
+
+            if (!CanRegisterDirectTabularSaveCandidate(startRow, 1, columnNames.Count)) {
+                return false;
+            }
+
+            _excelDocument.RegisterDeferredDirectTabularSaveCandidate(
+                this,
+                tableNameForModel,
+                columnNames,
+                columnTypes,
+                rows,
+                includeHeaders,
+                range);
             return true;
         }
 
@@ -231,60 +255,36 @@ namespace OfficeIMO.Excel {
             return A1.CellReference(startRow, 1) + ":" + A1.CellReference(startRow + rowCount - 1, columnCount);
         }
 
-        private static DataTable CreateObjectExportTable(IReadOnlyList<string> headers, IReadOnlyList<Dictionary<string, object?>> rows, string tableName) {
-            var table = new DataTable(string.IsNullOrWhiteSpace(tableName) ? "Data" : tableName) {
-                Locale = CultureInfo.InvariantCulture
-            };
-
-            for (int c = 0; c < headers.Count; c++) {
-                string header = string.IsNullOrWhiteSpace(headers[c]) ? "Column" + (c + 1).ToString(CultureInfo.InvariantCulture) : headers[c];
-                table.Columns.Add(header, InferObjectExportColumnType(rows, headers[c]));
-            }
-
-            table.BeginLoadData();
-            try {
-                for (int r = 0; r < rows.Count; r++) {
-                    var values = new object?[headers.Count];
-                    for (int c = 0; c < headers.Count; c++) {
-                        object? value = rows[r].TryGetValue(headers[c], out var entry) ? entry : null;
-                        values[c] = value ?? DBNull.Value;
-                    }
-
-                    table.Rows.Add(values);
+        private static object?[][] CreateObjectExportRows(IReadOnlyList<string> headers, IReadOnlyList<Dictionary<string, object?>> rows) {
+            var values = new object?[rows.Count][];
+            for (int r = 0; r < rows.Count; r++) {
+                var rowValues = new object?[headers.Count];
+                for (int c = 0; c < headers.Count; c++) {
+                    rowValues[c] = rows[r].TryGetValue(headers[c], out var entry) ? entry : null;
                 }
-            } finally {
-                table.EndLoadData();
+
+                values[r] = rowValues;
             }
 
-            return table;
+            return values;
         }
 
-        private static DataTable CreateObjectExportTable(IReadOnlyList<string> headers, IReadOnlyList<object?[]> values, string tableName) {
-            var table = new DataTable(string.IsNullOrWhiteSpace(tableName) ? "Data" : tableName) {
-                Locale = CultureInfo.InvariantCulture
-            };
+        private static Type[] InferObjectExportColumnTypes(IReadOnlyList<object?[]> values, int columnCount) {
+            var columnTypes = new Type[columnCount];
+            for (int c = 0; c < columnCount; c++) {
+                columnTypes[c] = InferObjectExportColumnType(values, c);
+            }
 
+            return columnTypes;
+        }
+
+        private static Type[] InferObjectExportColumnTypes(IReadOnlyList<Dictionary<string, object?>> rows, IReadOnlyList<string> headers) {
+            var columnTypes = new Type[headers.Count];
             for (int c = 0; c < headers.Count; c++) {
-                string header = string.IsNullOrWhiteSpace(headers[c]) ? "Column" + (c + 1).ToString(CultureInfo.InvariantCulture) : headers[c];
-                table.Columns.Add(header, InferObjectExportColumnType(values, c));
+                columnTypes[c] = InferObjectExportColumnType(rows, headers[c]);
             }
 
-            table.BeginLoadData();
-            try {
-                for (int r = 0; r < values.Count; r++) {
-                    var rowValues = new object?[headers.Count];
-                    for (int c = 0; c < headers.Count; c++) {
-                        object? value = values[r][c];
-                        rowValues[c] = value ?? DBNull.Value;
-                    }
-
-                    table.Rows.Add(rowValues);
-                }
-            } finally {
-                table.EndLoadData();
-            }
-
-            return table;
+            return columnTypes;
         }
 
         private static Type InferObjectExportColumnType(IReadOnlyList<object?[]> values, int columnIndex) {

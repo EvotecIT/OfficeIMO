@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -26,6 +27,75 @@ namespace OfficeIMO.Tests {
 
                 Assert.Contains(cells, c => c.Row == 2 && c.Column == 2 && Equals(c.Value, "B2"));
                 Assert.Contains(cells, c => c.Row == 3 && c.Column == 4 && Equals(c.Value, "D3"));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_OpenStream_CopiesSeekableStreamAndLeavesSourceOpen() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderOpenStreamCopiesSeekable.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Value");
+                    document.Save();
+                }
+
+                byte[] bytes = File.ReadAllBytes(filePath);
+                using var stream = new MemoryStream(bytes, 0, bytes.Length, writable: true, publiclyVisible: true);
+                stream.Position = stream.Length;
+
+                using (var reader = ExcelDocumentReader.Open(stream)) {
+                    Array.Clear(stream.GetBuffer(), 0, Math.Min(16, stream.GetBuffer().Length));
+                    object?[,] values = reader.GetSheet("Data").ReadRange("A1:A1");
+
+                    Assert.Equal("Value", values[0, 0]);
+                }
+
+                Assert.True(stream.CanRead);
+                stream.Position = 0;
+                Assert.Equal(0, stream.Position);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRange_UsesConfiguredCultureBeforeInvariantNumericFallback() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderCultureNumericFallback.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, 1d);
+                    sheet.CellValue(1, 2, 2d);
+                    document.Save();
+                }
+
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(c => c.CellReference!.Value!);
+                    cells["A1"].DataType = CellValues.Number;
+                    cells["A1"].CellValue = new CellValue("1,23");
+                    cells["B1"].DataType = CellValues.Number;
+                    cells["B1"].CellValue = new CellValue("123.45");
+                    spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet.Save();
+                }
+
+                var options = new ExcelReadOptions {
+                    Culture = CultureInfo.GetCultureInfo("pl-PL")
+                };
+
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                object?[,] values = reader.GetSheet("Data").ReadRange("A1:B1");
+
+                Assert.Equal(1.23d, Assert.IsType<double>(values[0, 0]), precision: 2);
+                Assert.Equal(123.45d, Assert.IsType<double>(values[0, 1]), precision: 2);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -131,6 +201,57 @@ namespace OfficeIMO.Tests {
                     .ToList();
                 Assert.Equal(new[] { 1, 2 }, parallelChunks.Select(chunk => chunk.StartRow).ToArray());
                 Assert.Equal("InRange", parallelChunks[1].Rows[0][0]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_RowReaders_HandleOutOfOrderCellsWithinRow() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderRowReadersOutOfOrderCells.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "A");
+                    sheet.CellValue(1, 2, "B");
+                    sheet.CellValue(1, 3, "C");
+                    sheet.CellValue(1, 4, "Outside");
+                    document.Save();
+                }
+
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                    var row = worksheetPart.Worksheet!.GetFirstChild<SheetData>()!.Elements<Row>().Single(r => r.RowIndex?.Value == 1U);
+                    var cells = row.Elements<Cell>().ToDictionary(c => c.CellReference!.Value!);
+                    row.RemoveAllChildren<Cell>();
+                    row.Append(cells["C1"]);
+                    row.Append(cells["A1"]);
+                    row.Append(cells["D1"]);
+                    row.Append(cells["B1"]);
+                    worksheetPart.Worksheet.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var sheetReader = reader.GetSheet("Data");
+
+                object?[,] range = sheetReader.ReadRange("A1:C1");
+                Assert.Equal("A", range[0, 0]);
+                Assert.Equal("B", range[0, 1]);
+                Assert.Equal("C", range[0, 2]);
+
+                object?[] rowValues = Assert.Single(sheetReader.ReadRows("A1:C1"));
+                Assert.Equal(new object?[] { "A", "B", "C" }, rowValues);
+
+                var streamChunk = Assert.Single(sheetReader.ReadRangeStream("A1:C1", chunkRows: 1));
+                Assert.Equal(new object?[] { "A", "B", "C" }, streamChunk.Rows[0]);
+
+                var table = sheetReader.ReadRangeAsDataTable("A1:C1", headersInFirstRow: false);
+                Assert.Equal("A", table.Rows[0][0]);
+                Assert.Equal("B", table.Rows[0][1]);
+                Assert.Equal("C", table.Rows[0][2]);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -272,6 +393,40 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2D, values[0, 0]);
                 Assert.Equal(3D, values[1, 0]);
                 Assert.Equal("SUM(A1:A2)", values[2, 0]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRangeAutomatic_FormulaText_SkipsCachedValueWhenDisabled() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderFormulaTextWithCachedValue.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, 2);
+                    sheet.CellValue(2, 1, 3);
+                    sheet.CellFormula(3, 1, "=SUM(A1:A2)");
+                    document.Save();
+                }
+
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet;
+                    var formulaCell = worksheet.Descendants<Cell>().Single(c => c.CellReference?.Value == "A3");
+                    formulaCell.CellValue = new CellValue("5");
+                    worksheet.Save();
+                }
+
+                using var cachedReader = ExcelDocumentReader.Open(filePath);
+                object?[,] cachedValues = cachedReader.GetSheet("Data").ReadRange("A3:A3");
+                Assert.Equal(5D, cachedValues[0, 0]);
+
+                using var formulaReader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions { UseCachedFormulaResult = false });
+                object?[,] formulaValues = formulaReader.GetSheet("Data").ReadRange("A3:A3");
+                Assert.Equal("SUM(A1:A2)", formulaValues[0, 0]);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -688,6 +843,35 @@ namespace OfficeIMO.Tests {
                     .ToList();
                 Assert.Equal(new[] { 1, 2049, 4097 }, parallelChunks.Select(chunk => chunk.StartRow).ToArray());
                 Assert.Equal(new[] { "One", "Middle", "Last" }, parallelChunks.Select(chunk => (string?)chunk.Rows[0][0]).ToArray());
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRangeStream_AutomaticModeKeepsLargeOutOfOrderRowsOrdered() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderRangeStreamAutomaticLargeOutOfOrderRows.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "One");
+                    sheet.CellValue(2049, 1, "Middle");
+                    sheet.CellValue(4097, 1, "Last");
+                    document.Save();
+                }
+
+                MoveWorksheetRowToEnd(filePath, 2049U);
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var chunks = reader.GetSheet("Data")
+                    .ReadRangeStream("A1:A4097", chunkRows: 2048)
+                    .ToList();
+
+                Assert.Equal(new[] { 1, 2049, 4097 }, chunks.Select(chunk => chunk.StartRow).ToArray());
+                Assert.Equal(new[] { "One", "Middle", "Last" }, chunks.Select(chunk => (string?)chunk.Rows[0][0]).ToArray());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

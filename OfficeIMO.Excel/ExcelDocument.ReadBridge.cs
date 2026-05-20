@@ -7,8 +7,10 @@ namespace OfficeIMO.Excel {
         /// Creates a reader that shares this document's underlying OpenXML handle (no new file handle).
         /// Caller should dispose the reader after use; it will not close this document.
         /// </summary>
-        public ExcelDocumentReader CreateReader(ExcelReadOptions? options = null)
-            => ExcelDocumentReader.Wrap(_spreadSheetDocument, options ?? new ExcelReadOptions());
+        public ExcelDocumentReader CreateReader(ExcelReadOptions? options = null) {
+            MaterializeDeferredDataSetImport();
+            return ExcelDocumentReader.Wrap(_spreadSheetDocument, options ?? new ExcelReadOptions());
+        }
 
         /// <summary>
         /// Returns worksheet names in workbook order.

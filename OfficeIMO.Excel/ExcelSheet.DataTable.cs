@@ -38,8 +38,13 @@ namespace OfficeIMO.Excel {
             if (startColumn < 1) throw new ArgumentOutOfRangeException(nameof(startColumn));
 
             bool canRegisterDirectSave = registerDirectSaveCandidate
+                && !_excelDocument.IsMaterializingDeferredDataSetImport
                 && mode != ExecutionMode.Parallel
                 && CanRegisterDirectTabularSaveCandidate(startRow, startColumn, table.Columns.Count);
+            if (canRegisterDirectSave && TryRegisterDeferredDirectDataTableSaveCandidate(table, startRow, startColumn, includeHeaders, copyDirectSaveTable)) {
+                return;
+            }
+
             if (mode != ExecutionMode.Parallel && TryInsertDataTableByAppendingRows(table, startRow, startColumn, includeHeaders, ct)) {
                 RegisterDirectDataTableSaveCandidateIfPossible(table, startRow, startColumn, includeHeaders, canRegisterDirectSave, copyDirectSaveTable);
                 return;
@@ -134,6 +139,21 @@ namespace OfficeIMO.Excel {
             );
 
             RegisterDirectDataTableSaveCandidateIfPossible(table, startRow, startColumn, includeHeaders, canRegisterDirectSave, copyDirectSaveTable);
+        }
+
+        private bool TryRegisterDeferredDirectDataTableSaveCandidate(DataTable table, int startRow, int startColumn, bool includeHeaders, bool copyDirectSaveTable) {
+            string range = BuildDataTableInsertedRange(table, startRow, startColumn, includeHeaders);
+            if (range.Length == 0) {
+                return false;
+            }
+
+            _excelDocument.RegisterDeferredDirectTabularSaveCandidate(
+                this,
+                table,
+                includeHeaders,
+                range,
+                copyTable: copyDirectSaveTable);
+            return true;
         }
 
         private void RegisterDirectDataTableSaveCandidateIfPossible(DataTable table, int startRow, int startColumn, bool includeHeaders, bool canRegisterDirectSave, bool copyDirectSaveTable) {
@@ -458,18 +478,9 @@ namespace OfficeIMO.Excel {
             CancellationToken ct = default) {
             if (table == null) throw new ArgumentNullException(nameof(table));
 
-            bool canRegisterDirectSave = mode != ExecutionMode.Parallel
+            bool canRegisterDirectSave = !_excelDocument.IsMaterializingDeferredDataSetImport
+                && mode != ExecutionMode.Parallel
                 && CanRegisterDirectTabularSaveCandidate(startRow, startColumn, table.Columns.Count);
-
-            InsertDataTableCore(
-                table,
-                startRow,
-                startColumn,
-                includeHeaders,
-                mode,
-                ct,
-                copyDirectSaveTable: true,
-                registerDirectSaveCandidate: false);
 
             int rowsCount = table.Rows.Count + (includeHeaders ? 1 : 0);
             if (table.Columns.Count == 0 || rowsCount == 0) {
@@ -480,6 +491,22 @@ namespace OfficeIMO.Excel {
             string startRef = A1.CellReference(startRow, startColumn);
             string endRef = A1.CellReference(startRow + rowsCount - 1, startColumn + colsCount - 1);
             string range = startRef + ":" + endRef;
+
+            if (canRegisterDirectSave
+                && !string.IsNullOrWhiteSpace(tableName)
+                && TryRegisterDeferredDirectDataTableAsTableSaveCandidate(table, includeHeaders, range, tableName!, style, includeAutoFilter)) {
+                return range;
+            }
+
+            InsertDataTableCore(
+                table,
+                startRow,
+                startColumn,
+                includeHeaders,
+                mode,
+                ct,
+                copyDirectSaveTable: true,
+                registerDirectSaveCandidate: false);
 
             string[]? headerNames = includeHeaders
                 ? table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray()
@@ -505,6 +532,32 @@ namespace OfficeIMO.Excel {
             }
 
             return range;
+        }
+
+        private bool TryRegisterDeferredDirectDataTableAsTableSaveCandidate(
+            DataTable table,
+            bool includeHeaders,
+            string range,
+            string tableName,
+            TableStyle style,
+            bool includeAutoFilter) {
+            string actualTableName = EnsureValidUniqueTableName(tableName, TableNameValidationMode.Sanitize);
+            DataTable directSaveTable = includeHeaders
+                ? table
+                : CreateHeaderlessDirectSaveTable(table);
+
+            _excelDocument.RegisterDeferredDirectTabularSaveCandidate(
+                this,
+                directSaveTable,
+                includeHeaders,
+                range,
+                actualTableName,
+                createTable: true,
+                style,
+                includeAutoFilter,
+                autoFit: false,
+                copyTable: true);
+            return true;
         }
 
         private static DataTable CreateHeaderlessDirectSaveTable(DataTable source) {

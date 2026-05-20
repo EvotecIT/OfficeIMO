@@ -15,6 +15,10 @@ namespace OfficeIMO.Excel {
         /// <param name="mode">Overrides how the auto-fit work is scheduled across columns.</param>
         /// <param name="ct">Cancels the auto-fit pass while widths are being measured or applied.</param>
         public void AutoFitColumns(ExecutionMode? mode = null, CancellationToken ct = default) {
+            if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this)) {
+                return;
+            }
+
             if (CanSkipStableAutoFitColumns(null)) {
                 return;
             }
@@ -1261,6 +1265,7 @@ namespace OfficeIMO.Excel {
         /// <param name="width">The column width.</param>
         public void SetColumnWidth(int columnIndex, double width) {
             width = NormalizeColumnWidth(width);
+            _excelDocument.MaterializeDeferredDataSetImport();
             WriteLock(() => {
                 var worksheet = WorksheetRoot;
                 var columns = worksheet.GetFirstChild<Columns>();
@@ -1291,6 +1296,7 @@ namespace OfficeIMO.Excel {
         /// <param name="columnIndex">1-based column index.</param>
         /// <param name="hidden">True to hide the column; false to show it.</param>
         public void SetColumnHidden(int columnIndex, bool hidden) {
+            _excelDocument.MaterializeDeferredDataSetImport();
             WriteLock(() => {
                 var worksheet = WorksheetRoot;
                 var columns = worksheet.GetFirstChild<Columns>();

@@ -1,0 +1,5496 @@
+{
+  "GeneratedAtUtc": "2026-05-19T20:28:45.5656026Z",
+  "Framework": ".NET 8.0.27",
+  "MachineName": "EVOMAGIC",
+  "BuildConfiguration": "Release",
+  "RowCount": 2500,
+  "WarmupIterations": 1,
+  "MeasuredIterations": 3,
+  "Notes": "Local opt-in package-size profile. Timed samples include workbook generation only; ZIP part analysis is performed after timing.",
+  "Scenarios": [
+    {
+      "Scenario": "write-bulk-report",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Insert objects, add table, autofit, save.",
+      "AverageMilliseconds": 9.704133333333333,
+      "MedianMilliseconds": 10.2411,
+      "StandardDeviationMilliseconds": 1.045735685215596,
+      "StandardErrorMilliseconds": 0.6037557793604221,
+      "SamplesMilliseconds": [
+        10.2411,
+        10.3723,
+        8.499
+      ],
+      "AverageAllocatedBytes": 5979408,
+      "MedianAllocatedBytes": 5979344,
+      "SamplesAllocatedBytes": [
+        5979536,
+        5979344,
+        5979344
+      ],
+      "Package": {
+        "FileSizeBytes": 142309,
+        "PartCount": 11,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 3,
+        "WorksheetCompressedBytes": 138106,
+        "WorksheetUncompressedBytes": 742645,
+        "SharedStringsCompressedBytes": 608,
+        "SharedStringsUncompressedBytes": 3542,
+        "StylesCompressedBytes": 486,
+        "StylesUncompressedBytes": 1134,
+        "TablesCompressedBytes": 334,
+        "TablesUncompressedBytes": 685,
+        "WorkbookCompressedBytes": 179,
+        "WorkbookUncompressedBytes": 264,
+        "RelationshipsCompressedBytes": 607,
+        "RelationshipsUncompressedBytes": 1390,
+        "DocPropsCompressedBytes": 371,
+        "DocPropsUncompressedBytes": 594,
+        "OtherCompressedBytes": 328,
+        "OtherUncompressedBytes": 1164,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 138106,
+            "UncompressedBytes": 742645
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 608,
+            "UncompressedBytes": 3542
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 328,
+            "UncompressedBytes": 1164
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 486,
+            "UncompressedBytes": 1134
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 334,
+            "UncompressedBytes": 685
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 569
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 209,
+            "UncompressedBytes": 547
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 200,
+            "UncompressedBytes": 327
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 171,
+            "UncompressedBytes": 274
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 171,
+            "UncompressedBytes": 267
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 179,
+            "UncompressedBytes": 264
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-bulk-report",
+      "Library": "ClosedXML",
+      "Notes": "Insert table, apply table style, autofit, save.",
+      "AverageMilliseconds": 105.3032,
+      "MedianMilliseconds": 109.7662,
+      "StandardDeviationMilliseconds": 9.367543207799999,
+      "StandardErrorMilliseconds": 5.40835359266878,
+      "SamplesMilliseconds": [
+        111.6047,
+        109.7662,
+        94.5387
+      ],
+      "AverageAllocatedBytes": 59744008,
+      "MedianAllocatedBytes": 59744928,
+      "SamplesAllocatedBytes": [
+        59744928,
+        59745648,
+        59741448
+      ],
+      "Package": {
+        "FileSizeBytes": 123939,
+        "PartCount": 12,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 2,
+        "WorksheetCompressedBytes": 117015,
+        "WorksheetUncompressedBytes": 985690,
+        "SharedStringsCompressedBytes": 539,
+        "SharedStringsUncompressedBytes": 4357,
+        "StylesCompressedBytes": 618,
+        "StylesUncompressedBytes": 2262,
+        "TablesCompressedBytes": 320,
+        "TablesUncompressedBytes": 714,
+        "WorkbookCompressedBytes": 248,
+        "WorkbookUncompressedBytes": 437,
+        "RelationshipsCompressedBytes": 1068,
+        "RelationshipsUncompressedBytes": 1649,
+        "DocPropsCompressedBytes": 339,
+        "DocPropsUncompressedBytes": 817,
+        "OtherCompressedBytes": 2260,
+        "OtherUncompressedBytes": 8778,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 117015,
+            "UncompressedBytes": 985690
+          },
+          {
+            "Name": "xl/theme/theme1.xml",
+            "Category": "Other",
+            "CompressedBytes": 1461,
+            "UncompressedBytes": 7096
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 539,
+            "UncompressedBytes": 4357
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 618,
+            "UncompressedBytes": 2262
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 325,
+            "UncompressedBytes": 1208
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 339,
+            "UncompressedBytes": 817
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 320,
+            "UncompressedBytes": 714
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 702
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 668,
+            "UncompressedBytes": 668
+          },
+          {
+            "Name": "package/services/metadata/core-properties/c6336c351a7a4f88a82ff6baa5bce44e.psmdcp",
+            "Category": "Other",
+            "CompressedBytes": 474,
+            "UncompressedBytes": 474
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 248,
+            "UncompressedBytes": 437
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 173,
+            "UncompressedBytes": 279
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-bulk-report",
+      "Library": "EPPlus",
+      "Notes": "Manual row population, add table, autofit, save.",
+      "AverageMilliseconds": 67.12186666666666,
+      "MedianMilliseconds": 72.187,
+      "StandardDeviationMilliseconds": 10.013964558222344,
+      "StandardErrorMilliseconds": 5.781565133345043,
+      "SamplesMilliseconds": [
+        73.5914,
+        72.187,
+        55.5872
+      ],
+      "AverageAllocatedBytes": 48326581.333333336,
+      "MedianAllocatedBytes": 48326760,
+      "SamplesAllocatedBytes": [
+        48326760,
+        48326224,
+        48326760
+      ],
+      "Package": {
+        "FileSizeBytes": 117810,
+        "PartCount": 13,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 1,
+        "WorksheetCompressedBytes": 112682,
+        "WorksheetUncompressedBytes": 788002,
+        "SharedStringsCompressedBytes": 558,
+        "SharedStringsUncompressedBytes": 3562,
+        "StylesCompressedBytes": 327,
+        "StylesUncompressedBytes": 687,
+        "TablesCompressedBytes": 340,
+        "TablesUncompressedBytes": 764,
+        "WorkbookCompressedBytes": 221,
+        "WorkbookUncompressedBytes": 354,
+        "RelationshipsCompressedBytes": 633,
+        "RelationshipsUncompressedBytes": 1588,
+        "DocPropsCompressedBytes": 733,
+        "DocPropsUncompressedBytes": 1228,
+        "OtherCompressedBytes": 542,
+        "OtherUncompressedBytes": 1643,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 112682,
+            "UncompressedBytes": 788002
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 558,
+            "UncompressedBytes": 3562
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 362,
+            "UncompressedBytes": 1381
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 340,
+            "UncompressedBytes": 764
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 244,
+            "UncompressedBytes": 733
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 327,
+            "UncompressedBytes": 687
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 357,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 214,
+            "UncompressedBytes": 564
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 221,
+            "UncompressedBytes": 354
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 220,
+            "UncompressedBytes": 351
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 175,
+            "UncompressedBytes": 291
+          },
+          {
+            "Name": "EPPlusLicense.txt",
+            "Category": "Other",
+            "CompressedBytes": 180,
+            "UncompressedBytes": 262
+          },
+          {
+            "Name": "docProps/custom.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 156,
+            "UncompressedBytes": 243
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-bulk-report",
+      "Library": "MiniExcel",
+      "Notes": "Streaming object export with table styling and auto-width configuration.",
+      "AverageMilliseconds": 11.3009,
+      "MedianMilliseconds": 12.5011,
+      "StandardDeviationMilliseconds": 2.154853542587059,
+      "StandardErrorMilliseconds": 1.2441052728768573,
+      "SamplesMilliseconds": [
+        12.5011,
+        12.5884,
+        8.8132
+      ],
+      "AverageAllocatedBytes": 27469160,
+      "MedianAllocatedBytes": 27469160,
+      "SamplesAllocatedBytes": [
+        27469160,
+        27469160,
+        27469160
+      ],
+      "Package": {
+        "FileSizeBytes": 157443,
+        "PartCount": 10,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 0,
+        "UniqueSharedStringCount": 0,
+        "CellStyleCount": 6,
+        "WorksheetCompressedBytes": 153684,
+        "WorksheetUncompressedBytes": 1074050,
+        "SharedStringsCompressedBytes": 140,
+        "SharedStringsUncompressedBytes": 162,
+        "StylesCompressedBytes": 835,
+        "StylesUncompressedBytes": 4401,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 232,
+        "WorkbookUncompressedBytes": 346,
+        "RelationshipsCompressedBytes": 776,
+        "RelationshipsUncompressedBytes": 1410,
+        "DocPropsCompressedBytes": 0,
+        "DocPropsUncompressedBytes": 0,
+        "OtherCompressedBytes": 550,
+        "OtherUncompressedBytes": 1628,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 153684,
+            "UncompressedBytes": 1074050
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 835,
+            "UncompressedBytes": 4401
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 372,
+            "UncompressedBytes": 1317
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 259,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 232,
+            "UncompressedBytes": 346
+          },
+          {
+            "Name": "xl/drawings/drawing1.xml",
+            "Category": "Other",
+            "CompressedBytes": 178,
+            "UncompressedBytes": 311
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 192,
+            "UncompressedBytes": 309
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 187,
+            "UncompressedBytes": 299
+          },
+          {
+            "Name": "xl/drawings/_rels/drawing1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 138,
+            "UncompressedBytes": 168
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 140,
+            "UncompressedBytes": 162
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-dataset-tables",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Insert a prepared DataSet through the normal workbook API and save.",
+      "AverageMilliseconds": 5.606633333333334,
+      "MedianMilliseconds": 5.7673,
+      "StandardDeviationMilliseconds": 0.6664859888499779,
+      "StandardErrorMilliseconds": 0.38479586507364866,
+      "SamplesMilliseconds": [
+        5.7673,
+        4.8745,
+        6.1781
+      ],
+      "AverageAllocatedBytes": 4788200,
+      "MedianAllocatedBytes": 4788200,
+      "SamplesAllocatedBytes": [
+        4788200,
+        4788200,
+        4788200
+      ],
+      "Package": {
+        "FileSizeBytes": 142330,
+        "PartCount": 14,
+        "WorksheetRowCount": 2502,
+        "WorksheetCellCount": 20016,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 3,
+        "WorksheetCompressedBytes": 137205,
+        "WorksheetUncompressedBytes": 732769,
+        "SharedStringsCompressedBytes": 607,
+        "SharedStringsUncompressedBytes": 3542,
+        "StylesCompressedBytes": 486,
+        "StylesUncompressedBytes": 1134,
+        "TablesCompressedBytes": 664,
+        "TablesUncompressedBytes": 1358,
+        "WorkbookCompressedBytes": 194,
+        "WorkbookUncompressedBytes": 312,
+        "RelationshipsCompressedBytes": 786,
+        "RelationshipsUncompressedBytes": 1805,
+        "DocPropsCompressedBytes": 371,
+        "DocPropsUncompressedBytes": 594,
+        "OtherCompressedBytes": 341,
+        "OtherUncompressedBytes": 1428,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet2.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 68828,
+            "UncompressedBytes": 366942
+          },
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 68377,
+            "UncompressedBytes": 365827
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 607,
+            "UncompressedBytes": 3542
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 341,
+            "UncompressedBytes": 1428
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 486,
+            "UncompressedBytes": 1134
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 217,
+            "UncompressedBytes": 688
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 331,
+            "UncompressedBytes": 679
+          },
+          {
+            "Name": "xl/tables/table2.xml",
+            "Category": "Tables",
+            "CompressedBytes": 333,
+            "UncompressedBytes": 679
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 569
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 200,
+            "UncompressedBytes": 327
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 194,
+            "UncompressedBytes": 312
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 171,
+            "UncompressedBytes": 274
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet2.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 171,
+            "UncompressedBytes": 274
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 171,
+            "UncompressedBytes": 267
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-dataset-tables",
+      "Library": "ClosedXML",
+      "Notes": "Import prepared DataTables as two styled worksheet tables and save.",
+      "AverageMilliseconds": 49.96620000000001,
+      "MedianMilliseconds": 51.1938,
+      "StandardDeviationMilliseconds": 4.803037635705136,
+      "StandardErrorMilliseconds": 2.7730350719022643,
+      "SamplesMilliseconds": [
+        54.0363,
+        44.6685,
+        51.1938
+      ],
+      "AverageAllocatedBytes": 19329224,
+      "MedianAllocatedBytes": 19328864,
+      "SamplesAllocatedBytes": [
+        19330304,
+        19328864,
+        19328504
+      ],
+      "Package": {
+        "FileSizeBytes": 126373,
+        "PartCount": 15,
+        "WorksheetRowCount": 2502,
+        "WorksheetCellCount": 20016,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 2,
+        "WorksheetCompressedBytes": 118514,
+        "WorksheetUncompressedBytes": 976610,
+        "SharedStringsCompressedBytes": 539,
+        "SharedStringsUncompressedBytes": 4357,
+        "StylesCompressedBytes": 618,
+        "StylesUncompressedBytes": 2262,
+        "TablesCompressedBytes": 647,
+        "TablesUncompressedBytes": 1428,
+        "WorkbookCompressedBytes": 262,
+        "WorkbookUncompressedBytes": 488,
+        "RelationshipsCompressedBytes": 1249,
+        "RelationshipsUncompressedBytes": 2074,
+        "DocPropsCompressedBytes": 353,
+        "DocPropsUncompressedBytes": 928,
+        "OtherCompressedBytes": 2273,
+        "OtherUncompressedBytes": 9044,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet2.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 59245,
+            "UncompressedBytes": 488864
+          },
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 59269,
+            "UncompressedBytes": 487746
+          },
+          {
+            "Name": "xl/theme/theme1.xml",
+            "Category": "Other",
+            "CompressedBytes": 1461,
+            "UncompressedBytes": 7096
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 539,
+            "UncompressedBytes": 4357
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 618,
+            "UncompressedBytes": 2262
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 338,
+            "UncompressedBytes": 1474
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 353,
+            "UncompressedBytes": 928
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 235,
+            "UncompressedBytes": 848
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 322,
+            "UncompressedBytes": 714
+          },
+          {
+            "Name": "xl/tables/table2.xml",
+            "Category": "Tables",
+            "CompressedBytes": 325,
+            "UncompressedBytes": 714
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 668,
+            "UncompressedBytes": 668
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 262,
+            "UncompressedBytes": 488
+          },
+          {
+            "Name": "package/services/metadata/core-properties/6ade34fc16c04b8984e107cb8d583ccf.psmdcp",
+            "Category": "Other",
+            "CompressedBytes": 474,
+            "UncompressedBytes": 474
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 173,
+            "UncompressedBytes": 279
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet2.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 173,
+            "UncompressedBytes": 279
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-dataset-tables",
+      "Library": "EPPlus",
+      "Notes": "Import prepared DataTables as two styled worksheet tables and save.",
+      "AverageMilliseconds": 40.31196666666667,
+      "MedianMilliseconds": 40.3991,
+      "StandardDeviationMilliseconds": 1.7420351096729758,
+      "StandardErrorMilliseconds": 1.0057644395074719,
+      "SamplesMilliseconds": [
+        40.3991,
+        42.0088,
+        38.528
+      ],
+      "AverageAllocatedBytes": 19149997.333333332,
+      "MedianAllocatedBytes": 19150176,
+      "SamplesAllocatedBytes": [
+        19150176,
+        19149640,
+        19150176
+      ],
+      "Package": {
+        "FileSizeBytes": 119390,
+        "PartCount": 16,
+        "WorksheetRowCount": 2502,
+        "WorksheetCellCount": 20016,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 2,
+        "WorksheetCompressedBytes": 113265,
+        "WorksheetUncompressedBytes": 778409,
+        "SharedStringsCompressedBytes": 558,
+        "SharedStringsUncompressedBytes": 3562,
+        "StylesCompressedBytes": 343,
+        "StylesUncompressedBytes": 739,
+        "TablesCompressedBytes": 662,
+        "TablesUncompressedBytes": 1478,
+        "WorkbookCompressedBytes": 236,
+        "WorkbookUncompressedBytes": 403,
+        "RelationshipsCompressedBytes": 817,
+        "RelationshipsUncompressedBytes": 2020,
+        "DocPropsCompressedBytes": 733,
+        "DocPropsUncompressedBytes": 1228,
+        "OtherCompressedBytes": 556,
+        "OtherUncompressedBytes": 1909,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet2.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 56683,
+            "UncompressedBytes": 389762
+          },
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 56582,
+            "UncompressedBytes": 388647
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 558,
+            "UncompressedBytes": 3562
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 376,
+            "UncompressedBytes": 1647
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 343,
+            "UncompressedBytes": 739
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 330,
+            "UncompressedBytes": 739
+          },
+          {
+            "Name": "xl/tables/table2.xml",
+            "Category": "Tables",
+            "CompressedBytes": 332,
+            "UncompressedBytes": 739
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 244,
+            "UncompressedBytes": 733
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 223,
+            "UncompressedBytes": 705
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 357,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 236,
+            "UncompressedBytes": 403
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 220,
+            "UncompressedBytes": 351
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 175,
+            "UncompressedBytes": 291
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet2.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 175,
+            "UncompressedBytes": 291
+          },
+          {
+            "Name": "EPPlusLicense.txt",
+            "Category": "Other",
+            "CompressedBytes": 180,
+            "UncompressedBytes": 262
+          },
+          {
+            "Name": "docProps/custom.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 156,
+            "UncompressedBytes": 243
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-dataset-tables",
+      "Library": "MiniExcel",
+      "Notes": "Streaming DataSet export with one sheet per table.",
+      "AverageMilliseconds": 10.373466666666666,
+      "MedianMilliseconds": 10.2044,
+      "StandardDeviationMilliseconds": 0.42426512151405205,
+      "StandardErrorMilliseconds": 0.24494958211390724,
+      "SamplesMilliseconds": [
+        10.8562,
+        10.0598,
+        10.2044
+      ],
+      "AverageAllocatedBytes": 29389152,
+      "MedianAllocatedBytes": 29389152,
+      "SamplesAllocatedBytes": [
+        29389152,
+        29389152,
+        29389152
+      ],
+      "Package": {
+        "FileSizeBytes": 160180,
+        "PartCount": 14,
+        "WorksheetRowCount": 2502,
+        "WorksheetCellCount": 20016,
+        "SharedStringCount": 0,
+        "UniqueSharedStringCount": 0,
+        "CellStyleCount": 6,
+        "WorksheetCompressedBytes": 155216,
+        "WorksheetUncompressedBytes": 1064237,
+        "SharedStringsCompressedBytes": 146,
+        "SharedStringsUncompressedBytes": 162,
+        "StylesCompressedBytes": 841,
+        "StylesUncompressedBytes": 4401,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 278,
+        "WorkbookUncompressedBytes": 444,
+        "RelationshipsCompressedBytes": 1172,
+        "RelationshipsUncompressedBytes": 2064,
+        "DocPropsCompressedBytes": 0,
+        "DocPropsUncompressedBytes": 0,
+        "OtherCompressedBytes": 761,
+        "OtherUncompressedBytes": 2197,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet2.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 77807,
+            "UncompressedBytes": 532673
+          },
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 77409,
+            "UncompressedBytes": 531564
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 841,
+            "UncompressedBytes": 4401
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 391,
+            "UncompressedBytes": 1575
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 295,
+            "UncompressedBytes": 811
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 278,
+            "UncompressedBytes": 444
+          },
+          {
+            "Name": "xl/drawings/drawing1.xml",
+            "Category": "Other",
+            "CompressedBytes": 185,
+            "UncompressedBytes": 311
+          },
+          {
+            "Name": "xl/drawings/drawing2.xml",
+            "Category": "Other",
+            "CompressedBytes": 185,
+            "UncompressedBytes": 311
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 198,
+            "UncompressedBytes": 309
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet2.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 198,
+            "UncompressedBytes": 309
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 193,
+            "UncompressedBytes": 299
+          },
+          {
+            "Name": "xl/drawings/_rels/drawing1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 144,
+            "UncompressedBytes": 168
+          },
+          {
+            "Name": "xl/drawings/_rels/drawing2.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 144,
+            "UncompressedBytes": 168
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 146,
+            "UncompressedBytes": 162
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-dataset-tables-autofit",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Insert a prepared DataSet through the normal workbook API with AutoFit and save.",
+      "AverageMilliseconds": 6.049833333333333,
+      "MedianMilliseconds": 6.1108,
+      "StandardDeviationMilliseconds": 0.43228648294080796,
+      "StandardErrorMilliseconds": 0.24958071729291206,
+      "SamplesMilliseconds": [
+        6.1108,
+        6.4484,
+        5.5903
+      ],
+      "AverageAllocatedBytes": 4788640,
+      "MedianAllocatedBytes": 4788640,
+      "SamplesAllocatedBytes": [
+        4788640,
+        4788640,
+        4788640
+      ],
+      "Package": {
+        "FileSizeBytes": 142599,
+        "PartCount": 14,
+        "WorksheetRowCount": 2502,
+        "WorksheetCellCount": 20016,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 3,
+        "WorksheetCompressedBytes": 137474,
+        "WorksheetUncompressedBytes": 733759,
+        "SharedStringsCompressedBytes": 607,
+        "SharedStringsUncompressedBytes": 3542,
+        "StylesCompressedBytes": 486,
+        "StylesUncompressedBytes": 1134,
+        "TablesCompressedBytes": 664,
+        "TablesUncompressedBytes": 1358,
+        "WorkbookCompressedBytes": 194,
+        "WorkbookUncompressedBytes": 312,
+        "RelationshipsCompressedBytes": 786,
+        "RelationshipsUncompressedBytes": 1805,
+        "DocPropsCompressedBytes": 371,
+        "DocPropsUncompressedBytes": 594,
+        "OtherCompressedBytes": 341,
+        "OtherUncompressedBytes": 1428,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet2.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 68961,
+            "UncompressedBytes": 367437
+          },
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 68513,
+            "UncompressedBytes": 366322
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 607,
+            "UncompressedBytes": 3542
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 341,
+            "UncompressedBytes": 1428
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 486,
+            "UncompressedBytes": 1134
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 217,
+            "UncompressedBytes": 688
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 331,
+            "UncompressedBytes": 679
+          },
+          {
+            "Name": "xl/tables/table2.xml",
+            "Category": "Tables",
+            "CompressedBytes": 333,
+            "UncompressedBytes": 679
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 569
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 200,
+            "UncompressedBytes": 327
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 194,
+            "UncompressedBytes": 312
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 171,
+            "UncompressedBytes": 274
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet2.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 171,
+            "UncompressedBytes": 274
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 171,
+            "UncompressedBytes": 267
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-dataset-tables-autofit",
+      "Library": "ClosedXML",
+      "Notes": "Import prepared DataTables as two styled worksheet tables, adjust columns, and save.",
+      "AverageMilliseconds": 100.46016666666667,
+      "MedianMilliseconds": 102.8343,
+      "StandardDeviationMilliseconds": 7.201926593164724,
+      "StandardErrorMilliseconds": 4.158034257247578,
+      "SamplesMilliseconds": [
+        102.8343,
+        106.1753,
+        92.3709
+      ],
+      "AverageAllocatedBytes": 58068376,
+      "MedianAllocatedBytes": 58068656,
+      "SamplesAllocatedBytes": [
+        58067696,
+        58068776,
+        58068656
+      ],
+      "Package": {
+        "FileSizeBytes": 126692,
+        "PartCount": 15,
+        "WorksheetRowCount": 2502,
+        "WorksheetCellCount": 20016,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 2,
+        "WorksheetCompressedBytes": 118833,
+        "WorksheetUncompressedBytes": 977738,
+        "SharedStringsCompressedBytes": 539,
+        "SharedStringsUncompressedBytes": 4357,
+        "StylesCompressedBytes": 618,
+        "StylesUncompressedBytes": 2262,
+        "TablesCompressedBytes": 647,
+        "TablesUncompressedBytes": 1428,
+        "WorkbookCompressedBytes": 262,
+        "WorkbookUncompressedBytes": 488,
+        "RelationshipsCompressedBytes": 1249,
+        "RelationshipsUncompressedBytes": 2074,
+        "DocPropsCompressedBytes": 353,
+        "DocPropsUncompressedBytes": 928,
+        "OtherCompressedBytes": 2273,
+        "OtherUncompressedBytes": 9044,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet2.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 59401,
+            "UncompressedBytes": 489428
+          },
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 59432,
+            "UncompressedBytes": 488310
+          },
+          {
+            "Name": "xl/theme/theme1.xml",
+            "Category": "Other",
+            "CompressedBytes": 1461,
+            "UncompressedBytes": 7096
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 539,
+            "UncompressedBytes": 4357
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 618,
+            "UncompressedBytes": 2262
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 338,
+            "UncompressedBytes": 1474
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 353,
+            "UncompressedBytes": 928
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 235,
+            "UncompressedBytes": 848
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 322,
+            "UncompressedBytes": 714
+          },
+          {
+            "Name": "xl/tables/table2.xml",
+            "Category": "Tables",
+            "CompressedBytes": 325,
+            "UncompressedBytes": 714
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 668,
+            "UncompressedBytes": 668
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 262,
+            "UncompressedBytes": 488
+          },
+          {
+            "Name": "package/services/metadata/core-properties/37f6419e457944c88004e01e510d55a1.psmdcp",
+            "Category": "Other",
+            "CompressedBytes": 474,
+            "UncompressedBytes": 474
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 173,
+            "UncompressedBytes": 279
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet2.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 173,
+            "UncompressedBytes": 279
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-dataset-tables-autofit",
+      "Library": "EPPlus",
+      "Notes": "Import prepared DataTables as two styled worksheet tables, autofit columns, and save.",
+      "AverageMilliseconds": 66.68736666666666,
+      "MedianMilliseconds": 66.3196,
+      "StandardDeviationMilliseconds": 0.6635795832704131,
+      "StandardErrorMilliseconds": 0.3831178510299127,
+      "SamplesMilliseconds": [
+        67.4534,
+        66.2891,
+        66.3196
+      ],
+      "AverageAllocatedBytes": 42451205.333333336,
+      "MedianAllocatedBytes": 42451384,
+      "SamplesAllocatedBytes": [
+        42451384,
+        42450848,
+        42451384
+      ],
+      "Package": {
+        "FileSizeBytes": 119666,
+        "PartCount": 16,
+        "WorksheetRowCount": 2502,
+        "WorksheetCellCount": 20016,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 2,
+        "WorksheetCompressedBytes": 113541,
+        "WorksheetUncompressedBytes": 779473,
+        "SharedStringsCompressedBytes": 558,
+        "SharedStringsUncompressedBytes": 3562,
+        "StylesCompressedBytes": 343,
+        "StylesUncompressedBytes": 739,
+        "TablesCompressedBytes": 662,
+        "TablesUncompressedBytes": 1478,
+        "WorkbookCompressedBytes": 236,
+        "WorkbookUncompressedBytes": 403,
+        "RelationshipsCompressedBytes": 817,
+        "RelationshipsUncompressedBytes": 2020,
+        "DocPropsCompressedBytes": 733,
+        "DocPropsUncompressedBytes": 1228,
+        "OtherCompressedBytes": 556,
+        "OtherUncompressedBytes": 1909,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet2.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 56822,
+            "UncompressedBytes": 390294
+          },
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 56719,
+            "UncompressedBytes": 389179
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 558,
+            "UncompressedBytes": 3562
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 376,
+            "UncompressedBytes": 1647
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 343,
+            "UncompressedBytes": 739
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 330,
+            "UncompressedBytes": 739
+          },
+          {
+            "Name": "xl/tables/table2.xml",
+            "Category": "Tables",
+            "CompressedBytes": 332,
+            "UncompressedBytes": 739
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 244,
+            "UncompressedBytes": 733
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 223,
+            "UncompressedBytes": 705
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 357,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 236,
+            "UncompressedBytes": 403
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 220,
+            "UncompressedBytes": 351
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 175,
+            "UncompressedBytes": 291
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet2.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 175,
+            "UncompressedBytes": 291
+          },
+          {
+            "Name": "EPPlusLicense.txt",
+            "Category": "Other",
+            "CompressedBytes": 180,
+            "UncompressedBytes": 262
+          },
+          {
+            "Name": "docProps/custom.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 156,
+            "UncompressedBytes": 243
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-dataset-tables-autofit",
+      "Library": "MiniExcel",
+      "Notes": "Streaming DataSet export with MiniExcel auto-width configuration.",
+      "AverageMilliseconds": 10.3703,
+      "MedianMilliseconds": 10.1959,
+      "StandardDeviationMilliseconds": 1.2038122818778683,
+      "StandardErrorMilliseconds": 0.6950213449959649,
+      "SamplesMilliseconds": [
+        11.6518,
+        9.2632,
+        10.1959
+      ],
+      "AverageAllocatedBytes": 32567589.333333332,
+      "MedianAllocatedBytes": 32567568,
+      "SamplesAllocatedBytes": [
+        32567632,
+        32567568,
+        32567568
+      ],
+      "Package": {
+        "FileSizeBytes": 160395,
+        "PartCount": 14,
+        "WorksheetRowCount": 2502,
+        "WorksheetCellCount": 20016,
+        "SharedStringCount": 0,
+        "UniqueSharedStringCount": 0,
+        "CellStyleCount": 6,
+        "WorksheetCompressedBytes": 155505,
+        "WorksheetUncompressedBytes": 1065903,
+        "SharedStringsCompressedBytes": 140,
+        "SharedStringsUncompressedBytes": 162,
+        "StylesCompressedBytes": 835,
+        "StylesUncompressedBytes": 4401,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 272,
+        "WorkbookUncompressedBytes": 444,
+        "RelationshipsCompressedBytes": 1137,
+        "RelationshipsUncompressedBytes": 2064,
+        "DocPropsCompressedBytes": 0,
+        "DocPropsUncompressedBytes": 0,
+        "OtherCompressedBytes": 740,
+        "OtherUncompressedBytes": 2197,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet2.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 77952,
+            "UncompressedBytes": 533506
+          },
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 77553,
+            "UncompressedBytes": 532397
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 835,
+            "UncompressedBytes": 4401
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 384,
+            "UncompressedBytes": 1575
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 290,
+            "UncompressedBytes": 811
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 272,
+            "UncompressedBytes": 444
+          },
+          {
+            "Name": "xl/drawings/drawing1.xml",
+            "Category": "Other",
+            "CompressedBytes": 178,
+            "UncompressedBytes": 311
+          },
+          {
+            "Name": "xl/drawings/drawing2.xml",
+            "Category": "Other",
+            "CompressedBytes": 178,
+            "UncompressedBytes": 311
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 192,
+            "UncompressedBytes": 309
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet2.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 192,
+            "UncompressedBytes": 309
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 187,
+            "UncompressedBytes": 299
+          },
+          {
+            "Name": "xl/drawings/_rels/drawing1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 138,
+            "UncompressedBytes": 168
+          },
+          {
+            "Name": "xl/drawings/_rels/drawing2.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 138,
+            "UncompressedBytes": 168
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 140,
+            "UncompressedBytes": 162
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-datatable-direct",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Insert a prepared DataTable through the normal worksheet API and save.",
+      "AverageMilliseconds": 4.986866666666667,
+      "MedianMilliseconds": 5.151,
+      "StandardDeviationMilliseconds": 0.7502877470233225,
+      "StandardErrorMilliseconds": 0.4331788327135931,
+      "SamplesMilliseconds": [
+        4.1681,
+        5.151,
+        5.6415
+      ],
+      "AverageAllocatedBytes": 3560432,
+      "MedianAllocatedBytes": 3560432,
+      "SamplesAllocatedBytes": [
+        3560432,
+        3560432,
+        3560432
+      ],
+      "Package": {
+        "FileSizeBytes": 141320,
+        "PartCount": 9,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 3,
+        "WorksheetCompressedBytes": 137897,
+        "WorksheetUncompressedBytes": 742091,
+        "SharedStringsCompressedBytes": 608,
+        "SharedStringsUncompressedBytes": 3542,
+        "StylesCompressedBytes": 486,
+        "StylesUncompressedBytes": 1134,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 179,
+        "WorkbookUncompressedBytes": 264,
+        "RelationshipsCompressedBytes": 436,
+        "RelationshipsUncompressedBytes": 1116,
+        "DocPropsCompressedBytes": 371,
+        "DocPropsUncompressedBytes": 594,
+        "OtherCompressedBytes": 315,
+        "OtherUncompressedBytes": 1036,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 137897,
+            "UncompressedBytes": 742091
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 608,
+            "UncompressedBytes": 3542
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 486,
+            "UncompressedBytes": 1134
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 315,
+            "UncompressedBytes": 1036
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 569
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 209,
+            "UncompressedBytes": 547
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 200,
+            "UncompressedBytes": 327
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 171,
+            "UncompressedBytes": 267
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 179,
+            "UncompressedBytes": 264
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-datatable-direct",
+      "Library": "ClosedXML",
+      "Notes": "Import a prepared DataTable and save.",
+      "AverageMilliseconds": 33.21686666666667,
+      "MedianMilliseconds": 33.4166,
+      "StandardDeviationMilliseconds": 5.388377066736638,
+      "StandardErrorMilliseconds": 3.110980949975604,
+      "SamplesMilliseconds": [
+        27.7314,
+        33.4166,
+        38.5026
+      ],
+      "AverageAllocatedBytes": 11858976,
+      "MedianAllocatedBytes": 11858976,
+      "SamplesAllocatedBytes": [
+        11858976,
+        11858976,
+        11858976
+      ],
+      "Package": {
+        "FileSizeBytes": 122954,
+        "PartCount": 10,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 2,
+        "WorksheetCompressedBytes": 116828,
+        "WorksheetUncompressedBytes": 985086,
+        "SharedStringsCompressedBytes": 539,
+        "SharedStringsUncompressedBytes": 4357,
+        "StylesCompressedBytes": 584,
+        "StylesUncompressedBytes": 2167,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 248,
+        "WorkbookUncompressedBytes": 437,
+        "RelationshipsCompressedBytes": 895,
+        "RelationshipsUncompressedBytes": 1370,
+        "DocPropsCompressedBytes": 339,
+        "DocPropsUncompressedBytes": 817,
+        "OtherCompressedBytes": 2251,
+        "OtherUncompressedBytes": 8649,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 116828,
+            "UncompressedBytes": 985086
+          },
+          {
+            "Name": "xl/theme/theme1.xml",
+            "Category": "Other",
+            "CompressedBytes": 1461,
+            "UncompressedBytes": 7096
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 539,
+            "UncompressedBytes": 4357
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 584,
+            "UncompressedBytes": 2167
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 316,
+            "UncompressedBytes": 1079
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 339,
+            "UncompressedBytes": 817
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 702
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 668,
+            "UncompressedBytes": 668
+          },
+          {
+            "Name": "package/services/metadata/core-properties/80b3e9b63f7649619c60e5b7762e9240.psmdcp",
+            "Category": "Other",
+            "CompressedBytes": 474,
+            "UncompressedBytes": 474
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 248,
+            "UncompressedBytes": 437
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-datatable-direct",
+      "Library": "EPPlus",
+      "Notes": "Import a prepared DataTable and save.",
+      "AverageMilliseconds": 35.7079,
+      "MedianMilliseconds": 34.4453,
+      "StandardDeviationMilliseconds": 3.0108681737997087,
+      "StandardErrorMilliseconds": 1.7383255506377389,
+      "SamplesMilliseconds": [
+        33.5339,
+        39.1445,
+        34.4453
+      ],
+      "AverageAllocatedBytes": 17046077.333333332,
+      "MedianAllocatedBytes": 17046256,
+      "SamplesAllocatedBytes": [
+        17046256,
+        17045720,
+        17046256
+      ],
+      "Package": {
+        "FileSizeBytes": 117683,
+        "PartCount": 13,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 2,
+        "WorksheetCompressedBytes": 112549,
+        "WorksheetUncompressedBytes": 787470,
+        "SharedStringsCompressedBytes": 558,
+        "SharedStringsUncompressedBytes": 3562,
+        "StylesCompressedBytes": 343,
+        "StylesUncompressedBytes": 739,
+        "TablesCompressedBytes": 330,
+        "TablesUncompressedBytes": 742,
+        "WorkbookCompressedBytes": 221,
+        "WorkbookUncompressedBytes": 354,
+        "RelationshipsCompressedBytes": 633,
+        "RelationshipsUncompressedBytes": 1588,
+        "DocPropsCompressedBytes": 733,
+        "DocPropsUncompressedBytes": 1228,
+        "OtherCompressedBytes": 542,
+        "OtherUncompressedBytes": 1643,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 112549,
+            "UncompressedBytes": 787470
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 558,
+            "UncompressedBytes": 3562
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 362,
+            "UncompressedBytes": 1381
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 330,
+            "UncompressedBytes": 742
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 343,
+            "UncompressedBytes": 739
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 244,
+            "UncompressedBytes": 733
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 357,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 214,
+            "UncompressedBytes": 564
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 221,
+            "UncompressedBytes": 354
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 220,
+            "UncompressedBytes": 351
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 175,
+            "UncompressedBytes": 291
+          },
+          {
+            "Name": "EPPlusLicense.txt",
+            "Category": "Other",
+            "CompressedBytes": 180,
+            "UncompressedBytes": 262
+          },
+          {
+            "Name": "docProps/custom.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 156,
+            "UncompressedBytes": 243
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-datatable-direct",
+      "Library": "MiniExcel",
+      "Notes": "Streaming DataTable export and save.",
+      "AverageMilliseconds": 9.5638,
+      "MedianMilliseconds": 9.7644,
+      "StandardDeviationMilliseconds": 1.298176613562269,
+      "StandardErrorMilliseconds": 0.7495026172958529,
+      "SamplesMilliseconds": [
+        10.75,
+        8.177,
+        9.7644
+      ],
+      "AverageAllocatedBytes": 23616040,
+      "MedianAllocatedBytes": 23616040,
+      "SamplesAllocatedBytes": [
+        23616040,
+        23616040,
+        23616040
+      ],
+      "Package": {
+        "FileSizeBytes": 157355,
+        "PartCount": 10,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 0,
+        "UniqueSharedStringCount": 0,
+        "CellStyleCount": 6,
+        "WorksheetCompressedBytes": 153539,
+        "WorksheetUncompressedBytes": 1073217,
+        "SharedStringsCompressedBytes": 146,
+        "SharedStringsUncompressedBytes": 162,
+        "StylesCompressedBytes": 841,
+        "StylesUncompressedBytes": 4401,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 239,
+        "WorkbookUncompressedBytes": 346,
+        "RelationshipsCompressedBytes": 800,
+        "RelationshipsUncompressedBytes": 1410,
+        "DocPropsCompressedBytes": 0,
+        "DocPropsUncompressedBytes": 0,
+        "OtherCompressedBytes": 564,
+        "OtherUncompressedBytes": 1628,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 153539,
+            "UncompressedBytes": 1073217
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 841,
+            "UncompressedBytes": 4401
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 379,
+            "UncompressedBytes": 1317
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 265,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 239,
+            "UncompressedBytes": 346
+          },
+          {
+            "Name": "xl/drawings/drawing1.xml",
+            "Category": "Other",
+            "CompressedBytes": 185,
+            "UncompressedBytes": 311
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 198,
+            "UncompressedBytes": 309
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 193,
+            "UncompressedBytes": 299
+          },
+          {
+            "Name": "xl/drawings/_rels/drawing1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 144,
+            "UncompressedBytes": 168
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 146,
+            "UncompressedBytes": 162
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-datatable-table-direct",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Insert a prepared DataTable as a styled table through the normal worksheet API and save.",
+      "AverageMilliseconds": 5.714933333333334,
+      "MedianMilliseconds": 5.81,
+      "StandardDeviationMilliseconds": 0.27167529025167775,
+      "StandardErrorMilliseconds": 0.15685180195897586,
+      "SamplesMilliseconds": [
+        5.4085,
+        5.81,
+        5.9263
+      ],
+      "AverageAllocatedBytes": 4028712,
+      "MedianAllocatedBytes": 4028712,
+      "SamplesAllocatedBytes": [
+        4028712,
+        4028712,
+        4028712
+      ],
+      "Package": {
+        "FileSizeBytes": 142172,
+        "PartCount": 11,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 3,
+        "WorksheetCompressedBytes": 137969,
+        "WorksheetUncompressedBytes": 742150,
+        "SharedStringsCompressedBytes": 608,
+        "SharedStringsUncompressedBytes": 3542,
+        "StylesCompressedBytes": 486,
+        "StylesUncompressedBytes": 1134,
+        "TablesCompressedBytes": 334,
+        "TablesUncompressedBytes": 685,
+        "WorkbookCompressedBytes": 179,
+        "WorkbookUncompressedBytes": 264,
+        "RelationshipsCompressedBytes": 607,
+        "RelationshipsUncompressedBytes": 1390,
+        "DocPropsCompressedBytes": 371,
+        "DocPropsUncompressedBytes": 594,
+        "OtherCompressedBytes": 328,
+        "OtherUncompressedBytes": 1164,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 137969,
+            "UncompressedBytes": 742150
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 608,
+            "UncompressedBytes": 3542
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 328,
+            "UncompressedBytes": 1164
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 486,
+            "UncompressedBytes": 1134
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 334,
+            "UncompressedBytes": 685
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 569
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 209,
+            "UncompressedBytes": 547
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 200,
+            "UncompressedBytes": 327
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 171,
+            "UncompressedBytes": 274
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 171,
+            "UncompressedBytes": 267
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 179,
+            "UncompressedBytes": 264
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-datatable-table-direct",
+      "Library": "ClosedXML",
+      "Notes": "Import a prepared DataTable as a styled worksheet table and save.",
+      "AverageMilliseconds": 42.083133333333336,
+      "MedianMilliseconds": 44.1873,
+      "StandardDeviationMilliseconds": 4.553476663312697,
+      "StandardErrorMilliseconds": 2.6289509773122646,
+      "SamplesMilliseconds": [
+        36.8581,
+        45.204,
+        44.1873
+      ],
+      "AverageAllocatedBytes": 19463952,
+      "MedianAllocatedBytes": 19464272,
+      "SamplesAllocatedBytes": [
+        19464272,
+        19465112,
+        19462472
+      ],
+      "Package": {
+        "FileSizeBytes": 123781,
+        "PartCount": 12,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 2,
+        "WorksheetCompressedBytes": 116853,
+        "WorksheetUncompressedBytes": 985126,
+        "SharedStringsCompressedBytes": 539,
+        "SharedStringsUncompressedBytes": 4357,
+        "StylesCompressedBytes": 618,
+        "StylesUncompressedBytes": 2262,
+        "TablesCompressedBytes": 324,
+        "TablesUncompressedBytes": 720,
+        "WorkbookCompressedBytes": 248,
+        "WorkbookUncompressedBytes": 437,
+        "RelationshipsCompressedBytes": 1068,
+        "RelationshipsUncompressedBytes": 1649,
+        "DocPropsCompressedBytes": 339,
+        "DocPropsUncompressedBytes": 817,
+        "OtherCompressedBytes": 2260,
+        "OtherUncompressedBytes": 8778,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 116853,
+            "UncompressedBytes": 985126
+          },
+          {
+            "Name": "xl/theme/theme1.xml",
+            "Category": "Other",
+            "CompressedBytes": 1461,
+            "UncompressedBytes": 7096
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 539,
+            "UncompressedBytes": 4357
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 618,
+            "UncompressedBytes": 2262
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 325,
+            "UncompressedBytes": 1208
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 339,
+            "UncompressedBytes": 817
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 324,
+            "UncompressedBytes": 720
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 702
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 668,
+            "UncompressedBytes": 668
+          },
+          {
+            "Name": "package/services/metadata/core-properties/8ea468338d5e49a5a475bc1598564bdc.psmdcp",
+            "Category": "Other",
+            "CompressedBytes": 474,
+            "UncompressedBytes": 474
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 248,
+            "UncompressedBytes": 437
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 173,
+            "UncompressedBytes": 279
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-datatable-table-direct",
+      "Library": "EPPlus",
+      "Notes": "Import a prepared DataTable as a styled worksheet table and save.",
+      "AverageMilliseconds": 36.540933333333335,
+      "MedianMilliseconds": 37.057,
+      "StandardDeviationMilliseconds": 2.270422780746646,
+      "StandardErrorMilliseconds": 1.3108292036383349,
+      "SamplesMilliseconds": [
+        34.0569,
+        37.057,
+        38.5089
+      ],
+      "AverageAllocatedBytes": 17046093.333333332,
+      "MedianAllocatedBytes": 17046272,
+      "SamplesAllocatedBytes": [
+        17046272,
+        17045736,
+        17046272
+      ],
+      "Package": {
+        "FileSizeBytes": 117684,
+        "PartCount": 13,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 2,
+        "WorksheetCompressedBytes": 112549,
+        "WorksheetUncompressedBytes": 787470,
+        "SharedStringsCompressedBytes": 558,
+        "SharedStringsUncompressedBytes": 3562,
+        "StylesCompressedBytes": 343,
+        "StylesUncompressedBytes": 739,
+        "TablesCompressedBytes": 331,
+        "TablesUncompressedBytes": 745,
+        "WorkbookCompressedBytes": 221,
+        "WorkbookUncompressedBytes": 354,
+        "RelationshipsCompressedBytes": 633,
+        "RelationshipsUncompressedBytes": 1588,
+        "DocPropsCompressedBytes": 733,
+        "DocPropsUncompressedBytes": 1228,
+        "OtherCompressedBytes": 542,
+        "OtherUncompressedBytes": 1643,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 112549,
+            "UncompressedBytes": 787470
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 558,
+            "UncompressedBytes": 3562
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 362,
+            "UncompressedBytes": 1381
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 331,
+            "UncompressedBytes": 745
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 343,
+            "UncompressedBytes": 739
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 244,
+            "UncompressedBytes": 733
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 357,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 214,
+            "UncompressedBytes": 564
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 221,
+            "UncompressedBytes": 354
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 220,
+            "UncompressedBytes": 351
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 175,
+            "UncompressedBytes": 291
+          },
+          {
+            "Name": "EPPlusLicense.txt",
+            "Category": "Other",
+            "CompressedBytes": 180,
+            "UncompressedBytes": 262
+          },
+          {
+            "Name": "docProps/custom.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 156,
+            "UncompressedBytes": 243
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-datatable-table-direct",
+      "Library": "MiniExcel",
+      "Notes": "Streaming DataTable export with table styling configuration.",
+      "AverageMilliseconds": 9.695833333333333,
+      "MedianMilliseconds": 10.2813,
+      "StandardDeviationMilliseconds": 1.416643304905414,
+      "StandardErrorMilliseconds": 0.8178993934328218,
+      "SamplesMilliseconds": [
+        8.0803,
+        10.7259,
+        10.2813
+      ],
+      "AverageAllocatedBytes": 23616325.333333332,
+      "MedianAllocatedBytes": 23616328,
+      "SamplesAllocatedBytes": [
+        23616328,
+        23616320,
+        23616328
+      ],
+      "Package": {
+        "FileSizeBytes": 157354,
+        "PartCount": 10,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 0,
+        "UniqueSharedStringCount": 0,
+        "CellStyleCount": 6,
+        "WorksheetCompressedBytes": 153539,
+        "WorksheetUncompressedBytes": 1073217,
+        "SharedStringsCompressedBytes": 146,
+        "SharedStringsUncompressedBytes": 162,
+        "StylesCompressedBytes": 841,
+        "StylesUncompressedBytes": 4401,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 238,
+        "WorkbookUncompressedBytes": 346,
+        "RelationshipsCompressedBytes": 800,
+        "RelationshipsUncompressedBytes": 1410,
+        "DocPropsCompressedBytes": 0,
+        "DocPropsUncompressedBytes": 0,
+        "OtherCompressedBytes": 564,
+        "OtherUncompressedBytes": 1628,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 153539,
+            "UncompressedBytes": 1073217
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 841,
+            "UncompressedBytes": 4401
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 379,
+            "UncompressedBytes": 1317
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 265,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 238,
+            "UncompressedBytes": 346
+          },
+          {
+            "Name": "xl/drawings/drawing1.xml",
+            "Category": "Other",
+            "CompressedBytes": 185,
+            "UncompressedBytes": 311
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 198,
+            "UncompressedBytes": 309
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 193,
+            "UncompressedBytes": 299
+          },
+          {
+            "Name": "xl/drawings/_rels/drawing1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 144,
+            "UncompressedBytes": 168
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 146,
+            "UncompressedBytes": 162
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-datareader-table",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Stream a DataTable-backed IDataReader as a styled table through the normal worksheet API and save.",
+      "AverageMilliseconds": 8.969866666666666,
+      "MedianMilliseconds": 8.6385,
+      "StandardDeviationMilliseconds": 0.9204295754338477,
+      "StandardErrorMilliseconds": 0.5314102631468249,
+      "SamplesMilliseconds": [
+        10.0101,
+        8.6385,
+        8.261
+      ],
+      "AverageAllocatedBytes": 5173144,
+      "MedianAllocatedBytes": 5173144,
+      "SamplesAllocatedBytes": [
+        5173144,
+        5173144,
+        5173144
+      ],
+      "Package": {
+        "FileSizeBytes": 142172,
+        "PartCount": 11,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 3,
+        "WorksheetCompressedBytes": 137969,
+        "WorksheetUncompressedBytes": 742150,
+        "SharedStringsCompressedBytes": 608,
+        "SharedStringsUncompressedBytes": 3542,
+        "StylesCompressedBytes": 486,
+        "StylesUncompressedBytes": 1134,
+        "TablesCompressedBytes": 334,
+        "TablesUncompressedBytes": 685,
+        "WorkbookCompressedBytes": 179,
+        "WorkbookUncompressedBytes": 264,
+        "RelationshipsCompressedBytes": 607,
+        "RelationshipsUncompressedBytes": 1390,
+        "DocPropsCompressedBytes": 371,
+        "DocPropsUncompressedBytes": 594,
+        "OtherCompressedBytes": 328,
+        "OtherUncompressedBytes": 1164,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 137969,
+            "UncompressedBytes": 742150
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 608,
+            "UncompressedBytes": 3542
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 328,
+            "UncompressedBytes": 1164
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 486,
+            "UncompressedBytes": 1134
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 334,
+            "UncompressedBytes": 685
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 569
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 209,
+            "UncompressedBytes": 547
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 200,
+            "UncompressedBytes": 327
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 171,
+            "UncompressedBytes": 274
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 171,
+            "UncompressedBytes": 267
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 179,
+            "UncompressedBytes": 264
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-datareader-table",
+      "Library": "ClosedXML",
+      "Notes": "Import the same prepared data as a styled worksheet table and save.",
+      "AverageMilliseconds": 44.03443333333333,
+      "MedianMilliseconds": 45.0241,
+      "StandardDeviationMilliseconds": 4.086587644151698,
+      "StandardErrorMilliseconds": 2.3593924764179817,
+      "SamplesMilliseconds": [
+        45.0241,
+        39.5439,
+        47.5353
+      ],
+      "AverageAllocatedBytes": 19464712,
+      "MedianAllocatedBytes": 19465232,
+      "SamplesAllocatedBytes": [
+        19463432,
+        19465232,
+        19465472
+      ],
+      "Package": {
+        "FileSizeBytes": 123781,
+        "PartCount": 12,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 2,
+        "WorksheetCompressedBytes": 116853,
+        "WorksheetUncompressedBytes": 985126,
+        "SharedStringsCompressedBytes": 539,
+        "SharedStringsUncompressedBytes": 4357,
+        "StylesCompressedBytes": 618,
+        "StylesUncompressedBytes": 2262,
+        "TablesCompressedBytes": 324,
+        "TablesUncompressedBytes": 720,
+        "WorkbookCompressedBytes": 248,
+        "WorkbookUncompressedBytes": 437,
+        "RelationshipsCompressedBytes": 1068,
+        "RelationshipsUncompressedBytes": 1649,
+        "DocPropsCompressedBytes": 339,
+        "DocPropsUncompressedBytes": 817,
+        "OtherCompressedBytes": 2260,
+        "OtherUncompressedBytes": 8778,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 116853,
+            "UncompressedBytes": 985126
+          },
+          {
+            "Name": "xl/theme/theme1.xml",
+            "Category": "Other",
+            "CompressedBytes": 1461,
+            "UncompressedBytes": 7096
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 539,
+            "UncompressedBytes": 4357
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 618,
+            "UncompressedBytes": 2262
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 325,
+            "UncompressedBytes": 1208
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 339,
+            "UncompressedBytes": 817
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 324,
+            "UncompressedBytes": 720
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 702
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 668,
+            "UncompressedBytes": 668
+          },
+          {
+            "Name": "package/services/metadata/core-properties/e7ea79973b7643388cd13efee17b6c92.psmdcp",
+            "Category": "Other",
+            "CompressedBytes": 474,
+            "UncompressedBytes": 474
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 248,
+            "UncompressedBytes": 437
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 173,
+            "UncompressedBytes": 279
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-datareader-table",
+      "Library": "EPPlus",
+      "Notes": "Import the same prepared data as a styled worksheet table and save.",
+      "AverageMilliseconds": 36.77876666666666,
+      "MedianMilliseconds": 36.4431,
+      "StandardDeviationMilliseconds": 2.092787694280846,
+      "StandardErrorMilliseconds": 1.2082715386497829,
+      "SamplesMilliseconds": [
+        39.0191,
+        36.4431,
+        34.8741
+      ],
+      "AverageAllocatedBytes": 17046093.333333332,
+      "MedianAllocatedBytes": 17046272,
+      "SamplesAllocatedBytes": [
+        17046272,
+        17045736,
+        17046272
+      ],
+      "Package": {
+        "FileSizeBytes": 117684,
+        "PartCount": 13,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 2,
+        "WorksheetCompressedBytes": 112549,
+        "WorksheetUncompressedBytes": 787470,
+        "SharedStringsCompressedBytes": 558,
+        "SharedStringsUncompressedBytes": 3562,
+        "StylesCompressedBytes": 343,
+        "StylesUncompressedBytes": 739,
+        "TablesCompressedBytes": 331,
+        "TablesUncompressedBytes": 745,
+        "WorkbookCompressedBytes": 221,
+        "WorkbookUncompressedBytes": 354,
+        "RelationshipsCompressedBytes": 633,
+        "RelationshipsUncompressedBytes": 1588,
+        "DocPropsCompressedBytes": 733,
+        "DocPropsUncompressedBytes": 1228,
+        "OtherCompressedBytes": 542,
+        "OtherUncompressedBytes": 1643,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 112549,
+            "UncompressedBytes": 787470
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 558,
+            "UncompressedBytes": 3562
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 362,
+            "UncompressedBytes": 1381
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 331,
+            "UncompressedBytes": 745
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 343,
+            "UncompressedBytes": 739
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 244,
+            "UncompressedBytes": 733
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 357,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 214,
+            "UncompressedBytes": 564
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 221,
+            "UncompressedBytes": 354
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 220,
+            "UncompressedBytes": 351
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 175,
+            "UncompressedBytes": 291
+          },
+          {
+            "Name": "EPPlusLicense.txt",
+            "Category": "Other",
+            "CompressedBytes": 180,
+            "UncompressedBytes": 262
+          },
+          {
+            "Name": "docProps/custom.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 156,
+            "UncompressedBytes": 243
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-datareader-table",
+      "Library": "MiniExcel",
+      "Notes": "Stream the same DataTable-backed IDataReader and save.",
+      "AverageMilliseconds": 9.306033333333334,
+      "MedianMilliseconds": 9.834,
+      "StandardDeviationMilliseconds": 1.856341111793125,
+      "StandardErrorMilliseconds": 1.07175904060153,
+      "SamplesMilliseconds": [
+        9.834,
+        10.8412,
+        7.2429
+      ],
+      "AverageAllocatedBytes": 23597165.333333332,
+      "MedianAllocatedBytes": 23597168,
+      "SamplesAllocatedBytes": [
+        23597160,
+        23597168,
+        23597168
+      ],
+      "Package": {
+        "FileSizeBytes": 157329,
+        "PartCount": 10,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 0,
+        "UniqueSharedStringCount": 0,
+        "CellStyleCount": 6,
+        "WorksheetCompressedBytes": 153515,
+        "WorksheetUncompressedBytes": 1073187,
+        "SharedStringsCompressedBytes": 146,
+        "SharedStringsUncompressedBytes": 162,
+        "StylesCompressedBytes": 841,
+        "StylesUncompressedBytes": 4401,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 237,
+        "WorkbookUncompressedBytes": 346,
+        "RelationshipsCompressedBytes": 800,
+        "RelationshipsUncompressedBytes": 1410,
+        "DocPropsCompressedBytes": 0,
+        "DocPropsUncompressedBytes": 0,
+        "OtherCompressedBytes": 564,
+        "OtherUncompressedBytes": 1628,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 153515,
+            "UncompressedBytes": 1073187
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 841,
+            "UncompressedBytes": 4401
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 379,
+            "UncompressedBytes": 1317
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 265,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 237,
+            "UncompressedBytes": 346
+          },
+          {
+            "Name": "xl/drawings/drawing1.xml",
+            "Category": "Other",
+            "CompressedBytes": 185,
+            "UncompressedBytes": 311
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 198,
+            "UncompressedBytes": 309
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 193,
+            "UncompressedBytes": 299
+          },
+          {
+            "Name": "xl/drawings/_rels/drawing1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 144,
+            "UncompressedBytes": 168
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 146,
+            "UncompressedBytes": 162
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-cellvalues-rectangle-direct",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Write a complete A1 rectangle with CellValues and save.",
+      "AverageMilliseconds": 5.209099999999999,
+      "MedianMilliseconds": 5.0066,
+      "StandardDeviationMilliseconds": 0.35134668064463065,
+      "StandardErrorMilliseconds": 0.202850100649059,
+      "SamplesMilliseconds": [
+        5.0066,
+        5.0059,
+        5.6148
+      ],
+      "AverageAllocatedBytes": 3901576,
+      "MedianAllocatedBytes": 3901576,
+      "SamplesAllocatedBytes": [
+        3901576,
+        3901576,
+        3901576
+      ],
+      "Package": {
+        "FileSizeBytes": 141320,
+        "PartCount": 9,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 3,
+        "WorksheetCompressedBytes": 137897,
+        "WorksheetUncompressedBytes": 742091,
+        "SharedStringsCompressedBytes": 608,
+        "SharedStringsUncompressedBytes": 3542,
+        "StylesCompressedBytes": 486,
+        "StylesUncompressedBytes": 1134,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 179,
+        "WorkbookUncompressedBytes": 264,
+        "RelationshipsCompressedBytes": 436,
+        "RelationshipsUncompressedBytes": 1116,
+        "DocPropsCompressedBytes": 371,
+        "DocPropsUncompressedBytes": 594,
+        "OtherCompressedBytes": 315,
+        "OtherUncompressedBytes": 1036,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 137897,
+            "UncompressedBytes": 742091
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 608,
+            "UncompressedBytes": 3542
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 486,
+            "UncompressedBytes": 1134
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 315,
+            "UncompressedBytes": 1036
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 569
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 209,
+            "UncompressedBytes": 547
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 200,
+            "UncompressedBytes": 327
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 171,
+            "UncompressedBytes": 267
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 179,
+            "UncompressedBytes": 264
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-cellvalues-rectangle-direct",
+      "Library": "ClosedXML",
+      "Notes": "Write the same complete A1 rectangle and save.",
+      "AverageMilliseconds": 38.37696666666667,
+      "MedianMilliseconds": 38.9173,
+      "StandardDeviationMilliseconds": 1.285029308355782,
+      "StandardErrorMilliseconds": 0.7419120170957694,
+      "SamplesMilliseconds": [
+        38.9173,
+        39.3036,
+        36.91
+      ],
+      "AverageAllocatedBytes": 22754656,
+      "MedianAllocatedBytes": 22754656,
+      "SamplesAllocatedBytes": [
+        22754656,
+        22754656,
+        22754656
+      ],
+      "Package": {
+        "FileSizeBytes": 122954,
+        "PartCount": 10,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 2,
+        "WorksheetCompressedBytes": 116828,
+        "WorksheetUncompressedBytes": 985086,
+        "SharedStringsCompressedBytes": 539,
+        "SharedStringsUncompressedBytes": 4357,
+        "StylesCompressedBytes": 584,
+        "StylesUncompressedBytes": 2167,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 248,
+        "WorkbookUncompressedBytes": 437,
+        "RelationshipsCompressedBytes": 895,
+        "RelationshipsUncompressedBytes": 1370,
+        "DocPropsCompressedBytes": 339,
+        "DocPropsUncompressedBytes": 817,
+        "OtherCompressedBytes": 2251,
+        "OtherUncompressedBytes": 8649,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 116828,
+            "UncompressedBytes": 985086
+          },
+          {
+            "Name": "xl/theme/theme1.xml",
+            "Category": "Other",
+            "CompressedBytes": 1461,
+            "UncompressedBytes": 7096
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 539,
+            "UncompressedBytes": 4357
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 584,
+            "UncompressedBytes": 2167
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 316,
+            "UncompressedBytes": 1079
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 339,
+            "UncompressedBytes": 817
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 702
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 668,
+            "UncompressedBytes": 668
+          },
+          {
+            "Name": "package/services/metadata/core-properties/faeb993982b84c658549a5abb531f9b7.psmdcp",
+            "Category": "Other",
+            "CompressedBytes": 474,
+            "UncompressedBytes": 474
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 248,
+            "UncompressedBytes": 437
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-cellvalues-rectangle-direct",
+      "Library": "EPPlus",
+      "Notes": "Write the same complete A1 rectangle and save.",
+      "AverageMilliseconds": 42.75256666666667,
+      "MedianMilliseconds": 43.2164,
+      "StandardDeviationMilliseconds": 1.2920769417234148,
+      "StandardErrorMilliseconds": 0.745980970117722,
+      "SamplesMilliseconds": [
+        41.2926,
+        43.7487,
+        43.2164
+      ],
+      "AverageAllocatedBytes": 25287085.333333332,
+      "MedianAllocatedBytes": 25287264,
+      "SamplesAllocatedBytes": [
+        25287264,
+        25286728,
+        25287264
+      ],
+      "Package": {
+        "FileSizeBytes": 116797,
+        "PartCount": 11,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 1,
+        "WorksheetCompressedBytes": 112495,
+        "WorksheetUncompressedBytes": 787420,
+        "SharedStringsCompressedBytes": 558,
+        "SharedStringsUncompressedBytes": 3562,
+        "StylesCompressedBytes": 327,
+        "StylesUncompressedBytes": 687,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 221,
+        "WorkbookUncompressedBytes": 354,
+        "RelationshipsCompressedBytes": 458,
+        "RelationshipsUncompressedBytes": 1297,
+        "DocPropsCompressedBytes": 733,
+        "DocPropsUncompressedBytes": 1228,
+        "OtherCompressedBytes": 533,
+        "OtherUncompressedBytes": 1514,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 112495,
+            "UncompressedBytes": 787420
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 558,
+            "UncompressedBytes": 3562
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 353,
+            "UncompressedBytes": 1252
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 244,
+            "UncompressedBytes": 733
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 327,
+            "UncompressedBytes": 687
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 357,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 214,
+            "UncompressedBytes": 564
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 221,
+            "UncompressedBytes": 354
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 220,
+            "UncompressedBytes": 351
+          },
+          {
+            "Name": "EPPlusLicense.txt",
+            "Category": "Other",
+            "CompressedBytes": 180,
+            "UncompressedBytes": 262
+          },
+          {
+            "Name": "docProps/custom.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 156,
+            "UncompressedBytes": 243
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-cellvalues-rectangle-direct",
+      "Library": "MiniExcel",
+      "Notes": "Streaming typed row export with the same columns and headers.",
+      "AverageMilliseconds": 9.932333333333332,
+      "MedianMilliseconds": 10.5061,
+      "StandardDeviationMilliseconds": 1.5777397261060941,
+      "StandardErrorMilliseconds": 0.91090845557852,
+      "SamplesMilliseconds": [
+        10.5061,
+        8.148,
+        11.1429
+      ],
+      "AverageAllocatedBytes": 23779504,
+      "MedianAllocatedBytes": 23779504,
+      "SamplesAllocatedBytes": [
+        23779504,
+        23779504,
+        23779504
+      ],
+      "Package": {
+        "FileSizeBytes": 157355,
+        "PartCount": 10,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 0,
+        "UniqueSharedStringCount": 0,
+        "CellStyleCount": 6,
+        "WorksheetCompressedBytes": 153539,
+        "WorksheetUncompressedBytes": 1073217,
+        "SharedStringsCompressedBytes": 146,
+        "SharedStringsUncompressedBytes": 162,
+        "StylesCompressedBytes": 841,
+        "StylesUncompressedBytes": 4401,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 239,
+        "WorkbookUncompressedBytes": 346,
+        "RelationshipsCompressedBytes": 800,
+        "RelationshipsUncompressedBytes": 1410,
+        "DocPropsCompressedBytes": 0,
+        "DocPropsUncompressedBytes": 0,
+        "OtherCompressedBytes": 564,
+        "OtherUncompressedBytes": 1628,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 153539,
+            "UncompressedBytes": 1073217
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 841,
+            "UncompressedBytes": 4401
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 379,
+            "UncompressedBytes": 1317
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 265,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 239,
+            "UncompressedBytes": 346
+          },
+          {
+            "Name": "xl/drawings/drawing1.xml",
+            "Category": "Other",
+            "CompressedBytes": 185,
+            "UncompressedBytes": 311
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 198,
+            "UncompressedBytes": 309
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 193,
+            "UncompressedBytes": 299
+          },
+          {
+            "Name": "xl/drawings/_rels/drawing1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 144,
+            "UncompressedBytes": 168
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 146,
+            "UncompressedBytes": 162
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-insertobjects-direct",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Insert typed objects through the normal worksheet API and save.",
+      "AverageMilliseconds": 4.4818,
+      "MedianMilliseconds": 4.5208,
+      "StandardDeviationMilliseconds": 0.43082595093610604,
+      "StandardErrorMilliseconds": 0.24873747874683733,
+      "SamplesMilliseconds": [
+        4.5208,
+        4.0328,
+        4.8918
+      ],
+      "AverageAllocatedBytes": 3581688,
+      "MedianAllocatedBytes": 3581688,
+      "SamplesAllocatedBytes": [
+        3581688,
+        3581688,
+        3581688
+      ],
+      "Package": {
+        "FileSizeBytes": 141320,
+        "PartCount": 9,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 3,
+        "WorksheetCompressedBytes": 137897,
+        "WorksheetUncompressedBytes": 742091,
+        "SharedStringsCompressedBytes": 608,
+        "SharedStringsUncompressedBytes": 3542,
+        "StylesCompressedBytes": 486,
+        "StylesUncompressedBytes": 1134,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 179,
+        "WorkbookUncompressedBytes": 264,
+        "RelationshipsCompressedBytes": 436,
+        "RelationshipsUncompressedBytes": 1116,
+        "DocPropsCompressedBytes": 371,
+        "DocPropsUncompressedBytes": 594,
+        "OtherCompressedBytes": 315,
+        "OtherUncompressedBytes": 1036,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 137897,
+            "UncompressedBytes": 742091
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 608,
+            "UncompressedBytes": 3542
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 486,
+            "UncompressedBytes": 1134
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 315,
+            "UncompressedBytes": 1036
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 569
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 209,
+            "UncompressedBytes": 547
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 200,
+            "UncompressedBytes": 327
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 171,
+            "UncompressedBytes": 267
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 179,
+            "UncompressedBytes": 264
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-insertobjects-direct",
+      "Library": "ClosedXML",
+      "Notes": "Insert the same typed objects and save.",
+      "AverageMilliseconds": 36.97816666666666,
+      "MedianMilliseconds": 37.9201,
+      "StandardDeviationMilliseconds": 4.555038393178848,
+      "StandardErrorMilliseconds": 2.6298526424708886,
+      "SamplesMilliseconds": [
+        32.0258,
+        40.9886,
+        37.9201
+      ],
+      "AverageAllocatedBytes": 11858976,
+      "MedianAllocatedBytes": 11858976,
+      "SamplesAllocatedBytes": [
+        11858976,
+        11858976,
+        11858976
+      ],
+      "Package": {
+        "FileSizeBytes": 122954,
+        "PartCount": 10,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 2,
+        "WorksheetCompressedBytes": 116828,
+        "WorksheetUncompressedBytes": 985086,
+        "SharedStringsCompressedBytes": 539,
+        "SharedStringsUncompressedBytes": 4357,
+        "StylesCompressedBytes": 584,
+        "StylesUncompressedBytes": 2167,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 248,
+        "WorkbookUncompressedBytes": 437,
+        "RelationshipsCompressedBytes": 895,
+        "RelationshipsUncompressedBytes": 1370,
+        "DocPropsCompressedBytes": 339,
+        "DocPropsUncompressedBytes": 817,
+        "OtherCompressedBytes": 2251,
+        "OtherUncompressedBytes": 8649,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 116828,
+            "UncompressedBytes": 985086
+          },
+          {
+            "Name": "xl/theme/theme1.xml",
+            "Category": "Other",
+            "CompressedBytes": 1461,
+            "UncompressedBytes": 7096
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 539,
+            "UncompressedBytes": 4357
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 584,
+            "UncompressedBytes": 2167
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 316,
+            "UncompressedBytes": 1079
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 339,
+            "UncompressedBytes": 817
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 702
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 668,
+            "UncompressedBytes": 668
+          },
+          {
+            "Name": "package/services/metadata/core-properties/baf711e685154ee0b83e4fdd714ab2f5.psmdcp",
+            "Category": "Other",
+            "CompressedBytes": 474,
+            "UncompressedBytes": 474
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 248,
+            "UncompressedBytes": 437
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-insertobjects-direct",
+      "Library": "EPPlus",
+      "Notes": "Import the same typed objects and save.",
+      "AverageMilliseconds": 35.9712,
+      "MedianMilliseconds": 34.6854,
+      "StandardDeviationMilliseconds": 3.5690564635488764,
+      "StandardErrorMilliseconds": 2.0605957099829175,
+      "SamplesMilliseconds": [
+        40.005,
+        34.6854,
+        33.2232
+      ],
+      "AverageAllocatedBytes": 17046077.333333332,
+      "MedianAllocatedBytes": 17046256,
+      "SamplesAllocatedBytes": [
+        17046256,
+        17045720,
+        17046256
+      ],
+      "Package": {
+        "FileSizeBytes": 117683,
+        "PartCount": 13,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 2,
+        "WorksheetCompressedBytes": 112549,
+        "WorksheetUncompressedBytes": 787470,
+        "SharedStringsCompressedBytes": 558,
+        "SharedStringsUncompressedBytes": 3562,
+        "StylesCompressedBytes": 343,
+        "StylesUncompressedBytes": 739,
+        "TablesCompressedBytes": 330,
+        "TablesUncompressedBytes": 742,
+        "WorkbookCompressedBytes": 221,
+        "WorkbookUncompressedBytes": 354,
+        "RelationshipsCompressedBytes": 633,
+        "RelationshipsUncompressedBytes": 1588,
+        "DocPropsCompressedBytes": 733,
+        "DocPropsUncompressedBytes": 1228,
+        "OtherCompressedBytes": 542,
+        "OtherUncompressedBytes": 1643,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 112549,
+            "UncompressedBytes": 787470
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 558,
+            "UncompressedBytes": 3562
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 362,
+            "UncompressedBytes": 1381
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 330,
+            "UncompressedBytes": 742
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 343,
+            "UncompressedBytes": 739
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 244,
+            "UncompressedBytes": 733
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 357,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 214,
+            "UncompressedBytes": 564
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 221,
+            "UncompressedBytes": 354
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 220,
+            "UncompressedBytes": 351
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 175,
+            "UncompressedBytes": 291
+          },
+          {
+            "Name": "EPPlusLicense.txt",
+            "Category": "Other",
+            "CompressedBytes": 180,
+            "UncompressedBytes": 262
+          },
+          {
+            "Name": "docProps/custom.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 156,
+            "UncompressedBytes": 243
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-insertobjects-direct",
+      "Library": "MiniExcel",
+      "Notes": "Streaming typed object export and save.",
+      "AverageMilliseconds": 10.6032,
+      "MedianMilliseconds": 10.7998,
+      "StandardDeviationMilliseconds": 0.4560726696481608,
+      "StandardErrorMilliseconds": 0.2633136785913969,
+      "SamplesMilliseconds": [
+        10.928,
+        10.0818,
+        10.7998
+      ],
+      "AverageAllocatedBytes": 23779501.333333332,
+      "MedianAllocatedBytes": 23779504,
+      "SamplesAllocatedBytes": [
+        23779504,
+        23779504,
+        23779496
+      ],
+      "Package": {
+        "FileSizeBytes": 157355,
+        "PartCount": 10,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 0,
+        "UniqueSharedStringCount": 0,
+        "CellStyleCount": 6,
+        "WorksheetCompressedBytes": 153539,
+        "WorksheetUncompressedBytes": 1073217,
+        "SharedStringsCompressedBytes": 146,
+        "SharedStringsUncompressedBytes": 162,
+        "StylesCompressedBytes": 841,
+        "StylesUncompressedBytes": 4401,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 239,
+        "WorkbookUncompressedBytes": 346,
+        "RelationshipsCompressedBytes": 800,
+        "RelationshipsUncompressedBytes": 1410,
+        "DocPropsCompressedBytes": 0,
+        "DocPropsUncompressedBytes": 0,
+        "OtherCompressedBytes": 564,
+        "OtherUncompressedBytes": 1628,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 153539,
+            "UncompressedBytes": 1073217
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 841,
+            "UncompressedBytes": 4401
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 379,
+            "UncompressedBytes": 1317
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 265,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 239,
+            "UncompressedBytes": 346
+          },
+          {
+            "Name": "xl/drawings/drawing1.xml",
+            "Category": "Other",
+            "CompressedBytes": 185,
+            "UncompressedBytes": 311
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 198,
+            "UncompressedBytes": 309
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 193,
+            "UncompressedBytes": 299
+          },
+          {
+            "Name": "xl/drawings/_rels/drawing1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 144,
+            "UncompressedBytes": 168
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 146,
+            "UncompressedBytes": 162
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-fluent-rowsfrom-direct",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Write typed rows through the fluent RowsFrom API and save.",
+      "AverageMilliseconds": 5.396166666666667,
+      "MedianMilliseconds": 5.8624,
+      "StandardDeviationMilliseconds": 0.8531456753294441,
+      "StandardErrorMilliseconds": 0.49256388530941964,
+      "SamplesMilliseconds": [
+        5.9146,
+        4.4115,
+        5.8624
+      ],
+      "AverageAllocatedBytes": 3602936,
+      "MedianAllocatedBytes": 3602936,
+      "SamplesAllocatedBytes": [
+        3602936,
+        3602936,
+        3602936
+      ],
+      "Package": {
+        "FileSizeBytes": 141320,
+        "PartCount": 9,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 3,
+        "WorksheetCompressedBytes": 137897,
+        "WorksheetUncompressedBytes": 742091,
+        "SharedStringsCompressedBytes": 608,
+        "SharedStringsUncompressedBytes": 3542,
+        "StylesCompressedBytes": 486,
+        "StylesUncompressedBytes": 1134,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 179,
+        "WorkbookUncompressedBytes": 264,
+        "RelationshipsCompressedBytes": 436,
+        "RelationshipsUncompressedBytes": 1116,
+        "DocPropsCompressedBytes": 371,
+        "DocPropsUncompressedBytes": 594,
+        "OtherCompressedBytes": 315,
+        "OtherUncompressedBytes": 1036,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 137897,
+            "UncompressedBytes": 742091
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 608,
+            "UncompressedBytes": 3542
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 486,
+            "UncompressedBytes": 1134
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 315,
+            "UncompressedBytes": 1036
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 569
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 209,
+            "UncompressedBytes": 547
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 200,
+            "UncompressedBytes": 327
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 171,
+            "UncompressedBytes": 267
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 179,
+            "UncompressedBytes": 264
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-fluent-rowsfrom-direct",
+      "Library": "ClosedXML",
+      "Notes": "Insert the same typed rows and save.",
+      "AverageMilliseconds": 33.4562,
+      "MedianMilliseconds": 35.2759,
+      "StandardDeviationMilliseconds": 3.6791457935232725,
+      "StandardErrorMilliseconds": 2.1241558142785406,
+      "SamplesMilliseconds": [
+        35.2759,
+        29.2218,
+        35.8709
+      ],
+      "AverageAllocatedBytes": 11858976,
+      "MedianAllocatedBytes": 11858976,
+      "SamplesAllocatedBytes": [
+        11858976,
+        11858976,
+        11858976
+      ],
+      "Package": {
+        "FileSizeBytes": 122954,
+        "PartCount": 10,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 2,
+        "WorksheetCompressedBytes": 116828,
+        "WorksheetUncompressedBytes": 985086,
+        "SharedStringsCompressedBytes": 539,
+        "SharedStringsUncompressedBytes": 4357,
+        "StylesCompressedBytes": 584,
+        "StylesUncompressedBytes": 2167,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 248,
+        "WorkbookUncompressedBytes": 437,
+        "RelationshipsCompressedBytes": 895,
+        "RelationshipsUncompressedBytes": 1370,
+        "DocPropsCompressedBytes": 339,
+        "DocPropsUncompressedBytes": 817,
+        "OtherCompressedBytes": 2251,
+        "OtherUncompressedBytes": 8649,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 116828,
+            "UncompressedBytes": 985086
+          },
+          {
+            "Name": "xl/theme/theme1.xml",
+            "Category": "Other",
+            "CompressedBytes": 1461,
+            "UncompressedBytes": 7096
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 539,
+            "UncompressedBytes": 4357
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 584,
+            "UncompressedBytes": 2167
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 316,
+            "UncompressedBytes": 1079
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 339,
+            "UncompressedBytes": 817
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 702
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 668,
+            "UncompressedBytes": 668
+          },
+          {
+            "Name": "package/services/metadata/core-properties/bcf4aad48c61437aba427db38d6f78b9.psmdcp",
+            "Category": "Other",
+            "CompressedBytes": 474,
+            "UncompressedBytes": 474
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 248,
+            "UncompressedBytes": 437
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-fluent-rowsfrom-direct",
+      "Library": "EPPlus",
+      "Notes": "Import the same typed rows and save.",
+      "AverageMilliseconds": 35.414366666666666,
+      "MedianMilliseconds": 34.2592,
+      "StandardDeviationMilliseconds": 2.7222354018955315,
+      "StandardErrorMilliseconds": 1.5716833420819143,
+      "SamplesMilliseconds": [
+        38.5237,
+        34.2592,
+        33.4602
+      ],
+      "AverageAllocatedBytes": 17046077.333333332,
+      "MedianAllocatedBytes": 17046256,
+      "SamplesAllocatedBytes": [
+        17046256,
+        17045720,
+        17046256
+      ],
+      "Package": {
+        "FileSizeBytes": 117683,
+        "PartCount": 13,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 2,
+        "WorksheetCompressedBytes": 112549,
+        "WorksheetUncompressedBytes": 787470,
+        "SharedStringsCompressedBytes": 558,
+        "SharedStringsUncompressedBytes": 3562,
+        "StylesCompressedBytes": 343,
+        "StylesUncompressedBytes": 739,
+        "TablesCompressedBytes": 330,
+        "TablesUncompressedBytes": 742,
+        "WorkbookCompressedBytes": 221,
+        "WorkbookUncompressedBytes": 354,
+        "RelationshipsCompressedBytes": 633,
+        "RelationshipsUncompressedBytes": 1588,
+        "DocPropsCompressedBytes": 733,
+        "DocPropsUncompressedBytes": 1228,
+        "OtherCompressedBytes": 542,
+        "OtherUncompressedBytes": 1643,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 112549,
+            "UncompressedBytes": 787470
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 558,
+            "UncompressedBytes": 3562
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 362,
+            "UncompressedBytes": 1381
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 330,
+            "UncompressedBytes": 742
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 343,
+            "UncompressedBytes": 739
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 244,
+            "UncompressedBytes": 733
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 357,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 214,
+            "UncompressedBytes": 564
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 221,
+            "UncompressedBytes": 354
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 220,
+            "UncompressedBytes": 351
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 175,
+            "UncompressedBytes": 291
+          },
+          {
+            "Name": "EPPlusLicense.txt",
+            "Category": "Other",
+            "CompressedBytes": 180,
+            "UncompressedBytes": 262
+          },
+          {
+            "Name": "docProps/custom.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 156,
+            "UncompressedBytes": 243
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "write-fluent-rowsfrom-direct",
+      "Library": "MiniExcel",
+      "Notes": "Streaming typed row export and save.",
+      "AverageMilliseconds": 8.655266666666666,
+      "MedianMilliseconds": 8.937,
+      "StandardDeviationMilliseconds": 0.9913924870268758,
+      "StandardErrorMilliseconds": 0.5723807192575393,
+      "SamplesMilliseconds": [
+        8.937,
+        7.5535,
+        9.4753
+      ],
+      "AverageAllocatedBytes": 23779504,
+      "MedianAllocatedBytes": 23779504,
+      "SamplesAllocatedBytes": [
+        23779504,
+        23779504,
+        23779504
+      ],
+      "Package": {
+        "FileSizeBytes": 157354,
+        "PartCount": 10,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 0,
+        "UniqueSharedStringCount": 0,
+        "CellStyleCount": 6,
+        "WorksheetCompressedBytes": 153539,
+        "WorksheetUncompressedBytes": 1073217,
+        "SharedStringsCompressedBytes": 146,
+        "SharedStringsUncompressedBytes": 162,
+        "StylesCompressedBytes": 841,
+        "StylesUncompressedBytes": 4401,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 239,
+        "WorkbookUncompressedBytes": 346,
+        "RelationshipsCompressedBytes": 799,
+        "RelationshipsUncompressedBytes": 1410,
+        "DocPropsCompressedBytes": 0,
+        "DocPropsUncompressedBytes": 0,
+        "OtherCompressedBytes": 564,
+        "OtherUncompressedBytes": 1628,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 153539,
+            "UncompressedBytes": 1073217
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 841,
+            "UncompressedBytes": 4401
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 379,
+            "UncompressedBytes": 1317
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 264,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 239,
+            "UncompressedBytes": 346
+          },
+          {
+            "Name": "xl/drawings/drawing1.xml",
+            "Category": "Other",
+            "CompressedBytes": 185,
+            "UncompressedBytes": 311
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 198,
+            "UncompressedBytes": 309
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 193,
+            "UncompressedBytes": 299
+          },
+          {
+            "Name": "xl/drawings/_rels/drawing1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 144,
+            "UncompressedBytes": 168
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 146,
+            "UncompressedBytes": 162
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "append-plain-rows",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Append prepared plain cells with CellValues parallel mode.",
+      "AverageMilliseconds": 3.9715000000000003,
+      "MedianMilliseconds": 3.8907,
+      "StandardDeviationMilliseconds": 0.3282452893797566,
+      "StandardErrorMilliseconds": 0.1895125061836291,
+      "SamplesMilliseconds": [
+        4.3326,
+        3.6912,
+        3.8907
+      ],
+      "AverageAllocatedBytes": 3810928,
+      "MedianAllocatedBytes": 3810928,
+      "SamplesAllocatedBytes": [
+        3810928,
+        3810928,
+        3810928
+      ],
+      "Package": {
+        "FileSizeBytes": 66047,
+        "PartCount": 9,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 10004,
+        "SharedStringCount": 9,
+        "UniqueSharedStringCount": 9,
+        "CellStyleCount": 3,
+        "WorksheetCompressedBytes": 63004,
+        "WorksheetUncompressedBytes": 376828,
+        "SharedStringsCompressedBytes": 228,
+        "SharedStringsUncompressedBytes": 491,
+        "StylesCompressedBytes": 486,
+        "StylesUncompressedBytes": 1134,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 179,
+        "WorkbookUncompressedBytes": 264,
+        "RelationshipsCompressedBytes": 436,
+        "RelationshipsUncompressedBytes": 1116,
+        "DocPropsCompressedBytes": 371,
+        "DocPropsUncompressedBytes": 594,
+        "OtherCompressedBytes": 315,
+        "OtherUncompressedBytes": 1036,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 63004,
+            "UncompressedBytes": 376828
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 486,
+            "UncompressedBytes": 1134
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 315,
+            "UncompressedBytes": 1036
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 569
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 209,
+            "UncompressedBytes": 547
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 228,
+            "UncompressedBytes": 491
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 200,
+            "UncompressedBytes": 327
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 171,
+            "UncompressedBytes": 267
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 179,
+            "UncompressedBytes": 264
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "append-plain-rows",
+      "Library": "ClosedXML",
+      "Notes": "Append equivalent row/cell values.",
+      "AverageMilliseconds": 18.472033333333332,
+      "MedianMilliseconds": 19.1939,
+      "StandardDeviationMilliseconds": 1.5218327317196627,
+      "StandardErrorMilliseconds": 0.8786305373199308,
+      "SamplesMilliseconds": [
+        19.1939,
+        19.4986,
+        16.7236
+      ],
+      "AverageAllocatedBytes": 11466168,
+      "MedianAllocatedBytes": 11466168,
+      "SamplesAllocatedBytes": [
+        11466168,
+        11466168,
+        11466168
+      ],
+      "Package": {
+        "FileSizeBytes": 61265,
+        "PartCount": 10,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 10004,
+        "SharedStringCount": 9,
+        "UniqueSharedStringCount": 9,
+        "CellStyleCount": 1,
+        "WorksheetCompressedBytes": 55489,
+        "WorksheetUncompressedBytes": 527656,
+        "SharedStringsCompressedBytes": 207,
+        "SharedStringsUncompressedBytes": 603,
+        "StylesCompressedBytes": 566,
+        "StylesUncompressedBytes": 1609,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 248,
+        "WorkbookUncompressedBytes": 437,
+        "RelationshipsCompressedBytes": 895,
+        "RelationshipsUncompressedBytes": 1370,
+        "DocPropsCompressedBytes": 339,
+        "DocPropsUncompressedBytes": 817,
+        "OtherCompressedBytes": 2251,
+        "OtherUncompressedBytes": 8649,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 55489,
+            "UncompressedBytes": 527656
+          },
+          {
+            "Name": "xl/theme/theme1.xml",
+            "Category": "Other",
+            "CompressedBytes": 1461,
+            "UncompressedBytes": 7096
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 566,
+            "UncompressedBytes": 1609
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 316,
+            "UncompressedBytes": 1079
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 339,
+            "UncompressedBytes": 817
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 702
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 668,
+            "UncompressedBytes": 668
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 207,
+            "UncompressedBytes": 603
+          },
+          {
+            "Name": "package/services/metadata/core-properties/20b11eb84bde4c26b5b6c8fd3d2af167.psmdcp",
+            "Category": "Other",
+            "CompressedBytes": 474,
+            "UncompressedBytes": 474
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 248,
+            "UncompressedBytes": 437
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "append-plain-rows",
+      "Library": "EPPlus",
+      "Notes": "Append equivalent row/cell values.",
+      "AverageMilliseconds": 21.471466666666668,
+      "MedianMilliseconds": 22.3341,
+      "StandardDeviationMilliseconds": 1.6825904799841622,
+      "StandardErrorMilliseconds": 0.9714440665547578,
+      "SamplesMilliseconds": [
+        22.3341,
+        19.5325,
+        22.5478
+      ],
+      "AverageAllocatedBytes": 14710400,
+      "MedianAllocatedBytes": 14710552,
+      "SamplesAllocatedBytes": [
+        14710552,
+        14710016,
+        14710632
+      ],
+      "Package": {
+        "FileSizeBytes": 58217,
+        "PartCount": 11,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 10004,
+        "SharedStringCount": 9,
+        "UniqueSharedStringCount": 9,
+        "CellStyleCount": 1,
+        "WorksheetCompressedBytes": 54237,
+        "WorksheetUncompressedBytes": 407133,
+        "SharedStringsCompressedBytes": 236,
+        "SharedStringsUncompressedBytes": 510,
+        "StylesCompressedBytes": 327,
+        "StylesUncompressedBytes": 687,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 221,
+        "WorkbookUncompressedBytes": 354,
+        "RelationshipsCompressedBytes": 458,
+        "RelationshipsUncompressedBytes": 1297,
+        "DocPropsCompressedBytes": 733,
+        "DocPropsUncompressedBytes": 1228,
+        "OtherCompressedBytes": 533,
+        "OtherUncompressedBytes": 1514,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 54237,
+            "UncompressedBytes": 407133
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 353,
+            "UncompressedBytes": 1252
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 244,
+            "UncompressedBytes": 733
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 327,
+            "UncompressedBytes": 687
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 357,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 214,
+            "UncompressedBytes": 564
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 236,
+            "UncompressedBytes": 510
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 221,
+            "UncompressedBytes": 354
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 220,
+            "UncompressedBytes": 351
+          },
+          {
+            "Name": "EPPlusLicense.txt",
+            "Category": "Other",
+            "CompressedBytes": 180,
+            "UncompressedBytes": 262
+          },
+          {
+            "Name": "docProps/custom.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 156,
+            "UncompressedBytes": 243
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "append-plain-rows",
+      "Library": "MiniExcel",
+      "Notes": "Streaming export of equivalent four-column row/cell values.",
+      "AverageMilliseconds": 5.755766666666666,
+      "MedianMilliseconds": 5.5326,
+      "StandardDeviationMilliseconds": 0.4796140357968409,
+      "StandardErrorMilliseconds": 0.2769052926744289,
+      "SamplesMilliseconds": [
+        5.5326,
+        6.3063,
+        5.4284
+      ],
+      "AverageAllocatedBytes": 20183781.333333332,
+      "MedianAllocatedBytes": 20183784,
+      "SamplesAllocatedBytes": [
+        20183784,
+        20183776,
+        20183784
+      ],
+      "Package": {
+        "FileSizeBytes": 69765,
+        "PartCount": 10,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 10004,
+        "SharedStringCount": 0,
+        "UniqueSharedStringCount": 0,
+        "CellStyleCount": 6,
+        "WorksheetCompressedBytes": 65953,
+        "WorksheetUncompressedBytes": 551486,
+        "SharedStringsCompressedBytes": 146,
+        "SharedStringsUncompressedBytes": 162,
+        "StylesCompressedBytes": 841,
+        "StylesUncompressedBytes": 4401,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 236,
+        "WorkbookUncompressedBytes": 346,
+        "RelationshipsCompressedBytes": 799,
+        "RelationshipsUncompressedBytes": 1410,
+        "DocPropsCompressedBytes": 0,
+        "DocPropsUncompressedBytes": 0,
+        "OtherCompressedBytes": 564,
+        "OtherUncompressedBytes": 1628,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 65953,
+            "UncompressedBytes": 551486
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 841,
+            "UncompressedBytes": 4401
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 379,
+            "UncompressedBytes": 1317
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 264,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 236,
+            "UncompressedBytes": 346
+          },
+          {
+            "Name": "xl/drawings/drawing1.xml",
+            "Category": "Other",
+            "CompressedBytes": 185,
+            "UncompressedBytes": 311
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 198,
+            "UncompressedBytes": 309
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 193,
+            "UncompressedBytes": 299
+          },
+          {
+            "Name": "xl/drawings/_rels/drawing1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 144,
+            "UncompressedBytes": 168
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 146,
+            "UncompressedBytes": 162
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "autofit-existing",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Load existing workbook, autofit columns, save.",
+      "AverageMilliseconds": 35.074099999999994,
+      "MedianMilliseconds": 35.5285,
+      "StandardDeviationMilliseconds": 1.6466149306987359,
+      "StandardErrorMilliseconds": 0.9506735734905721,
+      "SamplesMilliseconds": [
+        36.4458,
+        35.5285,
+        33.248
+      ],
+      "AverageAllocatedBytes": 14202040,
+      "MedianAllocatedBytes": 14202040,
+      "SamplesAllocatedBytes": [
+        14202040,
+        14202040,
+        14202040
+      ],
+      "Package": {
+        "FileSizeBytes": 142309,
+        "PartCount": 11,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 3,
+        "WorksheetCompressedBytes": 138106,
+        "WorksheetUncompressedBytes": 742645,
+        "SharedStringsCompressedBytes": 608,
+        "SharedStringsUncompressedBytes": 3542,
+        "StylesCompressedBytes": 486,
+        "StylesUncompressedBytes": 1134,
+        "TablesCompressedBytes": 334,
+        "TablesUncompressedBytes": 685,
+        "WorkbookCompressedBytes": 179,
+        "WorkbookUncompressedBytes": 264,
+        "RelationshipsCompressedBytes": 607,
+        "RelationshipsUncompressedBytes": 1390,
+        "DocPropsCompressedBytes": 371,
+        "DocPropsUncompressedBytes": 594,
+        "OtherCompressedBytes": 328,
+        "OtherUncompressedBytes": 1164,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 138106,
+            "UncompressedBytes": 742645
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 608,
+            "UncompressedBytes": 3542
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 328,
+            "UncompressedBytes": 1164
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 486,
+            "UncompressedBytes": 1134
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 334,
+            "UncompressedBytes": 685
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 569
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 209,
+            "UncompressedBytes": 547
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 200,
+            "UncompressedBytes": 327
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 171,
+            "UncompressedBytes": 274
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 171,
+            "UncompressedBytes": 267
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 179,
+            "UncompressedBytes": 264
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "autofit-existing",
+      "Library": "ClosedXML",
+      "Notes": "Load existing workbook, autofit columns, save.",
+      "AverageMilliseconds": 159.9098,
+      "MedianMilliseconds": 160.3425,
+      "StandardDeviationMilliseconds": 7.392453765158097,
+      "StandardErrorMilliseconds": 4.26803517128589,
+      "SamplesMilliseconds": [
+        167.0764,
+        152.3105,
+        160.3425
+      ],
+      "AverageAllocatedBytes": 86591837.33333333,
+      "MedianAllocatedBytes": 86591552,
+      "SamplesAllocatedBytes": [
+        86592648,
+        86591552,
+        86591312
+      ],
+      "Package": {
+        "FileSizeBytes": 123937,
+        "PartCount": 12,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 2,
+        "WorksheetCompressedBytes": 117013,
+        "WorksheetUncompressedBytes": 985690,
+        "SharedStringsCompressedBytes": 539,
+        "SharedStringsUncompressedBytes": 4357,
+        "StylesCompressedBytes": 618,
+        "StylesUncompressedBytes": 2262,
+        "TablesCompressedBytes": 320,
+        "TablesUncompressedBytes": 714,
+        "WorkbookCompressedBytes": 248,
+        "WorkbookUncompressedBytes": 437,
+        "RelationshipsCompressedBytes": 1068,
+        "RelationshipsUncompressedBytes": 1649,
+        "DocPropsCompressedBytes": 339,
+        "DocPropsUncompressedBytes": 817,
+        "OtherCompressedBytes": 2260,
+        "OtherUncompressedBytes": 8778,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 117013,
+            "UncompressedBytes": 985690
+          },
+          {
+            "Name": "xl/theme/theme1.xml",
+            "Category": "Other",
+            "CompressedBytes": 1461,
+            "UncompressedBytes": 7096
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 539,
+            "UncompressedBytes": 4357
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 618,
+            "UncompressedBytes": 2262
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 325,
+            "UncompressedBytes": 1208
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 339,
+            "UncompressedBytes": 817
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 320,
+            "UncompressedBytes": 714
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 702
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 668,
+            "UncompressedBytes": 668
+          },
+          {
+            "Name": "package/services/metadata/core-properties/b9e3aa7837664ebb9bc50118e1805c63.psmdcp",
+            "Category": "Other",
+            "CompressedBytes": 474,
+            "UncompressedBytes": 474
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 248,
+            "UncompressedBytes": 437
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 173,
+            "UncompressedBytes": 279
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "autofit-existing",
+      "Library": "EPPlus",
+      "Notes": "Load existing workbook, autofit columns, save.",
+      "AverageMilliseconds": 80.96883333333334,
+      "MedianMilliseconds": 81.4819,
+      "StandardDeviationMilliseconds": 2.290019716800124,
+      "StandardErrorMilliseconds": 1.3221434999441024,
+      "SamplesMilliseconds": [
+        78.4658,
+        81.4819,
+        82.9588
+      ],
+      "AverageAllocatedBytes": 51928816,
+      "MedianAllocatedBytes": 51928816,
+      "SamplesAllocatedBytes": [
+        51928816,
+        51928816,
+        51928816
+      ],
+      "Package": {
+        "FileSizeBytes": 117810,
+        "PartCount": 13,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 20008,
+        "SharedStringCount": 53,
+        "UniqueSharedStringCount": 53,
+        "CellStyleCount": 1,
+        "WorksheetCompressedBytes": 112682,
+        "WorksheetUncompressedBytes": 788002,
+        "SharedStringsCompressedBytes": 558,
+        "SharedStringsUncompressedBytes": 3562,
+        "StylesCompressedBytes": 327,
+        "StylesUncompressedBytes": 687,
+        "TablesCompressedBytes": 340,
+        "TablesUncompressedBytes": 764,
+        "WorkbookCompressedBytes": 221,
+        "WorkbookUncompressedBytes": 354,
+        "RelationshipsCompressedBytes": 633,
+        "RelationshipsUncompressedBytes": 1588,
+        "DocPropsCompressedBytes": 733,
+        "DocPropsUncompressedBytes": 1228,
+        "OtherCompressedBytes": 542,
+        "OtherUncompressedBytes": 1643,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 112682,
+            "UncompressedBytes": 788002
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 558,
+            "UncompressedBytes": 3562
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 362,
+            "UncompressedBytes": 1381
+          },
+          {
+            "Name": "xl/tables/table1.xml",
+            "Category": "Tables",
+            "CompressedBytes": 340,
+            "UncompressedBytes": 764
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 244,
+            "UncompressedBytes": 733
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 327,
+            "UncompressedBytes": 687
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 357,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 214,
+            "UncompressedBytes": 564
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 221,
+            "UncompressedBytes": 354
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 220,
+            "UncompressedBytes": 351
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 175,
+            "UncompressedBytes": 291
+          },
+          {
+            "Name": "EPPlusLicense.txt",
+            "Category": "Other",
+            "CompressedBytes": 180,
+            "UncompressedBytes": 262
+          },
+          {
+            "Name": "docProps/custom.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 156,
+            "UncompressedBytes": 243
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "large-shared-strings",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Write repeated and distinct text-heavy cells.",
+      "AverageMilliseconds": 2.8677333333333332,
+      "MedianMilliseconds": 2.7383,
+      "StandardDeviationMilliseconds": 0.44712846401602896,
+      "StandardErrorMilliseconds": 0.25814973906199823,
+      "SamplesMilliseconds": [
+        2.4996,
+        2.7383,
+        3.3653
+      ],
+      "AverageAllocatedBytes": 4329936,
+      "MedianAllocatedBytes": 4329936,
+      "SamplesAllocatedBytes": [
+        4329936,
+        4329936,
+        4329936
+      ],
+      "Package": {
+        "FileSizeBytes": 53871,
+        "PartCount": 9,
+        "WorksheetRowCount": 2500,
+        "WorksheetCellCount": 7500,
+        "SharedStringCount": 1269,
+        "UniqueSharedStringCount": 1269,
+        "CellStyleCount": 3,
+        "WorksheetCompressedBytes": 44610,
+        "WorksheetUncompressedBytes": 288673,
+        "SharedStringsCompressedBytes": 6443,
+        "SharedStringsUncompressedBytes": 88928,
+        "StylesCompressedBytes": 486,
+        "StylesUncompressedBytes": 1134,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 182,
+        "WorkbookUncompressedBytes": 267,
+        "RelationshipsCompressedBytes": 436,
+        "RelationshipsUncompressedBytes": 1116,
+        "DocPropsCompressedBytes": 371,
+        "DocPropsUncompressedBytes": 594,
+        "OtherCompressedBytes": 315,
+        "OtherUncompressedBytes": 1036,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 44610,
+            "UncompressedBytes": 288673
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 6443,
+            "UncompressedBytes": 88928
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 486,
+            "UncompressedBytes": 1134
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 315,
+            "UncompressedBytes": 1036
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 569
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 209,
+            "UncompressedBytes": 547
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 200,
+            "UncompressedBytes": 327
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 171,
+            "UncompressedBytes": 267
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 182,
+            "UncompressedBytes": 267
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "large-shared-strings",
+      "Library": "ClosedXML",
+      "Notes": "Write repeated and distinct text-heavy cells.",
+      "AverageMilliseconds": 15.8795,
+      "MedianMilliseconds": 16.4007,
+      "StandardDeviationMilliseconds": 1.130150560766131,
+      "StandardErrorMilliseconds": 0.6524927304831323,
+      "SamplesMilliseconds": [
+        16.4007,
+        14.5828,
+        16.655
+      ],
+      "AverageAllocatedBytes": 11570384,
+      "MedianAllocatedBytes": 11570384,
+      "SamplesAllocatedBytes": [
+        11570384,
+        11570384,
+        11570384
+      ],
+      "Package": {
+        "FileSizeBytes": 51516,
+        "PartCount": 10,
+        "WorksheetRowCount": 2500,
+        "WorksheetCellCount": 7500,
+        "SharedStringCount": 1269,
+        "UniqueSharedStringCount": 1269,
+        "CellStyleCount": 1,
+        "WorksheetCompressedBytes": 39083,
+        "WorksheetUncompressedBytes": 434429,
+        "SharedStringsCompressedBytes": 6857,
+        "SharedStringsUncompressedBytes": 109206,
+        "StylesCompressedBytes": 566,
+        "StylesUncompressedBytes": 1609,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 250,
+        "WorkbookUncompressedBytes": 440,
+        "RelationshipsCompressedBytes": 895,
+        "RelationshipsUncompressedBytes": 1370,
+        "DocPropsCompressedBytes": 344,
+        "DocPropsUncompressedBytes": 826,
+        "OtherCompressedBytes": 2251,
+        "OtherUncompressedBytes": 8649,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 39083,
+            "UncompressedBytes": 434429
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 6857,
+            "UncompressedBytes": 109206
+          },
+          {
+            "Name": "xl/theme/theme1.xml",
+            "Category": "Other",
+            "CompressedBytes": 1461,
+            "UncompressedBytes": 7096
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 566,
+            "UncompressedBytes": 1609
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 316,
+            "UncompressedBytes": 1079
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 344,
+            "UncompressedBytes": 826
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 227,
+            "UncompressedBytes": 702
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 668,
+            "UncompressedBytes": 668
+          },
+          {
+            "Name": "package/services/metadata/core-properties/016fe5b6161e4e49a930af3bad591bf7.psmdcp",
+            "Category": "Other",
+            "CompressedBytes": 474,
+            "UncompressedBytes": 474
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 250,
+            "UncompressedBytes": 440
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "large-shared-strings",
+      "Library": "EPPlus",
+      "Notes": "Write repeated and distinct text-heavy cells.",
+      "AverageMilliseconds": 19.966133333333335,
+      "MedianMilliseconds": 20.3996,
+      "StandardDeviationMilliseconds": 1.4434675103144285,
+      "StandardErrorMilliseconds": 0.8333863556465143,
+      "SamplesMilliseconds": [
+        20.3996,
+        18.3556,
+        21.1432
+      ],
+      "AverageAllocatedBytes": 13112170.666666666,
+      "MedianAllocatedBytes": 13112296,
+      "SamplesAllocatedBytes": [
+        13112376,
+        13111840,
+        13112296
+      ],
+      "Package": {
+        "FileSizeBytes": 49240,
+        "PartCount": 11,
+        "WorksheetRowCount": 2500,
+        "WorksheetCellCount": 7500,
+        "SharedStringCount": 1269,
+        "UniqueSharedStringCount": 1269,
+        "CellStyleCount": 1,
+        "WorksheetCompressedBytes": 39057,
+        "WorksheetUncompressedBytes": 333954,
+        "SharedStringsCompressedBytes": 6436,
+        "SharedStringsUncompressedBytes": 88949,
+        "StylesCompressedBytes": 327,
+        "StylesUncompressedBytes": 687,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 224,
+        "WorkbookUncompressedBytes": 357,
+        "RelationshipsCompressedBytes": 458,
+        "RelationshipsUncompressedBytes": 1297,
+        "DocPropsCompressedBytes": 733,
+        "DocPropsUncompressedBytes": 1228,
+        "OtherCompressedBytes": 533,
+        "OtherUncompressedBytes": 1514,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 39057,
+            "UncompressedBytes": 333954
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 6436,
+            "UncompressedBytes": 88949
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 353,
+            "UncompressedBytes": 1252
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 244,
+            "UncompressedBytes": 733
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 327,
+            "UncompressedBytes": 687
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 357,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 214,
+            "UncompressedBytes": 564
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 224,
+            "UncompressedBytes": 357
+          },
+          {
+            "Name": "docProps/app.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 220,
+            "UncompressedBytes": 351
+          },
+          {
+            "Name": "EPPlusLicense.txt",
+            "Category": "Other",
+            "CompressedBytes": 180,
+            "UncompressedBytes": 262
+          },
+          {
+            "Name": "docProps/custom.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 156,
+            "UncompressedBytes": 243
+          }
+        ]
+      }
+    },
+    {
+      "Scenario": "large-shared-strings",
+      "Library": "MiniExcel",
+      "Notes": "Streaming export of repeated and distinct text-heavy cells.",
+      "AverageMilliseconds": 5.623466666666666,
+      "MedianMilliseconds": 5.7189,
+      "StandardDeviationMilliseconds": 0.1716561776730839,
+      "StandardErrorMilliseconds": 0.09910574038761721,
+      "SamplesMilliseconds": [
+        5.7262,
+        5.7189,
+        5.4253
+      ],
+      "AverageAllocatedBytes": 21644834.666666668,
+      "MedianAllocatedBytes": 21644832,
+      "SamplesAllocatedBytes": [
+        21644840,
+        21644832,
+        21644832
+      ],
+      "Package": {
+        "FileSizeBytes": 62201,
+        "PartCount": 10,
+        "WorksheetRowCount": 2501,
+        "WorksheetCellCount": 7503,
+        "SharedStringCount": 0,
+        "UniqueSharedStringCount": 0,
+        "CellStyleCount": 6,
+        "WorksheetCompressedBytes": 58383,
+        "WorksheetUncompressedBytes": 640587,
+        "SharedStringsCompressedBytes": 146,
+        "SharedStringsUncompressedBytes": 162,
+        "StylesCompressedBytes": 841,
+        "StylesUncompressedBytes": 4401,
+        "TablesCompressedBytes": 0,
+        "TablesUncompressedBytes": 0,
+        "WorkbookCompressedBytes": 241,
+        "WorkbookUncompressedBytes": 349,
+        "RelationshipsCompressedBytes": 800,
+        "RelationshipsUncompressedBytes": 1410,
+        "DocPropsCompressedBytes": 0,
+        "DocPropsUncompressedBytes": 0,
+        "OtherCompressedBytes": 564,
+        "OtherUncompressedBytes": 1628,
+        "Parts": [
+          {
+            "Name": "xl/worksheets/sheet1.xml",
+            "Category": "Worksheets",
+            "CompressedBytes": 58383,
+            "UncompressedBytes": 640587
+          },
+          {
+            "Name": "xl/styles.xml",
+            "Category": "Styles",
+            "CompressedBytes": 841,
+            "UncompressedBytes": 4401
+          },
+          {
+            "Name": "[Content_Types].xml",
+            "Category": "Other",
+            "CompressedBytes": 379,
+            "UncompressedBytes": 1317
+          },
+          {
+            "Name": "xl/_rels/workbook.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 265,
+            "UncompressedBytes": 634
+          },
+          {
+            "Name": "xl/workbook.xml",
+            "Category": "Workbook",
+            "CompressedBytes": 241,
+            "UncompressedBytes": 349
+          },
+          {
+            "Name": "xl/drawings/drawing1.xml",
+            "Category": "Other",
+            "CompressedBytes": 185,
+            "UncompressedBytes": 311
+          },
+          {
+            "Name": "xl/worksheets/_rels/sheet1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 198,
+            "UncompressedBytes": 309
+          },
+          {
+            "Name": "_rels/.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 193,
+            "UncompressedBytes": 299
+          },
+          {
+            "Name": "xl/drawings/_rels/drawing1.xml.rels",
+            "Category": "Relationships",
+            "CompressedBytes": 144,
+            "UncompressedBytes": 168
+          },
+          {
+            "Name": "xl/sharedStrings.xml",
+            "Category": "SharedStrings",
+            "CompressedBytes": 146,
+            "UncompressedBytes": 162
+          }
+        ]
+      }
+    }
+  ]
+}

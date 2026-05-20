@@ -33,11 +33,16 @@ namespace OfficeIMO.Excel {
                 throw new FileNotFoundException($"File '{path}' doesn't exist.", path);
             }
 
-            return OpenFromBytes(
-                File.ReadAllBytes(path),
-                options,
-                normalizeContentTypes: false,
-                contextMessage: $"Failed to open '{path}' after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.");
+            try {
+                var doc = SpreadsheetDocument.Open(path, false);
+                return new ExcelDocumentReader(doc, options ?? new ExcelReadOptions(), owns: true);
+            } catch (Exception ex) when (IsRecoverableOpenException(ex)) {
+                return OpenFromBytes(
+                    File.ReadAllBytes(path),
+                    options,
+                    normalizeContentTypes: true,
+                    contextMessage: $"Failed to open '{path}' after normalizing package content types. The package may declare an invalid content type for '/docProps/app.xml'.");
+            }
         }
 
         /// <summary>
@@ -136,8 +141,34 @@ namespace OfficeIMO.Excel {
         }
 
         private static byte[] ReadAllBytes(Stream stream) {
+            if (stream is MemoryStream memoryStream) {
+                return memoryStream.ToArray();
+            }
+
             if (stream.CanSeek) {
                 stream.Seek(0, SeekOrigin.Begin);
+                long length = stream.Length;
+                if (length > int.MaxValue) {
+                    throw new IOException("Workbook stream is too large to read into memory.");
+                }
+
+                var bytes = new byte[(int)length];
+                int offset = 0;
+                while (offset < bytes.Length) {
+                    int read = stream.Read(bytes, offset, bytes.Length - offset);
+                    if (read == 0) {
+                        break;
+                    }
+
+                    offset += read;
+                }
+
+                if (offset == bytes.Length) {
+                    return bytes;
+                }
+
+                Array.Resize(ref bytes, offset);
+                return bytes;
             }
 
             using var buffer = new MemoryStream();

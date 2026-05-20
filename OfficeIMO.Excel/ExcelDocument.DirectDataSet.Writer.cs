@@ -13,8 +13,9 @@ namespace OfficeIMO.Excel {
             private static readonly DateTime ExcelMinimumSupportedDateTimeOffset = DateTime.FromOADate(2);
 
             internal static void Write(Stream stream, DirectDataSetWorkbookModel model, CancellationToken ct) {
+                var sharedStrings = DirectSharedStringTable.Create(model, ct);
                 using var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true);
-                WriteContentTypes(archive, model.Sheets);
+                WriteContentTypes(archive, model.Sheets, sharedStrings != null);
                 WriteTextEntry(archive, "_rels/.rels",
                     "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
                     "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
@@ -25,11 +26,15 @@ namespace OfficeIMO.Excel {
                 WriteCoreProperties(archive);
                 WriteAppProperties(archive);
                 WriteWorkbook(archive, model.Sheets);
-                WriteWorkbookRelationships(archive, model.Sheets.Count);
+                WriteWorkbookRelationships(archive, model.Sheets.Count, sharedStrings != null);
                 WriteStyles(archive);
+                if (sharedStrings != null) {
+                    WriteSharedStrings(archive, sharedStrings);
+                }
+
                 foreach (var sheet in model.Sheets) {
                     ct.ThrowIfCancellationRequested();
-                    WriteWorksheet(archive, sheet, model.DateTimeOffsetWriteStrategy, ct);
+                    WriteWorksheet(archive, sheet, model.DateTimeOffsetWriteStrategy, sharedStrings, ct);
                     if (sheet.HasTable) {
                         WriteTextEntry(archive, $"xl/worksheets/_rels/sheet{sheet.Index}.xml.rels",
                             "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
@@ -41,7 +46,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            private static void WriteContentTypes(ZipArchive archive, IReadOnlyList<DirectDataSetSheetModel> sheets) {
+            private static void WriteContentTypes(ZipArchive archive, IReadOnlyList<DirectDataSetSheetModel> sheets, bool includeSharedStrings) {
                 var builder = new StringBuilder(1024 + sheets.Count * 260);
                 builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
                 builder.Append("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">");
@@ -51,6 +56,10 @@ namespace OfficeIMO.Excel {
                 builder.Append("<Override PartName=\"/docProps/app.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.extended-properties+xml\"/>");
                 builder.Append("<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>");
                 builder.Append("<Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>");
+                if (includeSharedStrings) {
+                    builder.Append("<Override PartName=\"/xl/sharedStrings.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml\"/>");
+                }
+
                 foreach (var sheet in sheets) {
                     builder.Append("<Override PartName=\"/xl/worksheets/sheet");
                     builder.Append(sheet.Index.ToString(CultureInfo.InvariantCulture));
@@ -84,7 +93,7 @@ namespace OfficeIMO.Excel {
                 WriteTextEntry(archive, "xl/workbook.xml", builder.ToString());
             }
 
-            private static void WriteWorkbookRelationships(ZipArchive archive, int sheetCount) {
+            private static void WriteWorkbookRelationships(ZipArchive archive, int sheetCount, bool includeSharedStrings) {
                 var builder = new StringBuilder(384 + sheetCount * 160);
                 builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
                 builder.Append("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">");
@@ -99,6 +108,12 @@ namespace OfficeIMO.Excel {
                 builder.Append("<Relationship Id=\"rId");
                 builder.Append((sheetCount + 1).ToString(CultureInfo.InvariantCulture));
                 builder.Append("\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>");
+                if (includeSharedStrings) {
+                    builder.Append("<Relationship Id=\"rId");
+                    builder.Append((sheetCount + 2).ToString(CultureInfo.InvariantCulture));
+                    builder.Append("\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings\" Target=\"sharedStrings.xml\"/>");
+                }
+
                 builder.Append("</Relationships>");
                 WriteTextEntry(archive, "xl/_rels/workbook.xml.rels", builder.ToString());
             }
@@ -137,7 +152,32 @@ namespace OfficeIMO.Excel {
                     "</styleSheet>");
             }
 
-            private static void WriteWorksheet(ZipArchive archive, DirectDataSetSheetModel sheet, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, CancellationToken ct) {
+            private static void WriteSharedStrings(ZipArchive archive, DirectSharedStringTable sharedStrings) {
+                var entry = archive.CreateEntry("xl/sharedStrings.xml", CompressionLevel.Fastest);
+                using var stream = entry.Open();
+                using var writer = new StreamWriter(stream, Utf8NoBom, XmlWriterBufferSize);
+
+                writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+                writer.Write("<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"");
+                WriteInvariant(writer, sharedStrings.TotalStringReferences);
+                writer.Write("\" uniqueCount=\"");
+                WriteInvariant(writer, sharedStrings.Values.Count);
+                writer.Write("\">");
+                foreach (string value in sharedStrings.Values) {
+                    writer.Write("<si><t");
+                    if (NeedsPreserveSpace(value)) {
+                        writer.Write(" xml:space=\"preserve\"");
+                    }
+
+                    writer.Write(">");
+                    WriteSanitizedEscaped(writer, value);
+                    writer.Write("</t></si>");
+                }
+
+                writer.Write("</sst>");
+            }
+
+            private static void WriteWorksheet(ZipArchive archive, DirectDataSetSheetModel sheet, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, DirectSharedStringTable? sharedStrings, CancellationToken ct) {
                 var entry = archive.CreateEntry($"xl/worksheets/sheet{sheet.Index}.xml", CompressionLevel.Fastest);
                 using var stream = entry.Open();
                 using var writer = new StreamWriter(stream, Utf8NoBom, XmlWriterBufferSize);
@@ -159,7 +199,7 @@ namespace OfficeIMO.Excel {
                     const string headerRowReference = "1";
                     writer.Write("<row r=\"1\">");
                     for (int c = 0; c < columnCount; c++) {
-                        WriteCell(writer, headerRowReference, cellReferencePrefixes[c], sheet.Table.GetColumnName(c), null, dateTimeOffsetWriteStrategy);
+                        WriteCell(writer, headerRowReference, cellReferencePrefixes[c], sheet.Table.GetColumnName(c), null, dateTimeOffsetWriteStrategy, sharedStrings);
                     }
 
                     writer.Write("</row>");
@@ -181,7 +221,7 @@ namespace OfficeIMO.Excel {
                                 rowStarted = true;
                             }
 
-                            WriteCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], dateTimeOffsetWriteStrategy);
+                            WriteCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], dateTimeOffsetWriteStrategy, sharedStrings);
                         }
 
                         if (rowStarted) {
@@ -205,7 +245,7 @@ namespace OfficeIMO.Excel {
                                 rowStarted = true;
                             }
 
-                            WriteCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], valueStyleColumns[c], dateTimeOffsetWriteStrategy);
+                            WriteCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], valueStyleColumns[c], dateTimeOffsetWriteStrategy, sharedStrings);
                         }
 
                         if (rowStarted) {
@@ -348,6 +388,87 @@ namespace OfficeIMO.Excel {
                 writer.Write("\" showFirstColumn=\"0\" showLastColumn=\"0\" showRowStripes=\"1\" showColumnStripes=\"0\"/></table>");
             }
 
+            private sealed class DirectSharedStringTable {
+                private const int MinimumStringReferences = 512;
+                private const int MinimumDuplicateReferences = 128;
+                private const int MinimumDuplicateCharacters = 4096;
+                private readonly Dictionary<string, int> _indexes;
+
+                private DirectSharedStringTable(Dictionary<string, int> indexes, string[] values, int totalStringReferences) {
+                    _indexes = indexes;
+                    Values = values;
+                    TotalStringReferences = totalStringReferences;
+                }
+
+                internal IReadOnlyList<string> Values { get; }
+
+                internal int TotalStringReferences { get; }
+
+                internal bool TryGetIndex(string value, out int index) => _indexes.TryGetValue(value, out index);
+
+                internal static DirectSharedStringTable? Create(DirectDataSetWorkbookModel model, CancellationToken ct) {
+                    var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+                    int totalStringReferences = 0;
+                    foreach (var sheet in model.Sheets) {
+                        if (sheet.IncludeHeaders) {
+                            for (int columnIndex = 0; columnIndex < sheet.Table.ColumnCount; columnIndex++) {
+                                NoteString(sheet.Table.GetColumnName(columnIndex));
+                            }
+                        }
+
+                        for (int rowIndex = 0; rowIndex < sheet.Table.RowCount; rowIndex++) {
+                            ct.ThrowIfCancellationRequested();
+                            for (int columnIndex = 0; columnIndex < sheet.Table.ColumnCount; columnIndex++) {
+                                if (sheet.Table.GetValue(rowIndex, columnIndex) is string text) {
+                                    NoteString(text);
+                                }
+                            }
+                        }
+                    }
+
+                    if (totalStringReferences < MinimumStringReferences || counts.Count == 0) {
+                        return null;
+                    }
+
+                    int duplicateReferences = 0;
+                    long duplicateCharacters = 0L;
+                    foreach (var entry in counts) {
+                        if (entry.Value <= 1) {
+                            continue;
+                        }
+
+                        int duplicates = entry.Value - 1;
+                        duplicateReferences += duplicates;
+                        duplicateCharacters += (long)duplicates * entry.Key.Length;
+                    }
+
+                    if (duplicateReferences < MinimumDuplicateReferences && duplicateCharacters < MinimumDuplicateCharacters) {
+                        return null;
+                    }
+
+                    var indexes = new Dictionary<string, int>(counts.Count, StringComparer.Ordinal);
+                    var values = new string[counts.Count];
+                    int nextIndex = 0;
+                    foreach (var entry in counts) {
+                        indexes.Add(entry.Key, nextIndex);
+                        values[nextIndex] = entry.Key;
+                        nextIndex++;
+                    }
+
+                    return new DirectSharedStringTable(indexes, values, totalStringReferences);
+
+                    void NoteString(string text) {
+                        CoerceValueHelper.ValidateSharedStringLength(text, "value");
+                        totalStringReferences++;
+                        if (counts.TryGetValue(text, out int count)) {
+                            counts[text] = count + 1;
+                        } else {
+                            counts.Add(text, 1);
+                        }
+                    }
+                }
+            }
+
             private static uint? GetStyleIndex(Type dataType) {
                 if (dataType == typeof(DateTime) || dataType == typeof(DateTimeOffset)) return 1U;
                 if (dataType == typeof(TimeSpan)) return 2U;
@@ -375,7 +496,7 @@ namespace OfficeIMO.Excel {
                 return CreateStyleAttribute(value.GetType());
             }
 
-            private static void WriteCell(TextWriter writer, string rowReference, string cellReferencePrefix, object? value, string? styleAttribute, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy) {
+            private static void WriteCell(TextWriter writer, string rowReference, string cellReferencePrefix, object? value, string? styleAttribute, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, DirectSharedStringTable? sharedStrings) {
                 writer.Write(cellReferencePrefix);
                 writer.Write(rowReference);
                 writer.Write('"');
@@ -383,10 +504,10 @@ namespace OfficeIMO.Excel {
                     writer.Write(styleAttribute);
                 }
 
-                WriteCellValue(writer, value, dateTimeOffsetWriteStrategy);
+                WriteCellValue(writer, value, dateTimeOffsetWriteStrategy, sharedStrings);
             }
 
-            private static void WriteCell(TextWriter writer, string rowReference, string cellReferencePrefix, object? value, string? styleAttribute, bool useValueStyle, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy) {
+            private static void WriteCell(TextWriter writer, string rowReference, string cellReferencePrefix, object? value, string? styleAttribute, bool useValueStyle, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, DirectSharedStringTable? sharedStrings) {
                 writer.Write(cellReferencePrefix);
                 writer.Write(rowReference);
                 writer.Write('"');
@@ -395,17 +516,22 @@ namespace OfficeIMO.Excel {
                     writer.Write(effectiveStyleAttribute);
                 }
 
-                WriteCellValue(writer, value, dateTimeOffsetWriteStrategy);
+                WriteCellValue(writer, value, dateTimeOffsetWriteStrategy, sharedStrings);
             }
 
-            private static void WriteCellValue(TextWriter writer, object? value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy) {
+            private static void WriteCellValue(TextWriter writer, object? value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, DirectSharedStringTable? sharedStrings) {
                 switch (value) {
                     case null:
                     case DBNull:
                         writer.Write(" t=\"str\"><v></v></c>");
                         return;
                     case string stringValue:
-                        WriteStringCell(writer, stringValue);
+                        if (sharedStrings != null && sharedStrings.TryGetIndex(stringValue, out int sharedStringIndex)) {
+                            WriteSharedStringCell(writer, sharedStringIndex);
+                        } else {
+                            WriteStringCell(writer, stringValue);
+                        }
+
                         return;
                     case bool boolValue:
                         writer.Write(" t=\"b\"><v>");
@@ -495,6 +621,12 @@ namespace OfficeIMO.Excel {
                 CoerceValueHelper.ValidateSharedStringLength(text, "value");
                 writer.Write(" t=\"str\"><v>");
                 WriteSanitizedEscaped(writer, text);
+                writer.Write("</v></c>");
+            }
+
+            private static void WriteSharedStringCell(TextWriter writer, int sharedStringIndex) {
+                writer.Write(" t=\"s\"><v>");
+                WriteInvariant(writer, sharedStringIndex);
                 writer.Write("</v></c>");
             }
 
@@ -705,6 +837,10 @@ namespace OfficeIMO.Excel {
 
             private static bool IsXmlEscape(char value)
                 => value is '&' or '<' or '>' or '"' or '\'';
+
+            private static bool NeedsPreserveSpace(string value) {
+                return value.Length > 0 && (char.IsWhiteSpace(value[0]) || char.IsWhiteSpace(value[value.Length - 1]));
+            }
 
             private static void AppendEscapedCharacter(StringBuilder builder, char value) {
                 switch (value) {

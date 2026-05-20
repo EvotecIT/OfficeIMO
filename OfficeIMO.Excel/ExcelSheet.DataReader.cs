@@ -37,6 +37,24 @@ namespace OfficeIMO.Excel {
 
             string[] headers = BuildReaderHeaders(reader);
             Type[] fieldTypes = BuildReaderFieldTypes(reader);
+            if (CanRegisterDirectTabularSaveCandidate(startRow, startColumn, headers.Length)
+                && TryInsertDataReaderByBufferedDataTable(
+                    reader,
+                    headers,
+                    fieldTypes,
+                    startRow,
+                    startColumn,
+                    includeHeaders,
+                    tableName,
+                    style,
+                    includeAutoFilter,
+                    createTable,
+                    autoFit,
+                    ct,
+                    out string directRange)) {
+                return directRange;
+            }
+
             int row = startRow;
             if (includeHeaders) {
                 for (int i = 0; i < headers.Length; i++) {
@@ -83,6 +101,142 @@ namespace OfficeIMO.Excel {
 
             return range;
         }
+
+        private bool TryInsertDataReaderByBufferedDataTable(
+            IDataReader reader,
+            IReadOnlyList<string> headers,
+            IReadOnlyList<Type> fieldTypes,
+            int startRow,
+            int startColumn,
+            bool includeHeaders,
+            string? tableName,
+            TableStyle style,
+            bool includeAutoFilter,
+            bool createTable,
+            bool autoFit,
+            CancellationToken ct,
+            out string range) {
+            range = string.Empty;
+            DataTable table;
+            try {
+                table = CreateDataTableFromReader(reader, headers, fieldTypes, ct);
+            } catch {
+                return false;
+            }
+
+            int occupiedRows = table.Rows.Count + (includeHeaders ? 1 : 0);
+            if (occupiedRows == 0 || table.Columns.Count == 0) {
+                return true;
+            }
+
+            range = A1.CellReference(startRow, startColumn) + ":" +
+                A1.CellReference(startRow + occupiedRows - 1, startColumn + table.Columns.Count - 1);
+
+            DataTable directSaveTable = includeHeaders ? table : CreateHeaderlessReaderTable(table);
+            string? actualTableName = createTable
+                ? ResolveDeferredReaderTableName(tableName, _excelDocument)
+                : null;
+            _excelDocument.RegisterDeferredDirectTabularSaveCandidate(
+                this,
+                directSaveTable,
+                includeHeaders,
+                range,
+                actualTableName,
+                createTable,
+                style,
+                includeAutoFilter,
+                autoFit);
+
+            return true;
+        }
+
+        private static string ResolveDeferredReaderTableName(string? requestedName, ExcelDocument document) {
+            string name = string.IsNullOrWhiteSpace(requestedName) ? "ReaderTable" : requestedName!;
+            var chars = name.Trim().Select(ch => char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_').ToArray();
+            string sanitized = new string(chars);
+            if (string.IsNullOrWhiteSpace(sanitized)) {
+                sanitized = "ReaderTable";
+            }
+
+            if (char.IsDigit(sanitized[0])) {
+                sanitized = "_" + sanitized;
+            }
+
+            var usedNames = document.WorkbookPartRoot.WorksheetParts
+                .SelectMany(part => part.TableDefinitionParts)
+                .Select(part => part.Table?.Name?.Value ?? part.Table?.DisplayName?.Value)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Select(name => name!);
+            var usedTableNames = new HashSet<string>(usedNames, StringComparer.OrdinalIgnoreCase);
+
+            string candidate = sanitized;
+            int suffix = 2;
+            while (usedTableNames.Contains(candidate)) {
+                candidate = sanitized + suffix.ToString(CultureInfo.InvariantCulture);
+                suffix++;
+            }
+
+            return candidate;
+        }
+
+        private static DataTable CreateDataTableFromReader(
+            IDataReader reader,
+            IReadOnlyList<string> headers,
+            IReadOnlyList<Type> fieldTypes,
+            CancellationToken ct) {
+            var table = new DataTable("ReaderData") { Locale = CultureInfo.InvariantCulture };
+            for (int i = 0; i < headers.Count; i++) {
+                Type fieldType = fieldTypes[i];
+                if (fieldType == typeof(DBNull) || fieldType == typeof(void)) {
+                    fieldType = typeof(object);
+                }
+
+                table.Columns.Add(headers[i], Nullable.GetUnderlyingType(fieldType) ?? fieldType);
+            }
+
+            object?[] values = new object?[headers.Count];
+            table.BeginLoadData();
+            try {
+                while (reader.Read()) {
+                    ct.ThrowIfCancellationRequested();
+                    var row = table.NewRow();
+                    for (int i = 0; i < headers.Count; i++) {
+                        values[i] = reader.IsDBNull(i) ? DBNull.Value : reader.GetValue(i);
+                    }
+
+                    row.ItemArray = values;
+                    table.Rows.Add(row);
+                }
+            } finally {
+                table.EndLoadData();
+            }
+
+            return table;
+        }
+
+        private static DataTable CreateHeaderlessReaderTable(DataTable source) {
+            var table = new DataTable(source.TableName) { Locale = CultureInfo.InvariantCulture };
+            for (int i = 0; i < source.Columns.Count; i++) {
+                table.Columns.Add("Column" + (i + 1).ToString(CultureInfo.InvariantCulture), source.Columns[i].DataType);
+            }
+
+            table.BeginLoadData();
+            try {
+                foreach (DataRow sourceRow in source.Rows) {
+                    var row = table.NewRow();
+                    for (int i = 0; i < source.Columns.Count; i++) {
+                        row[i] = sourceRow.IsNull(i) ? DBNull.Value : sourceRow[i];
+                    }
+
+                    table.Rows.Add(row);
+                }
+            } finally {
+                table.EndLoadData();
+            }
+
+            return table;
+        }
+
         private static string[] BuildReaderHeaders(IDataReader reader) {
             var headers = new List<string>(reader.FieldCount);
             for (int i = 0; i < reader.FieldCount; i++) {
