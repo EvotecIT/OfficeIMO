@@ -1068,6 +1068,71 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Sheet_HeaderMapCache_RevalidatesUsedRangeAfterOpenXmlMutation() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderHeaderCacheOpenXmlUsedRangeShift.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Status");
+                    document.Save();
+                }
+
+                using var loadedDocument = ExcelDocument.Load(filePath);
+                var loadedSheet = loadedDocument.GetSheet("Data");
+
+                var initialMap = loadedSheet.GetHeaderMap();
+                Assert.Equal(1, initialMap["Status"]);
+
+                var workbookPart = loadedDocument._spreadSheetDocument.WorkbookPart!;
+                var sheetElement = workbookPart.Workbook.Sheets!.Elements<Sheet>().Single(sheet => sheet.Name == "Data");
+                var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheetElement.Id!);
+                var firstRow = worksheetPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().Single(row => row.RowIndex?.Value == 1U);
+                firstRow.Append(new Cell {
+                    CellReference = "B1",
+                    DataType = CellValues.InlineString,
+                    InlineString = new InlineString(new Text("Value"))
+                });
+
+                var refreshedMap = loadedSheet.GetHeaderMap();
+                Assert.Equal(1, refreshedMap["Status"]);
+                Assert.Equal(2, refreshedMap["Value"]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Sheet_HeaderMap_UsesReaderForDateStyledNumericHeaders() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderHeaderMapDateStyledNumericHeader.xlsx");
+            const double serialValue = 45292d;
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, serialValue);
+                    sheet.CellValue(2, 1, "Alpha");
+                    sheet.CellAt(1, 1).SetNumberFormat("yyyy-mm-dd");
+                    document.Save();
+                }
+
+                using var loadedDocument = ExcelDocument.Load(filePath);
+                var loadedSheet = loadedDocument.GetSheet("Data");
+                var map = loadedSheet.GetHeaderMap();
+
+                string expectedHeader = DateTime.FromOADate(serialValue).ToString();
+                Assert.True(map.ContainsKey(expectedHeader));
+                Assert.False(map.ContainsKey(serialValue.ToString(CultureInfo.InvariantCulture)));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Sheet_HeaderMap_ReadsOnlyFirstUsedRow() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderHeaderMapFirstUsedRowOnly.xlsx");
 
@@ -1706,6 +1771,37 @@ namespace OfficeIMO.Tests {
 
                 var options = new ExcelReadOptions {
                     CellValueConverter = context => context.RawText == "42" ? new ExcelCellValue("100") : ExcelCellValue.NotHandled
+                };
+
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                var row = Assert.Single(reader.GetSheet("Data").ReadObjects<NullableTypedRow>("A1:A2", ExecutionMode.Sequential));
+
+                Assert.Equal(100, row.Score);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_TypedObjects_HonorsCellValueConverterStyleContextOnXmlPath() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderTypedObjectsCellConverterStyleContext.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Score");
+                    sheet.CellValue(2, 1, 42);
+                    sheet.CellAt(2, 1).SetNumberFormat("0.00");
+                    document.Save();
+                }
+
+                var options = new ExcelReadOptions {
+                    CellValueConverter = context =>
+                        context.RawText == "42" && context.StyleIndex != null
+                            ? new ExcelCellValue("100")
+                            : ExcelCellValue.NotHandled
                 };
 
                 using var reader = ExcelDocumentReader.Open(filePath, options);

@@ -23,12 +23,6 @@ namespace OfficeIMO.Excel {
         }
 
         private Dictionary<string, int> GetHeaderMapCached(ExcelReadOptions opt) {
-            lock (_headerMapLock) {
-                if (_headerMapCache != null && _headerMapNormalize == opt.NormalizeHeaders) {
-                    return _headerMapCache;
-                }
-            }
-
             string reference = ExcelSheet.ComputeSheetDimensionReference(WorksheetRoot);
             var a1Used = reference.IndexOf(":", StringComparison.Ordinal) >= 0 ? reference : reference + ":" + reference;
             lock (_headerMapLock) {
@@ -150,6 +144,10 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
+                if (options.TreatDatesUsingNumberFormat && HeaderCellsNeedReaderDateConversion(headerCells)) {
+                    return false;
+                }
+
                 List<string>? sharedStrings = maxSharedStringIndex >= 0
                     ? LoadSharedStringTextsFromDom(maxSharedStringIndex)
                     : null;
@@ -178,6 +176,28 @@ namespace OfficeIMO.Excel {
             }
 
             return true;
+        }
+
+        private bool HeaderCellsNeedReaderDateConversion(Cell?[] headerCells) {
+            StylesCache? styles = null;
+            for (int i = 0; i < headerCells.Length; i++) {
+                Cell? cell = headerCells[i];
+                if (cell?.StyleIndex == null || !HeaderCellCanUseDateStyle(cell)) {
+                    continue;
+                }
+
+                styles ??= StylesCache.Build(_spreadSheetDocument);
+                if (styles.HasDateStyles && styles.IsDateLike(cell.StyleIndex.Value)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool HeaderCellCanUseDateStyle(Cell cell) {
+            OpenXmlCellValues? type = cell.DataType?.Value;
+            return type == null || type == OpenXmlCellValues.Number;
         }
 
         private object? ConvertHeaderCellFromDom(Cell cell, List<string>? sharedStrings) {

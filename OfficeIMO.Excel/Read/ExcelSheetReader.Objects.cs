@@ -671,10 +671,11 @@ namespace OfficeIMO.Excel {
 
         private CellRaw ReadXmlCellRaw<TTarget>(XmlReader cellReader, int rowIndex, int columnIndex, TypedPropertyBinding<TTarget> binding) {
             XmlCellKind cellKind = ParseXmlCellKind(cellReader.GetAttribute("t"));
-            bool readStyleIndex = _opt.TreatDatesUsingNumberFormat
+            bool readStyleIndex = _opt.CellValueConverter != null
+                || (_opt.TreatDatesUsingNumberFormat
                 && _styles.HasDateStyles
                 && binding.NeedsDateStyleConversion
-                && CellKindCanUseDateStyle(cellKind);
+                && CellKindCanUseDateStyle(cellKind));
             return ReadXmlCellRaw(cellReader, rowIndex, columnIndex, cellKind, readStyleIndex);
         }
 
