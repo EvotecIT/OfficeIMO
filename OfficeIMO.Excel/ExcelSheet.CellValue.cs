@@ -194,6 +194,7 @@ namespace OfficeIMO.Excel {
         public void CellValue(int row, int column, string value) {
             if (_isBatchOperation || Locking.IsNoLock) {
                 CellStringValueCore(row, column, value);
+                MarkRequiresSavePreparation();
                 return;
             }
 
@@ -202,6 +203,7 @@ namespace OfficeIMO.Excel {
             lck.EnterWriteLock();
             try {
                 CellStringValueCore(row, column, value);
+                MarkRequiresSavePreparation();
             } finally {
                 lck.ExitWriteLock();
             }
@@ -211,6 +213,7 @@ namespace OfficeIMO.Excel {
         public void CellValue(int row, int column, double value) {
             if (_isBatchOperation || Locking.IsNoLock) {
                 CellDoubleValueCore(row, column, value);
+                MarkRequiresSavePreparation();
                 return;
             }
 
@@ -219,6 +222,7 @@ namespace OfficeIMO.Excel {
             lck.EnterWriteLock();
             try {
                 CellDoubleValueCore(row, column, value);
+                MarkRequiresSavePreparation();
             } finally {
                 lck.ExitWriteLock();
             }
@@ -228,6 +232,7 @@ namespace OfficeIMO.Excel {
         public void CellValue(int row, int column, decimal value) {
             if (_isBatchOperation || Locking.IsNoLock) {
                 CellDecimalValueCore(row, column, value);
+                MarkRequiresSavePreparation();
                 return;
             }
 
@@ -236,6 +241,7 @@ namespace OfficeIMO.Excel {
             lck.EnterWriteLock();
             try {
                 CellDecimalValueCore(row, column, value);
+                MarkRequiresSavePreparation();
             } finally {
                 lck.ExitWriteLock();
             }
@@ -245,6 +251,7 @@ namespace OfficeIMO.Excel {
         public void CellValue(int row, int column, DateTime value) {
             if (_isBatchOperation || Locking.IsNoLock) {
                 CellDateTimeValueCore(row, column, value);
+                MarkRequiresSavePreparation();
                 return;
             }
 
@@ -253,6 +260,7 @@ namespace OfficeIMO.Excel {
             lck.EnterWriteLock();
             try {
                 CellDateTimeValueCore(row, column, value);
+                MarkRequiresSavePreparation();
             } finally {
                 lck.ExitWriteLock();
             }
@@ -267,6 +275,7 @@ namespace OfficeIMO.Excel {
         public void CellValue(int row, int column, TimeSpan value) {
             if (_isBatchOperation || Locking.IsNoLock) {
                 CellTimeSpanValueCore(row, column, value);
+                MarkRequiresSavePreparation();
                 return;
             }
 
@@ -275,6 +284,7 @@ namespace OfficeIMO.Excel {
             lck.EnterWriteLock();
             try {
                 CellTimeSpanValueCore(row, column, value);
+                MarkRequiresSavePreparation();
             } finally {
                 lck.ExitWriteLock();
             }
@@ -309,6 +319,7 @@ namespace OfficeIMO.Excel {
         public void CellValue(int row, int column, bool value) {
             if (_isBatchOperation || Locking.IsNoLock) {
                 CellBooleanValueCore(row, column, value);
+                MarkRequiresSavePreparation();
                 return;
             }
 
@@ -317,6 +328,7 @@ namespace OfficeIMO.Excel {
             lck.EnterWriteLock();
             try {
                 CellBooleanValueCore(row, column, value);
+                MarkRequiresSavePreparation();
             } finally {
                 lck.ExitWriteLock();
             }
@@ -331,6 +343,7 @@ namespace OfficeIMO.Excel {
         public void CellFormula(int row, int column, string formula) {
             if (_isBatchOperation || Locking.IsNoLock) {
                 CellFormulaCore(row, column, formula);
+                MarkRequiresSavePreparation();
                 return;
             }
 
@@ -342,6 +355,7 @@ namespace OfficeIMO.Excel {
             lck.EnterWriteLock();
             try {
                 CellFormulaCore(row, column, formula);
+                MarkRequiresSavePreparation();
             } finally {
                 lck.ExitWriteLock();
             }
@@ -1176,6 +1190,7 @@ namespace OfficeIMO.Excel {
         public void CellValue(int row, int column, object? value) {
             if (_isBatchOperation || Locking.IsNoLock) {
                 CellValueCore(row, column, value);
+                MarkRequiresSavePreparation();
                 return;
             }
 
@@ -1184,6 +1199,7 @@ namespace OfficeIMO.Excel {
             lck.EnterWriteLock();
             try {
                 CellValueCore(row, column, value);
+                MarkRequiresSavePreparation();
             } finally {
                 lck.ExitWriteLock();
             }

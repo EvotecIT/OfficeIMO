@@ -444,10 +444,10 @@ namespace OfficeIMO.Excel {
                         return null;
                     }
 
-                    var indexes = counts;
+                    var indexes = new Dictionary<string, int>(counts.Count, StringComparer.Ordinal);
                     var values = new string[counts.Count];
                     int nextIndex = 0;
-                    foreach (var entry in indexes) {
+                    foreach (var entry in counts) {
                         values[nextIndex] = entry.Key;
                         indexes[entry.Key] = nextIndex;
                         nextIndex++;

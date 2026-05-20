@@ -42,6 +42,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_LoadedWorkbookFastCellValueOverloadsPersistAfterSave() {
+            string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.FastCellValueOverloadsDirty.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.AddWorkSheet("Data").CellValue(1, 1, "Seed");
+                document.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var sheet = document.Sheets[0];
+                sheet.CellValue(2, 1, "Text");
+                sheet.CellValue(3, 1, 12.5d);
+                sheet.CellValue(4, 1, 12.5m);
+                sheet.CellValue(5, 1, new DateTime(2026, 5, 20));
+                sheet.CellValue(6, 1, TimeSpan.FromHours(2));
+                sheet.CellValue(7, 1, true);
+                sheet.CellFormula(8, 1, "SUM(A3:A4)");
+                sheet.CellValue(9, 1, (object)"Object");
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet;
+                var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+
+                Assert.True(cells.ContainsKey("A2"));
+                Assert.True(cells.ContainsKey("A3"));
+                Assert.True(cells.ContainsKey("A4"));
+                Assert.True(cells.ContainsKey("A5"));
+                Assert.True(cells.ContainsKey("A6"));
+                Assert.True(cells.ContainsKey("A7"));
+                Assert.Equal("SUM(A3:A4)", cells["A8"].CellFormula!.Text);
+                Assert.True(cells.ContainsKey("A9"));
+            }
+        }
+
+        [Fact]
         public void PerformanceReview_LoadedWorkbookProtection_PersistsAfterSave() {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.WorkbookProtectionDirty.xlsx");
 
@@ -409,6 +446,32 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Row 4999", cells["B5001"].CellValue!.Text);
             Assert.Equal(1U, cells["C5001"].StyleIndex!.Value);
             Assert.Equal(2U, cells["D5001"].StyleIndex!.Value);
+        }
+
+        [Fact]
+        public void PerformanceReview_WriteDataSet_DuplicateStringsBuildSharedStringIndexes() {
+            using var memory = new MemoryStream();
+            var dataSet = new DataSet("Export");
+            var table = new DataTable("Rows");
+            table.Columns.Add("Name", typeof(string));
+
+            for (int i = 0; i < 600; i++) {
+                table.Rows.Add("Repeated");
+            }
+
+            dataSet.Tables.Add(table);
+
+            ExcelDocument.WriteDataSet(memory, dataSet);
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var sharedStrings = spreadsheet.WorkbookPart!.SharedStringTablePart!.SharedStringTable.Elements<SharedStringItem>().ToList();
+            var worksheet = spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet;
+            var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+
+            Assert.Equal(new[] { "Name", "Repeated" }, sharedStrings.Select(item => item.InnerText).ToArray());
+            Assert.Equal(CellValues.SharedString, cells["A2"].DataType!.Value);
+            Assert.Equal("1", cells["A601"].CellValue!.Text);
         }
 
         [Fact]
