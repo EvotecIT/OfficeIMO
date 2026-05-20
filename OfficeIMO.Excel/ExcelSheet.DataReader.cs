@@ -235,7 +235,7 @@ namespace OfficeIMO.Excel {
 
             string[] columnNames = BuildDirectReaderColumnNames(headers, includeHeaders);
             Type[] columnTypes = BuildDirectReaderColumnTypes(fieldTypes);
-            return _excelDocument.RegisterDeferredDirectTabularSaveCandidate(
+            if (_excelDocument.RegisterDeferredDirectTabularSaveCandidate(
                 this,
                 "ReaderData",
                 columnNames,
@@ -247,7 +247,72 @@ namespace OfficeIMO.Excel {
                 createTable,
                 style,
                 includeAutoFilter,
-                autoFit);
+                autoFit)) {
+                return true;
+            }
+
+            _excelDocument.MaterializeDeferredDataSetImport();
+            InsertBufferedDataReaderRows(
+                headers,
+                fieldTypes,
+                rows,
+                startRow,
+                startColumn,
+                includeHeaders,
+                tableName,
+                style,
+                includeAutoFilter,
+                createTable,
+                autoFit,
+                range);
+            return true;
+        }
+
+        private void InsertBufferedDataReaderRows(
+            IReadOnlyList<string> headers,
+            IReadOnlyList<Type> fieldTypes,
+            IReadOnlyList<object?[]> rows,
+            int startRow,
+            int startColumn,
+            bool includeHeaders,
+            string? tableName,
+            TableStyle style,
+            bool includeAutoFilter,
+            bool createTable,
+            bool autoFit,
+            string range) {
+            int row = startRow;
+            if (includeHeaders) {
+                for (int i = 0; i < headers.Count; i++) {
+                    CellValue(row, startColumn + i, headers[i]);
+                }
+
+                row++;
+            }
+
+            foreach (object?[] values in rows) {
+                for (int i = 0; i < headers.Count; i++) {
+                    object? value = values[i];
+                    int column = startColumn + i;
+                    CellValue(row, column, value);
+
+                    string? numberFormat = GetReaderNumberFormat(fieldTypes[i], value);
+                    if (!string.IsNullOrWhiteSpace(numberFormat)) {
+                        FormatCell(row, column, numberFormat!);
+                    }
+                }
+
+                row++;
+            }
+
+            if (createTable && range.Length != 0) {
+                string[]? headerNames = includeHeaders ? headers.ToArray() : null;
+                AddTableAndGetName(range, includeHeaders, tableName ?? string.Empty, style, includeAutoFilter, headerNames: headerNames);
+            }
+
+            if (autoFit) {
+                AutoFitColumnsFor(Enumerable.Range(startColumn, headers.Count));
+            }
         }
 
         private bool TryInsertDataReaderByAppendingRows(

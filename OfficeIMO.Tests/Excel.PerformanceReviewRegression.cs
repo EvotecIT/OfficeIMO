@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
@@ -1791,6 +1792,54 @@ namespace OfficeIMO.Tests {
             Assert.True(loaded.Sheets[0].TryGetCellText(3, 1, out string? second));
             Assert.Equal("Alpha", first);
             Assert.Equal("Beta", second);
+        }
+
+        [Fact]
+        public void PerformanceReview_DataReaderDeferredRegistrationFailureWritesBufferedRows() {
+            using var memory = new MemoryStream();
+            var table = new DataTable("ReaderData");
+            table.Columns.Add("Name", typeof(string));
+            table.Rows.Add("Alpha");
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                using var reader = table.CreateDataReader();
+
+                MethodInfo? method = typeof(ExcelSheet).GetMethod(
+                    "TryInsertDataReaderAsDeferredDirectSave",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.NotNull(method);
+
+                object?[] args = [
+                    reader,
+                    new[] { "Name" },
+                    new[] { typeof(string), typeof(string) },
+                    1,
+                    1,
+                    true,
+                    null,
+                    OfficeIMO.Excel.TableStyle.TableStyleMedium2,
+                    true,
+                    false,
+                    false,
+                    CancellationToken.None,
+                    string.Empty
+                ];
+
+                Assert.True((bool)method.Invoke(sheet, args)!);
+                Assert.Equal("A1:A2", Assert.IsType<string>(args[12]));
+
+                document.Save(memory);
+
+                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var loaded = ExcelDocument.Load(memory, readOnly: true);
+            Assert.True(loaded.Sheets[0].TryGetCellText(1, 1, out string? header));
+            Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? text));
+            Assert.Equal("Name", header);
+            Assert.Equal("Alpha", text);
         }
 
         [Fact]
