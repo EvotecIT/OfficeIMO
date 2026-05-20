@@ -1118,17 +1118,18 @@ namespace OfficeIMO.Tests {
                     document.Save();
                 }
 
-                string? expectedHeader;
+                object? readerHeader;
                 using (var reader = ExcelDocumentReader.Open(filePath)) {
-                    expectedHeader = reader.GetSheet("Data").ReadRange("A1:A1")[0, 0]?.ToString();
+                    readerHeader = reader.GetSheet("Data").ReadRange("A1:A1")[0, 0];
                 }
 
                 using var loadedDocument = ExcelDocument.Load(filePath);
                 var loadedSheet = loadedDocument.GetSheet("Data");
                 var map = loadedSheet.GetHeaderMap();
 
-                Assert.False(string.IsNullOrEmpty(expectedHeader));
-                Assert.True(map.ContainsKey(expectedHeader));
+                Assert.IsType<DateTime>(readerHeader);
+                Assert.Single(map);
+                Assert.Equal(1, map.Values.Single());
                 Assert.False(map.ContainsKey(serialValue.ToString(CultureInfo.InvariantCulture)));
             } finally {
                 if (File.Exists(filePath)) {
