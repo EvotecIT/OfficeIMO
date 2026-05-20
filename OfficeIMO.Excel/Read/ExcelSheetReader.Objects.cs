@@ -686,12 +686,12 @@ namespace OfficeIMO.Excel {
                 TypeHint = ToCellValueType(cellKind)
             };
 
-            if (cellReader.IsEmptyElement) {
-                return raw;
-            }
-
             if (readStyleIndex && TryParseUInt(cellReader.GetAttribute("s"), out uint parsedStyle)) {
                 raw.StyleIndex = parsedStyle;
+            }
+
+            if (cellReader.IsEmptyElement) {
+                return raw;
             }
 
             int depth = cellReader.Depth;
@@ -1717,15 +1717,6 @@ namespace OfficeIMO.Excel {
             CellRaw raw,
             TypedPropertyBinding<TTarget> binding,
             TTarget target) {
-            if (raw.RawText == null && raw.InlineText == null && raw.FormulaText == null) {
-                if (binding.IsNullable) {
-                    binding.SetValue(target, null);
-                    return true;
-                }
-
-                return false;
-            }
-
             if (_opt.CellValueConverter != null || _opt.TypeConverter != null) {
                 object? typedValue = ConvertRaw(raw).TypedValue;
                 if (typedValue is null) {
@@ -1740,6 +1731,15 @@ namespace OfficeIMO.Excel {
                 object? converted = TryChangeType(typedValue, binding, _opt.Culture);
                 if (converted is not null || binding.IsNullable) {
                     binding.SetValue(target, converted);
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (raw.RawText == null && raw.InlineText == null && raw.FormulaText == null) {
+                if (binding.IsNullable) {
+                    binding.SetValue(target, null);
                     return true;
                 }
 

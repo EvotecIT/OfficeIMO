@@ -280,12 +280,6 @@ namespace OfficeIMO.Excel {
             }
 
             var opt = options ?? DefaultHeaderReadOptions;
-            lock (_headerMapLock) {
-                if (_headerMapCache != null && _headerMapNormalize == opt.NormalizeHeaders) {
-                    return _headerMapCache.TryGetValue(header, out columnIndex);
-                }
-            }
-
             var map = GetHeaderMapCached(opt);
             return map.TryGetValue(header, out columnIndex);
         }

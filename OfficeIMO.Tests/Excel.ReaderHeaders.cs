@@ -1094,6 +1094,9 @@ namespace OfficeIMO.Tests {
                     InlineString = new InlineString(new Text("Value"))
                 });
 
+                Assert.True(loadedSheet.TryGetColumnIndexByHeader("Value", out int valueColumn));
+                Assert.Equal(2, valueColumn);
+
                 var refreshedMap = loadedSheet.GetHeaderMap();
                 Assert.Equal(1, refreshedMap["Status"]);
                 Assert.Equal(2, refreshedMap["Value"]);
@@ -1806,6 +1809,45 @@ namespace OfficeIMO.Tests {
                 var options = new ExcelReadOptions {
                     CellValueConverter = context =>
                         context.RawText == "42" && context.StyleIndex != null
+                            ? new ExcelCellValue("100")
+                            : ExcelCellValue.NotHandled
+                };
+
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                var row = Assert.Single(reader.GetSheet("Data").ReadObjects<NullableTypedRow>("A1:A2", ExecutionMode.Sequential));
+
+                Assert.Equal(100, row.Score);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_TypedObjects_HonorsCellValueConverterStyleContextForEmptyXmlCells() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderTypedObjectsEmptyCellConverterStyleContext.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Score");
+                    sheet.CellValue(2, 1, 42);
+                    sheet.CellAt(2, 1).SetNumberFormat("0.00");
+                    document.Save();
+                }
+
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet;
+                    var cell = worksheet.Descendants<Cell>().Single(c => c.CellReference?.Value == "A2");
+                    cell.CellValue = null;
+                    cell.DataType = null;
+                    worksheet.Save();
+                }
+
+                var options = new ExcelReadOptions {
+                    CellValueConverter = context =>
+                        context.RawText == null && context.StyleIndex != null
                             ? new ExcelCellValue("100")
                             : ExcelCellValue.NotHandled
                 };
