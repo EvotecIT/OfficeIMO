@@ -69,6 +69,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ReadRows_ReturnsNullForRowsWithoutCellsInRequestedColumns() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReadRowsOutsideRequestedColumns.xlsx");
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Header");
+                    sheet.CellValue(2, 2, "Outside");
+                    sheet.CellValue(3, 1, "Value");
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var rows = reader.GetSheet("Data").ReadRows("A1:A3").ToList();
+
+                Assert.Equal(3, rows.Count);
+                Assert.NotNull(rows[0]);
+                Assert.Equal("Header", rows[0]![0]);
+                Assert.Null(rows[1]);
+                Assert.NotNull(rows[2]);
+                Assert.Equal("Value", rows[2]![0]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void ReadRowsAs_ThrowsForRowsWithoutCells() {
             string filePath = Path.Combine(_directoryWithFiles, "ReadRowsAsEmptyRows.xlsx");
             try {

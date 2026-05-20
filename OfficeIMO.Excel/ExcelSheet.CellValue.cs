@@ -82,13 +82,16 @@ namespace OfficeIMO.Excel {
             int sharedStringIndex = _excelDocument.GetSharedStringIndex(value);
 
             var cell = GetCell(row, column);
+            SetExistingCellSharedStringValue(cell, value, sharedStringIndex);
+            ClearHeaderCache();
+        }
+
+        private void SetExistingCellSharedStringValue(Cell cell, string value, int sharedStringIndex) {
             cell.CellValue = new CellValue(sharedStringIndex.ToString(CultureInfo.InvariantCulture));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString;
             if (value.Contains("\n") || value.Contains("\r")) {
                 ApplyWrapText(cell);
             }
-
-            ClearHeaderCache();
         }
 
         private void CellDoubleValueCore(int row, int column, double value) {
@@ -478,14 +481,13 @@ namespace OfficeIMO.Excel {
                 if (cell == null) return false;
                 // Resolve shared string if needed
                 if (cell.DataType != null && cell.DataType.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) {
-                    if (int.TryParse(cell.InnerText, System.Globalization.NumberStyles.Integer, CultureInfo.InvariantCulture, out int ssid)) {
-                        var wb = _excelDocument.WorkbookPartRoot;
-                        var sst = wb?.SharedStringTablePart?.SharedStringTable;
-                        var si = sst?.Elements<SharedStringItem>().ElementAtOrDefault(ssid);
-                        if (si != null) {
-                            text = si.InnerText ?? string.Empty;
+                    if (TryParseCellTextSharedStringIndex(cell.InnerText, out int ssid)) {
+                        string? sharedText = GetCellTextSharedStringCache().Get(ssid);
+                        if (sharedText != null) {
+                            text = sharedText;
                             return true;
                         }
+
                         return false;
                     }
                 }

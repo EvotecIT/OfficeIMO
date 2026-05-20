@@ -8,6 +8,8 @@ namespace OfficeIMO.Excel {
 
         private StylesCache() { }
 
+        public bool HasDateStyles { get; private set; }
+
         public static StylesCache Build(SpreadsheetDocument doc) {
             var cache = new StylesCache();
             var sp = doc.WorkbookPart!.WorkbookStylesPart;
@@ -37,7 +39,10 @@ namespace OfficeIMO.Excel {
                     var cf = cellFormats[idx];
                     var nId = (uint)(cf.NumberFormatId?.Value ?? 0);
                     bool dateLike = IsBuiltInDate(nId) || (nf.TryGetValue(nId, out var code) && ExcelNumberFormatClassifier.LooksLikeDateFormat(code));
-                    if (dateLike) cache._dateStyleIndexes[idx] = true;
+                    if (dateLike) {
+                        cache._dateStyleIndexes[idx] = true;
+                        cache.HasDateStyles = true;
+                    }
                 }
             }
 

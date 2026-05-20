@@ -5,6 +5,7 @@ using System.Data;
 using System.Globalization;
 using System.IO;
 using System.Threading;
+using System.Xml;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -18,6 +19,7 @@ namespace OfficeIMO.Excel {
         private readonly ExcelReadOptions _opt;
         private readonly bool _canStreamWorksheetPart;
         private bool? _hasWorksheetPartStreamContent;
+        private static readonly XmlReaderSettings WorksheetXmlReaderSettings = CreateWorksheetXmlReaderSettings();
 
         internal ExcelSheetReader(string sheetName, WorksheetPart wsPart, SharedStringCache sst, StylesCache styles, ExcelReadOptions opt, bool canStreamWorksheetPart) {
             _sheetName = sheetName;
@@ -132,6 +134,20 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private static XmlReader OpenWorksheetXmlReader(Stream stream) {
+            return XmlReader.Create(stream, WorksheetXmlReaderSettings);
+        }
+
+        private static XmlReaderSettings CreateWorksheetXmlReaderSettings() {
+            return new XmlReaderSettings {
+                DtdProcessing = DtdProcessing.Prohibit,
+                IgnoreComments = true,
+                IgnoreProcessingInstructions = true,
+                IgnoreWhitespace = true,
+                CloseInput = false
+            };
+        }
+
         private static string? ExtractFormulaText(Cell cell) {
             return cell.CellFormula?.Text;
         }
@@ -197,11 +213,54 @@ namespace OfficeIMO.Excel {
         private bool NeedsStyleForConversion(CellValues? typeHint, string? rawText) {
             return rawText != null
                 && _opt.TreatDatesUsingNumberFormat
+                && _styles.HasDateStyles
                 && typeHint != CellValues.SharedString
                 && typeHint != CellValues.Boolean
                 && typeHint != CellValues.String
                 && typeHint != CellValues.InlineString
                 && typeHint != CellValues.Date;
+        }
+
+        private static XmlCellKind ParseXmlCellKind(string? type) {
+            if (string.IsNullOrEmpty(type)) {
+                return XmlCellKind.Default;
+            }
+
+            string text = type!;
+            switch (text.Length) {
+                case 1:
+                    return text[0] switch {
+                        'b' => XmlCellKind.Boolean,
+                        'd' => XmlCellKind.Date,
+                        'n' => XmlCellKind.Number,
+                        's' => XmlCellKind.SharedString,
+                        _ => XmlCellKind.Unknown
+                    };
+                case 3:
+                    return text == "str" ? XmlCellKind.String : XmlCellKind.Unknown;
+                case 9:
+                    return text == "inlineStr" ? XmlCellKind.InlineString : XmlCellKind.Unknown;
+                default:
+                    return XmlCellKind.Unknown;
+            }
+        }
+
+        private static bool CellKindCanUseDateStyle(XmlCellKind kind) {
+            return kind == XmlCellKind.Default
+                || kind == XmlCellKind.Number
+                || kind == XmlCellKind.Unknown;
+        }
+
+        private static CellValues? ToCellValueType(XmlCellKind kind) {
+            return kind switch {
+                XmlCellKind.Boolean => CellValues.Boolean,
+                XmlCellKind.Date => CellValues.Date,
+                XmlCellKind.InlineString => CellValues.InlineString,
+                XmlCellKind.Number => CellValues.Number,
+                XmlCellKind.SharedString => CellValues.SharedString,
+                XmlCellKind.String => CellValues.String,
+                _ => null
+            };
         }
 
         private CellRaw SnapshotCell(Cell cell, int row = 0, int col = 0) {
@@ -509,6 +568,17 @@ namespace OfficeIMO.Excel {
             public string? RawText;
             public string? InlineText;
             public object? TypedValue;
+        }
+
+        private enum XmlCellKind {
+            Default,
+            Boolean,
+            Date,
+            InlineString,
+            Number,
+            SharedString,
+            String,
+            Unknown
         }
     }
 }

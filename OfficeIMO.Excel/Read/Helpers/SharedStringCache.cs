@@ -9,10 +9,13 @@ using System.Xml;
 namespace OfficeIMO.Excel {
     internal sealed class SharedStringCache {
         private const int MinimumInitialCapacity = 1024;
+        private static readonly XmlReaderSettings SharedStringXmlReaderSettings = CreateSharedStringXmlReaderSettings();
 
         private readonly SharedStringTablePart? _part;
         private readonly bool _preferDom;
         private readonly Lazy<List<string>> _items;
+        private readonly object _containsCacheLock = new object();
+        private Dictionary<(string Text, StringComparison Comparison), HashSet<int>?>? _containsCache;
 
         private SharedStringCache(SharedStringTablePart? part, bool preferDom) {
             _part = part;
@@ -59,15 +62,7 @@ namespace OfficeIMO.Excel {
 
             try {
                 using var stream = _part!.GetStream(FileMode.Open, FileAccess.Read);
-                var settings = new XmlReaderSettings {
-                    DtdProcessing = DtdProcessing.Prohibit,
-                    IgnoreComments = true,
-                    IgnoreProcessingInstructions = true,
-                    IgnoreWhitespace = true,
-                    CloseInput = false
-                };
-
-                using var reader = XmlReader.Create(stream, settings);
+                using var reader = XmlReader.Create(stream, SharedStringXmlReaderSettings);
                 while (reader.Read()) {
                     if (reader.NodeType != XmlNodeType.Element) {
                         continue;
@@ -105,6 +100,16 @@ namespace OfficeIMO.Excel {
                 items = null!;
                 return false;
             }
+        }
+
+        private static XmlReaderSettings CreateSharedStringXmlReaderSettings() {
+            return new XmlReaderSettings {
+                DtdProcessing = DtdProcessing.Prohibit,
+                IgnoreComments = true,
+                IgnoreProcessingInstructions = true,
+                IgnoreWhitespace = true,
+                CloseInput = false
+            };
         }
 
         private static string ReadSharedStringItemXml(XmlReader reader) {
@@ -187,6 +192,39 @@ namespace OfficeIMO.Excel {
             var items = _items.Value;
             if ((uint)index < (uint)items.Count) return items[index];
             return null;
+        }
+
+        internal HashSet<int>? FindIndexesContaining(string text, StringComparison comparison) {
+            if (string.IsNullOrEmpty(text)) {
+                return null;
+            }
+
+            var key = (text, comparison);
+            lock (_containsCacheLock) {
+                if (_containsCache != null && _containsCache.TryGetValue(key, out var cachedIndexes)) {
+                    return cachedIndexes;
+                }
+            }
+
+            var items = _items.Value;
+            HashSet<int>? indexes = null;
+            for (int i = 0; i < items.Count; i++) {
+                if (items[i].IndexOf(text, comparison) >= 0) {
+                    indexes ??= new HashSet<int>();
+                    indexes.Add(i);
+                }
+            }
+
+            lock (_containsCacheLock) {
+                _containsCache ??= new Dictionary<(string Text, StringComparison Comparison), HashSet<int>?>();
+                if (_containsCache.Count >= 32) {
+                    _containsCache.Clear();
+                }
+
+                _containsCache[key] = indexes;
+            }
+
+            return indexes;
         }
 
         private static int ParsePositiveIntAttribute(string? value) {

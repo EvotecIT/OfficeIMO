@@ -626,20 +626,27 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal Dictionary<string, int> GetSharedStringIndices(IEnumerable<string> texts) {
+        internal Dictionary<string, int> GetSharedStringIndices(IEnumerable<string> texts, bool assumeDistinct = false) {
             if (texts == null) {
                 throw new ArgumentNullException(nameof(texts));
+            }
+
+            int capacity = texts is ICollection<string> collection ? collection.Count : 0;
+            if (capacity == 0 && texts is ICollection<string>) {
+                return new Dictionary<string, int>(0, StringComparer.Ordinal);
             }
 
             lock (_sharedStringLock) {
                 var sharedStringTable = SharedStringTablePart.SharedStringTable ??= new SharedStringTable();
                 int tableCount = EnsureSharedStringCacheAndCount(sharedStringTable);
 
-                var result = new Dictionary<string, int>(StringComparer.Ordinal);
+                var result = capacity > 0
+                    ? new Dictionary<string, int>(capacity, StringComparer.Ordinal)
+                    : new Dictionary<string, int>(StringComparer.Ordinal);
                 bool changed = false;
 
                 foreach (string text in texts) {
-                    if (result.ContainsKey(text)) {
+                    if (!assumeDistinct && result.ContainsKey(text)) {
                         continue;
                     }
 

@@ -44,6 +44,15 @@ namespace OfficeIMO.Excel {
                     yield break;
                 }
 
+                if (estRows <= BufferedRangeStreamRowLimit
+                    && TryReadBufferedRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, estRows, ct, out var bufferedChunks)) {
+                    foreach (var chunk in bufferedChunks) {
+                        yield return chunk;
+                    }
+
+                    yield break;
+                }
+
                 if (ShouldUseOrderedBufferedXmlStream(estRows, c1, c2)
                     && TryReadOrderedBufferedRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, estRows, ct, out var automaticChunks)) {
                     foreach (var chunk in automaticChunks) {
@@ -72,7 +81,7 @@ namespace OfficeIMO.Excel {
 
             if (decided != OfficeIMO.Excel.ExecutionMode.Parallel
                 && estRows <= BufferedRangeStreamRowLimit
-                && CanUseXmlFastReader()) {
+                && CanUseRangeStreamXmlReader()) {
                 if (chunkRows >= estRows) {
                     foreach (var chunk in ReadRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, ct)) {
                         yield return chunk;
@@ -105,7 +114,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (decided != OfficeIMO.Excel.ExecutionMode.Parallel
-                && CanUseXmlFastReader()
+                && CanUseRangeStreamXmlReader()
                 && RowsAreSortedWithinRangeXmlFast(r1, r2, ct)) {
                 foreach (var chunk in ReadRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, ct)) {
                     yield return chunk;
@@ -417,27 +426,26 @@ namespace OfficeIMO.Excel {
         private bool CanUseAutomaticXmlStreamFastPath(bool automaticDecision, OfficeIMO.Excel.ExecutionMode decided) {
             return automaticDecision
                 && decided != OfficeIMO.Excel.ExecutionMode.Parallel
-                && CanUseXmlFastReader();
+                && CanUseRangeStreamXmlReader();
+        }
+
+        private bool CanUseRangeStreamXmlReader() {
+            return (_opt.CellValueConverter != null || _opt.Culture == System.Globalization.CultureInfo.InvariantCulture)
+                && CanStreamWorksheetPart();
         }
 
         private IEnumerable<RangeChunk> ReadRangeStreamXmlFast(int r1, int c1, int r2, int c2, int chunkRows, CancellationToken ct) {
             using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
             RewindWorksheetStream(stream);
-            var settings = new XmlReaderSettings {
-                    DtdProcessing = DtdProcessing.Prohibit,
-                    IgnoreComments = true,
-                    IgnoreProcessingInstructions = true,
-                    IgnoreWhitespace = true,
-                    CloseInput = false
-                };
-
-                using var reader = XmlReader.Create(stream, settings);
+            using var reader = OpenWorksheetXmlReader(stream);
             bool canCancel = ct.CanBeCanceled;
             int width = c2 - c1 + 1;
             int currentWindow = -1;
             int currentStartRow = 0;
             object?[][]? currentRows = null;
             int nextRowIndex = 1;
+            int requestedRowCount = r2 - r1 + 1;
+            var seenRows = CreateCompletedRowTracker(requestedRowCount);
 
             while (reader.Read()) {
                 if (canCancel) {
@@ -455,6 +463,10 @@ namespace OfficeIMO.Excel {
 
                 nextRowIndex = rowIndex + 1;
                 if (rowIndex < r1 || rowIndex > r2) {
+                    if (rowIndex > r2 && seenRows.AllRowsSeen) {
+                        break;
+                    }
+
                     SkipXmlElement(reader, "row");
                     continue;
                 }
@@ -476,6 +488,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 ReadXmlRowIntoChunk(reader, currentRows, rowIndex, currentStartRow, c1, c2, ct);
+                seenRows.MarkSeen(rowIndex - r1);
             }
 
             if (currentRows != null) {
@@ -499,17 +512,10 @@ namespace OfficeIMO.Excel {
             try {
                 using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
                 RewindWorksheetStream(stream);
-                var settings = new XmlReaderSettings {
-                    DtdProcessing = DtdProcessing.Prohibit,
-                    IgnoreComments = true,
-                    IgnoreProcessingInstructions = true,
-                    IgnoreWhitespace = true,
-                    CloseInput = false
-                };
-
-                using var reader = XmlReader.Create(stream, settings);
+                using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
+                var seenRows = CreateCompletedRowTracker(estimatedRows);
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -526,6 +532,10 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
+                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
+                            break;
+                        }
+
                         SkipXmlElement(reader, "row");
                         continue;
                     }
@@ -544,6 +554,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     ReadXmlRowIntoChunk(reader, chunk.Rows, rowIndex, chunk.StartRow, c1, c2, ct);
+                    seenRows.MarkSeen(rowIndex - r1);
                 }
 
                 if (chunkMap.Count == 0) {
@@ -598,17 +609,10 @@ namespace OfficeIMO.Excel {
             try {
                 using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
                 RewindWorksheetStream(stream);
-                var settings = new XmlReaderSettings {
-                    DtdProcessing = DtdProcessing.Prohibit,
-                    IgnoreComments = true,
-                    IgnoreProcessingInstructions = true,
-                    IgnoreWhitespace = true,
-                    CloseInput = false
-                };
-
-                using var reader = XmlReader.Create(stream, settings);
+                using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
+                var seenRows = CreateCompletedRowTracker(estimatedRows);
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -625,6 +629,10 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
+                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
+                            break;
+                        }
+
                         SkipXmlElement(reader, "row");
                         continue;
                     }
@@ -637,6 +645,7 @@ namespace OfficeIMO.Excel {
 
                     var chunk = chunks[window];
                     ReadXmlRowIntoChunk(reader, chunk.Rows, rowIndex, chunk.StartRow, c1, c2, ct);
+                    seenRows.MarkSeen(rowIndex - r1);
                 }
 
                 return true;
@@ -669,6 +678,7 @@ namespace OfficeIMO.Excel {
             int depth = rowReader.Depth;
             bool canCancel = ct.CanBeCanceled;
             int nextColumnIndex = 1;
+            bool canTrackColumns = rowValues.Length <= 64;
             ulong seenColumns = 0;
             while (rowReader.Read()) {
                 if (canCancel) {
@@ -683,18 +693,12 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                string? reference = rowReader.GetAttribute("r");
-                int columnIndex = A1.ParseColumnIndexFromCellReferenceWithKnownRowFast(reference);
+                int columnIndex = GetXmlCellColumnIndex(rowReader, ref nextColumnIndex);
                 if (columnIndex <= 0) {
-                    if (!string.IsNullOrEmpty(reference)) {
-                        SkipXmlElement(rowReader, "c");
-                        continue;
-                    }
-
-                    columnIndex = nextColumnIndex;
+                    SkipXmlElement(rowReader, "c");
+                    continue;
                 }
 
-                nextColumnIndex = columnIndex + 1;
                 if (columnIndex < c1 || columnIndex > c2) {
                     SkipXmlElement(rowReader, "c");
                     continue;
@@ -707,7 +711,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 rowValues[columnOffset] = ReadXmlCellValue(rowReader);
-                if (MarkRequestedColumnSeen(columnOffset, rowValues.Length, ref seenColumns)) {
+                if (canTrackColumns && MarkRequestedColumnSeen(columnOffset, rowValues.Length, ref seenColumns)) {
                     SkipXmlElementContent(rowReader, depth, "row");
                     return;
                 }
@@ -718,20 +722,14 @@ namespace OfficeIMO.Excel {
             try {
                 using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
                 RewindWorksheetStream(stream);
-                var settings = new XmlReaderSettings {
-                    DtdProcessing = DtdProcessing.Prohibit,
-                    IgnoreComments = true,
-                    IgnoreProcessingInstructions = true,
-                    IgnoreWhitespace = true,
-                    CloseInput = false
-                };
-
-                using var reader = XmlReader.Create(stream, settings);
+                using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = token.CanBeCanceled;
                 bool hasPrevious = false;
                 bool sawRowAfterRange = false;
                 int previous = 0;
                 int nextRowIndex = 1;
+                int rowCount = lastRow - firstRow + 1;
+                var seenRows = CreateCompletedRowTracker(rowCount);
 
                 while (reader.Read()) {
                     if (canCancel) {
@@ -754,6 +752,10 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (rowIndex > lastRow) {
+                        if (seenRows.AllRowsSeen) {
+                            return true;
+                        }
+
                         sawRowAfterRange = true;
                         SkipXmlElement(reader, "row");
                         continue;
@@ -769,6 +771,7 @@ namespace OfficeIMO.Excel {
 
                     previous = rowIndex;
                     hasPrevious = true;
+                    seenRows.MarkSeen(rowIndex - firstRow);
                 }
 
                 return true;
@@ -788,6 +791,8 @@ namespace OfficeIMO.Excel {
             bool hasPrevious = false;
             bool sawRowAfterRange = false;
             int previous = 0;
+            int rowCount = lastRow - firstRow + 1;
+            var seenRows = CreateCompletedRowTracker(rowCount);
 
             foreach (var row in data.Elements<Row>()) {
                 if (canCancel) {
@@ -797,6 +802,10 @@ namespace OfficeIMO.Excel {
                 int rowIndex = checked((int)row.RowIndex!.Value);
                 if (rowIndex < firstRow) continue;
                 if (rowIndex > lastRow) {
+                    if (seenRows.AllRowsSeen) {
+                        return true;
+                    }
+
                     sawRowAfterRange = true;
                     continue;
                 }
@@ -810,6 +819,7 @@ namespace OfficeIMO.Excel {
 
                 previous = rowIndex;
                 hasPrevious = true;
+                seenRows.MarkSeen(rowIndex - firstRow);
             }
 
             return true;
@@ -820,6 +830,8 @@ namespace OfficeIMO.Excel {
             bool hasPrevious = false;
             bool sawRowAfterRange = false;
             int previous = 0;
+            int rowCount = lastRow - firstRow + 1;
+            var seenRows = CreateCompletedRowTracker(rowCount);
 
             foreach (var row in EnumerateWorksheetRows(token)) {
                 if (canCancel) {
@@ -829,6 +841,10 @@ namespace OfficeIMO.Excel {
                 int rowIndex = checked((int)row.RowIndex!.Value);
                 if (rowIndex < firstRow) continue;
                 if (rowIndex > lastRow) {
+                    if (seenRows.AllRowsSeen) {
+                        return true;
+                    }
+
                     sawRowAfterRange = true;
                     continue;
                 }
@@ -842,6 +858,7 @@ namespace OfficeIMO.Excel {
 
                 previous = rowIndex;
                 hasPrevious = true;
+                seenRows.MarkSeen(rowIndex - firstRow);
             }
 
             return true;
