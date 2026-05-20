@@ -491,6 +491,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_ReadRange_IgnoresSharedStringPhoneticRuns() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderPhoneticSharedStrings.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "placeholder");
+                    document.Save();
+                }
+
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                    var cell = worksheetPart.Worksheet.Descendants<Cell>().First(c => c.CellReference?.Value == "A1");
+                    int sharedIndex = int.Parse(cell.CellValue!.Text);
+                    var sharedTable = spreadsheet.WorkbookPart!.SharedStringTablePart!.SharedStringTable!;
+                    var item = sharedTable.Elements<SharedStringItem>().ElementAt(sharedIndex);
+                    item.InnerXml = "<r><t>Displayed</t></r><rPh sb=\"0\" eb=\"9\"><t>Phonetic</t></rPh>";
+                    sharedTable.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                object?[,] values = reader.GetSheet("Data").ReadRange("A1:A1");
+
+                Assert.Equal("Displayed", values[0, 0]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Reader_ReadRangeSequential_DoesNotStopAtOutOfOrderRowsBeyondRange() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderOutOfOrderRows.xlsx");
 

@@ -31,6 +31,7 @@ namespace OfficeIMO.Excel {
             }
 
             DirectCellValuesSaveCandidate? directSaveCandidate = null;
+            DirectCellValuesSaveCandidate? appendSaveCandidate = null;
             if (!ContainsDirectCellValuesAutomaticFormattingText(list)
                 && TryCreateDirectCellValuesSaveCandidate(list, mode, out DirectCellValuesSaveCandidate? candidate)
                 && candidate != null
@@ -38,24 +39,22 @@ namespace OfficeIMO.Excel {
                 directSaveCandidate = candidate;
             }
 
-            if (TryRegisterDeferredDirectCellValuesSaveCandidate(directSaveCandidate)) {
-                return;
-            }
-
             if (mode == ExecutionMode.Parallel
                 && !ContainsDirectCellValuesAutomaticFormattingText(list)
-                && TryRegisterDeferredDirectCellValuesAppendCandidate(list)) {
-                return;
+                && TryCreateDirectCellValuesAppendCandidate(list, out DirectCellValuesSaveCandidate? appendCandidate)) {
+                appendSaveCandidate = appendCandidate;
             }
 
             // Single cell: trivially sequential
             if (list.Count == 1) {
                 var single = list[0];
                 CellValue(single.Row, single.Column, single.Value);
+                RegisterDirectCellValuesSaveCandidateIfPossible(directSaveCandidate);
                 return;
             }
 
             if (list.Count > DirectSequentialCellWriteLimit && TryApplyPlainCellsByAppendingRows(list, ct)) {
+                RegisterDirectCellValuesSaveCandidateIfPossible(appendSaveCandidate ?? directSaveCandidate);
                 return;
             }
 
@@ -109,6 +108,7 @@ namespace OfficeIMO.Excel {
                 ct: ct
             );
 
+            RegisterDirectCellValuesSaveCandidateIfPossible(appendSaveCandidate ?? directSaveCandidate);
         }
 
         /// <summary>
@@ -127,12 +127,12 @@ namespace OfficeIMO.Excel {
             return (cellValue, new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType));
         }
 
-        private bool TryRegisterDeferredDirectCellValuesSaveCandidate(DirectCellValuesSaveCandidate? candidate) {
+        private void RegisterDirectCellValuesSaveCandidateIfPossible(DirectCellValuesSaveCandidate? candidate) {
             if (candidate == null || string.IsNullOrEmpty(candidate.Range)) {
-                return false;
+                return;
             }
 
-            _excelDocument.RegisterDeferredDirectTabularSaveCandidate(
+            _excelDocument.RegisterDirectTabularSaveCandidate(
                 this,
                 "Cells",
                 candidate.ColumnNames,
@@ -140,28 +140,21 @@ namespace OfficeIMO.Excel {
                 candidate.Rows,
                 candidate.IncludeHeaders,
                 candidate.Range);
-            return true;
         }
 
-        private bool TryRegisterDeferredDirectCellValuesAppendCandidate(IList<(int Row, int Column, object Value)> cells) {
+        private bool TryCreateDirectCellValuesAppendCandidate(IList<(int Row, int Column, object Value)> cells, out DirectCellValuesSaveCandidate? candidate) {
+            candidate = null;
             if (!TryGetCompleteColumnOneRectangle(cells, out int firstRow, out int rowCount, out int columnCount)
                 || firstRow != 2
                 || !CanRegisterDirectTabularSaveCandidateWithExistingHeader(columnCount)
                 || !TryReadExistingHeaderRow(columnCount, out string[] headers)
-                || !TryCreateDirectAppendCellValuesSaveCandidate(cells, headers, columnCount, out DirectCellValuesSaveCandidate? candidate)
+                || !TryCreateDirectAppendCellValuesSaveCandidate(cells, headers, columnCount, out candidate)
                 || candidate == null) {
                 return false;
             }
 
             string range = A1.CellReference(1, 1) + ":" + A1.CellReference(firstRow + rowCount - 1, columnCount);
-            _excelDocument.RegisterDeferredDirectTabularSaveCandidate(
-                this,
-                "Cells",
-                candidate.ColumnNames,
-                candidate.ColumnTypes,
-                candidate.Rows,
-                includeHeaders: true,
-                range);
+            candidate = candidate.WithRange(range);
             return true;
         }
 
@@ -377,6 +370,10 @@ namespace OfficeIMO.Excel {
             internal bool IncludeHeaders { get; }
 
             internal string Range { get; }
+
+            internal DirectCellValuesSaveCandidate WithRange(string range) {
+                return new DirectCellValuesSaveCandidate(ColumnNames, ColumnTypes, Rows, IncludeHeaders, range);
+            }
         }
 
         private static bool TryGetCompleteA1Rectangle(IList<(int Row, int Column, object Value)> cells, out int rowCount, out int columnCount) {

@@ -138,6 +138,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_InsertDataTable_WritesCellsImmediately() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataTableImmediateCells.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+
+                var table = new DataTable();
+                table.Columns.Add("Name", typeof(string));
+                table.Columns.Add("Amount", typeof(int));
+                table.Rows.Add("Alpha", 10);
+
+                sheet.InsertDataTable(table, includeHeaders: true);
+
+                Assert.True(sheet.TryGetCellText(1, 1, out var header));
+                Assert.Equal("Name", header);
+                Assert.True(sheet.TryGetCellText(2, 1, out var value));
+                Assert.Equal("Alpha", value);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void Test_InsertDataSet_CreatesWorksheetPerTableWithSafeNames() {
             string filePath = Path.Combine(_directoryWithFiles, "DataSetImport.xlsx");
 
@@ -352,6 +375,9 @@ namespace OfficeIMO.Tests {
                 string range = sheet.InsertDataReader(reader, tableName: "ReaderTable", autoFit: true);
 
                 Assert.Equal("A1:C3", range);
+                Assert.True(sheet.TryGetCellText(2, 1, out var name));
+                Assert.Equal("Alpha", name);
+                Assert.Equal("A1:C3", sheet.GetTableRange("ReaderTable"));
                 document.Save();
             }
 

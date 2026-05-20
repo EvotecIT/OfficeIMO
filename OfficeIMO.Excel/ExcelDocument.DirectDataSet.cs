@@ -230,6 +230,52 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        internal void RegisterDirectTabularSaveCandidate(
+            ExcelSheet sheet,
+            string tableNameForModel,
+            IReadOnlyList<string> columnNames,
+            IReadOnlyList<Type> columnTypes,
+            object?[][] rows,
+            bool includeHeaders,
+            string range,
+            string? tableName = null,
+            bool createTable = false,
+            TableStyle tableStyle = TableStyle.TableStyleMedium2,
+            bool includeAutoFilter = false,
+            bool autoFit = false) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
+            if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
+            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            if (!ReferenceEquals(sheet.Document, this)) {
+                return;
+            }
+
+            ClearDirectDataSetSaveCandidate();
+
+            try {
+                string requestedName = string.IsNullOrWhiteSpace(tableNameForModel) ? sheet.Name : tableNameForModel;
+                var tableModel = DirectDataSetTableModel.FromRows(columnNames, columnTypes, rows);
+                var model = DirectDataSetWorkbookModel.CreateSingle(
+                    sheet.Name,
+                    requestedName,
+                    createTable ? tableName : null,
+                    range,
+                    tableModel,
+                    createTable,
+                    tableStyle,
+                    includeHeaders,
+                    includeAutoFilter,
+                    autoFit,
+                    _dateTimeOffsetWriteStrategy,
+                    CancellationToken.None);
+                var owner = new DataSet("TabularExport") { Locale = CultureInfo.InvariantCulture };
+                _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(owner, model, ClearDirectDataSetSaveCandidate, isDeferred: false, subscribeToSourceChanges: false);
+            } catch {
+                ClearDirectDataSetSaveCandidate();
+            }
+        }
+
         internal bool TryPromoteDirectTabularSaveCandidateToTable(
             ExcelSheet sheet,
             string range,

@@ -115,11 +115,30 @@ namespace OfficeIMO.Excel {
             int depth = reader.Depth;
             string? first = null;
             StringBuilder? builder = null;
+            int phoneticRunDepth = -1;
 
             bool hasNode = reader.Read();
             while (hasNode) {
                 if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth && reader.LocalName == "si") {
                     break;
+                }
+
+                if (phoneticRunDepth >= 0) {
+                    if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == phoneticRunDepth && reader.LocalName == "rPh") {
+                        phoneticRunDepth = -1;
+                    }
+
+                    hasNode = reader.Read();
+                    continue;
+                }
+
+                if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "rPh") {
+                    if (!reader.IsEmptyElement) {
+                        phoneticRunDepth = reader.Depth;
+                    }
+
+                    hasNode = reader.Read();
+                    continue;
                 }
 
                 if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "t") {
