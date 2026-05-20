@@ -37,12 +37,12 @@ namespace OfficeIMO.Excel {
                 decided = policy.Decide("ReadObjectsAs", workload);
             }
 
-            if (requested != OfficeIMO.Excel.ExecutionMode.Parallel
+            if (decided != OfficeIMO.Excel.ExecutionMode.Parallel
                 && TryReadObjectsFromXmlMaterialized<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var streamResult)) {
                 return streamResult;
             }
 
-            if (requested != OfficeIMO.Excel.ExecutionMode.Parallel
+            if (decided != OfficeIMO.Excel.ExecutionMode.Parallel
                 && TryReadObjectsSequentialSinglePass<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var singlePassResult)) {
                 return singlePassResult;
             }

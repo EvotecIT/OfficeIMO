@@ -669,6 +669,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_ReadRange_ReportsOwnExecutionDecision() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderRangeDecision.xlsx");
+            var decisions = new List<(string Operation, int Items, ExecutionMode Mode)>();
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "A");
+                    sheet.CellValue(1, 2, "B");
+                    document.Save();
+                }
+
+                var options = new ExcelReadOptions();
+                options.Execution.OperationThresholds["ReadRange"] = 1;
+                options.Execution.OnDecision = (operation, items, mode) => decisions.Add((operation, items, mode));
+
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                object?[,] values = reader.GetSheet("Data").ReadRange("A1:B1");
+
+                Assert.Equal("A", values[0, 0]);
+                Assert.Equal("B", values[0, 1]);
+                var decision = Assert.Single(decisions);
+                Assert.Equal("ReadRange", decision.Operation);
+                Assert.Equal(2, decision.Items);
+                Assert.Equal(ExecutionMode.Parallel, decision.Mode);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Reader_ReadRangeStream_ReportsOwnExecutionDecision() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderRangeStreamDecision.xlsx");
             var decisions = new List<(string Operation, int Items, ExecutionMode Mode)>();

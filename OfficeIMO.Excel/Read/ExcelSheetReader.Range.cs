@@ -35,13 +35,10 @@ namespace OfficeIMO.Excel {
             var policy = _opt.Execution;
             var decided = mode ?? policy.Mode;
             int workload = height * width;
-            if (CanUseAutomaticXmlRangeFastPath(decided, policy)) {
-                if (TryFillRangeXmlFast(result, r1, c1, r2, c2, ct)) {
-                    return result;
-                }
+            if (decided == OfficeIMO.Excel.ExecutionMode.Automatic) {
+                decided = policy.Decide("ReadRange", workload);
             }
 
-            if (decided == OfficeIMO.Excel.ExecutionMode.Automatic) decided = policy.Decide("ReadRange", workload);
             if (decided == OfficeIMO.Excel.ExecutionMode.Sequential) {
                 if (TryFillRangeXmlFast(result, r1, c1, r2, c2, ct)) {
                     return result;
@@ -75,12 +72,12 @@ namespace OfficeIMO.Excel {
             int cols = c2 - c1 + 1;
             var policy = _opt.Execution;
             var decided = mode ?? policy.Mode;
-            if (CanUseAutomaticXmlRangeFastPath(decided, policy)
-                && TryFillDataTableXmlFast(dt, r1, c1, r2, c2, rows, cols, headersInFirstRow, ct)) {
-                return dt;
+            int workload = rows * cols;
+            if (decided == OfficeIMO.Excel.ExecutionMode.Automatic) {
+                decided = policy.Decide("ReadRangeAsDataTable", workload);
             }
 
-            if (CanUseSequentialRangeFastPath("ReadRangeAsDataTable", rows * cols, mode)) {
+            if (decided == OfficeIMO.Excel.ExecutionMode.Sequential) {
                 if (TryFillDataTableXmlFast(dt, r1, c1, r2, c2, rows, cols, headersInFirstRow, ct)) {
                     return dt;
                 }
@@ -93,7 +90,7 @@ namespace OfficeIMO.Excel {
                 return dt;
             }
 
-            var raw = SnapshotAndConvertRangeCells(r1, c1, r2, c2, "ReadRangeAsDataTable", mode, ct, rows * cols);
+            var raw = SnapshotAndConvertRangeCells(r1, c1, r2, c2, "ReadRangeAsDataTable", decided, ct, workload);
 
             Type[]? columnTypes = _opt.InferDataTableColumnTypes
                 ? InferDataTableColumnTypesFromRaw(raw, r1, c1, cols, headersInFirstRow ? 1 : 0)
@@ -172,12 +169,6 @@ namespace OfficeIMO.Excel {
             dt.Clear();
             dt.Columns.Clear();
             return false;
-        }
-
-        private bool CanUseAutomaticXmlRangeFastPath(OfficeIMO.Excel.ExecutionMode decided, OfficeIMO.Excel.ExecutionPolicy policy) {
-            return decided == OfficeIMO.Excel.ExecutionMode.Automatic
-                && policy.OnDecision == null
-                && CanUseXmlFastReader();
         }
 
         private bool TryReadDataTableXmlMetadata(
