@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public sealed partial class ExcelSheetReader {
         private const int DenseSnapshotCapacityLimit = 100_000;
+        private const int XmlFastCompletedRowTrackingLimit = 4096;
 
         /// <summary>
         /// Returns the used range of the worksheet as an A1 string (e.g., "A1:C10").
@@ -78,6 +79,10 @@ namespace OfficeIMO.Excel {
             }
 
             if (decided == OfficeIMO.Excel.ExecutionMode.Sequential) {
+                if (TryFillDataTableXmlBufferedSinglePass(dt, r1, c1, r2, c2, rows, cols, headersInFirstRow, workload, ct)) {
+                    return dt;
+                }
+
                 if (TryFillDataTableXmlFast(dt, r1, c1, r2, c2, rows, cols, headersInFirstRow, ct)) {
                     return dt;
                 }
@@ -133,6 +138,218 @@ namespace OfficeIMO.Excel {
             return dt;
         }
 
+        private bool TryFillDataTableXmlBufferedSinglePass(
+            DataTable dt,
+            int r1,
+            int c1,
+            int r2,
+            int c2,
+            int rows,
+            int cols,
+            bool headersInFirstRow,
+            int workload,
+            CancellationToken ct) {
+            if (!_opt.InferDataTableColumnTypes
+                || workload > DenseSnapshotCapacityLimit
+                || !CanUseDataTableXmlBufferedReader()) {
+                return false;
+            }
+
+            int startRow = headersInFirstRow ? 1 : 0;
+            int dataRowCount = Math.Max(0, rows - startRow);
+            var headerValues = headersInFirstRow ? new object?[cols] : null;
+            var rowValues = new object?[dataRowCount][];
+            var inferredTypes = new Type?[cols];
+
+            try {
+                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                RewindWorksheetStream(stream);
+                using var reader = OpenWorksheetXmlReader(stream);
+                bool canCancel = ct.CanBeCanceled;
+                int nextRowIndex = 1;
+                var seenRows = CreateCompletedRowTracker(rows);
+                while (reader.Read()) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                        continue;
+                    }
+
+                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                    if (rowIndex <= 0) {
+                        rowIndex = nextRowIndex;
+                    }
+
+                    nextRowIndex = rowIndex + 1;
+                    if (rowIndex < r1 || rowIndex > r2) {
+                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
+                            break;
+                        }
+
+                        SkipXmlElement(reader, "row");
+                        continue;
+                    }
+
+                    if (headersInFirstRow && rowIndex == r1) {
+                        ReadXmlRowIntoDataTableBuffer(reader, c1, c2, cols, headerValues, null, null, ct);
+                        seenRows.MarkSeen(0);
+                        continue;
+                    }
+
+                    int rr = rowIndex - r1 - startRow;
+                    if ((uint)rr >= (uint)dataRowCount) {
+                        SkipXmlElement(reader, "row");
+                        continue;
+                    }
+
+                    object?[] values = rowValues[rr] ??= new object?[cols];
+                    ReadXmlRowIntoDataTableBuffer(reader, c1, c2, cols, null, values, inferredTypes, ct);
+                    seenRows.MarkSeen(rowIndex - r1);
+                }
+
+                Type[] columnTypes = new Type[cols];
+                for (int c = 0; c < cols; c++) {
+                    columnTypes[c] = inferredTypes[c] ?? typeof(object);
+                }
+
+                if (headersInFirstRow && rows > 0) {
+                    var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => headerValues?[c]?.ToString(), _opt.NormalizeHeaders);
+                    for (int c = 0; c < cols; c++) {
+                        dt.Columns.Add(headers[c], columnTypes[c]);
+                    }
+                } else {
+                    for (int c = 0; c < cols; c++) {
+                        dt.Columns.Add($"Column{c + 1}", columnTypes[c]);
+                    }
+                }
+
+                dt.MinimumCapacity = Math.Max(dt.MinimumCapacity, dataRowCount);
+                dt.BeginLoadData();
+                try {
+                    AddBufferedRowsToDataTable(dt, rowValues, dataRowCount, cols, ct);
+                } finally {
+                    dt.EndLoadData();
+                }
+
+                return true;
+            } catch (XmlException) {
+                dt.Clear();
+                dt.Columns.Clear();
+                return false;
+            } catch (IOException) {
+                dt.Clear();
+                dt.Columns.Clear();
+                return false;
+            } catch (UnauthorizedAccessException) {
+                dt.Clear();
+                dt.Columns.Clear();
+                return false;
+            } catch (ObjectDisposedException) {
+                dt.Clear();
+                dt.Columns.Clear();
+                return false;
+            }
+        }
+
+        private static void AddBufferedRowsToDataTable(DataTable dt, object?[][] rowValues, int dataRowCount, int cols, CancellationToken ct) {
+            bool canCancel = ct.CanBeCanceled;
+            object[]? blankRow = null;
+            for (int r = 0; r < dataRowCount; r++) {
+                if (canCancel && (r & 1023) == 0) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
+                object?[]? source = rowValues[r];
+                if (source == null) {
+                    blankRow ??= CreateDbNullRow(cols);
+                    dt.Rows.Add(blankRow);
+                    continue;
+                }
+
+                for (int c = 0; c < cols; c++) {
+                    source[c] ??= DBNull.Value;
+                }
+
+                dt.Rows.Add(source);
+            }
+        }
+
+        private static object[] CreateDbNullRow(int cols) {
+            var values = new object[cols];
+            for (int i = 0; i < values.Length; i++) {
+                values[i] = DBNull.Value;
+            }
+
+            return values;
+        }
+
+        private void ReadXmlRowIntoDataTableBuffer(
+            XmlReader rowReader,
+            int c1,
+            int c2,
+            int cols,
+            object?[]? headerValues,
+            object?[]? rowValues,
+            Type?[]? inferredTypes,
+            CancellationToken ct) {
+            if (rowReader.IsEmptyElement) {
+                return;
+            }
+
+            int depth = rowReader.Depth;
+            bool canCancel = ct.CanBeCanceled;
+            int nextColumnIndex = 1;
+            bool canTrackColumns = cols <= 64;
+            ulong seenColumns = 0;
+            while (rowReader.Read()) {
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
+                if (rowReader.NodeType == XmlNodeType.EndElement && rowReader.Depth == depth && rowReader.LocalName == "row") {
+                    return;
+                }
+
+                if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
+                    continue;
+                }
+
+                int columnIndex = GetXmlCellColumnIndex(rowReader, ref nextColumnIndex);
+                if (columnIndex <= 0) {
+                    SkipXmlElement(rowReader, "c");
+                    continue;
+                }
+
+                if (columnIndex < c1 || columnIndex > c2) {
+                    SkipXmlElement(rowReader, "c");
+                    continue;
+                }
+
+                int cc = columnIndex - c1;
+                if ((uint)cc >= (uint)cols) {
+                    SkipXmlElement(rowReader, "c");
+                    continue;
+                }
+
+                object? value = ReadXmlCellValue(rowReader);
+                if (headerValues != null) {
+                    headerValues[cc] = value;
+                } else if (rowValues != null) {
+                    rowValues[cc] = value;
+                    if (inferredTypes != null && inferredTypes[cc] != typeof(object)) {
+                        inferredTypes[cc] = MergeDataTableColumnType(inferredTypes[cc], value);
+                    }
+                }
+
+                if (canTrackColumns && MarkRequestedColumnSeen(cc, cols, ref seenColumns)) {
+                    SkipXmlElementContent(rowReader, depth, "row");
+                    return;
+                }
+            }
+        }
+
         private bool TryFillDataTableXmlFast(
             DataTable dt,
             int r1,
@@ -184,21 +401,20 @@ namespace OfficeIMO.Excel {
             headerValues = headersInFirstRow ? new object?[cols] : null;
             columnTypes = null;
             Type?[]? inferredTypes = _opt.InferDataTableColumnTypes ? new Type?[cols] : null;
+            if (headerValues == null && inferredTypes == null) {
+                return true;
+            }
 
             try {
                 using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
                 RewindWorksheetStream(stream);
-                var settings = new XmlReaderSettings {
-                    DtdProcessing = DtdProcessing.Prohibit,
-                    IgnoreComments = true,
-                    IgnoreProcessingInstructions = true,
-                    IgnoreWhitespace = true,
-                    CloseInput = false
-                };
-
-                using var reader = XmlReader.Create(stream, settings);
+                using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
+                int rowCount = r2 - r1 + 1;
+                var seenRows = CreateCompletedRowTracker(rowCount);
+                bool headerRead = !headersInFirstRow;
+                int unresolvedInferredTypes = inferredTypes?.Length ?? 0;
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -215,6 +431,10 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
+                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
+                            break;
+                        }
+
                         SkipXmlElement(reader, "row");
                         continue;
                     }
@@ -226,7 +446,15 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    ReadXmlRowIntoDataTableMetadata(reader, c1, c2, headerValues, inferredTypes, isHeaderRow, inferFromRow, ct);
+                    ReadXmlRowIntoDataTableMetadata(reader, c1, c2, headerValues, inferredTypes, isHeaderRow, inferFromRow, ct, ref unresolvedInferredTypes);
+                    seenRows.MarkSeen(rowIndex - r1);
+                    if (isHeaderRow) {
+                        headerRead = true;
+                    }
+
+                    if (headerRead && (inferredTypes == null || unresolvedInferredTypes == 0)) {
+                        return true;
+                    }
                 }
 
                 if (inferredTypes != null) {
@@ -256,7 +484,8 @@ namespace OfficeIMO.Excel {
             Type?[]? inferredTypes,
             bool isHeaderRow,
             bool inferFromRow,
-            CancellationToken ct) {
+            CancellationToken ct,
+            ref int unresolvedInferredTypes) {
             if (rowReader.IsEmptyElement) {
                 return;
             }
@@ -265,6 +494,7 @@ namespace OfficeIMO.Excel {
             bool canCancel = ct.CanBeCanceled;
             int nextColumnIndex = 1;
             int columnCount = c2 - c1 + 1;
+            bool canTrackColumns = columnCount <= 64;
             ulong seenColumns = 0;
             while (rowReader.Read()) {
                 if (canCancel) {
@@ -279,18 +509,12 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                string? reference = rowReader.GetAttribute("r");
-                int columnIndex = A1.ParseColumnIndexFromCellReferenceWithKnownRowFast(reference);
+                int columnIndex = GetXmlCellColumnIndex(rowReader, ref nextColumnIndex);
                 if (columnIndex <= 0) {
-                    if (!string.IsNullOrEmpty(reference)) {
-                        SkipXmlElement(rowReader, "c");
-                        continue;
-                    }
-
-                    columnIndex = nextColumnIndex;
+                    SkipXmlElement(rowReader, "c");
+                    continue;
                 }
 
-                nextColumnIndex = columnIndex + 1;
                 if (columnIndex < c1 || columnIndex > c2) {
                     SkipXmlElement(rowReader, "c");
                     continue;
@@ -303,10 +527,15 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (inferFromRow && inferredTypes![cc] != typeof(object)) {
-                    inferredTypes[cc] = MergeDataTableColumnType(inferredTypes[cc], value);
+                    Type? previous = inferredTypes[cc];
+                    Type? inferred = MergeDataTableColumnType(previous, value);
+                    inferredTypes[cc] = inferred;
+                    if (previous != typeof(object) && inferred == typeof(object)) {
+                        unresolvedInferredTypes--;
+                    }
                 }
 
-                if (MarkRequestedColumnSeen(cc, columnCount, ref seenColumns)) {
+                if (canTrackColumns && MarkRequestedColumnSeen(cc, columnCount, ref seenColumns)) {
                     SkipXmlElementContent(rowReader, depth, "row");
                     return;
                 }
@@ -329,25 +558,15 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            var dataRows = new DataRow[dataRowCount];
-            for (int r = 0; r < dataRowCount; r++) {
-                dataRows[r] = dt.NewRow();
-            }
+            var rowValues = new object?[dataRowCount][];
 
             try {
                 using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
                 RewindWorksheetStream(stream);
-                var settings = new XmlReaderSettings {
-                    DtdProcessing = DtdProcessing.Prohibit,
-                    IgnoreComments = true,
-                    IgnoreProcessingInstructions = true,
-                    IgnoreWhitespace = true,
-                    CloseInput = false
-                };
-
-                using var reader = XmlReader.Create(stream, settings);
+                using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
+                var seenRows = CreateCompletedRowTracker(rows);
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -364,34 +583,35 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
+                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
+                            break;
+                        }
+
                         SkipXmlElement(reader, "row");
                         continue;
                     }
 
                     if (headersInFirstRow && rowIndex == r1) {
+                        seenRows.MarkSeen(0);
                         SkipXmlElement(reader, "row");
                         continue;
                     }
 
                     int rr = rowIndex - r1 - startRow;
-                    if ((uint)rr >= (uint)dataRows.Length) {
+                    if ((uint)rr >= (uint)rowValues.Length) {
                         SkipXmlElement(reader, "row");
                         continue;
                     }
 
-                    ReadXmlRowIntoDataRow(reader, dataRows[rr], c1, c2, cols, ct);
+                    object?[] values = rowValues[rr] ??= new object?[cols];
+                    ReadXmlRowIntoDataTableBuffer(reader, c1, c2, cols, null, values, null, ct);
+                    seenRows.MarkSeen(rowIndex - r1);
                 }
 
                 dt.MinimumCapacity = Math.Max(dt.MinimumCapacity, dataRowCount);
                 dt.BeginLoadData();
                 try {
-                    for (int r = 0; r < dataRows.Length; r++) {
-                        if (canCancel && (r & 1023) == 0) {
-                            ct.ThrowIfCancellationRequested();
-                        }
-
-                        dt.Rows.Add(dataRows[r]);
-                    }
+                    AddBufferedRowsToDataTable(dt, rowValues, dataRowCount, cols, ct);
                 } finally {
                     dt.EndLoadData();
                 }
@@ -405,59 +625,6 @@ namespace OfficeIMO.Excel {
                 return false;
             } catch (ObjectDisposedException) {
                 return false;
-            }
-        }
-
-        private void ReadXmlRowIntoDataRow(XmlReader rowReader, DataRow dataRow, int c1, int c2, int cols, CancellationToken ct) {
-            if (rowReader.IsEmptyElement) {
-                return;
-            }
-
-            int depth = rowReader.Depth;
-            bool canCancel = ct.CanBeCanceled;
-            int nextColumnIndex = 1;
-            ulong seenColumns = 0;
-            while (rowReader.Read()) {
-                if (canCancel) {
-                    ct.ThrowIfCancellationRequested();
-                }
-
-                if (rowReader.NodeType == XmlNodeType.EndElement && rowReader.Depth == depth && rowReader.LocalName == "row") {
-                    return;
-                }
-
-                if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
-                    continue;
-                }
-
-                string? reference = rowReader.GetAttribute("r");
-                int columnIndex = A1.ParseColumnIndexFromCellReferenceWithKnownRowFast(reference);
-                if (columnIndex <= 0) {
-                    if (!string.IsNullOrEmpty(reference)) {
-                        SkipXmlElement(rowReader, "c");
-                        continue;
-                    }
-
-                    columnIndex = nextColumnIndex;
-                }
-
-                nextColumnIndex = columnIndex + 1;
-                if (columnIndex < c1 || columnIndex > c2) {
-                    SkipXmlElement(rowReader, "c");
-                    continue;
-                }
-
-                int cc = columnIndex - c1;
-                if ((uint)cc >= (uint)cols) {
-                    SkipXmlElement(rowReader, "c");
-                    continue;
-                }
-
-                dataRow[cc] = ReadXmlCellValue(rowReader) ?? DBNull.Value;
-                if (MarkRequestedColumnSeen(cc, cols, ref seenColumns)) {
-                    SkipXmlElementContent(rowReader, depth, "row");
-                    return;
-                }
             }
         }
 
@@ -511,6 +678,11 @@ namespace OfficeIMO.Excel {
             int cols = c2 - c1 + 1;
             if (rows <= 1 || cols == 0) {
                 return Array.Empty<Dictionary<string, object?>>();
+            }
+
+            if (CanUseReadObjectsXmlFastPath(mode)
+                && TryReadObjectsDictionaryXmlFast(r1, c1, r2, c2, rows, cols, ct, out var xmlResult)) {
+                return xmlResult;
             }
 
             if (CanUseSequentialRangeFastPath("ReadObjects", rows * cols, mode)) {
@@ -616,14 +788,12 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            for (int r = 0; r < dataRowCount; r++) {
-                var source = rowValues[r];
-                DataRow row = dt.NewRow();
-                for (int c = 0; c < cols; c++) {
-                    row[c] = source?[c] ?? DBNull.Value;
-                }
-
-                dt.Rows.Add(row);
+            dt.MinimumCapacity = Math.Max(dt.MinimumCapacity, dataRowCount);
+            dt.BeginLoadData();
+            try {
+                AddBufferedRowsToDataTable(dt, rowValues, dataRowCount, cols, ct);
+            } finally {
+                dt.EndLoadData();
             }
         }
 
@@ -791,6 +961,135 @@ namespace OfficeIMO.Excel {
             }
 
             return result;
+        }
+
+        private bool CanUseReadObjectsXmlFastPath(OfficeIMO.Excel.ExecutionMode? mode) {
+            var policy = _opt.Execution;
+            var decided = mode ?? policy.Mode;
+            if (decided == OfficeIMO.Excel.ExecutionMode.Parallel) {
+                return false;
+            }
+
+            return policy.OnDecision == null && CanUseXmlFastReader();
+        }
+
+        private bool TryReadObjectsDictionaryXmlFast(
+            int r1,
+            int c1,
+            int r2,
+            int c2,
+            int rows,
+            int cols,
+            CancellationToken ct,
+            out List<Dictionary<string, object?>> result) {
+            result = [];
+            int dataRowCount = rows - 1;
+            var headerValues = new object?[cols];
+            var rowValues = dataRowCount == 0 ? Array.Empty<object?[]>() : new object?[dataRowCount][];
+
+            try {
+                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                RewindWorksheetStream(stream);
+                using var reader = OpenWorksheetXmlReader(stream);
+                bool canCancel = ct.CanBeCanceled;
+                int nextRowIndex = 1;
+                var seenRows = CreateCompletedRowTracker(rows);
+
+                while (reader.Read()) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                        continue;
+                    }
+
+                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                    if (rowIndex <= 0) {
+                        rowIndex = nextRowIndex;
+                    }
+
+                    nextRowIndex = rowIndex + 1;
+                    if (rowIndex < r1 || rowIndex > r2) {
+                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
+                            break;
+                        }
+
+                        SkipXmlElement(reader, "row");
+                        continue;
+                    }
+
+                    if (rowIndex == r1) {
+                        ReadXmlRowValuesInto(reader, rowIndex, c1, c2, headerValues, ct);
+                        seenRows.MarkSeen(0);
+                        continue;
+                    }
+
+                    int rowOffset = rowIndex - r1 - 1;
+                    if ((uint)rowOffset >= (uint)rowValues.Length) {
+                        continue;
+                    }
+
+                    object?[] values = ReadXmlRowValues(reader, rowIndex, c1, c2, cols, ct);
+                    object?[]? existing = rowValues[rowOffset];
+                    if (existing == null) {
+                        rowValues[rowOffset] = values;
+                    } else {
+                        MergeRowValues(existing, values);
+                    }
+
+                    seenRows.MarkSeen(rowIndex - r1);
+                }
+
+                var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => headerValues[c]?.ToString(), _opt.NormalizeHeaders);
+                result = new List<Dictionary<string, object?>>(dataRowCount);
+                for (int r = 0; r < dataRowCount; r++) {
+                    if (canCancel && (r & 1023) == 0) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    result.Add(CreateDictionaryRow(headers, rowValues[r], cols));
+                }
+
+                return true;
+            } catch (XmlException) {
+                result = [];
+                return false;
+            } catch (IOException) {
+                result = [];
+                return false;
+            } catch (UnauthorizedAccessException) {
+                result = [];
+                return false;
+            } catch (ObjectDisposedException) {
+                result = [];
+                return false;
+            }
+
+            static void MergeRowValues(object?[] target, object?[] source) {
+                for (int i = 0; i < source.Length; i++) {
+                    if (source[i] != null) {
+                        target[i] = source[i];
+                    }
+                }
+            }
+
+            static Dictionary<string, object?> CreateDictionaryRow(string[] headers, object?[]? values, int columnCount) {
+                var dict = new Dictionary<string, object?>(columnCount, StringComparer.OrdinalIgnoreCase);
+                if (values == null) {
+                    for (int c = 0; c < columnCount; c++) {
+                        dict.Add(headers[c], null);
+                    }
+
+                    return dict;
+                }
+
+                for (int c = 0; c < columnCount; c++) {
+                    dict.Add(headers[c], values[c]);
+                }
+
+                return dict;
+            }
         }
 
         private bool TryReadObjectsSequentialSinglePass(
@@ -1168,18 +1467,12 @@ namespace OfficeIMO.Excel {
             try {
                 using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
                 RewindWorksheetStream(stream);
-                var settings = new XmlReaderSettings {
-                    DtdProcessing = DtdProcessing.Prohibit,
-                    IgnoreComments = true,
-                    IgnoreProcessingInstructions = true,
-                    IgnoreWhitespace = true,
-                    CloseInput = false
-                };
-
-                using var reader = XmlReader.Create(stream, settings);
+                using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
                 int width = result.GetLength(1);
+                int height = result.GetLength(0);
+                var seenRows = CreateCompletedRowTracker(height);
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -1196,11 +1489,16 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
+                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
+                            break;
+                        }
+
                         SkipXmlElement(reader, "row");
                         continue;
                     }
 
                     ReadXmlRowIntoRange(reader, result, rowIndex, r1, c1, c2, width, ct);
+                    seenRows.MarkSeen(rowIndex - r1);
                 }
 
                 return true;
@@ -1219,6 +1517,62 @@ namespace OfficeIMO.Excel {
             return _opt.CellValueConverter == null
                 && _opt.Culture == CultureInfo.InvariantCulture
                 && CanStreamWorksheetPart();
+        }
+
+        private bool CanUseDataTableXmlBufferedReader() {
+            return (_opt.CellValueConverter != null || _opt.Culture == CultureInfo.InvariantCulture)
+                && CanStreamWorksheetPart();
+        }
+
+        private static CompletedRowTracker CreateCompletedRowTracker(int rowCount) {
+            return new CompletedRowTracker(rowCount);
+        }
+
+        private struct CompletedRowTracker {
+            private readonly int _rowCount;
+            private bool[]? _seenRows;
+            private ulong _seenRowMask;
+            private int _seenRowCount;
+
+            internal CompletedRowTracker(int rowCount) {
+                if (rowCount <= 0 || rowCount > XmlFastCompletedRowTrackingLimit) {
+                    _rowCount = 0;
+                    _seenRows = null;
+                    _seenRowMask = 0;
+                    _seenRowCount = 0;
+                    return;
+                }
+
+                _rowCount = rowCount;
+                _seenRows = rowCount > 64 ? new bool[rowCount] : null;
+                _seenRowMask = 0;
+                _seenRowCount = 0;
+            }
+
+            internal readonly bool AllRowsSeen => _rowCount > 0 && _seenRowCount == _rowCount;
+
+            internal void MarkSeen(int rowOffset) {
+                if ((uint)rowOffset >= (uint)_rowCount) {
+                    return;
+                }
+
+                if (_seenRows == null) {
+                    ulong rowBit = 1UL << rowOffset;
+                    if ((_seenRowMask & rowBit) != 0) {
+                        return;
+                    }
+
+                    _seenRowMask |= rowBit;
+                } else {
+                    if (_seenRows[rowOffset]) {
+                        return;
+                    }
+
+                    _seenRows[rowOffset] = true;
+                }
+
+                _seenRowCount++;
+            }
         }
 
         private static bool MarkRequestedColumnSeen(int columnOffset, int columnCount, ref ulong seenColumns) {
@@ -1245,6 +1599,7 @@ namespace OfficeIMO.Excel {
             int depth = rowReader.Depth;
             bool canCancel = ct.CanBeCanceled;
             int nextColumnIndex = 1;
+            bool canTrackColumns = width <= 64;
             ulong seenColumns = 0;
             while (rowReader.Read()) {
                 if (canCancel) {
@@ -1259,18 +1614,12 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                string? reference = rowReader.GetAttribute("r");
-                int columnIndex = A1.ParseColumnIndexFromCellReferenceWithKnownRowFast(reference);
+                int columnIndex = GetXmlCellColumnIndex(rowReader, ref nextColumnIndex);
                 if (columnIndex <= 0) {
-                    if (!string.IsNullOrEmpty(reference)) {
-                        SkipXmlElement(rowReader, "c");
-                        continue;
-                    }
-
-                    columnIndex = nextColumnIndex;
+                    SkipXmlElement(rowReader, "c");
+                    continue;
                 }
 
-                nextColumnIndex = columnIndex + 1;
                 if (columnIndex < c1 || columnIndex > c2) {
                     SkipXmlElement(rowReader, "c");
                     continue;
@@ -1283,7 +1632,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 result[rr, cc] = ReadXmlCellValue(rowReader);
-                if (MarkRequestedColumnSeen(cc, width, ref seenColumns)) {
+                if (canTrackColumns && MarkRequestedColumnSeen(cc, width, ref seenColumns)) {
                     SkipXmlElementContent(rowReader, depth, "row");
                     return;
                 }
@@ -1291,19 +1640,22 @@ namespace OfficeIMO.Excel {
         }
 
         private object? ReadXmlCellValue(XmlReader cellReader) {
-            string? type = cellReader.GetAttribute("t");
-            string? styleAttribute = _opt.TreatDatesUsingNumberFormat
-                && type != "s"
-                && type != "b"
-                && type != "inlineStr"
-                && type != "d"
-                && type != "str"
-                ? cellReader.GetAttribute("s")
-                : null;
+            XmlCellKind cellKind = ParseXmlCellKind(cellReader.GetAttribute("t"));
 
             if (cellReader.IsEmptyElement) {
                 return _opt.FillBlanksInRanges ? null : null;
             }
+
+            if (_opt.CellValueConverter != null) {
+                CellRaw raw = ReadXmlCellRaw(cellReader, 0, 0, cellKind, readStyleIndex: true);
+                return ConvertRaw(raw).TypedValue;
+            }
+
+            string? styleAttribute = _opt.TreatDatesUsingNumberFormat
+                && _styles.HasDateStyles
+                && CellKindCanUseDateStyle(cellKind)
+                ? cellReader.GetAttribute("s")
+                : null;
 
             int depth = cellReader.Depth;
             string? rawText = null;
@@ -1351,25 +1703,25 @@ namespace OfficeIMO.Excel {
                 return formulaText;
             }
 
-            if (type == "inlineStr") {
+            if (cellKind == XmlCellKind.InlineString) {
                 return inlineText;
             }
 
-            if (type == "s") {
+            if (cellKind == XmlCellKind.SharedString) {
                 return TryParseSharedStringIndex(rawText, out int sstIndex) ? _sst.Get(sstIndex) : rawText;
             }
 
-            if (type == "b" && rawText != null) {
+            if (cellKind == XmlCellKind.Boolean && rawText != null) {
                 return rawText == "1";
             }
 
-            if (type == "d" && rawText != null) {
+            if (cellKind == XmlCellKind.Date && rawText != null) {
                 return DateTime.TryParse(rawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var date)
                     ? date
                     : rawText;
             }
 
-            if (type == "str") {
+            if (cellKind == XmlCellKind.String) {
                 return rawText ?? inlineText;
             }
 
@@ -1378,6 +1730,8 @@ namespace OfficeIMO.Excel {
             }
 
             if (_opt.TreatDatesUsingNumberFormat
+                && _styles.HasDateStyles
+                && CellKindCanUseDateStyle(cellKind)
                 && TryParseUInt(styleAttribute, out uint styleIndex)
                 && _styles.IsDateLike(styleIndex)
                 && (TryParseInvariantDoubleFast(rawText, out double oa)

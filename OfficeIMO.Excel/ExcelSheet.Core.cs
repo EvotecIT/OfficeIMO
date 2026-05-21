@@ -387,23 +387,10 @@ namespace OfficeIMO.Excel {
             // Shared string lookup
             if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) {
                 var raw = cell.CellValue?.InnerText;
-                if (!string.IsNullOrEmpty(raw) && int.TryParse(raw, out int id)) {
-                    var sst = _excelDocument.SharedStringTablePart?.SharedStringTable;
-                    if (sst != null) {
-                        var item = sst.Elements<SharedStringItem>().ElementAtOrDefault(id);
-                        if (item != null) {
-                            // Prefer direct Text element when present; otherwise concatenate run texts
-                            if (item.Text != null) {
-                                return item.Text.Text ?? string.Empty;
-                            }
-                            var sb = new StringBuilder();
-                            foreach (var t in item.Descendants<Text>()) {
-                                sb.Append(t.Text);
-                            }
-                            return sb.ToString();
-                        }
-                    }
+                if (!string.IsNullOrEmpty(raw) && TryParseCellTextSharedStringIndex(raw, out int id)) {
+                    return BuildCellTextSharedStringSnapshot().Get(id) ?? string.Empty;
                 }
+
                 return string.Empty;
             }
 
@@ -425,6 +412,33 @@ namespace OfficeIMO.Excel {
 
             // Default: take cell value as-is (numbers, booleans, etc.)
             return cell.CellValue?.InnerText ?? string.Empty;
+        }
+
+        private SharedStringCache BuildCellTextSharedStringSnapshot() {
+            return SharedStringCache.Build(_spreadSheetDocument);
+        }
+
+        private void ClearCellTextSharedStringCache() {
+        }
+
+        private static bool TryParseCellTextSharedStringIndex(string? text, out int index) {
+            index = 0;
+            if (string.IsNullOrEmpty(text)) {
+                return false;
+            }
+
+            int parsed = 0;
+            for (int i = 0; i < text!.Length; i++) {
+                int digit = text[i] - '0';
+                if ((uint)digit > 9U || parsed > (int.MaxValue - digit) / 10) {
+                    return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out index);
+                }
+
+                parsed = (parsed * 10) + digit;
+            }
+
+            index = parsed;
+            return true;
         }
 
         private void WriteLock(Action action) {

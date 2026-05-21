@@ -1,3 +1,4 @@
+using System.Data;
 using System.Text.Json;
 using ClosedXML.Excel;
 
@@ -6,6 +7,9 @@ namespace OfficeIMO.Excel.Benchmarks;
 internal static class ExcelReadProfileRunner {
     private const int DefaultRowCount = 2500;
     private const int SparseLastRow = 100_001;
+    private const int HeaderLookupIterations = 10_000;
+    private const int HeaderOperationIterations = 100;
+    private const int LoadedTextLookupIterations = 20;
 #if DEBUG
     private const string BuildConfiguration = "Debug";
 #else
@@ -35,7 +39,18 @@ internal static class ExcelReadProfileRunner {
         var rows = ExcelBenchmarkScenarioFactory.CreateSalesRecords(rowCount);
         byte[] workbookBytes = ExcelBenchmarkScenarioFactory.CreateWorkbookBytes(rows);
         string dataRange = ExcelBenchmarkScenarioFactory.BuildDataRange(rowCount);
+        using var loadedHeaderDocument = ExcelDocument.Load(new MemoryStream(workbookBytes, writable: false), readOnly: true);
+        var loadedHeaderSheet = loadedHeaderDocument.GetSheet("Data");
+        using var loadedHeaderOpsStream = new MemoryStream();
+        loadedHeaderOpsStream.Write(workbookBytes, 0, workbookBytes.Length);
+        loadedHeaderOpsStream.Position = 0;
+        using var loadedHeaderOpsDocument = ExcelDocument.Load(loadedHeaderOpsStream);
+        var loadedHeaderOpsSheet = loadedHeaderOpsDocument.GetSheet("Data");
+        byte[] mixedTypeWorkbookBytes = CreateMixedTypeWorkbookBytes(rowCount);
         byte[] sparseWorkbookBytes = CreateSparseWorkbookBytes(SparseLastRow);
+        byte[] sharedStringHeavyWorkbookBytes = CreateSharedStringHeavyWorkbookBytes(rowCount);
+        using var loadedSharedStringHeaderDocument = ExcelDocument.Load(new MemoryStream(sharedStringHeavyWorkbookBytes, writable: false), readOnly: true);
+        var loadedSharedStringHeaderSheet = loadedSharedStringHeaderDocument.GetSheet("Data");
         string sparseRange = $"A1:A{SparseLastRow}";
 
         List<ExcelReadProfileScenario> scenarios = [];
@@ -47,9 +62,15 @@ internal static class ExcelReadProfileRunner {
         scenarios.AddRange(MeasureGroup("OfficeIMO.Excel", [
             new ReadProfileCase("ReadObjectsAs", "Typed object materialization with automatic execution policy.", () => OfficeImoReadObjectsAs(workbookBytes, dataRange, null)),
             new ReadProfileCase("ReadObjectsAs.Sequential", "Typed object materialization with forced sequential range conversion.", () => OfficeImoReadObjectsAs(workbookBytes, dataRange, ExecutionMode.Sequential)),
-            new ReadProfileCase("ReadObjectsAs.Parallel", "Typed object materialization with forced parallel range conversion.", () => OfficeImoReadObjectsAs(workbookBytes, dataRange, ExecutionMode.Parallel))
+            new ReadProfileCase("ReadObjectsAs.Parallel", "Typed object materialization with forced parallel range conversion.", () => OfficeImoReadObjectsAs(workbookBytes, dataRange, ExecutionMode.Parallel)),
+            new ReadProfileCase("ReadObjectsAs.CustomConverterFallback", "Typed object materialization through a custom converter hook that falls back to built-in conversion.", () => OfficeImoReadObjectsAsCustomConverterFallback(workbookBytes, dataRange)),
+            new ReadProfileCase("ReadObjectsAs.CustomConverterCultureFallback", "Typed object materialization through a custom converter fallback with non-invariant culture.", () => OfficeImoReadObjectsAsCustomConverterCultureFallback(workbookBytes, dataRange))
         ], warmupIterations, measuredIterations));
-        scenarios.Add(Measure("OfficeIMO.Excel", "ReadObjectsStreamAs", "Streaming typed object materialization without full result buffering.", () => OfficeImoReadObjectsStreamAs(workbookBytes, dataRange), warmupIterations, measuredIterations));
+        scenarios.AddRange(MeasureGroup("OfficeIMO.Excel", [
+            new ReadProfileCase("ReadObjectsStreamAs", "Streaming typed object materialization without full result buffering.", () => OfficeImoReadObjectsStreamAs(workbookBytes, dataRange)),
+            new ReadProfileCase("ReadObjectsStreamAs.CustomConverterFallback", "Streaming typed object materialization through a custom converter hook that falls back to built-in conversion.", () => OfficeImoReadObjectsStreamAsCustomConverterFallback(workbookBytes, dataRange)),
+            new ReadProfileCase("ReadObjectsStreamAs.CustomConverterCultureFallback", "Streaming typed object materialization through a custom converter fallback with non-invariant culture.", () => OfficeImoReadObjectsStreamAsCustomConverterCultureFallback(workbookBytes, dataRange))
+        ], warmupIterations, measuredIterations));
         scenarios.AddRange(MeasureGroup("OfficeIMO.Excel", [
             new ReadProfileCase("ReadRange", "Dense 2D array read with automatic execution policy.", () => OfficeImoReadRange(workbookBytes, dataRange, null)),
             new ReadProfileCase("ReadRange.Sequential", "Dense 2D array read with forced sequential conversion.", () => OfficeImoReadRange(workbookBytes, dataRange, ExecutionMode.Sequential)),
@@ -58,14 +79,41 @@ internal static class ExcelReadProfileRunner {
         scenarios.AddRange(MeasureGroup("OfficeIMO.Excel", [
             new ReadProfileCase("ReadRangeAsDataTable", "Automatic execution policy.", () => OfficeImoReadDataTable(workbookBytes, dataRange, null)),
             new ReadProfileCase("ReadRangeAsDataTable.Sequential", "Forced sequential range conversion.", () => OfficeImoReadDataTable(workbookBytes, dataRange, ExecutionMode.Sequential)),
-            new ReadProfileCase("ReadRangeAsDataTable.Parallel", "Forced parallel range conversion.", () => OfficeImoReadDataTable(workbookBytes, dataRange, ExecutionMode.Parallel))
+            new ReadProfileCase("ReadRangeAsDataTable.Parallel", "Forced parallel range conversion.", () => OfficeImoReadDataTable(workbookBytes, dataRange, ExecutionMode.Parallel)),
+            new ReadProfileCase("ReadRangeAsDataTable.HeadersNoInference", "Header row with type inference disabled.", () => OfficeImoReadDataTableHeadersNoInference(workbookBytes, dataRange)),
+            new ReadProfileCase("ReadRangeAsDataTable.NoHeadersNoInference", "Generated columns with type inference disabled.", () => OfficeImoReadDataTableNoHeadersNoInference(workbookBytes, dataRange)),
+            new ReadProfileCase("ReadRangeAsDataTable.MixedTypeInference", "Infer object columns from mixed-type data.", () => OfficeImoReadDataTable(mixedTypeWorkbookBytes, dataRange, ExecutionMode.Sequential)),
+            new ReadProfileCase("ReadRangeAsDataTable.CustomConverterFallback", "Sequential DataTable read through a custom converter hook that falls back to built-in conversion.", () => OfficeImoReadDataTableCustomConverterFallback(workbookBytes, dataRange)),
+            new ReadProfileCase("ReadRangeAsDataTable.CustomConverterCultureFallback", "Sequential DataTable read through a custom converter fallback with non-invariant culture.", () => OfficeImoReadDataTableCustomConverterCultureFallback(workbookBytes, dataRange))
         ], warmupIterations, measuredIterations));
         scenarios.AddRange(MeasureGroup("OfficeIMO.Excel", [
             new ReadProfileCase("ReadRangeStream", "Streaming row chunks with automatic execution policy.", () => OfficeImoReadRangeStream(workbookBytes, dataRange, null)),
             new ReadProfileCase("ReadRangeStream.Sequential", "Streaming row chunks with forced sequential conversion.", () => OfficeImoReadRangeStream(workbookBytes, dataRange, ExecutionMode.Sequential)),
-            new ReadProfileCase("ReadRangeStream.Parallel", "Streaming row chunks with forced parallel conversion.", () => OfficeImoReadRangeStream(workbookBytes, dataRange, ExecutionMode.Parallel))
+            new ReadProfileCase("ReadRangeStream.Parallel", "Streaming row chunks with forced parallel conversion.", () => OfficeImoReadRangeStream(workbookBytes, dataRange, ExecutionMode.Parallel)),
+            new ReadProfileCase("ReadRangeStream.CustomConverterFallback", "Streaming row chunks through a custom converter hook that falls back to built-in conversion.", () => OfficeImoReadRangeStreamCustomConverterFallback(workbookBytes, dataRange)),
+            new ReadProfileCase("ReadRangeStream.CustomConverterCultureFallback", "Streaming row chunks through a custom converter fallback with non-invariant culture.", () => OfficeImoReadRangeStreamCustomConverterCultureFallback(workbookBytes, dataRange))
         ], warmupIterations, measuredIterations));
-        scenarios.Add(Measure("OfficeIMO.Excel", "ReadColumn.LargeSparse", "Sparse A1:A100001 read with only the first and last rows populated.", () => OfficeImoReadSparseColumn(sparseWorkbookBytes, sparseRange, SparseLastRow), warmupIterations, measuredIterations));
+        scenarios.AddRange(MeasureGroup("OfficeIMO.Excel", [
+            new ReadProfileCase("ReadRows.Dense", "Dense row enumeration over the same workbook payload.", () => OfficeImoReadRowsDense(workbookBytes, dataRange)),
+            new ReadProfileCase("ReadRows.Dense.CustomConverterFallback", "Dense row enumeration through a custom converter hook that falls back to built-in conversion.", () => OfficeImoReadRowsDenseCustomConverterFallback(workbookBytes, dataRange)),
+            new ReadProfileCase("ReadRows.Dense.CustomConverterCultureFallback", "Dense row enumeration through a custom converter fallback with non-invariant culture.", () => OfficeImoReadRowsDenseCustomConverterCultureFallback(workbookBytes, dataRange))
+        ], warmupIterations, measuredIterations));
+        scenarios.AddRange(MeasureGroup("OfficeIMO.Excel", [
+            new ReadProfileCase("ReadColumn.Dense", "Dense single-column enumeration over the same workbook payload.", () => OfficeImoReadDenseColumn(workbookBytes, $"A1:A{rowCount + 1}")),
+            new ReadProfileCase("ReadColumn.Dense.CustomConverterFallback", "Dense single-column enumeration through a custom converter hook that falls back to built-in conversion.", () => OfficeImoReadDenseColumnCustomConverterFallback(workbookBytes, $"A1:A{rowCount + 1}")),
+            new ReadProfileCase("ReadColumn.Dense.CustomConverterCultureFallback", "Dense single-column enumeration through a custom converter fallback with non-invariant culture.", () => OfficeImoReadDenseColumnCustomConverterCultureFallback(workbookBytes, $"A1:A{rowCount + 1}"))
+        ], warmupIterations, measuredIterations));
+        scenarios.Add(Measure("OfficeIMO.Excel", "GetHeaderMap.LargeUsedRange", "Build the header lookup map from the first used row of a larger worksheet.", () => OfficeImoGetHeaderMap(workbookBytes), warmupIterations, measuredIterations));
+        scenarios.Add(Measure("OfficeIMO.Excel", "GetHeaderMap.LoadedRebuild", "Rebuild the header lookup map on an already loaded worksheet after cache invalidation.", () => OfficeImoGetHeaderMapLoadedRebuild(loadedHeaderSheet), warmupIterations, measuredIterations));
+        scenarios.Add(Measure("OfficeIMO.Excel", "GetHeaderMap.LoadedSharedStrings", "Rebuild headers when the worksheet has many unique shared strings below the header row.", () => OfficeImoGetHeaderMapLoadedRebuild(loadedSharedStringHeaderSheet), warmupIterations, measuredIterations));
+        scenarios.Add(Measure("OfficeIMO.Excel", "TryGetColumnIndexByHeader.Cached", "Repeated cached header lookup without exposing the mutable header map.", () => OfficeImoTryGetHeaderLookupLoaded(loadedHeaderSheet), warmupIterations, measuredIterations));
+        scenarios.Add(Measure("OfficeIMO.Excel", "LoadedText.FindFirst.SharedStrings", "Repeated loaded-sheet text search over cells backed by many shared strings.", () => OfficeImoFindFirstSharedStringLoaded(loadedSharedStringHeaderSheet, rowCount), warmupIterations, measuredIterations));
+        scenarios.Add(Measure("OfficeIMO.Excel", "LoadedText.ReplaceAll.SharedStrings", "Batch replacement over a loaded worksheet with many shared-string cells.", () => OfficeImoReplaceAllSharedStrings(sharedStringHeavyWorkbookBytes, rowCount), warmupIterations, measuredIterations));
+        scenarios.Add(Measure("OfficeIMO.Excel", "HeaderOps.AutoFilterByHeaders.BatchMap", "Repeated multi-header AutoFilter updates using one internal cached header map per operation.", () => OfficeImoAutoFilterByHeadersLoaded(loadedHeaderOpsSheet), warmupIterations, measuredIterations));
+        scenarios.AddRange(MeasureGroup("OfficeIMO.Excel", [
+            new ReadProfileCase("ReadColumn.LargeSparse", "Sparse A1:A100001 read with only the first and last rows populated.", () => OfficeImoReadSparseColumn(sparseWorkbookBytes, sparseRange, SparseLastRow)),
+            new ReadProfileCase("ReadColumn.LargeSparse.CustomConverterFallback", "Sparse A1:A100001 read through a custom converter hook that falls back to built-in conversion.", () => OfficeImoReadSparseColumnCustomConverterFallback(sparseWorkbookBytes, sparseRange, SparseLastRow))
+        ], warmupIterations, measuredIterations));
         scenarios.Add(Measure("OfficeIMO.Excel", "ReadRows.LargeSparse", "Sparse A1:A100001 row read with only the first and last rows populated.", () => OfficeImoReadSparseRows(sparseWorkbookBytes, sparseRange, SparseLastRow), warmupIterations, measuredIterations));
         scenarios.Add(Measure("ClosedXML", "ReadRows", "Worksheet row iteration over the same workbook payload.", () => ClosedXmlReadRows(workbookBytes), warmupIterations, measuredIterations));
 
@@ -157,8 +205,42 @@ internal static class ExcelReadProfileRunner {
         return reader.GetSheet("Data").ReadObjects<ReadSalesRecord>(dataRange, mode).Count();
     }
 
+    private static int OfficeImoReadObjectsAsCustomConverterFallback(byte[] workbookBytes, string dataRange) {
+        var options = new ExcelReadOptions {
+            CellValueConverter = static _ => ExcelCellValue.NotHandled
+        };
+        using var reader = ExcelDocumentReader.Open(workbookBytes, options);
+        return reader.GetSheet("Data").ReadObjects<ReadSalesRecord>(dataRange, ExecutionMode.Sequential).Count();
+    }
+
+    private static int OfficeImoReadObjectsAsCustomConverterCultureFallback(byte[] workbookBytes, string dataRange) {
+        var options = new ExcelReadOptions {
+            Culture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL"),
+            CellValueConverter = static _ => ExcelCellValue.NotHandled
+        };
+        using var reader = ExcelDocumentReader.Open(workbookBytes, options);
+        return reader.GetSheet("Data").ReadObjects<ReadSalesRecord>(dataRange, ExecutionMode.Sequential).Count();
+    }
+
     private static int OfficeImoReadObjectsStreamAs(byte[] workbookBytes, string dataRange) {
         using var reader = ExcelDocumentReader.Open(workbookBytes);
+        return reader.GetSheet("Data").ReadObjectsStream<ReadSalesRecord>(dataRange).Count();
+    }
+
+    private static int OfficeImoReadObjectsStreamAsCustomConverterFallback(byte[] workbookBytes, string dataRange) {
+        var options = new ExcelReadOptions {
+            CellValueConverter = static _ => ExcelCellValue.NotHandled
+        };
+        using var reader = ExcelDocumentReader.Open(workbookBytes, options);
+        return reader.GetSheet("Data").ReadObjectsStream<ReadSalesRecord>(dataRange).Count();
+    }
+
+    private static int OfficeImoReadObjectsStreamAsCustomConverterCultureFallback(byte[] workbookBytes, string dataRange) {
+        var options = new ExcelReadOptions {
+            Culture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL"),
+            CellValueConverter = static _ => ExcelCellValue.NotHandled
+        };
+        using var reader = ExcelDocumentReader.Open(workbookBytes, options);
         return reader.GetSheet("Data").ReadObjectsStream<ReadSalesRecord>(dataRange).Count();
     }
 
@@ -173,21 +255,234 @@ internal static class ExcelReadProfileRunner {
         return reader.GetSheet("Data").ReadRangeAsDataTable(dataRange, headersInFirstRow: true, mode: mode).Rows.Count;
     }
 
+    private static int OfficeImoReadDataTableHeadersNoInference(byte[] workbookBytes, string dataRange) {
+        using var reader = ExcelDocumentReader.Open(workbookBytes, new ExcelReadOptions { InferDataTableColumnTypes = false });
+        DataTable table = reader.GetSheet("Data").ReadRangeAsDataTable(dataRange, headersInFirstRow: true, mode: ExecutionMode.Sequential);
+        return table.Rows.Count + table.Columns.Count;
+    }
+
+    private static int OfficeImoReadDataTableNoHeadersNoInference(byte[] workbookBytes, string dataRange) {
+        using var reader = ExcelDocumentReader.Open(workbookBytes, new ExcelReadOptions { InferDataTableColumnTypes = false });
+        DataTable table = reader.GetSheet("Data").ReadRangeAsDataTable(dataRange, headersInFirstRow: false, mode: ExecutionMode.Sequential);
+        return table.Rows.Count + table.Columns.Count;
+    }
+
+    private static int OfficeImoReadDataTableCustomConverterFallback(byte[] workbookBytes, string dataRange) {
+        var options = new ExcelReadOptions {
+            CellValueConverter = static _ => ExcelCellValue.NotHandled
+        };
+        using var reader = ExcelDocumentReader.Open(workbookBytes, options);
+        DataTable table = reader.GetSheet("Data").ReadRangeAsDataTable(dataRange, headersInFirstRow: true, mode: ExecutionMode.Sequential);
+        return table.Rows.Count + table.Columns.Count;
+    }
+
+    private static int OfficeImoReadDataTableCustomConverterCultureFallback(byte[] workbookBytes, string dataRange) {
+        var options = new ExcelReadOptions {
+            Culture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL"),
+            CellValueConverter = static _ => ExcelCellValue.NotHandled
+        };
+        using var reader = ExcelDocumentReader.Open(workbookBytes, options);
+        DataTable table = reader.GetSheet("Data").ReadRangeAsDataTable(dataRange, headersInFirstRow: true, mode: ExecutionMode.Sequential);
+        return table.Rows.Count + table.Columns.Count;
+    }
+
     private static int OfficeImoReadRangeStream(byte[] workbookBytes, string dataRange, ExecutionMode? mode) {
         using var reader = ExcelDocumentReader.Open(workbookBytes);
+        return CountRangeStreamRows(reader.GetSheet("Data"), dataRange, mode);
+    }
+
+    private static int OfficeImoReadRangeStreamCustomConverterFallback(byte[] workbookBytes, string dataRange) {
+        var options = new ExcelReadOptions {
+            CellValueConverter = static _ => ExcelCellValue.NotHandled
+        };
+        using var reader = ExcelDocumentReader.Open(workbookBytes, options);
+        return CountRangeStreamRows(reader.GetSheet("Data"), dataRange, ExecutionMode.Sequential);
+    }
+
+    private static int OfficeImoReadRangeStreamCustomConverterCultureFallback(byte[] workbookBytes, string dataRange) {
+        var options = new ExcelReadOptions {
+            Culture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL"),
+            CellValueConverter = static _ => ExcelCellValue.NotHandled
+        };
+        using var reader = ExcelDocumentReader.Open(workbookBytes, options);
+        return CountRangeStreamRows(reader.GetSheet("Data"), dataRange, ExecutionMode.Sequential);
+    }
+
+    private static int CountRangeStreamRows(ExcelSheetReader sheet, string dataRange, ExecutionMode? mode) {
         int rows = 0;
-        foreach (var chunk in reader.GetSheet("Data").ReadRangeStream(dataRange, chunkRows: 512, mode: mode)) {
+        foreach (var chunk in sheet.ReadRangeStream(dataRange, chunkRows: 512, mode: mode)) {
             rows += chunk.RowCount;
         }
 
         return rows;
     }
 
+    private static int OfficeImoReadRowsDense(byte[] workbookBytes, string dataRange) {
+        using var reader = ExcelDocumentReader.Open(workbookBytes);
+        return CountDenseRows(reader.GetSheet("Data"), dataRange);
+    }
+
+    private static int OfficeImoReadRowsDenseCustomConverterFallback(byte[] workbookBytes, string dataRange) {
+        var options = new ExcelReadOptions {
+            CellValueConverter = static _ => ExcelCellValue.NotHandled
+        };
+        using var reader = ExcelDocumentReader.Open(workbookBytes, options);
+        return CountDenseRows(reader.GetSheet("Data"), dataRange);
+    }
+
+    private static int OfficeImoReadRowsDenseCustomConverterCultureFallback(byte[] workbookBytes, string dataRange) {
+        var options = new ExcelReadOptions {
+            Culture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL"),
+            CellValueConverter = static _ => ExcelCellValue.NotHandled
+        };
+        using var reader = ExcelDocumentReader.Open(workbookBytes, options);
+        return CountDenseRows(reader.GetSheet("Data"), dataRange);
+    }
+
+    private static int CountDenseRows(ExcelSheetReader sheet, string dataRange) {
+        int rows = 0;
+        int populatedCells = 0;
+        foreach (object?[]? row in sheet.ReadRows(dataRange)) {
+            rows++;
+            if (row == null) {
+                continue;
+            }
+
+            for (int i = 0; i < row.Length; i++) {
+                if (row[i] != null) {
+                    populatedCells++;
+                }
+            }
+        }
+
+        return rows + populatedCells;
+    }
+
+    private static int OfficeImoReadDenseColumn(byte[] workbookBytes, string columnRange) {
+        using var reader = ExcelDocumentReader.Open(workbookBytes);
+        return CountColumnValues(reader.GetSheet("Data"), columnRange);
+    }
+
+    private static int OfficeImoReadDenseColumnCustomConverterFallback(byte[] workbookBytes, string columnRange) {
+        var options = new ExcelReadOptions {
+            CellValueConverter = static _ => ExcelCellValue.NotHandled
+        };
+        using var reader = ExcelDocumentReader.Open(workbookBytes, options);
+        return CountColumnValues(reader.GetSheet("Data"), columnRange);
+    }
+
+    private static int OfficeImoReadDenseColumnCustomConverterCultureFallback(byte[] workbookBytes, string columnRange) {
+        var options = new ExcelReadOptions {
+            Culture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL"),
+            CellValueConverter = static _ => ExcelCellValue.NotHandled
+        };
+        using var reader = ExcelDocumentReader.Open(workbookBytes, options);
+        return CountColumnValues(reader.GetSheet("Data"), columnRange);
+    }
+
+    private static int CountColumnValues(ExcelSheetReader sheet, string columnRange) {
+        int rows = 0;
+        int populated = 0;
+        foreach (object? value in sheet.ReadColumn(columnRange)) {
+            rows++;
+            if (value != null) {
+                populated++;
+            }
+        }
+
+        return rows + populated;
+    }
+
+    private static int OfficeImoGetHeaderMap(byte[] workbookBytes) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using var document = ExcelDocument.Load(stream, readOnly: true);
+        var map = document.GetSheet("Data").GetHeaderMap();
+        return map.Count + map["Id"];
+    }
+
+    private static int OfficeImoGetHeaderMapLoadedRebuild(ExcelSheet sheet) {
+        sheet.ClearHeaderCache();
+        var map = sheet.GetHeaderMap();
+        return map.Count + map["Id"];
+    }
+
+    private static int OfficeImoTryGetHeaderLookupLoaded(ExcelSheet sheet) {
+        _ = sheet.GetHeaderMap();
+        int total = 0;
+        for (int i = 0; i < HeaderLookupIterations; i++) {
+            if (sheet.TryGetColumnIndexByHeader("Amount", out int columnIndex)) {
+                total += columnIndex;
+            }
+        }
+
+        return total;
+    }
+
+    private static int OfficeImoFindFirstSharedStringLoaded(ExcelSheet sheet, int rowCount) {
+        string expectedAddress = $"D{rowCount + 1}";
+        string expectedText = $"Unique note payload {rowCount - 1:000000}";
+        int total = 0;
+        for (int i = 0; i < LoadedTextLookupIterations; i++) {
+            string? address = sheet.FindFirst(expectedText);
+            if (!string.Equals(address, expectedAddress, StringComparison.Ordinal)) {
+                throw new InvalidOperationException($"Expected {expectedAddress}, got {address ?? "<null>"}.");
+            }
+
+            total += expectedAddress.Length;
+        }
+
+        return total;
+    }
+
+    private static int OfficeImoReplaceAllSharedStrings(byte[] workbookBytes, int rowCount) {
+        using var stream = new MemoryStream();
+        stream.Write(workbookBytes, 0, workbookBytes.Length);
+        stream.Position = 0;
+
+        using var document = ExcelDocument.Load(stream);
+        int replaced = document.GetSheet("Data").ReplaceAll("Unique note payload", "Processed note payload");
+        if (replaced != rowCount) {
+            throw new InvalidOperationException($"Expected {rowCount} replacements, got {replaced}.");
+        }
+
+        return replaced;
+    }
+
+    private static int OfficeImoAutoFilterByHeadersLoaded(ExcelSheet sheet) {
+        int appliedFilters = 0;
+        for (int i = 0; i < HeaderOperationIterations; i++) {
+            sheet.AutoFilterByHeadersEquals(
+                ("Id", new[] { "1" }),
+                ("Region", new[] { "North" }),
+                ("Owner", new[] { "Owner 1", "Owner 2" }),
+                ("CreatedOn", new[] { "2024-01-01" }),
+                ("Amount", new[] { "100" }),
+                ("Units", new[] { "3" }),
+                ("Active", new[] { "TRUE" }),
+                ("Notes", new[] { "Note 1" }));
+            appliedFilters += 8;
+        }
+
+        return appliedFilters;
+    }
+
     private static int OfficeImoReadSparseColumn(byte[] workbookBytes, string sparseRange, int expectedRows) {
         using var reader = ExcelDocumentReader.Open(workbookBytes);
+        return CountSparseColumn(reader.GetSheet("Data"), sparseRange, expectedRows);
+    }
+
+    private static int OfficeImoReadSparseColumnCustomConverterFallback(byte[] workbookBytes, string sparseRange, int expectedRows) {
+        var options = new ExcelReadOptions {
+            CellValueConverter = static _ => ExcelCellValue.NotHandled
+        };
+        using var reader = ExcelDocumentReader.Open(workbookBytes, options);
+        return CountSparseColumn(reader.GetSheet("Data"), sparseRange, expectedRows);
+    }
+
+    private static int CountSparseColumn(ExcelSheetReader sheet, string sparseRange, int expectedRows) {
         int rowIndex = 0;
 
-        foreach (object? value in reader.GetSheet("Data").ReadColumn(sparseRange)) {
+        foreach (object? value in sheet.ReadColumn(sparseRange)) {
             rowIndex++;
             ValidateSparseCell(rowIndex, expectedRows, value);
         }
@@ -237,6 +532,57 @@ internal static class ExcelReadProfileRunner {
             var sheet = document.AddWorkSheet("Data");
             sheet.CellValue(1, 1, "Header");
             sheet.CellValue(lastRow, 1, "Tail");
+        }
+
+        return stream.ToArray();
+    }
+
+    private static byte[] CreateMixedTypeWorkbookBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream)) {
+            var sheet = document.AddWorkSheet("Data");
+            sheet.CellValue(1, 1, "Id");
+            sheet.CellValue(1, 2, "Region");
+            sheet.CellValue(1, 3, "Owner");
+            sheet.CellValue(1, 4, "CreatedOn");
+            sheet.CellValue(1, 5, "Amount");
+            sheet.CellValue(1, 6, "Units");
+            sheet.CellValue(1, 7, "Active");
+            sheet.CellValue(1, 8, "Notes");
+
+            for (int i = 0; i < rowCount; i++) {
+                int row = i + 2;
+                bool even = (i & 1) == 0;
+                sheet.CellValue(row, 1, even ? i + 1 : $"ID-{i + 1}");
+                sheet.CellValue(row, 2, even ? "North" : i);
+                sheet.CellValue(row, 3, even ? $"Owner {i % 13}" : i + 1000);
+                sheet.CellValue(row, 4, even ? new DateTime(2024, 1, 1).AddDays(i) : $"2024-{(i % 12) + 1:00}");
+                sheet.CellValue(row, 5, even ? i * 1.25D : $"Amount {i}");
+                sheet.CellValue(row, 6, even ? i % 17 : $"Units {i % 17}");
+                sheet.CellValue(row, 7, even ? i % 2 == 0 : $"Active {i % 2}");
+                sheet.CellValue(row, 8, even ? $"Note {i}" : i * 2.0D);
+            }
+        }
+
+        return stream.ToArray();
+    }
+
+    private static byte[] CreateSharedStringHeavyWorkbookBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream)) {
+            var sheet = document.AddWorkSheet("Data");
+            sheet.CellValue(1, 1, "Id");
+            sheet.CellValue(1, 2, "Region");
+            sheet.CellValue(1, 3, "Owner");
+            sheet.CellValue(1, 4, "Notes");
+
+            for (int i = 0; i < rowCount; i++) {
+                int row = i + 2;
+                sheet.CellValue(row, 1, $"ID-{i + 1:000000}");
+                sheet.CellValue(row, 2, $"Region {i:000000}");
+                sheet.CellValue(row, 3, $"Owner {i:000000}");
+                sheet.CellValue(row, 4, $"Unique note payload {i:000000}");
+            }
         }
 
         return stream.ToArray();

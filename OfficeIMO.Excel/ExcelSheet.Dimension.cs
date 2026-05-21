@@ -30,8 +30,7 @@ namespace OfficeIMO.Excel {
                     int resolvedCol = 0;
 
                     var cref = cell.CellReference?.Value;
-                    if (!string.IsNullOrEmpty(cref)) {
-                        var (parsedRow, parsedCol) = A1.ParseCellRef(cref!);
+                    if (A1.TryParseCellReferenceFast(cref, out int parsedRow, out int parsedCol)) {
                         if (parsedRow > 0) {
                             resolvedRow = parsedRow;
                         }
@@ -39,7 +38,6 @@ namespace OfficeIMO.Excel {
                             resolvedCol = parsedCol;
                         }
                     }
-
                     if (resolvedCol <= 0) {
                         resolvedCol = cellOrdinal;
                     }

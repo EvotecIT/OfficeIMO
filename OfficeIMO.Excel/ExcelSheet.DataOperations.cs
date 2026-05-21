@@ -89,9 +89,10 @@ namespace OfficeIMO.Excel {
             if (filters == null || filters.Length == 0) throw new ArgumentException("At least one filter must be provided.", nameof(filters));
             WriteLock(() => {
                 var toApply = new List<(int ColumnIndex, IEnumerable<string> Values)>();
+                var headerMap = GetHeaderMapCached(DefaultHeaderReadOptions);
                 foreach (var (header, values) in filters) {
                     if (string.IsNullOrWhiteSpace(header)) continue;
-                    if (!TryGetColumnIndexByHeader(header, out var colIndex)) continue;
+                    if (!headerMap.TryGetValue(header, out var colIndex)) continue;
                     toApply.Add((colIndex, values ?? Array.Empty<string>()));
                 }
                 if (toApply.Count == 0) return;
@@ -105,25 +106,73 @@ namespace OfficeIMO.Excel {
                 }
 
                 var (r1, c1, r2, c2) = A1.ParseRange(af.Reference!);
+                var existingColumns = new Dictionary<uint, FilterColumn>();
+                foreach (var existing in af.Elements<FilterColumn>()) {
+                    if (existing.ColumnId?.Value is uint existingColumnId) {
+                        existingColumns[existingColumnId] = existing;
+                    }
+                }
 
+                bool changed = false;
                 foreach (var (colIndex, values) in toApply) {
                     if (colIndex < c1 || colIndex > c2) continue;
                     uint columnId = (uint)(colIndex - c1);
+                    var filterValues = BuildDistinctFilterValues(values);
 
-                    var existingColumn = af.Elements<FilterColumn>().FirstOrDefault(fc => fc.ColumnId?.Value == columnId);
-                    existingColumn?.Remove();
+                    if (existingColumns.TryGetValue(columnId, out var existingColumn)) {
+                        if (FilterColumnMatchesValues(existingColumn, filterValues)) {
+                            continue;
+                        }
+
+                        existingColumn.Remove();
+                    }
 
                     var fcNew = new FilterColumn { ColumnId = columnId };
                     var filtersNode = new Filters();
-                    foreach (var v in values.Distinct(StringComparer.OrdinalIgnoreCase)) {
-                        if (v == null) continue;
+                    foreach (var v in filterValues) {
                         filtersNode.Append(new Filter { Val = v });
                     }
                     fcNew.Append(filtersNode);
                     af.Append(fcNew);
+                    existingColumns[columnId] = fcNew;
+                    changed = true;
                 }
-                ws.Save();
+                if (changed) {
+                    ws.Save();
+                }
             });
+        }
+
+        private static List<string> BuildDistinctFilterValues(IEnumerable<string> values) {
+            var result = new List<string>();
+            HashSet<string>? seen = null;
+            foreach (var value in values) {
+                if (value == null) continue;
+                seen ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                if (seen.Add(value)) {
+                    result.Add(value);
+                }
+            }
+
+            return result;
+        }
+
+        private static bool FilterColumnMatchesValues(FilterColumn filterColumn, IReadOnlyList<string> values) {
+            var filtersNode = filterColumn.GetFirstChild<Filters>();
+            if (filtersNode == null || filterColumn.GetFirstChild<CustomFilters>() != null) {
+                return false;
+            }
+
+            int index = 0;
+            foreach (var filter in filtersNode.Elements<Filter>()) {
+                if ((uint)index >= (uint)values.Count || !string.Equals(filter.Val?.Value, values[index], StringComparison.Ordinal)) {
+                    return false;
+                }
+
+                index++;
+            }
+
+            return index == values.Count;
         }
 
         /// <summary>
@@ -239,17 +288,32 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string? FindFirst(string text) {
             if (string.IsNullOrEmpty(text)) return null;
+
             var ws = WorksheetRoot;
             var sd = ws.GetFirstChild<SheetData>();
             if (sd == null) return null;
 
+            var sharedStringCache = BuildCellTextSharedStringSnapshot();
+            var sharedStringMatches = sharedStringCache.FindIndexesContaining(text, StringComparison.OrdinalIgnoreCase);
             foreach (var row in sd.Elements<Row>()) {
                 foreach (var cell in row.Elements<Cell>()) {
+                    if (TryGetSharedStringCellIndex(cell, out int sharedStringIndex)) {
+                        if (sharedStringMatches != null && sharedStringMatches.Contains(sharedStringIndex)) {
+                            string? address = cell.CellReference?.Value;
+                            return address;
+                        }
+
+                        continue;
+                    }
+
                     var t = GetCellText(cell);
-                    if (!string.IsNullOrEmpty(t) && t.IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0)
-                        return cell.CellReference?.Value;
+                    if (!string.IsNullOrEmpty(t) && t.IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0) {
+                        string? address = cell.CellReference?.Value;
+                        return address;
+                    }
                 }
             }
+
             return null;
         }
 
@@ -265,22 +329,64 @@ namespace OfficeIMO.Excel {
                 var sd = ws.GetFirstChild<SheetData>();
                 if (sd == null) return;
 
+                var sharedStringCache = BuildCellTextSharedStringSnapshot();
+                var sharedStringMatches = sharedStringCache.FindIndexesContaining(oldText, StringComparison.OrdinalIgnoreCase);
+                int replacementCapacity = sharedStringMatches?.Count ?? 0;
+                var replacements = replacementCapacity > 0
+                    ? new List<(Cell Cell, string Text)>(replacementCapacity)
+                    : new List<(Cell Cell, string Text)>();
+                var distinctReplacementTexts = replacementCapacity > 0
+                    ? new List<string>(replacementCapacity)
+                    : new List<string>();
+                var distinctReplacementLookup = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var row in sd.Elements<Row>()) {
                     foreach (var cell in row.Elements<Cell>()) {
-                        var current = GetCellText(cell);
+                        string? current;
+                        bool currentContainsOldText;
+                        if (TryGetSharedStringCellIndex(cell, out int sharedStringIndex)) {
+                            if (sharedStringMatches == null || !sharedStringMatches.Contains(sharedStringIndex)) {
+                                continue;
+                            }
+
+                            current = sharedStringCache.Get(sharedStringIndex);
+                            currentContainsOldText = true;
+                        } else {
+                            current = GetCellText(cell);
+                            currentContainsOldText = !string.IsNullOrEmpty(current)
+                                && current!.IndexOf(oldText, StringComparison.OrdinalIgnoreCase) >= 0;
+                        }
+
                         if (string.IsNullOrEmpty(current)) continue;
-                        if (current.IndexOf(oldText, StringComparison.OrdinalIgnoreCase) >= 0) {
-                            var replaced = ReplaceIgnoreCase(current, oldText, newText);
-                            // write back
-                            var (r, c) = A1.ParseCellRef(cell.CellReference?.Value ?? "");
-                            CellValue(r, c, replaced);
-                            count++;
+                        string currentText = current!;
+                        if (currentContainsOldText) {
+                            var replaced = ReplaceIgnoreCase(currentText, oldText, newText);
+                            if (distinctReplacementLookup.Add(replaced)) {
+                                CoerceValueHelper.ValidateSharedStringLength(replaced, nameof(newText));
+                                distinctReplacementTexts.Add(replaced);
+                            }
+
+                            replacements.Add((cell, replaced));
                         }
                     }
                 }
-                ws.Save();
+                if (replacements.Count > 0) {
+                    var replacementIndexes = _excelDocument.GetSharedStringIndices(distinctReplacementTexts, assumeDistinct: true);
+                    foreach (var replacement in replacements) {
+                        SetExistingCellSharedStringValue(replacement.Cell, replacement.Text, replacementIndexes[replacement.Text]);
+                    }
+
+                    count = replacements.Count;
+                    ClearHeaderCache();
+                    ws.Save();
+                }
             });
             return count;
+        }
+
+        private static bool TryGetSharedStringCellIndex(Cell cell, out int index) {
+            index = 0;
+            return cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString
+                && TryParseCellTextSharedStringIndex(cell.CellValue?.InnerText ?? cell.InnerText, out index);
         }
 
         private static string ReplaceIgnoreCase(string input, string oldValue, string newValue) {
@@ -659,9 +765,10 @@ namespace OfficeIMO.Excel {
 
             // Resolve column indices and validate
             var cols = new List<(int Index, bool Asc)>();
+            var headerMap = GetHeaderMapCached(DefaultHeaderReadOptions);
             foreach (var k in keys) {
                 if (string.IsNullOrWhiteSpace(k.Header)) continue;
-                if (!TryGetColumnIndexByHeader(k.Header, out var col)) continue;
+                if (!headerMap.TryGetValue(k.Header, out var col)) continue;
                 if (col < c1 || col > c2) continue;
                 cols.Add((col - c1, k.Ascending));
             }

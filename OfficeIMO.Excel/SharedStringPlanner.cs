@@ -38,7 +38,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            _finalIndex = doc.GetSharedStringIndices(distinct);
+            _finalIndex = doc.GetSharedStringIndices(distinct, assumeDistinct: true);
         }
 
         /// <summary>

@@ -149,10 +149,7 @@ namespace OfficeIMO.Excel {
             out List<T> result) where T : new() {
             result = [];
 
-            if (_opt.TypeConverter != null
-                || _opt.CellValueConverter != null
-                || _opt.Culture != CultureInfo.InvariantCulture
-                || !_canStreamWorksheetPart) {
+            if (!CanStreamWorksheetPart()) {
                 return false;
             }
 
@@ -164,21 +161,14 @@ namespace OfficeIMO.Excel {
 
             using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
             RewindWorksheetStream(stream);
-            var settings = new XmlReaderSettings {
-                    DtdProcessing = DtdProcessing.Prohibit,
-                    IgnoreComments = true,
-                    IgnoreProcessingInstructions = true,
-                    IgnoreWhitespace = true,
-                    CloseInput = false
-                };
-
-                using var reader = XmlReader.Create(stream, settings);
+            using var reader = OpenWorksheetXmlReader(stream);
             bool canCancel = ct.CanBeCanceled;
             TypedPropertyBinding<T>?[]? bindings = null;
             bool canTrackMappedColumns = false;
             ulong mappedColumns = 0;
             int nextRowIndex = 1;
             bool sawRow = false;
+            var seenRows = CreateCompletedRowTracker(rows);
 
             while (reader.Read()) {
                 if (canCancel) {
@@ -197,6 +187,10 @@ namespace OfficeIMO.Excel {
 
                 nextRowIndex = rowIndex + 1;
                 if (rowIndex < r1 || rowIndex > r2) {
+                    if (rowIndex > r2 && seenRows.AllRowsSeen) {
+                        break;
+                    }
+
                     SkipXmlElement(reader, "row");
                     continue;
                 }
@@ -206,6 +200,7 @@ namespace OfficeIMO.Excel {
                     var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => headerValues[c]?.ToString(), _opt.NormalizeHeaders);
                     bindings = GetTypedHeaderBindings<T>(headers, a1Range).Bindings;
                     canTrackMappedColumns = TryGetMappedColumnMask(bindings, out mappedColumns);
+                    seenRows.MarkSeen(0);
                     continue;
                 }
 
@@ -221,6 +216,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 ReadXmlRowIntoTypedObject(reader, rowIndex, c1, c2, bindings, canTrackMappedColumns, mappedColumns, result[resultIndex], ct);
+                seenRows.MarkSeen(rowIndex - r1);
             }
 
             if (!sawRow) {
@@ -314,8 +310,12 @@ namespace OfficeIMO.Excel {
                 return Array.Empty<T>();
             }
 
-            if (_opt.TypeConverter == null
-                && CanUseXmlFastReader()) {
+            if (CanUseTypedObjectXmlReader()) {
+                if (rows <= BufferedRangeStreamRowLimit
+                    && TryReadObjectsStreamOrderedXmlFast<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var mediumRows)) {
+                    return mediumRows;
+                }
+
                 if (rows > BufferedRangeStreamRowLimit
                     && ShouldUseOrderedBufferedXmlStream(rows, c1, c2)
                     && TryReadObjectsStreamOrderedXmlFast<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var orderedRows)) {
@@ -328,6 +328,10 @@ namespace OfficeIMO.Excel {
             }
 
             return ReadObjectsStreamIterator<T>(a1Range, r1, c1, r2, c2, cols, ct);
+        }
+
+        private bool CanUseTypedObjectXmlReader() {
+            return CanStreamWorksheetPart();
         }
 
         private bool TryReadObjectsStreamOrderedXmlFast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
@@ -355,17 +359,10 @@ namespace OfficeIMO.Excel {
             try {
                 using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
                 RewindWorksheetStream(stream);
-                var settings = new XmlReaderSettings {
-                    DtdProcessing = DtdProcessing.Prohibit,
-                    IgnoreComments = true,
-                    IgnoreProcessingInstructions = true,
-                    IgnoreWhitespace = true,
-                    CloseInput = false
-                };
-
-                using var reader = XmlReader.Create(stream, settings);
+                using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
+                var seenRows = CreateCompletedRowTracker(rows);
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -382,6 +379,10 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
+                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
+                            break;
+                        }
+
                         SkipXmlElement(reader, "row");
                         continue;
                     }
@@ -397,6 +398,7 @@ namespace OfficeIMO.Excel {
                         bindings = GetTypedHeaderBindings<T>(headers, a1Range).Bindings;
                         canTrackMappedColumns = TryGetMappedColumnMask(bindings, out mappedColumns);
                         sawHeader = true;
+                        seenRows.MarkSeen(0);
                         continue;
                     }
 
@@ -415,6 +417,7 @@ namespace OfficeIMO.Excel {
                     ReadXmlRowIntoTypedObject(reader, rowIndex, c1, c2, bindings, canTrackMappedColumns, mappedColumns, target, ct);
                     results[dataRowOffset] = target;
                     assignedRows[dataRowOffset] = true;
+                    seenRows.MarkSeen(rowIndex - r1);
                 }
 
                 for (int i = 0; i < results.Length; i++) {
@@ -449,15 +452,7 @@ namespace OfficeIMO.Excel {
             CancellationToken ct) where T : new() {
             using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
             RewindWorksheetStream(stream);
-            var settings = new XmlReaderSettings {
-                    DtdProcessing = DtdProcessing.Prohibit,
-                    IgnoreComments = true,
-                    IgnoreProcessingInstructions = true,
-                    IgnoreWhitespace = true,
-                    CloseInput = false
-                };
-
-                using var reader = XmlReader.Create(stream, settings);
+            using var reader = OpenWorksheetXmlReader(stream);
             bool canCancel = ct.CanBeCanceled;
             TypedPropertyBinding<T>?[]? bindings = null;
             bool canTrackMappedColumns = false;
@@ -535,13 +530,20 @@ namespace OfficeIMO.Excel {
 
         private object?[] ReadXmlRowValues(XmlReader rowReader, int rowIndex, int c1, int c2, int cols, CancellationToken ct) {
             var values = new object?[cols];
+            ReadXmlRowValuesInto(rowReader, rowIndex, c1, c2, values, ct);
+            return values;
+        }
+
+        private void ReadXmlRowValuesInto(XmlReader rowReader, int rowIndex, int c1, int c2, object?[] values, CancellationToken ct) {
             if (rowReader.IsEmptyElement) {
-                return values;
+                return;
             }
 
             int depth = rowReader.Depth;
             bool canCancel = ct.CanBeCanceled;
             int nextColumnIndex = 1;
+            int cols = values.Length;
+            bool canTrackColumns = cols <= 64;
             ulong seenColumns = 0;
             while (rowReader.Read()) {
                 if (canCancel) {
@@ -549,7 +551,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (rowReader.NodeType == XmlNodeType.EndElement && rowReader.Depth == depth && rowReader.LocalName == "row") {
-                    return values;
+                    return;
                 }
 
                 if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
@@ -564,13 +566,11 @@ namespace OfficeIMO.Excel {
 
                 CellRaw raw = ReadXmlCellRaw(rowReader, rowIndex, columnIndex);
                 values[columnIndex - c1] = ConvertRaw(raw).TypedValue;
-                if (MarkRequestedColumnSeen(columnIndex - c1, cols, ref seenColumns)) {
+                if (canTrackColumns && MarkRequestedColumnSeen(columnIndex - c1, cols, ref seenColumns)) {
                     SkipXmlElementContent(rowReader, depth, "row");
-                    return values;
+                    return;
                 }
             }
-
-            return values;
         }
 
         private void ReadXmlRowIntoTypedObject<T>(
@@ -617,7 +617,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                CellRaw raw = ReadXmlCellRaw(rowReader, rowIndex, columnIndex);
+                CellRaw raw = ReadXmlCellRaw(rowReader, rowIndex, columnIndex, binding);
                 TrySetRawCellForBinding(raw, binding, target);
                 if (canTrackMappedColumns) {
                     seenMappedColumns |= 1UL << (columnIndex - c1);
@@ -662,14 +662,33 @@ namespace OfficeIMO.Excel {
         }
 
         private CellRaw ReadXmlCellRaw(XmlReader cellReader, int rowIndex, int columnIndex) {
-            CellValues? typeHint = ParseXmlCellType(cellReader.GetAttribute("t"));
-            uint? styleIndex = TryParseUInt(cellReader.GetAttribute("s"), out uint parsedStyle) ? parsedStyle : null;
+            XmlCellKind cellKind = ParseXmlCellKind(cellReader.GetAttribute("t"));
+            bool readStyleIndex = _opt.TreatDatesUsingNumberFormat
+                && _styles.HasDateStyles
+                && CellKindCanUseDateStyle(cellKind);
+            return ReadXmlCellRaw(cellReader, rowIndex, columnIndex, cellKind, readStyleIndex);
+        }
+
+        private CellRaw ReadXmlCellRaw<TTarget>(XmlReader cellReader, int rowIndex, int columnIndex, TypedPropertyBinding<TTarget> binding) {
+            XmlCellKind cellKind = ParseXmlCellKind(cellReader.GetAttribute("t"));
+            bool readStyleIndex = _opt.CellValueConverter != null
+                || (_opt.TreatDatesUsingNumberFormat
+                && _styles.HasDateStyles
+                && binding.NeedsDateStyleConversion
+                && CellKindCanUseDateStyle(cellKind));
+            return ReadXmlCellRaw(cellReader, rowIndex, columnIndex, cellKind, readStyleIndex);
+        }
+
+        private CellRaw ReadXmlCellRaw(XmlReader cellReader, int rowIndex, int columnIndex, XmlCellKind cellKind, bool readStyleIndex) {
             var raw = new CellRaw {
                 Row = rowIndex,
                 Col = columnIndex,
-                TypeHint = typeHint,
-                StyleIndex = styleIndex
+                TypeHint = ToCellValueType(cellKind)
             };
+
+            if (readStyleIndex && TryParseUInt(cellReader.GetAttribute("s"), out uint parsedStyle)) {
+                raw.StyleIndex = parsedStyle;
+            }
 
             if (cellReader.IsEmptyElement) {
                 return raw;
@@ -724,17 +743,6 @@ namespace OfficeIMO.Excel {
             raw.InlineText = preferFormulaText ? null : inlineText;
             return raw;
         }
-
-        private static CellValues? ParseXmlCellType(string? type)
-            => type switch {
-                "b" => CellValues.Boolean,
-                "d" => CellValues.Date,
-                "inlineStr" => CellValues.InlineString,
-                "n" => CellValues.Number,
-                "s" => CellValues.SharedString,
-                "str" => CellValues.String,
-                _ => null
-            };
 
         private static void SkipXmlElement(XmlReader reader, string localName) {
             if (reader.IsEmptyElement) {
@@ -1464,14 +1472,15 @@ namespace OfficeIMO.Excel {
 
         private object? TryChangeType<TTarget>(object value, TypedPropertyBinding<TTarget> binding, CultureInfo culture) {
             if (value == null) return null;
-            var srcType = value.GetType();
-            if (binding.PropertyType.IsAssignableFrom(srcType)) return value;
 
             var hook = _opt.TypeConverter;
             if (hook != null) {
                 var (ok, v) = hook(value, binding.DestinationType, culture);
                 if (ok) return v;
             }
+
+            var srcType = value.GetType();
+            if (binding.PropertyType.IsAssignableFrom(srcType)) return value;
 
             return binding.ConvertValue(value, culture);
         }
@@ -1708,6 +1717,26 @@ namespace OfficeIMO.Excel {
             CellRaw raw,
             TypedPropertyBinding<TTarget> binding,
             TTarget target) {
+            if (_opt.CellValueConverter != null || _opt.TypeConverter != null) {
+                object? typedValue = ConvertRaw(raw).TypedValue;
+                if (typedValue is null) {
+                    if (binding.IsNullable) {
+                        binding.SetValue(target, null);
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                object? converted = TryChangeType(typedValue, binding, _opt.Culture);
+                if (converted is not null || binding.IsNullable) {
+                    binding.SetValue(target, converted);
+                    return true;
+                }
+
+                return false;
+            }
+
             if (raw.RawText == null && raw.InlineText == null && raw.FormulaText == null) {
                 if (binding.IsNullable) {
                     binding.SetValue(target, null);
@@ -2261,8 +2290,6 @@ namespace OfficeIMO.Excel {
 
         private object? TryChangeType(object value, Type targetType, CultureInfo culture) {
             if (value == null) return null;
-            var srcType = value.GetType();
-            if (targetType.IsAssignableFrom(srcType)) return value;
 
             var nullable = Nullable.GetUnderlyingType(targetType);
             var destType = nullable ?? targetType;
@@ -2272,6 +2299,9 @@ namespace OfficeIMO.Excel {
                 var (ok, v) = hook(value, destType, culture);
                 if (ok) return v;
             }
+
+            var srcType = value.GetType();
+            if (targetType.IsAssignableFrom(srcType)) return value;
 
             return ConvertToDestinationType(value, destType, culture);
         }

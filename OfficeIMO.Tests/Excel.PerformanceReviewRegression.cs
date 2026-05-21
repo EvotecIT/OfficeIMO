@@ -1750,6 +1750,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_DataTableDeferredHeaderMap_MaterializesBeforeDomHeaderFastPath() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertDataTable(CreateSingleColumnDataTable("Items", "Alpha"));
+
+                Assert.True(sheet.TryGetColumnIndexByHeader("Name", out int columnIndex));
+                Assert.Equal(1, columnIndex);
+
+                document.Save(memory);
+                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var loaded = ExcelDocument.Load(memory, readOnly: true);
+            Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? value));
+            Assert.Equal("Alpha", value);
+        }
+
+        [Fact]
         public void PerformanceReview_DataTableDeferredThenParallelWrite_MaterializesBeforeFallbackSave() {
             using var memory = new MemoryStream();
 

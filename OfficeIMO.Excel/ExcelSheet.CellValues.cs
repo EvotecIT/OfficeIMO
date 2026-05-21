@@ -674,6 +674,7 @@ namespace OfficeIMO.Excel {
         private void ClearHeaderCacheForPreparedAppend() {
             _hasWorksheetMutations = true;
             _excelDocument.MarkPackageDirty();
+            ClearCellTextSharedStringCache();
             lock (_headerMapLock) {
                 _headerMapCache = null;
                 _headerMapSourceA1 = null;

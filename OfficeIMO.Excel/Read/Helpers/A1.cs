@@ -199,6 +199,69 @@ namespace OfficeIMO.Excel {
             return hasNonZeroRowDigit ? col : 0;
         }
 
+        internal static bool TryParseCellReferenceFast(string? cellRef, out int row, out int col) {
+            row = 0;
+            col = 0;
+            if (string.IsNullOrEmpty(cellRef)) return false;
+
+            string text = cellRef!;
+            int length = text.Length;
+            char first = text[0];
+            char last = text[length - 1];
+            if (!char.IsWhiteSpace(first) && last >= '0' && last <= '9') {
+                int index = 0;
+                for (; index < length; index++) {
+                    char ch = ToUpperAscii(text[index]);
+                    if (ch < 'A' || ch > 'Z') {
+                        break;
+                    }
+
+                    int value = ch - 'A' + 1;
+                    if (col > (int.MaxValue - value) / 26) {
+                        row = 0;
+                        col = 0;
+                        return false;
+                    }
+
+                    col = (col * 26) + value;
+                }
+
+                if (index == 0 || index == length) {
+                    row = 0;
+                    col = 0;
+                    return false;
+                }
+
+                for (; index < length; index++) {
+                    char ch = text[index];
+                    if (ch < '0' || ch > '9') {
+                        row = 0;
+                        col = 0;
+                        return false;
+                    }
+
+                    int digit = ch - '0';
+                    if (row > (int.MaxValue - digit) / 10) {
+                        row = 0;
+                        col = 0;
+                        return false;
+                    }
+
+                    row = (row * 10) + digit;
+                }
+
+                if (row <= 0 || col <= 0) {
+                    row = 0;
+                    col = 0;
+                    return false;
+                }
+
+                return true;
+            }
+
+            return TryParseCellRef(cellRef, 0, length, out row, out col);
+        }
+
         internal static int ParseColumnIndexFromCellReferenceWithKnownRowFast(string? cellRef) {
             if (string.IsNullOrEmpty(cellRef)) return 0;
 

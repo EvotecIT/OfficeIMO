@@ -87,6 +87,59 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AutoFilterByHeadersEquals_BatchesAndReplacesExistingFilters() {
+            string filePath = Path.Combine(_directoryWithFiles, "AutoFilter.BatchHeaders.xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Region");
+                sheet.CellValue(1, 2, "Department");
+                sheet.CellValue(1, 3, "Score");
+                sheet.CellValue(1, 4, "Notes");
+                sheet.CellValue(2, 1, "North");
+                sheet.CellValue(2, 2, "Finance");
+                sheet.CellValue(2, 3, 20d);
+                sheet.CellValue(2, 4, "keep");
+                sheet.CellValue(3, 1, "South");
+                sheet.CellValue(3, 2, "Operations");
+                sheet.CellValue(3, 3, 30d);
+                sheet.CellValue(3, 4, "review");
+                sheet.AutoFilterAdd("A1:D3");
+                sheet.AutoFilterByHeaderEquals("Region", new[] { "Old" });
+                sheet.AutoFilterByHeadersEquals(
+                    ("Region", new[] { "North", "north", "South" }),
+                    ("Missing", new[] { "Ignored" }),
+                    ("Score", new[] { "20", "20", "30" }),
+                    ("Region", new[] { "East" }));
+                sheet.AutoFilterByHeadersEquals(
+                    ("Region", new[] { "East" }),
+                    ("Score", new[] { "20", "30" }));
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                AutoFilter autoFilter = Assert.Single(wsPart.Worksheet.Elements<AutoFilter>());
+                Assert.Equal("A1:D3", autoFilter.Reference!.Value);
+
+                var filterColumns = autoFilter.Elements<FilterColumn>().OrderBy(fc => fc.ColumnId?.Value ?? 0U).ToList();
+                Assert.Equal(2, filterColumns.Count);
+
+                Assert.Equal(0U, filterColumns[0].ColumnId!.Value);
+                var regionFilters = Assert.Single(filterColumns[0].Elements<Filters>());
+                Filter regionFilter = Assert.Single(regionFilters.Elements<Filter>());
+                Assert.Equal("East", regionFilter.Val!.Value);
+
+                Assert.Equal(2U, filterColumns[1].ColumnId!.Value);
+                var scoreFilters = Assert.Single(filterColumns[1].Elements<Filters>());
+                Assert.Equal(new[] { "20", "30" }, scoreFilters.Elements<Filter>().Select(filter => filter.Val!.Value).ToArray());
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void Test_CustomAutoFilterHelpersPersistExpectedOperators() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFilter.CustomHelpers.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {

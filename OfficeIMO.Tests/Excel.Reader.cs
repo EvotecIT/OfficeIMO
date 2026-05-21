@@ -1,4 +1,5 @@
 using System;
+using System.Data;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -327,6 +328,104 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_DataTable_NoHeadersNoInference_UsesGeneratedObjectColumns() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderDataTableNoHeadersNoInference.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    sheet.CellValue(1, 2, "Count");
+                    sheet.CellValue(2, 1, "Alpha");
+                    sheet.CellValue(2, 2, 42);
+                    document.Save();
+                }
+
+                var options = new ExcelReadOptions { InferDataTableColumnTypes = false };
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                var table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:B2", headersInFirstRow: false, mode: ExecutionMode.Sequential);
+
+                Assert.Equal(new[] { "Column1", "Column2" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray());
+                Assert.All(table.Columns.Cast<DataColumn>(), column => Assert.Equal(typeof(object), column.DataType));
+                Assert.Equal("Name", table.Rows[0][0]);
+                Assert.Equal("Count", table.Rows[0][1]);
+                Assert.Equal("Alpha", table.Rows[1][0]);
+                Assert.Equal(42D, table.Rows[1][1]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_DataTable_HeadersNoInference_UsesHeaderObjectColumns() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderDataTableHeadersNoInference.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    sheet.CellValue(1, 2, "Count");
+                    sheet.CellValue(2, 1, "Alpha");
+                    sheet.CellValue(2, 2, 42);
+                    sheet.CellValue(3, 1, "Beta");
+                    sheet.CellValue(3, 2, 7);
+                    document.Save();
+                }
+
+                var options = new ExcelReadOptions { InferDataTableColumnTypes = false };
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                var table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:B3", headersInFirstRow: true, mode: ExecutionMode.Sequential);
+
+                Assert.Equal(new[] { "Name", "Count" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray());
+                Assert.All(table.Columns.Cast<DataColumn>(), column => Assert.Equal(typeof(object), column.DataType));
+                Assert.Equal(2, table.Rows.Count);
+                Assert.Equal("Alpha", table.Rows[0][0]);
+                Assert.Equal(42D, table.Rows[0][1]);
+                Assert.Equal("Beta", table.Rows[1][0]);
+                Assert.Equal(7D, table.Rows[1][1]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_DataTable_MixedTypeInference_ResolvesObjectColumns() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderDataTableMixedTypeInference.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Key");
+                    sheet.CellValue(1, 2, "Value");
+                    sheet.CellValue(2, 1, 1);
+                    sheet.CellValue(2, 2, "Open");
+                    sheet.CellValue(3, 1, "Two");
+                    sheet.CellValue(3, 2, 7);
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:B3", headersInFirstRow: true, mode: ExecutionMode.Sequential);
+
+                Assert.Equal(new[] { "Key", "Value" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray());
+                Assert.All(table.Columns.Cast<DataColumn>(), column => Assert.Equal(typeof(object), column.DataType));
+                Assert.Equal(2, table.Rows.Count);
+                Assert.Equal(1D, table.Rows[0][0]);
+                Assert.Equal("Open", table.Rows[0][1]);
+                Assert.Equal("Two", table.Rows[1][0]);
+                Assert.Equal(7D, table.Rows[1][1]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Reader_RowReaders_HandleLargeSortedSparseRanges() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderRowReadersLargeSortedSparseRanges.xlsx");
 
@@ -334,6 +433,7 @@ namespace OfficeIMO.Tests {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddWorkSheet("Data");
                     sheet.CellValue(1, 1, "Header");
+                    sheet.CellValue(2, 2, "OutsideRequestedColumn");
                     sheet.CellValue(100001, 1, "Tail");
                     document.Save();
                 }
@@ -352,6 +452,367 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Header", rows[0]![0]);
                 Assert.Null(rows[1]);
                 Assert.Equal("Tail", rows[100000]![0]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRows_LargeSparseOutOfOrderRowsRemainOrdered() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderRowsLargeSparseOutOfOrderRows.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Header");
+                    sheet.CellValue(2, 2, "OutsideRequestedColumn");
+                    sheet.CellValue(100001, 1, "Tail");
+                    document.Save();
+                }
+
+                MoveWorksheetRowToEnd(filePath, 1U);
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var rows = reader.GetSheet("Data").ReadRows("A1:A100001").ToArray();
+
+                Assert.Equal(100001, rows.Length);
+                Assert.Equal("Header", rows[0]![0]);
+                Assert.Null(rows[1]);
+                Assert.Equal("Tail", rows[100000]![0]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadObjects_SequentialOutOfOrderRowsRemainOrdered() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderObjectsOutOfOrderRows.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    sheet.CellValue(1, 2, "Count");
+                    sheet.CellValue(2, 1, "Alpha");
+                    sheet.CellValue(2, 2, 42);
+                    sheet.CellValue(4, 1, "Omega");
+                    sheet.CellValue(4, 2, 99);
+                    document.Save();
+                }
+
+                MoveWorksheetRowToEnd(filePath, 1U);
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var rows = reader.GetSheet("Data").ReadObjects("A1:B4", ExecutionMode.Sequential).ToList();
+
+                Assert.Equal(3, rows.Count);
+                Assert.Equal("Alpha", rows[0]["Name"]);
+                Assert.Equal(42D, rows[0]["Count"]);
+                Assert.Null(rows[1]["Name"]);
+                Assert.Null(rows[1]["Count"]);
+                Assert.Equal("Omega", rows[2]["Name"]);
+                Assert.Equal(99D, rows[2]["Count"]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadObjects_SequentialHonorsCellValueConverter() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderObjectsCellValueConverter.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    sheet.CellValue(1, 2, "Count");
+                    sheet.CellValue(2, 1, "Alpha");
+                    sheet.CellValue(2, 2, 42);
+                    document.Save();
+                }
+
+                var options = new ExcelReadOptions {
+                    CellValueConverter = context => context.RawText == "42" ? new ExcelCellValue("forty-two") : ExcelCellValue.NotHandled
+                };
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                var row = Assert.Single(reader.GetSheet("Data").ReadObjects("A1:B2", ExecutionMode.Sequential));
+
+                Assert.Equal("Alpha", row["Name"]);
+                Assert.Equal("forty-two", row["Count"]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRows_HonorsCellValueConverter() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderRowsCellValueConverter.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    sheet.CellValue(1, 2, "Count");
+                    sheet.CellValue(2, 1, "Alpha");
+                    sheet.CellValue(2, 2, 42);
+                    document.Save();
+                }
+
+                var options = new ExcelReadOptions {
+                    CellValueConverter = context => context.RawText == "42" ? new ExcelCellValue("forty-two") : ExcelCellValue.NotHandled
+                };
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                var row = Assert.Single(reader.GetSheet("Data").ReadRows("A2:B2"));
+
+                Assert.Equal("Alpha", row![0]);
+                Assert.Equal("forty-two", row[1]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadColumn_HonorsCellValueConverter() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderColumnCellValueConverter.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    sheet.CellValue(2, 1, 42);
+                    document.Save();
+                }
+
+                var options = new ExcelReadOptions {
+                    CellValueConverter = context => context.RawText == "42" ? new ExcelCellValue("forty-two") : ExcelCellValue.NotHandled
+                };
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                var column = reader.GetSheet("Data").ReadColumn("A1:A2").ToList();
+
+                Assert.Equal("Name", column[0]);
+                Assert.Equal("forty-two", column[1]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadColumn_CellValueConverterFallbackUsesConfiguredCulture() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderColumnConverterCultureFallback.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, 1d);
+                    sheet.CellValue(2, 1, 2d);
+                    document.Save();
+                }
+
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(c => c.CellReference!.Value!);
+                    cells["A1"].DataType = CellValues.Number;
+                    cells["A1"].CellValue = new CellValue("1,23");
+                    cells["A2"].DataType = CellValues.Number;
+                    cells["A2"].CellValue = new CellValue("123.45");
+                    spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet.Save();
+                }
+
+                var options = new ExcelReadOptions {
+                    Culture = CultureInfo.GetCultureInfo("pl-PL"),
+                    CellValueConverter = static _ => ExcelCellValue.NotHandled
+                };
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                var column = reader.GetSheet("Data").ReadColumn("A1:A2").ToList();
+
+                Assert.Equal(1.23d, Assert.IsType<double>(column[0]), precision: 2);
+                Assert.Equal(123.45d, Assert.IsType<double>(column[1]), precision: 2);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRows_CellValueConverterFallbackUsesConfiguredCulture() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderRowsConverterCultureFallback.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, 1d);
+                    sheet.CellValue(2, 1, 2d);
+                    document.Save();
+                }
+
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(c => c.CellReference!.Value!);
+                    cells["A1"].DataType = CellValues.Number;
+                    cells["A1"].CellValue = new CellValue("1,23");
+                    cells["A2"].DataType = CellValues.Number;
+                    cells["A2"].CellValue = new CellValue("123.45");
+                    spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet.Save();
+                }
+
+                var options = new ExcelReadOptions {
+                    Culture = CultureInfo.GetCultureInfo("pl-PL"),
+                    CellValueConverter = static _ => ExcelCellValue.NotHandled
+                };
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                var rows = reader.GetSheet("Data").ReadRows("A1:A2").ToList();
+
+                Assert.Equal(1.23d, Assert.IsType<double>(rows[0]![0]), precision: 2);
+                Assert.Equal(123.45d, Assert.IsType<double>(rows[1]![0]), precision: 2);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRangeStream_HonorsCellValueConverter() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderRangeStreamCellValueConverter.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    sheet.CellValue(1, 2, "Count");
+                    sheet.CellValue(2, 1, "Alpha");
+                    sheet.CellValue(2, 2, 42);
+                    document.Save();
+                }
+
+                var options = new ExcelReadOptions {
+                    CellValueConverter = context => context.RawText == "42" ? new ExcelCellValue("forty-two") : ExcelCellValue.NotHandled
+                };
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                var chunks = reader.GetSheet("Data").ReadRangeStream("A1:B2", chunkRows: 1, mode: ExecutionMode.Sequential).ToList();
+
+                Assert.Equal(2, chunks.Count);
+                Assert.Equal("Alpha", chunks[1].Rows[0][0]);
+                Assert.Equal("forty-two", chunks[1].Rows[0][1]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRangeStream_CellValueConverterFallbackUsesConfiguredCulture() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderRangeStreamConverterCultureFallback.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, 1d);
+                    sheet.CellValue(2, 1, 2d);
+                    document.Save();
+                }
+
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(c => c.CellReference!.Value!);
+                    cells["A1"].DataType = CellValues.Number;
+                    cells["A1"].CellValue = new CellValue("1,23");
+                    cells["A2"].DataType = CellValues.Number;
+                    cells["A2"].CellValue = new CellValue("123.45");
+                    spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet.Save();
+                }
+
+                var options = new ExcelReadOptions {
+                    Culture = CultureInfo.GetCultureInfo("pl-PL"),
+                    CellValueConverter = static _ => ExcelCellValue.NotHandled
+                };
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                var chunk = Assert.Single(reader.GetSheet("Data").ReadRangeStream("A1:A2", chunkRows: 2, mode: ExecutionMode.Sequential));
+
+                Assert.Equal(1.23d, Assert.IsType<double>(chunk.Rows[0][0]), precision: 2);
+                Assert.Equal(123.45d, Assert.IsType<double>(chunk.Rows[1][0]), precision: 2);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRangeAsDataTable_SequentialHonorsCellValueConverter() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderDataTableCellValueConverter.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    sheet.CellValue(1, 2, "Count");
+                    sheet.CellValue(2, 1, "Alpha");
+                    sheet.CellValue(2, 2, 42);
+                    sheet.CellValue(3, 1, "Beta");
+                    sheet.CellValue(3, 2, 7);
+                    document.Save();
+                }
+
+                var options = new ExcelReadOptions {
+                    CellValueConverter = context => context.RawText == "42" ? new ExcelCellValue("forty-two") : ExcelCellValue.NotHandled
+                };
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                DataTable table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:B3", mode: ExecutionMode.Sequential);
+
+                Assert.Equal("Alpha", table.Rows[0]["Name"]);
+                Assert.Equal("forty-two", table.Rows[0]["Count"]);
+                Assert.Equal("Beta", table.Rows[1]["Name"]);
+                Assert.Equal(7d, table.Rows[1]["Count"]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadRangeAsDataTable_CellValueConverterFallbackUsesConfiguredCulture() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderDataTableConverterCultureFallback.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Amount");
+                    sheet.CellValue(2, 1, 1d);
+                    sheet.CellValue(3, 1, 2d);
+                    document.Save();
+                }
+
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(c => c.CellReference!.Value!);
+                    cells["A2"].DataType = CellValues.Number;
+                    cells["A2"].CellValue = new CellValue("1,23");
+                    cells["A3"].DataType = CellValues.Number;
+                    cells["A3"].CellValue = new CellValue("123.45");
+                    spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet.Save();
+                }
+
+                var options = new ExcelReadOptions {
+                    Culture = CultureInfo.GetCultureInfo("pl-PL"),
+                    CellValueConverter = static _ => ExcelCellValue.NotHandled
+                };
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                DataTable table = reader.GetSheet("Data").ReadRangeAsDataTable("A1:A3", mode: ExecutionMode.Sequential);
+
+                Assert.Equal(1.23d, Assert.IsType<double>(table.Rows[0]["Amount"]), precision: 2);
+                Assert.Equal(123.45d, Assert.IsType<double>(table.Rows[1]["Amount"]), precision: 2);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

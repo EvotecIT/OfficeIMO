@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
 
             bool canCancel = ct.CanBeCanceled;
             int height = r2 - r1 + 1;
-            if (CanUseXmlFastReader()) {
+            if (CanUseColumnXmlReader()) {
                 if (TryReadColumnXmlFast(r1, c1, r2, height, ct, out var xmlValues)) {
                     for (int i = 0; i < height; i++) {
                         if (canCancel) {
@@ -111,17 +111,10 @@ namespace OfficeIMO.Excel {
             try {
                 using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
                 RewindWorksheetStream(stream);
-                var settings = new XmlReaderSettings {
-                    DtdProcessing = DtdProcessing.Prohibit,
-                    IgnoreComments = true,
-                    IgnoreProcessingInstructions = true,
-                    IgnoreWhitespace = true,
-                    CloseInput = false
-                };
-
-                using var reader = XmlReader.Create(stream, settings);
+                using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
+                var seenRows = CreateCompletedRowTracker(height);
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -138,6 +131,10 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
+                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
+                            break;
+                        }
+
                         SkipXmlElement(reader, "row");
                         continue;
                     }
@@ -149,6 +146,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     ReadXmlColumnValue(reader, values, rowOffset, columnIndex, ct);
+                    seenRows.MarkSeen(rowOffset);
                 }
 
                 return true;
@@ -184,18 +182,12 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                string? reference = rowReader.GetAttribute("r");
-                int columnIndex = A1.ParseColumnIndexFromCellReferenceWithKnownRowFast(reference);
+                int columnIndex = GetXmlCellColumnIndex(rowReader, ref nextColumnIndex);
                 if (columnIndex <= 0) {
-                    if (!string.IsNullOrEmpty(reference)) {
-                        SkipXmlElement(rowReader, "c");
-                        continue;
-                    }
-
-                    columnIndex = nextColumnIndex;
+                    SkipXmlElement(rowReader, "c");
+                    continue;
                 }
 
-                nextColumnIndex = columnIndex + 1;
                 if (columnIndex != targetColumnIndex) {
                     SkipXmlElement(rowReader, "c");
                     continue;
@@ -205,6 +197,11 @@ namespace OfficeIMO.Excel {
                 SkipXmlElementContent(rowReader, depth, "row");
                 return;
             }
+        }
+
+        private bool CanUseColumnXmlReader() {
+            return (_opt.CellValueConverter != null || _opt.Culture == System.Globalization.CultureInfo.InvariantCulture)
+                && CanStreamWorksheetPart();
         }
     }
 }
