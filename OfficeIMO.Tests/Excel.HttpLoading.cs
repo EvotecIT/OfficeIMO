@@ -157,6 +157,74 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task ExcelHttpLoadAllowsMacroEnabledWorkbookContentTypeByDefault() {
+            byte[] workbookBytes = CreateRemoteWorkbookBytes();
+            using var httpClient = new HttpClient(new FakeWorkbookHttpMessageHandler((_, _) => {
+                var response = CreateWorkbookResponse(workbookBytes);
+                response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(
+                    "application/vnd.ms-excel.sheet.macroEnabled.12");
+                return Task.FromResult(response);
+            }));
+
+            using var reader = await ExcelDocumentReader.OpenAsync(
+                new Uri("https://example.test/workbook.xlsm"),
+                httpOptions: new ExcelHttpLoadOptions {
+                    HttpClient = httpClient,
+                    ValidateContentTypeWhenPresent = true
+                });
+
+            Assert.Equal(new[] { "Remote" }, reader.GetSheetNames());
+        }
+
+        [Fact]
+        public async Task ExcelHttpLoadRejectsHttpsToHttpRedirectByDefault() {
+            using var httpClient = new HttpClient(new FakeWorkbookHttpMessageHandler((_, _) => {
+                var response = new HttpResponseMessage(HttpStatusCode.Redirect);
+                response.Headers.Location = new Uri("http://example.test/workbook.xlsx");
+                return Task.FromResult(response);
+            }));
+
+            var ex = await Assert.ThrowsAsync<NotSupportedException>(() =>
+                ExcelDocumentReader.OpenAsync(
+                    new Uri("https://example.test/workbook.xlsx"),
+                    httpOptions: new ExcelHttpLoadOptions { HttpClient = httpClient }));
+
+            Assert.Contains("HTTPS", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task ExcelHttpLoadDoesNotForwardCustomHeadersAcrossRedirectedHosts() {
+            byte[] workbookBytes = CreateRemoteWorkbookBytes();
+            var requests = new List<HttpRequestMessage>();
+            using var httpClient = new HttpClient(new FakeWorkbookHttpMessageHandler((request, _) => {
+                requests.Add(CloneRequestHeaders(request));
+                if (requests.Count == 1) {
+                    var redirect = new HttpResponseMessage(HttpStatusCode.Redirect);
+                    redirect.Headers.Location = new Uri("https://cdn.example.test/workbook.xlsx");
+                    return Task.FromResult(redirect);
+                }
+
+                return Task.FromResult(CreateWorkbookResponse(workbookBytes));
+            }));
+
+            var options = new ExcelHttpLoadOptions {
+                HttpClient = httpClient,
+                UserAgent = "OfficeIMO.Tests"
+            };
+            options.Headers["X-Api-Key"] = "secret";
+
+            using var reader = await ExcelDocumentReader.OpenAsync(
+                new Uri("https://example.test/workbook.xlsx"),
+                httpOptions: options);
+
+            Assert.Equal(new[] { "Remote" }, reader.GetSheetNames());
+            Assert.Equal(2, requests.Count);
+            Assert.True(requests[0].Headers.Contains("X-Api-Key"));
+            Assert.False(requests[1].Headers.Contains("X-Api-Key"));
+            Assert.Contains(requests[1].Headers.UserAgent, value => value.Product?.Name == "OfficeIMO.Tests");
+        }
+
+        [Fact]
         public async Task ExcelHttpLoadObservesCancellationToken() {
             using var httpClient = new HttpClient(new FakeWorkbookHttpMessageHandler((_, _) =>
                 Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
@@ -189,6 +257,15 @@ namespace OfficeIMO.Tests {
             response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
             return response;
+        }
+
+        private static HttpRequestMessage CloneRequestHeaders(HttpRequestMessage request) {
+            var clone = new HttpRequestMessage(request.Method, request.RequestUri);
+            foreach (var header in request.Headers) {
+                clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+
+            return clone;
         }
 
         private sealed class CapturingProgress : IProgress<ExcelHttpLoadProgress> {

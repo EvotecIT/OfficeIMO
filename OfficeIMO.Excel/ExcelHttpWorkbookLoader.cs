@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Excel {
     internal static class ExcelHttpWorkbookLoader {
         private const int BufferSize = 81920;
+        private const int MaxRedirects = 10;
 
         internal static byte[] Download(Uri uri, ExcelHttpLoadOptions? options, CancellationToken cancellationToken = default) {
             return DownloadAsync(uri, options, cancellationToken).GetAwaiter().GetResult();
@@ -26,18 +28,12 @@ namespace OfficeIMO.Excel {
             HttpClient? ownedClient = null;
             var client = snapshot.HttpClient;
             if (client == null) {
-                ownedClient = new HttpClient();
+                ownedClient = CreateOwnedHttpClient();
                 client = ownedClient;
             }
 
             try {
-                using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-                ApplyHeaders(request, snapshot);
-
-                using var response = await client.SendAsync(
-                    request,
-                    HttpCompletionOption.ResponseHeadersRead,
-                    timeoutCts.Token).ConfigureAwait(false);
+                using var response = await SendWithRedirectsAsync(client, uri, snapshot, timeoutCts.Token).ConfigureAwait(false);
 
                 response.EnsureSuccessStatusCode();
                 ValidateContentType(response, snapshot);
@@ -61,6 +57,59 @@ namespace OfficeIMO.Excel {
             } finally {
                 ownedClient?.Dispose();
             }
+        }
+
+        private static HttpClient CreateOwnedHttpClient() {
+            var handler = new HttpClientHandler {
+                AllowAutoRedirect = false,
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+            };
+
+            return new HttpClient(handler, disposeHandler: true);
+        }
+
+        private static async Task<HttpResponseMessage> SendWithRedirectsAsync(
+            HttpClient client,
+            Uri initialUri,
+            ExcelHttpLoadOptionsSnapshot options,
+            CancellationToken cancellationToken) {
+            Uri currentUri = initialUri;
+            bool includeCustomHeaders = true;
+
+            for (int redirectCount = 0; redirectCount <= MaxRedirects; redirectCount++) {
+                var request = new HttpRequestMessage(HttpMethod.Get, currentUri);
+                ApplyHeaders(request, options, includeCustomHeaders);
+
+                HttpResponseMessage response;
+                try {
+                    response = await client.SendAsync(
+                        request,
+                        HttpCompletionOption.ResponseHeadersRead,
+                        cancellationToken).ConfigureAwait(false);
+                } finally {
+                    request.Dispose();
+                }
+
+                if (!IsRedirect(response.StatusCode)) {
+                    return response;
+                }
+
+                Uri nextUri = ResolveRedirectUri(currentUri, response.Headers.Location);
+                response.Dispose();
+
+                if (redirectCount == MaxRedirects) {
+                    throw new HttpRequestException($"Remote workbook request exceeded the maximum of {MaxRedirects} redirects.");
+                }
+
+                ValidateScheme(nextUri, options.SchemePolicy);
+                if (!IsSameOrigin(currentUri, nextUri)) {
+                    includeCustomHeaders = false;
+                }
+
+                currentUri = nextUri;
+            }
+
+            throw new HttpRequestException($"Remote workbook request exceeded the maximum of {MaxRedirects} redirects.");
         }
 
         private static async Task<byte[]> ReadResponseBytesAsync(
@@ -117,10 +166,12 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyHeaders(HttpRequestMessage request, ExcelHttpLoadOptionsSnapshot options) {
-            foreach (var header in options.Headers) {
-                if (!request.Headers.TryAddWithoutValidation(header.Key, header.Value)) {
-                    throw new ArgumentException($"Header '{header.Key}' is not valid for an HTTP workbook request.");
+        private static void ApplyHeaders(HttpRequestMessage request, ExcelHttpLoadOptionsSnapshot options, bool includeCustomHeaders) {
+            if (includeCustomHeaders) {
+                foreach (var header in options.Headers) {
+                    if (!request.Headers.TryAddWithoutValidation(header.Key, header.Value)) {
+                        throw new ArgumentException($"Header '{header.Key}' is not valid for an HTTP workbook request.");
+                    }
                 }
             }
 
@@ -129,6 +180,28 @@ namespace OfficeIMO.Excel {
                 && !request.Headers.TryAddWithoutValidation("User-Agent", options.UserAgent)) {
                 throw new ArgumentException("UserAgent is not valid for an HTTP workbook request.");
             }
+        }
+
+        private static bool IsRedirect(HttpStatusCode statusCode) {
+            return statusCode == HttpStatusCode.Moved
+                || statusCode == HttpStatusCode.Redirect
+                || statusCode == HttpStatusCode.SeeOther
+                || statusCode == HttpStatusCode.TemporaryRedirect
+                || (int)statusCode == 308;
+        }
+
+        private static Uri ResolveRedirectUri(Uri currentUri, Uri? location) {
+            if (location == null) {
+                throw new HttpRequestException("Remote workbook redirect response did not include a Location header.");
+            }
+
+            return location.IsAbsoluteUri ? location : new Uri(currentUri, location);
+        }
+
+        private static bool IsSameOrigin(Uri left, Uri right) {
+            return string.Equals(left.Scheme, right.Scheme, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(left.IdnHost, right.IdnHost, StringComparison.OrdinalIgnoreCase)
+                && left.Port == right.Port;
         }
 
         private static void ValidateContentType(HttpResponseMessage response, ExcelHttpLoadOptionsSnapshot options) {

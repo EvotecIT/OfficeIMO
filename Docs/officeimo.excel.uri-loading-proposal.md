@@ -50,6 +50,10 @@ public sealed class ExcelHttpLoadOptions {
     public bool ValidateContentTypeWhenPresent { get; set; } = false;
     public ISet<string> AllowedContentTypes { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel.sheet.macroenabled.12",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.template",
+        "application/vnd.ms-excel.template.macroenabled.12",
+        "application/vnd.ms-excel.addin.macroenabled.12",
         "application/vnd.ms-excel",
         "application/octet-stream"
     };
@@ -78,7 +82,8 @@ The implementation should clone option values at operation start so callers cann
 - `Timeout` and `CancellationToken` both respected.
 - Caller headers and user-agent supported without adding a dependency on any auth framework.
 - Optional content-type validation because real file hosts often return generic values. ZIP header validation is the stronger default check for `.xlsx`.
-- Redirect handling can use the default `HttpClientHandler` behavior for the internal client. If a caller supplies `HttpClient`, their handler policy wins.
+- The internally owned client disables automatic redirects, follows redirects manually, revalidates the target URI scheme at each hop, and strips custom headers after a host change.
+- The internally owned client enables gzip/deflate response decompression. If a caller supplies `HttpClient`, their handler policy still owns transport behavior.
 - Remote load is read-only by default. It should not imply remote save or upload semantics.
 
 ## Ownership And Cleanup
@@ -103,6 +108,9 @@ For a future slice, add temp-file support only if it reduces real memory pressur
    - checks success status,
    - enforces timeout, cancellation, and byte limit,
    - copies to memory,
+   - follows redirects manually with scheme revalidation,
+   - strips custom headers after redirected host changes,
+   - enables gzip/deflate decompression for the internally created client,
    - validates ZIP magic bytes when enabled,
    - reports progress during copy.
 3. Add `ExcelDocument.Load(Uri, ...)` and `LoadAsync(Uri, ...)`.
@@ -114,9 +122,12 @@ For a future slice, add temp-file support only if it reduces real memory pressur
    - HTTPS-only default rejects `http`.
    - Opt-in `http` works.
    - headers/user-agent are sent.
+   - custom headers are not forwarded across redirected hosts.
+   - HTTPS-to-HTTP redirects are rejected by default.
    - max byte limit rejects oversized responses before and during copy.
    - cancellation is observed while downloading.
    - content-type validation is opt-in.
+   - macro-enabled workbook MIME types are accepted by default.
    - invalid ZIP header is rejected.
    - reader and document paths both open a valid downloaded workbook.
 

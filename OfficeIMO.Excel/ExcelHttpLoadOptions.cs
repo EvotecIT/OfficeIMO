@@ -48,6 +48,10 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ISet<string> AllowedContentTypes { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.ms-excel.sheet.macroenabled.12",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.template",
+            "application/vnd.ms-excel.template.macroenabled.12",
+            "application/vnd.ms-excel.addin.macroenabled.12",
             "application/vnd.ms-excel",
             "application/octet-stream"
         };
@@ -59,6 +63,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Gets or sets an optional HTTP client. When omitted, OfficeIMO creates and disposes a client for the operation.
+        /// Caller-supplied clients keep their own handler behavior, including redirect and decompression policy.
         /// </summary>
         public HttpClient? HttpClient { get; set; }
     }
