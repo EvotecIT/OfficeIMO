@@ -75,11 +75,16 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                RemoveCommentInternal(commentsPart.Comments.CommentList, reference);
-                commentsPart.Comments.Save();
+                bool removedComment = RemoveCommentInternal(commentsPart.Comments.CommentList, reference);
+                if (removedComment) {
+                    commentsPart.Comments.Save();
+                }
+
                 RemoveCommentVmlShape(row, column);
-                CleanupCommentArtifacts();
-                WorksheetRoot.Save();
+                bool removedArtifacts = CleanupCommentArtifacts();
+                if (removedArtifacts) {
+                    WorksheetRoot.Save();
+                }
             });
         }
 
@@ -127,10 +132,15 @@ namespace OfficeIMO.Excel {
             return (uint)idx;
         }
 
-        private static void RemoveCommentInternal(CommentList list, string reference) {
+        private static bool RemoveCommentInternal(CommentList list, string reference) {
             var existing = list.Elements<Comment>()
                 .FirstOrDefault(c => string.Equals(c.Reference?.Value, reference, StringComparison.OrdinalIgnoreCase));
-            existing?.Remove();
+            if (existing == null) {
+                return false;
+            }
+
+            existing.Remove();
+            return true;
         }
 
         private static CommentText BuildCommentText(string text) {
@@ -192,18 +202,20 @@ namespace OfficeIMO.Excel {
             SaveVmlDocument(vmlPart, doc);
         }
 
-        private void RemoveCommentVmlShape(int row, int column) {
+        private bool RemoveCommentVmlShape(int row, int column) {
             var vmlPart = TryGetCommentVmlPart();
-            if (vmlPart == null) return;
+            if (vmlPart == null) return false;
 
             var doc = LoadOrCreateVmlDocument(vmlPart);
             var root = doc.Root;
-            if (root == null) return;
+            if (root == null) return false;
 
             bool removed = RemoveVmlShape(root, row, column);
             if (removed) {
                 SaveVmlDocument(vmlPart, doc);
             }
+
+            return removed;
         }
 
         private static bool RemoveVmlShape(XElement root, int row, int column) {
@@ -212,16 +224,14 @@ namespace OfficeIMO.Excel {
             string rowText = (row - 1).ToString(CultureInfo.InvariantCulture);
             string colText = (column - 1).ToString(CultureInfo.InvariantCulture);
 
+            if (!VmlShapesContainCell(root, v, x, rowText, colText)) {
+                return false;
+            }
+
             var shapes = root.Elements(v + "shape").ToList();
             bool removed = false;
             foreach (var shape in shapes) {
-                var clientData = shape.Element(x + "ClientData");
-                if (clientData == null) continue;
-                var rowEl = clientData.Element(x + "Row");
-                var colEl = clientData.Element(x + "Column");
-                if (rowEl != null && colEl != null
-                    && string.Equals(rowEl.Value?.Trim(), rowText, StringComparison.OrdinalIgnoreCase)
-                    && string.Equals(colEl.Value?.Trim(), colText, StringComparison.OrdinalIgnoreCase)) {
+                if (VmlShapeMatchesCell(shape, x, rowText, colText)) {
                     shape.Remove();
                     removed = true;
                 }
@@ -229,18 +239,120 @@ namespace OfficeIMO.Excel {
             return removed;
         }
 
-        internal void CleanupCommentArtifacts() {
+        private static bool VmlShapesContainCell(XElement root, XNamespace v, XNamespace x, string rowText, string colText) {
+            foreach (var shape in root.Elements(v + "shape")) {
+                if (VmlShapeMatchesCell(shape, x, rowText, colText)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool VmlShapeMatchesCell(XElement shape, XNamespace x, string rowText, string colText) {
+            var clientData = shape.Element(x + "ClientData");
+            if (clientData == null) return false;
+            var rowEl = clientData.Element(x + "Row");
+            var colEl = clientData.Element(x + "Column");
+            return rowEl != null
+                && colEl != null
+                && string.Equals(rowEl.Value?.Trim(), rowText, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(colEl.Value?.Trim(), colText, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool RemoveCommentVmlShapesInRange(int firstRow, int firstColumn, int lastRow, int lastColumn) {
+            var vmlPart = TryGetCommentVmlPart();
+            if (vmlPart == null) return false;
+
+            var doc = LoadOrCreateVmlDocument(vmlPart);
+            var root = doc.Root;
+            if (root == null) return false;
+
+            if (RemoveVmlShapesInRange(root, firstRow, firstColumn, lastRow, lastColumn)) {
+                SaveVmlDocument(vmlPart, doc);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool RemoveVmlShapesInRange(XElement root, int firstRow, int firstColumn, int lastRow, int lastColumn) {
+            var v = XNamespace.Get("urn:schemas-microsoft-com:vml");
+            var x = XNamespace.Get("urn:schemas-microsoft-com:office:excel");
+            int firstZeroBasedRow = firstRow - 1;
+            int lastZeroBasedRow = lastRow - 1;
+            int firstZeroBasedColumn = firstColumn - 1;
+            int lastZeroBasedColumn = lastColumn - 1;
+            bool removed = false;
+
+            if (!VmlShapesOverlapRange(root, firstZeroBasedRow, firstZeroBasedColumn, lastZeroBasedRow, lastZeroBasedColumn)) {
+                return false;
+            }
+
+            foreach (var shape in root.Elements(v + "shape").ToList()) {
+                var clientData = shape.Element(x + "ClientData");
+                if (clientData == null) continue;
+
+                if (!TryParseVmlCoordinate(clientData.Element(x + "Row")?.Value, out int row)
+                    || !TryParseVmlCoordinate(clientData.Element(x + "Column")?.Value, out int column)) {
+                    continue;
+                }
+
+                if (row >= firstZeroBasedRow
+                    && row <= lastZeroBasedRow
+                    && column >= firstZeroBasedColumn
+                    && column <= lastZeroBasedColumn) {
+                    shape.Remove();
+                    removed = true;
+                }
+            }
+
+            return removed;
+        }
+
+        private static bool VmlShapesOverlapRange(XElement root, int firstZeroBasedRow, int firstZeroBasedColumn, int lastZeroBasedRow, int lastZeroBasedColumn) {
+            var v = XNamespace.Get("urn:schemas-microsoft-com:vml");
+            var x = XNamespace.Get("urn:schemas-microsoft-com:office:excel");
+
+            foreach (var shape in root.Elements(v + "shape")) {
+                var clientData = shape.Element(x + "ClientData");
+                if (clientData == null) continue;
+
+                if (!TryParseVmlCoordinate(clientData.Element(x + "Row")?.Value, out int row)
+                    || !TryParseVmlCoordinate(clientData.Element(x + "Column")?.Value, out int column)) {
+                    continue;
+                }
+
+                if (row >= firstZeroBasedRow
+                    && row <= lastZeroBasedRow
+                    && column >= firstZeroBasedColumn
+                    && column <= lastZeroBasedColumn) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryParseVmlCoordinate(string? text, out int value) {
+            value = 0;
+            return int.TryParse(text?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
+        }
+
+        internal bool CleanupCommentArtifacts() {
             var ws = WorksheetRoot;
             var commentsPart = WorksheetCommentsPartRoot;
             bool hasComments = commentsPart?.Comments?.CommentList?.Elements<Comment>().Any() is true;
+            bool changed = false;
 
             if (!hasComments && commentsPart != null) {
                 _worksheetPart.DeletePart(commentsPart);
+                changed = true;
             }
 
             var legacy = ws.GetFirstChild<LegacyDrawing>();
             if (legacy?.Id?.Value is not string legacyRelId || string.IsNullOrWhiteSpace(legacyRelId)) {
-                return;
+                return changed;
             }
 
             OpenXmlPart? legacyPart = null;
@@ -248,13 +360,16 @@ namespace OfficeIMO.Excel {
                 legacyPart = _worksheetPart.GetPartById(legacyRelId);
             } catch {
                 ws.RemoveChild(legacy);
-                return;
+                return true;
             }
 
             if (!hasComments && legacyPart is VmlDrawingPart vmlPart) {
                 _worksheetPart.DeletePart(vmlPart);
                 ws.RemoveChild(legacy);
+                changed = true;
             }
+
+            return changed;
         }
 
         private VmlDrawingPart GetOrCreateCommentVmlPart() {

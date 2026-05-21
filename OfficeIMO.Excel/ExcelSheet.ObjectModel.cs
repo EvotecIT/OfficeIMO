@@ -83,23 +83,26 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void FormatRange(string a1Range, string numberFormat) {
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
-            for (int row = r1; row <= r2; row++) {
-                for (int column = c1; column <= c2; column++) {
-                    FormatCell(row, column, numberFormat);
-                }
+
+            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
+                MaterializeDeferredDataSetImportIfNeeded();
             }
+
+            WriteLock(() => FormatRangeCore(r1, c1, r2, c2, numberFormat));
         }
 
         /// <summary>
         /// Applies a solid fill to every cell in the range.
         /// </summary>
         public void FillRange(string a1Range, string hexColor) {
+            if (string.IsNullOrWhiteSpace(hexColor)) return;
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
-            for (int row = r1; row <= r2; row++) {
-                for (int column = c1; column <= c2; column++) {
-                    CellBackground(row, column, hexColor);
-                }
+
+            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
+                MaterializeDeferredDataSetImportIfNeeded();
             }
+
+            WriteLock(() => FillRangeCore(r1, c1, r2, c2, hexColor));
         }
 
         /// <summary>
@@ -107,39 +110,27 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void ClearRange(string a1Range, ExcelClearOptions options = ExcelClearOptions.All) {
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            if (options == ExcelClearOptions.None) {
+                return;
+            }
+
             WriteLock(() => {
                 var ws = WorksheetRoot;
+                bool worksheetChanged = false;
                 bool clearCellFields = options.HasFlag(ExcelClearOptions.Values)
                     || options.HasFlag(ExcelClearOptions.Formulas)
                     || options.HasFlag(ExcelClearOptions.Styles);
 
                 if (clearCellFields) {
-                    for (int row = r1; row <= r2; row++) {
-                        for (int column = c1; column <= c2; column++) {
-                            var cell = GetCell(row, column);
-                            if (options.HasFlag(ExcelClearOptions.Values)) {
-                                cell.CellValue = null;
-                                cell.DataType = null;
-                                cell.InlineString = null;
-                            }
-
-                            if (options.HasFlag(ExcelClearOptions.Formulas)) {
-                                cell.CellFormula = null;
-                            }
-
-                            if (options.HasFlag(ExcelClearOptions.Styles)) {
-                                cell.StyleIndex = null;
-                            }
-                        }
-                    }
+                    worksheetChanged |= ClearExistingCellFieldsInRange((r1, c1, r2, c2), options);
                 }
 
                 if (options.HasFlag(ExcelClearOptions.Comments)) {
-                    ClearCommentsInRange(r1, c1, r2, c2);
+                    worksheetChanged |= ClearCommentsInRange(r1, c1, r2, c2);
                 }
 
                 if (options.HasFlag(ExcelClearOptions.Hyperlinks)) {
-                    ClearHyperlinksInRange(ws, a1Range);
+                    worksheetChanged |= ClearHyperlinksInRange(ws, (r1, c1, r2, c2));
                 }
 
                 if (options.HasFlag(ExcelClearOptions.DataValidations)) {
@@ -151,16 +142,67 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (options.HasFlag(ExcelClearOptions.Merges)) {
-                    UnmergeRangeCore(a1Range);
+                    UnmergeRangeCore((r1, c1, r2, c2));
                 }
 
                 if (options.HasFlag(ExcelClearOptions.Sparklines)) {
-                    ClearSparklinesInRange(a1Range);
+                    worksheetChanged |= ClearSparklinesInRange((r1, c1, r2, c2));
                 }
 
-                ws.Save();
-                ClearHeaderCache();
+                if (worksheetChanged) {
+                    ws.Save();
+                    ClearHeaderCache();
+                }
             });
+        }
+
+        private bool ClearExistingCellFieldsInRange((int r1, int c1, int r2, int c2) bounds, ExcelClearOptions options) {
+            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
+            if (sheetData == null) {
+                return false;
+            }
+
+            bool clearValues = options.HasFlag(ExcelClearOptions.Values);
+            bool clearFormulas = options.HasFlag(ExcelClearOptions.Formulas);
+            bool clearStyles = options.HasFlag(ExcelClearOptions.Styles);
+            bool changed = false;
+
+            foreach (var row in sheetData.Elements<Row>()) {
+                uint rowIndex = row.RowIndex?.Value ?? 0U;
+                if (rowIndex < (uint)bounds.r1 || rowIndex > (uint)bounds.r2) {
+                    continue;
+                }
+
+                foreach (var cell in row.Elements<Cell>()) {
+                    if (cell.CellReference?.Value is not string reference) {
+                        continue;
+                    }
+
+                    int columnIndex = GetColumnIndex(reference);
+                    if (columnIndex < bounds.c1 || columnIndex > bounds.c2) {
+                        continue;
+                    }
+
+                    if (clearValues && (cell.CellValue != null || cell.DataType != null || cell.InlineString != null)) {
+                        cell.CellValue = null;
+                        cell.DataType = null;
+                        cell.InlineString = null;
+                        changed = true;
+                    }
+
+                    if (clearFormulas && cell.CellFormula != null) {
+                        cell.CellFormula = null;
+                        changed = true;
+                    }
+
+                    if (clearStyles && cell.StyleIndex != null) {
+                        cell.StyleIndex = null;
+                        changed = true;
+                    }
+                }
+            }
+
+            return changed;
         }
 
         /// <summary>
@@ -210,6 +252,8 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 var ws = WorksheetRoot;
                 var merges = ws.GetFirstChild<MergeCells>();
+                uint mergeCount = 0;
+
                 if (merges == null) {
                     var customSheetViews = ws.GetFirstChild<CustomSheetViews>();
                     merges = new MergeCells();
@@ -218,37 +262,70 @@ namespace OfficeIMO.Excel {
                     } else {
                         ws.Append(merges);
                     }
+                } else if (MergeCellsContainReference(merges, a1Range, out mergeCount)) {
+                    return;
                 }
 
-                if (!merges.Elements<MergeCell>().Any(m => string.Equals(m.Reference?.Value, a1Range, StringComparison.OrdinalIgnoreCase))) {
-                    merges.Append(new MergeCell { Reference = a1Range });
-                    merges.Count = (uint)merges.Elements<MergeCell>().Count();
-                }
-
+                merges.Append(new MergeCell { Reference = a1Range });
+                merges.Count = mergeCount + 1U;
                 ws.Save();
             });
+        }
+
+        private static bool MergeCellsContainReference(MergeCells merges, string reference, out uint count) {
+            count = 0;
+            foreach (var merge in merges.Elements<MergeCell>()) {
+                count++;
+                if (string.Equals(merge.Reference?.Value, reference, StringComparison.OrdinalIgnoreCase)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
         /// Removes merge definitions that overlap the supplied A1 range.
         /// </summary>
         public void UnmergeRange(string a1Range) {
-            WriteLock(() => UnmergeRangeCore(a1Range));
+            var bounds = A1.ParseRange(a1Range);
+            WriteLock(() => UnmergeRangeCore(bounds));
         }
 
-        private void UnmergeRangeCore(string a1Range) {
-            var bounds = A1.ParseRange(a1Range);
+        private void UnmergeRangeCore((int r1, int c1, int r2, int c2) bounds) {
             var merges = WorksheetRoot.GetFirstChild<MergeCells>();
             if (merges == null) return;
+            if (!MergeCellsOverlap(merges, bounds)) return;
 
+            bool changed = false;
+            uint remainingCount = 0;
             foreach (var merge in merges.Elements<MergeCell>().ToList()) {
-                if (merge.Reference?.Value is string reference && RangesOverlapInclusive(bounds, A1.ParseRange(reference))) {
+                if (merge.Reference?.Value is string reference
+                    && TryParseReference(reference, out var mergeBounds)
+                    && RangesOverlapInclusive(bounds, mergeBounds)) {
                     merge.Remove();
+                    changed = true;
+                } else {
+                    remainingCount++;
                 }
             }
 
-            merges.Count = (uint)merges.Elements<MergeCell>().Count();
-            WorksheetRoot.Save();
+            if (changed) {
+                merges.Count = remainingCount;
+                WorksheetRoot.Save();
+            }
+        }
+
+        private static bool MergeCellsOverlap(MergeCells merges, (int r1, int c1, int r2, int c2) bounds) {
+            foreach (var merge in merges.Elements<MergeCell>()) {
+                if (merge.Reference?.Value is string reference
+                    && TryParseReference(reference, out var mergeBounds)
+                    && RangesOverlapInclusive(bounds, mergeBounds)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -311,30 +388,50 @@ namespace OfficeIMO.Excel {
             return runs;
         }
 
-        private void ClearCommentsInRange(int firstRow, int firstColumn, int lastRow, int lastColumn) {
+        private bool ClearCommentsInRange(int firstRow, int firstColumn, int lastRow, int lastColumn) {
+            bool changed = false;
             var commentsPart = WorksheetCommentsPartRoot;
             if (commentsPart?.Comments?.CommentList != null) {
-                foreach (var comment in commentsPart.Comments.CommentList.Elements<Comment>().ToList()) {
-                    if (comment.Reference?.Value is not string reference) {
-                        continue;
-                    }
+                bool removedComment = false;
+                var commentList = commentsPart.Comments.CommentList;
+                if (CommentListOverlapsRange(commentList, firstRow, firstColumn, lastRow, lastColumn)) {
+                    foreach (var comment in commentList.Elements<Comment>().ToList()) {
+                        if (comment.Reference?.Value is not string reference) {
+                            continue;
+                        }
 
-                    var (row, col) = A1.ParseCellRef(reference);
-                    if (row >= firstRow && row <= lastRow && col >= firstColumn && col <= lastColumn) {
-                        comment.Remove();
+                        var (row, col) = A1.ParseCellRef(reference);
+                        if (row >= firstRow && row <= lastRow && col >= firstColumn && col <= lastColumn) {
+                            comment.Remove();
+                            removedComment = true;
+                        }
                     }
                 }
 
-                commentsPart.Comments.Save();
-            }
-
-            for (int row = firstRow; row <= lastRow; row++) {
-                for (int column = firstColumn; column <= lastColumn; column++) {
-                    RemoveCommentVmlShape(row, column);
+                if (removedComment) {
+                    commentsPart.Comments.Save();
+                    changed = true;
                 }
             }
 
-            CleanupCommentArtifacts();
+            changed |= RemoveCommentVmlShapesInRange(firstRow, firstColumn, lastRow, lastColumn);
+            changed |= CleanupCommentArtifacts();
+            return changed;
+        }
+
+        private static bool CommentListOverlapsRange(CommentList commentList, int firstRow, int firstColumn, int lastRow, int lastColumn) {
+            foreach (var comment in commentList.Elements<Comment>()) {
+                if (comment.Reference?.Value is not string reference) {
+                    continue;
+                }
+
+                var (row, col) = A1.ParseCellRef(reference);
+                if (row >= firstRow && row <= lastRow && col >= firstColumn && col <= lastColumn) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static Dictionary<int, int> BuildSortedRowMap(IReadOnlyList<RowSnapshot> rows, int firstRow) {
@@ -409,16 +506,17 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                var references = SplitReferenceList(remapped);
-                if (references.Length == 0) {
-                    continue;
-                }
-
-                link.Reference = references[0];
+                bool firstReference = true;
                 var insertAfter = link;
-                for (int index = 1; index < references.Length; index++) {
+                foreach (ReferenceListPart remappedReference in SplitReferenceList(remapped)) {
+                    if (firstReference) {
+                        link.Reference = remappedReference.ToString();
+                        firstReference = false;
+                        continue;
+                    }
+
                     var clone = (Hyperlink)link.CloneNode(true);
-                    clone.Reference = references[index];
+                    clone.Reference = remappedReference.ToString();
                     hyperlinks.InsertAfter(clone, insertAfter);
                     insertAfter = clone;
                 }
@@ -513,29 +611,49 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool TryRemapReferenceListForSortedRange(string referenceList, IReadOnlyDictionary<int, int> rowMap, int firstRow, int lastRow, int firstColumn, int lastColumn, out string remapped) {
-            bool changed = false;
-            var parts = new List<string>();
-            foreach (string part in SplitReferenceList(referenceList)) {
-                if (TryRemapReferenceForSortedRange(part, rowMap, firstRow, lastRow, firstColumn, lastColumn, out string remappedPart)) {
-                    parts.Add(remappedPart);
-                    changed = true;
-                } else {
-                    parts.Add(part);
+            foreach (ReferenceListPart part in SplitReferenceList(referenceList)) {
+                if (TryRemapReferenceForSortedRange(part, rowMap, firstRow, lastRow, firstColumn, lastColumn, out _)) {
+                    return BuildRemappedReferenceList(referenceList, rowMap, firstRow, lastRow, firstColumn, lastColumn, out remapped);
                 }
             }
 
-            remapped = string.Join(" ", parts);
-            return changed;
+            remapped = referenceList;
+            return false;
+        }
+
+        private static bool BuildRemappedReferenceList(string referenceList, IReadOnlyDictionary<int, int> rowMap, int firstRow, int lastRow, int firstColumn, int lastColumn, out string remapped) {
+            var builder = new StringBuilder(referenceList.Length);
+            bool first = true;
+            foreach (ReferenceListPart part in SplitReferenceList(referenceList)) {
+                if (!first) {
+                    builder.Append(' ');
+                }
+
+                if (TryRemapReferenceForSortedRange(part, rowMap, firstRow, lastRow, firstColumn, lastColumn, out string remappedPart)) {
+                    builder.Append(remappedPart);
+                } else {
+                    part.AppendTo(builder);
+                }
+
+                first = false;
+            }
+
+            remapped = builder.ToString();
+            return true;
         }
 
         private static bool TryRemapReferenceForSortedRange(string reference, IReadOnlyDictionary<int, int> rowMap, int firstRow, int lastRow, int firstColumn, int lastColumn, out string remapped) {
-            remapped = reference;
+            return TryRemapReferenceForSortedRange(new ReferenceListPart(reference, 0, reference.Length), rowMap, firstRow, lastRow, firstColumn, lastColumn, out remapped);
+        }
+
+        private static bool TryRemapReferenceForSortedRange(ReferenceListPart reference, IReadOnlyDictionary<int, int> rowMap, int firstRow, int lastRow, int firstColumn, int lastColumn, out string remapped) {
             var bounds = TryParseReference(reference, out var parsed) ? parsed : default;
             if (bounds == default
                 || bounds.r1 < firstRow
                 || bounds.r2 > lastRow
                 || bounds.c1 < firstColumn
                 || bounds.c2 > lastColumn) {
+                remapped = string.Empty;
                 return false;
             }
 
@@ -551,6 +669,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (!changed) {
+                remapped = string.Empty;
                 return false;
             }
 
@@ -573,16 +692,21 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private void ClearHyperlinksInRange(Worksheet ws, string a1Range) {
-            var bounds = A1.ParseRange(a1Range);
+        private bool ClearHyperlinksInRange(Worksheet ws, (int r1, int c1, int r2, int c2) bounds) {
             var hyperlinks = ws.GetFirstChild<Hyperlinks>();
-            if (hyperlinks == null) return;
+            if (hyperlinks == null) return false;
+            if (!HyperlinksOverlapRange(hyperlinks, bounds)) return false;
 
+            bool changed = false;
             foreach (var link in hyperlinks.Elements<Hyperlink>().ToList()) {
                 if (link.Reference?.Value is string reference) {
-                    var remaining = RemoveReferenceOverlap(reference, bounds);
+                    if (!TryRemoveReferenceOverlap(reference, bounds, out var remaining)) {
+                        continue;
+                    }
+
                     if (remaining.Count == 0) {
                         link.Remove();
+                        changed = true;
                         continue;
                     }
 
@@ -594,21 +718,52 @@ namespace OfficeIMO.Excel {
                         hyperlinks.InsertAfter(clone, insertAfter);
                         insertAfter = clone;
                     }
+
+                    changed = true;
                 }
             }
+
+            return changed;
         }
 
-        private void ClearSparklinesInRange(string a1Range) {
-            var bounds = A1.ParseRange(a1Range);
+        private static bool HyperlinksOverlapRange(Hyperlinks hyperlinks, (int r1, int c1, int r2, int c2) bounds) {
+            foreach (var link in hyperlinks.Elements<Hyperlink>()) {
+                if (link.Reference?.Value is string reference && ReferenceListOverlaps(reference, bounds)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool ClearSparklinesInRange((int r1, int c1, int r2, int c2) bounds) {
+            if (!SparklinesOverlap(bounds)) return false;
+
+            bool changed = false;
             foreach (var sparkline in WorksheetRoot.Descendants<DocumentFormat.OpenXml.Office2010.Excel.Sparkline>().ToList()) {
                 var reference = sparkline.ReferenceSequence?.Text;
-                if (!string.IsNullOrWhiteSpace(reference)) {
-                    var sparklineBounds = CellAsRange(reference!);
+                if (!string.IsNullOrWhiteSpace(reference) && TryParseReference(reference!, out var sparklineBounds)) {
                     if (RangesOverlapInclusive(bounds, sparklineBounds)) {
                         sparkline.Remove();
+                        changed = true;
                     }
                 }
             }
+
+            return changed;
+        }
+
+        private bool SparklinesOverlap((int r1, int c1, int r2, int c2) bounds) {
+            foreach (var sparkline in WorksheetRoot.Descendants<DocumentFormat.OpenXml.Office2010.Excel.Sparkline>()) {
+                var reference = sparkline.ReferenceSequence?.Text;
+                if (!string.IsNullOrWhiteSpace(reference)
+                    && TryParseReference(reference!, out var sparklineBounds)
+                    && RangesOverlapInclusive(bounds, sparklineBounds)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static (int r1, int c1, int r2, int c2) CellAsRange(string cellRef) {
@@ -617,19 +772,136 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool TryParseReference(string reference, out (int r1, int c1, int r2, int c2) bounds) {
-            string normalized = reference.Replace("$", string.Empty);
-            if (normalized.IndexOf(':') >= 0) {
-                return A1.TryParseRange(normalized, out bounds.r1, out bounds.c1, out bounds.r2, out bounds.c2);
-            }
+            return TryParseReference(new ReferenceListPart(reference, 0, reference.Length), out bounds);
+        }
 
-            var cell = A1.ParseCellRef(normalized);
-            if (cell.Row <= 0 || cell.Col <= 0) {
+        private static bool TryParseReference(ReferenceListPart reference, out (int r1, int c1, int r2, int c2) bounds) {
+            int start = reference.Start;
+            int length = reference.Length;
+            if (!TrimReferenceBounds(reference.Text, ref start, ref length)) {
                 bounds = default;
                 return false;
             }
 
-            bounds = (cell.Row, cell.Col, cell.Row, cell.Col);
+            int end = start + length;
+            int separator = -1;
+            for (int index = start; index < end; index++) {
+                if (reference.Text[index] == ':') {
+                    separator = index;
+                    break;
+                }
+            }
+
+            if (separator >= 0) {
+                if (!TryParseCellReferencePart(reference.Text, start, separator - start, out int r1, out int c1)
+                    || !TryParseCellReferencePart(reference.Text, separator + 1, end - separator - 1, out int r2, out int c2)) {
+                    bounds = default;
+                    return false;
+                }
+
+                if (c1 > c2) (c1, c2) = (c2, c1);
+                if (r1 > r2) (r1, r2) = (r2, r1);
+                bounds = (r1, c1, r2, c2);
+                return true;
+            }
+
+            if (!TryParseCellReferencePart(reference.Text, start, length, out int row, out int col)) {
+                bounds = default;
+                return false;
+            }
+
+            bounds = (row, col, row, col);
             return true;
+        }
+
+        private static bool TrimReferenceBounds(string text, ref int start, ref int length) {
+            if (string.IsNullOrEmpty(text) || length <= 0 || start < 0 || start > text.Length || length > text.Length - start) {
+                return false;
+            }
+
+            int end = start + length;
+            while (start < end && char.IsWhiteSpace(text[start])) {
+                start++;
+            }
+
+            while (end > start && char.IsWhiteSpace(text[end - 1])) {
+                end--;
+            }
+
+            length = end - start;
+            return length > 0;
+        }
+
+        private static bool TryParseCellReferencePart(string text, int start, int length, out int row, out int col) {
+            row = 0;
+            col = 0;
+            if (!TrimReferenceBounds(text, ref start, ref length)) {
+                return false;
+            }
+
+            int end = start + length;
+            int index = start;
+            if (index < end && text[index] == '$') {
+                index++;
+            }
+
+            int letterStart = index;
+            for (; index < end; index++) {
+                char ch = ToUpperAscii(text[index]);
+                if (ch < 'A' || ch > 'Z') {
+                    break;
+                }
+
+                int value = ch - 'A' + 1;
+                if (col > (int.MaxValue - value) / 26) {
+                    row = 0;
+                    col = 0;
+                    return false;
+                }
+
+                col = (col * 26) + value;
+            }
+
+            if (index == letterStart || index == end) {
+                row = 0;
+                col = 0;
+                return false;
+            }
+
+            if (text[index] == '$') {
+                index++;
+            }
+
+            int digitStart = index;
+            for (; index < end; index++) {
+                char ch = text[index];
+                if (ch < '0' || ch > '9') {
+                    row = 0;
+                    col = 0;
+                    return false;
+                }
+
+                int digit = ch - '0';
+                if (row > (int.MaxValue - digit) / 10) {
+                    row = 0;
+                    col = 0;
+                    return false;
+                }
+
+                row = (row * 10) + digit;
+            }
+
+            if (index == digitStart || row <= 0 || col <= 0) {
+                row = 0;
+                col = 0;
+                return false;
+            }
+
+            return true;
+        }
+
+        private static char ToUpperAscii(char character) {
+            return character >= 'a' && character <= 'z' ? (char)(character - 32) : character;
         }
 
         private static string ToReference(int r1, int c1, int r2, int c2) {
@@ -639,27 +911,7 @@ namespace OfficeIMO.Excel {
         }
 
         private Cell? TryGetExistingCell(int row, int column) {
-            if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row));
-            if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column));
-
-            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
-            if (sheetData == null) {
-                return null;
-            }
-
-            var rowElement = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex?.Value == (uint)row);
-            if (rowElement == null) {
-                return null;
-            }
-
-            foreach (Cell cell in rowElement.Elements<Cell>()) {
-                if (cell.CellReference?.Value is string reference
-                    && GetColumnIndex(reference) == column) {
-                    return cell;
-                }
-            }
-
-            return null;
+            return TryGetCell(row, column);
         }
 
         private static string RewriteSortedFormulaReferences(string formula, IReadOnlyDictionary<int, int> rowMap, int firstColumn, int lastColumn) {
