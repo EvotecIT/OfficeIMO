@@ -58,6 +58,90 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelCharts_FluentRangeBuilder_CreatesChart() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.FluentRange.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Summary");
+                sheet.CellValue(1, 1, "Quarter");
+                sheet.CellValue(1, 2, "Sales");
+                sheet.CellValue(1, 3, "Target");
+                sheet.CellValue(2, 1, "Q1");
+                sheet.CellValue(2, 2, 10);
+                sheet.CellValue(2, 3, 12);
+                sheet.CellValue(3, 1, "Q2");
+                sheet.CellValue(3, 2, 20);
+                sheet.CellValue(3, 3, 22);
+
+                sheet.Chart("A1:C3")
+                    .Line()
+                    .Title("Quarterly")
+                    .Size(480, 320)
+                    .At(1, 6);
+
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var chartPart = wsPart.DrawingsPart!.ChartParts.Single();
+                var chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
+                Assert.Equal("Quarterly", chart.Title!.Descendants<A.Text>().First().Text);
+                Assert.NotNull(chart.PlotArea!.GetFirstChild<C.LineChart>());
+
+                OpenXmlValidator validator = new OpenXmlValidator();
+                var errors = validator.Validate(spreadsheet).ToList();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelCharts_RecipeHelpers_CreateExpectedChartTypes() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.RecipeHelpers.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Dashboard");
+                sheet.CellValue(1, 1, "Month");
+                sheet.CellValue(1, 2, "Revenue");
+                sheet.CellValue(2, 1, "Jan");
+                sheet.CellValue(2, 2, 10);
+                sheet.CellValue(3, 1, "Feb");
+                sheet.CellValue(3, 2, 16);
+                sheet.CellValue(4, 1, "Mar");
+                sheet.CellValue(4, 2, 13);
+                sheet.AddTable("A1:B4", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+
+                sheet.AddRevenueTrendChart("A1:B4", row: 1, column: 5);
+                sheet.AddTopNBarChart("A1:B4", row: 18, column: 5, title: "Top Revenue");
+                sheet.AddVarianceColumnChart("A1:B4", row: 35, column: 5, title: "Revenue Variance");
+                sheet.ChartFromTable("RevenueData")
+                    .StatusBreakdown("Revenue Mix")
+                    .At(52, 5);
+
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var plotAreas = wsPart.DrawingsPart!.ChartParts
+                    .Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!)
+                    .ToList();
+
+                Assert.Equal(4, plotAreas.Count);
+                Assert.Contains(plotAreas, plotArea => plotArea.GetFirstChild<C.LineChart>() != null);
+                Assert.Contains(plotAreas, plotArea => plotArea.GetFirstChild<C.DoughnutChart>() != null);
+                Assert.Contains(plotAreas, plotArea => plotArea.Elements<C.BarChart>()
+                    .Any(chart => chart.BarDirection?.Val?.Value == C.BarDirectionValues.Bar));
+                Assert.Contains(plotAreas, plotArea => plotArea.Elements<C.BarChart>()
+                    .Any(chart => chart.BarDirection?.Val?.Value == C.BarDirectionValues.Column));
+
+                OpenXmlValidator validator = new OpenXmlValidator();
+                var errors = validator.Validate(spreadsheet).ToList();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            }
+        }
+
+        [Fact]
         public void Test_ExcelCharts_SeriesStyling_Validates() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SeriesStyling.xlsx");
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
@@ -84,6 +85,310 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("5", binaryCell.CellValue!.Text);
                 Assert.True(spreadsheet.WorkbookPart.Workbook.CalculationProperties!.ForceFullCalculation!.Value);
                 Assert.True(spreadsheet.WorkbookPart.Workbook.CalculationProperties!.FullCalculationOnLoad!.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_FormulaInspection_ReportsSupportAndCacheStatus() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.FormulaInspection.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Calc");
+                sheet.CellValue(1, 1, 2d);
+                sheet.CellValue(2, 1, 3d);
+                sheet.CellValue(1, 2, "EU");
+                sheet.CellValue(2, 2, "US");
+                sheet.CellValue(3, 2, "EU");
+                sheet.CellValue(4, 2, "EMEA");
+                sheet.CellValue(1, 3, 10d);
+                sheet.CellValue(2, 3, 20d);
+                sheet.CellValue(3, 3, 30d);
+                sheet.CellValue(4, 3, 40d);
+                sheet.CellValue(1, 4, new DateTime(2024, 5, 21));
+                sheet.CellValue(2, 4, new DateTime(1899, 12, 30, 14, 30, 45).ToOADate());
+                sheet.CellValue(3, 4, new DateTime(2024, 5, 27));
+                sheet.CellValue(1, 5, "EU");
+                sheet.CellValue(1, 6, "US");
+                sheet.CellValue(1, 7, "EMEA");
+                sheet.CellValue(2, 5, 100d);
+                sheet.CellValue(2, 6, 200d);
+                sheet.CellValue(2, 7, 300d);
+                sheet.CellFormula(3, 1, "SUM(A1:A2)");
+                sheet.CellFormula(4, 1, "VLOOKUP(A1,B1:C2,2,FALSE)");
+                sheet.CellFormula(5, 1, "ABS(-4)");
+                sheet.CellFormula(6, 1, "ROUND(2.345,2)");
+                sheet.CellFormula(7, 1, "A1+A2");
+                sheet.CellFormula(8, 1, "ROUNDUP(2.341,2)");
+                sheet.CellFormula(9, 1, "ROUNDDOWN(2.349,2)");
+                sheet.CellFormula(10, 1, "INT(2.9)");
+                sheet.CellFormula(11, 1, "POWER(2,3)");
+                sheet.CellFormula(12, 1, "SQRT(9)");
+                sheet.CellFormula(13, 1, "MOD(10,3)");
+                sheet.CellFormula(14, 1, "IF(A2>A1,10,0)");
+                sheet.CellFormula(15, 1, "AND(A1>0,A2>=3)");
+                sheet.CellFormula(16, 1, "OR(A1>10,A2=3)");
+                sheet.CellFormula(17, 1, "IFERROR(SUM(A1:A2),0)");
+                sheet.CellFormula(18, 1, "IFERROR(A1/0,99)");
+                sheet.CellFormula(19, 1, "IF(A2>A1,SUM(A1:A2),0)");
+                sheet.CellFormula(20, 1, "IFERROR(A1/0,SUM(A1:A2))");
+                sheet.CellFormula(21, 1, "IF(AND(A1>0,A2>=3),20,0)");
+                sheet.CellFormula(22, 1, "IF(OR(A1>10,A2=3),30,0)");
+                sheet.CellFormula(23, 1, "NOT(A1>10)");
+                sheet.CellFormula(24, 1, "IF(NOT(A1>10),40,0)");
+                sheet.CellFormula(25, 1, "COUNTIF(B1:B4,\"EU\")");
+                sheet.CellFormula(26, 1, "COUNTIF(C1:C4,\">=20\")");
+                sheet.CellFormula(27, 1, "SUMIF(B1:B4,\"EU\",C1:C4)");
+                sheet.CellFormula(28, 1, "AVERAGEIF(C1:C4,\">20\",C1:C4)");
+                sheet.CellFormula(29, 1, "COUNTIF(B1:B4,\"E*\")");
+                sheet.CellFormula(30, 1, "COUNTIFS(B1:B4,\"EU\",C1:C4,\">=20\")");
+                sheet.CellFormula(31, 1, "SUMIFS(C1:C4,B1:B4,\"E*\",C1:C4,\">=30\")");
+                sheet.CellFormula(32, 1, "AVERAGEIFS(C1:C4,B1:B4,\"<>US\",C1:C4,\">=30\")");
+                sheet.CellFormula(33, 1, "DATE(2024,5,21)");
+                sheet.CellFormula(34, 1, "YEAR(D1)");
+                sheet.CellFormula(35, 1, "MONTH(D1)");
+                sheet.CellFormula(36, 1, "DAY(D1)");
+                sheet.CellFormula(37, 1, "TIME(14,30,45)");
+                sheet.CellFormula(38, 1, "HOUR(D2)");
+                sheet.CellFormula(39, 1, "MINUTE(D2)");
+                sheet.CellFormula(40, 1, "SECOND(D2)");
+                sheet.CellFormula(41, 1, "TODAY()");
+                sheet.CellFormula(42, 1, "NOW()");
+                sheet.CellFormula(43, 1, "EDATE(D1,1)");
+                sheet.CellFormula(44, 1, "EOMONTH(D1,0)");
+                sheet.CellFormula(45, 1, "DAYS(DATE(2024,5,31),D1)");
+                sheet.CellFormula(46, 1, "WEEKDAY(D1,2)");
+                sheet.CellFormula(47, 1, "NETWORKDAYS(D1,DATE(2024,5,31),D3:D3)");
+                sheet.CellFormula(48, 1, "PRODUCT(A1:A2,2)");
+                sheet.CellFormula(49, 1, "MEDIAN(C1:C4)");
+                sheet.CellFormula(50, 1, "LARGE(C1:C4,2)");
+                sheet.CellFormula(51, 1, "SMALL(C1:C4,3)");
+                sheet.CellFormula(52, 1, "SUMPRODUCT(A1:A2,C1:C2)");
+                sheet.CellFormula(53, 1, "SIGN(-10)");
+                sheet.CellFormula(54, 1, "TRUNC(2.987,2)");
+                sheet.CellFormula(55, 1, "CEILING(2.1,0.5)");
+                sheet.CellFormula(56, 1, "FLOOR(2.9,0.5)");
+                sheet.CellFormula(57, 1, "LN(EXP(1))");
+                sheet.CellFormula(58, 1, "LOG10(100)");
+                sheet.CellFormula(59, 1, "EXP(1)");
+                sheet.CellFormula(60, 1, "PI()");
+                sheet.CellFormula(61, 1, "RADIANS(180)");
+                sheet.CellFormula(62, 1, "DEGREES(PI())");
+                sheet.CellFormula(63, 1, "VLOOKUP(\"US\",B1:C4,2,FALSE)");
+                sheet.CellFormula(64, 1, "HLOOKUP(\"US\",E1:G2,2,FALSE)");
+                sheet.CellFormula(65, 1, "XLOOKUP(\"EMEA\",B1:B4,C1:C4)");
+
+                ExcelFormulaInspection sheetInspection = sheet.InspectFormulas();
+                Assert.Equal(63, sheetInspection.TotalFormulas);
+                Assert.Equal(62, sheetInspection.SupportedFormulas);
+                Assert.Equal(1, sheetInspection.UnsupportedFormulas);
+                Assert.Equal(63, sheetInspection.MissingCachedResults);
+                Assert.False(sheetInspection.AllSupported);
+                Assert.False(sheetInspection.AllHaveCachedResults);
+                Assert.Contains("SUM", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("ABS", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("SIGN", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("ROUND", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("ROUNDUP", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("ROUNDDOWN", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("TRUNC", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("COUNTIF", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("SUMIF", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("AVERAGEIF", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("COUNTIFS", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("SUMIFS", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("AVERAGEIFS", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("PRODUCT", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("MEDIAN", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("LARGE", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("SMALL", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("SUMPRODUCT", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("VLOOKUP", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("HLOOKUP", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("XLOOKUP", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("DATE", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("TIME", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("TODAY", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("NOW", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("YEAR", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("MONTH", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("DAY", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("HOUR", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("MINUTE", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("SECOND", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("EDATE", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("EOMONTH", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("DAYS", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("WEEKDAY", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("NETWORKDAYS", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("INT", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("CEILING", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("FLOOR", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("POWER", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("SQRT", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("LN", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("LOG10", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("EXP", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("PI", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("RADIANS", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("DEGREES", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("MOD", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("IF", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("AND", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("OR", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("NOT", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("IFERROR", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("+", sheetInspection.Capabilities.SupportedOperators);
+                Assert.Contains(">=", sheetInspection.Capabilities.SupportedOperators);
+                Assert.Contains("same-sheet A1 range", string.Join(";", sheetInspection.Capabilities.SupportedOperandKinds));
+                Assert.Contains("same-sheet numeric comparison", string.Join(";", sheetInspection.Capabilities.SupportedOperandKinds));
+                Assert.Equal(8192, sheetInspection.Capabilities.MaxFormulaLength);
+                Assert.Contains(sheetInspection.Formulas, formula => formula.CellReference == "A3" && formula.IsSupportedByOfficeIMO);
+                Assert.Contains(sheetInspection.Formulas, formula => formula.CellReference == "A4"
+                    && !formula.IsSupportedByOfficeIMO
+                    && !string.IsNullOrWhiteSpace(formula.UnsupportedReason));
+                Assert.Contains("| Calc | A4 | VLOOKUP(A1,B1:C2,2,FALSE) | no | no | no |", sheetInspection.ToMarkdown());
+                InvalidOperationException unsupportedException = Assert.Throws<InvalidOperationException>(() => sheetInspection.EnsureAllSupported());
+                Assert.Contains("Calc!A4", unsupportedException.Message);
+                InvalidOperationException missingCacheException = Assert.Throws<InvalidOperationException>(() => sheetInspection.EnsureAllHaveCachedResults());
+                Assert.Contains("Calc!A3", missingCacheException.Message);
+
+                ExcelFormulaInspection workbookInspection = document.InspectFormulas();
+                Assert.Equal(sheetInspection.TotalFormulas, workbookInspection.TotalFormulas);
+                Assert.Equal("Calc", workbookInspection.Formulas[0].SheetName);
+
+                double nowBefore = DateTime.Now.ToOADate();
+                Assert.Equal(62, document.RecalculateSupportedFormulas());
+                ExcelFormulaInspection afterRecalculate = document.InspectFormulas();
+                double nowAfter = DateTime.Now.ToOADate();
+                Assert.Equal(1, afterRecalculate.MissingCachedResults);
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A3" && formula.CachedValue == "5");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A5" && formula.CachedValue == "4");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A6" && formula.CachedValue == "2.35");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A7" && formula.CachedValue == "5");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A8" && formula.CachedValue == "2.35");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A9" && formula.CachedValue == "2.34");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A10" && formula.CachedValue == "2");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A11" && formula.CachedValue == "8");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A12" && formula.CachedValue == "3");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A13" && formula.CachedValue == "1");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A14" && formula.CachedValue == "10");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A15" && formula.CachedValue == "1");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A16" && formula.CachedValue == "1");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A17" && formula.CachedValue == "5");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A18" && formula.CachedValue == "99");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A19" && formula.CachedValue == "5");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A20" && formula.CachedValue == "5");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A21" && formula.CachedValue == "20");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A22" && formula.CachedValue == "30");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A23" && formula.CachedValue == "1");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A24" && formula.CachedValue == "40");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A25" && formula.CachedValue == "2");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A26" && formula.CachedValue == "3");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A27" && formula.CachedValue == "40");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A28" && formula.CachedValue == "35");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A29" && formula.CachedValue == "3");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A30" && formula.CachedValue == "1");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A31" && formula.CachedValue == "70");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A32" && formula.CachedValue == "35");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A33" && formula.CachedValue == new DateTime(2024, 5, 21).ToOADate().ToString(CultureInfo.InvariantCulture));
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A34" && formula.CachedValue == "2024");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A35" && formula.CachedValue == "5");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A36" && formula.CachedValue == "21");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A37" && formula.CachedValue == (52245d / 86400d).ToString(CultureInfo.InvariantCulture));
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A38" && formula.CachedValue == "14");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A39" && formula.CachedValue == "30");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A40" && formula.CachedValue == "45");
+                string todayCached = Assert.Single(afterRecalculate.Formulas, formula => formula.CellReference == "A41").CachedValue!;
+                Assert.Equal(DateTime.Today, DateTime.FromOADate(double.Parse(todayCached, CultureInfo.InvariantCulture)).Date);
+                string nowCached = Assert.Single(afterRecalculate.Formulas, formula => formula.CellReference == "A42").CachedValue!;
+                double nowCachedValue = double.Parse(nowCached, CultureInfo.InvariantCulture);
+                Assert.InRange(nowCachedValue, nowBefore, nowAfter);
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A43" && formula.CachedValue == new DateTime(2024, 6, 21).ToOADate().ToString(CultureInfo.InvariantCulture));
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A44" && formula.CachedValue == new DateTime(2024, 5, 31).ToOADate().ToString(CultureInfo.InvariantCulture));
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A45" && formula.CachedValue == "10");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A46" && formula.CachedValue == "2");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A47" && formula.CachedValue == "8");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A48" && formula.CachedValue == "12");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A49" && formula.CachedValue == "25");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A50" && formula.CachedValue == "30");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A51" && formula.CachedValue == "30");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A52" && formula.CachedValue == "80");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A53" && formula.CachedValue == "-1");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A54" && formula.CachedValue == "2.98");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A55" && formula.CachedValue == "2.5");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A56" && formula.CachedValue == "2.5");
+                Assert.InRange(double.Parse(Assert.Single(afterRecalculate.Formulas, formula => formula.CellReference == "A57").CachedValue!, CultureInfo.InvariantCulture), 0.999999999d, 1.000000001d);
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A58" && formula.CachedValue == "2");
+                Assert.InRange(double.Parse(Assert.Single(afterRecalculate.Formulas, formula => formula.CellReference == "A59").CachedValue!, CultureInfo.InvariantCulture), Math.E - 0.000000001d, Math.E + 0.000000001d);
+                Assert.InRange(double.Parse(Assert.Single(afterRecalculate.Formulas, formula => formula.CellReference == "A60").CachedValue!, CultureInfo.InvariantCulture), Math.PI - 0.000000001d, Math.PI + 0.000000001d);
+                Assert.InRange(double.Parse(Assert.Single(afterRecalculate.Formulas, formula => formula.CellReference == "A61").CachedValue!, CultureInfo.InvariantCulture), Math.PI - 0.000000001d, Math.PI + 0.000000001d);
+                Assert.InRange(double.Parse(Assert.Single(afterRecalculate.Formulas, formula => formula.CellReference == "A62").CachedValue!, CultureInfo.InvariantCulture), 179.999999999d, 180.000000001d);
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A63" && formula.CachedValue == "20");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A64" && formula.CachedValue == "200");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A65" && formula.CachedValue == "40");
+                Assert.Throws<InvalidOperationException>(() => afterRecalculate.EnsureAllSupported());
+                Assert.Throws<InvalidOperationException>(() => afterRecalculate.EnsureAllHaveCachedResults());
+
+                document.InvalidateFormulas();
+                Assert.Equal(63, document.InspectFormulas().DirtyFormulas);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_FeatureReport_SummarizesEditablePartialAndPreservedFeatures() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.FeatureReport.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Sales");
+                sheet.CellValue(1, 1, "Region");
+                sheet.CellValue(1, 2, "Product");
+                sheet.CellValue(1, 3, "Sales");
+                sheet.CellValue(2, 1, "EU");
+                sheet.CellValue(2, 2, "A");
+                sheet.CellValue(2, 3, 10d);
+                sheet.CellValue(3, 1, "EU");
+                sheet.CellValue(3, 2, "B");
+                sheet.CellValue(3, 3, 20d);
+                sheet.CellValue(4, 1, "US");
+                sheet.CellValue(4, 2, "A");
+                sheet.CellValue(4, 3, 30d);
+                sheet.CellFormula(5, 3, "SUM(C2:C4)");
+
+                sheet.Range("A1:C4").CreateTable("SalesData");
+                sheet.Range("B2:B4").Validate.List("A", "B");
+                sheet.Range("C2:C4").ConditionalFormat.DataBar("#5B9BD5");
+                sheet.Sparklines("C2:C4").Column().At("D2:D4");
+                sheet.Pivot("A1:C4").Rows("Region").Columns("Product").Sum("Sales").At("F2", "SalesPivot");
+                sheet.Chart("A1:C4").ColumnClustered().Title("Sales").At(12, 1);
+
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                ExcelFeatureFinding worksheets = Assert.Single(report.Features, feature => feature.Name == "Worksheets");
+                Assert.Equal(ExcelFeatureSupportLevel.Editable, worksheets.SupportLevel);
+
+                Assert.Contains(report.EditableFeatures, feature => feature.Name == "Tables" && feature.Count == 1);
+                Assert.Contains(report.EditableFeatures, feature => feature.Name == "Data validations" && feature.Count == 1);
+                Assert.Contains(report.EditableFeatures, feature => feature.Name == "Sparklines" && feature.Count == 3);
+                Assert.Contains(report.PartiallyEditableFeatures, feature => feature.Name == "Charts" && feature.Count == 1);
+                Assert.Contains(report.PartiallyEditableFeatures, feature => feature.Name == "Pivot tables" && feature.Count == 1);
+                Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Missing formula caches" && feature.Count == 1);
+                Assert.True(report.HasAdvancedFeatures);
+                Assert.Same(report, report.EnsureNoUnsupportedFeatures());
+                InvalidOperationException advancedException = Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
+                Assert.Contains("Missing formula caches", advancedException.Message);
+                string markdown = report.ToMarkdown();
+                Assert.Contains("# Excel Feature Report", markdown);
+                Assert.Contains("| Visualization | Pivot tables | 1 | PartiallyEditable |", markdown);
+                Assert.Contains("| Calculation | Missing formula caches | 1 | Preserved |", markdown);
             }
         }
 

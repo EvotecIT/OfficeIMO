@@ -38,6 +38,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_RangeFluentConditionalFormatting() {
+            string filePath = Path.Combine(_directoryWithFiles, "ConditionalRangeFluent.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, 1d);
+                sheet.CellValue(2, 1, 2d);
+                sheet.CellValue(3, 1, 3d);
+                sheet.Range("A1:A3").ConditionalFormatting
+                    .ColorScale(OfficeColor.Red, OfficeColor.Lime)
+                    .ConditionalFormatting
+                    .DataBar(OfficeColor.Blue)
+                    .ConditionalFormatting
+                    .Top(1);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var rules = wsPart.Worksheet.Elements<ConditionalFormatting>()
+                    .SelectMany(cf => cf.Elements<ConditionalFormattingRule>())
+                    .ToList();
+                Assert.Contains(rules, rule => rule.Type?.Value == ConditionalFormatValues.ColorScale);
+                Assert.Contains(rules, rule => rule.Type?.Value == ConditionalFormatValues.DataBar);
+                Assert.Contains(rules, rule => rule.Type?.Value == ConditionalFormatValues.Top10 && rule.Rank?.Value == 1);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void Test_AddConditionalColorScale() {
             string filePath = Path.Combine(_directoryWithFiles, "ConditionalColorScale.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
