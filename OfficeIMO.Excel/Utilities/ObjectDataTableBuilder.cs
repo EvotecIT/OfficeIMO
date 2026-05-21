@@ -63,29 +63,31 @@ namespace OfficeIMO.Excel {
         private sealed class ObjectRowProjector {
             private readonly string[] _columns;
             private readonly PropertyInfo[]? _properties;
+            private readonly Type? _sourceType;
 
-            private ObjectRowProjector(IReadOnlyList<string> columns, PropertyInfo[]? properties) {
+            private ObjectRowProjector(IReadOnlyList<string> columns, PropertyInfo[]? properties, Type? sourceType) {
                 _columns = columns.ToArray();
                 _properties = properties;
+                _sourceType = sourceType;
             }
 
             internal static ObjectRowProjector Create(object first, IReadOnlyList<string> columns) {
                 var firstType = first.GetType();
                 if (IsDictionaryLike(first)) {
-                    return new ObjectRowProjector(columns, properties: null);
+                    return new ObjectRowProjector(columns, properties: null, sourceType: null);
                 }
 
                 var properties = new PropertyInfo[columns.Count];
                 for (int i = 0; i < columns.Count; i++) {
                     var property = firstType.GetProperty(columns[i], BindingFlags.Public | BindingFlags.Instance);
                     if (property == null || !property.CanRead || property.GetIndexParameters().Length != 0) {
-                        return new ObjectRowProjector(columns, properties: null);
+                        return new ObjectRowProjector(columns, properties: null, sourceType: null);
                     }
 
                     properties[i] = property;
                 }
 
-                return new ObjectRowProjector(columns, properties);
+                return new ObjectRowProjector(columns, properties, firstType);
             }
 
             internal object?[] CreateValuesBuffer() => new object?[_columns.Length];
@@ -95,7 +97,7 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                if (_properties != null && item.GetType() == _properties[0].DeclaringType) {
+                if (_properties != null && _sourceType != null && _sourceType.IsInstanceOfType(item)) {
                     for (int i = 0; i < _properties.Length; i++) {
                         values[i] = _properties[i].GetValue(item) ?? DBNull.Value;
                     }

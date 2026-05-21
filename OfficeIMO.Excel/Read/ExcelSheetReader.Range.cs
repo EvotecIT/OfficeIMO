@@ -79,7 +79,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (decided == OfficeIMO.Excel.ExecutionMode.Sequential) {
-                if (TryFillDataTableXmlBufferedSinglePass(dt, r1, c1, r2, c2, rows, cols, headersInFirstRow, ct)) {
+                if (TryFillDataTableXmlBufferedSinglePass(dt, r1, c1, r2, c2, rows, cols, headersInFirstRow, workload, ct)) {
                     return dt;
                 }
 
@@ -147,8 +147,10 @@ namespace OfficeIMO.Excel {
             int rows,
             int cols,
             bool headersInFirstRow,
+            int workload,
             CancellationToken ct) {
             if (!_opt.InferDataTableColumnTypes
+                || workload > DenseSnapshotCapacityLimit
                 || !CanUseDataTableXmlBufferedReader()) {
                 return false;
             }

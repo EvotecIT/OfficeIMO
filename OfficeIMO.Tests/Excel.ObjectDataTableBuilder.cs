@@ -51,6 +51,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ObjectDataTableBuilder_FromObjects_InheritedProperties() {
+            var items = new InheritedObjectRow[] {
+                new() { Name = "A", Value = 1, Notes = "First" },
+                new() { Name = "B", Value = 2, Notes = "Second" }
+            };
+
+            var table = ObjectDataTableBuilder.FromObjects(items, "Data");
+
+            Assert.Contains("Name", table.Columns.Cast<System.Data.DataColumn>().Select(column => column.ColumnName));
+            Assert.Contains("Value", table.Columns.Cast<System.Data.DataColumn>().Select(column => column.ColumnName));
+            Assert.Contains("Notes", table.Columns.Cast<System.Data.DataColumn>().Select(column => column.ColumnName));
+            Assert.Equal("A", table.Rows[0]["Name"]);
+            Assert.Equal(1, table.Rows[0]["Value"]);
+            Assert.Equal("First", table.Rows[0]["Notes"]);
+            Assert.Equal("B", table.Rows[1]["Name"]);
+            Assert.Equal(2, table.Rows[1]["Value"]);
+            Assert.Equal("Second", table.Rows[1]["Notes"]);
+        }
+
+        [Fact]
         public void Test_ObjectDataTableBuilder_FromObjects_ThrowsOnNullItems() {
             var ex = Assert.Throws<ArgumentNullException>(() => ObjectDataTableBuilder.FromObjects(null!));
             Assert.Equal("items", ex.ParamName);
@@ -74,6 +94,15 @@ namespace OfficeIMO.Tests {
         public void Test_ObjectDataTableBuilder_FromObjects_ThrowsOnNullEntry() {
             var ex = Assert.Throws<InvalidOperationException>(() => ObjectDataTableBuilder.FromObjects(new object?[] { new { Name = "A" }, null }));
             Assert.Equal("Data rows cannot contain null entries.", ex.Message);
+        }
+
+        private class ObjectDataBaseRow {
+            public string Name { get; init; } = string.Empty;
+            public int Value { get; init; }
+        }
+
+        private sealed class InheritedObjectRow : ObjectDataBaseRow {
+            public string Notes { get; init; } = string.Empty;
         }
     }
 }
