@@ -112,17 +112,17 @@ namespace OfficeIMO.Tests {
         }
 
         private class ObjectDataBaseRow {
-            public string Name { get; init; } = string.Empty;
-            public int Value { get; init; }
+            public string Name { get; set; } = string.Empty;
+            public int Value { get; set; }
         }
 
         private sealed class InheritedObjectRow : ObjectDataBaseRow {
-            public string Notes { get; init; } = string.Empty;
+            public string Notes { get; set; } = string.Empty;
         }
 
         private sealed class HiddenObjectRow : ObjectDataBaseRow {
-            public new string Name { get; init; } = string.Empty;
-            public new int Value { get; init; }
+            public new string Name { get; set; } = string.Empty;
+            public new int Value { get; set; }
         }
     }
 }
