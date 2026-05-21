@@ -34,6 +34,21 @@ namespace OfficeIMO.Excel {
             var decided = requested;
             int workload = rows * cols;
             if (decided == OfficeIMO.Excel.ExecutionMode.Automatic) {
+                if (CanUseAutomaticXmlReadFastPath(policy)) {
+                    if (ShouldUseOrderedBufferedXmlStream(rows, c1, c2)
+                        && TryReadObjectsStreamOrderedXmlFast<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var orderedRows)) {
+                        return orderedRows;
+                    }
+
+                    if (TryReadObjectsFromXmlMaterialized<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var automaticStreamResult)) {
+                        return automaticStreamResult;
+                    }
+
+                    if (TryReadObjectsSequentialSinglePass<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var automaticSinglePassResult)) {
+                        return automaticSinglePassResult;
+                    }
+                }
+
                 decided = policy.Decide("ReadObjectsAs", workload);
             }
 

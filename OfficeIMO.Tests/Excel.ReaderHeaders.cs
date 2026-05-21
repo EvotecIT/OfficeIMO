@@ -4,6 +4,7 @@ using System.Data;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Serialization;
 using System.Threading;
 using DocumentFormat.OpenXml.Packaging;
@@ -1029,6 +1030,52 @@ namespace OfficeIMO.Tests {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        [Fact]
+        public void Sheet_HeaderMapCache_RemainsWarmAfterDataRowWrites() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderHeaderCacheDataRowWrites.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Status");
+                    sheet.CellValue(1, 2, "Value");
+                    sheet.CellValue(2, 1, "Open");
+                    sheet.CellValue(2, 2, 10);
+                    document.Save();
+                }
+
+                using var loadedDocument = ExcelDocument.Load(filePath);
+                var loadedSheet = loadedDocument.GetSheet("Data");
+
+                Assert.Equal(1, loadedSheet.GetHeaderMap()["Status"]);
+                Assert.True(IsHeaderMapCachePopulated(loadedSheet));
+
+                loadedSheet.SetByHeader(2, "Status", "Closed");
+                loadedSheet.SetByHeader(2, "Value", 20);
+
+                Assert.True(IsHeaderMapCachePopulated(loadedSheet));
+                Assert.True(loadedSheet.TryGetColumnIndexByHeader("Status", out int statusColumn));
+                Assert.Equal(1, statusColumn);
+
+                loadedSheet.CellValue(1, 1, "State");
+
+                Assert.False(IsHeaderMapCachePopulated(loadedSheet));
+                var refreshedMap = loadedSheet.GetHeaderMap();
+                Assert.False(refreshedMap.ContainsKey("Status"));
+                Assert.Equal(1, refreshedMap["State"]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        private static bool IsHeaderMapCachePopulated(ExcelSheet sheet) {
+            var field = typeof(ExcelSheet).GetField("_headerMapCachePopulated", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.NotNull(field);
+            return (bool)field.GetValue(sheet)!;
         }
 
         [Fact]
