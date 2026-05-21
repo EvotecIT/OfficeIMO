@@ -6,8 +6,10 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Office2010.Excel;
 using OfficeIMO.Excel;
+using A = DocumentFormat.OpenXml.Drawing;
 using OfficeFormula = DocumentFormat.OpenXml.Office.Excel.Formula;
 using OfficeReferenceSequence = DocumentFormat.OpenXml.Office.Excel.ReferenceSequence;
+using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -53,6 +55,41 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
                 Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_WorksheetImages_MetadataAndSizing() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetImages.Metadata.xlsx");
+            var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Images");
+
+                var image = sheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10,
+                    name: "Logo", altText: "Company logo");
+                image.SetAltText("Updated company logo", "Logo title")
+                    .LockAspectRatio(false)
+                    .SetSize(24, 18);
+
+                Assert.Equal("Logo", sheet.GetImage("Logo")?.Name);
+                Assert.Single(sheet.Images);
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var picture = wsPart.DrawingsPart!.WorksheetDrawing!.Descendants<Xdr.Picture>().Single();
+                var drawingProperties = picture.NonVisualPictureProperties!.NonVisualDrawingProperties!;
+                var locks = picture.NonVisualPictureProperties.NonVisualPictureDrawingProperties!.GetFirstChild<A.PictureLocks>()!;
+                var extent = wsPart.DrawingsPart.WorksheetDrawing!.Descendants<Xdr.Extent>().First();
+
+                Assert.Equal("Logo", drawingProperties.Name!.Value);
+                Assert.Equal("Updated company logo", drawingProperties.Description!.Value);
+                Assert.Equal("Logo title", drawingProperties.Title!.Value);
+                Assert.False(locks.NoChangeAspect!.Value);
+                Assert.Equal(24L * 9525L, extent.Cx!.Value);
+                Assert.Equal(18L * 9525L, extent.Cy!.Value);
             }
         }
 
@@ -139,6 +176,48 @@ namespace OfficeIMO.Tests {
                         .FirstOrDefault(e => e.LocalName == "sparklineGroups" && e.NamespaceUri == SparklineNamespace);
                     Assert.NotNull(unknown);
                 }
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_WorksheetSparklines_FluentBuilder() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetSparklines.Fluent.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Sparklines");
+                for (int i = 0; i < 6; i++) {
+                    sheet.CellValue(2, 2 + i, (double)(i + 1));
+                }
+
+                sheet.Sparklines("B2:G2")
+                    .Column()
+                    .Markers()
+                    .HighLow()
+                    .Axis()
+                    .Color("#4472C4")
+                    .At("H2:H2");
+                document.Save(false);
+            }
+
+            using (var doc = SpreadsheetDocument.Open(filePath, false)) {
+                var wb = doc.WorkbookPart!;
+                var sheet = wb.Workbook.Sheets!.OfType<Sheet>().First(s => s.Name == "Sparklines");
+                var wsPart = (WorksheetPart)wb.GetPartById(sheet.Id!);
+                var group = wsPart.Worksheet.Descendants<SparklineGroup>().Single();
+                Assert.Equal(SparklineTypeValues.Column, group.Type?.Value);
+                Assert.True(group.Markers?.Value);
+                Assert.True(group.High?.Value);
+                Assert.True(group.Low?.Value);
+                Assert.True(group.DisplayXAxis?.Value);
+                Assert.Equal("FF4472C4", group.SeriesColor!.Rgb!.Value);
+
+                var sparkline = group.GetFirstChild<Sparklines>()!.Elements<Sparkline>().Single();
+                Assert.Equal("B2:G2", sparkline.GetFirstChild<OfficeFormula>()!.Text);
+                Assert.Equal("H2:H2", sparkline.GetFirstChild<OfficeReferenceSequence>()!.Text);
             }
 
             using (var document = ExcelDocument.Load(filePath, readOnly: true)) {

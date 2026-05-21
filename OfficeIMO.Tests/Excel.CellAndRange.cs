@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
@@ -142,6 +143,33 @@ namespace OfficeIMO.Tests {
             Assert.Equal("AB12", A1.CellReference(12, 28));
             Assert.Throws<ArgumentOutOfRangeException>(() => A1.CellReference(0, 1));
             Assert.Throws<ArgumentOutOfRangeException>(() => A1.CellReference(1, 0));
+        }
+
+        [Fact]
+        public void CellAndRangeStylePresetsApplyFormatsAndStatusColors() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Styles");
+                sheet.CellAt(1, 1).SetValue("Amount").HeaderStyle();
+                sheet.CellAt(2, 1).SetValue(123.45).Currency(culture: CultureInfo.GetCultureInfo("en-US")).Success();
+                sheet.Range("B2:B3").Percent(1).Warning();
+                sheet.CellAt(2, 2).SetValue(0.42);
+                sheet.CellAt(3, 2).SetValue(0.67);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                string stylesXml = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet.OuterXml;
+
+                Assert.Contains("$", stylesXml, StringComparison.Ordinal);
+                Assert.Contains("0.0%", stylesXml, StringComparison.Ordinal);
+                Assert.Contains("E7F6E7", stylesXml, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("FFF4CC", stylesXml, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("D9EAF7", stylesXml, StringComparison.OrdinalIgnoreCase);
+            }
+
+            File.Delete(filePath);
         }
     }
 }

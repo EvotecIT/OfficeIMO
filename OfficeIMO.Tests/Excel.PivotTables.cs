@@ -72,6 +72,69 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FluentPivotBuilder_CreatesPivotTable() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableFluent.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+
+                sheet.CellValue(1, 1, "Region");
+                sheet.CellValue(1, 2, "Product");
+                sheet.CellValue(1, 3, "Sales");
+
+                sheet.CellValue(2, 1, "East");
+                sheet.CellValue(2, 2, "A");
+                sheet.CellValue(2, 3, 10);
+
+                sheet.CellValue(3, 1, "West");
+                sheet.CellValue(3, 2, "A");
+                sheet.CellValue(3, 3, 12);
+
+                sheet.CellValue(4, 1, "East");
+                sheet.CellValue(4, 2, "B");
+                sheet.CellValue(4, 3, 7);
+
+                sheet.Pivot("A1:C4")
+                    .Rows("Region")
+                    .Columns("Product")
+                    .Sum("Sales", "Total Sales", "$#,##0")
+                    .Style("PivotStyleMedium9")
+                    .Layout(ExcelPivotLayout.Tabular)
+                    .GrandTotals(rows: false, columns: true)
+                    .Captions(rowHeader: "Rows", columnHeader: "Products", grandTotal: "Total")
+                    .At("E2", "SalesPivot");
+
+                document.Save(false);
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var pivot = document.GetPivotTables().Single();
+
+                Assert.Equal("SalesPivot", pivot.Name);
+                Assert.Equal("A1:C4", pivot.SourceRange);
+                Assert.Equal("PivotStyleMedium9", pivot.PivotStyle);
+                Assert.Equal(ExcelPivotLayout.Tabular, pivot.Layout);
+                Assert.False(pivot.RowGrandTotals);
+                Assert.True(pivot.ColumnGrandTotals);
+                Assert.Equal("Rows", pivot.RowHeaderCaption);
+                Assert.Equal("Products", pivot.ColumnHeaderCaption);
+                Assert.Equal("Total", pivot.GrandTotalCaption);
+                Assert.Contains("Region", pivot.RowFields);
+                Assert.Contains("Product", pivot.ColumnFields);
+
+                var dataField = pivot.DataFields.Single();
+                Assert.Equal("Sales", dataField.FieldName);
+                Assert.Equal(DataConsolidateFunctionValues.Sum, dataField.Function);
+                Assert.Equal("Total Sales", dataField.DisplayName);
+                Assert.True(dataField.NumberFormatId >= 164);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void Test_PivotPublicCompatibilityOverloadsRemainAvailable() {
             Assert.NotNull(typeof(ExcelPivotDataField).GetConstructor(new[] {
                 typeof(string),

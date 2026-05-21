@@ -102,6 +102,18 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Inspects formula cells across all worksheets without changing workbook contents.
+        /// </summary>
+        public ExcelFormulaInspection InspectFormulas() {
+            var formulas = new List<ExcelFormulaCellInfo>();
+            foreach (var sheet in Sheets) {
+                formulas.AddRange(sheet.GetFormulaCells());
+            }
+
+            return new ExcelFormulaInspection(formulas);
+        }
+
+        /// <summary>
         /// Requests a full workbook recalculation when the file is opened.
         /// </summary>
         public void ConfigureFullCalculationOnOpen() {

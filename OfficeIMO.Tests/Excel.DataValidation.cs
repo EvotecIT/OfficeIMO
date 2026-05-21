@@ -38,6 +38,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ValidationRangeFluentListAndMessages() {
+            string filePath = Path.Combine(_directoryWithFiles, "ValidationRangeFluentList.xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                sheet.Range("B2:B5").Validation.List("Open", "Closed", "Pending");
+                sheet.Range("B2:B5").Validation.Messages(new ExcelDataValidationMessageOptions {
+                    PromptTitle = "Status",
+                    Prompt = "Pick a status",
+                    ErrorTitle = "Invalid status",
+                    Error = "Use the list"
+                });
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                DataValidation dv = wsPart.Worksheet.Descendants<DataValidation>().First();
+                Assert.Equal(DataValidationValues.List, dv.Type!.Value);
+                Assert.Equal("B2:B5", dv.SequenceOfReferences!.InnerText);
+                Assert.Equal("\"Open,Closed,Pending\"", dv.GetFirstChild<Formula1>()!.Text);
+                Assert.Equal("Status", dv.PromptTitle!.Value);
+                Assert.Equal("Invalid status", dv.ErrorTitle!.Value);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void ValidationDecimalGreaterThan() {
             string filePath = Path.Combine(_directoryWithFiles, "ValidationDecimal.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {

@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Spreadsheet;
+using System.Globalization;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -148,6 +149,48 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
+        /// <summary>Applies a decimal number format.</summary>
+        public ExcelCell Number(int decimals = 2) => SetNumberFormat(ExcelNumberFormats.Get(ExcelNumberPreset.Decimal, decimals));
+
+        /// <summary>Applies a whole-number format with thousands separators.</summary>
+        public ExcelCell Integer() => SetNumberFormat(ExcelNumberFormats.Get(ExcelNumberPreset.Integer));
+
+        /// <summary>Applies a percent number format.</summary>
+        public ExcelCell Percent(int decimals = 0) => SetNumberFormat(ExcelNumberFormats.Get(ExcelNumberPreset.Percent, decimals));
+
+        /// <summary>Applies a currency number format.</summary>
+        public ExcelCell Currency(int decimals = 2, CultureInfo? culture = null) => SetNumberFormat(ExcelNumberFormats.Get(ExcelNumberPreset.Currency, decimals, culture));
+
+        /// <summary>Applies a date number format.</summary>
+        public ExcelCell Date(string pattern = "yyyy-mm-dd") => SetNumberFormat(pattern);
+
+        /// <summary>Applies a date/time number format.</summary>
+        public ExcelCell DateTime(string pattern = "yyyy-mm-dd hh:mm:ss") => SetNumberFormat(pattern);
+
+        /// <summary>Applies a time number format.</summary>
+        public ExcelCell Time() => SetNumberFormat(ExcelNumberFormats.Get(ExcelNumberPreset.Time));
+
+        /// <summary>Applies an elapsed-hours duration format.</summary>
+        public ExcelCell DurationHours() => SetNumberFormat(ExcelNumberFormats.Get(ExcelNumberPreset.DurationHours));
+
+        /// <summary>Applies a text number format.</summary>
+        public ExcelCell Text() => SetNumberFormat(ExcelNumberFormats.Get(ExcelNumberPreset.Text));
+
+        /// <summary>Applies a positive/success status style.</summary>
+        public ExcelCell Success() => SetFillColor("E7F6E7").SetFontColor("226B22");
+
+        /// <summary>Applies a warning status style.</summary>
+        public ExcelCell Warning() => SetFillColor("FFF4CC").SetFontColor("7A4D00");
+
+        /// <summary>Applies an error status style.</summary>
+        public ExcelCell Error() => SetFillColor("FCE4E4").SetFontColor("9C0006");
+
+        /// <summary>Applies a muted text style.</summary>
+        public ExcelCell MutedText() => SetFontColor("666666");
+
+        /// <summary>Applies a simple report header style.</summary>
+        public ExcelCell HeaderStyle() => SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
+
         /// <summary>
         /// Replaces the cell contents with rich inline text runs.
         /// </summary>
@@ -195,6 +238,26 @@ namespace OfficeIMO.Excel {
         /// Gets a wrapper for the top-left cell.
         /// </summary>
         public ExcelCell FirstCell => Sheet.CellAt(FirstRow, FirstColumn);
+
+        /// <summary>
+        /// Builds data validation rules for the range.
+        /// </summary>
+        public ExcelRangeDataValidationBuilder Validation => new ExcelRangeDataValidationBuilder(this);
+
+        /// <summary>
+        /// Builds data validation rules for the range.
+        /// </summary>
+        public ExcelRangeDataValidationBuilder Validate => Validation;
+
+        /// <summary>
+        /// Builds conditional formatting rules for the range.
+        /// </summary>
+        public ExcelRangeConditionalFormattingBuilder ConditionalFormatting => new ExcelRangeConditionalFormattingBuilder(this);
+
+        /// <summary>
+        /// Builds conditional formatting rules for the range.
+        /// </summary>
+        public ExcelRangeConditionalFormattingBuilder ConditionalFormat => ConditionalFormatting;
 
         /// <summary>
         /// Clears selected data and metadata from the range.
@@ -266,6 +329,72 @@ namespace OfficeIMO.Excel {
         public ExcelRange SetFillColor(string hexColor) {
             Sheet.FillRange(Address, hexColor);
             return this;
+        }
+
+        /// <summary>
+        /// Applies a font color to every cell in the range.
+        /// </summary>
+        public ExcelRange SetFontColor(string hexColor) {
+            ForEachCell((row, column) => Sheet.CellFontColor(row, column, hexColor));
+            return this;
+        }
+
+        /// <summary>
+        /// Sets or clears bold font style for every cell in the range.
+        /// </summary>
+        public ExcelRange SetBold(bool bold = true) {
+            ForEachCell((row, column) => Sheet.CellBold(row, column, bold));
+            return this;
+        }
+
+        /// <summary>Applies a decimal number format.</summary>
+        public ExcelRange Number(int decimals = 2) => SetNumberFormat(ExcelNumberFormats.Get(ExcelNumberPreset.Decimal, decimals));
+
+        /// <summary>Applies a whole-number format with thousands separators.</summary>
+        public ExcelRange Integer() => SetNumberFormat(ExcelNumberFormats.Get(ExcelNumberPreset.Integer));
+
+        /// <summary>Applies a percent number format.</summary>
+        public ExcelRange Percent(int decimals = 0) => SetNumberFormat(ExcelNumberFormats.Get(ExcelNumberPreset.Percent, decimals));
+
+        /// <summary>Applies a currency number format.</summary>
+        public ExcelRange Currency(int decimals = 2, CultureInfo? culture = null) => SetNumberFormat(ExcelNumberFormats.Get(ExcelNumberPreset.Currency, decimals, culture));
+
+        /// <summary>Applies a date number format.</summary>
+        public ExcelRange Date(string pattern = "yyyy-mm-dd") => SetNumberFormat(pattern);
+
+        /// <summary>Applies a date/time number format.</summary>
+        public ExcelRange DateTime(string pattern = "yyyy-mm-dd hh:mm:ss") => SetNumberFormat(pattern);
+
+        /// <summary>Applies a time number format.</summary>
+        public ExcelRange Time() => SetNumberFormat(ExcelNumberFormats.Get(ExcelNumberPreset.Time));
+
+        /// <summary>Applies an elapsed-hours duration format.</summary>
+        public ExcelRange DurationHours() => SetNumberFormat(ExcelNumberFormats.Get(ExcelNumberPreset.DurationHours));
+
+        /// <summary>Applies a text number format.</summary>
+        public ExcelRange Text() => SetNumberFormat(ExcelNumberFormats.Get(ExcelNumberPreset.Text));
+
+        /// <summary>Applies a positive/success status style.</summary>
+        public ExcelRange Success() => SetFillColor("E7F6E7").SetFontColor("226B22");
+
+        /// <summary>Applies a warning status style.</summary>
+        public ExcelRange Warning() => SetFillColor("FFF4CC").SetFontColor("7A4D00");
+
+        /// <summary>Applies an error status style.</summary>
+        public ExcelRange Error() => SetFillColor("FCE4E4").SetFontColor("9C0006");
+
+        /// <summary>Applies a muted text style.</summary>
+        public ExcelRange MutedText() => SetFontColor("666666");
+
+        /// <summary>Applies a simple report header style.</summary>
+        public ExcelRange HeaderStyle() => SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
+
+        private void ForEachCell(Action<int, int> apply) {
+            for (int row = FirstRow; row <= LastRow; row++) {
+                for (int column = FirstColumn; column <= LastColumn; column++) {
+                    apply(row, column);
+                }
+            }
         }
 
         private static (int r1, int c1, int r2, int c2) ParseRangeOrCell(string address) {
