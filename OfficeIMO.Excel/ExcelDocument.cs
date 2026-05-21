@@ -26,6 +26,7 @@ namespace OfficeIMO.Excel {
         internal ReaderWriterLockSlim? _lock;
         internal List<UInt32Value> id = new List<UInt32Value>() { 0 };
         private readonly Dictionary<string, int> _sharedStringCache = new Dictionary<string, int>();
+        private Dictionary<string, bool>? _sharedStringLineBreakCache;
         private readonly object _sharedStringLock = new object();
         private int _sharedStringTableCount = -1;
         // Workbook-level cache of table names for fast uniqueness checks
@@ -608,16 +609,30 @@ namespace OfficeIMO.Excel {
         }
 
         internal int GetSharedStringIndex(string text) {
+            return GetSharedStringIndex(text, validateNewString: false);
+        }
+
+        internal int GetSharedStringIndex(string text, bool validateNewString) {
             if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld)) {
-                return GetSharedStringIndexCore(text);
+                return GetSharedStringIndexCore(text, validateNewString);
             }
 
             lock (_sharedStringLock) {
-                return GetSharedStringIndexCore(text);
+                return GetSharedStringIndexCore(text, validateNewString);
             }
         }
 
-        private int GetSharedStringIndexCore(string text) {
+        internal int GetSharedStringIndex(string text, bool validateNewString, out bool containsLineBreak) {
+            if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld)) {
+                return GetSharedStringIndexCore(text, validateNewString, out containsLineBreak);
+            }
+
+            lock (_sharedStringLock) {
+                return GetSharedStringIndexCore(text, validateNewString, out containsLineBreak);
+            }
+        }
+
+        private int GetSharedStringIndexCore(string text, bool validateNewString) {
             // Check cache first
             if (_sharedStringCache.TryGetValue(text, out int cachedIndex)) {
                 return cachedIndex;
@@ -631,6 +646,10 @@ namespace OfficeIMO.Excel {
                 return foundIndex;
             }
 
+            if (validateNewString) {
+                CoerceValueHelper.ValidateSharedStringLength(text, nameof(text));
+            }
+
             // Add new string
             int newIndex = tableCount;
             sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
@@ -640,6 +659,54 @@ namespace OfficeIMO.Excel {
             _sharedStringCache[text] = newIndex;
 
             return newIndex;
+        }
+
+        private int GetSharedStringIndexCore(string text, bool validateNewString, out bool containsLineBreak) {
+            if (_sharedStringCache.TryGetValue(text, out int cachedIndex)) {
+                containsLineBreak = GetCachedOrComputeSharedStringLineBreak(text);
+                return cachedIndex;
+            }
+
+            var sharedStringTable = SharedStringTablePart.SharedStringTable ??= new SharedStringTable();
+            int tableCount = EnsureSharedStringCacheAndCount(sharedStringTable);
+
+            if (_sharedStringCache.TryGetValue(text, out int foundIndex)) {
+                containsLineBreak = GetCachedOrComputeSharedStringLineBreak(text);
+                return foundIndex;
+            }
+
+            if (validateNewString) {
+                CoerceValueHelper.ValidateSharedStringLength(text, nameof(text));
+            }
+
+            containsLineBreak = ContainsLineBreak(text);
+
+            int newIndex = tableCount;
+            sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
+            _sharedStringTableCount = newIndex + 1;
+            _sharedStringTableDirty = true;
+            MarkPackageDirty();
+            _sharedStringCache[text] = newIndex;
+
+            return newIndex;
+        }
+
+        private bool GetCachedOrComputeSharedStringLineBreak(string text) {
+            if (_sharedStringLineBreakCache != null
+                && _sharedStringLineBreakCache.TryGetValue(text, out bool containsLineBreak)) {
+                return containsLineBreak;
+            }
+
+            containsLineBreak = ContainsLineBreak(text);
+            if (text.Length >= 16) {
+                (_sharedStringLineBreakCache ??= new Dictionary<string, bool>(StringComparer.Ordinal))[text] = containsLineBreak;
+            }
+
+            return containsLineBreak;
+        }
+
+        private static bool ContainsLineBreak(string text) {
+            return text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0;
         }
 
         internal Dictionary<string, int> GetSharedStringIndices(IEnumerable<string> texts, bool assumeDistinct = false) {
@@ -676,6 +743,53 @@ namespace OfficeIMO.Excel {
                     _sharedStringCache[text] = newIndex;
                     result[text] = newIndex;
                     changed = true;
+                }
+
+                _sharedStringTableCount = tableCount;
+
+                if (changed) {
+                    _sharedStringTableDirty = true;
+                    MarkPackageDirty();
+                }
+
+                return result;
+            }
+        }
+
+        internal int[] GetSharedStringIndexArray(IReadOnlyList<string> texts, bool assumeDistinct = false) {
+            if (texts == null) {
+                throw new ArgumentNullException(nameof(texts));
+            }
+
+            if (texts.Count == 0) {
+                return Array.Empty<int>();
+            }
+
+            lock (_sharedStringLock) {
+                var sharedStringTable = SharedStringTablePart.SharedStringTable ??= new SharedStringTable();
+                int tableCount = EnsureSharedStringCacheAndCount(sharedStringTable);
+                var result = new int[texts.Count];
+                Dictionary<string, int>? localIndexes = assumeDistinct
+                    ? null
+                    : new Dictionary<string, int>(texts.Count, StringComparer.Ordinal);
+                bool changed = false;
+
+                for (int i = 0; i < texts.Count; i++) {
+                    string text = texts[i];
+                    if (localIndexes != null && localIndexes.TryGetValue(text, out int duplicateIndex)) {
+                        result[i] = duplicateIndex;
+                        continue;
+                    }
+
+                    if (!_sharedStringCache.TryGetValue(text, out int sharedStringIndex)) {
+                        sharedStringIndex = tableCount++;
+                        sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
+                        _sharedStringCache[text] = sharedStringIndex;
+                        changed = true;
+                    }
+
+                    result[i] = sharedStringIndex;
+                    localIndexes?.Add(text, sharedStringIndex);
                 }
 
                 _sharedStringTableCount = tableCount;

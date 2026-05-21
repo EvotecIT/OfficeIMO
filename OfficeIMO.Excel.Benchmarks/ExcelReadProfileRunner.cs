@@ -107,6 +107,7 @@ internal static class ExcelReadProfileRunner {
         scenarios.Add(Measure("OfficeIMO.Excel", "GetHeaderMap.LoadedRebuild", "Rebuild the header lookup map on an already loaded worksheet after cache invalidation.", () => OfficeImoGetHeaderMapLoadedRebuild(loadedHeaderSheet), warmupIterations, measuredIterations));
         scenarios.Add(Measure("OfficeIMO.Excel", "GetHeaderMap.LoadedSharedStrings", "Rebuild headers when the worksheet has many unique shared strings below the header row.", () => OfficeImoGetHeaderMapLoadedRebuild(loadedSharedStringHeaderSheet), warmupIterations, measuredIterations));
         scenarios.Add(Measure("OfficeIMO.Excel", "TryGetColumnIndexByHeader.Cached", "Repeated cached header lookup without exposing the mutable header map.", () => OfficeImoTryGetHeaderLookupLoaded(loadedHeaderSheet), warmupIterations, measuredIterations));
+        scenarios.Add(Measure("OfficeIMO.Excel", "HeaderOps.SetByHeader.Cached", "Repeated header-based data-row updates through the normal SetByHeader API.", () => OfficeImoSetByHeaderLoaded(loadedHeaderOpsSheet, rowCount), warmupIterations, measuredIterations));
         scenarios.Add(Measure("OfficeIMO.Excel", "LoadedText.FindFirst.SharedStrings", "Repeated loaded-sheet text search over cells backed by many shared strings.", () => OfficeImoFindFirstSharedStringLoaded(loadedSharedStringHeaderSheet, rowCount), warmupIterations, measuredIterations));
         scenarios.Add(Measure("OfficeIMO.Excel", "LoadedText.ReplaceAll.SharedStrings", "Batch replacement over a loaded worksheet with many shared-string cells.", () => OfficeImoReplaceAllSharedStrings(sharedStringHeavyWorkbookBytes, rowCount), warmupIterations, measuredIterations));
         scenarios.Add(Measure("OfficeIMO.Excel", "HeaderOps.AutoFilterByHeaders.BatchMap", "Repeated multi-header AutoFilter updates using one internal cached header map per operation.", () => OfficeImoAutoFilterByHeadersLoaded(loadedHeaderOpsSheet), warmupIterations, measuredIterations));
@@ -413,6 +414,18 @@ internal static class ExcelReadProfileRunner {
             if (sheet.TryGetColumnIndexByHeader("Amount", out int columnIndex)) {
                 total += columnIndex;
             }
+        }
+
+        return total;
+    }
+
+    private static int OfficeImoSetByHeaderLoaded(ExcelSheet sheet, int rowCount) {
+        _ = sheet.GetHeaderMap();
+        int total = 0;
+        for (int i = 0; i < HeaderLookupIterations; i++) {
+            int row = (i % rowCount) + 2;
+            sheet.SetByHeader(row, "Amount", i);
+            total += row;
         }
 
         return total;

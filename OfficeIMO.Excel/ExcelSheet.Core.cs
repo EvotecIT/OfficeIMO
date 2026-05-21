@@ -230,11 +230,7 @@ namespace OfficeIMO.Excel {
             if (createdRowElement) {
                 Cell createdCell = new Cell { CellReference = BuildCellReference(row, column) };
                 rowElement.Append(createdCell);
-                _lastAccessedRow = rowElement;
-                _lastAccessedRowIndex = row;
-                _lastAccessedCell = createdCell;
-                _lastAccessedCellRowIndex = row;
-                _lastAccessedCellColumnIndex = column;
+                CacheLastAccessedCell(rowElement, row, column, createdCell);
                 return createdCell;
             }
 
@@ -313,12 +309,114 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            CacheLastAccessedCell(rowElement, row, column, cell);
+            return cell;
+        }
+
+        private Cell? TryGetCell(int row, int column) {
+            if (row <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(row));
+            }
+            if (column <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(column));
+            }
+
+            SheetData? sheetData = WorksheetRoot.GetFirstChild<SheetData>();
+            if (sheetData == null) {
+                return null;
+            }
+
+            Row? rowElement = null;
+            if (_lastAccessedRow != null && ReferenceEquals(_lastAccessedRow.Parent, sheetData)) {
+                if (_lastAccessedRowIndex == row) {
+                    rowElement = _lastAccessedRow;
+                } else if (_lastAccessedRowIndex < row) {
+                    for (Row? next = _lastAccessedRow.NextSibling<Row>(); next != null; next = next.NextSibling<Row>()) {
+                        if (next.RowIndex == null) {
+                            continue;
+                        }
+
+                        int nextRowIndex = (int)next.RowIndex.Value;
+                        if (nextRowIndex == row) {
+                            rowElement = next;
+                            break;
+                        }
+
+                    }
+                }
+            }
+
+            if (rowElement == null) {
+                foreach (Row r in sheetData.Elements<Row>()) {
+                    if (r.RowIndex == null) {
+                        continue;
+                    }
+
+                    uint rowIndex = r.RowIndex.Value;
+                    if (rowIndex == (uint)row) {
+                        rowElement = r;
+                        break;
+                    }
+
+                }
+            }
+
+            if (rowElement == null) {
+                return null;
+            }
+
+            CacheLastAccessedRow(rowElement, row);
+
+            int targetColumnIndex = column;
+            if (_lastAccessedCell != null
+                && _lastAccessedCellRowIndex == row
+                && ReferenceEquals(_lastAccessedCell.Parent, rowElement)) {
+                if (_lastAccessedCellColumnIndex == targetColumnIndex) {
+                    return _lastAccessedCell;
+                }
+
+                if (_lastAccessedCellColumnIndex < targetColumnIndex) {
+                    for (Cell? next = _lastAccessedCell.NextSibling<Cell>(); next != null; next = next.NextSibling<Cell>()) {
+                        if (next.CellReference?.Value is not string nextRefValue || nextRefValue.Length == 0) {
+                            continue;
+                        }
+
+                        int nextColumnIndex = GetColumnIndex(nextRefValue);
+                        if (nextColumnIndex == targetColumnIndex) {
+                            CacheLastAccessedCell(rowElement, row, column, next);
+                            return next;
+                        }
+
+                    }
+                }
+            }
+
+            foreach (Cell cell in rowElement.Elements<Cell>()) {
+                if (cell.CellReference?.Value is not string existingRefValue || existingRefValue.Length == 0) {
+                    continue;
+                }
+
+                int existingColumnIndex = GetColumnIndex(existingRefValue);
+                if (existingColumnIndex == targetColumnIndex) {
+                    CacheLastAccessedCell(rowElement, row, column, cell);
+                    return cell;
+                }
+
+            }
+
+            return null;
+        }
+
+        private void CacheLastAccessedRow(Row rowElement, int row) {
             _lastAccessedRow = rowElement;
             _lastAccessedRowIndex = row;
+        }
+
+        private void CacheLastAccessedCell(Row rowElement, int row, int column, Cell cell) {
+            CacheLastAccessedRow(rowElement, row);
             _lastAccessedCell = cell;
             _lastAccessedCellRowIndex = row;
             _lastAccessedCellColumnIndex = column;
-            return cell;
         }
 
         private SheetData GetOrCreateSheetData() {

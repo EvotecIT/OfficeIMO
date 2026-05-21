@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
@@ -52,6 +53,81 @@ namespace OfficeIMO.Tests {
                 Assert.False(sheet.HasComment(2, 1));
 
                 document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_MergeRange_DuplicateCallKeepsSingleMerge() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.MergeDuplicate.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Merge");
+                sheet.MergeRange("A1:B1");
+                sheet.MergeRange("A1:B1");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                MergeCell merge = Assert.Single(worksheetPart.Worksheet.Descendants<MergeCell>());
+                Assert.Equal("A1:B1", merge.Reference?.Value);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_RangeFormatting_ReusesStylesAndValidates() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.RangeFormatting.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, 10d);
+                sheet.CellValue(1, 2, 20d);
+                sheet.CellValue(2, 1, 30d);
+                sheet.CellValue(2, 2, 40d);
+
+                sheet.Range("A1:B2").SetNumberFormat("0.00");
+                sheet.Range("C1:D2").SetFillColor("#FFF2CC");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorkbookStylesPart stylesPart = spreadsheet.WorkbookPart!.WorkbookStylesPart!;
+                Stylesheet stylesheet = stylesPart.Stylesheet!;
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart.WorksheetParts.First();
+                Dictionary<string, Cell> cells = worksheetPart.Worksheet.Descendants<Cell>()
+                    .Where(cell => cell.CellReference?.Value != null)
+                    .ToDictionary(cell => cell.CellReference!.Value!);
+
+                uint numberStyleIndex = cells["A1"].StyleIndex!.Value;
+                Assert.NotEqual(0U, numberStyleIndex);
+                Assert.Equal(numberStyleIndex, cells["A2"].StyleIndex!.Value);
+                Assert.Equal(numberStyleIndex, cells["B1"].StyleIndex!.Value);
+                Assert.Equal(numberStyleIndex, cells["B2"].StyleIndex!.Value);
+
+                uint fillStyleIndex = cells["C1"].StyleIndex!.Value;
+                Assert.NotEqual(0U, fillStyleIndex);
+                Assert.Equal(fillStyleIndex, cells["C2"].StyleIndex!.Value);
+                Assert.Equal(fillStyleIndex, cells["D1"].StyleIndex!.Value);
+                Assert.Equal(fillStyleIndex, cells["D2"].StyleIndex!.Value);
+
+                CellFormat numberFormat = stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)numberStyleIndex);
+                Assert.True(numberFormat.ApplyNumberFormat?.Value);
+                NumberingFormat customFormat = stylesheet.NumberingFormats!.Elements<NumberingFormat>()
+                    .First(format => format.NumberFormatId!.Value == numberFormat.NumberFormatId!.Value);
+                Assert.Equal("0.00", customFormat.FormatCode!.Value);
+
+                CellFormat fillFormat = stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)fillStyleIndex);
+                Assert.True(fillFormat.ApplyFill?.Value);
+                Fill fill = stylesheet.Fills!.Elements<Fill>().ElementAt((int)fillFormat.FillId!.Value);
+                Assert.Equal("FFFFF2CC", fill.PatternFill!.ForegroundColor!.Rgb!.Value);
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
@@ -436,6 +512,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ClosedXmlGap_ClearHyperlinks_NoOverlapDoesNotSplitReferenceList() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ClearHyperlinkNoOverlap.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Links");
+                sheet.CellValue(2, 1, "One");
+                sheet.CellValue(4, 1, "Two");
+                sheet.SetHyperlink(2, 1, "https://example.com", display: "Linked", style: false);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Hyperlink hyperlink = worksheetPart.Worksheet.Descendants<Hyperlink>().Single();
+                hyperlink.Reference = "A2 A4";
+                worksheetPart.Worksheet.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                document.Sheets[0].Range("C1:C3").Clear(ExcelClearOptions.Hyperlinks);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Hyperlink hyperlink = worksheetPart.Worksheet.Descendants<Hyperlink>().Single();
+                Assert.Equal("A2 A4", hyperlink.Reference?.Value);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void Test_ClosedXmlGap_Sort_RewritesRelativeFormulaRows() {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.SortFormulaRows.xlsx");
 
@@ -548,6 +659,187 @@ namespace OfficeIMO.Tests {
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
                 WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 Assert.Empty(worksheetPart.Worksheet.Descendants<Cell>());
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_ClearRange_Values_DoesNotMaterializeSparseBlankCells() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ClearSparseValues.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Clear");
+                sheet.CellValue(1, 1, "Keep");
+                sheet.CellValue(5, 5, "Clear");
+                sheet.ClearRange("A1:E5", ExcelClearOptions.Values);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                string[] references = worksheetPart.Worksheet.Descendants<Cell>()
+                    .Select(cell => cell.CellReference?.Value ?? string.Empty)
+                    .OrderBy(reference => reference)
+                    .ToArray();
+
+                Assert.Equal(new[] { "A1", "E5" }, references);
+                Assert.All(worksheetPart.Worksheet.Descendants<Cell>(), cell => Assert.Null(cell.CellValue));
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_ClearRange_CellFields_ScansExistingSparseCellsOnly() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ClearSparseCellFields.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Clear");
+                sheet.CellValue(1, 1, "Keep");
+                sheet.CellAt(10, 5).SetValue("Clear").SetFillColor("FFF2CC");
+                sheet.CellAt(10, 6).SetFormula("E10");
+                sheet.CellAt(12, 5).SetValue("Outside").SetFillColor("D9EAD3");
+
+                sheet.ClearRange("E10:F10", ExcelClearOptions.Values | ExcelClearOptions.Formulas | ExcelClearOptions.Styles);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Dictionary<string, Cell> cells = worksheetPart.Worksheet.Descendants<Cell>()
+                    .Where(cell => cell.CellReference?.Value != null)
+                    .ToDictionary(cell => cell.CellReference!.Value!);
+
+                Assert.Equal(new[] { "A1", "E10", "E12", "F10" }, cells.Keys.OrderBy(reference => reference).ToArray());
+                Assert.Null(cells["E10"].CellValue);
+                Assert.Null(cells["E10"].StyleIndex);
+                Assert.Null(cells["F10"].CellFormula);
+                Assert.Null(cells["F10"].CellValue);
+                Assert.NotNull(cells["E12"].CellValue);
+                Assert.NotNull(cells["E12"].StyleIndex);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_ClearRange_Comments_RemovesOnlyShapesInsideSparseRange() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ClearSparseComments.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Clear");
+                sheet.SetComment(1, 1, "Remove first", author: "Tester");
+                sheet.SetComment(5, 5, "Remove second", author: "Tester");
+                sheet.SetComment(7, 7, "Keep outside", author: "Tester");
+
+                sheet.ClearRange("A1:E5", ExcelClearOptions.Comments);
+
+                Assert.False(sheet.HasComment(1, 1));
+                Assert.False(sheet.HasComment(5, 5));
+                Assert.True(sheet.HasComment(7, 7));
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                string[] commentReferences = worksheetPart.WorksheetCommentsPart!.Comments!.CommentList!.Elements<Comment>()
+                    .Select(comment => comment.Reference?.Value ?? string.Empty)
+                    .ToArray();
+
+                Assert.Equal(new[] { "G7" }, commentReferences);
+
+                VmlDrawingPart vmlPart = Assert.Single(worksheetPart.VmlDrawingParts);
+                XDocument vml = XDocument.Load(vmlPart.GetStream());
+                XNamespace excelNamespace = "urn:schemas-microsoft-com:office:excel";
+                string[] vmlCoordinates = vml.Root!.Descendants(excelNamespace + "ClientData")
+                    .Select(clientData => string.Join(
+                        ",",
+                        clientData.Element(excelNamespace + "Row")?.Value.Trim(),
+                        clientData.Element(excelNamespace + "Column")?.Value.Trim()))
+                    .ToArray();
+
+                Assert.Equal(new[] { "6,6" }, vmlCoordinates);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_ClearRange_Comments_NoOverlapPreservesArtifacts() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ClearCommentsNoOverlap.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Clear");
+                sheet.SetComment(1, 1, "Keep", author: "Tester");
+
+                sheet.ClearRange("C3:D4", ExcelClearOptions.Comments);
+                Assert.True(sheet.HasComment(1, 1));
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                string commentReference = Assert.Single(worksheetPart.WorksheetCommentsPart!.Comments!.CommentList!.Elements<Comment>())
+                    .Reference?.Value ?? string.Empty;
+
+                Assert.Equal("A1", commentReference);
+
+                VmlDrawingPart vmlPart = Assert.Single(worksheetPart.VmlDrawingParts);
+                XDocument vml = XDocument.Load(vmlPart.GetStream());
+                XNamespace excelNamespace = "urn:schemas-microsoft-com:office:excel";
+                string coordinate = Assert.Single(vml.Root!.Descendants(excelNamespace + "ClientData")
+                    .Select(clientData => string.Join(
+                        ",",
+                        clientData.Element(excelNamespace + "Row")?.Value.Trim(),
+                        clientData.Element(excelNamespace + "Column")?.Value.Trim())));
+
+                Assert.Equal("0,0", coordinate);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_ClearComment_MissingCellPreservesOtherCommentArtifacts() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ClearMissingComment.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Clear");
+                sheet.SetComment(1, 1, "Keep", author: "Tester");
+
+                sheet.ClearComment("C3");
+                Assert.True(sheet.HasComment(1, 1));
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                string commentReference = Assert.Single(worksheetPart.WorksheetCommentsPart!.Comments!.CommentList!.Elements<Comment>())
+                    .Reference?.Value ?? string.Empty;
+
+                Assert.Equal("A1", commentReference);
+
+                VmlDrawingPart vmlPart = Assert.Single(worksheetPart.VmlDrawingParts);
+                XDocument vml = XDocument.Load(vmlPart.GetStream());
+                XNamespace excelNamespace = "urn:schemas-microsoft-com:office:excel";
+                string coordinate = Assert.Single(vml.Root!.Descendants(excelNamespace + "ClientData")
+                    .Select(clientData => string.Join(
+                        ",",
+                        clientData.Element(excelNamespace + "Row")?.Value.Trim(),
+                        clientData.Element(excelNamespace + "Column")?.Value.Trim())));
+
+                Assert.Equal("0,0", coordinate);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
             }
         }
 
@@ -666,6 +958,53 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(sheet.GetConditionalFormattingRules("A2:A4"));
 
                 document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_RangeMetadata_NoOverlapClearPreservesReferenceLists() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.RulesNoOverlap.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Rules");
+                sheet.CellValue(1, 1, "Value");
+                sheet.CellValue(2, 1, 10d);
+                sheet.CellValue(3, 1, 20d);
+                sheet.CellValue(4, 1, 30d);
+                sheet.CellValue(6, 1, 40d);
+                sheet.CellValue(2, 2, 10d);
+                sheet.CellValue(3, 2, 20d);
+                sheet.CellValue(4, 2, 30d);
+                sheet.CellValue(6, 2, 40d);
+
+                sheet.AddConditionalFormulaRule("A2:A4 A6", "A2>15");
+                sheet.ValidationWholeNumber("B2:B4 B6", DataValidationOperatorValues.Between, 1, 50);
+
+                Assert.Single(sheet.GetConditionalFormattingRules("A6"));
+                Assert.Single(sheet.GetDataValidations("B6"));
+
+                sheet.SetDataValidationMessages("D1:D2", new ExcelDataValidationMessageOptions {
+                    PromptTitle = "Outside",
+                    Prompt = "Should not apply",
+                    ErrorTitle = "Outside",
+                    Error = "Should not apply"
+                });
+                ExcelDataValidationInfo untouchedValidation = Assert.Single(sheet.GetDataValidations("B2:B4"));
+                Assert.Null(untouchedValidation.PromptTitle);
+                Assert.Null(untouchedValidation.ErrorTitle);
+
+                sheet.ClearRange("D1:D3", ExcelClearOptions.ConditionalFormatting | ExcelClearOptions.DataValidations);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Assert.Equal("A2:A4 A6", worksheetPart.Worksheet.Elements<ConditionalFormatting>().Single().SequenceOfReferences?.InnerText);
+                Assert.Equal("B2:B4 B6", worksheetPart.Worksheet.Descendants<DataValidation>().Single().SequenceOfReferences?.InnerText);
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {

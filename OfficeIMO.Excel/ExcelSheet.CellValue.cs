@@ -70,7 +70,7 @@ namespace OfficeIMO.Excel {
             cell.CellValue = cellValue;
             cell.DataType = dataType;
             ApplyAutomaticCellFormatting(cell, value, dataType);
-            ClearHeaderCache();
+            ClearHeaderCacheForCellMutation(row);
         }
 
         private void CellStringValueCore(int row, int column, string? value) {
@@ -79,18 +79,22 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            CoerceValueHelper.ValidateSharedStringLength(value, nameof(value));
-            int sharedStringIndex = _excelDocument.GetSharedStringIndex(value);
+            int sharedStringIndex = _excelDocument.GetSharedStringIndex(value, validateNewString: true, out bool containsLineBreak);
 
             var cell = GetCell(row, column);
-            SetExistingCellSharedStringValue(cell, value, sharedStringIndex);
-            ClearHeaderCache();
+            SetExistingCellSharedStringValue(cell, sharedStringIndex, containsLineBreak);
+            ClearHeaderCacheForCellMutation(row);
         }
 
         private void SetExistingCellSharedStringValue(Cell cell, string value, int sharedStringIndex) {
+            SetExistingCellSharedStringValue(cell, sharedStringIndex, value.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0);
+        }
+
+        private void SetExistingCellSharedStringValue(Cell cell, int sharedStringIndex, bool containsLineBreak) {
             cell.CellValue = new CellValue(GetSharedStringIndexText(sharedStringIndex));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString;
-            if (value.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0) {
+            cell.InlineString = null;
+            if (containsLineBreak) {
                 ApplyWrapText(cell);
             }
         }
@@ -115,28 +119,28 @@ namespace OfficeIMO.Excel {
             var cell = GetCell(row, column);
             cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
-            ClearHeaderCache();
+            ClearHeaderCacheForCellMutation(row);
         }
 
         private void CellDecimalValueCore(int row, int column, decimal value) {
             var cell = GetCell(row, column);
             cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
-            ClearHeaderCache();
+            ClearHeaderCacheForCellMutation(row);
         }
 
         private void CellNumberTextValueCore(int row, int column, string text) {
             var cell = GetCell(row, column);
             cell.CellValue = new CellValue(text);
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
-            ClearHeaderCache();
+            ClearHeaderCacheForCellMutation(row);
         }
 
         private void CellBooleanValueCore(int row, int column, bool value) {
             var cell = GetCell(row, column);
             cell.CellValue = new CellValue(value ? "1" : "0");
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean;
-            ClearHeaderCache();
+            ClearHeaderCacheForCellMutation(row);
         }
 
         private void CellDateTimeValueCore(int row, int column, DateTime value) {
@@ -148,7 +152,7 @@ namespace OfficeIMO.Excel {
             cell.StyleIndex = baseStyleIndex == 0U
                 ? (_cellValueDefaultDateStyleIndex ??= GetOrCreateBuiltInNumberFormatStyleIndex(0U, 14))
                 : GetOrAddBuiltInNumberFormatStyleIndex(ref _cellValueDateStyleIndexes, baseStyleIndex, 14);
-            ClearHeaderCache();
+            ClearHeaderCacheForCellMutation(row);
         }
 
         private void CellDateTimeOffsetValueCore(int row, int column, DateTimeOffset value) {
@@ -172,7 +176,7 @@ namespace OfficeIMO.Excel {
                     : GetOrAddBuiltInNumberFormatStyleIndex(ref _cellValueDateStyleIndexes, baseStyleIndex, 14);
             }
 
-            ClearHeaderCache();
+            ClearHeaderCacheForCellMutation(row);
         }
 
         private void CellFormulaCore(int row, int column, string formula) {
@@ -180,7 +184,7 @@ namespace OfficeIMO.Excel {
             // Excel formulas in XML should not start with '=' and must not include illegal control characters
             var safe = Utilities.ExcelSanitizer.SanitizeFormula(formula);
             cell.CellFormula = new CellFormula(safe);
-            ClearHeaderCache();
+            ClearHeaderCacheForCellMutation(row);
         }
 
         private void CellTimeSpanValueCore(int row, int column, TimeSpan value) {
@@ -192,7 +196,7 @@ namespace OfficeIMO.Excel {
             cell.StyleIndex = baseStyleIndex == 0U
                 ? (_cellValueDefaultDurationStyleIndex ??= GetOrCreateBuiltInNumberFormatStyleIndex(0U, 46))
                 : GetOrAddBuiltInNumberFormatStyleIndex(ref _cellValueDurationStyleIndexes, baseStyleIndex, 46);
-            ClearHeaderCache();
+            ClearHeaderCacheForCellMutation(row);
         }
 
         // Core coercion logic shared between sequential and parallel operations
@@ -478,7 +482,7 @@ namespace OfficeIMO.Excel {
                     MaterializeDeferredDataSetImportIfNeeded();
                 }
 
-                var cell = GetCell(row, column);
+                var cell = TryGetCell(row, column);
                 if (cell == null) return false;
                 // Resolve shared string if needed
                 if (cell.DataType != null && cell.DataType.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) {
@@ -904,6 +908,38 @@ namespace OfficeIMO.Excel {
             stylesPart.Stylesheet.Save();
         }
 
+        private void FillRangeCore(int firstRow, int firstColumn, int lastRow, int lastColumn, string hexColor) {
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+            var stylesPart = workbookPart.WorkbookStylesPart;
+            if (stylesPart == null)
+                stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
+
+            var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            EnsureDefaultStylePrimitives(stylesheet);
+
+            string argb = NormalizeHexColor(hexColor);
+            var fill = new Fill(new PatternFill {
+                PatternType = PatternValues.Solid,
+                ForegroundColor = new ForegroundColor { Rgb = argb },
+                BackgroundColor = new BackgroundColor { Rgb = argb }
+            });
+            uint fillId = GetOrCreateFill(stylesheet, fill);
+            var styleIndexes = new Dictionary<uint, uint>();
+
+            for (int row = firstRow; row <= lastRow; row++) {
+                for (int column = firstColumn; column <= lastColumn; column++) {
+                    Cell cell = GetCell(row, column);
+                    uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
+                    cell.StyleIndex = GetOrAddCellFormatOverride(styleIndexes, stylesheet, baseStyleIndex, format => {
+                        format.FillId = fillId;
+                        format.ApplyFill = true;
+                    });
+                }
+            }
+
+            stylesPart.Stylesheet.Save();
+        }
+
         private void ApplyBuiltInNumberFormat(int row, int column, uint builtInFormatId) {
             Cell cell = GetCell(row, column);
             ApplyBuiltInNumberFormat(cell, builtInFormatId);
@@ -938,29 +974,39 @@ namespace OfficeIMO.Excel {
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            stylesheet.NumberingFormats ??= new NumberingFormats();
-            NumberingFormat? existingFormat = stylesheet.NumberingFormats.Elements<NumberingFormat>()
-                .FirstOrDefault(n => n.FormatCode != null && n.FormatCode.Value == numberFormat);
-
-            uint numberFormatId;
-            if (existingFormat != null) {
-                numberFormatId = existingFormat.NumberFormatId!.Value;
-            } else {
-                numberFormatId = stylesheet.NumberingFormats.Elements<NumberingFormat>().Any()
-                    ? stylesheet.NumberingFormats.Elements<NumberingFormat>().Max(n => n.NumberFormatId!.Value) + 1
-                    : 164U;
-                NumberingFormat numberingFormat = new NumberingFormat {
-                    NumberFormatId = numberFormatId,
-                    FormatCode = StringValue.FromString(numberFormat)
-                };
-                stylesheet.NumberingFormats.Append(numberingFormat);
-                stylesheet.NumberingFormats.Count = (uint)stylesheet.NumberingFormats.Count();
-            }
+            uint numberFormatId = GetOrCreateNumberFormatId(stylesheet, numberFormat);
 
             ApplyCellFormatOverride(stylesheet, cell, format => {
                 format.NumberFormatId = numberFormatId;
                 format.ApplyNumberFormat = true;
             });
+            stylesPart.Stylesheet.Save();
+        }
+
+        private void FormatRangeCore(int firstRow, int firstColumn, int lastRow, int lastColumn, string numberFormat) {
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+            WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
+            if (stylesPart == null) {
+                stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
+            }
+
+            Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            EnsureDefaultStylePrimitives(stylesheet);
+
+            uint numberFormatId = GetOrCreateNumberFormatId(stylesheet, numberFormat);
+            var styleIndexes = new Dictionary<uint, uint>();
+
+            for (int row = firstRow; row <= lastRow; row++) {
+                for (int column = firstColumn; column <= lastColumn; column++) {
+                    Cell cell = GetCell(row, column);
+                    uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
+                    cell.StyleIndex = GetOrAddCellFormatOverride(styleIndexes, stylesheet, baseStyleIndex, format => {
+                        format.NumberFormatId = numberFormatId;
+                        format.ApplyNumberFormat = true;
+                    });
+                }
+            }
+
             stylesPart.Stylesheet.Save();
         }
 
@@ -984,6 +1030,21 @@ namespace OfficeIMO.Excel {
             var baseFormat = GetBaseCellFormat(stylesheet, cell.StyleIndex?.Value ?? 0U);
             mutate(baseFormat);
             cell.StyleIndex = AppendOrReuseCellFormat(stylesheet, baseFormat);
+        }
+
+        private static uint GetOrAddCellFormatOverride(
+            Dictionary<uint, uint> styleIndexes,
+            Stylesheet stylesheet,
+            uint baseStyleIndex,
+            Action<CellFormat> mutate) {
+            if (!styleIndexes.TryGetValue(baseStyleIndex, out uint styleIndex)) {
+                var format = GetBaseCellFormat(stylesheet, baseStyleIndex);
+                mutate(format);
+                styleIndex = AppendOrReuseCellFormat(stylesheet, format);
+                styleIndexes.Add(baseStyleIndex, styleIndex);
+            }
+
+            return styleIndex;
         }
 
         private static uint AppendOrReuseCellFormat(Stylesheet stylesheet, CellFormat candidate) {
@@ -1012,6 +1073,27 @@ namespace OfficeIMO.Excel {
             fills.Append(candidate);
             fills.Count = (uint)fills.Count();
             return fills.Count!.Value - 1;
+        }
+
+        private static uint GetOrCreateNumberFormatId(Stylesheet stylesheet, string numberFormat) {
+            stylesheet.NumberingFormats ??= new NumberingFormats();
+            NumberingFormat? existingFormat = stylesheet.NumberingFormats.Elements<NumberingFormat>()
+                .FirstOrDefault(n => n.FormatCode != null && n.FormatCode.Value == numberFormat);
+
+            if (existingFormat != null) {
+                return existingFormat.NumberFormatId!.Value;
+            }
+
+            uint numberFormatId = stylesheet.NumberingFormats.Elements<NumberingFormat>().Any()
+                ? stylesheet.NumberingFormats.Elements<NumberingFormat>().Max(n => n.NumberFormatId!.Value) + 1
+                : 164U;
+            NumberingFormat numberingFormat = new NumberingFormat {
+                NumberFormatId = numberFormatId,
+                FormatCode = StringValue.FromString(numberFormat)
+            };
+            stylesheet.NumberingFormats.Append(numberingFormat);
+            stylesheet.NumberingFormats.Count = (uint)stylesheet.NumberingFormats.Count();
+            return numberFormatId;
         }
 
         private static uint GetOrCreateBorderVariant(Stylesheet stylesheet, uint? baseBorderId, Action<Border> mutate) {

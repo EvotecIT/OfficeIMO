@@ -34,6 +34,32 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         [Trait("Category", "ExcelHeaders")]
+        public void Excel_SetByHeader_NullValue_WritesEmptyText() {
+            string filePath = Path.Combine(_directoryWithFiles, "Header_SetByHeader_Null.xlsx");
+            if (File.Exists(filePath)) File.Delete(filePath);
+
+            using (var doc = ExcelDocument.Create(filePath)) {
+                var sheet = doc.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Name");
+                sheet.SetByHeader(2, "Name", null);
+
+                Assert.True(sheet.TryGetCellText(2, 1, out string text));
+                Assert.Equal(string.Empty, text);
+                doc.Save(false);
+            }
+
+            using (var pkg = SpreadsheetDocument.Open(filePath, false)) {
+                var wsPart = pkg.WorkbookPart!.WorksheetParts.First();
+                var sheetData = wsPart.Worksheet.GetFirstChild<SheetData>();
+                var row2 = sheetData?.Elements<Row>().FirstOrDefault(r => r.RowIndex?.Value == 2U);
+                var cellA2 = row2?.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == "A2");
+                Assert.NotNull(cellA2);
+                Assert.Equal(CellValues.SharedString, cellA2!.DataType?.Value);
+            }
+        }
+
+        [Fact]
+        [Trait("Category", "ExcelHeaders")]
         public void Excel_AutoFilterByHeaderEquals_MissingHeader_DoesNothing() {
             string filePath = Path.Combine(_directoryWithFiles, "HeaderMissing_AutoFilter.xlsx");
             if (File.Exists(filePath)) File.Delete(filePath);

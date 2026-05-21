@@ -213,23 +213,39 @@ namespace OfficeIMO.Excel {
                         bool rowStarted = false;
                         string rowReference = rowIndex.ToString(CultureInfo.InvariantCulture);
                         DataRow? sourceRow = sheet.Table.GetSourceRow(sourceRowIndex);
-                        object?[]? bufferedRow = sourceRow == null ? sheet.Table.GetBufferedRow(sourceRowIndex) : null;
-                        for (int c = 0; c < columnCount; c++) {
-                            object? value = sourceRow != null
-                                ? DirectDataSetTableModel.GetValue(sourceRow, c)
-                                : DirectDataSetTableModel.GetValue(bufferedRow!, c);
-                            if (sheet.OmitBlankCells && IsBlankCellValue(value)) {
-                                continue;
-                            }
+                        if (sourceRow != null) {
+                            for (int c = 0; c < columnCount; c++) {
+                                object? value = DirectDataSetTableModel.GetValue(sourceRow, c);
+                                if (sheet.OmitBlankCells && IsBlankCellValue(value)) {
+                                    continue;
+                                }
 
-                            if (!rowStarted) {
-                                writer.Write("<row r=\"");
-                                writer.Write(rowReference);
-                                writer.Write("\">");
-                                rowStarted = true;
-                            }
+                                if (!rowStarted) {
+                                    writer.Write("<row r=\"");
+                                    writer.Write(rowReference);
+                                    writer.Write("\">");
+                                    rowStarted = true;
+                                }
 
-                            WriteCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], dateTimeOffsetWriteStrategy, sharedStrings);
+                                WriteCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], dateTimeOffsetWriteStrategy, sharedStrings);
+                            }
+                        } else {
+                            object?[] bufferedRow = sheet.Table.GetBufferedRow(sourceRowIndex)!;
+                            for (int c = 0; c < columnCount; c++) {
+                                object? value = DirectDataSetTableModel.GetValue(bufferedRow, c);
+                                if (sheet.OmitBlankCells && IsBlankCellValue(value)) {
+                                    continue;
+                                }
+
+                                if (!rowStarted) {
+                                    writer.Write("<row r=\"");
+                                    writer.Write(rowReference);
+                                    writer.Write("\">");
+                                    rowStarted = true;
+                                }
+
+                                WriteCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], dateTimeOffsetWriteStrategy, sharedStrings);
+                            }
                         }
 
                         if (rowStarted) {
@@ -244,23 +260,39 @@ namespace OfficeIMO.Excel {
                         bool rowStarted = false;
                         string rowReference = rowIndex.ToString(CultureInfo.InvariantCulture);
                         DataRow? sourceRow = sheet.Table.GetSourceRow(sourceRowIndex);
-                        object?[]? bufferedRow = sourceRow == null ? sheet.Table.GetBufferedRow(sourceRowIndex) : null;
-                        for (int c = 0; c < columnCount; c++) {
-                            object? value = sourceRow != null
-                                ? DirectDataSetTableModel.GetValue(sourceRow, c)
-                                : DirectDataSetTableModel.GetValue(bufferedRow!, c);
-                            if (sheet.OmitBlankCells && IsBlankCellValue(value)) {
-                                continue;
-                            }
+                        if (sourceRow != null) {
+                            for (int c = 0; c < columnCount; c++) {
+                                object? value = DirectDataSetTableModel.GetValue(sourceRow, c);
+                                if (sheet.OmitBlankCells && IsBlankCellValue(value)) {
+                                    continue;
+                                }
 
-                            if (!rowStarted) {
-                                writer.Write("<row r=\"");
-                                writer.Write(rowReference);
-                                writer.Write("\">");
-                                rowStarted = true;
-                            }
+                                if (!rowStarted) {
+                                    writer.Write("<row r=\"");
+                                    writer.Write(rowReference);
+                                    writer.Write("\">");
+                                    rowStarted = true;
+                                }
 
-                            WriteCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], valueStyleColumns[c], dateTimeOffsetWriteStrategy, sharedStrings);
+                                WriteCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], valueStyleColumns[c], dateTimeOffsetWriteStrategy, sharedStrings);
+                            }
+                        } else {
+                            object?[] bufferedRow = sheet.Table.GetBufferedRow(sourceRowIndex)!;
+                            for (int c = 0; c < columnCount; c++) {
+                                object? value = DirectDataSetTableModel.GetValue(bufferedRow, c);
+                                if (sheet.OmitBlankCells && IsBlankCellValue(value)) {
+                                    continue;
+                                }
+
+                                if (!rowStarted) {
+                                    writer.Write("<row r=\"");
+                                    writer.Write(rowReference);
+                                    writer.Write("\">");
+                                    rowStarted = true;
+                                }
+
+                                WriteCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], valueStyleColumns[c], dateTimeOffsetWriteStrategy, sharedStrings);
+                            }
                         }
 
                         if (rowStarted) {
@@ -444,14 +476,20 @@ namespace OfficeIMO.Excel {
                         for (int rowIndex = 0; rowIndex < sheet.Table.RowCount; rowIndex++) {
                             ct.ThrowIfCancellationRequested();
                             DataRow? sourceRow = sheet.Table.GetSourceRow(rowIndex);
-                            object?[]? bufferedRow = sourceRow == null ? sheet.Table.GetBufferedRow(rowIndex) : null;
-                            for (int stringColumnIndex = 0; stringColumnIndex < stringColumnIndexes.Length; stringColumnIndex++) {
-                                int columnIndex = stringColumnIndexes[stringColumnIndex];
-                                object? value = sourceRow != null
-                                    ? DirectDataSetTableModel.GetValue(sourceRow, columnIndex)
-                                    : DirectDataSetTableModel.GetValue(bufferedRow!, columnIndex);
-                                if (value is string text) {
-                                    NoteString(text);
+                            if (sourceRow != null) {
+                                for (int stringColumnIndex = 0; stringColumnIndex < stringColumnIndexes.Length; stringColumnIndex++) {
+                                    int columnIndex = stringColumnIndexes[stringColumnIndex];
+                                    if (DirectDataSetTableModel.GetValue(sourceRow, columnIndex) is string text) {
+                                        NoteString(text);
+                                    }
+                                }
+                            } else {
+                                object?[] bufferedRow = sheet.Table.GetBufferedRow(rowIndex)!;
+                                for (int stringColumnIndex = 0; stringColumnIndex < stringColumnIndexes.Length; stringColumnIndex++) {
+                                    int columnIndex = stringColumnIndexes[stringColumnIndex];
+                                    if (DirectDataSetTableModel.GetValue(bufferedRow, columnIndex) is string text) {
+                                        NoteString(text);
+                                    }
                                 }
                             }
                         }
@@ -491,7 +529,6 @@ namespace OfficeIMO.Excel {
                     return new DirectSharedStringTable(indexes, values, sharedStringReferences);
 
                     void NoteString(string text, bool forceShared = false) {
-                        CoerceValueHelper.ValidateSharedStringLength(text, "value");
                         totalStringReferences++;
                         if (sharedCounts.TryGetValue(text, out int count)) {
                             sharedCounts[text] = count + 1;
@@ -499,13 +536,21 @@ namespace OfficeIMO.Excel {
                         }
 
                         if (forceShared) {
-                            sharedCounts.Add(text, seenOnce.Remove(text) ? 2 : 1);
+                            if (seenOnce.Remove(text)) {
+                                sharedCounts.Add(text, 2);
+                            } else {
+                                CoerceValueHelper.ValidateSharedStringLength(text, "value");
+                                sharedCounts.Add(text, 1);
+                            }
+
                             return;
                         }
 
                         if (!seenOnce.Add(text)) {
                             seenOnce.Remove(text);
                             sharedCounts.Add(text, 2);
+                        } else {
+                            CoerceValueHelper.ValidateSharedStringLength(text, "value");
                         }
                     }
                 }

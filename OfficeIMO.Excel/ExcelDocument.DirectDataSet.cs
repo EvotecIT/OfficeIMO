@@ -305,34 +305,21 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            DataTable promotedTable = sheetModel.Table.ToDataTable();
-            if (!includeHeaders) {
-                promotedTable = CreateHeaderlessDirectSaveTable(promotedTable);
-            }
-
-            if (candidate.IsDeferred) {
-                RegisterDeferredDirectTabularSaveCandidate(
-                    sheet,
-                    promotedTable,
-                    includeHeaders,
-                    range,
-                    tableName,
-                    createTable: true,
-                    tableStyle,
-                    includeAutoFilter,
-                    autoFit: false);
-            } else {
-                RegisterDirectTabularSaveCandidate(
-                    sheet,
-                    promotedTable,
-                    includeHeaders,
-                    range,
-                    tableName,
-                    createTable: true,
-                    tableStyle,
-                    includeAutoFilter,
-                    autoFit: false);
-            }
+            var promotedModel = candidate.Model.WithTable(
+                sheet.Name,
+                tableName,
+                includeHeaders,
+                tableStyle,
+                includeAutoFilter,
+                _dateTimeOffsetWriteStrategy,
+                CancellationToken.None);
+            _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(
+                candidate.Owner,
+                promotedModel,
+                candidate.InvalidateCallback,
+                candidate.IsDeferred,
+                subscribeToSourceChanges: false);
+            candidate.Dispose();
 
             return _directDataSetSaveCandidate != null && _directDataSetSaveCandidate.IsValid;
         }
@@ -428,32 +415,6 @@ namespace OfficeIMO.Excel {
                 ClearDirectDataSetSaveCandidate();
                 return false;
             }
-        }
-
-        private static DataTable CreateHeaderlessDirectSaveTable(DataTable source) {
-            var table = new DataTable(source.TableName) {
-                Locale = CultureInfo.InvariantCulture
-            };
-
-            for (int i = 0; i < source.Columns.Count; i++) {
-                table.Columns.Add("Column" + (i + 1).ToString(CultureInfo.InvariantCulture), source.Columns[i].DataType);
-            }
-
-            table.BeginLoadData();
-            try {
-                foreach (DataRow sourceRow in source.Rows) {
-                    var row = table.NewRow();
-                    for (int i = 0; i < source.Columns.Count; i++) {
-                        row[i] = sourceRow.IsNull(i) ? DBNull.Value : sourceRow[i];
-                    }
-
-                    table.Rows.Add(row);
-                }
-            } finally {
-                table.EndLoadData();
-            }
-
-            return table;
         }
 
         private bool TryRegisterDeferredDirectDataSetImport(
@@ -747,6 +708,50 @@ namespace OfficeIMO.Excel {
                 return new DirectDataSetWorkbookModel(sheets, Results, dateTimeOffsetWriteStrategy ?? DateTimeOffsetWriteStrategy);
             }
 
+            internal DirectDataSetWorkbookModel WithTable(
+                string sheetName,
+                string tableName,
+                bool includeHeaders,
+                TableStyle tableStyle,
+                bool includeAutoFilter,
+                Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
+                CancellationToken ct) {
+                var sheets = new DirectDataSetSheetModel[Sheets.Count];
+                var results = new ExcelDataSetImportResult[Sheets.Count];
+                for (int i = 0; i < Sheets.Count; i++) {
+                    ct.ThrowIfCancellationRequested();
+                    var sheet = Sheets[i];
+                    if (!string.Equals(sheet.SheetName, sheetName, StringComparison.Ordinal)) {
+                        sheets[i] = sheet;
+                        results[i] = new ExcelDataSetImportResult(sheet.SheetName, sheet.TableName, sheet.Range, sheet.Table.RowCount, sheet.Table.ColumnCount);
+                        continue;
+                    }
+
+                    var table = includeHeaders ? sheet.Table : sheet.Table.WithGeneratedColumnNames();
+                    double[]? columnWidths = sheet.ColumnWidths;
+                    if (sheet.AutoFitColumns && !ReferenceEquals(table, sheet.Table)) {
+                        columnWidths = table.CalculateColumnWidths(includeHeaders, dateTimeOffsetWriteStrategy, ct);
+                    }
+
+                    sheets[i] = new DirectDataSetSheetModel(
+                        sheet.Index,
+                        sheet.SheetName,
+                        tableName,
+                        sheet.Range,
+                        table,
+                        tableStyle,
+                        includeHeaders,
+                        includeAutoFilter,
+                        hasTable: true,
+                        sheet.AutoFitColumns,
+                        sheet.OmitBlankCells,
+                        columnWidths);
+                    results[i] = new ExcelDataSetImportResult(sheet.SheetName, tableName, sheet.Range, table.RowCount, table.ColumnCount);
+                }
+
+                return new DirectDataSetWorkbookModel(sheets, results, dateTimeOffsetWriteStrategy ?? DateTimeOffsetWriteStrategy);
+            }
+
             internal static DirectDataSetWorkbookModel Create(
                 DataSet dataSet,
                 bool createTables,
@@ -981,6 +986,8 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class DirectDataSetTableModel {
+            private const int MaxAutoFitStringWidthCacheEntriesPerColumn = 1024;
+
             private enum AutoFitWidthKind {
                 Object,
                 String,
@@ -1014,6 +1021,11 @@ namespace OfficeIMO.Excel {
                 _columns = CreateColumns(sourceTable);
             }
 
+            private DirectDataSetTableModel(DataTable sourceTable, DirectDataSetColumnModel[] columns) {
+                _sourceTable = sourceTable;
+                _columns = columns;
+            }
+
             private DirectDataSetTableModel(DirectDataSetColumnModel[] columns, object?[][] rows) {
                 _columns = columns;
                 _rows = rows;
@@ -1032,6 +1044,17 @@ namespace OfficeIMO.Excel {
                 }
 
                 return new DirectDataSetTableModel(columns, rows);
+            }
+
+            internal DirectDataSetTableModel WithGeneratedColumnNames() {
+                var columns = new DirectDataSetColumnModel[ColumnCount];
+                for (int i = 0; i < columns.Length; i++) {
+                    columns[i] = new DirectDataSetColumnModel("Column" + (i + 1).ToString(CultureInfo.InvariantCulture), GetColumnType(i));
+                }
+
+                return _sourceTable != null
+                    ? new DirectDataSetTableModel(_sourceTable, columns)
+                    : new DirectDataSetTableModel(columns, _rows!);
             }
 
             internal static DirectDataSetTableModel Snapshot(DataTable table, CancellationToken ct) {
@@ -1130,16 +1153,26 @@ namespace OfficeIMO.Excel {
                 }
 
                 AutoFitWidthKind[] widthKinds = CreateAutoFitWidthKinds();
+                Dictionary<string, double>?[]? stringWidthCaches = null;
                 int rowCount = RowCount;
                 for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                     ct.ThrowIfCancellationRequested();
                     DataRow? sourceRow = GetSourceRow(rowIndex);
-                    object?[]? bufferedRow = sourceRow == null ? GetBufferedRow(rowIndex) : null;
-                    for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-                        object? value = sourceRow != null
-                            ? GetValue(sourceRow, columnIndex)
-                            : GetValue(bufferedRow!, columnIndex);
-                        widths[columnIndex] = Math.Max(widths[columnIndex], EstimateAutoFitWidth(value, widthKinds[columnIndex], dateTimeOffsetWriteStrategy));
+                    if (sourceRow != null) {
+                        for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+                            object? value = GetValue(sourceRow, columnIndex);
+                            widths[columnIndex] = Math.Max(
+                                widths[columnIndex],
+                                EstimateAutoFitWidth(value, widthKinds[columnIndex], dateTimeOffsetWriteStrategy, ref stringWidthCaches, columnIndex, columnCount));
+                        }
+                    } else {
+                        object?[] bufferedRow = GetBufferedRow(rowIndex)!;
+                        for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+                            object? value = GetValue(bufferedRow, columnIndex);
+                            widths[columnIndex] = Math.Max(
+                                widths[columnIndex],
+                                EstimateAutoFitWidth(value, widthKinds[columnIndex], dateTimeOffsetWriteStrategy, ref stringWidthCaches, columnIndex, columnCount));
+                        }
                     }
                 }
 
@@ -1320,6 +1353,36 @@ namespace OfficeIMO.Excel {
                     default:
                         return EstimateAutoFitWidth(value, dateTimeOffsetWriteStrategy);
                 }
+            }
+
+            private static double EstimateAutoFitWidth(
+                object? value,
+                AutoFitWidthKind widthKind,
+                Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
+                ref Dictionary<string, double>?[]? stringWidthCaches,
+                int columnIndex,
+                int columnCount) {
+                if (value is string stringValue && stringValue.Length > 0) {
+                    stringWidthCaches ??= new Dictionary<string, double>?[columnCount];
+                    Dictionary<string, double>? cache = stringWidthCaches[columnIndex];
+                    if (cache == null) {
+                        cache = new Dictionary<string, double>(StringComparer.Ordinal);
+                        stringWidthCaches[columnIndex] = cache;
+                    }
+
+                    if (cache.TryGetValue(stringValue, out double cachedWidth)) {
+                        return cachedWidth;
+                    }
+
+                    double width = EstimateAutoFitWidth(value, widthKind, dateTimeOffsetWriteStrategy);
+                    if (cache.Count < MaxAutoFitStringWidthCacheEntriesPerColumn) {
+                        cache[stringValue] = width;
+                    }
+
+                    return width;
+                }
+
+                return EstimateAutoFitWidth(value, widthKind, dateTimeOffsetWriteStrategy);
             }
 
             private static double EstimateDateTimeOffsetAutoFitWidth(DateTimeOffset value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy) {

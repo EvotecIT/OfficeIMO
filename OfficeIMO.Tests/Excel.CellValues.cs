@@ -97,6 +97,101 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_TryGetCellText_MissingCell_DoesNotCreateCell() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesMissingLookupNoMutation.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Header");
+
+                Assert.False(sheet.TryGetCellText(10, 5, out _));
+
+                WorksheetPart wsPart = document._spreadSheetDocument.WorkbookPart!.WorksheetParts.First();
+                Assert.DoesNotContain(wsPart.Worksheet.Descendants<Row>(), row => row.RowIndex?.Value == 10U);
+                Assert.DoesNotContain(wsPart.Worksheet.Descendants<Cell>(), cell => cell.CellReference?.Value == "E10");
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_TryGetCellText_OutOfOrderRows_FindsExistingCell() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesOutOfOrderRows.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(5, 1, "Later");
+                sheet.CellValue(2, 1, "Target");
+
+                WorksheetPart wsPart = document._spreadSheetDocument.WorkbookPart!.WorksheetParts.First();
+                SheetData sheetData = wsPart.Worksheet.GetFirstChild<SheetData>()!;
+                Row row2 = sheetData.Elements<Row>().First(row => row.RowIndex?.Value == 2U);
+                row2.Remove();
+                sheetData.Append(row2);
+
+                Assert.True(sheet.TryGetCellText(5, 1, out _));
+                Assert.True(sheet.TryGetCellText(2, 1, out var text));
+                Assert.Equal("Target", text);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_TryGetCellText_OutOfOrderCells_FindsExistingCell() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesOutOfOrderCells.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 3, "Later");
+                sheet.CellValue(1, 1, "Target");
+
+                WorksheetPart wsPart = document._spreadSheetDocument.WorkbookPart!.WorksheetParts.First();
+                Row row1 = wsPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().First(row => row.RowIndex?.Value == 1U);
+                Cell cellA1 = row1.Elements<Cell>().First(cell => cell.CellReference?.Value == "A1");
+                cellA1.Remove();
+                row1.Append(cellA1);
+
+                Assert.True(sheet.TryGetCellText(1, 3, out _));
+                Assert.True(sheet.TryGetCellText(1, 1, out var text));
+                Assert.Equal("Target", text);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_CellAtGetValue_MissingCell_DoesNotCreateCell() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesObjectModelMissingLookupNoMutation.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(10, 1, "Existing row");
+
+                ExcelCellData value = sheet.CellAt(10, 5).GetValue();
+
+                Assert.Equal(ExcelCellDataKind.Blank, value.Kind);
+                Assert.Null(value.Value);
+                WorksheetPart wsPart = document._spreadSheetDocument.WorkbookPart!.WorksheetParts.First();
+                Assert.DoesNotContain(wsPart.Worksheet.Descendants<Cell>(), cell => cell.CellReference?.Value == "E10");
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void Test_TryGetCellText_UsesFreshSharedStringsAfterMutation() {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesSharedStringCache.xlsx");
 
@@ -152,6 +247,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CellValue_RejectsSharedStringsOverExcelLimit() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesSharedStringTooLong.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                string tooLong = new string('A', 32_768);
+
+                var exception = Assert.Throws<ArgumentException>(() => sheet.CellValue(1, 1, tooLong));
+                Assert.Contains("32,767", exception.Message, StringComparison.Ordinal);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void Test_FindFirst_UsesFreshWorksheetStateAfterDirectOpenXmlMutation() {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesFindFirstDirectMutation.xlsx");
 
@@ -187,6 +297,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FindFirst_UsesFreshFormulaCacheStateAfterCalculationChanges() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesFindFirstFormulaCacheMutation.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, 1d);
+                sheet.CellValue(2, 1, 2d);
+                sheet.CellFormula(3, 1, "SUM(A1:A2)");
+
+                Assert.Null(sheet.FindFirst("3"));
+
+                Assert.Equal(1, sheet.RecalculateSupportedFormulas());
+                Assert.Equal("A3", sheet.FindFirst("3"));
+
+                sheet.ClearCachedFormulaResults();
+                Assert.Null(sheet.FindFirst("3"));
+
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void Test_FindFirstAndReplaceAll_HandleSharedStrings() {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesSharedStringFindReplace.xlsx");
 
@@ -203,6 +339,40 @@ namespace OfficeIMO.Tests {
                 Assert.True(sheet.TryGetCellText(3, 1, out var third));
                 Assert.Equal("Status Processed", first);
                 Assert.Equal("Status Processed", third);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ReplaceAll_HandlesInlineStrings() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesInlineReplace.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                var worksheet = document._spreadSheetDocument.WorkbookPart!.WorksheetParts.First().Worksheet;
+                var sheetData = worksheet.GetFirstChild<SheetData>()!;
+                var row = new Row { RowIndex = 1 };
+                row.Append(new Cell {
+                    CellReference = "A1",
+                    DataType = CellValues.InlineString,
+                    InlineString = new InlineString(new Text("Status New"))
+                });
+                row.Append(new Cell {
+                    CellReference = "B1",
+                    DataType = CellValues.InlineString,
+                    InlineString = new InlineString(new Run(new Text("Status ")), new Run(new Text("New")))
+                });
+                sheetData.Append(row);
+
+                Assert.Equal(2, sheet.ReplaceAll("new", "Processed"));
+                Assert.True(sheet.TryGetCellText(1, 1, out var first));
+                Assert.True(sheet.TryGetCellText(1, 2, out var second));
+                Assert.Equal("Status Processed", first);
+                Assert.Equal("Status Processed", second);
                 document.Save();
             }
 

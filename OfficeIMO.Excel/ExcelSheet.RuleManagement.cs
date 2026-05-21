@@ -3,18 +3,18 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        private static readonly List<string> EmptyReferenceList = new List<string>(0);
+
         /// <summary>
         /// Lists conditional formatting rules on the worksheet.
         /// </summary>
         public IReadOnlyList<ExcelConditionalFormattingInfo> GetConditionalFormattingRules(string? a1Range = null) {
-            (int r1, int c1, int r2, int c2)? filter = string.IsNullOrWhiteSpace(a1Range) ? null : A1.ParseRange(a1Range!);
+            (int r1, int c1, int r2, int c2)? filter = string.IsNullOrWhiteSpace(a1Range) ? null : ParseReferenceArgument(a1Range!);
             var list = new List<ExcelConditionalFormattingInfo>();
             foreach (var conditional in WorksheetRoot.Elements<ConditionalFormatting>()) {
                 string range = conditional.SequenceOfReferences?.InnerText ?? string.Empty;
                 if (filter.HasValue && !string.IsNullOrWhiteSpace(range)) {
-                    bool overlaps = SplitReferenceList(range)
-                        .Any(part => RangesOverlapInclusive(filter.Value, part.IndexOf(':') >= 0 ? A1.ParseRange(part) : CellAsRange(part)));
-                    if (!overlaps) continue;
+                    if (!ReferenceListOverlaps(range, filter.Value)) continue;
                 }
 
                 foreach (var rule in conditional.Elements<ConditionalFormattingRule>()) {
@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel {
         /// Lists data validation rules on the worksheet.
         /// </summary>
         public IReadOnlyList<ExcelDataValidationInfo> GetDataValidations(string? a1Range = null) {
-            (int r1, int c1, int r2, int c2)? filter = string.IsNullOrWhiteSpace(a1Range) ? null : A1.ParseRange(a1Range!);
+            (int r1, int c1, int r2, int c2)? filter = string.IsNullOrWhiteSpace(a1Range) ? null : ParseReferenceArgument(a1Range!);
             var result = new List<ExcelDataValidationInfo>();
             var validations = WorksheetRoot.GetFirstChild<DataValidations>();
             if (validations == null) return result;
@@ -77,9 +77,7 @@ namespace OfficeIMO.Excel {
             foreach (var validation in validations.Elements<DataValidation>()) {
                 string range = validation.SequenceOfReferences?.InnerText ?? string.Empty;
                 if (filter.HasValue) {
-                    bool overlaps = SplitReferenceList(range)
-                        .Any(part => RangesOverlapInclusive(filter.Value, part.IndexOf(':') >= 0 ? A1.ParseRange(part) : CellAsRange(part)));
-                    if (!overlaps) continue;
+                    if (!ReferenceListOverlaps(range, filter.Value)) continue;
                 }
 
                 result.Add(new ExcelDataValidationInfo {
@@ -111,25 +109,39 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void SetDataValidationMessages(string a1Range, ExcelDataValidationMessageOptions options) {
             if (options == null) throw new ArgumentNullException(nameof(options));
-            var filter = A1.ParseRange(a1Range);
+            var filter = ParseReferenceArgument(a1Range);
             WriteLock(() => {
                 var validations = WorksheetRoot.GetFirstChild<DataValidations>();
                 if (validations == null) return;
+                bool changed = false;
+                bool showInputMessage = options.ShowInputMessage || !string.IsNullOrEmpty(options.Prompt) || !string.IsNullOrEmpty(options.PromptTitle);
+                bool showErrorMessage = options.ShowErrorMessage || !string.IsNullOrEmpty(options.Error) || !string.IsNullOrEmpty(options.ErrorTitle);
                 foreach (var validation in validations.Elements<DataValidation>()) {
                     string range = validation.SequenceOfReferences?.InnerText ?? string.Empty;
-                    bool overlaps = SplitReferenceList(range)
-                        .Any(part => RangesOverlapInclusive(filter, part.IndexOf(':') >= 0 ? A1.ParseRange(part) : CellAsRange(part)));
-                    if (!overlaps) continue;
+                    if (!ReferenceListOverlaps(range, filter)) continue;
+
+                    bool validationChanged =
+                        !string.Equals(validation.PromptTitle?.Value, options.PromptTitle, StringComparison.Ordinal)
+                        || !string.Equals(validation.Prompt?.Value, options.Prompt, StringComparison.Ordinal)
+                        || !string.Equals(validation.ErrorTitle?.Value, options.ErrorTitle, StringComparison.Ordinal)
+                        || !string.Equals(validation.Error?.Value, options.Error, StringComparison.Ordinal)
+                        || validation.ShowInputMessage?.Value != showInputMessage
+                        || validation.ShowErrorMessage?.Value != showErrorMessage;
+
+                    if (!validationChanged) continue;
 
                     validation.PromptTitle = options.PromptTitle;
                     validation.Prompt = options.Prompt;
                     validation.ErrorTitle = options.ErrorTitle;
                     validation.Error = options.Error;
-                    validation.ShowInputMessage = options.ShowInputMessage || !string.IsNullOrEmpty(options.Prompt) || !string.IsNullOrEmpty(options.PromptTitle);
-                    validation.ShowErrorMessage = options.ShowErrorMessage || !string.IsNullOrEmpty(options.Error) || !string.IsNullOrEmpty(options.ErrorTitle);
+                    validation.ShowInputMessage = showInputMessage;
+                    validation.ShowErrorMessage = showErrorMessage;
+                    changed = true;
                 }
 
-                WorksheetRoot.Save();
+                if (changed) {
+                    WorksheetRoot.Save();
+                }
             });
         }
 
@@ -156,47 +168,69 @@ namespace OfficeIMO.Excel {
         }
 
         private void ClearConditionalFormattingCore(string? a1Range) {
+            bool changed = false;
             if (string.IsNullOrWhiteSpace(a1Range)) {
                 foreach (var conditional in WorksheetRoot.Elements<ConditionalFormatting>().ToList()) {
                     conditional.Remove();
+                    changed = true;
                 }
             } else {
-                var filter = A1.ParseRange(a1Range!);
+                var filter = ParseReferenceArgument(a1Range!);
                 foreach (var conditional in WorksheetRoot.Elements<ConditionalFormatting>().ToList()) {
                     string range = conditional.SequenceOfReferences?.InnerText ?? string.Empty;
-                    var remaining = RemoveReferenceOverlap(range, filter);
+                    if (!TryRemoveReferenceOverlap(range, filter, out var remaining)) {
+                        continue;
+                    }
+
                     if (remaining.Count == 0) {
                         conditional.Remove();
-                    } else if (!string.Equals(range, string.Join(" ", remaining), StringComparison.OrdinalIgnoreCase)) {
-                        conditional.SequenceOfReferences = new ListValue<StringValue> { InnerText = string.Join(" ", remaining) };
+                        changed = true;
+                    } else {
+                        string replacement = string.Join(" ", remaining);
+                        conditional.SequenceOfReferences = new ListValue<StringValue> { InnerText = replacement };
+                        changed = true;
                     }
                 }
             }
 
-            WorksheetRoot.Save();
+            if (changed) {
+                WorksheetRoot.Save();
+            }
         }
 
         private void RemoveDataValidationsCore(string? a1Range) {
             var validations = WorksheetRoot.GetFirstChild<DataValidations>();
             if (validations == null) return;
 
+            bool changed = false;
             if (string.IsNullOrWhiteSpace(a1Range)) {
-                validations.RemoveAllChildren<DataValidation>();
+                foreach (var validation in validations.Elements<DataValidation>().ToList()) {
+                    validation.Remove();
+                    changed = true;
+                }
             } else {
-                var filter = A1.ParseRange(a1Range!);
+                var filter = ParseReferenceArgument(a1Range!);
                 foreach (var validation in validations.Elements<DataValidation>().ToList()) {
                     string range = validation.SequenceOfReferences?.InnerText ?? string.Empty;
-                    var remaining = RemoveReferenceOverlap(range, filter);
+                    if (!TryRemoveReferenceOverlap(range, filter, out var remaining)) {
+                        continue;
+                    }
+
                     if (remaining.Count == 0) {
                         validation.Remove();
-                    } else if (!string.Equals(range, string.Join(" ", remaining), StringComparison.OrdinalIgnoreCase)) {
-                        validation.SequenceOfReferences = new ListValue<StringValue> { InnerText = string.Join(" ", remaining) };
+                        changed = true;
+                    } else {
+                        string replacement = string.Join(" ", remaining);
+                        validation.SequenceOfReferences = new ListValue<StringValue> { InnerText = replacement };
+                        changed = true;
                     }
                 }
             }
 
-            validations.Count = (uint)validations.Elements<DataValidation>().Count();
-            WorksheetRoot.Save();
+            if (changed) {
+                validations.Count = (uint)validations.Elements<DataValidation>().Count();
+                WorksheetRoot.Save();
+            }
         }
 
         private void InsertConditionalFormatting(ConditionalFormatting conditionalFormatting) {
@@ -221,30 +255,63 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static string[] SplitReferenceList(string referenceList) {
-            return referenceList.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        private static ReferenceListEnumerable SplitReferenceList(string referenceList) {
+            return new ReferenceListEnumerable(referenceList);
         }
 
-        private static List<string> RemoveReferenceOverlap(string referenceList, (int r1, int c1, int r2, int c2) filter) {
+        private static (int r1, int c1, int r2, int c2) ParseReferenceArgument(string reference) {
+            if (TryParseReference(reference, out var bounds)) {
+                return bounds;
+            }
+
+            throw new ArgumentException($"Invalid A1 reference '{reference}'.");
+        }
+
+        private static bool ReferenceListOverlaps(string referenceList, (int r1, int c1, int r2, int c2) filter) {
+            foreach (ReferenceListPart part in SplitReferenceList(referenceList)) {
+                if (TryParseReference(part, out var bounds) && RangesOverlapInclusive(filter, bounds)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryRemoveReferenceOverlap(string referenceList, (int r1, int c1, int r2, int c2) filter, out List<string> remaining) {
+            foreach (ReferenceListPart part in SplitReferenceList(referenceList)) {
+                if (TryParseReference(part, out var bounds) && RangesOverlapInclusive(bounds, filter)) {
+                    remaining = RemoveReferenceOverlapAfterOverlap(referenceList, filter);
+                    return true;
+                }
+            }
+
+            remaining = EmptyReferenceList;
+            return false;
+        }
+
+        private static List<string> RemoveReferenceOverlapAfterOverlap(string referenceList, (int r1, int c1, int r2, int c2) filter) {
             var remaining = new List<string>();
-            foreach (string part in SplitReferenceList(referenceList)) {
+            foreach (ReferenceListPart part in SplitReferenceList(referenceList)) {
                 if (!TryParseReference(part, out var bounds)) {
-                    remaining.Add(part);
+                    remaining.Add(part.ToString());
                     continue;
                 }
 
-                foreach (var segment in SubtractRange(bounds, filter)) {
-                    remaining.Add(ToReference(segment.r1, segment.c1, segment.r2, segment.c2));
+                if (!RangesOverlapInclusive(bounds, filter)) {
+                    remaining.Add(part.ToString());
+                    continue;
                 }
+
+                AppendRangeDifference(remaining, bounds, filter);
             }
 
             return remaining;
         }
 
-        private static IEnumerable<(int r1, int c1, int r2, int c2)> SubtractRange((int r1, int c1, int r2, int c2) source, (int r1, int c1, int r2, int c2) remove) {
+        private static void AppendRangeDifference(List<string> references, (int r1, int c1, int r2, int c2) source, (int r1, int c1, int r2, int c2) remove) {
             if (!RangesOverlapInclusive(source, remove)) {
-                yield return source;
-                yield break;
+                references.Add(ToReference(source.r1, source.c1, source.r2, source.c2));
+                return;
             }
 
             int ir1 = Math.Max(source.r1, remove.r1);
@@ -253,19 +320,89 @@ namespace OfficeIMO.Excel {
             int ic2 = Math.Min(source.c2, remove.c2);
 
             if (source.r1 < ir1) {
-                yield return (source.r1, source.c1, ir1 - 1, source.c2);
+                references.Add(ToReference(source.r1, source.c1, ir1 - 1, source.c2));
             }
 
             if (ir2 < source.r2) {
-                yield return (ir2 + 1, source.c1, source.r2, source.c2);
+                references.Add(ToReference(ir2 + 1, source.c1, source.r2, source.c2));
             }
 
             if (source.c1 < ic1) {
-                yield return (ir1, source.c1, ir2, ic1 - 1);
+                references.Add(ToReference(ir1, source.c1, ir2, ic1 - 1));
             }
 
             if (ic2 < source.c2) {
-                yield return (ir1, ic2 + 1, ir2, source.c2);
+                references.Add(ToReference(ir1, ic2 + 1, ir2, source.c2));
+            }
+        }
+
+        private readonly struct ReferenceListEnumerable {
+            private readonly string _text;
+
+            public ReferenceListEnumerable(string text) {
+                _text = text;
+            }
+
+            public ReferenceListEnumerator GetEnumerator() {
+                return new ReferenceListEnumerator(_text);
+            }
+        }
+
+        private struct ReferenceListEnumerator {
+            private readonly string _text;
+            private int _index;
+
+            public ReferenceListEnumerator(string text) {
+                _text = text;
+                _index = 0;
+                Current = default;
+            }
+
+            public ReferenceListPart Current { get; private set; }
+
+            public bool MoveNext() {
+                int length = _text.Length;
+                int start = _index;
+                while (start < length && _text[start] == ' ') {
+                    start++;
+                }
+
+                if (start >= length) {
+                    _index = length;
+                    Current = default;
+                    return false;
+                }
+
+                int end = start + 1;
+                while (end < length && _text[end] != ' ') {
+                    end++;
+                }
+
+                _index = end + 1;
+                Current = new ReferenceListPart(_text, start, end - start);
+                return true;
+            }
+        }
+
+        private readonly struct ReferenceListPart {
+            public ReferenceListPart(string text, int start, int length) {
+                Text = text;
+                Start = start;
+                Length = length;
+            }
+
+            public string Text { get; }
+
+            public int Start { get; }
+
+            public int Length { get; }
+
+            public override string ToString() {
+                return Start == 0 && Length == Text.Length ? Text : Text.Substring(Start, Length);
+            }
+
+            public void AppendTo(StringBuilder builder) {
+                builder.Append(Text, Start, Length);
             }
         }
     }

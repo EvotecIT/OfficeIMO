@@ -34,9 +34,20 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void ClearCachedFormulaResults() {
             WriteLock(() => {
+                bool changed = false;
                 foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null)) {
-                    cell.CellValue = null;
+                    if (cell.CellValue != null) {
+                        cell.CellValue = null;
+                        changed = true;
+                    }
                 }
+
+                if (changed) {
+                    _hasWorksheetMutations = true;
+                    MarkRequiresSavePreparation();
+                    ClearCellTextSharedStringCache();
+                }
+
                 WorksheetRoot.Save();
             });
         }
@@ -54,6 +65,12 @@ namespace OfficeIMO.Excel {
                         cell.CellFormula.CalculateCell = false;
                         count++;
                     }
+                }
+
+                if (count > 0) {
+                    _hasWorksheetMutations = true;
+                    MarkRequiresSavePreparation();
+                    ClearCellTextSharedStringCache();
                 }
 
                 WorksheetRoot.Save();
