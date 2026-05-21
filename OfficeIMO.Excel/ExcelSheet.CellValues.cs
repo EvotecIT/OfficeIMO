@@ -349,6 +349,12 @@ namespace OfficeIMO.Excel {
             }
 
             bool includeHeaders = CanTreatFirstCellValuesRowAsHeaders(cells, columnCount, rowCount);
+            if (!includeHeaders
+                && mode != ExecutionMode.Parallel
+                && FirstCellValuesRowLooksLikeHeaderText(cells, columnCount)) {
+                return false;
+            }
+
             int dataStartIndex = includeHeaders ? columnCount : 0;
             if (!TryInferDirectCellValuesColumnTypes(cells, dataStartIndex, columnCount, out Type[] columnTypes)) {
                 return false;
@@ -484,6 +490,20 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (!headers.Add(header)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool FirstCellValuesRowLooksLikeHeaderText(IList<(int Row, int Column, object Value)> cells, int columnCount) {
+            if (columnCount <= 0 || cells.Count < columnCount) {
+                return false;
+            }
+
+            for (int column = 0; column < columnCount; column++) {
+                if (cells[column].Value is not string header || string.IsNullOrWhiteSpace(header)) {
                     return false;
                 }
             }
@@ -787,7 +807,7 @@ namespace OfficeIMO.Excel {
                 null => CoerceValueHelper.HandleEmptyString(),
                 DBNull => CoerceValueHelper.HandleEmptyString(),
                 string text => useDirectStringCells
-                    ? (CreatePlainAppendStringValue(text), DocumentFormat.OpenXml.Spreadsheet.CellValues.String)
+                    ? (CreatePrevalidatedPlainAppendStringValue(text), DocumentFormat.OpenXml.Spreadsheet.CellValues.String)
                     : (CreatePlainAppendSharedStringValue(text, ref sharedStringIndexes), DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString),
                 double number => CoerceValueHelper.HandleNumber(number),
                 float number => CoerceValueHelper.HandleNumber(Convert.ToDouble(number)),
@@ -821,6 +841,10 @@ namespace OfficeIMO.Excel {
 
         private static CellValue CreatePlainAppendStringValue(string text) {
             CoerceValueHelper.ValidateSharedStringLength(text, nameof(text));
+            return new CellValue(Utilities.ExcelSanitizer.SanitizeString(text));
+        }
+
+        private static CellValue CreatePrevalidatedPlainAppendStringValue(string text) {
             return new CellValue(Utilities.ExcelSanitizer.SanitizeString(text));
         }
 

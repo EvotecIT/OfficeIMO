@@ -9,6 +9,9 @@ namespace OfficeIMO.Excel {
         internal void Preflight() {
             WriteLock(() => {
                 var ws = WorksheetRoot;
+                if (!HasPreflightCandidates(ws)) {
+                    return;
+                }
 
                 CleanupHyperlinkArtifacts();
 
@@ -100,6 +103,37 @@ namespace OfficeIMO.Excel {
                 ws.Save();
             });
             _requiresSavePreparation = false;
+        }
+
+        private bool HasPreflightCandidates(Worksheet worksheet) {
+            if (worksheet.Elements<Hyperlinks>().Any()
+                || worksheet.Elements<MergeCells>().Any()
+                || worksheet.Elements<DataValidations>().Any()
+                || worksheet.Elements<IgnoredErrors>().Any()
+                || worksheet.Elements<CustomSheetViews>().Any()
+                || worksheet.Elements<SheetViews>().Any()
+                || worksheet.Elements<ConditionalFormatting>().Any()
+                || worksheet.Elements<SheetProtection>().Any()
+                || worksheet.Elements<ProtectedRanges>().Any()
+                || worksheet.Elements<TableParts>().Any()
+                || worksheet.Elements<AutoFilter>().Any()
+                || worksheet.Elements<PrintOptions>().Any()
+                || worksheet.Elements<PageMargins>().Any()
+                || worksheet.Elements<PageSetup>().Any()
+                || worksheet.Elements<RowBreaks>().Any()
+                || worksheet.Elements<ColumnBreaks>().Any()
+                || worksheet.Elements<HeaderFooter>().Any()
+                || worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.Drawing>().Any()
+                || worksheet.Elements<LegacyDrawing>().Any()
+                || worksheet.Elements<LegacyDrawingHeaderFooter>().Any()) {
+                return true;
+            }
+
+            return _worksheetPart.HyperlinkRelationships.Any()
+                || _worksheetPart.TableDefinitionParts.Any()
+                || _worksheetPart.DrawingsPart != null
+                || _worksheetPart.WorksheetCommentsPart != null
+                || _worksheetPart.VmlDrawingParts.Any();
         }
     }
 }

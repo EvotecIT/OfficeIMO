@@ -14,6 +14,14 @@ namespace OfficeIMO.Tests {
     public partial class Excel {
         private const int DefaultChartFontSize = 1100;
 
+        private static WorksheetPart GetWorksheetPartByName(SpreadsheetDocument spreadsheet, string sheetName) {
+            var workbookPart = spreadsheet.WorkbookPart!;
+            var sheet = workbookPart.Workbook.Sheets!
+                .OfType<Sheet>()
+                .First(sheet => string.Equals(sheet.Name?.Value, sheetName, StringComparison.Ordinal));
+            return (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+        }
+
         [Fact]
         public void Test_ExcelCharts_CanCreateChartFromData() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Basic.xlsx");
@@ -486,7 +494,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartByName(spreadsheet, "Data");
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var scatterChart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!
                     .GetFirstChild<C.PlotArea>()!
@@ -526,7 +534,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartByName(spreadsheet, "Data");
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var bubbleChart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!
                     .GetFirstChild<C.PlotArea>()!

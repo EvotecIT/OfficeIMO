@@ -29,6 +29,36 @@ namespace OfficeIMO.Excel {
             int height = r2 - r1 + 1;
             int width = c2 - c1 + 1;
             if (CanUseRowsXmlReader()) {
+                if (height > DenseSnapshotCapacityLimit
+                    && ShouldUseOrderedBufferedXmlStream(height, c1, c2)
+                    && TryReadRowsAdaptiveBufferedXmlFast(r1, c1, r2, c2, width, height, ct, out var adaptiveRows)) {
+                    if (adaptiveRows.TryGetSparseRows(out var sparseOffsets, out var sparseValues)) {
+                        int sparseIndex = 0;
+                        for (int r = 0; r < adaptiveRows.Count; r++) {
+                            if (canCancel) {
+                                ct.ThrowIfCancellationRequested();
+                            }
+
+                            if (sparseIndex < sparseOffsets.Length && sparseOffsets[sparseIndex] == r) {
+                                yield return sparseValues[sparseIndex];
+                                sparseIndex++;
+                            } else {
+                                yield return null;
+                            }
+                        }
+                    } else {
+                        for (int r = 0; r < adaptiveRows.Count; r++) {
+                            if (canCancel) {
+                                ct.ThrowIfCancellationRequested();
+                            }
+
+                            yield return adaptiveRows.GetDenseRow(r);
+                        }
+                    }
+
+                    yield break;
+                }
+
                 if (ShouldUseOrderedBufferedXmlStream(height, c1, c2)
                     && TryReadRowsOrderedBufferedXmlFast(r1, c1, r2, c2, width, height, ct, out var orderedRows)) {
                     for (int r = 0; r < orderedRows.Length; r++) {
@@ -131,6 +161,185 @@ namespace OfficeIMO.Excel {
                 }
 
                 return arr;
+            }
+        }
+
+        private bool TryReadRowsAdaptiveBufferedXmlFast(
+            int r1,
+            int c1,
+            int r2,
+            int c2,
+            int width,
+            int height,
+            CancellationToken ct,
+            out OrderedRowsBuffer rows) {
+            rows = default;
+            var sparseOffsets = new List<int>(Math.Min(height, 1024));
+            var sparseValues = new List<object?[]?>(Math.Min(height, 1024));
+            object?[]?[]? denseRows = null;
+            int populatedRows = 0;
+            int previousSparseOffset = -1;
+            HashSet<int>? sparseOffsetSet = null;
+
+            try {
+                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                RewindWorksheetStream(stream);
+                using var reader = OpenWorksheetXmlReader(stream);
+                bool canCancel = ct.CanBeCanceled;
+                int nextRowIndex = 1;
+                var seenRows = CreateCompletedRowTracker(height);
+                while (reader.Read()) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                        continue;
+                    }
+
+                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                    if (rowIndex <= 0) {
+                        rowIndex = nextRowIndex;
+                    }
+
+                    nextRowIndex = rowIndex + 1;
+                    if (rowIndex < r1 || rowIndex > r2) {
+                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
+                            break;
+                        }
+
+                        SkipXmlElement(reader, "row");
+                        continue;
+                    }
+
+                    int rowOffset = rowIndex - r1;
+                    if ((uint)rowOffset >= (uint)height) {
+                        SkipXmlElement(reader, "row");
+                        continue;
+                    }
+
+                    object?[]? rowValues = ReadXmlRowValue(reader, c1, c2, width, ct);
+                    seenRows.MarkSeen(rowOffset);
+                    if (denseRows != null) {
+                        denseRows[rowOffset] = rowValues;
+                        continue;
+                    }
+
+                    if (sparseOffsetSet != null || rowOffset <= previousSparseOffset) {
+                        sparseOffsetSet ??= new HashSet<int>(sparseOffsets);
+                        if (sparseOffsetSet.Contains(rowOffset)) {
+                            ReplaceSparseRow(sparseOffsets, sparseValues, rowOffset, rowValues);
+                            previousSparseOffset = Math.Max(previousSparseOffset, rowOffset);
+                            continue;
+                        }
+
+                        if (rowValues == null) {
+                            continue;
+                        }
+
+                        sparseOffsetSet.Add(rowOffset);
+                    } else if (rowValues == null) {
+                        continue;
+                    }
+
+                    int nextPopulatedRows = populatedRows + 1;
+                    if (ShouldPromoteSparseRowsToDense(rowOffset, nextPopulatedRows)) {
+                        denseRows = new object?[height][];
+                        for (int i = 0; i < sparseOffsets.Count; i++) {
+                            denseRows[sparseOffsets[i]] = sparseValues[i];
+                        }
+
+                        sparseOffsets.Clear();
+                        sparseValues.Clear();
+                        denseRows[rowOffset] = rowValues;
+                        populatedRows = nextPopulatedRows;
+                    } else {
+                        sparseOffsets.Add(rowOffset);
+                        sparseValues.Add(rowValues);
+                        previousSparseOffset = Math.Max(previousSparseOffset, rowOffset);
+                        populatedRows = nextPopulatedRows;
+                    }
+                }
+
+                rows = denseRows != null
+                    ? OrderedRowsBuffer.FromDense(denseRows)
+                    : OrderedRowsBuffer.FromSparse(height, sparseOffsets, sparseValues);
+                return true;
+            } catch (XmlException) {
+                rows = default;
+                return false;
+            } catch (IOException) {
+                rows = default;
+                return false;
+            } catch (UnauthorizedAccessException) {
+                rows = default;
+                return false;
+            } catch (ObjectDisposedException) {
+                rows = default;
+                return false;
+            }
+        }
+
+        private static bool ShouldPromoteSparseRowsToDense(int rowOffset, int populatedRows) {
+            return rowOffset >= 1024 && populatedRows * 4 > rowOffset + 1;
+        }
+
+        private static void ReplaceSparseRow(List<int> offsets, List<object?[]?> values, int rowOffset, object?[]? rowValues) {
+            for (int i = offsets.Count - 1; i >= 0; i--) {
+                if (offsets[i] == rowOffset) {
+                    values[i] = rowValues;
+                    return;
+                }
+            }
+        }
+
+        private readonly struct OrderedRowsBuffer {
+            private readonly object?[]?[]? _denseRows;
+            private readonly int[]? _sparseOffsets;
+            private readonly object?[]?[]? _sparseValues;
+
+            private OrderedRowsBuffer(int count, object?[]?[]? denseRows, int[]? sparseOffsets, object?[]?[]? sparseValues) {
+                Count = count;
+                _denseRows = denseRows;
+                _sparseOffsets = sparseOffsets;
+                _sparseValues = sparseValues;
+            }
+
+            internal int Count { get; }
+
+            internal static OrderedRowsBuffer FromDense(object?[]?[] denseRows) {
+                return new OrderedRowsBuffer(denseRows.Length, denseRows, null, null);
+            }
+
+            internal static OrderedRowsBuffer FromSparse(int count, List<int> sparseOffsets, List<object?[]?> sparseValues) {
+                if (sparseOffsets.Count == 0) {
+                    return new OrderedRowsBuffer(count, null, Array.Empty<int>(), Array.Empty<object?[]?>());
+                }
+
+                int[] offsets = sparseOffsets.ToArray();
+                object?[]?[] values = new object?[]?[offsets.Length];
+                for (int i = 0; i < offsets.Length; i++) {
+                    values[i] = sparseValues[i];
+                }
+
+                Array.Sort(offsets, values);
+                return new OrderedRowsBuffer(count, null, offsets, values);
+            }
+
+            internal bool TryGetSparseRows(out int[] offsets, out object?[]?[] values) {
+                if (_sparseOffsets != null && _sparseValues != null) {
+                    offsets = _sparseOffsets;
+                    values = _sparseValues;
+                    return true;
+                }
+
+                offsets = Array.Empty<int>();
+                values = Array.Empty<object?[]?>();
+                return false;
+            }
+
+            internal object?[]? GetDenseRow(int offset) {
+                return _denseRows![offset];
             }
         }
 

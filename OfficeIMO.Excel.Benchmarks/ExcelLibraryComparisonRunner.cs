@@ -136,6 +136,13 @@ internal static class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("MiniExcel", "Streaming sparse DataSet export with one sheet per table.", () => MiniExcelWriteDataSetTables(sparseDataSet))
         ]);
 
+        AddScenarioGroup(scenarios, scenarioFilter, "write-dataset-sparse-direct-export", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Write a sparse prepared DataSet through the static direct export API.", () => OfficeImoWriteDataSetDirectExport(sparseDataSet)),
+            new LibraryComparisonCase("ClosedXML", "Import sparse prepared DataTables as styled worksheet tables and save.", () => ClosedXmlWriteDataSetTables(sparseDataSet)),
+            new LibraryComparisonCase("EPPlus", "Import sparse prepared DataTables as styled worksheet tables and save.", () => EpPlusWriteDataSetTables(sparseDataSet)),
+            new LibraryComparisonCase("MiniExcel", "Streaming sparse DataSet export with one sheet per table.", () => MiniExcelWriteDataSetTables(sparseDataSet))
+        ]);
+
         AddScenarioGroup(scenarios, scenarioFilter, "write-datatable-direct", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Insert a prepared DataTable through the normal worksheet API and save.", () => OfficeImoWriteDataTable(salesDataTable)),
             new LibraryComparisonCase("ClosedXML", "Import a prepared DataTable and save.", () => ClosedXmlWriteDataTable(salesDataTable)),
@@ -183,6 +190,18 @@ internal static class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("OfficeIMO.Excel", "Assign repeated and distinct text-heavy cells one by one and save.", () => OfficeImoWriteCellValueStrings(rowCount)),
             new LibraryComparisonCase("ClosedXML", "Assign repeated and distinct text-heavy cells one by one and save.", () => ClosedXmlWriteSharedStrings(rowCount)),
             new LibraryComparisonCase("EPPlus", "Assign repeated and distinct text-heavy cells one by one and save.", () => EpPlusWriteSharedStrings(rowCount))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalue-strings-repeated", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Assign low-cardinality repeated text cells one by one and save.", () => OfficeImoWriteCellValueRepeatedStrings(rowCount)),
+            new LibraryComparisonCase("ClosedXML", "Assign low-cardinality repeated text cells one by one and save.", () => ClosedXmlWriteCellValueRepeatedStrings(rowCount)),
+            new LibraryComparisonCase("EPPlus", "Assign low-cardinality repeated text cells one by one and save.", () => EpPlusWriteCellValueRepeatedStrings(rowCount))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalue-strings-distinct", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Assign high-cardinality distinct text cells one by one and save.", () => OfficeImoWriteCellValueDistinctStrings(rowCount)),
+            new LibraryComparisonCase("ClosedXML", "Assign high-cardinality distinct text cells one by one and save.", () => ClosedXmlWriteCellValueDistinctStrings(rowCount)),
+            new LibraryComparisonCase("EPPlus", "Assign high-cardinality distinct text cells one by one and save.", () => EpPlusWriteCellValueDistinctStrings(rowCount))
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalue-numbers", warmupIterations, measuredIterations, [
@@ -243,6 +262,27 @@ internal static class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("MiniExcel", "Stream used data rows from the same workbook payload.", () => MiniExcelReadRange(officeImoWorkbookBytes.Value)),
             new LibraryComparisonCase("ExcelDataReader", "Forward-only IExcelDataReader scan over the same workbook payload.", () => ExcelDataReaderReadRange(officeImoWorkbookBytes.Value)),
             new LibraryComparisonCase("Sylvan.Data.Excel", "Forward-only DbDataReader scan over the same workbook payload.", () => SylvanReadRange(officeImoWorkbookBytes.Value))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "read-range-decimal", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Read A1 range with NumericAsDecimal enabled.", () => OfficeImoReadRangeDecimal(officeImoWorkbookBytes.Value, dataRange)),
+            new LibraryComparisonCase("ClosedXML", "Iterate used data cells and read Amount as decimal.", () => ClosedXmlReadRangeDecimal(officeImoWorkbookBytes.Value)),
+            new LibraryComparisonCase("EPPlus", "Iterate used data cells and read Amount as decimal.", () => EpPlusReadRangeDecimal(officeImoWorkbookBytes.Value)),
+            new LibraryComparisonCase("MiniExcel", "Stream used data rows and read Amount as decimal.", () => MiniExcelReadRangeDecimal(officeImoWorkbookBytes.Value)),
+            new LibraryComparisonCase("ExcelDataReader", "Forward-only scan and read Amount as decimal.", () => ExcelDataReaderReadRangeDecimal(officeImoWorkbookBytes.Value)),
+            new LibraryComparisonCase("Sylvan.Data.Excel", "Forward-only scan and read Amount as decimal.", () => SylvanReadRangeDecimal(officeImoWorkbookBytes.Value))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "enumerate-range", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Enumerate typed cells from the requested A1 range.", () => OfficeImoEnumerateRange(officeImoWorkbookBytes.Value, dataRange)),
+            new LibraryComparisonCase("ClosedXML", "Enumerate cells from the requested A1 range.", () => ClosedXmlEnumerateRange(officeImoWorkbookBytes.Value, rowCount)),
+            new LibraryComparisonCase("EPPlus", "Enumerate cells from the requested A1 range.", () => EpPlusEnumerateRange(officeImoWorkbookBytes.Value, rowCount))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "enumerate-cells", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Enumerate all typed cells from the worksheet.", () => OfficeImoEnumerateCells(officeImoWorkbookBytes.Value)),
+            new LibraryComparisonCase("ClosedXML", "Enumerate all used cells from the worksheet.", () => ClosedXmlEnumerateRange(officeImoWorkbookBytes.Value, rowCount)),
+            new LibraryComparisonCase("EPPlus", "Enumerate all used cells from the worksheet.", () => EpPlusEnumerateRange(officeImoWorkbookBytes.Value, rowCount))
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "read-first-column-from-wide-sheet", warmupIterations, measuredIterations, [
@@ -430,6 +470,7 @@ internal static class ExcelLibraryComparisonRunner {
         var secondTableRows = rows.Skip(rowCount / 2).ToList();
         var salesDataTable = CreateSalesDataTable(rows, "SalesData");
         var salesDataSet = CreateSalesDataSet(firstTableRows, secondTableRows);
+        var sparseDataSet = CreateSparseDataSet(rowCount);
         var officeImoWorkbookBytes = new Lazy<byte[]>(() => ExcelBenchmarkScenarioFactory.CreateWorkbookBytes(rows));
         var closedXmlWorkbookBytes = new Lazy<byte[]>(() => CreateClosedXmlWorkbookBytes(rows));
         var epPlusWorkbookBytes = new Lazy<byte[]>(() => CreateEpPlusWorkbookBytes(rows));
@@ -447,6 +488,20 @@ internal static class ExcelLibraryComparisonRunner {
             new PackageProfileCase("ClosedXML", "Import prepared DataTables as two styled worksheet tables and save.", () => ClosedXmlWriteDataSetTablesBytes(salesDataSet)),
             new PackageProfileCase("EPPlus", "Import prepared DataTables as two styled worksheet tables and save.", () => EpPlusWriteDataSetTablesBytes(salesDataSet)),
             new PackageProfileCase("MiniExcel", "Streaming DataSet export with one sheet per table.", () => MiniExcelWriteDataSetTablesBytes(salesDataSet))
+        ]);
+
+        AddPackageProfileGroup(scenarios, scenarioFilter, "write-dataset-sparse-tables", warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Insert a sparse prepared DataSet through the normal workbook API and save.", () => OfficeImoWriteDataSetTablesBytes(sparseDataSet)),
+            new PackageProfileCase("ClosedXML", "Import sparse prepared DataTables as styled worksheet tables and save.", () => ClosedXmlWriteDataSetTablesBytes(sparseDataSet)),
+            new PackageProfileCase("EPPlus", "Import sparse prepared DataTables as styled worksheet tables and save.", () => EpPlusWriteDataSetTablesBytes(sparseDataSet)),
+            new PackageProfileCase("MiniExcel", "Streaming sparse DataSet export with one sheet per table.", () => MiniExcelWriteDataSetTablesBytes(sparseDataSet))
+        ]);
+
+        AddPackageProfileGroup(scenarios, scenarioFilter, "write-dataset-sparse-direct-export", warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Write a sparse prepared DataSet through the static direct export API.", () => OfficeImoWriteDataSetDirectExportBytes(sparseDataSet)),
+            new PackageProfileCase("ClosedXML", "Import sparse prepared DataTables as styled worksheet tables and save.", () => ClosedXmlWriteDataSetTablesBytes(sparseDataSet)),
+            new PackageProfileCase("EPPlus", "Import sparse prepared DataTables as styled worksheet tables and save.", () => EpPlusWriteDataSetTablesBytes(sparseDataSet)),
+            new PackageProfileCase("MiniExcel", "Streaming sparse DataSet export with one sheet per table.", () => MiniExcelWriteDataSetTablesBytes(sparseDataSet))
         ]);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-dataset-tables-autofit", warmupIterations, measuredIterations, [
@@ -503,6 +558,18 @@ internal static class ExcelLibraryComparisonRunner {
             new PackageProfileCase("OfficeIMO.Excel", "Assign repeated and distinct text-heavy cells one by one and save.", () => OfficeImoWriteCellValueStringsBytes(rowCount)),
             new PackageProfileCase("ClosedXML", "Assign repeated and distinct text-heavy cells one by one and save.", () => ClosedXmlWriteSharedStringsBytes(rowCount)),
             new PackageProfileCase("EPPlus", "Assign repeated and distinct text-heavy cells one by one and save.", () => EpPlusWriteSharedStringsBytes(rowCount))
+        ]);
+
+        AddPackageProfileGroup(scenarios, scenarioFilter, "write-cellvalue-strings-repeated", warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Assign low-cardinality repeated text cells one by one and save.", () => OfficeImoWriteCellValueRepeatedStringsBytes(rowCount)),
+            new PackageProfileCase("ClosedXML", "Assign low-cardinality repeated text cells one by one and save.", () => ClosedXmlWriteCellValueRepeatedStringsBytes(rowCount)),
+            new PackageProfileCase("EPPlus", "Assign low-cardinality repeated text cells one by one and save.", () => EpPlusWriteCellValueRepeatedStringsBytes(rowCount))
+        ]);
+
+        AddPackageProfileGroup(scenarios, scenarioFilter, "write-cellvalue-strings-distinct", warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Assign high-cardinality distinct text cells one by one and save.", () => OfficeImoWriteCellValueDistinctStringsBytes(rowCount)),
+            new PackageProfileCase("ClosedXML", "Assign high-cardinality distinct text cells one by one and save.", () => ClosedXmlWriteCellValueDistinctStringsBytes(rowCount)),
+            new PackageProfileCase("EPPlus", "Assign high-cardinality distinct text cells one by one and save.", () => EpPlusWriteCellValueDistinctStringsBytes(rowCount))
         ]);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-cellvalue-numbers", warmupIterations, measuredIterations, [
@@ -1056,6 +1123,20 @@ internal static class ExcelLibraryComparisonRunner {
 
     private static int ByteCount(byte[] bytes) => checked((int)bytes.LongLength);
 
+    private static string RepeatedText(int row, int variant)
+        => variant switch {
+            0 => "Region " + (row % 8).ToString(CultureInfo.InvariantCulture),
+            1 => "Owner " + (row % 16).ToString(CultureInfo.InvariantCulture),
+            _ => "Status " + (row % 4).ToString(CultureInfo.InvariantCulture)
+        };
+
+    private static string DistinctText(int row, int variant)
+        => variant switch {
+            0 => "Invoice " + row.ToString(CultureInfo.InvariantCulture),
+            1 => "Customer " + row.ToString(CultureInfo.InvariantCulture),
+            _ => "Comment " + row.ToString(CultureInfo.InvariantCulture) + " " + new string((char)('A' + (row % 26)), 24)
+        };
+
     private static int OfficeImoWriteBulkReport(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows)
         => ByteCount(OfficeImoWriteBulkReportBytes(rows));
 
@@ -1109,6 +1190,15 @@ internal static class ExcelLibraryComparisonRunner {
             AssertOfficeImoDirectPackageWriter(document, "DataSet comparison");
         }
 
+        return stream.ToArray();
+    }
+
+    private static int OfficeImoWriteDataSetDirectExport(DataSet dataSet)
+        => ByteCount(OfficeImoWriteDataSetDirectExportBytes(dataSet));
+
+    private static byte[] OfficeImoWriteDataSetDirectExportBytes(DataSet dataSet) {
+        using var stream = new MemoryStream();
+        ExcelDocument.WriteDataSet(stream, dataSet);
         return stream.ToArray();
     }
 
@@ -1543,6 +1633,26 @@ internal static class ExcelLibraryComparisonRunner {
         return metric;
     }
 
+    private static int OfficeImoReadRangeDecimal(byte[] workbookBytes, string dataRange) {
+        using var reader = ExcelDocumentReader.Open(workbookBytes, new ExcelReadOptions { NumericAsDecimal = true });
+        object?[,] values = reader.GetSheet("Data").ReadRange(dataRange);
+        int metric = AddSalesHeadersMetric(0);
+        for (int row = 1; row < values.GetLength(0); row++) {
+            metric = AddSalesRangeDecimalMetric(
+                metric,
+                Convert.ToInt32(values[row, 0], CultureInfo.InvariantCulture),
+                Convert.ToString(values[row, 1], CultureInfo.InvariantCulture) ?? string.Empty,
+                Convert.ToString(values[row, 2], CultureInfo.InvariantCulture) ?? string.Empty,
+                ReadDateCell(values[row, 3]),
+                Convert.ToDecimal(values[row, 4], CultureInfo.InvariantCulture),
+                Convert.ToInt32(values[row, 5], CultureInfo.InvariantCulture),
+                Convert.ToBoolean(values[row, 6], CultureInfo.InvariantCulture),
+                Convert.ToString(values[row, 7], CultureInfo.InvariantCulture) ?? string.Empty);
+        }
+
+        return metric;
+    }
+
     private static int ClosedXmlReadRange(byte[] workbookBytes, int maxDataRows = int.MaxValue, int skipDataRows = 0) {
         using var stream = new MemoryStream(workbookBytes, writable: false);
         using var workbook = new XLWorkbook(stream);
@@ -1563,6 +1673,29 @@ internal static class ExcelLibraryComparisonRunner {
                 worksheet.Cell(row, 3).GetValue<string>(),
                 worksheet.Cell(row, 4).GetValue<DateTime>(),
                 worksheet.Cell(row, 5).GetValue<double>(),
+                worksheet.Cell(row, 6).GetValue<int>(),
+                worksheet.Cell(row, 7).GetValue<bool>(),
+                worksheet.Cell(row, 8).GetValue<string>());
+        }
+
+        return metric;
+    }
+
+    private static int ClosedXmlReadRangeDecimal(byte[] workbookBytes) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using var workbook = new XLWorkbook(stream);
+        var worksheet = workbook.Worksheet("Data");
+        int lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 0;
+        int metric = AddSalesHeadersMetric(0);
+
+        for (int row = 2; row <= lastRow; row++) {
+            metric = AddSalesRangeDecimalMetric(
+                metric,
+                worksheet.Cell(row, 1).GetValue<int>(),
+                worksheet.Cell(row, 2).GetValue<string>(),
+                worksheet.Cell(row, 3).GetValue<string>(),
+                worksheet.Cell(row, 4).GetValue<DateTime>(),
+                worksheet.Cell(row, 5).GetValue<decimal>(),
                 worksheet.Cell(row, 6).GetValue<int>(),
                 worksheet.Cell(row, 7).GetValue<bool>(),
                 worksheet.Cell(row, 8).GetValue<string>());
@@ -1599,6 +1732,88 @@ internal static class ExcelLibraryComparisonRunner {
         return metric;
     }
 
+    private static int EpPlusReadRangeDecimal(byte[] workbookBytes) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using var package = new ExcelPackage(stream);
+        var worksheet = package.Workbook.Worksheets["Data"];
+        int lastRow = worksheet.Dimension?.End.Row ?? 0;
+        int metric = AddSalesHeadersMetric(0);
+
+        for (int row = 2; row <= lastRow; row++) {
+            metric = AddSalesRangeDecimalMetric(
+                metric,
+                Convert.ToInt32(worksheet.Cells[row, 1].Value, CultureInfo.InvariantCulture),
+                Convert.ToString(worksheet.Cells[row, 2].Value, CultureInfo.InvariantCulture) ?? string.Empty,
+                Convert.ToString(worksheet.Cells[row, 3].Value, CultureInfo.InvariantCulture) ?? string.Empty,
+                ReadDateCell(worksheet.Cells[row, 4].Value),
+                Convert.ToDecimal(worksheet.Cells[row, 5].Value, CultureInfo.InvariantCulture),
+                Convert.ToInt32(worksheet.Cells[row, 6].Value, CultureInfo.InvariantCulture),
+                Convert.ToBoolean(worksheet.Cells[row, 7].Value, CultureInfo.InvariantCulture),
+                Convert.ToString(worksheet.Cells[row, 8].Value, CultureInfo.InvariantCulture) ?? string.Empty);
+        }
+
+        return metric;
+    }
+
+    private static int OfficeImoEnumerateRange(byte[] workbookBytes, string dataRange) {
+        using var reader = ExcelDocumentReader.Open(workbookBytes);
+        int metric = 0;
+        foreach (var cell in reader.GetSheet("Data").EnumerateRange(dataRange)) {
+            metric = AddSalesEnumeratedCellMetric(metric, cell.Row, cell.Column, cell.Value);
+        }
+
+        return metric;
+    }
+
+    private static int OfficeImoEnumerateCells(byte[] workbookBytes) {
+        using var reader = ExcelDocumentReader.Open(workbookBytes);
+        int metric = 0;
+        foreach (var cell in reader.GetSheet("Data").EnumerateCells()) {
+            metric = AddSalesEnumeratedCellMetric(metric, cell.Row, cell.Column, cell.Value);
+        }
+
+        return metric;
+    }
+
+    private static int ClosedXmlEnumerateRange(byte[] workbookBytes, int rowCount) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using var workbook = new XLWorkbook(stream);
+        var worksheet = workbook.Worksheet("Data");
+        int metric = 0;
+        int lastRow = rowCount + 1;
+        for (int row = 1; row <= lastRow; row++) {
+            for (int column = 1; column <= 8; column++) {
+                object? value = row == 1
+                    ? worksheet.Cell(row, column).GetString()
+                    : column switch {
+                        1 or 6 => worksheet.Cell(row, column).GetValue<int>(),
+                        4 => worksheet.Cell(row, column).GetValue<DateTime>(),
+                        5 => worksheet.Cell(row, column).GetValue<double>(),
+                        7 => worksheet.Cell(row, column).GetValue<bool>(),
+                        _ => worksheet.Cell(row, column).GetValue<string>()
+                    };
+                metric = AddSalesEnumeratedCellMetric(metric, row, column, value);
+            }
+        }
+
+        return metric;
+    }
+
+    private static int EpPlusEnumerateRange(byte[] workbookBytes, int rowCount) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using var package = new ExcelPackage(stream);
+        var worksheet = package.Workbook.Worksheets["Data"];
+        int metric = 0;
+        int lastRow = rowCount + 1;
+        for (int row = 1; row <= lastRow; row++) {
+            for (int column = 1; column <= 8; column++) {
+                metric = AddSalesEnumeratedCellMetric(metric, row, column, worksheet.Cells[row, column].Value);
+            }
+        }
+
+        return metric;
+    }
+
     private static int MiniExcelReadRange(byte[] workbookBytes, int maxDataRows = int.MaxValue, int skipDataRows = 0) {
         using var stream = new MemoryStream(workbookBytes, writable: false);
         int metric = AddSalesHeadersMetric(0);
@@ -1624,6 +1839,32 @@ internal static class ExcelLibraryComparisonRunner {
                 Convert.ToString(row["Owner"], CultureInfo.InvariantCulture) ?? string.Empty,
                 ReadDateCell(row["CreatedOn"]),
                 Convert.ToDouble(row["Amount"], CultureInfo.InvariantCulture),
+                Convert.ToInt32(row["Units"], CultureInfo.InvariantCulture),
+                Convert.ToBoolean(row["Active"], CultureInfo.InvariantCulture),
+                Convert.ToString(row["Notes"], CultureInfo.InvariantCulture) ?? string.Empty);
+        }
+
+        return metric;
+    }
+
+    private static int MiniExcelReadRangeDecimal(byte[] workbookBytes) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        int metric = AddSalesHeadersMetric(0);
+        IEnumerable<object> rows = MiniExcelApi.Query(
+            stream,
+            useHeaderRow: true,
+            sheetName: "Data",
+            excelType: MiniExcelLibs.ExcelType.XLSX);
+
+        foreach (var item in rows) {
+            var row = (IDictionary<string, object?>)item;
+            metric = AddSalesRangeDecimalMetric(
+                metric,
+                Convert.ToInt32(row["Id"], CultureInfo.InvariantCulture),
+                Convert.ToString(row["Region"], CultureInfo.InvariantCulture) ?? string.Empty,
+                Convert.ToString(row["Owner"], CultureInfo.InvariantCulture) ?? string.Empty,
+                ReadDateCell(row["CreatedOn"]),
+                Convert.ToDecimal(row["Amount"], CultureInfo.InvariantCulture),
                 Convert.ToInt32(row["Units"], CultureInfo.InvariantCulture),
                 Convert.ToBoolean(row["Active"], CultureInfo.InvariantCulture),
                 Convert.ToString(row["Notes"], CultureInfo.InvariantCulture) ?? string.Empty);
@@ -1666,6 +1907,28 @@ internal static class ExcelLibraryComparisonRunner {
         return metric;
     }
 
+    private static int SylvanReadRangeDecimal(byte[] workbookBytes) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using var reader = CreateSylvanReader(stream);
+        OpenSylvanWorksheet(reader, "Data");
+        int metric = AddSalesHeadersMetric(0);
+
+        while (reader.Read()) {
+            metric = AddSalesRangeDecimalMetric(
+                metric,
+                reader.GetInt32(0),
+                reader.GetString(1),
+                reader.GetString(2),
+                reader.GetDateTime(3),
+                Convert.ToDecimal(reader.GetValue(4), CultureInfo.InvariantCulture),
+                reader.GetInt32(5),
+                reader.GetBoolean(6),
+                reader.GetString(7));
+        }
+
+        return metric;
+    }
+
     private static int ExcelDataReaderReadRange(byte[] workbookBytes, int maxDataRows = int.MaxValue, int skipDataRows = 0) {
         using var stream = new MemoryStream(workbookBytes, writable: false);
         using var reader = CreateExcelDataReader(stream);
@@ -1696,6 +1959,32 @@ internal static class ExcelLibraryComparisonRunner {
                 Convert.ToString(GetExcelDataReaderValue(reader, 2), CultureInfo.InvariantCulture) ?? string.Empty,
                 ReadDateCell(GetExcelDataReaderValue(reader, 3)),
                 Convert.ToDouble(GetExcelDataReaderValue(reader, 4), CultureInfo.InvariantCulture),
+                Convert.ToInt32(GetExcelDataReaderValue(reader, 5), CultureInfo.InvariantCulture),
+                Convert.ToBoolean(GetExcelDataReaderValue(reader, 6), CultureInfo.InvariantCulture),
+                Convert.ToString(GetExcelDataReaderValue(reader, 7), CultureInfo.InvariantCulture) ?? string.Empty);
+        }
+
+        return metric;
+    }
+
+    private static int ExcelDataReaderReadRangeDecimal(byte[] workbookBytes) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using var reader = CreateExcelDataReader(stream);
+        OpenExcelDataReaderWorksheet(reader, "Data");
+        int metric = AddSalesHeadersMetric(0);
+
+        if (!reader.Read()) {
+            return metric;
+        }
+
+        while (reader.Read()) {
+            metric = AddSalesRangeDecimalMetric(
+                metric,
+                Convert.ToInt32(GetExcelDataReaderValue(reader, 0), CultureInfo.InvariantCulture),
+                Convert.ToString(GetExcelDataReaderValue(reader, 1), CultureInfo.InvariantCulture) ?? string.Empty,
+                Convert.ToString(GetExcelDataReaderValue(reader, 2), CultureInfo.InvariantCulture) ?? string.Empty,
+                ReadDateCell(GetExcelDataReaderValue(reader, 3)),
+                Convert.ToDecimal(GetExcelDataReaderValue(reader, 4), CultureInfo.InvariantCulture),
                 Convert.ToInt32(GetExcelDataReaderValue(reader, 5), CultureInfo.InvariantCulture),
                 Convert.ToBoolean(GetExcelDataReaderValue(reader, 6), CultureInfo.InvariantCulture),
                 Convert.ToString(GetExcelDataReaderValue(reader, 7), CultureInfo.InvariantCulture) ?? string.Empty);
@@ -2436,6 +2725,44 @@ internal static class ExcelLibraryComparisonRunner {
         return stream.ToArray();
     }
 
+    private static int OfficeImoWriteCellValueRepeatedStrings(int rowCount)
+        => ByteCount(OfficeImoWriteCellValueRepeatedStringsBytes(rowCount));
+
+    private static byte[] OfficeImoWriteCellValueRepeatedStringsBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            var sheet = document.AddWorkSheet("Repeated");
+            for (int row = 1; row <= rowCount; row++) {
+                sheet.CellValue(row, 1, RepeatedText(row, 0));
+                sheet.CellValue(row, 2, RepeatedText(row, 1));
+                sheet.CellValue(row, 3, RepeatedText(row, 2));
+            }
+
+            document.Save(stream);
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int OfficeImoWriteCellValueDistinctStrings(int rowCount)
+        => ByteCount(OfficeImoWriteCellValueDistinctStringsBytes(rowCount));
+
+    private static byte[] OfficeImoWriteCellValueDistinctStringsBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            var sheet = document.AddWorkSheet("Distinct");
+            for (int row = 1; row <= rowCount; row++) {
+                sheet.CellValue(row, 1, DistinctText(row, 0));
+                sheet.CellValue(row, 2, DistinctText(row, 1));
+                sheet.CellValue(row, 3, DistinctText(row, 2));
+            }
+
+            document.Save(stream);
+        }
+
+        return stream.ToArray();
+    }
+
     private static int OfficeImoWriteCellValueNumbers(int rowCount)
         => ByteCount(OfficeImoWriteCellValueNumbersBytes(rowCount));
 
@@ -2558,6 +2885,44 @@ internal static class ExcelLibraryComparisonRunner {
         return stream.ToArray();
     }
 
+    private static int ClosedXmlWriteCellValueRepeatedStrings(int rowCount)
+        => ByteCount(ClosedXmlWriteCellValueRepeatedStringsBytes(rowCount));
+
+    private static byte[] ClosedXmlWriteCellValueRepeatedStringsBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var workbook = new XLWorkbook()) {
+            var worksheet = workbook.Worksheets.Add("Repeated");
+            for (int row = 1; row <= rowCount; row++) {
+                worksheet.Cell(row, 1).Value = RepeatedText(row, 0);
+                worksheet.Cell(row, 2).Value = RepeatedText(row, 1);
+                worksheet.Cell(row, 3).Value = RepeatedText(row, 2);
+            }
+
+            workbook.SaveAs(stream);
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int ClosedXmlWriteCellValueDistinctStrings(int rowCount)
+        => ByteCount(ClosedXmlWriteCellValueDistinctStringsBytes(rowCount));
+
+    private static byte[] ClosedXmlWriteCellValueDistinctStringsBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var workbook = new XLWorkbook()) {
+            var worksheet = workbook.Worksheets.Add("Distinct");
+            for (int row = 1; row <= rowCount; row++) {
+                worksheet.Cell(row, 1).Value = DistinctText(row, 0);
+                worksheet.Cell(row, 2).Value = DistinctText(row, 1);
+                worksheet.Cell(row, 3).Value = DistinctText(row, 2);
+            }
+
+            workbook.SaveAs(stream);
+        }
+
+        return stream.ToArray();
+    }
+
     private static int ClosedXmlWriteCellValueNumbers(int rowCount)
         => ByteCount(ClosedXmlWriteCellValueNumbersBytes(rowCount));
 
@@ -2672,6 +3037,44 @@ internal static class ExcelLibraryComparisonRunner {
                 worksheet.Cells[row, 1].Value = "Repeated value " + (row % 12);
                 worksheet.Cells[row, 2].Value = "Distinct value " + row.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 worksheet.Cells[row, 3].Value = "Long segment " + new string((char)('A' + (row % 26)), 48);
+            }
+
+            package.Save();
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int EpPlusWriteCellValueRepeatedStrings(int rowCount)
+        => ByteCount(EpPlusWriteCellValueRepeatedStringsBytes(rowCount));
+
+    private static byte[] EpPlusWriteCellValueRepeatedStringsBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var package = new ExcelPackage(stream)) {
+            var worksheet = package.Workbook.Worksheets.Add("Repeated");
+            for (int row = 1; row <= rowCount; row++) {
+                worksheet.Cells[row, 1].Value = RepeatedText(row, 0);
+                worksheet.Cells[row, 2].Value = RepeatedText(row, 1);
+                worksheet.Cells[row, 3].Value = RepeatedText(row, 2);
+            }
+
+            package.Save();
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int EpPlusWriteCellValueDistinctStrings(int rowCount)
+        => ByteCount(EpPlusWriteCellValueDistinctStringsBytes(rowCount));
+
+    private static byte[] EpPlusWriteCellValueDistinctStringsBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var package = new ExcelPackage(stream)) {
+            var worksheet = package.Workbook.Worksheets.Add("Distinct");
+            for (int row = 1; row <= rowCount; row++) {
+                worksheet.Cells[row, 1].Value = DistinctText(row, 0);
+                worksheet.Cells[row, 2].Value = DistinctText(row, 1);
+                worksheet.Cells[row, 3].Value = DistinctText(row, 2);
             }
 
             package.Save();
@@ -3350,6 +3753,9 @@ internal static class ExcelLibraryComparisonRunner {
 
     private static bool IsComparableReadScenario(string scenario)
         => string.Equals(scenario, "read-range", StringComparison.Ordinal)
+           || string.Equals(scenario, "read-range-decimal", StringComparison.Ordinal)
+           || string.Equals(scenario, "enumerate-range", StringComparison.Ordinal)
+           || string.Equals(scenario, "enumerate-cells", StringComparison.Ordinal)
            || string.Equals(scenario, "read-range-stream", StringComparison.Ordinal)
            || string.Equals(scenario, "read-first-column-from-wide-sheet", StringComparison.Ordinal)
            || string.Equals(scenario, "read-top-range", StringComparison.Ordinal)
@@ -3530,6 +3936,42 @@ internal static class ExcelLibraryComparisonRunner {
         return AddStringMetric(metric, notes);
     }
 
+    private static int AddSalesRangeDecimalMetric(
+        int metric,
+        int id,
+        string region,
+        string owner,
+        DateTime createdOn,
+        decimal amount,
+        int units,
+        bool active,
+        string notes) {
+        metric = AddIntMetric(metric, id);
+        metric = AddStringMetric(metric, region);
+        metric = AddStringMetric(metric, owner);
+        metric = AddIntMetric(metric, createdOn.DayOfYear);
+        metric = AddDecimalMetric(metric, amount);
+        metric = AddIntMetric(metric, units);
+        metric = AddIntMetric(metric, active ? 1 : 0);
+        return AddStringMetric(metric, notes);
+    }
+
+    private static int AddSalesEnumeratedCellMetric(int metric, int row, int column, object? value) {
+        metric = AddIntMetric(metric, row);
+        metric = AddIntMetric(metric, column);
+        if (row == 1) {
+            return AddStringMetric(metric, Convert.ToString(value, CultureInfo.InvariantCulture));
+        }
+
+        return column switch {
+            1 or 6 => AddIntMetric(metric, Convert.ToInt32(value, CultureInfo.InvariantCulture)),
+            4 => AddIntMetric(metric, ReadDateCell(value).DayOfYear),
+            5 => AddDoubleMetric(metric, Convert.ToDouble(value, CultureInfo.InvariantCulture)),
+            7 => AddIntMetric(metric, Convert.ToBoolean(value, CultureInfo.InvariantCulture) ? 1 : 0),
+            _ => AddStringMetric(metric, Convert.ToString(value, CultureInfo.InvariantCulture))
+        };
+    }
+
     private static DateTime ReadDateCell(object? value)
         => value is DateTime dateTime
             ? dateTime
@@ -3544,6 +3986,12 @@ internal static class ExcelLibraryComparisonRunner {
     private static int AddDoubleMetric(int metric, double value) {
         unchecked {
             return AddIntMetric(metric, (int)Math.Round(value * 100, MidpointRounding.AwayFromZero));
+        }
+    }
+
+    private static int AddDecimalMetric(int metric, decimal value) {
+        unchecked {
+            return AddIntMetric(metric, (int)Math.Round(value * 100m, 0, MidpointRounding.AwayFromZero));
         }
     }
 

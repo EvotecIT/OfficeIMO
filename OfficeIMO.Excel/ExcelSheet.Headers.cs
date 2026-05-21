@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
+using System.Threading;
 using OpenXmlCellValues = DocumentFormat.OpenXml.Spreadsheet.CellValues;
 
 namespace OfficeIMO.Excel {
@@ -10,6 +11,7 @@ namespace OfficeIMO.Excel {
         private Dictionary<string, int>? _headerMapCache;
         private string? _headerMapSourceA1;
         private bool _headerMapNormalize;
+        private bool _headerMapCachePopulated;
         private readonly object _headerMapLock = new object();
         private static readonly ExcelReadOptions DefaultHeaderReadOptions = new ExcelReadOptions();
 
@@ -38,6 +40,7 @@ namespace OfficeIMO.Excel {
                     _headerMapCache = directMap;
                     _headerMapSourceA1 = a1Used;
                     _headerMapNormalize = opt.NormalizeHeaders;
+                    Volatile.Write(ref _headerMapCachePopulated, true);
                     return _headerMapCache;
                 }
 
@@ -51,6 +54,7 @@ namespace OfficeIMO.Excel {
                     _headerMapCache = empty;
                     _headerMapSourceA1 = a1Used;
                     _headerMapNormalize = opt.NormalizeHeaders;
+                    Volatile.Write(ref _headerMapCachePopulated, true);
                     return _headerMapCache;
                 }
 
@@ -68,6 +72,7 @@ namespace OfficeIMO.Excel {
                     _headerMapCache = map;
                     _headerMapSourceA1 = a1Used;
                     _headerMapNormalize = opt.NormalizeHeaders;
+                    Volatile.Write(ref _headerMapCachePopulated, true);
                     return _headerMapCache;
                 }
 
@@ -79,6 +84,7 @@ namespace OfficeIMO.Excel {
                 _headerMapCache = map;
                 _headerMapSourceA1 = a1Used;
                 _headerMapNormalize = opt.NormalizeHeaders;
+                Volatile.Write(ref _headerMapCachePopulated, true);
                 return _headerMapCache;
             }
         }
@@ -309,9 +315,14 @@ namespace OfficeIMO.Excel {
             _hasWorksheetMutations = true;
             MarkRequiresSavePreparation();
             ClearCellTextSharedStringCache();
+            if (!Volatile.Read(ref _headerMapCachePopulated)) {
+                return;
+            }
+
             lock (_headerMapLock) {
                 _headerMapCache = null;
                 _headerMapSourceA1 = null;
+                Volatile.Write(ref _headerMapCachePopulated, false);
             }
         }
 

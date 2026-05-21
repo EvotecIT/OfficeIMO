@@ -18,6 +18,35 @@ namespace OfficeIMO.Excel {
             bool canCancel = ct.CanBeCanceled;
             int height = r2 - r1 + 1;
             if (CanUseColumnXmlReader()) {
+                if (height > DenseSnapshotCapacityLimit
+                    && TryReadColumnAdaptiveBufferedXmlFast(r1, c1, r2, height, ct, out var adaptiveValues)) {
+                    if (adaptiveValues.TryGetSparseValues(out var sparseOffsets, out var sparseValues)) {
+                        int sparseIndex = 0;
+                        for (int i = 0; i < adaptiveValues.Count; i++) {
+                            if (canCancel) {
+                                ct.ThrowIfCancellationRequested();
+                            }
+
+                            if (sparseIndex < sparseOffsets.Length && sparseOffsets[sparseIndex] == i) {
+                                yield return sparseValues[sparseIndex];
+                                sparseIndex++;
+                            } else {
+                                yield return null;
+                            }
+                        }
+                    } else {
+                        for (int i = 0; i < adaptiveValues.Count; i++) {
+                            if (canCancel) {
+                                ct.ThrowIfCancellationRequested();
+                            }
+
+                            yield return adaptiveValues.GetDenseValue(i);
+                        }
+                    }
+
+                    yield break;
+                }
+
                 if (TryReadColumnXmlFast(r1, c1, r2, height, ct, out var xmlValues)) {
                     for (int i = 0; i < height; i++) {
                         if (canCancel) {
@@ -105,6 +134,182 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private bool TryReadColumnAdaptiveBufferedXmlFast(int r1, int columnIndex, int r2, int height, CancellationToken ct, out OrderedColumnBuffer values) {
+            values = default;
+            var sparseOffsets = new List<int>(Math.Min(height, 1024));
+            var sparseValues = new List<object?>(Math.Min(height, 1024));
+            object?[]? denseValues = null;
+            int populatedRows = 0;
+            int previousSparseOffset = -1;
+            bool sparseOffsetsSorted = true;
+            HashSet<int>? sparseOffsetSet = null;
+
+            try {
+                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                RewindWorksheetStream(stream);
+                using var reader = OpenWorksheetXmlReader(stream);
+                bool canCancel = ct.CanBeCanceled;
+                int nextRowIndex = 1;
+                var seenRows = CreateCompletedRowTracker(height);
+                while (reader.Read()) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                        continue;
+                    }
+
+                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                    if (rowIndex <= 0) {
+                        rowIndex = nextRowIndex;
+                    }
+
+                    nextRowIndex = rowIndex + 1;
+                    if (rowIndex < r1 || rowIndex > r2) {
+                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
+                            break;
+                        }
+
+                        SkipXmlElement(reader, "row");
+                        continue;
+                    }
+
+                    int rowOffset = rowIndex - r1;
+                    if ((uint)rowOffset >= (uint)height) {
+                        SkipXmlElement(reader, "row");
+                        continue;
+                    }
+
+                    seenRows.MarkSeen(rowOffset);
+                    bool hasColumnCell = TryReadXmlColumnValue(reader, columnIndex, ct, out object? value);
+
+                    if (denseValues != null) {
+                        denseValues[rowOffset] = value;
+                        continue;
+                    }
+
+                    if (sparseOffsetSet != null || rowOffset <= previousSparseOffset) {
+                        sparseOffsetSet ??= new HashSet<int>(sparseOffsets);
+                        if (rowOffset <= previousSparseOffset) {
+                            sparseOffsetsSorted = false;
+                        }
+
+                        if (sparseOffsetSet.Contains(rowOffset)) {
+                            ReplaceSparseColumnValue(sparseOffsets, sparseValues, rowOffset, value);
+                            previousSparseOffset = Math.Max(previousSparseOffset, rowOffset);
+                            continue;
+                        }
+
+                        if (!hasColumnCell || value == null) {
+                            continue;
+                        }
+
+                        sparseOffsetSet.Add(rowOffset);
+                    } else if (!hasColumnCell || value == null) {
+                        continue;
+                    }
+
+                    int nextPopulatedRows = populatedRows + 1;
+                    if (ShouldPromoteSparseColumnToDense(rowOffset, nextPopulatedRows)) {
+                        denseValues = new object?[height];
+                        for (int i = 0; i < sparseOffsets.Count; i++) {
+                            denseValues[sparseOffsets[i]] = sparseValues[i];
+                        }
+
+                        sparseOffsets.Clear();
+                        sparseValues.Clear();
+                        denseValues[rowOffset] = value;
+                        populatedRows = nextPopulatedRows;
+                    } else {
+                        previousSparseOffset = Math.Max(previousSparseOffset, rowOffset);
+                        sparseOffsets.Add(rowOffset);
+                        sparseValues.Add(value);
+                        populatedRows = nextPopulatedRows;
+                    }
+                }
+
+                values = denseValues != null
+                    ? OrderedColumnBuffer.FromDense(denseValues)
+                    : OrderedColumnBuffer.FromSparse(height, sparseOffsets, sparseValues, sparseOffsetsSorted);
+                return true;
+            } catch (XmlException) {
+                values = default;
+                return false;
+            } catch (IOException) {
+                values = default;
+                return false;
+            } catch (UnauthorizedAccessException) {
+                values = default;
+                return false;
+            } catch (ObjectDisposedException) {
+                values = default;
+                return false;
+            }
+        }
+
+        private static bool ShouldPromoteSparseColumnToDense(int rowOffset, int populatedRows) {
+            return rowOffset >= 1024 && populatedRows * 4 > rowOffset + 1;
+        }
+
+        private static void ReplaceSparseColumnValue(List<int> offsets, List<object?> values, int rowOffset, object? value) {
+            for (int i = offsets.Count - 1; i >= 0; i--) {
+                if (offsets[i] == rowOffset) {
+                    values[i] = value;
+                    return;
+                }
+            }
+        }
+
+        private readonly struct OrderedColumnBuffer {
+            private readonly object?[]? _denseValues;
+            private readonly int[]? _sparseOffsets;
+            private readonly object?[]? _sparseValues;
+
+            private OrderedColumnBuffer(int count, object?[]? denseValues, int[]? sparseOffsets, object?[]? sparseValues) {
+                Count = count;
+                _denseValues = denseValues;
+                _sparseOffsets = sparseOffsets;
+                _sparseValues = sparseValues;
+            }
+
+            internal int Count { get; }
+
+            internal static OrderedColumnBuffer FromDense(object?[] denseValues) {
+                return new OrderedColumnBuffer(denseValues.Length, denseValues, null, null);
+            }
+
+            internal static OrderedColumnBuffer FromSparse(int count, List<int> sparseOffsets, List<object?> sparseValues, bool offsetsSorted) {
+                if (sparseOffsets.Count == 0) {
+                    return new OrderedColumnBuffer(count, null, Array.Empty<int>(), Array.Empty<object?>());
+                }
+
+                int[] offsets = sparseOffsets.ToArray();
+                object?[] values = sparseValues.ToArray();
+                if (!offsetsSorted) {
+                    Array.Sort(offsets, values);
+                }
+
+                return new OrderedColumnBuffer(count, null, offsets, values);
+            }
+
+            internal bool TryGetSparseValues(out int[] offsets, out object?[] values) {
+                if (_sparseOffsets != null && _sparseValues != null) {
+                    offsets = _sparseOffsets;
+                    values = _sparseValues;
+                    return true;
+                }
+
+                offsets = Array.Empty<int>();
+                values = Array.Empty<object?>();
+                return false;
+            }
+
+            internal object? GetDenseValue(int offset) {
+                return _denseValues![offset];
+            }
+        }
+
         private bool TryReadColumnXmlFast(int r1, int columnIndex, int r2, int height, CancellationToken ct, out object?[] values) {
             values = new object?[height];
 
@@ -145,7 +350,10 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    ReadXmlColumnValue(reader, values, rowOffset, columnIndex, ct);
+                    if (TryReadXmlColumnValue(reader, columnIndex, ct, out object? value)) {
+                        values[rowOffset] = value;
+                    }
+
                     seenRows.MarkSeen(rowOffset);
                 }
 
@@ -161,9 +369,10 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void ReadXmlColumnValue(XmlReader rowReader, object?[] values, int rowOffset, int targetColumnIndex, CancellationToken ct) {
+        private bool TryReadXmlColumnValue(XmlReader rowReader, int targetColumnIndex, CancellationToken ct, out object? value) {
+            value = null;
             if (rowReader.IsEmptyElement) {
-                return;
+                return false;
             }
 
             int depth = rowReader.Depth;
@@ -175,7 +384,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (rowReader.NodeType == XmlNodeType.EndElement && rowReader.Depth == depth && rowReader.LocalName == "row") {
-                    return;
+                    return false;
                 }
 
                 if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
@@ -193,10 +402,12 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                values[rowOffset] = ReadXmlCellValue(rowReader);
+                value = ReadXmlCellValue(rowReader);
                 SkipXmlElementContent(rowReader, depth, "row");
-                return;
+                return true;
             }
+
+            return false;
         }
 
         private bool CanUseColumnXmlReader() {

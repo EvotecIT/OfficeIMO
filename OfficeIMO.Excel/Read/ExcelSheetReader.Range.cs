@@ -1640,22 +1640,23 @@ namespace OfficeIMO.Excel {
         }
 
         private object? ReadXmlCellValue(XmlReader cellReader) {
-            XmlCellKind cellKind = ParseXmlCellKind(cellReader.GetAttribute("t"));
-
             if (cellReader.IsEmptyElement) {
-                return _opt.FillBlanksInRanges ? null : null;
+                return null;
             }
 
+            XmlCellKind cellKind = ParseXmlCellKind(cellReader.GetAttribute("t"));
             if (_opt.CellValueConverter != null) {
                 CellRaw raw = ReadXmlCellRaw(cellReader, 0, 0, cellKind, readStyleIndex: true);
                 return ConvertRaw(raw).TypedValue;
             }
 
-            string? styleAttribute = _opt.TreatDatesUsingNumberFormat
+            bool useCachedFormulaResult = _opt.UseCachedFormulaResult;
+            bool numericAsDecimal = _opt.NumericAsDecimal;
+            CultureInfo culture = _opt.Culture;
+            bool useDateStyle = _opt.TreatDatesUsingNumberFormat
                 && _styles.HasDateStyles
-                && CellKindCanUseDateStyle(cellKind)
-                ? cellReader.GetAttribute("s")
-                : null;
+                && CellKindCanUseDateStyle(cellKind);
+            string? styleAttribute = useDateStyle ? cellReader.GetAttribute("s") : null;
 
             int depth = cellReader.Depth;
             string? rawText = null;
@@ -1670,13 +1671,20 @@ namespace OfficeIMO.Excel {
                 if (cellReader.NodeType == XmlNodeType.Element) {
                     if (cellReader.LocalName == "v") {
                         rawText = cellReader.ReadElementContentAsString();
+                        if (useCachedFormulaResult) {
+                            if (TryConvertXmlRawText(cellKind, rawText, useDateStyle, styleAttribute, numericAsDecimal, culture, out object? fastValue)) {
+                                SkipXmlElementContent(cellReader, depth, "c");
+                                return fastValue;
+                            }
+                        }
+
                         hasNode = true;
                         continue;
                     }
 
                     if (cellReader.LocalName == "f") {
                         formulaText = cellReader.ReadElementContentAsString();
-                        if (!_opt.UseCachedFormulaResult) {
+                        if (!useCachedFormulaResult) {
                             SkipXmlElementContent(cellReader, depth, "c");
                             return formulaText;
                         }
@@ -1695,7 +1703,7 @@ namespace OfficeIMO.Excel {
                 hasNode = cellReader.Read();
             }
 
-            if (formulaText != null && !_opt.UseCachedFormulaResult) {
+            if (formulaText != null && !useCachedFormulaResult) {
                 return formulaText;
             }
 
@@ -1716,7 +1724,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (cellKind == XmlCellKind.Date && rawText != null) {
-                return DateTime.TryParse(rawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var date)
+                return DateTime.TryParse(rawText, culture, DateTimeStyles.AssumeLocal, out var date)
                     ? date
                     : rawText;
             }
@@ -1729,9 +1737,7 @@ namespace OfficeIMO.Excel {
                 return inlineText;
             }
 
-            if (_opt.TreatDatesUsingNumberFormat
-                && _styles.HasDateStyles
-                && CellKindCanUseDateStyle(cellKind)
+            if (useDateStyle
                 && TryParseUInt(styleAttribute, out uint styleIndex)
                 && _styles.IsDateLike(styleIndex)
                 && (TryParseInvariantDoubleFast(rawText, out double oa)
@@ -1739,8 +1745,8 @@ namespace OfficeIMO.Excel {
                 return DateTime.FromOADate(oa);
             }
 
-            if (_opt.NumericAsDecimal
-                && decimal.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out decimal decimalNumber)) {
+            if (numericAsDecimal
+                && decimal.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, culture, out decimal decimalNumber)) {
                 return decimalNumber;
             }
 
@@ -1748,6 +1754,67 @@ namespace OfficeIMO.Excel {
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number))
                 ? number
                 : rawText;
+        }
+
+        private bool TryConvertXmlRawText(
+            XmlCellKind cellKind,
+            string? rawText,
+            bool useDateStyle,
+            string? styleAttribute,
+            bool numericAsDecimal,
+            CultureInfo culture,
+            out object? value) {
+            value = null;
+            if (rawText == null) {
+                return false;
+            }
+
+            if (cellKind == XmlCellKind.SharedString) {
+                value = TryParseSharedStringIndex(rawText, out int sstIndex) ? _sst.Get(sstIndex) : rawText;
+                return true;
+            }
+
+            if (cellKind == XmlCellKind.Boolean) {
+                value = rawText == "1";
+                return true;
+            }
+
+            if (cellKind == XmlCellKind.Date) {
+                value = DateTime.TryParse(rawText, culture, DateTimeStyles.AssumeLocal, out var date)
+                    ? date
+                    : rawText;
+                return true;
+            }
+
+            if (cellKind == XmlCellKind.String) {
+                value = rawText;
+                return true;
+            }
+
+            if (cellKind == XmlCellKind.InlineString) {
+                return false;
+            }
+
+            if (useDateStyle
+                && TryParseUInt(styleAttribute, out uint styleIndex)
+                && _styles.IsDateLike(styleIndex)
+                && (TryParseInvariantDoubleFast(rawText, out double oa)
+                    || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
+                value = DateTime.FromOADate(oa);
+                return true;
+            }
+
+            if (numericAsDecimal
+                && decimal.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, culture, out decimal decimalNumber)) {
+                value = decimalNumber;
+                return true;
+            }
+
+            value = (TryParseInvariantDoubleFast(rawText, out double number)
+                    || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number))
+                ? number
+                : rawText;
+            return true;
         }
 
         private static string ReadXmlInlineString(XmlReader inlineReader) {

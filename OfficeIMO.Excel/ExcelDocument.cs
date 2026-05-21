@@ -336,6 +336,14 @@ namespace OfficeIMO.Excel {
         }
 
         internal void MarkPackageDirty() {
+            if (_packageDirty
+                && _unchangedPackageBytes == null
+                && _directDataSetSaveCandidate == null
+                && !_preserveDirectDataSetSaveCandidateForNextDirtyMark
+                && _directDataSetSaveCandidatePreservationDepth == 0) {
+                return;
+            }
+
             _packageDirty = true;
             _unchangedPackageBytes = null;
             bool preserveDirectCandidate = _preserveDirectDataSetSaveCandidateForNextDirtyMark
@@ -600,30 +608,38 @@ namespace OfficeIMO.Excel {
         }
 
         internal int GetSharedStringIndex(string text) {
-            lock (_sharedStringLock) {
-                // Check cache first
-                if (_sharedStringCache.TryGetValue(text, out int cachedIndex)) {
-                    return cachedIndex;
-                }
-
-                var sharedStringTable = SharedStringTablePart.SharedStringTable ??= new SharedStringTable();
-                int tableCount = EnsureSharedStringCacheAndCount(sharedStringTable);
-
-                // Check again after rebuilding cache
-                if (_sharedStringCache.TryGetValue(text, out int foundIndex)) {
-                    return foundIndex;
-                }
-
-                // Add new string
-                int newIndex = tableCount;
-                sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
-                _sharedStringTableCount = newIndex + 1;
-                _sharedStringTableDirty = true;
-                MarkPackageDirty();
-                _sharedStringCache[text] = newIndex;
-
-                return newIndex;
+            if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld)) {
+                return GetSharedStringIndexCore(text);
             }
+
+            lock (_sharedStringLock) {
+                return GetSharedStringIndexCore(text);
+            }
+        }
+
+        private int GetSharedStringIndexCore(string text) {
+            // Check cache first
+            if (_sharedStringCache.TryGetValue(text, out int cachedIndex)) {
+                return cachedIndex;
+            }
+
+            var sharedStringTable = SharedStringTablePart.SharedStringTable ??= new SharedStringTable();
+            int tableCount = EnsureSharedStringCacheAndCount(sharedStringTable);
+
+            // Check again after rebuilding cache
+            if (_sharedStringCache.TryGetValue(text, out int foundIndex)) {
+                return foundIndex;
+            }
+
+            // Add new string
+            int newIndex = tableCount;
+            sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
+            _sharedStringTableCount = newIndex + 1;
+            _sharedStringTableDirty = true;
+            MarkPackageDirty();
+            _sharedStringCache[text] = newIndex;
+
+            return newIndex;
         }
 
         internal Dictionary<string, int> GetSharedStringIndices(IEnumerable<string> texts, bool assumeDistinct = false) {

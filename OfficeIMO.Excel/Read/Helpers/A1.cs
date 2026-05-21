@@ -105,6 +105,26 @@ namespace OfficeIMO.Excel {
             char first = text[0];
             char last = text[length - 1];
             if (!char.IsWhiteSpace(first) && last >= '0' && last <= '9') {
+                char firstColumn = ToUpperAscii(first);
+                if (firstColumn >= 'A' && firstColumn <= 'Z' && length >= 2) {
+                    char second = text[1];
+                    if (second >= '0' && second <= '9') {
+                        return HasPositiveInt32DigitSuffix(text, 1, length)
+                            ? firstColumn - 'A' + 1
+                            : 0;
+                    }
+
+                    char secondColumn = ToUpperAscii(second);
+                    if (secondColumn >= 'A' && secondColumn <= 'Z'
+                        && length >= 3
+                        && text[2] >= '0'
+                        && text[2] <= '9') {
+                        return HasPositiveInt32DigitSuffix(text, 2, length)
+                            ? (((firstColumn - 'A' + 1) * 26) + (secondColumn - 'A' + 1))
+                            : 0;
+                    }
+                }
+
                 int commonIndex = 0;
                 int commonCol = 0;
                 for (; commonIndex < length; commonIndex++) {
@@ -270,6 +290,26 @@ namespace OfficeIMO.Excel {
             char first = text[0];
             char last = text[length - 1];
             if (!char.IsWhiteSpace(first) && last >= '0' && last <= '9') {
+                char firstColumn = ToUpperAscii(first);
+                if (firstColumn >= 'A' && firstColumn <= 'Z' && length >= 2) {
+                    char second = text[1];
+                    if (second >= '0' && second <= '9') {
+                        return HasNonZeroDigitSuffix(text, 1, length)
+                            ? firstColumn - 'A' + 1
+                            : 0;
+                    }
+
+                    char secondColumn = ToUpperAscii(second);
+                    if (secondColumn >= 'A' && secondColumn <= 'Z'
+                        && length >= 3
+                        && text[2] >= '0'
+                        && text[2] <= '9') {
+                        return HasNonZeroDigitSuffix(text, 2, length)
+                            ? (((firstColumn - 'A' + 1) * 26) + (secondColumn - 'A' + 1))
+                            : 0;
+                    }
+                }
+
                 int commonIndex = 0;
                 int commonCol = 0;
                 for (; commonIndex < length; commonIndex++) {
@@ -350,6 +390,41 @@ namespace OfficeIMO.Excel {
             }
 
             return hasNonZeroRowDigit ? col : 0;
+        }
+
+        private static bool HasNonZeroDigitSuffix(string text, int start, int end) {
+            bool hasNonZeroDigit = false;
+            for (int i = start; i < end; i++) {
+                char ch = text[i];
+                if (ch < '0' || ch > '9') {
+                    return false;
+                }
+
+                hasNonZeroDigit |= ch != '0';
+            }
+
+            return hasNonZeroDigit;
+        }
+
+        private static bool HasPositiveInt32DigitSuffix(string text, int start, int end) {
+            bool hasNonZeroDigit = false;
+            int value = 0;
+            for (int i = start; i < end; i++) {
+                char ch = text[i];
+                if (ch < '0' || ch > '9') {
+                    return false;
+                }
+
+                int digit = ch - '0';
+                if (value > (int.MaxValue - digit) / 10) {
+                    return false;
+                }
+
+                value = (value * 10) + digit;
+                hasNonZeroDigit |= digit != 0;
+            }
+
+            return hasNonZeroDigit;
         }
 
         private static int ParseColumnIndexFromTrimmedCellReference(string text, int start, int end) {
