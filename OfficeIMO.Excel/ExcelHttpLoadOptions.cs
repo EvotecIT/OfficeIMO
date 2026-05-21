@@ -61,11 +61,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IProgress<ExcelHttpLoadProgress>? Progress { get; set; }
 
-        /// <summary>
-        /// Gets or sets an optional HTTP client. When omitted, OfficeIMO creates and disposes a client for the operation.
-        /// Caller-supplied clients keep their own handler behavior, including redirect and decompression policy.
-        /// </summary>
-        public HttpClient? HttpClient { get; set; }
+        internal HttpMessageHandler? HttpMessageHandler { get; set; }
     }
 
     /// <summary>

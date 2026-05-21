@@ -58,7 +58,6 @@ public sealed class ExcelHttpLoadOptions {
         "application/octet-stream"
     };
     public IProgress<ExcelHttpLoadProgress>? Progress { get; set; }
-    public HttpClient? HttpClient { get; set; }
 }
 
 public enum ExcelUriSchemePolicy {
@@ -83,7 +82,7 @@ The implementation should clone option values at operation start so callers cann
 - Caller headers and user-agent supported without adding a dependency on any auth framework.
 - Optional content-type validation because real file hosts often return generic values. ZIP header validation is the stronger default check for `.xlsx`.
 - The internally owned client uses the configured timeout, disables automatic redirects, follows redirects manually, revalidates the target URI scheme at each hop, and strips custom headers after a host change.
-- The internally owned client enables gzip/deflate response decompression. If a caller supplies `HttpClient`, their handler policy still owns transport behavior, but cross-origin redirects are refused when default request headers are present because those headers cannot be suppressed safely per redirected request.
+- The internally owned client enables gzip/deflate response decompression. The first public slice deliberately does not accept caller-supplied `HttpClient`, because an already-created client can auto-follow redirects before OfficeIMO can enforce scheme and header policy.
 - Remote load is read-only by default. It should not imply remote save or upload semantics.
 
 ## Ownership And Cleanup
@@ -110,7 +109,6 @@ For a future slice, add temp-file support only if it reduces real memory pressur
    - copies to memory,
    - follows redirects manually with scheme revalidation,
    - strips custom headers after redirected host changes,
-   - refuses cross-origin redirects when a caller-supplied `HttpClient` has default request headers,
    - applies the configured timeout and enables gzip/deflate decompression for the internally created client,
    - validates ZIP magic bytes when enabled,
    - reports progress during copy.
@@ -119,12 +117,11 @@ For a future slice, add temp-file support only if it reduces real memory pressur
    - Call `LoadFromByteArray(...)` with `filePath: null` and `preferFilePathOnFallback: false`.
 4. Add `ExcelDocumentReader.Open(Uri, ...)` and `OpenAsync(Uri, ...)`.
    - Call the existing `Open(byte[], ExcelReadOptions?)` path.
-5. Add unit tests with an in-process HTTP server or injectable `HttpClient` handler:
+5. Add unit tests with an in-process HTTP server or internal injectable handler:
    - HTTPS-only default rejects `http`.
    - Opt-in `http` works.
    - headers/user-agent are sent.
    - custom headers are not forwarded across redirected hosts.
-   - caller-supplied default headers block cross-origin redirects instead of being forwarded.
    - HTTPS-to-HTTP redirects are rejected by default.
    - max byte limit rejects oversized responses before and during copy.
    - cancellation is observed while downloading.
@@ -143,7 +140,7 @@ After the engine API exists, PSWriteOffice should only map PowerShell parameters
 - `-TimeoutSeconds`, `-MaximumBytes`, and `-UserAgent` map directly.
 - Progress can be wired to PowerShell progress from `ExcelHttpLoadProgress`.
 
-Anything beyond that, including auth handlers, retries, cache policy, temp-file cleanup, and package validation, should remain in OfficeIMO.Excel or be provided by caller-supplied `HttpClient`.
+Anything beyond that, including retries, cache policy, temp-file cleanup, and package validation, should remain in OfficeIMO.Excel. Auth for this slice should use explicit headers; richer transport customization can come later only if it preserves OfficeIMO-owned redirect and scheme enforcement.
 
 ## Non-Goals
 

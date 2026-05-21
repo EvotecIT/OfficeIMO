@@ -25,47 +25,38 @@ namespace OfficeIMO.Excel {
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(snapshot.Timeout);
 
-            HttpClient? ownedClient = null;
-            var client = snapshot.HttpClient;
-            if (client == null) {
-                ownedClient = CreateOwnedHttpClient(snapshot.Timeout);
-                client = ownedClient;
+            using var client = CreateOwnedHttpClient(snapshot.Timeout, snapshot.HttpMessageHandler);
+            using var response = await SendWithRedirectsAsync(client, uri, snapshot, timeoutCts.Token).ConfigureAwait(false);
+
+            response.EnsureSuccessStatusCode();
+            ValidateContentType(response, snapshot);
+
+            long? contentLength = response.Content.Headers.ContentLength;
+            if (contentLength.HasValue && contentLength.Value > snapshot.MaxBytes) {
+                throw new IOException($"Remote workbook is too large. Content-Length is {contentLength.Value} bytes and the configured limit is {snapshot.MaxBytes} bytes.");
             }
 
-            try {
-                using var response = await SendWithRedirectsAsync(client, uri, snapshot, timeoutCts.Token).ConfigureAwait(false);
+            byte[] bytes = await ReadResponseBytesAsync(
+                response,
+                snapshot,
+                contentLength,
+                timeoutCts.Token).ConfigureAwait(false);
 
-                response.EnsureSuccessStatusCode();
-                ValidateContentType(response, snapshot);
-
-                long? contentLength = response.Content.Headers.ContentLength;
-                if (contentLength.HasValue && contentLength.Value > snapshot.MaxBytes) {
-                    throw new IOException($"Remote workbook is too large. Content-Length is {contentLength.Value} bytes and the configured limit is {snapshot.MaxBytes} bytes.");
-                }
-
-                byte[] bytes = await ReadResponseBytesAsync(
-                    response,
-                    snapshot,
-                    contentLength,
-                    timeoutCts.Token).ConfigureAwait(false);
-
-                if (snapshot.ValidateZipHeader && !LooksLikeZipPackage(bytes)) {
-                    throw new InvalidDataException("Downloaded workbook does not look like an Office Open XML package.");
-                }
-
-                return bytes;
-            } finally {
-                ownedClient?.Dispose();
+            if (snapshot.ValidateZipHeader && !LooksLikeZipPackage(bytes)) {
+                throw new InvalidDataException("Downloaded workbook does not look like an Office Open XML package.");
             }
+
+            return bytes;
         }
 
-        private static HttpClient CreateOwnedHttpClient(TimeSpan timeout) {
-            var handler = new HttpClientHandler {
+        private static HttpClient CreateOwnedHttpClient(TimeSpan timeout, HttpMessageHandler? messageHandler) {
+            bool disposeHandler = messageHandler == null;
+            messageHandler ??= new HttpClientHandler {
                 AllowAutoRedirect = false,
                 AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
             };
 
-            return new HttpClient(handler, disposeHandler: true) {
+            return new HttpClient(messageHandler, disposeHandler) {
                 Timeout = timeout
             };
         }
@@ -79,10 +70,6 @@ namespace OfficeIMO.Excel {
             bool includeCustomHeaders = true;
 
             for (int redirectCount = 0; redirectCount <= MaxRedirects; redirectCount++) {
-                if (!includeCustomHeaders && HasDefaultRequestHeaders(client)) {
-                    throw new HttpRequestException("Remote workbook request refused a cross-origin redirect because the HTTP client has default request headers that cannot be suppressed per redirected request.");
-                }
-
                 var request = new HttpRequestMessage(HttpMethod.Get, currentUri);
                 ApplyHeaders(request, options, includeCustomHeaders);
 
@@ -210,14 +197,6 @@ namespace OfficeIMO.Excel {
                 && left.Port == right.Port;
         }
 
-        private static bool HasDefaultRequestHeaders(HttpClient client) {
-            foreach (var _ in client.DefaultRequestHeaders) {
-                return true;
-            }
-
-            return false;
-        }
-
         private static void ValidateContentType(HttpResponseMessage response, ExcelHttpLoadOptionsSnapshot options) {
             if (!options.ValidateContentTypeWhenPresent) {
                 return;
@@ -248,7 +227,7 @@ namespace OfficeIMO.Excel {
                 bool validateContentTypeWhenPresent,
                 HashSet<string> allowedContentTypes,
                 IProgress<ExcelHttpLoadProgress>? progress,
-                HttpClient? httpClient) {
+                HttpMessageHandler? httpMessageHandler) {
                 SchemePolicy = schemePolicy;
                 MaxBytes = maxBytes;
                 Timeout = timeout;
@@ -258,7 +237,7 @@ namespace OfficeIMO.Excel {
                 ValidateContentTypeWhenPresent = validateContentTypeWhenPresent;
                 AllowedContentTypes = allowedContentTypes;
                 Progress = progress;
-                HttpClient = httpClient;
+                HttpMessageHandler = httpMessageHandler;
             }
 
             internal ExcelUriSchemePolicy SchemePolicy { get; }
@@ -270,7 +249,7 @@ namespace OfficeIMO.Excel {
             internal bool ValidateContentTypeWhenPresent { get; }
             internal HashSet<string> AllowedContentTypes { get; }
             internal IProgress<ExcelHttpLoadProgress>? Progress { get; }
-            internal HttpClient? HttpClient { get; }
+            internal HttpMessageHandler? HttpMessageHandler { get; }
 
             internal static ExcelHttpLoadOptionsSnapshot Create(ExcelHttpLoadOptions? options) {
                 options ??= new ExcelHttpLoadOptions();
@@ -285,7 +264,7 @@ namespace OfficeIMO.Excel {
                     options.ValidateContentTypeWhenPresent,
                     new HashSet<string>(options.AllowedContentTypes, StringComparer.OrdinalIgnoreCase),
                     options.Progress,
-                    options.HttpClient);
+                    options.HttpMessageHandler);
             }
         }
     }
