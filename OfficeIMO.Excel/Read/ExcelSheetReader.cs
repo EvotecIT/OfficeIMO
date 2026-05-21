@@ -39,15 +39,120 @@ namespace OfficeIMO.Excel {
         /// Enumerates non-empty cells as (Row, Column, Value). Values are typed when possible.
         /// </summary>
         public IEnumerable<CellValueInfo> EnumerateCells() {
-            foreach (var row in EnumerateWorksheetRows()) {
+            return CanUseEnumerateCellsXmlReader()
+                ? EnumerateCellsXmlFast(CancellationToken.None)
+                : EnumerateCellsDom(CancellationToken.None);
+        }
+
+        private IEnumerable<CellValueInfo> EnumerateCellsDom(CancellationToken ct) {
+            bool canCancel = ct.CanBeCanceled;
+            foreach (var row in EnumerateWorksheetRows(ct)) {
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
                 var rIndex = checked((int)row.RowIndex!.Value);
                 foreach (var cell in row.Elements<Cell>()) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
                     int cIndex = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
                     var value = ConvertCell(cell);
                     if (value is not null || CellHasExplicitBlank(cell))
                         yield return new CellValueInfo(rIndex, cIndex, value);
                 }
             }
+        }
+
+        private IEnumerable<CellValueInfo> EnumerateCellsXmlFast(CancellationToken ct) {
+            using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+            RewindWorksheetStream(stream);
+            using var reader = OpenWorksheetXmlReader(stream);
+            bool canCancel = ct.CanBeCanceled;
+            bool hasCustomConverter = _opt.CellValueConverter != null;
+            int nextRowIndex = 1;
+
+            while (reader.Read()) {
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
+                if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                    continue;
+                }
+
+                int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                if (rowIndex <= 0) {
+                    rowIndex = nextRowIndex;
+                }
+
+                nextRowIndex = rowIndex + 1;
+                if (reader.IsEmptyElement) {
+                    continue;
+                }
+
+                int depth = reader.Depth;
+                int nextColumnIndex = 1;
+                while (reader.Read()) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth && reader.LocalName == "row") {
+                        break;
+                    }
+
+                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "c") {
+                        continue;
+                    }
+
+                    int columnIndex = GetXmlCellColumnIndex(reader, ref nextColumnIndex);
+                    if (columnIndex <= 0) {
+                        SkipXmlElement(reader, "c");
+                        continue;
+                    }
+
+                    if (hasCustomConverter) {
+                        if (TryReadXmlCellValueForCellEnumeration(reader, rowIndex, columnIndex, out object? customValue, out bool explicitBlank)) {
+                            if (customValue != null || explicitBlank) {
+                                yield return new CellValueInfo(rowIndex, columnIndex, customValue);
+                            }
+                        }
+
+                        continue;
+                    }
+
+                    if (reader.IsEmptyElement) {
+                        continue;
+                    }
+
+                    object? cellValue = ReadXmlCellValue(reader);
+                    if (cellValue != null) {
+                        yield return new CellValueInfo(rowIndex, columnIndex, cellValue);
+                    }
+                }
+            }
+        }
+
+        private bool TryReadXmlCellValueForCellEnumeration(XmlReader cellReader, int rowIndex, int columnIndex, out object? value, out bool explicitBlank) {
+            XmlCellKind cellKind = ParseXmlCellKind(cellReader.GetAttribute("t"));
+            bool readStyleIndex = true;
+
+            CellRaw raw = ReadXmlCellRaw(cellReader, rowIndex, columnIndex, cellKind, readStyleIndex);
+            explicitBlank = raw.RawText != null && raw.RawText.Length == 0 && raw.InlineText == null && raw.FormulaText == null;
+            if (raw.RawText == null && raw.InlineText == null && raw.FormulaText == null) {
+                value = null;
+                return false;
+            }
+
+            value = ConvertRaw(raw).TypedValue;
+            return true;
+        }
+
+        private bool CanUseEnumerateCellsXmlReader() {
+            return (_opt.CellValueConverter != null || _opt.Culture == CultureInfo.InvariantCulture)
+                && CanStreamWorksheetPart();
         }
 
         // ---------- Internals ----------

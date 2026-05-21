@@ -36,6 +36,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_EnumerateCells_SkipsEmptyCellElementsButKeepsExplicitBlanks() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderEnumerateCellsEmptyCellElements.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Header");
+                    document.Save();
+                }
+
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                    var sheetData = worksheetPart.Worksheet!.GetFirstChild<SheetData>()!;
+                    var row = sheetData.Elements<Row>().First();
+                    row.Append(
+                        new Cell { CellReference = "B1" },
+                        new Cell {
+                            CellReference = "C1",
+                            CellValue = new CellValue(string.Empty),
+                            DataType = CellValues.String
+                        });
+                    worksheetPart.Worksheet.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var cells = reader.GetSheet("Data").EnumerateCells().ToList();
+
+                Assert.Contains(cells, c => c.Row == 1 && c.Column == 1 && Equals(c.Value, "Header"));
+                Assert.DoesNotContain(cells, c => c.Row == 1 && c.Column == 2);
+                Assert.Contains(cells, c => c.Row == 1 && c.Column == 3 && Equals(c.Value, string.Empty));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Reader_OpenPath_DetachesFromSourceFile() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderOpenPathDetached.xlsx");
 
@@ -182,6 +220,134 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(cells, c => c.Row == 1 && c.Column == 1 && Equals(c.Value, "Header"));
                 Assert.Contains(cells, c => c.Row == 2 && c.Column == 1 && Equals(c.Value, "InRange"));
                 Assert.DoesNotContain(cells, c => c.Row == 5);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_EnumerateRange_DoesNotStopBeforeLaterDuplicateRows() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderEnumerateRangeDuplicateRowsAfterRange.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Header");
+                    sheet.CellValue(2, 1, "Old");
+                    sheet.CellValue(5, 1, "Outside");
+                    document.Save();
+                }
+
+                AppendDuplicateWorksheetRow(filePath, 2U, "A2", "New");
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var cells = reader.GetSheet("Data").EnumerateRange("A1:A2").ToList();
+
+                Assert.Contains(cells, c => c.Row == 1 && c.Column == 1 && Equals(c.Value, "Header"));
+                Assert.Contains(cells, c => c.Row == 2 && c.Column == 1 && Equals(c.Value, "Old"));
+                Assert.Contains(cells, c => c.Row == 2 && c.Column == 1 && Equals(c.Value, "New"));
+                Assert.DoesNotContain(cells, c => c.Row == 5);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_EnumerateRange_SkipsEmptyCellElementsButKeepsExplicitBlanks() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderEnumerateRangeEmptyCellElements.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Header");
+                    document.Save();
+                }
+
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                    var sheetData = worksheetPart.Worksheet!.GetFirstChild<SheetData>()!;
+                    var row = sheetData.Elements<Row>().First();
+                    row.Append(
+                        new Cell { CellReference = "B1" },
+                        new Cell {
+                            CellReference = "C1",
+                            CellValue = new CellValue(string.Empty),
+                            DataType = CellValues.String
+                        });
+                    worksheetPart.Worksheet.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions { FillBlanksInRanges = false });
+                var cells = reader.GetSheet("Data").EnumerateRange("A1:C1").ToList();
+
+                Assert.Contains(cells, c => c.Row == 1 && c.Column == 1 && Equals(c.Value, "Header"));
+                Assert.DoesNotContain(cells, c => c.Row == 1 && c.Column == 2);
+                Assert.Contains(cells, c => c.Row == 1 && c.Column == 3 && Equals(c.Value, string.Empty));
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_EnumerateRange_FillBlanksStillHonorsCellValueConverter() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderEnumerateRangeFillBlanksConverter.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, 42);
+                    document.Save();
+                }
+
+                var options = new ExcelReadOptions {
+                    FillBlanksInRanges = true,
+                    CellValueConverter = context => context.RawText == "42" ? new ExcelCellValue("forty-two") : ExcelCellValue.NotHandled
+                };
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                var cell = Assert.Single(reader.GetSheet("Data").EnumerateRange("A1:A1"));
+
+                Assert.Equal(1, cell.Row);
+                Assert.Equal(1, cell.Column);
+                Assert.Equal("forty-two", cell.Value);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_EnumerateCells_SkipsCustomConvertedNullValues() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderEnumerateCellsCustomNulls.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, 42);
+                    sheet.CellValue(1, 2, 43);
+                    sheet.CellValue(1, 3, "blank");
+                    document.Save();
+                }
+
+                SetWorksheetCellToExplicitBlank(filePath, "C1");
+
+                var options = new ExcelReadOptions {
+                    CellValueConverter = context => context.RawText == "42" || context.RawText == string.Empty
+                        ? new ExcelCellValue(null)
+                        : ExcelCellValue.NotHandled
+                };
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                var cells = reader.GetSheet("Data").EnumerateCells().ToList();
+
+                Assert.DoesNotContain(cells, c => c.Row == 1 && c.Column == 1);
+                Assert.Contains(cells, c => c.Row == 1 && c.Column == 2 && Equals(c.Value, 43D));
+                Assert.Contains(cells, c => c.Row == 1 && c.Column == 3 && c.Value == null);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -475,11 +641,125 @@ namespace OfficeIMO.Tests {
                 MoveWorksheetRowToEnd(filePath, 1U);
 
                 using var reader = ExcelDocumentReader.Open(filePath);
-                var rows = reader.GetSheet("Data").ReadRows("A1:A100001").ToArray();
+                var sheetReader = reader.GetSheet("Data");
+                var column = sheetReader.ReadColumn("A1:A100001").ToArray();
+                var rows = sheetReader.ReadRows("A1:A100001").ToArray();
 
+                Assert.Equal(100001, column.Length);
+                Assert.Equal("Header", column[0]);
+                Assert.Null(column[1]);
+                Assert.Equal("Tail", column[100000]);
                 Assert.Equal(100001, rows.Length);
                 Assert.Equal("Header", rows[0]![0]);
                 Assert.Null(rows[1]);
+                Assert.Equal("Tail", rows[100000]![0]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_RowAndColumnReaders_LargeSparseDuplicateRowsUseLastInstance() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderRowsLargeSparseDuplicateRows.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Old");
+                    sheet.CellValue(100001, 1, "Tail");
+                    document.Save();
+                }
+
+                AppendDuplicateWorksheetRow(filePath, 1U, "A1", "New");
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var sheetReader = reader.GetSheet("Data");
+                var column = sheetReader.ReadColumn("A1:A100001").ToArray();
+                var rows = sheetReader.ReadRows("A1:A100001").ToArray();
+
+                Assert.Equal(100001, column.Length);
+                Assert.Equal("New", column[0]);
+                Assert.Equal("Tail", column[100000]);
+                Assert.Equal(100001, rows.Length);
+                Assert.Equal("New", rows[0]![0]);
+                Assert.Equal("Tail", rows[100000]![0]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_RowAndColumnReaders_LargeSparseDuplicateBlankRowsClearPriorInstance() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderRowsLargeSparseDuplicateBlankRows.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Old");
+                    sheet.CellValue(1, 2, "Other");
+                    sheet.CellValue(100001, 1, "Tail");
+                    document.Save();
+                }
+
+                AppendDuplicateWorksheetRowWithoutCell(filePath, 1U, "A1");
+
+                var options = new ExcelReadOptions {
+                    CellValueConverter = context => context.RawText == string.Empty
+                        ? new ExcelCellValue(null)
+                        : ExcelCellValue.NotHandled
+                };
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                var sheetReader = reader.GetSheet("Data");
+                var column = sheetReader.ReadColumn("A1:A100001").ToArray();
+                var rows = sheetReader.ReadRows("A1:A100001").ToArray();
+
+                Assert.Equal(100001, column.Length);
+                Assert.Null(column[0]);
+                Assert.Equal("Tail", column[100000]);
+                Assert.Equal(100001, rows.Length);
+                Assert.Null(rows[0]);
+                Assert.Equal("Tail", rows[100000]![0]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_RowAndColumnReaders_LargeSparseDuplicateExplicitBlankCellsClearPriorInstance() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderRowsLargeSparseDuplicateExplicitBlankCells.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Old");
+                    sheet.CellValue(100001, 1, "Tail");
+                    document.Save();
+                }
+
+                AppendDuplicateWorksheetRowWithExplicitBlank(filePath, 1U, "A1");
+
+                var options = new ExcelReadOptions {
+                    CellValueConverter = context => context.RawText == string.Empty
+                        ? new ExcelCellValue(null)
+                        : ExcelCellValue.NotHandled
+                };
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                var sheetReader = reader.GetSheet("Data");
+                var column = sheetReader.ReadColumn("A1:A100001").ToArray();
+                var rows = sheetReader.ReadRows("A1:A100001").ToArray();
+
+                Assert.Equal(100001, column.Length);
+                Assert.Null(column[0]);
+                Assert.Equal("Tail", column[100000]);
+                Assert.Equal(100001, rows.Length);
+                Assert.NotNull(rows[0]);
+                Assert.Null(rows[0]![0]);
                 Assert.Equal("Tail", rows[100000]![0]);
             } finally {
                 if (File.Exists(filePath)) {
@@ -827,6 +1107,55 @@ namespace OfficeIMO.Tests {
             var row = sheetData.Elements<Row>().First(r => r.RowIndex?.Value == rowIndex);
             row.Remove();
             sheetData.Append(row);
+            worksheetPart.Worksheet.Save();
+        }
+
+        private static void AppendDuplicateWorksheetRow(string filePath, uint rowIndex, string cellReference, string value) {
+            using var spreadsheet = SpreadsheetDocument.Open(filePath, true);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var sheetData = worksheetPart.Worksheet!.GetFirstChild<SheetData>()!;
+            var row = sheetData.Elements<Row>().First(r => r.RowIndex?.Value == rowIndex);
+            var duplicate = (Row)row.CloneNode(true);
+            var cell = duplicate.Elements<Cell>().First(c => string.Equals(c.CellReference?.Value, cellReference, StringComparison.Ordinal));
+            cell.DataType = CellValues.String;
+            cell.CellValue = new CellValue(value);
+            sheetData.Append(duplicate);
+            worksheetPart.Worksheet.Save();
+        }
+
+        private static void AppendDuplicateWorksheetRowWithoutCell(string filePath, uint rowIndex, string cellReference) {
+            using var spreadsheet = SpreadsheetDocument.Open(filePath, true);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var sheetData = worksheetPart.Worksheet!.GetFirstChild<SheetData>()!;
+            var row = sheetData.Elements<Row>().First(r => r.RowIndex?.Value == rowIndex);
+            var duplicate = (Row)row.CloneNode(true);
+            duplicate.Elements<Cell>()
+                .First(c => string.Equals(c.CellReference?.Value, cellReference, StringComparison.Ordinal))
+                .Remove();
+            sheetData.Append(duplicate);
+            worksheetPart.Worksheet.Save();
+        }
+
+        private static void AppendDuplicateWorksheetRowWithExplicitBlank(string filePath, uint rowIndex, string cellReference) {
+            using var spreadsheet = SpreadsheetDocument.Open(filePath, true);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var sheetData = worksheetPart.Worksheet!.GetFirstChild<SheetData>()!;
+            var row = sheetData.Elements<Row>().First(r => r.RowIndex?.Value == rowIndex);
+            var duplicate = (Row)row.CloneNode(true);
+            var cell = duplicate.Elements<Cell>().First(c => string.Equals(c.CellReference?.Value, cellReference, StringComparison.Ordinal));
+            cell.DataType = null;
+            cell.CellValue = new CellValue(string.Empty);
+            sheetData.Append(duplicate);
+            worksheetPart.Worksheet.Save();
+        }
+
+        private static void SetWorksheetCellToExplicitBlank(string filePath, string cellReference) {
+            using var spreadsheet = SpreadsheetDocument.Open(filePath, true);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cell = worksheetPart.Worksheet!.Descendants<Cell>()
+                .First(c => string.Equals(c.CellReference?.Value, cellReference, StringComparison.Ordinal));
+            cell.DataType = null;
+            cell.CellValue = new CellValue(string.Empty);
             worksheetPart.Worksheet.Save();
         }
 

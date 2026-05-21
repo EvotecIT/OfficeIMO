@@ -1267,6 +1267,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Preflight_RecountsSharedStringItemsAfterDirectMutationBeforeSave() {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+            using (var doc = ExcelDocument.Create(path)) {
+                var sheet = doc.AddWorkSheet("Strings");
+                sheet.CellValue(1, 1, "Alpha");
+                sheet.CellValue(2, 1, "Beta");
+
+                var workbookPart = doc._spreadSheetDocument.WorkbookPart!;
+                var sharedStringTable = workbookPart.SharedStringTablePart!.SharedStringTable!;
+                sharedStringTable.RemoveChild(sharedStringTable.Elements<SharedStringItem>().Last());
+                sharedStringTable.Count = 2U;
+                sharedStringTable.UniqueCount = 2U;
+                sharedStringTable.Save();
+
+                doc.Save(savePath, openExcel: false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(savePath, false)) {
+                var sharedStringTable = package.WorkbookPart!.SharedStringTablePart!.SharedStringTable!;
+                var items = sharedStringTable.Elements<SharedStringItem>().ToList();
+                Assert.Equal(2, items.Count);
+                Assert.Equal("Alpha", items[0].InnerText);
+                Assert.Equal(string.Empty, items[1].InnerText);
+                Assert.Equal(2U, sharedStringTable.Count!.Value);
+                Assert.Equal(2U, sharedStringTable.UniqueCount!.Value);
+            }
+
+            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            File.Delete(path);
+            File.Delete(savePath);
+        }
+
+        [Fact]
         public void Preflight_ConvertsMalformedSharedStringCellToInlineStringBeforeSave() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");

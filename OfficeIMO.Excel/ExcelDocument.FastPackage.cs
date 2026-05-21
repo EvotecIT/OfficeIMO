@@ -424,52 +424,62 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                if (child.Descendants<DocumentFormat.OpenXml.OpenXmlUnknownElement>().Any()) {
+                if (child is not SheetData
+                    && child.Descendants<DocumentFormat.OpenXml.OpenXmlUnknownElement>().Any()) {
                     skipReason = "Worksheet contains unknown Open XML elements.";
                     return false;
                 }
             }
 
-            var tableParts = worksheet.Elements<TableParts>().ToList();
-            if (tableParts.Count > 1) {
-                skipReason = "Worksheet contains multiple tableParts elements.";
-                return false;
-            }
-
-            var tableDefinitionParts = worksheetPart.TableDefinitionParts.ToList();
-            var relationshipIds = new HashSet<string>(tableDefinitionParts.Select(worksheetPart.GetIdOfPart), StringComparer.Ordinal);
-            var worksheetTablePartIds = tableParts.Count == 0
-                ? new List<string>()
-                : tableParts[0].Elements<TablePart>()
-                    .Select(part => part.Id?.Value)
-                    .Where(id => !string.IsNullOrEmpty(id))
-                    .Select(id => id!)
-                    .ToList();
-
-            if (worksheetTablePartIds.Count != tableDefinitionParts.Count
-                || worksheetTablePartIds.Any(id => !relationshipIds.Contains(id))) {
-                skipReason = "Worksheet table relationships do not match tableParts entries.";
-                return false;
-            }
-
-            var hyperlinkRelationships = worksheetPart.HyperlinkRelationships.ToList();
-            var hyperlinkIds = new HashSet<string>(hyperlinkRelationships.Select(relationship => relationship.Id), StringComparer.Ordinal);
-            foreach (var hyperlink in worksheet.Elements<Hyperlinks>().SelectMany(links => links.Elements<Hyperlink>())) {
-                string? relationshipId = hyperlink.Id?.Value;
-                if (!string.IsNullOrEmpty(relationshipId) && !hyperlinkIds.Contains(relationshipId!)) {
-                    skipReason = "Worksheet hyperlink relationships do not match hyperlink entries.";
+            var tableParts = worksheet.GetFirstChild<TableParts>();
+            bool hasTableDefinitionParts = worksheetPart.TableDefinitionParts.Any();
+            if (tableParts != null || hasTableDefinitionParts) {
+                if (tableParts != null && worksheet.Elements<TableParts>().Skip(1).Any()) {
+                    skipReason = "Worksheet contains multiple tableParts elements.";
                     return false;
+                }
+
+                var tableDefinitionParts = worksheetPart.TableDefinitionParts.ToList();
+                var relationshipIds = new HashSet<string>(tableDefinitionParts.Select(worksheetPart.GetIdOfPart), StringComparer.Ordinal);
+                var worksheetTablePartIds = tableParts == null
+                    ? new List<string>()
+                    : tableParts.Elements<TablePart>()
+                        .Select(part => part.Id?.Value)
+                        .Where(id => !string.IsNullOrEmpty(id))
+                        .Select(id => id!)
+                        .ToList();
+
+                if (worksheetTablePartIds.Count != tableDefinitionParts.Count
+                    || worksheetTablePartIds.Any(id => !relationshipIds.Contains(id))) {
+                    skipReason = "Worksheet table relationships do not match tableParts entries.";
+                    return false;
+                }
+
+                foreach (var tableDefinitionPart in tableDefinitionParts) {
+                    var table = tableDefinitionPart.Table;
+                    if (table == null
+                        || table.Reference == null
+                        || table.TableColumns == null
+                        || table.Descendants<DocumentFormat.OpenXml.OpenXmlUnknownElement>().Any()) {
+                        skipReason = "Worksheet contains unsupported table metadata.";
+                        return false;
+                    }
                 }
             }
 
-            foreach (var tableDefinitionPart in tableDefinitionParts) {
-                var table = tableDefinitionPart.Table;
-                if (table == null
-                    || table.Reference == null
-                    || table.TableColumns == null
-                    || table.Descendants<DocumentFormat.OpenXml.OpenXmlUnknownElement>().Any()) {
-                    skipReason = "Worksheet contains unsupported table metadata.";
-                    return false;
+            var hyperlinks = worksheet.GetFirstChild<Hyperlinks>();
+            bool hasHyperlinkRelationships = worksheetPart.HyperlinkRelationships.Any();
+            if (hyperlinks != null || hasHyperlinkRelationships) {
+                var hyperlinkRelationships = worksheetPart.HyperlinkRelationships.ToList();
+                var hyperlinkIds = new HashSet<string>(hyperlinkRelationships.Select(relationship => relationship.Id), StringComparer.Ordinal);
+                if (hyperlinks != null) {
+                    foreach (var hyperlink in hyperlinks.Elements<Hyperlink>()) {
+                        string? relationshipId = hyperlink.Id?.Value;
+                        if (!string.IsNullOrEmpty(relationshipId) && !hyperlinkIds.Contains(relationshipId!)) {
+                            skipReason = "Worksheet hyperlink relationships do not match hyperlink entries.";
+                            return false;
+                        }
+                    }
                 }
             }
 
@@ -478,13 +488,39 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            foreach (var sheetDataChild in sheetData.ChildElements) {
+                if (sheetDataChild is not Row) {
+                    skipReason = sheetDataChild is DocumentFormat.OpenXml.OpenXmlUnknownElement
+                        ? "Worksheet contains unknown Open XML elements."
+                        : "Worksheet contains sheetData children outside the simple writer surface.";
+                    return false;
+                }
+            }
+
             foreach (var row in sheetData.Elements<Row>()) {
                 if (!IsSimpleRow(row)) {
                     skipReason = "Worksheet contains row formatting outside the simple writer surface.";
                     return false;
                 }
 
-                foreach (var cell in row.Elements<Cell>()) {
+                foreach (var rowChild in row.ChildElements) {
+                    if (rowChild is DocumentFormat.OpenXml.OpenXmlUnknownElement) {
+                        skipReason = "Worksheet contains unknown Open XML elements.";
+                        return false;
+                    }
+
+                    if (rowChild is not Cell cell) {
+                        skipReason = "Worksheet contains row children outside the simple writer surface.";
+                        return false;
+                    }
+
+                    foreach (var cellChild in cell.ChildElements) {
+                        if (cellChild is DocumentFormat.OpenXml.OpenXmlUnknownElement) {
+                            skipReason = "Worksheet contains unknown Open XML elements.";
+                            return false;
+                        }
+                    }
+
                     if (cell.InlineString != null) {
                         if (cell.InlineString.Descendants<DocumentFormat.OpenXml.OpenXmlUnknownElement>().Any()) {
                             skipReason = "Worksheet inline strings contain unknown Open XML elements.";

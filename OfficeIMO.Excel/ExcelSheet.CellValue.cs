@@ -9,6 +9,7 @@ namespace OfficeIMO.Excel {
         private Dictionary<uint, uint>? _cellValueDurationStyleIndexes;
         private uint? _cellValueDefaultDateStyleIndex;
         private uint? _cellValueDefaultDurationStyleIndex;
+        private static readonly string[] SharedStringIndexTextCache = CreateSharedStringIndexTextCache();
 
         // Core implementation: single source of truth (no locks here)
         private void CellValueCore(int row, int column, object? value) {
@@ -87,11 +88,27 @@ namespace OfficeIMO.Excel {
         }
 
         private void SetExistingCellSharedStringValue(Cell cell, string value, int sharedStringIndex) {
-            cell.CellValue = new CellValue(sharedStringIndex.ToString(CultureInfo.InvariantCulture));
+            cell.CellValue = new CellValue(GetSharedStringIndexText(sharedStringIndex));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString;
-            if (value.Contains("\n") || value.Contains("\r")) {
+            if (value.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0) {
                 ApplyWrapText(cell);
             }
+        }
+
+        private static string GetSharedStringIndexText(int index) {
+            return (uint)index < (uint)SharedStringIndexTextCache.Length
+                ? SharedStringIndexTextCache[index]
+                : index.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static string[] CreateSharedStringIndexTextCache() {
+            const int CacheSize = 1024;
+            var cache = new string[CacheSize];
+            for (int i = 0; i < cache.Length; i++) {
+                cache[i] = i.ToString(CultureInfo.InvariantCulture);
+            }
+
+            return cache;
         }
 
         private void CellDoubleValueCore(int row, int column, double value) {
@@ -197,16 +214,14 @@ namespace OfficeIMO.Excel {
         public void CellValue(int row, int column, string value) {
             if (_isBatchOperation || Locking.IsNoLock) {
                 CellStringValueCore(row, column, value);
-                MarkRequiresSavePreparation();
                 return;
             }
 
-            _excelDocument.MaterializeDeferredDataSetImport();
+            MaterializeDeferredDataSetImportIfNeeded();
             var lck = _excelDocument.EnsureLock();
             lck.EnterWriteLock();
             try {
                 CellStringValueCore(row, column, value);
-                MarkRequiresSavePreparation();
             } finally {
                 lck.ExitWriteLock();
             }
@@ -216,16 +231,14 @@ namespace OfficeIMO.Excel {
         public void CellValue(int row, int column, double value) {
             if (_isBatchOperation || Locking.IsNoLock) {
                 CellDoubleValueCore(row, column, value);
-                MarkRequiresSavePreparation();
                 return;
             }
 
-            _excelDocument.MaterializeDeferredDataSetImport();
+            MaterializeDeferredDataSetImportIfNeeded();
             var lck = _excelDocument.EnsureLock();
             lck.EnterWriteLock();
             try {
                 CellDoubleValueCore(row, column, value);
-                MarkRequiresSavePreparation();
             } finally {
                 lck.ExitWriteLock();
             }
@@ -235,16 +248,14 @@ namespace OfficeIMO.Excel {
         public void CellValue(int row, int column, decimal value) {
             if (_isBatchOperation || Locking.IsNoLock) {
                 CellDecimalValueCore(row, column, value);
-                MarkRequiresSavePreparation();
                 return;
             }
 
-            _excelDocument.MaterializeDeferredDataSetImport();
+            MaterializeDeferredDataSetImportIfNeeded();
             var lck = _excelDocument.EnsureLock();
             lck.EnterWriteLock();
             try {
                 CellDecimalValueCore(row, column, value);
-                MarkRequiresSavePreparation();
             } finally {
                 lck.ExitWriteLock();
             }
@@ -254,16 +265,14 @@ namespace OfficeIMO.Excel {
         public void CellValue(int row, int column, DateTime value) {
             if (_isBatchOperation || Locking.IsNoLock) {
                 CellDateTimeValueCore(row, column, value);
-                MarkRequiresSavePreparation();
                 return;
             }
 
-            _excelDocument.MaterializeDeferredDataSetImport();
+            MaterializeDeferredDataSetImportIfNeeded();
             var lck = _excelDocument.EnsureLock();
             lck.EnterWriteLock();
             try {
                 CellDateTimeValueCore(row, column, value);
-                MarkRequiresSavePreparation();
             } finally {
                 lck.ExitWriteLock();
             }
@@ -278,16 +287,14 @@ namespace OfficeIMO.Excel {
         public void CellValue(int row, int column, TimeSpan value) {
             if (_isBatchOperation || Locking.IsNoLock) {
                 CellTimeSpanValueCore(row, column, value);
-                MarkRequiresSavePreparation();
                 return;
             }
 
-            _excelDocument.MaterializeDeferredDataSetImport();
+            MaterializeDeferredDataSetImportIfNeeded();
             var lck = _excelDocument.EnsureLock();
             lck.EnterWriteLock();
             try {
                 CellTimeSpanValueCore(row, column, value);
-                MarkRequiresSavePreparation();
             } finally {
                 lck.ExitWriteLock();
             }
@@ -322,16 +329,14 @@ namespace OfficeIMO.Excel {
         public void CellValue(int row, int column, bool value) {
             if (_isBatchOperation || Locking.IsNoLock) {
                 CellBooleanValueCore(row, column, value);
-                MarkRequiresSavePreparation();
                 return;
             }
 
-            _excelDocument.MaterializeDeferredDataSetImport();
+            MaterializeDeferredDataSetImportIfNeeded();
             var lck = _excelDocument.EnsureLock();
             lck.EnterWriteLock();
             try {
                 CellBooleanValueCore(row, column, value);
-                MarkRequiresSavePreparation();
             } finally {
                 lck.ExitWriteLock();
             }
@@ -346,19 +351,15 @@ namespace OfficeIMO.Excel {
         public void CellFormula(int row, int column, string formula) {
             if (_isBatchOperation || Locking.IsNoLock) {
                 CellFormulaCore(row, column, formula);
-                MarkRequiresSavePreparation();
                 return;
             }
 
-            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
-                _excelDocument.MaterializeDeferredDataSetImport();
-            }
+            MaterializeDeferredDataSetImportIfNeeded();
 
             var lck = _excelDocument.EnsureLock();
             lck.EnterWriteLock();
             try {
                 CellFormulaCore(row, column, formula);
-                MarkRequiresSavePreparation();
             } finally {
                 lck.ExitWriteLock();
             }
@@ -456,7 +457,7 @@ namespace OfficeIMO.Excel {
         /// <param name="numberFormat">The number format code to apply.</param>
         public void FormatCell(int row, int column, string numberFormat) {
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
-                _excelDocument.MaterializeDeferredDataSetImport();
+                MaterializeDeferredDataSetImportIfNeeded();
             }
 
             WriteLockConditional(() => FormatCellCore(row, column, numberFormat));
@@ -474,7 +475,7 @@ namespace OfficeIMO.Excel {
             text = string.Empty;
             try {
                 if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
-                    _excelDocument.MaterializeDeferredDataSetImport();
+                    MaterializeDeferredDataSetImportIfNeeded();
                 }
 
                 var cell = GetCell(row, column);
@@ -1192,16 +1193,14 @@ namespace OfficeIMO.Excel {
         public void CellValue(int row, int column, object? value) {
             if (_isBatchOperation || Locking.IsNoLock) {
                 CellValueCore(row, column, value);
-                MarkRequiresSavePreparation();
                 return;
             }
 
-            _excelDocument.MaterializeDeferredDataSetImport();
+            MaterializeDeferredDataSetImportIfNeeded();
             var lck = _excelDocument.EnsureLock();
             lck.EnterWriteLock();
             try {
                 CellValueCore(row, column, value);
-                MarkRequiresSavePreparation();
             } finally {
                 lck.ExitWriteLock();
             }

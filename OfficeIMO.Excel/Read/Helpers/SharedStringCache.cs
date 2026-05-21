@@ -14,6 +14,7 @@ namespace OfficeIMO.Excel {
         private readonly SharedStringTablePart? _part;
         private readonly bool _preferDom;
         private readonly Lazy<List<string>> _items;
+        private List<string>? _loadedItems;
         private readonly object _containsCacheLock = new object();
         private Dictionary<(string Text, StringComparison Comparison), HashSet<int>?>? _containsCache;
 
@@ -189,7 +190,7 @@ namespace OfficeIMO.Excel {
         }
 
         public string? Get(int index) {
-            var items = _items.Value;
+            var items = GetLoadedItems();
             if ((uint)index < (uint)items.Count) return items[index];
             return null;
         }
@@ -206,7 +207,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            var items = _items.Value;
+            var items = GetLoadedItems();
             HashSet<int>? indexes = null;
             for (int i = 0; i < items.Count; i++) {
                 if (items[i].IndexOf(text, comparison) >= 0) {
@@ -225,6 +226,10 @@ namespace OfficeIMO.Excel {
             }
 
             return indexes;
+        }
+
+        private List<string> GetLoadedItems() {
+            return _loadedItems ??= _items.Value;
         }
 
         private static int ParsePositiveIntAttribute(string? value) {

@@ -112,6 +112,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, A1.ParseColumnIndexFromCellReference("A2147483648"));
             Assert.Equal(0, A1.ParseColumnIndexFromCellReference("TOTAL"));
             Assert.Equal(28, A1.ParseColumnIndexFromCellReferenceFast("ab12"));
+            Assert.Equal(8, A1.ParseColumnIndexFromCellReferenceFast("H2501"));
             Assert.Equal(28, A1.ParseColumnIndexFromCellReferenceFast(" AB12 "));
             Assert.Equal(1, A1.ParseColumnIndexFromCellReferenceFast("A0000000001"));
             Assert.Equal(0, A1.ParseColumnIndexFromCellReferenceFast("A"));
@@ -119,6 +120,12 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, A1.ParseColumnIndexFromCellReferenceFast("A2147483648"));
             Assert.Equal(0, A1.ParseColumnIndexFromCellReferenceFast("AB12X"));
             Assert.Equal(0, A1.ParseColumnIndexFromCellReferenceFast("TOTAL"));
+            Assert.Equal(1, A1.ParseColumnIndexFromCellReferenceWithKnownRowFast("A1"));
+            Assert.Equal(8, A1.ParseColumnIndexFromCellReferenceWithKnownRowFast("H2501"));
+            Assert.Equal(28, A1.ParseColumnIndexFromCellReferenceWithKnownRowFast("ab12"));
+            Assert.Equal(0, A1.ParseColumnIndexFromCellReferenceWithKnownRowFast("A0"));
+            Assert.Equal(0, A1.ParseColumnIndexFromCellReferenceWithKnownRowFast("AB12X"));
+            Assert.Equal(0, A1.ParseColumnIndexFromCellReferenceWithKnownRowFast("TOTAL"));
             Assert.True(A1.TryParseCellReferenceFast("ab12", out int fastRow, out int fastCol));
             Assert.Equal((12, 28), (fastRow, fastCol));
             Assert.True(A1.TryParseCellReferenceFast(" AB12 ", out fastRow, out fastCol));

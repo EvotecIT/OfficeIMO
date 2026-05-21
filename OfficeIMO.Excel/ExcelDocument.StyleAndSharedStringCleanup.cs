@@ -84,24 +84,29 @@ namespace OfficeIMO.Excel {
             foreach (var worksheetPart in workbookPart.WorksheetParts) {
                 var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
                 bool worksheetChanged = false;
-                foreach (var cell in worksheet.Descendants<Cell>()) {
-                    if (cell.DataType?.Value != CellValues.SharedString) {
-                        continue;
-                    }
+                var sheetData = worksheet.GetFirstChild<SheetData>();
+                if (sheetData != null) {
+                    foreach (var row in sheetData.Elements<Row>()) {
+                        foreach (var cell in row.Elements<Cell>()) {
+                            if (cell.DataType?.Value != CellValues.SharedString) {
+                                continue;
+                            }
 
-                    string rawValue = cell.CellValue?.Text ?? cell.InnerText ?? string.Empty;
-                    if (!int.TryParse(rawValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int sharedStringIndex) || sharedStringIndex < 0) {
-                        cell.DataType = CellValues.InlineString;
-                        cell.CellValue = null;
-                        cell.InlineString = new InlineString(new Text(rawValue));
-                        worksheetChanged = true;
-                        continue;
-                    }
+                            string rawValue = cell.CellValue?.Text ?? cell.InnerText ?? string.Empty;
+                            if (!TryParseSharedStringIndex(rawValue, out int sharedStringIndex)) {
+                                cell.DataType = CellValues.InlineString;
+                                cell.CellValue = null;
+                                cell.InlineString = new InlineString(new Text(rawValue));
+                                worksheetChanged = true;
+                                continue;
+                            }
 
-                    sawSharedStringCell = true;
-                    sharedStringCellCount++;
-                    if (sharedStringIndex > maxSharedStringIndex) {
-                        maxSharedStringIndex = sharedStringIndex;
+                            sawSharedStringCell = true;
+                            sharedStringCellCount++;
+                            if (sharedStringIndex > maxSharedStringIndex) {
+                                maxSharedStringIndex = sharedStringIndex;
+                            }
+                        }
                     }
                 }
 
@@ -126,6 +131,7 @@ namespace OfficeIMO.Excel {
             while (itemCount <= maxSharedStringIndex) {
                 sharedStringTable.AppendChild(new SharedStringItem(new Text(string.Empty)));
                 itemCount++;
+                _sharedStringTableCount = itemCount;
                 sharedStringTableChanged = true;
             }
 
@@ -145,6 +151,27 @@ namespace OfficeIMO.Excel {
                 _sharedStringCache.Clear();
                 _sharedStringTableCount = itemCount;
             }
+        }
+
+        private static bool TryParseSharedStringIndex(string text, out int index) {
+            index = 0;
+            if (string.IsNullOrEmpty(text)) {
+                return false;
+            }
+
+            int parsed = 0;
+            for (int i = 0; i < text.Length; i++) {
+                int digit = text[i] - '0';
+                if ((uint)digit > 9U || parsed > (int.MaxValue - digit) / 10) {
+                    return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out index)
+                        && index >= 0;
+                }
+
+                parsed = (parsed * 10) + digit;
+            }
+
+            index = parsed;
+            return true;
         }
 
         private static void EnsureStylesheetPrimitives(Stylesheet stylesheet) {

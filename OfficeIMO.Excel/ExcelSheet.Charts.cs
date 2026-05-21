@@ -177,6 +177,7 @@ namespace OfficeIMO.Excel {
             if (seriesRanges == null) throw new ArgumentNullException(nameof(seriesRanges));
             if (row <= 0 || column <= 0) throw new ArgumentOutOfRangeException(nameof(row));
             if (widthPixels <= 0 || heightPixels <= 0) throw new ArgumentOutOfRangeException(nameof(widthPixels));
+            MaterializeDeferredDataSetImportIfNeeded();
 
             var ranges = seriesRanges.ToList();
             if (ranges.Count == 0) {
@@ -252,6 +253,7 @@ namespace OfficeIMO.Excel {
 
         private ExcelChart AddChartInternal(ExcelChartDataRange range, int row, int column, int widthPixels, int heightPixels,
             ExcelChartType type, ExcelChartData? data, string? title) {
+            MaterializeDeferredDataSetImportIfNeeded();
             Xdr.GraphicFrame? frame = null;
             DrawingsPart? drawingPart = null;
 

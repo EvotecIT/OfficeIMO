@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
 using System.Globalization;
+using System.IO;
 using System.Threading;
 
 namespace OfficeIMO.Excel {
@@ -40,6 +41,12 @@ namespace OfficeIMO.Excel {
         private int _lastAccessedCellRowIndex;
         private int _lastAccessedCellColumnIndex;
         private SheetData? _sheetDataCache;
+        private string?[]? _cellReferenceColumnNameCache;
+        private SharedStringCache? _cellTextSharedStringCache;
+        private readonly object _findFirstCacheLock = new object();
+        private string? _findFirstCacheText;
+        private string? _findFirstCacheAddress;
+        private bool _findFirstCacheHasValue;
         private static int _instancesCreated;
 
         internal static int InstancesCreatedForTests => Volatile.Read(ref _instancesCreated);
@@ -221,7 +228,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (createdRowElement) {
-                Cell createdCell = new Cell { CellReference = A1.CellReference(row, column) };
+                Cell createdCell = new Cell { CellReference = BuildCellReference(row, column) };
                 rowElement.Append(createdCell);
                 _lastAccessedRow = rowElement;
                 _lastAccessedRowIndex = row;
@@ -284,7 +291,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (cell == null) {
-                cell = new Cell { CellReference = A1.CellReference(row, column) };
+                cell = new Cell { CellReference = BuildCellReference(row, column) };
                 if (insertAfterCell != null) {
                     rowElement.InsertAfter(cell, insertAfterCell);
                 } else {
@@ -345,6 +352,32 @@ namespace OfficeIMO.Excel {
 
         private static string GetColumnName(int columnIndex) {
             return A1.ColumnIndexToLetters(columnIndex);
+        }
+
+        private string BuildCellReference(int row, int column) {
+            string columnName = GetCachedColumnName(column);
+            return columnName + row.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private string GetCachedColumnName(int columnIndex) {
+            const int MaxCachedColumn = 256;
+            if ((uint)(columnIndex - 1) >= MaxCachedColumn) {
+                return A1.ColumnIndexToLetters(columnIndex);
+            }
+
+            var cache = _cellReferenceColumnNameCache;
+            if (cache == null) {
+                cache = new string?[MaxCachedColumn];
+                _cellReferenceColumnNameCache = cache;
+            }
+
+            string? columnName = cache[columnIndex - 1];
+            if (columnName == null) {
+                columnName = A1.ColumnIndexToLetters(columnIndex);
+                cache[columnIndex - 1] = columnName;
+            }
+
+            return columnName;
         }
 
         private static int GetColumnIndex(string cellReference) {
@@ -415,10 +448,58 @@ namespace OfficeIMO.Excel {
         }
 
         private SharedStringCache BuildCellTextSharedStringSnapshot() {
-            return SharedStringCache.Build(_spreadSheetDocument);
+            if (_spreadSheetDocument.FileOpenAccess != FileAccess.Read) {
+                return SharedStringCache.Build(_spreadSheetDocument);
+            }
+
+            var cache = Volatile.Read(ref _cellTextSharedStringCache);
+            if (cache != null) {
+                return cache;
+            }
+
+            cache = SharedStringCache.Build(_spreadSheetDocument);
+            var existing = Interlocked.CompareExchange(ref _cellTextSharedStringCache, cache, null);
+            return existing ?? cache;
         }
 
         private void ClearCellTextSharedStringCache() {
+            if (Volatile.Read(ref _cellTextSharedStringCache) != null) {
+                Volatile.Write(ref _cellTextSharedStringCache, null);
+            }
+
+            ClearFindFirstCache();
+        }
+
+        private bool TryGetFindFirstCache(string text, out string? address) {
+            lock (_findFirstCacheLock) {
+                if (_findFirstCacheHasValue && string.Equals(_findFirstCacheText, text, StringComparison.Ordinal)) {
+                    address = _findFirstCacheAddress;
+                    return true;
+                }
+            }
+
+            address = null;
+            return false;
+        }
+
+        private void SetFindFirstCache(string text, string? address) {
+            lock (_findFirstCacheLock) {
+                _findFirstCacheText = text;
+                _findFirstCacheAddress = address;
+                _findFirstCacheHasValue = true;
+            }
+        }
+
+        private void ClearFindFirstCache() {
+            if (!Volatile.Read(ref _findFirstCacheHasValue)) {
+                return;
+            }
+
+            lock (_findFirstCacheLock) {
+                _findFirstCacheText = null;
+                _findFirstCacheAddress = null;
+                _findFirstCacheHasValue = false;
+            }
         }
 
         private static bool TryParseCellTextSharedStringIndex(string? text, out int index) {
@@ -455,8 +536,14 @@ namespace OfficeIMO.Excel {
                 action();
                 MarkRequiresSavePreparation();
             } else {
-                _excelDocument.MaterializeDeferredDataSetImport();
+                MaterializeDeferredDataSetImportIfNeeded();
                 WriteLock(action);
+            }
+        }
+
+        private void MaterializeDeferredDataSetImportIfNeeded() {
+            if (_excelDocument.HasDeferredDirectDataSetImport) {
+                _excelDocument.MaterializeDeferredDataSetImport();
             }
         }
 
@@ -547,6 +634,10 @@ namespace OfficeIMO.Excel {
         internal bool RequiresSavePreparation => _requiresSavePreparation;
 
         internal void MarkRequiresSavePreparation() {
+            if (_requiresSavePreparation) {
+                return;
+            }
+
             _requiresSavePreparation = true;
             _excelDocument.MarkRequiresSavePreflight();
         }

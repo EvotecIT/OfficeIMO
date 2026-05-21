@@ -26,7 +26,7 @@ namespace OfficeIMO.Excel {
             if (dataSet == null) throw new ArgumentNullException(nameof(dataSet));
             if (dataSet.Tables.Count == 0) throw new ArgumentException("The DataSet must contain at least one DataTable.", nameof(dataSet));
 
-            var model = DirectDataSetWorkbookModel.Create(dataSet, createTables: true, tableStyle, includeHeaders, includeAutoFilter, autoFit: false, DefaultDateTimeOffsetWriteStrategy, ct);
+            var model = DirectDataSetWorkbookModel.Create(dataSet, createTables: true, tableStyle, includeHeaders, includeAutoFilter, autoFit: false, DefaultDateTimeOffsetWriteStrategy, ct, omitBlankCells: true);
             if (stream.CanSeek) {
                 PrepareDestinationStreamForWrite(stream);
             }
@@ -522,6 +522,10 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        internal bool HasDeferredDirectDataSetImport
+            => !_materializingDeferredDataSetImport
+               && _directDataSetSaveCandidate?.IsDeferred == true;
+
         private void MaterializeDirectDataSetModel(DirectDataSetWorkbookModel model) {
             foreach (var sheetModel in model.Sheets) {
                 ExcelSheet sheet = TryGetExistingSheet(sheetModel.SheetName)
@@ -736,6 +740,7 @@ namespace OfficeIMO.Excel {
                         sheet.IncludeAutoFilter,
                         sheet.HasTable,
                         autoFitColumns: true,
+                        sheet.OmitBlankCells,
                         columnWidths);
                 }
 
@@ -752,7 +757,8 @@ namespace OfficeIMO.Excel {
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
                 CancellationToken ct,
                 IReadOnlyList<ExcelDataSetImportResult>? importResults = null,
-                bool snapshotTables = false) {
+                bool snapshotTables = false,
+                bool omitBlankCells = false) {
                 var sheets = new List<DirectDataSetSheetModel>();
                 var results = new List<ExcelDataSetImportResult>();
                 var usedSheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -783,7 +789,7 @@ namespace OfficeIMO.Excel {
                     double[]? columnWidths = autoFit && tableModel.ColumnCount > 0
                         ? tableModel.CalculateColumnWidths(includeHeaders, dateTimeOffsetWriteStrategy, ct)
                         : null;
-                    var sheet = new DirectDataSetSheetModel(index, sheetName, hasTable ? tableName : null, range, tableModel, tableStyle, includeHeaders, includeAutoFilter, hasTable, autoFit, columnWidths);
+                    var sheet = new DirectDataSetSheetModel(index, sheetName, hasTable ? tableName : null, range, tableModel, tableStyle, includeHeaders, includeAutoFilter, hasTable, autoFit, omitBlankCells, columnWidths);
                     sheets.Add(sheet);
                     results.Add(new ExcelDataSetImportResult(sheetName, hasTable ? tableName : null, range, tableModel.RowCount, tableModel.ColumnCount));
                     index++;
@@ -814,7 +820,7 @@ namespace OfficeIMO.Excel {
                 double[]? columnWidths = autoFit && tableModel.ColumnCount > 0
                     ? tableModel.CalculateColumnWidths(includeHeaders, dateTimeOffsetWriteStrategy, ct)
                     : null;
-                var sheet = new DirectDataSetSheetModel(1, sheetName, resolvedTableName, range, tableModel, tableStyle, includeHeaders, includeAutoFilter, hasTable, autoFit, columnWidths);
+                var sheet = new DirectDataSetSheetModel(1, sheetName, resolvedTableName, range, tableModel, tableStyle, includeHeaders, includeAutoFilter, hasTable, autoFit, omitBlankCells: false, columnWidths: columnWidths);
                 var result = new ExcelDataSetImportResult(sheetName, resolvedTableName, range, tableModel.RowCount, tableModel.ColumnCount);
                 return new DirectDataSetWorkbookModel([sheet], [result], dateTimeOffsetWriteStrategy ?? DefaultDateTimeOffsetWriteStrategy);
             }
@@ -933,6 +939,7 @@ namespace OfficeIMO.Excel {
                 bool includeAutoFilter,
                 bool hasTable,
                 bool autoFitColumns,
+                bool omitBlankCells,
                 double[]? columnWidths) {
                 Index = index;
                 SheetName = sheetName;
@@ -944,6 +951,7 @@ namespace OfficeIMO.Excel {
                 IncludeAutoFilter = includeAutoFilter;
                 HasTable = hasTable;
                 AutoFitColumns = autoFitColumns;
+                OmitBlankCells = omitBlankCells;
                 ColumnWidths = columnWidths;
             }
 
@@ -967,10 +975,36 @@ namespace OfficeIMO.Excel {
 
             internal bool AutoFitColumns { get; }
 
+            internal bool OmitBlankCells { get; }
+
             internal double[]? ColumnWidths { get; }
         }
 
         private sealed class DirectDataSetTableModel {
+            private enum AutoFitWidthKind {
+                Object,
+                String,
+                Boolean,
+                DateTime,
+                DateTimeOffset,
+                TimeSpan,
+                Double,
+                Float,
+                Decimal,
+                SByte,
+                Byte,
+                Int16,
+                UInt16,
+                Int32,
+                UInt32,
+                Int64,
+                UInt64,
+#if NET6_0_OR_GREATER
+                DateOnly,
+                TimeOnly,
+#endif
+            }
+
             private readonly DataTable? _sourceTable;
             private readonly DirectDataSetColumnModel[]? _columns;
             private readonly object?[][]? _rows;
@@ -1036,10 +1070,49 @@ namespace OfficeIMO.Excel {
 
             internal Type GetColumnType(int index) => _columns![index].DataType;
 
+            internal int[]? GetStringCandidateColumnIndexes() {
+                int[]? indexes = null;
+                int count = 0;
+                for (int i = 0; i < _columns!.Length; i++) {
+                    Type dataType = _columns[i].DataType;
+                    if (dataType != typeof(string) && dataType != typeof(object)) {
+                        continue;
+                    }
+
+                    indexes ??= new int[_columns.Length];
+                    indexes[count++] = i;
+                }
+
+                if (indexes == null) {
+                    return null;
+                }
+
+                if (count == indexes.Length) {
+                    return indexes;
+                }
+
+                Array.Resize(ref indexes, count);
+                return indexes;
+            }
+
+            internal DataRow? GetSourceRow(int rowIndex) => _sourceTable?.Rows[rowIndex];
+
+            internal object?[]? GetBufferedRow(int rowIndex) => _rows?[rowIndex];
+
             internal object? GetValue(int rowIndex, int columnIndex) {
                 object? value = _sourceTable != null
                     ? _sourceTable.Rows[rowIndex][columnIndex]
                     : _rows![rowIndex][columnIndex];
+                return value == DBNull.Value ? null : value;
+            }
+
+            internal static object? GetValue(DataRow row, int columnIndex) {
+                object? value = row[columnIndex];
+                return value == DBNull.Value ? null : value;
+            }
+
+            internal static object? GetValue(object?[] row, int columnIndex) {
+                object? value = row[columnIndex];
                 return value == DBNull.Value ? null : value;
             }
 
@@ -1056,15 +1129,54 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
+                AutoFitWidthKind[] widthKinds = CreateAutoFitWidthKinds();
                 int rowCount = RowCount;
                 for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                     ct.ThrowIfCancellationRequested();
+                    DataRow? sourceRow = GetSourceRow(rowIndex);
+                    object?[]? bufferedRow = sourceRow == null ? GetBufferedRow(rowIndex) : null;
                     for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-                        widths[columnIndex] = Math.Max(widths[columnIndex], EstimateAutoFitWidth(GetValue(rowIndex, columnIndex), dateTimeOffsetWriteStrategy));
+                        object? value = sourceRow != null
+                            ? GetValue(sourceRow, columnIndex)
+                            : GetValue(bufferedRow!, columnIndex);
+                        widths[columnIndex] = Math.Max(widths[columnIndex], EstimateAutoFitWidth(value, widthKinds[columnIndex], dateTimeOffsetWriteStrategy));
                     }
                 }
 
                 return widths;
+            }
+
+            private AutoFitWidthKind[] CreateAutoFitWidthKinds() {
+                var kinds = new AutoFitWidthKind[_columns!.Length];
+                for (int i = 0; i < kinds.Length; i++) {
+                    kinds[i] = GetAutoFitWidthKind(_columns[i].DataType);
+                }
+
+                return kinds;
+            }
+
+            private static AutoFitWidthKind GetAutoFitWidthKind(Type dataType) {
+                if (dataType == typeof(string)) return AutoFitWidthKind.String;
+                if (dataType == typeof(bool)) return AutoFitWidthKind.Boolean;
+                if (dataType == typeof(DateTime)) return AutoFitWidthKind.DateTime;
+                if (dataType == typeof(DateTimeOffset)) return AutoFitWidthKind.DateTimeOffset;
+                if (dataType == typeof(TimeSpan)) return AutoFitWidthKind.TimeSpan;
+                if (dataType == typeof(double)) return AutoFitWidthKind.Double;
+                if (dataType == typeof(float)) return AutoFitWidthKind.Float;
+                if (dataType == typeof(decimal)) return AutoFitWidthKind.Decimal;
+                if (dataType == typeof(sbyte)) return AutoFitWidthKind.SByte;
+                if (dataType == typeof(byte)) return AutoFitWidthKind.Byte;
+                if (dataType == typeof(short)) return AutoFitWidthKind.Int16;
+                if (dataType == typeof(ushort)) return AutoFitWidthKind.UInt16;
+                if (dataType == typeof(int)) return AutoFitWidthKind.Int32;
+                if (dataType == typeof(uint)) return AutoFitWidthKind.UInt32;
+                if (dataType == typeof(long)) return AutoFitWidthKind.Int64;
+                if (dataType == typeof(ulong)) return AutoFitWidthKind.UInt64;
+#if NET6_0_OR_GREATER
+                if (dataType == typeof(DateOnly)) return AutoFitWidthKind.DateOnly;
+                if (dataType == typeof(TimeOnly)) return AutoFitWidthKind.TimeOnly;
+#endif
+                return AutoFitWidthKind.Object;
             }
 
             private static double EstimateAutoFitWidth(string text) {
@@ -1158,6 +1270,66 @@ namespace OfficeIMO.Excel {
                         return EstimateAutoFitWidth(formattable.ToString(null, CultureInfo.InvariantCulture) ?? string.Empty);
                     default:
                         return EstimateAutoFitWidth(value.ToString() ?? string.Empty);
+                }
+            }
+
+            private static double EstimateAutoFitWidth(object? value, AutoFitWidthKind widthKind, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy) {
+                if (value == null || value == DBNull.Value) {
+                    return 0D;
+                }
+
+                switch (widthKind) {
+                    case AutoFitWidthKind.String:
+                        return value is string stringValue ? EstimateAutoFitWidth(stringValue) : EstimateAutoFitWidth(value, dateTimeOffsetWriteStrategy);
+                    case AutoFitWidthKind.Boolean:
+                        return value is bool boolValue ? EstimateAutoFitWidthFromLength(boolValue ? 4 : 5) : EstimateAutoFitWidth(value, dateTimeOffsetWriteStrategy);
+                    case AutoFitWidthKind.DateTime:
+                        return value is DateTime ? EstimateAutoFitWidthFromLength(16) : EstimateAutoFitWidth(value, dateTimeOffsetWriteStrategy);
+                    case AutoFitWidthKind.DateTimeOffset:
+                        return value is DateTimeOffset dateTimeOffsetValue ? EstimateDateTimeOffsetAutoFitWidth(dateTimeOffsetValue, dateTimeOffsetWriteStrategy) : EstimateAutoFitWidth(value, dateTimeOffsetWriteStrategy);
+                    case AutoFitWidthKind.TimeSpan:
+                        return value is TimeSpan timeSpanValue ? EstimateAutoFitWidthFromLength(CountFormattedCharacters(timeSpanValue)) : EstimateAutoFitWidth(value, dateTimeOffsetWriteStrategy);
+                    case AutoFitWidthKind.Double:
+                        return value is double doubleValue ? EstimateAutoFitWidthFromLength(CountFormattedCharacters(doubleValue)) : EstimateAutoFitWidth(value, dateTimeOffsetWriteStrategy);
+                    case AutoFitWidthKind.Float:
+                        return value is float floatValue ? EstimateAutoFitWidthFromLength(CountFormattedCharacters(floatValue)) : EstimateAutoFitWidth(value, dateTimeOffsetWriteStrategy);
+                    case AutoFitWidthKind.Decimal:
+                        return value is decimal decimalValue ? EstimateAutoFitWidthFromLength(CountFormattedCharacters(decimalValue)) : EstimateAutoFitWidth(value, dateTimeOffsetWriteStrategy);
+                    case AutoFitWidthKind.SByte:
+                        return value is sbyte sbyteValue ? EstimateAutoFitWidthFromLength(CountSignedIntegerCharacters(sbyteValue)) : EstimateAutoFitWidth(value, dateTimeOffsetWriteStrategy);
+                    case AutoFitWidthKind.Byte:
+                        return value is byte byteValue ? EstimateAutoFitWidthFromLength(CountUnsignedIntegerCharacters(byteValue)) : EstimateAutoFitWidth(value, dateTimeOffsetWriteStrategy);
+                    case AutoFitWidthKind.Int16:
+                        return value is short shortValue ? EstimateAutoFitWidthFromLength(CountSignedIntegerCharacters(shortValue)) : EstimateAutoFitWidth(value, dateTimeOffsetWriteStrategy);
+                    case AutoFitWidthKind.UInt16:
+                        return value is ushort ushortValue ? EstimateAutoFitWidthFromLength(CountUnsignedIntegerCharacters(ushortValue)) : EstimateAutoFitWidth(value, dateTimeOffsetWriteStrategy);
+                    case AutoFitWidthKind.Int32:
+                        return value is int intValue ? EstimateAutoFitWidthFromLength(CountSignedIntegerCharacters(intValue)) : EstimateAutoFitWidth(value, dateTimeOffsetWriteStrategy);
+                    case AutoFitWidthKind.UInt32:
+                        return value is uint uintValue ? EstimateAutoFitWidthFromLength(CountUnsignedIntegerCharacters(uintValue)) : EstimateAutoFitWidth(value, dateTimeOffsetWriteStrategy);
+                    case AutoFitWidthKind.Int64:
+                        return value is long longValue ? EstimateAutoFitWidthFromLength(CountSignedIntegerCharacters(longValue)) : EstimateAutoFitWidth(value, dateTimeOffsetWriteStrategy);
+                    case AutoFitWidthKind.UInt64:
+                        return value is ulong ulongValue ? EstimateAutoFitWidthFromLength(CountUnsignedIntegerCharacters(ulongValue)) : EstimateAutoFitWidth(value, dateTimeOffsetWriteStrategy);
+#if NET6_0_OR_GREATER
+                    case AutoFitWidthKind.DateOnly:
+                        return value is DateOnly ? EstimateAutoFitWidthFromLength(10) : EstimateAutoFitWidth(value, dateTimeOffsetWriteStrategy);
+                    case AutoFitWidthKind.TimeOnly:
+                        return value is TimeOnly ? EstimateAutoFitWidthFromLength(8) : EstimateAutoFitWidth(value, dateTimeOffsetWriteStrategy);
+#endif
+                    default:
+                        return EstimateAutoFitWidth(value, dateTimeOffsetWriteStrategy);
+                }
+            }
+
+            private static double EstimateDateTimeOffsetAutoFitWidth(DateTimeOffset value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy) {
+                try {
+                    _ = dateTimeOffsetWriteStrategy(value);
+                    return EstimateAutoFitWidthFromLength(16);
+                } catch (ArgumentException) {
+                    return EstimateAutoFitWidth(value.ToString("o", CultureInfo.InvariantCulture));
+                } catch (OverflowException) {
+                    return EstimateAutoFitWidth(value.ToString("o", CultureInfo.InvariantCulture));
                 }
             }
 

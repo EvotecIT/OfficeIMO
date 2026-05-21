@@ -375,6 +375,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_WriteDataSet_RejectsOversizedObjectStringValues() {
+            using var memory = new MemoryStream();
+            var dataSet = new DataSet();
+            var table = new DataTable("Items");
+            table.Columns.Add("Notes", typeof(object));
+            table.Rows.Add(new string('A', 32768));
+            dataSet.Tables.Add(table);
+
+            var exception = Assert.Throws<ArgumentException>(() => ExcelDocument.WriteDataSet(memory, dataSet));
+            Assert.Contains("32,767", exception.Message);
+        }
+
+        [Fact]
         public void PerformanceReview_WriteDataSet_FallsBackForOutOfRangeDateTimeOffset() {
             using var memory = new MemoryStream();
             var value = DateTimeOffset.MinValue;
@@ -473,6 +486,107 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { "Name", "Repeated" }, sharedStrings.Select(item => item.InnerText).ToArray());
             Assert.Equal(CellValues.SharedString, cells["A2"].DataType!.Value);
             Assert.Equal("1", cells["A601"].CellValue!.Text);
+        }
+
+        [Fact]
+        public void PerformanceReview_WriteDataSet_ForcedSharedHeaderCountsPriorDataOccurrence() {
+            using var memory = new MemoryStream();
+            var dataSet = new DataSet("Export");
+
+            var first = new DataTable("First");
+            first.Columns.Add("Value", typeof(string));
+            first.Rows.Add("CrossSheetHeader");
+            for (int i = 0; i < 600; i++) {
+                first.Rows.Add("Repeated");
+            }
+
+            var second = new DataTable("Second");
+            second.Columns.Add("CrossSheetHeader", typeof(string));
+            second.Rows.Add("Other");
+
+            dataSet.Tables.Add(first);
+            dataSet.Tables.Add(second);
+
+            ExcelDocument.WriteDataSet(memory, dataSet);
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var sharedStringTable = spreadsheet.WorkbookPart!.SharedStringTablePart!.SharedStringTable;
+            int actualSharedCellReferences = spreadsheet.WorkbookPart.WorksheetParts
+                .SelectMany(part => part.Worksheet.Descendants<Cell>())
+                .Count(cell => cell.DataType?.Value == CellValues.SharedString);
+
+            Assert.Contains(sharedStringTable.Elements<SharedStringItem>(), item => item.InnerText == "CrossSheetHeader");
+            Assert.Equal((uint)actualSharedCellReferences, sharedStringTable.Count!.Value);
+        }
+
+        [Fact]
+        public void PerformanceReview_WriteDataSet_SharedStringsSkipUniqueDataValues() {
+            using var memory = new MemoryStream();
+            var dataSet = new DataSet("Export");
+            var table = new DataTable("Rows");
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("Unique", typeof(string));
+
+            for (int i = 0; i < 600; i++) {
+                table.Rows.Add("Repeated", "Unique " + i.ToString(CultureInfo.InvariantCulture));
+            }
+
+            dataSet.Tables.Add(table);
+
+            ExcelDocument.WriteDataSet(memory, dataSet);
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var sharedStrings = spreadsheet.WorkbookPart!.SharedStringTablePart!.SharedStringTable.Elements<SharedStringItem>().Select(item => item.InnerText).ToList();
+            var worksheet = spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet;
+            var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+
+            Assert.Equal(new[] { "Name", "Unique", "Repeated" }, sharedStrings);
+            Assert.Equal(CellValues.SharedString, cells["A2"].DataType!.Value);
+            Assert.Equal("2", cells["A2"].CellValue!.Text);
+            Assert.Equal(CellValues.String, cells["B2"].DataType!.Value);
+            Assert.Equal("Unique 0", cells["B2"].CellValue!.Text);
+        }
+
+        [Fact]
+        public void PerformanceReview_WriteDataSet_OmitsSparseBlankCellsButPreservesEmptyStrings() {
+            using var memory = new MemoryStream();
+            var dataSet = new DataSet("Export");
+            var table = new DataTable("Sparse");
+            table.Columns.Add("Id", typeof(int));
+            table.Columns.Add("OptionalCode", typeof(string));
+            table.Columns.Add("ExplicitEmpty", typeof(string));
+            table.Columns.Add("ReviewDate", typeof(DateTime));
+            table.Rows.Add(1, DBNull.Value, string.Empty, new DateTime(2026, 5, 20));
+            table.Rows.Add(2, "C2", DBNull.Value, DBNull.Value);
+            dataSet.Tables.Add(table);
+
+            ExcelDocument.WriteDataSet(memory, dataSet);
+
+            memory.Position = 0;
+            using (var spreadsheet = SpreadsheetDocument.Open(memory, false)) {
+                var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!;
+                var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                Assert.False(cells.ContainsKey("B2"));
+                Assert.True(cells.ContainsKey("C2"));
+                Assert.Equal(CellValues.String, cells["C2"].DataType!.Value);
+                Assert.Equal(string.Empty, cells["C2"].CellValue!.Text);
+                Assert.True(cells.ContainsKey("D2"));
+                Assert.True(cells.ContainsKey("A3"));
+                Assert.True(cells.ContainsKey("B3"));
+                Assert.False(cells.ContainsKey("C3"));
+                Assert.False(cells.ContainsKey("D3"));
+                Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+            }
+
+            using var reader = ExcelDocumentReader.Open(memory.ToArray());
+            DataTable imported = reader.ReadTableAsDataTable("Sparse");
+            Assert.Equal(2, imported.Rows.Count);
+            Assert.Equal(DBNull.Value, imported.Rows[0]["OptionalCode"]);
+            Assert.Equal(string.Empty, imported.Rows[0]["ExplicitEmpty"]);
+            Assert.Equal(DBNull.Value, imported.Rows[1]["ExplicitEmpty"]);
+            Assert.Equal(DBNull.Value, imported.Rows[1]["ReviewDate"]);
         }
 
         [Fact]
@@ -1167,6 +1281,41 @@ namespace OfficeIMO.Tests {
             Assert.Equal(ExcelSavePackageWriter.StandardPackage, document.LastSaveDiagnostics.Writer);
             Assert.False(document.LastSaveDiagnostics.UsedFastPackageWriter);
             Assert.False(string.IsNullOrWhiteSpace(document.LastSaveDiagnostics.FastPackageSkipReason));
+        }
+
+        [Fact]
+        public void PerformanceReview_ExplicitStreamSave_FallsBackForUnknownSheetDataChild() {
+            using var memory = new MemoryStream();
+            using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+            var sheet = document.AddWorkSheet("Unknown");
+            sheet.CellValue(1, 1, "Project");
+
+            var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+            var row = sheetData.Elements<Row>().First();
+            row.AppendChild(new OpenXmlUnknownElement("x", "unknown", "urn:officeimo:test"));
+
+            document.Save(memory);
+
+            Assert.Equal(ExcelSavePackageWriter.StandardPackage, document.LastSaveDiagnostics.Writer);
+            Assert.False(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            Assert.Contains("unknown", document.LastSaveDiagnostics.FastPackageSkipReason, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void PerformanceReview_ExplicitStreamSave_FallsBackForUnknownDirectSheetDataChild() {
+            using var memory = new MemoryStream();
+            using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+            var sheet = document.AddWorkSheet("Unknown");
+            sheet.CellValue(1, 1, "Project");
+
+            var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+            sheetData.AppendChild(new OpenXmlUnknownElement("x", "unknown", "urn:officeimo:test"));
+
+            document.Save(memory);
+
+            Assert.Equal(ExcelSavePackageWriter.StandardPackage, document.LastSaveDiagnostics.Writer);
+            Assert.False(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            Assert.Contains("unknown", document.LastSaveDiagnostics.FastPackageSkipReason, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
