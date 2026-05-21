@@ -290,14 +290,15 @@ namespace OfficeIMO.Excel {
         public string? FindFirst(string text) {
             if (string.IsNullOrEmpty(text)) return null;
             // Text-mutating paths must clear this cache before rendered cell text changes.
-            if (TryGetFindFirstCache(text, out string? cachedAddress)) {
+            bool canUseCache = !_hasWorksheetMutations;
+            if (canUseCache && TryGetFindFirstCache(text, out string? cachedAddress)) {
                 return cachedAddress;
             }
 
             var ws = WorksheetRoot;
             var sd = ws.GetFirstChild<SheetData>();
             if (sd == null) {
-                SetFindFirstCache(text, null);
+                SetFindFirstCacheIfAllowed(null);
                 return null;
             }
 
@@ -308,7 +309,7 @@ namespace OfficeIMO.Excel {
                     if (TryGetSharedStringCellIndex(cell, out int sharedStringIndex)) {
                         if (sharedStringMatches != null && sharedStringMatches.Contains(sharedStringIndex)) {
                             string? address = cell.CellReference?.Value;
-                            SetFindFirstCache(text, address);
+                            SetFindFirstCacheIfAllowed(address);
                             return address;
                         }
 
@@ -318,14 +319,20 @@ namespace OfficeIMO.Excel {
                     var t = GetCellText(cell);
                     if (!string.IsNullOrEmpty(t) && t.IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0) {
                         string? address = cell.CellReference?.Value;
-                        SetFindFirstCache(text, address);
+                        SetFindFirstCacheIfAllowed(address);
                         return address;
                     }
                 }
             }
 
-            SetFindFirstCache(text, null);
+            SetFindFirstCacheIfAllowed(null);
             return null;
+
+            void SetFindFirstCacheIfAllowed(string? address) {
+                if (canUseCache) {
+                    SetFindFirstCache(text, address);
+                }
+            }
         }
 
         /// <summary>

@@ -43,7 +43,9 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (changed) {
-                    ClearFindFirstCache();
+                    _hasWorksheetMutations = true;
+                    MarkRequiresSavePreparation();
+                    ClearCellTextSharedStringCache();
                 }
 
                 WorksheetRoot.Save();
@@ -66,7 +68,9 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (count > 0) {
-                    ClearFindFirstCache();
+                    _hasWorksheetMutations = true;
+                    MarkRequiresSavePreparation();
+                    ClearCellTextSharedStringCache();
                 }
 
                 WorksheetRoot.Save();
