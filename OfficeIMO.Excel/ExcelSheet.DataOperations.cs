@@ -289,6 +289,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string? FindFirst(string text) {
             if (string.IsNullOrEmpty(text)) return null;
+            // Text-mutating paths must clear this cache before rendered cell text changes.
             if (TryGetFindFirstCache(text, out string? cachedAddress)) {
                 return cachedAddress;
             }
