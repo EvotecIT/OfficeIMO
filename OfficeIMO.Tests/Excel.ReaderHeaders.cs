@@ -1072,6 +1072,41 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Sheet_HeaderMapCache_RebuildsWhenDataRowExpandsUsedRangeColumns() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderHeaderCacheDataColumnExpansion.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Status");
+                    sheet.CellValue(1, 2, "Value");
+                    sheet.CellValue(2, 1, "Open");
+                    sheet.CellValue(2, 2, 10);
+                    document.Save();
+                }
+
+                using var loadedDocument = ExcelDocument.Load(filePath);
+                var loadedSheet = loadedDocument.GetSheet("Data");
+
+                var initialMap = loadedSheet.GetHeaderMap();
+                Assert.Equal(1, initialMap["Status"]);
+                Assert.Equal(2, initialMap["Value"]);
+
+                loadedSheet.CellValue(2, 3, "Expanded");
+
+                Assert.True(loadedSheet.TryGetColumnIndexByHeader("Column3", out int generatedColumn));
+                Assert.Equal(3, generatedColumn);
+
+                var refreshedMap = loadedSheet.GetHeaderMap();
+                Assert.Equal(3, refreshedMap["Column3"]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
         private static bool IsHeaderMapCachePopulated(ExcelSheet sheet) {
             var field = typeof(ExcelSheet).GetField("_headerMapCachePopulated", BindingFlags.Instance | BindingFlags.NonPublic);
             Assert.NotNull(field);

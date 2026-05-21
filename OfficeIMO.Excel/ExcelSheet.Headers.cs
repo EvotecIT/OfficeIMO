@@ -112,16 +112,18 @@ namespace OfficeIMO.Excel {
         }
 
         private bool HeaderMapCacheCanReturnWithoutRebuild() {
-            if (_hasWorksheetMutations) {
-                return true;
-            }
-
             int headerRowIndex = Volatile.Read(ref _headerMapHeaderRowIndex);
             if (headerRowIndex <= 0) {
                 return false;
             }
 
-            return CountHeaderRowCells(headerRowIndex) == Volatile.Read(ref _headerMapHeaderCellCount);
+            if (CountHeaderRowCells(headerRowIndex) != Volatile.Read(ref _headerMapHeaderCellCount)) {
+                return false;
+            }
+
+            string reference = ExcelSheet.ComputeSheetDimensionReference(WorksheetRoot);
+            string a1Used = reference.IndexOf(":", StringComparison.Ordinal) >= 0 ? reference : reference + ":" + reference;
+            return string.Equals(_headerMapSourceA1, a1Used, StringComparison.Ordinal);
         }
 
         private int CountHeaderRowCells(int headerRowIndex) {

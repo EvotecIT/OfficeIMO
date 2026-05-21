@@ -297,6 +297,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FindFirst_UsesFreshFormulaCacheStateAfterCalculationChanges() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesFindFirstFormulaCacheMutation.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, 1d);
+                sheet.CellValue(2, 1, 2d);
+                sheet.CellFormula(3, 1, "SUM(A1:A2)");
+
+                Assert.Null(sheet.FindFirst("3"));
+
+                Assert.Equal(1, sheet.RecalculateSupportedFormulas());
+                Assert.Equal("A3", sheet.FindFirst("3"));
+
+                sheet.ClearCachedFormulaResults();
+                Assert.Null(sheet.FindFirst("3"));
+
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void Test_FindFirstAndReplaceAll_HandleSharedStrings() {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesSharedStringFindReplace.xlsx");
 
