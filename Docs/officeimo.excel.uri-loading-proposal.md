@@ -82,8 +82,8 @@ The implementation should clone option values at operation start so callers cann
 - `Timeout` and `CancellationToken` both respected.
 - Caller headers and user-agent supported without adding a dependency on any auth framework.
 - Optional content-type validation because real file hosts often return generic values. ZIP header validation is the stronger default check for `.xlsx`.
-- The internally owned client disables automatic redirects, follows redirects manually, revalidates the target URI scheme at each hop, and strips custom headers after a host change.
-- The internally owned client enables gzip/deflate response decompression. If a caller supplies `HttpClient`, their handler policy still owns transport behavior.
+- The internally owned client uses the configured timeout, disables automatic redirects, follows redirects manually, revalidates the target URI scheme at each hop, and strips custom headers after a host change.
+- The internally owned client enables gzip/deflate response decompression. If a caller supplies `HttpClient`, their handler policy still owns transport behavior, but cross-origin redirects are refused when default request headers are present because those headers cannot be suppressed safely per redirected request.
 - Remote load is read-only by default. It should not imply remote save or upload semantics.
 
 ## Ownership And Cleanup
@@ -110,7 +110,8 @@ For a future slice, add temp-file support only if it reduces real memory pressur
    - copies to memory,
    - follows redirects manually with scheme revalidation,
    - strips custom headers after redirected host changes,
-   - enables gzip/deflate decompression for the internally created client,
+   - refuses cross-origin redirects when a caller-supplied `HttpClient` has default request headers,
+   - applies the configured timeout and enables gzip/deflate decompression for the internally created client,
    - validates ZIP magic bytes when enabled,
    - reports progress during copy.
 3. Add `ExcelDocument.Load(Uri, ...)` and `LoadAsync(Uri, ...)`.
@@ -123,6 +124,7 @@ For a future slice, add temp-file support only if it reduces real memory pressur
    - Opt-in `http` works.
    - headers/user-agent are sent.
    - custom headers are not forwarded across redirected hosts.
+   - caller-supplied default headers block cross-origin redirects instead of being forwarded.
    - HTTPS-to-HTTP redirects are rejected by default.
    - max byte limit rejects oversized responses before and during copy.
    - cancellation is observed while downloading.

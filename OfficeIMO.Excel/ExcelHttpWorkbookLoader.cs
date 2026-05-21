@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel {
             HttpClient? ownedClient = null;
             var client = snapshot.HttpClient;
             if (client == null) {
-                ownedClient = CreateOwnedHttpClient();
+                ownedClient = CreateOwnedHttpClient(snapshot.Timeout);
                 client = ownedClient;
             }
 
@@ -59,13 +59,15 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static HttpClient CreateOwnedHttpClient() {
+        private static HttpClient CreateOwnedHttpClient(TimeSpan timeout) {
             var handler = new HttpClientHandler {
                 AllowAutoRedirect = false,
                 AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
             };
 
-            return new HttpClient(handler, disposeHandler: true);
+            return new HttpClient(handler, disposeHandler: true) {
+                Timeout = timeout
+            };
         }
 
         private static async Task<HttpResponseMessage> SendWithRedirectsAsync(
@@ -77,6 +79,10 @@ namespace OfficeIMO.Excel {
             bool includeCustomHeaders = true;
 
             for (int redirectCount = 0; redirectCount <= MaxRedirects; redirectCount++) {
+                if (!includeCustomHeaders && HasDefaultRequestHeaders(client)) {
+                    throw new HttpRequestException("Remote workbook request refused a cross-origin redirect because the HTTP client has default request headers that cannot be suppressed per redirected request.");
+                }
+
                 var request = new HttpRequestMessage(HttpMethod.Get, currentUri);
                 ApplyHeaders(request, options, includeCustomHeaders);
 
@@ -202,6 +208,14 @@ namespace OfficeIMO.Excel {
             return string.Equals(left.Scheme, right.Scheme, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(left.IdnHost, right.IdnHost, StringComparison.OrdinalIgnoreCase)
                 && left.Port == right.Port;
+        }
+
+        private static bool HasDefaultRequestHeaders(HttpClient client) {
+            foreach (var _ in client.DefaultRequestHeaders) {
+                return true;
+            }
+
+            return false;
         }
 
         private static void ValidateContentType(HttpResponseMessage response, ExcelHttpLoadOptionsSnapshot options) {

@@ -225,6 +225,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task ExcelHttpLoadRejectsCrossOriginRedirectWhenClientDefaultHeadersArePresent() {
+            var requests = new List<HttpRequestMessage>();
+            using var httpClient = new HttpClient(new FakeWorkbookHttpMessageHandler((request, _) => {
+                requests.Add(CloneRequestHeaders(request));
+                var redirect = new HttpResponseMessage(HttpStatusCode.Redirect);
+                redirect.Headers.Location = new Uri("https://cdn.example.test/workbook.xlsx");
+                return Task.FromResult(redirect);
+            }));
+            httpClient.DefaultRequestHeaders.TryAddWithoutValidation("X-Api-Key", "secret");
+
+            var ex = await Assert.ThrowsAsync<HttpRequestException>(() =>
+                ExcelDocumentReader.OpenAsync(
+                    new Uri("https://example.test/workbook.xlsx"),
+                    httpOptions: new ExcelHttpLoadOptions { HttpClient = httpClient }));
+
+            Assert.Contains("default request headers", ex.Message, StringComparison.OrdinalIgnoreCase);
+            var request = Assert.Single(requests);
+            Assert.True(request.Headers.Contains("X-Api-Key"));
+        }
+
+        [Fact]
         public async Task ExcelHttpLoadObservesCancellationToken() {
             using var httpClient = new HttpClient(new FakeWorkbookHttpMessageHandler((_, _) =>
                 Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
