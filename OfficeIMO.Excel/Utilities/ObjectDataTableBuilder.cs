@@ -1,5 +1,6 @@
 using System.Data;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using OfficeIMO.Shared;
 
 namespace OfficeIMO.Excel {
@@ -29,29 +30,132 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("Data rows cannot be null.", nameof(items));
             }
 
-            var columns = ObjectDataHelpers.GetColumnNames(first);
-            if (columns.Count == 0) {
+            var columnNames = ObjectDataHelpers.GetColumnNames(first);
+            if (columnNames.Count == 0) {
                 throw new InvalidOperationException("Unable to infer column names. Use objects with properties or dictionaries.");
             }
 
             var table = new DataTable(tableName);
-            foreach (var name in columns) {
+            foreach (var name in columnNames) {
                 table.Columns.Add(name, typeof(object));
             }
 
-            foreach (var item in list) {
-                if (item == null) {
-                    throw new InvalidOperationException("Data rows cannot contain null entries.");
-                }
+            var projector = ObjectRowProjector.Create(first, columnNames);
+            table.MinimumCapacity = Math.Max(table.MinimumCapacity, list.Count);
+            var values = projector.CreateValuesBuffer();
+            table.BeginLoadData();
+            try {
+                foreach (var item in list) {
+                    if (item == null) {
+                        throw new InvalidOperationException("Data rows cannot contain null entries.");
+                    }
 
-                var row = table.NewRow();
-                foreach (var column in columns) {
-                    row[column] = ObjectDataHelpers.GetValue(item, column) ?? DBNull.Value;
+                    projector.FillValues(item, values);
+                    table.Rows.Add(values);
                 }
-                table.Rows.Add(row);
+            } finally {
+                table.EndLoadData();
             }
 
             return table;
+        }
+
+        private sealed class ObjectRowProjector {
+            private readonly string[] _columns;
+            private readonly PropertyInfo[]? _properties;
+
+            private ObjectRowProjector(IReadOnlyList<string> columns, PropertyInfo[]? properties) {
+                _columns = columns.ToArray();
+                _properties = properties;
+            }
+
+            internal static ObjectRowProjector Create(object first, IReadOnlyList<string> columns) {
+                var firstType = first.GetType();
+                if (IsDictionaryLike(first)) {
+                    return new ObjectRowProjector(columns, properties: null);
+                }
+
+                var properties = new PropertyInfo[columns.Count];
+                for (int i = 0; i < columns.Count; i++) {
+                    var property = firstType.GetProperty(columns[i], BindingFlags.Public | BindingFlags.Instance);
+                    if (property == null || !property.CanRead || property.GetIndexParameters().Length != 0) {
+                        return new ObjectRowProjector(columns, properties: null);
+                    }
+
+                    properties[i] = property;
+                }
+
+                return new ObjectRowProjector(columns, properties);
+            }
+
+            internal object?[] CreateValuesBuffer() => new object?[_columns.Length];
+
+            internal void FillValues(object item, object?[] values) {
+                if (TryFillDictionaryValues(item, values)) {
+                    return;
+                }
+
+                if (_properties != null && item.GetType() == _properties[0].DeclaringType) {
+                    for (int i = 0; i < _properties.Length; i++) {
+                        values[i] = _properties[i].GetValue(item) ?? DBNull.Value;
+                    }
+
+                    return;
+                }
+
+                for (int i = 0; i < _columns.Length; i++) {
+                    values[i] = ObjectDataHelpers.GetValue(item, _columns[i]) ?? DBNull.Value;
+                }
+            }
+
+            private bool TryFillDictionaryValues(object item, object?[] values) {
+                if (item is IReadOnlyDictionary<string, object?> readOnlyDictionary) {
+                    for (int i = 0; i < _columns.Length; i++) {
+                        values[i] = readOnlyDictionary.TryGetValue(_columns[i], out var value) ? value ?? DBNull.Value : DBNull.Value;
+                    }
+
+                    return true;
+                }
+
+                if (item is IDictionary<string, object?> dictionary) {
+                    for (int i = 0; i < _columns.Length; i++) {
+                        values[i] = dictionary.TryGetValue(_columns[i], out var value) ? value ?? DBNull.Value : DBNull.Value;
+                    }
+
+                    return true;
+                }
+
+                if (item is System.Collections.IDictionary legacyDictionary) {
+                    for (int i = 0; i < _columns.Length; i++) {
+                        values[i] = GetLegacyDictionaryValue(legacyDictionary, _columns[i]) ?? DBNull.Value;
+                    }
+
+                    return true;
+                }
+
+                return false;
+            }
+
+            private static object? GetLegacyDictionaryValue(System.Collections.IDictionary dictionary, string column) {
+                if (dictionary.Contains(column)) {
+                    return dictionary[column];
+                }
+
+                foreach (System.Collections.DictionaryEntry entry in dictionary) {
+                    var key = entry.Key?.ToString();
+                    if (string.Equals(key, column, StringComparison.OrdinalIgnoreCase)) {
+                        return entry.Value;
+                    }
+                }
+
+                return null;
+            }
+
+            private static bool IsDictionaryLike(object item) {
+                return item is IReadOnlyDictionary<string, object?>
+                    || item is IDictionary<string, object?>
+                    || item is System.Collections.IDictionary;
+            }
         }
 
     }

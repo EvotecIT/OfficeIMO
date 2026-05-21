@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using OfficeIMO.Excel;
 using Xunit;
@@ -22,6 +23,31 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, table.Rows[0]["Value"]);
             Assert.Equal("B", table.Rows[1]["Name"]);
             Assert.Equal(2, table.Rows[1]["Value"]);
+        }
+
+        [Fact]
+        public void Test_ObjectDataTableBuilder_FromDictionaries_PreservesColumnsAndDbNulls() {
+            var items = new[] {
+                new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) {
+                    ["Name"] = "A",
+                    ["Value"] = 1,
+                    ["Notes"] = null
+                },
+                new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) {
+                    ["name"] = "B",
+                    ["Value"] = 2
+                }
+            };
+
+            var table = ObjectDataTableBuilder.FromObjects(items, "Data");
+
+            Assert.Equal(new[] { "Name", "Value", "Notes" }, table.Columns.Cast<System.Data.DataColumn>().Select(column => column.ColumnName).ToArray());
+            Assert.Equal("A", table.Rows[0]["Name"]);
+            Assert.Equal(1, table.Rows[0]["Value"]);
+            Assert.Equal(DBNull.Value, table.Rows[0]["Notes"]);
+            Assert.Equal("B", table.Rows[1]["Name"]);
+            Assert.Equal(2, table.Rows[1]["Value"]);
+            Assert.Equal(DBNull.Value, table.Rows[1]["Notes"]);
         }
 
         [Fact]
