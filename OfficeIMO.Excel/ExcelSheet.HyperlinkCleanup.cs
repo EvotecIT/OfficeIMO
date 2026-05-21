@@ -34,11 +34,11 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (byReference.TryGetValue(reference, out var previous)) {
+                if (byReference.TryGetValue(reference!, out var previous)) {
                     (duplicates ??= new List<Hyperlink>()).Add(previous);
                 }
 
-                byReference[reference] = hyperlink;
+                byReference[reference!] = hyperlink;
             }
 
             if (duplicates == null) {
@@ -64,7 +64,7 @@ namespace OfficeIMO.Excel {
             foreach (var hyperlink in hyperlinks.Elements<Hyperlink>()) {
                 string? id = hyperlink.Id?.Value;
                 if (!string.IsNullOrWhiteSpace(id)) {
-                    referencedRelationshipIds.Add(id);
+                    referencedRelationshipIds.Add(id!);
                 }
             }
 
@@ -88,7 +88,7 @@ namespace OfficeIMO.Excel {
         private static bool IsValidHyperlinkTarget(Hyperlink hyperlink, HashSet<string> relationshipIds) {
             string? relationshipId = hyperlink.Id?.Value;
             if (!string.IsNullOrWhiteSpace(relationshipId)) {
-                return relationshipIds.Contains(relationshipId);
+                return relationshipIds.Contains(relationshipId!);
             }
 
             return !string.IsNullOrWhiteSpace(hyperlink.Location?.Value);

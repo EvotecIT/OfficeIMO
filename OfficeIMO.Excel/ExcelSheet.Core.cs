@@ -342,9 +342,6 @@ namespace OfficeIMO.Excel {
                             break;
                         }
 
-                        if (nextRowIndex > row) {
-                            break;
-                        }
                     }
                 }
             }
@@ -361,9 +358,6 @@ namespace OfficeIMO.Excel {
                         break;
                     }
 
-                    if (rowIndex > (uint)row) {
-                        return null;
-                    }
                 }
             }
 
@@ -393,12 +387,7 @@ namespace OfficeIMO.Excel {
                             return next;
                         }
 
-                        if (nextColumnIndex > targetColumnIndex) {
-                            return null;
-                        }
                     }
-
-                    return null;
                 }
             }
 
@@ -413,9 +402,6 @@ namespace OfficeIMO.Excel {
                     return cell;
                 }
 
-                if (existingColumnIndex > targetColumnIndex) {
-                    return null;
-                }
             }
 
             return null;

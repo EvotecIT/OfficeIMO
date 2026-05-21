@@ -118,6 +118,58 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_TryGetCellText_OutOfOrderRows_FindsExistingCell() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesOutOfOrderRows.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(5, 1, "Later");
+                sheet.CellValue(2, 1, "Target");
+
+                WorksheetPart wsPart = document._spreadSheetDocument.WorkbookPart!.WorksheetParts.First();
+                SheetData sheetData = wsPart.Worksheet.GetFirstChild<SheetData>()!;
+                Row row2 = sheetData.Elements<Row>().First(row => row.RowIndex?.Value == 2U);
+                row2.Remove();
+                sheetData.Append(row2);
+
+                Assert.True(sheet.TryGetCellText(5, 1, out _));
+                Assert.True(sheet.TryGetCellText(2, 1, out var text));
+                Assert.Equal("Target", text);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_TryGetCellText_OutOfOrderCells_FindsExistingCell() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesOutOfOrderCells.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 3, "Later");
+                sheet.CellValue(1, 1, "Target");
+
+                WorksheetPart wsPart = document._spreadSheetDocument.WorkbookPart!.WorksheetParts.First();
+                Row row1 = wsPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().First(row => row.RowIndex?.Value == 1U);
+                Cell cellA1 = row1.Elements<Cell>().First(cell => cell.CellReference?.Value == "A1");
+                cellA1.Remove();
+                row1.Append(cellA1);
+
+                Assert.True(sheet.TryGetCellText(1, 3, out _));
+                Assert.True(sheet.TryGetCellText(1, 1, out var text));
+                Assert.Equal("Target", text);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void Test_CellAtGetValue_MissingCell_DoesNotCreateCell() {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesObjectModelMissingLookupNoMutation.xlsx");
 

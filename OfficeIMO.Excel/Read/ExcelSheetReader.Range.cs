@@ -1,5 +1,4 @@
 using DocumentFormat.OpenXml.Spreadsheet;
-using System.Buffers;
 using System.Data;
 using System.Globalization;
 using System.IO;
@@ -1114,56 +1113,50 @@ namespace OfficeIMO.Excel {
                 return CreateEmptyDictionaryRow(headers, cols);
             }
 
-            object?[] values = ArrayPool<object?>.Shared.Rent(cols);
-            Array.Clear(values, 0, cols);
+            object?[] values = new object?[cols];
             int depth = rowReader.Depth;
             bool canCancel = ct.CanBeCanceled;
             int nextColumnIndex = 1;
             bool canTrackColumns = cols <= 64;
             ulong seenColumns = 0;
-            try {
-                while (rowReader.Read()) {
-                    if (canCancel) {
-                        ct.ThrowIfCancellationRequested();
-                    }
-
-                    if (rowReader.NodeType == XmlNodeType.EndElement && rowReader.Depth == depth && rowReader.LocalName == "row") {
-                        return CreateDictionaryRow(headers, values, cols);
-                    }
-
-                    if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
-                        continue;
-                    }
-
-                    int columnIndex = GetXmlCellColumnIndex(rowReader, ref nextColumnIndex);
-                    if (columnIndex <= 0) {
-                        SkipXmlElement(rowReader, "c");
-                        continue;
-                    }
-
-                    if (columnIndex < c1 || columnIndex > c2) {
-                        SkipXmlElement(rowReader, "c");
-                        continue;
-                    }
-
-                    int offset = columnIndex - c1;
-                    if ((uint)offset >= (uint)cols) {
-                        SkipXmlElement(rowReader, "c");
-                        continue;
-                    }
-
-                    values[offset] = ReadXmlCellValue(rowReader);
-                    if (canTrackColumns && MarkRequestedColumnSeen(offset, cols, ref seenColumns)) {
-                        SkipXmlElementContent(rowReader, depth, "row");
-                        return CreateDictionaryRow(headers, values, cols);
-                    }
+            while (rowReader.Read()) {
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
                 }
 
-                return CreateDictionaryRow(headers, values, cols);
-            } finally {
-                Array.Clear(values, 0, cols);
-                ArrayPool<object?>.Shared.Return(values);
+                if (rowReader.NodeType == XmlNodeType.EndElement && rowReader.Depth == depth && rowReader.LocalName == "row") {
+                    return CreateDictionaryRow(headers, values, cols);
+                }
+
+                if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
+                    continue;
+                }
+
+                int columnIndex = GetXmlCellColumnIndex(rowReader, ref nextColumnIndex);
+                if (columnIndex <= 0) {
+                    SkipXmlElement(rowReader, "c");
+                    continue;
+                }
+
+                if (columnIndex < c1 || columnIndex > c2) {
+                    SkipXmlElement(rowReader, "c");
+                    continue;
+                }
+
+                int offset = columnIndex - c1;
+                if ((uint)offset >= (uint)cols) {
+                    SkipXmlElement(rowReader, "c");
+                    continue;
+                }
+
+                values[offset] = ReadXmlCellValue(rowReader);
+                if (canTrackColumns && MarkRequestedColumnSeen(offset, cols, ref seenColumns)) {
+                    SkipXmlElementContent(rowReader, depth, "row");
+                    return CreateDictionaryRow(headers, values, cols);
+                }
             }
+
+            return CreateDictionaryRow(headers, values, cols);
         }
 
         private static Dictionary<string, object?> CreateEmptyDictionaryRow(string[] headers, int columnCount) {
