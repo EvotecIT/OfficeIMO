@@ -288,22 +288,18 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string? FindFirst(string text) {
             if (string.IsNullOrEmpty(text)) return null;
-            if (TryGetFindFirstCache(text, out var cachedAddress)) {
-                return cachedAddress;
-            }
 
             var ws = WorksheetRoot;
             var sd = ws.GetFirstChild<SheetData>();
             if (sd == null) return null;
 
-            var sharedStringCache = GetCellTextSharedStringCache();
+            var sharedStringCache = BuildCellTextSharedStringSnapshot();
             var sharedStringMatches = sharedStringCache.FindIndexesContaining(text, StringComparison.OrdinalIgnoreCase);
             foreach (var row in sd.Elements<Row>()) {
                 foreach (var cell in row.Elements<Cell>()) {
                     if (TryGetSharedStringCellIndex(cell, out int sharedStringIndex)) {
                         if (sharedStringMatches != null && sharedStringMatches.Contains(sharedStringIndex)) {
                             string? address = cell.CellReference?.Value;
-                            SetFindFirstCache(text, address);
                             return address;
                         }
 
@@ -313,13 +309,11 @@ namespace OfficeIMO.Excel {
                     var t = GetCellText(cell);
                     if (!string.IsNullOrEmpty(t) && t.IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0) {
                         string? address = cell.CellReference?.Value;
-                        SetFindFirstCache(text, address);
                         return address;
                     }
                 }
             }
 
-            SetFindFirstCache(text, null);
             return null;
         }
 
@@ -335,7 +329,7 @@ namespace OfficeIMO.Excel {
                 var sd = ws.GetFirstChild<SheetData>();
                 if (sd == null) return;
 
-                var sharedStringCache = GetCellTextSharedStringCache();
+                var sharedStringCache = BuildCellTextSharedStringSnapshot();
                 var sharedStringMatches = sharedStringCache.FindIndexesContaining(oldText, StringComparison.OrdinalIgnoreCase);
                 int replacementCapacity = sharedStringMatches?.Count ?? 0;
                 var replacements = replacementCapacity > 0

@@ -129,6 +129,64 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_TryGetCellText_UsesFreshSharedStringsAfterDirectOpenXmlMutation() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesSharedStringDirectMutation.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Alpha");
+
+                Assert.True(sheet.TryGetCellText(1, 1, out var first));
+                Assert.Equal("Alpha", first);
+
+                var sharedString = document._spreadSheetDocument.WorkbookPart!.SharedStringTablePart!.SharedStringTable!
+                    .Elements<SharedStringItem>()
+                    .First();
+                sharedString.Text!.Text = "Omega";
+
+                Assert.True(sheet.TryGetCellText(1, 1, out var refreshed));
+                Assert.Equal("Omega", refreshed);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Test_FindFirst_UsesFreshWorksheetStateAfterDirectOpenXmlMutation() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesFindFirstDirectMutation.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Alpha");
+                sheet.CellValue(2, 1, "Beta");
+
+                Assert.Equal("A2", sheet.FindFirst("Beta"));
+                Assert.Null(sheet.FindFirst("Gamma"));
+
+                var worksheet = document._spreadSheetDocument.WorkbookPart!.WorksheetParts.First().Worksheet;
+                var betaCell = worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A2");
+                betaCell.DataType = CellValues.InlineString;
+                betaCell.CellValue = null;
+                betaCell.InlineString = new InlineString(new Text("Delta"));
+
+                var sheetData = worksheet.GetFirstChild<SheetData>()!;
+                var row = new Row { RowIndex = 3 };
+                row.Append(new Cell {
+                    CellReference = "A3",
+                    DataType = CellValues.InlineString,
+                    InlineString = new InlineString(new Text("Gamma"))
+                });
+                sheetData.Append(row);
+
+                Assert.Null(sheet.FindFirst("Beta"));
+                Assert.Equal("A2", sheet.FindFirst("Delta"));
+                Assert.Equal("A3", sheet.FindFirst("Gamma"));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void Test_FindFirstAndReplaceAll_HandleSharedStrings() {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesSharedStringFindReplace.xlsx");
 

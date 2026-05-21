@@ -23,6 +23,10 @@ namespace OfficeIMO.Excel {
         }
 
         private Dictionary<string, int> GetHeaderMapCached(ExcelReadOptions opt) {
+            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
+                _excelDocument.MaterializeDeferredDataSetImport();
+            }
+
             string reference = ExcelSheet.ComputeSheetDimensionReference(WorksheetRoot);
             var a1Used = reference.IndexOf(":", StringComparison.Ordinal) >= 0 ? reference : reference + ":" + reference;
             lock (_headerMapLock) {

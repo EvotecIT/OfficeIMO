@@ -482,7 +482,7 @@ namespace OfficeIMO.Excel {
                 // Resolve shared string if needed
                 if (cell.DataType != null && cell.DataType.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) {
                     if (TryParseCellTextSharedStringIndex(cell.InnerText, out int ssid)) {
-                        string? sharedText = GetCellTextSharedStringCache().Get(ssid);
+                        string? sharedText = BuildCellTextSharedStringSnapshot().Get(ssid);
                         if (sharedText != null) {
                             text = sharedText;
                             return true;
