@@ -71,6 +71,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ObjectDataTableBuilder_FromObjects_HiddenDerivedPropertiesUseRuntimeMember() {
+            var items = new ObjectDataBaseRow[] {
+                new() { Name = "Base", Value = 1 },
+                new HiddenObjectRow { Name = "Derived", Value = 2 }
+            };
+
+            var table = ObjectDataTableBuilder.FromObjects(items, "Data");
+
+            Assert.Equal("Base", table.Rows[0]["Name"]);
+            Assert.Equal(1, table.Rows[0]["Value"]);
+            Assert.Equal("Derived", table.Rows[1]["Name"]);
+            Assert.Equal(2, table.Rows[1]["Value"]);
+        }
+
+        [Fact]
         public void Test_ObjectDataTableBuilder_FromObjects_ThrowsOnNullItems() {
             var ex = Assert.Throws<ArgumentNullException>(() => ObjectDataTableBuilder.FromObjects(null!));
             Assert.Equal("items", ex.ParamName);
@@ -103,6 +118,11 @@ namespace OfficeIMO.Tests {
 
         private sealed class InheritedObjectRow : ObjectDataBaseRow {
             public string Notes { get; init; } = string.Empty;
+        }
+
+        private sealed class HiddenObjectRow : ObjectDataBaseRow {
+            public new string Name { get; init; } = string.Empty;
+            public new int Value { get; init; }
         }
     }
 }

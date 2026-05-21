@@ -97,7 +97,7 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                if (_properties != null && _sourceType != null && _sourceType.IsInstanceOfType(item)) {
+                if (_properties != null && item.GetType() == _sourceType) {
                     for (int i = 0; i < _properties.Length; i++) {
                         values[i] = _properties[i].GetValue(item) ?? DBNull.Value;
                     }
