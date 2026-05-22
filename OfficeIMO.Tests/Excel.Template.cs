@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
@@ -184,6 +185,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellAt(3, 1).SetValue("{{Name}}");
                 sheet.CellAt(3, 2).SetValue("{{Amount}}");
                 sheet.CellFormula(3, 3, "B3*2");
+                sheet.CellFormula(3, 4, "B2+B3+\"A3\"");
                 sheet.CellAt(4, 1).SetValue("Footer");
                 sheet.CellAt(4, 2).SetValue(25);
                 sheet.CellFormula(4, 3, "B4");
@@ -228,6 +230,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("'Invoice'!B5", cells["E1"].CellFormula!.Text);
                 Assert.Equal("B3*2", cells["C3"].CellFormula!.Text);
                 Assert.Equal("B4*2", cells["C4"].CellFormula!.Text);
+                Assert.Equal("B3+B4+\"A3\"", cells["D4"].CellFormula!.Text);
                 Assert.Equal("B5", cells["C5"].CellFormula!.Text);
                 Assert.Equal("A2:A5", merge.Reference!.Value);
                 Assert.True(rows[4U].Hidden!.Value);
@@ -333,10 +336,13 @@ namespace OfficeIMO.Tests {
                 sheet.CellAt(1, 1).SetValue("Header");
                 sheet.CellFormula(1, 4, "A4");
                 sheet.CellFormula(1, 5, "'Invoice'!A4");
+                sheet.CellFormula(1, 6, "A2");
+                sheet.CellFormula(1, 7, "IF(\"A4\"=\"A4\",A4,0)");
                 sheet.CellAt(2, 1).SetValue("Optional {{Note}}");
                 sheet.CellAt(3, 1).SetValue("Optional {{Amount}}");
                 sheet.CellAt(4, 1).SetValue("Footer");
                 sheet.MergeRange("B1:B4");
+                sheet.MergeRange("C2:C3");
 
                 sheet.RemoveTemplateOptionalRows(2, 2);
                 document.Save(false);
@@ -349,7 +355,66 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("A2", cells["D1"].CellFormula!.Text);
                 Assert.Equal("'Invoice'!A2", cells["E1"].CellFormula!.Text);
+                Assert.Equal("#REF!", cells["F1"].CellFormula!.Text);
+                Assert.Equal("IF(\"A4\"=\"A4\",A2,0)", cells["G1"].CellFormula!.Text);
                 Assert.Equal("B1:B2", merge.Reference!.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelTemplate_RepeatingRowsRemapsRowBoundMetadata() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsMetadata.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Invoice");
+                sheet.CellAt(1, 1).SetValue("Header");
+                sheet.CellAt(2, 1).SetValue("{{Name}}");
+                sheet.CellAt(3, 1).SetValue("Footer");
+                sheet.CellAt(3, 2).SetValue("Choice");
+                sheet.CellAt(3, 3).SetValue(1);
+                sheet.SetComment(3, 1, "Footer note");
+                sheet.SetHyperlink(3, 1, "https://example.org");
+                sheet.AddConditionalFormulaRule("C3", "C3>0");
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var worksheet = worksheetPart.Worksheet;
+                var validations = worksheet.GetFirstChild<DataValidations>() ?? worksheet.InsertAfter(new DataValidations(), worksheet.GetFirstChild<SheetData>());
+                validations.Append(new DataValidation {
+                    Type = DataValidationValues.List,
+                    SequenceOfReferences = new ListValue<StringValue> { InnerText = "B3" }
+                });
+                validations.Count = 1U;
+                worksheet.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var sheet = document["Invoice"];
+                sheet.ApplyTemplateRows(2, new[] {
+                    new Dictionary<string, object?> {
+                        ["Name"] = "Consulting"
+                    },
+                    new Dictionary<string, object?> {
+                        ["Name"] = "Support"
+                    }
+                });
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var worksheet = worksheetPart.Worksheet;
+                Comment comment = Assert.Single(worksheetPart.WorksheetCommentsPart!.Comments!.CommentList!.Elements<Comment>());
+                Hyperlink hyperlink = Assert.Single(worksheet.Elements<Hyperlinks>().Single().Elements<Hyperlink>());
+                DataValidation validation = Assert.Single(worksheet.GetFirstChild<DataValidations>()!.Elements<DataValidation>());
+                ConditionalFormatting conditional = Assert.Single(worksheet.Elements<ConditionalFormatting>());
+
+                Assert.Equal("A4", comment.Reference!.Value);
+                Assert.Equal("A4", hyperlink.Reference!.Value);
+                Assert.Equal("B4", validation.SequenceOfReferences!.InnerText);
+                Assert.Equal("C4", conditional.SequenceOfReferences!.InnerText);
             }
         }
 

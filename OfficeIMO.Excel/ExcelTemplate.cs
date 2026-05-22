@@ -365,7 +365,7 @@ namespace OfficeIMO.Excel {
                     var rowMap = targetRow == templateRow
                         ? new Dictionary<int, int>()
                         : new Dictionary<int, int> { [templateRow] = targetRow };
-                    WriteRowSnapshot(targetRow, bounds.Value.FirstColumn, bounds.Value.LastColumn, snapshot, rowMap);
+                    WriteRowSnapshot(targetRow, bounds.Value.FirstColumn, bounds.Value.LastColumn, snapshot, rowMap, targetRow - templateRow);
                     replacements += ApplyTemplateCellsCore(rowBindings[index], options, targetRow);
                 }
 
@@ -541,6 +541,7 @@ namespace OfficeIMO.Excel {
             }
 
             RewriteWorksheetFormulaReferences(firstRow, count);
+            RemapShiftedRowMetadata(firstRow, count);
             ShiftMergeCellsRows(firstRow, count);
 
             _lastAccessedRow = null;
@@ -589,8 +590,9 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            RewriteWorksheetFormulaReferences(lastRemovedRow + 1, -count);
-            ShiftMergeCellsRows(lastRemovedRow + 1, -count);
+            RewriteDeletedWorksheetFormulaReferences(firstRow, lastRemovedRow, -count);
+            RemapDeletedRowMetadata(firstRow, lastRemovedRow, -count);
+            ShiftMergeCellsRows(firstRow, -count, lastRemovedRow);
 
             _lastAccessedRow = null;
             _lastAccessedRowIndex = 0;
@@ -608,7 +610,7 @@ namespace OfficeIMO.Excel {
             throw new InvalidOperationException($"Template marker '{marker}' was not supplied.");
         }
 
-        private void ShiftMergeCellsRows(int firstAffectedRow, int delta) {
+        private void ShiftMergeCellsRows(int firstAffectedRow, int delta, int? lastDeletedRow = null) {
             var merges = WorksheetRoot.GetFirstChild<MergeCells>();
             if (merges == null || delta == 0) {
                 return;
@@ -622,24 +624,17 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (bounds.r2 < firstAffectedRow) {
+                if (!TryRemapShiftedReferenceRows(bounds, firstAffectedRow, delta, lastDeletedRow, out var remappedBounds)) {
                     count++;
                     continue;
                 }
 
-                int targetFirstRow = bounds.r1 < firstAffectedRow ? bounds.r1 : bounds.r1 + delta;
-                int targetLastRow = bounds.r2 + delta;
-                if (targetFirstRow <= 0 || targetLastRow <= 0) {
+                if (remappedBounds == null) {
                     merge.Remove();
                     continue;
                 }
 
-                if (targetLastRow < targetFirstRow) {
-                    merge.Remove();
-                    continue;
-                }
-
-                merge.Reference = ToReference(targetFirstRow, bounds.c1, targetLastRow, bounds.c2);
+                merge.Reference = ToReference(remappedBounds.Value.r1, remappedBounds.Value.c1, remappedBounds.Value.r2, remappedBounds.Value.c2);
                 count++;
             }
 

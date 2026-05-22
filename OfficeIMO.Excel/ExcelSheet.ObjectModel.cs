@@ -565,7 +565,7 @@ namespace OfficeIMO.Excel {
             return new RowSnapshot(rowIndex, rowClone, cells, sortValue);
         }
 
-        private void WriteRowSnapshot(int targetRow, int firstColumn, int lastColumn, RowSnapshot snapshot, IReadOnlyDictionary<int, int> rowMap) {
+        private void WriteRowSnapshot(int targetRow, int firstColumn, int lastColumn, RowSnapshot snapshot, IReadOnlyDictionary<int, int> rowMap, int formulaRowOffset = 0) {
             for (int column = firstColumn; column <= lastColumn; column++) {
                 var source = snapshot.Cells[column - firstColumn].Cell;
                 var cell = TryGetExistingCell(targetRow, column);
@@ -586,7 +586,9 @@ namespace OfficeIMO.Excel {
                 if (source.CellFormula != null) {
                     var formula = (CellFormula)source.CellFormula.CloneNode(true);
                     if (!string.IsNullOrEmpty(formula.Text)) {
-                        formula.Text = RewriteSortedFormulaReferences(formula.Text, rowMap, firstColumn, lastColumn);
+                        formula.Text = formulaRowOffset == 0
+                            ? RewriteSortedFormulaReferences(formula.Text, rowMap, firstColumn, lastColumn)
+                            : RewriteCopiedFormulaReferences(formula.Text, formulaRowOffset, Name);
                     }
                     cell.CellFormula = formula;
                 }
@@ -632,6 +634,149 @@ namespace OfficeIMO.Excel {
                 if (cell.CellFormula?.Text is string formulaText && formulaText.Length > 0) {
                     cell.CellFormula.Text = RewriteShiftedFormulaReferences(formulaText, firstAffectedRow, rowDelta, Name);
                 }
+            }
+        }
+
+        private void RewriteDeletedWorksheetFormulaReferences(int firstDeletedRow, int lastDeletedRow, int rowDelta) {
+            foreach (var cell in WorksheetRoot.Descendants<Cell>()) {
+                if (cell.CellFormula?.Text is string formulaText && formulaText.Length > 0) {
+                    cell.CellFormula.Text = RewriteDeletedFormulaReferences(formulaText, firstDeletedRow, lastDeletedRow, rowDelta, Name);
+                }
+            }
+        }
+
+        private void RemapShiftedRowMetadata(int firstAffectedRow, int rowDelta) {
+            RemapShiftedComments(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            RemapShiftedHyperlinks(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            RemapShiftedDataValidations(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            RemapShiftedConditionalFormatting(firstAffectedRow, rowDelta, lastDeletedRow: null);
+        }
+
+        private void RemapDeletedRowMetadata(int firstDeletedRow, int lastDeletedRow, int rowDelta) {
+            RemapShiftedComments(firstDeletedRow, rowDelta, lastDeletedRow);
+            RemapShiftedHyperlinks(firstDeletedRow, rowDelta, lastDeletedRow);
+            RemapShiftedDataValidations(firstDeletedRow, rowDelta, lastDeletedRow);
+            RemapShiftedConditionalFormatting(firstDeletedRow, rowDelta, lastDeletedRow);
+        }
+
+        private void RemapShiftedComments(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
+            var commentsPart = WorksheetCommentsPartRoot;
+            if (commentsPart?.Comments?.CommentList == null) {
+                return;
+            }
+
+            var removed = new List<(int Row, int Col)>();
+            var moved = new List<((int Row, int Col) OldCell, (int Row, int Col) NewCell)>();
+            bool changed = false;
+            foreach (var comment in commentsPart.Comments.CommentList.Elements<Comment>().ToList()) {
+                if (comment.Reference?.Value is not string reference) {
+                    continue;
+                }
+
+                var cell = A1.ParseCellRef(reference);
+                if (!TryRemapShiftedReferenceRows((cell.Row, cell.Col, cell.Row, cell.Col), firstAffectedRow, rowDelta, lastDeletedRow, out var remapped)) {
+                    continue;
+                }
+
+                if (remapped == null) {
+                    comment.Remove();
+                    removed.Add(cell);
+                    changed = true;
+                    continue;
+                }
+
+                string newReference = A1.CellReference(remapped.Value.r1, remapped.Value.c1);
+                if (!string.Equals(reference, newReference, StringComparison.OrdinalIgnoreCase)) {
+                    comment.Reference = newReference;
+                    moved.Add((cell, (remapped.Value.r1, remapped.Value.c1)));
+                    changed = true;
+                }
+            }
+
+            if (!changed) {
+                return;
+            }
+
+            commentsPart.Comments.Save();
+            foreach (var cell in removed) {
+                RemoveCommentVmlShape(cell.Row, cell.Col);
+            }
+
+            foreach (var pair in moved) {
+                RemoveCommentVmlShape(pair.OldCell.Row, pair.OldCell.Col);
+                EnsureCommentVmlShape(pair.NewCell.Row, pair.NewCell.Col);
+            }
+
+            CleanupCommentArtifacts();
+        }
+
+        private void RemapShiftedHyperlinks(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
+            var hyperlinks = WorksheetRoot.GetFirstChild<Hyperlinks>();
+            if (hyperlinks == null) {
+                return;
+            }
+
+            foreach (var link in hyperlinks.Elements<Hyperlink>().ToList()) {
+                if (link.Reference?.Value is not string reference
+                    || !TryRemapShiftedReferenceListRows(reference, firstAffectedRow, rowDelta, lastDeletedRow, out var remapped)) {
+                    continue;
+                }
+
+                if (remapped.Count == 0) {
+                    link.Remove();
+                    continue;
+                }
+
+                link.Reference = remapped[0];
+                var insertAfter = link;
+                for (int index = 1; index < remapped.Count; index++) {
+                    var clone = (Hyperlink)link.CloneNode(true);
+                    clone.Reference = remapped[index];
+                    hyperlinks.InsertAfter(clone, insertAfter);
+                    insertAfter = clone;
+                }
+            }
+        }
+
+        private void RemapShiftedDataValidations(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
+            var validations = WorksheetRoot.GetFirstChild<DataValidations>();
+            if (validations == null) {
+                return;
+            }
+
+            uint count = 0;
+            foreach (var validation in validations.Elements<DataValidation>().ToList()) {
+                if (validation.SequenceOfReferences?.InnerText is not string references
+                    || !TryRemapShiftedReferenceListRows(references, firstAffectedRow, rowDelta, lastDeletedRow, out var remapped)) {
+                    count++;
+                    continue;
+                }
+
+                if (remapped.Count == 0) {
+                    validation.Remove();
+                    continue;
+                }
+
+                validation.SequenceOfReferences = new ListValue<StringValue> { InnerText = string.Join(" ", remapped) };
+                count++;
+            }
+
+            validations.Count = count;
+        }
+
+        private void RemapShiftedConditionalFormatting(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
+            foreach (var conditional in WorksheetRoot.Elements<ConditionalFormatting>().ToList()) {
+                if (conditional.SequenceOfReferences?.InnerText is not string references
+                    || !TryRemapShiftedReferenceListRows(references, firstAffectedRow, rowDelta, lastDeletedRow, out var remapped)) {
+                    continue;
+                }
+
+                if (remapped.Count == 0) {
+                    conditional.Remove();
+                    continue;
+                }
+
+                conditional.SequenceOfReferences = new ListValue<StringValue> { InnerText = string.Join(" ", remapped) };
             }
         }
 
@@ -977,43 +1122,138 @@ namespace OfficeIMO.Excel {
                 TimeSpan.FromMilliseconds(200));
         }
 
+        private static string RewriteCopiedFormulaReferences(string formula, int rowOffset, string? sheetName) {
+            if (rowOffset == 0 || string.IsNullOrEmpty(formula)) {
+                return formula;
+            }
+
+            return RewriteFormulaReferencesOutsideStrings(formula, segment => ReplaceFormulaReferences(segment, match => {
+                if (!CanRewriteFormulaReference(match, sheetName, out int row)) {
+                    return match.Value;
+                }
+
+                int targetRow = row + rowOffset;
+                if (targetRow <= 0 || targetRow > A1.MaxRows) {
+                    return match.Value;
+                }
+
+                return BuildFormulaReference(match, targetRow);
+            }));
+        }
+
         private static string RewriteShiftedFormulaReferences(string formula, int firstAffectedRow, int rowDelta, string? sheetName = null) {
             if (rowDelta == 0 || firstAffectedRow <= 0 || string.IsNullOrEmpty(formula)) {
                 return formula;
             }
 
+            return RewriteFormulaReferencesOutsideStrings(formula, segment => ReplaceFormulaReferences(segment, match => {
+                if (!CanRewriteFormulaReference(match, sheetName, out int row) || row < firstAffectedRow) {
+                    return match.Value;
+                }
+
+                int targetRow = row + rowDelta;
+                if (targetRow <= 0 || targetRow > A1.MaxRows) {
+                    return match.Value;
+                }
+
+                return BuildFormulaReference(match, targetRow);
+            }));
+        }
+
+        private static string RewriteDeletedFormulaReferences(string formula, int firstDeletedRow, int lastDeletedRow, int rowDelta, string? sheetName) {
+            if (rowDelta == 0 || firstDeletedRow <= 0 || lastDeletedRow < firstDeletedRow || string.IsNullOrEmpty(formula)) {
+                return formula;
+            }
+
+            return RewriteFormulaReferencesOutsideStrings(formula, segment => ReplaceFormulaReferences(segment, match => {
+                if (!CanRewriteFormulaReference(match, sheetName, out int row)) {
+                    return match.Value;
+                }
+
+                if (row >= firstDeletedRow && row <= lastDeletedRow) {
+                    return "#REF!";
+                }
+
+                if (row <= lastDeletedRow) {
+                    return match.Value;
+                }
+
+                int targetRow = row + rowDelta;
+                if (targetRow <= 0 || targetRow > A1.MaxRows) {
+                    return match.Value;
+                }
+
+                return BuildFormulaReference(match, targetRow);
+            }));
+        }
+
+        private static string RewriteFormulaReferencesOutsideStrings(string formula, Func<string, string> rewriteSegment) {
+            var builder = new StringBuilder(formula.Length);
+            int index = 0;
+            while (index < formula.Length) {
+                int quote = formula.IndexOf('"', index);
+                if (quote < 0) {
+                    builder.Append(rewriteSegment(formula.Substring(index)));
+                    break;
+                }
+
+                if (quote > index) {
+                    builder.Append(rewriteSegment(formula.Substring(index, quote - index)));
+                }
+
+                int literalStart = quote;
+                index = quote + 1;
+                while (index < formula.Length) {
+                    if (formula[index] == '"') {
+                        if (index + 1 < formula.Length && formula[index + 1] == '"') {
+                            index += 2;
+                            continue;
+                        }
+
+                        index++;
+                        break;
+                    }
+
+                    index++;
+                }
+
+                builder.Append(formula, literalStart, index - literalStart);
+            }
+
+            return builder.ToString();
+        }
+
+        private static string ReplaceFormulaReferences(string segment, MatchEvaluator evaluator) {
             return Regex.Replace(
-                formula,
+                segment,
                 @"(?<![A-Za-z0-9_\.])(?:(?<sheet>'(?:[^']|'')+'|[A-Za-z_][A-Za-z0-9_\.]*)!)?(?<colAbs>\$?)(?<col>[A-Za-z]{1,3})(?<rowAbs>\$?)(?<row>\d{1,7})(?=[:),+\-*/^&=<> \t\r\n]|$)",
-                match => {
-                    string sheetQualifier = match.Groups["sheet"].Value;
-                    if (sheetQualifier.Length > 0 && !IsCurrentSheetQualifier(sheetQualifier, sheetName)) {
-                        return match.Value;
-                    }
-
-                    bool rowAbsolute = match.Groups["rowAbs"].Value == "$";
-                    if (rowAbsolute || !int.TryParse(match.Groups["row"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int row)) {
-                        return match.Value;
-                    }
-
-                    if (row < firstAffectedRow) {
-                        return match.Value;
-                    }
-
-                    int targetRow = row + rowDelta;
-                    if (targetRow <= 0 || targetRow > A1.MaxRows) {
-                        return match.Value;
-                    }
-
-                    return sheetQualifier
-                        + (sheetQualifier.Length > 0 ? "!" : string.Empty)
-                        + match.Groups["colAbs"].Value
-                        + match.Groups["col"].Value
-                        + match.Groups["rowAbs"].Value
-                        + targetRow.ToString(CultureInfo.InvariantCulture);
-                },
+                evaluator,
                 RegexOptions.CultureInvariant,
                 TimeSpan.FromMilliseconds(200));
+        }
+
+        private static bool CanRewriteFormulaReference(Match match, string? sheetName, out int row) {
+            row = 0;
+            string sheetQualifier = match.Groups["sheet"].Value;
+            if (sheetQualifier.Length > 0 && !IsCurrentSheetQualifier(sheetQualifier, sheetName)) {
+                return false;
+            }
+
+            if (match.Groups["rowAbs"].Value == "$") {
+                return false;
+            }
+
+            return int.TryParse(match.Groups["row"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out row);
+        }
+
+        private static string BuildFormulaReference(Match match, int targetRow) {
+            string sheetQualifier = match.Groups["sheet"].Value;
+            return sheetQualifier
+                + (sheetQualifier.Length > 0 ? "!" : string.Empty)
+                + match.Groups["colAbs"].Value
+                + match.Groups["col"].Value
+                + match.Groups["rowAbs"].Value
+                + targetRow.ToString(CultureInfo.InvariantCulture);
         }
 
         private static bool IsCurrentSheetQualifier(string qualifier, string? sheetName) {
@@ -1027,6 +1267,68 @@ namespace OfficeIMO.Excel {
             }
 
             return string.Equals(value, sheetName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool TryRemapShiftedReferenceListRows(string referenceList, int firstAffectedRow, int rowDelta, int? lastDeletedRow, out List<string> remapped) {
+            remapped = new List<string>();
+            bool changed = false;
+            foreach (ReferenceListPart part in SplitReferenceList(referenceList)) {
+                if (!TryParseReference(part, out var bounds)) {
+                    remapped.Add(part.ToString());
+                    continue;
+                }
+
+                if (!TryRemapShiftedReferenceRows(bounds, firstAffectedRow, rowDelta, lastDeletedRow, out var remappedBounds)) {
+                    remapped.Add(part.ToString());
+                    continue;
+                }
+
+                changed = true;
+                if (remappedBounds != null) {
+                    remapped.Add(ToReference(remappedBounds.Value.r1, remappedBounds.Value.c1, remappedBounds.Value.r2, remappedBounds.Value.c2));
+                }
+            }
+
+            return changed;
+        }
+
+        private static bool TryRemapShiftedReferenceRows((int r1, int c1, int r2, int c2) bounds, int firstAffectedRow, int rowDelta, int? lastDeletedRow, out (int r1, int c1, int r2, int c2)? remapped) {
+            remapped = null;
+            if (rowDelta == 0 || firstAffectedRow <= 0 || bounds.r2 < firstAffectedRow) {
+                return false;
+            }
+
+            if (!lastDeletedRow.HasValue) {
+                int targetFirstRow = bounds.r1 < firstAffectedRow ? bounds.r1 : bounds.r1 + rowDelta;
+                int targetLastRow = bounds.r2 + rowDelta;
+                if (targetFirstRow <= 0 || targetLastRow <= 0 || targetLastRow < targetFirstRow) {
+                    remapped = null;
+                    return true;
+                }
+
+                remapped = (targetFirstRow, bounds.c1, targetLastRow, bounds.c2);
+                return true;
+            }
+
+            int deletedLast = lastDeletedRow.Value;
+            if (bounds.r1 >= firstAffectedRow && bounds.r2 <= deletedLast) {
+                remapped = null;
+                return true;
+            }
+
+            int newFirst = bounds.r1 > deletedLast ? bounds.r1 + rowDelta : bounds.r1;
+            int newLast = bounds.r2 > deletedLast ? bounds.r2 + rowDelta : firstAffectedRow - 1;
+            if (bounds.r1 >= firstAffectedRow && bounds.r1 <= deletedLast) {
+                newFirst = firstAffectedRow;
+            }
+
+            if (newFirst <= 0 || newLast <= 0 || newLast < newFirst) {
+                remapped = null;
+                return true;
+            }
+
+            remapped = (newFirst, bounds.c1, newLast, bounds.c2);
+            return true;
         }
 
         private sealed class RowSnapshot {
