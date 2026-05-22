@@ -25,6 +25,11 @@ internal static class ObjectDataHelpers
         if (item == null) throw new ArgumentNullException(nameof(item));
 #endif
 
+        if (item is Dictionary<string, object?> dictionary)
+        {
+            return dictionary.Keys.Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
+        }
+
         if (item is IReadOnlyDictionary<string, object?> roDict)
         {
             return roDict.Keys.Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
@@ -75,6 +80,11 @@ internal static class ObjectDataHelpers
         if (item == null) throw new ArgumentNullException(nameof(item));
         if (column == null) throw new ArgumentNullException(nameof(column));
 #endif
+
+        if (item is Dictionary<string, object?> dictionary)
+        {
+            return dictionary.TryGetValue(column, out var value) ? value : null;
+        }
 
         if (item is IReadOnlyDictionary<string, object?> roDict)
         {

@@ -1981,6 +1981,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_CellValuesRectangle_WithMultilineTextDoesNotUseDirectPackage() {
+            AssertCellValuesMultilineFallback(new[] {
+                (1, 1, (object)"Name\nWrapped"),
+                (1, 2, (object)"Score"),
+                (2, 1, (object)"Alpha"),
+                (2, 2, (object)10)
+            }, "A1", "Name\nWrapped");
+
+            AssertCellValuesMultilineFallback(new[] {
+                (1, 1, (object)"Name"),
+                (1, 2, (object)"Notes"),
+                (2, 1, (object)"Alpha"),
+                (2, 2, (object)"Line one\nLine two")
+            }, "B2", "Line one\nLine two");
+
+            static void AssertCellValuesMultilineFallback((int Row, int Column, object Value)[] cells, string reference, string expectedText) {
+                using var memory = new MemoryStream();
+                using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValues(cells);
+                    document.Save(memory);
+
+                    Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                }
+
+                memory.Position = 0;
+                using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+                var savedCells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+                    .ToDictionary(cell => cell.CellReference!.Value!);
+                Assert.Equal(expectedText, GetSpreadsheetCellText(spreadsheet, savedCells[reference]));
+                Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+            }
+        }
+
+        [Fact]
         public void PerformanceReview_CellValuesRectangleParallel_UsesDirectPackageWithSharedStrings() {
             using var memory = new MemoryStream();
             var cells = new List<(int Row, int Column, object Value)> {
