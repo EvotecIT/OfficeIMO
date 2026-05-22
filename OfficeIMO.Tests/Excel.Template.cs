@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -244,6 +245,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelTemplate_RepeatingRowsRebasesCrossSheetRelativeFormulas() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsCrossSheetFormulas.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var invoice = document.AddWorkSheet("Invoice");
+                document.AddWorkSheet("Inputs");
+                invoice.CellAt(2, 1).SetValue("{{Name}}");
+                invoice.CellFormula(2, 2, "'Inputs'!B2+'Inputs'!$C$2");
+
+                invoice.ApplyTemplateRows(2, new[] {
+                    new Dictionary<string, object?> {
+                        ["Name"] = "Consulting"
+                    },
+                    new Dictionary<string, object?> {
+                        ["Name"] = "Support"
+                    }
+                });
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = GetWorksheetPartByNameForTemplateTests(spreadsheet, "Invoice");
+                var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+
+                Assert.Equal("'Inputs'!B2+'Inputs'!$C$2", cells["B2"].CellFormula!.Text);
+                Assert.Equal("'Inputs'!B3+'Inputs'!$C$2", cells["B3"].CellFormula!.Text);
+            }
+        }
+
+        [Fact]
         public void Test_ExcelTemplate_OptionalRowsCanBeIncludedAndBound() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsIncluded.xlsx");
 
@@ -341,6 +372,9 @@ namespace OfficeIMO.Tests {
                 sheet.CellFormula(1, 5, "'Invoice'!$A$4");
                 sheet.CellFormula(1, 6, "$A$2");
                 sheet.CellFormula(1, 7, "IF(\"A4\"=\"A4\",A4,0)");
+                sheet.CellFormula(1, 8, "SUM(A2:A5)");
+                sheet.CellFormula(1, 9, "SUM(A1:A3)");
+                sheet.CellFormula(1, 10, "SUM(A3:A4)");
                 sheet.CellAt(2, 1).SetValue("Optional {{Note}}");
                 sheet.CellAt(3, 1).SetValue("Optional {{Amount}}");
                 sheet.CellAt(4, 1).SetValue("Footer");
@@ -360,6 +394,9 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("'Invoice'!$A$2", cells["E1"].CellFormula!.Text);
                 Assert.Equal("#REF!", cells["F1"].CellFormula!.Text);
                 Assert.Equal("IF(\"A4\"=\"A4\",A2,0)", cells["G1"].CellFormula!.Text);
+                Assert.Equal("SUM(A2:A3)", cells["H1"].CellFormula!.Text);
+                Assert.Equal("SUM(A1:A1)", cells["I1"].CellFormula!.Text);
+                Assert.Equal("SUM(A2:A2)", cells["J1"].CellFormula!.Text);
                 Assert.Equal("B1:B2", merge.Reference!.Value);
             }
         }
@@ -376,6 +413,8 @@ namespace OfficeIMO.Tests {
                 sheet.CellAt(3, 2).SetValue("Choice");
                 sheet.CellAt(3, 3).SetValue(1);
                 sheet.SetComment(3, 1, "Footer note");
+                sheet.CellAt(4, 1).SetValue("Trailing");
+                sheet.SetComment(4, 1, "Trailing note");
                 sheet.SetHyperlink(3, 1, "https://example.org");
                 sheet.AddConditionalFormulaRule("C3", "C3>0");
                 document.Save(false);
@@ -409,12 +448,25 @@ namespace OfficeIMO.Tests {
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
                 WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 var worksheet = worksheetPart.Worksheet;
-                Comment comment = Assert.Single(worksheetPart.WorksheetCommentsPart!.Comments!.CommentList!.Elements<Comment>());
+                var comments = worksheetPart.WorksheetCommentsPart!.Comments!.CommentList!.Elements<Comment>()
+                    .OrderBy(comment => comment.Reference!.Value)
+                    .ToList();
                 Hyperlink hyperlink = Assert.Single(worksheet.Elements<Hyperlinks>().Single().Elements<Hyperlink>());
                 DataValidation validation = Assert.Single(worksheet.GetFirstChild<DataValidations>()!.Elements<DataValidation>());
                 ConditionalFormatting conditional = Assert.Single(worksheet.Elements<ConditionalFormatting>());
+                VmlDrawingPart vmlPart = Assert.Single(worksheetPart.VmlDrawingParts);
+                XDocument vml = XDocument.Load(vmlPart.GetStream());
+                XNamespace excelNamespace = "urn:schemas-microsoft-com:office:excel";
+                string[] vmlCoordinates = vml.Root!.Descendants(excelNamespace + "ClientData")
+                    .Select(clientData => string.Join(
+                        ",",
+                        clientData.Element(excelNamespace + "Row")?.Value.Trim(),
+                        clientData.Element(excelNamespace + "Column")?.Value.Trim()))
+                    .OrderBy(value => value, StringComparer.Ordinal)
+                    .ToArray();
 
-                Assert.Equal("A4", comment.Reference!.Value);
+                Assert.Equal(new[] { "A4", "A5" }, comments.Select(comment => comment.Reference!.Value).ToArray());
+                Assert.Equal(new[] { "3,0", "4,0" }, vmlCoordinates);
                 Assert.Equal("A4", hyperlink.Reference!.Value);
                 Assert.Equal("B4", validation.SequenceOfReferences!.InnerText);
                 Assert.Equal("C4", conditional.SequenceOfReferences!.InnerText);
@@ -642,6 +694,12 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(complete.MissingMarkers);
                 Assert.Throws<InvalidOperationException>(() => template.EnsureAllMarkersBound());
             }
+        }
+
+        private static WorksheetPart GetWorksheetPartByNameForTemplateTests(SpreadsheetDocument document, string sheetName) {
+            WorkbookPart workbookPart = document.WorkbookPart!;
+            Sheet sheet = workbookPart.Workbook.Sheets!.Elements<Sheet>().Single(item => item.Name == sheetName);
+            return (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
         }
 
         private sealed class InvoiceTemplateModel {

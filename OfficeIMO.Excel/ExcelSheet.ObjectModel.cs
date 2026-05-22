@@ -698,12 +698,20 @@ namespace OfficeIMO.Excel {
             }
 
             commentsPart.Comments.Save();
+            var shapesToRemove = new HashSet<(int Row, int Col)>();
             foreach (var cell in removed) {
+                shapesToRemove.Add(cell);
+            }
+
+            foreach (var pair in moved) {
+                shapesToRemove.Add(pair.OldCell);
+            }
+
+            foreach (var cell in shapesToRemove) {
                 RemoveCommentVmlShape(cell.Row, cell.Col);
             }
 
             foreach (var pair in moved) {
-                RemoveCommentVmlShape(pair.OldCell.Row, pair.OldCell.Col);
                 EnsureCommentVmlShape(pair.NewCell.Row, pair.NewCell.Col);
             }
 
@@ -1128,7 +1136,7 @@ namespace OfficeIMO.Excel {
             }
 
             return RewriteFormulaReferencesOutsideStrings(formula, segment => ReplaceFormulaReferences(segment, match => {
-                if (!CanRewriteFormulaReference(match, sheetName, allowAbsoluteRows: false, out int row)) {
+                if (!CanRewriteFormulaReference(match, sheetName, allowAbsoluteRows: false, allowOtherSheets: true, out int row)) {
                     return match.Value;
                 }
 
@@ -1147,7 +1155,7 @@ namespace OfficeIMO.Excel {
             }
 
             return RewriteFormulaReferencesOutsideStrings(formula, segment => ReplaceFormulaReferences(segment, match => {
-                if (!CanRewriteFormulaReference(match, sheetName, allowAbsoluteRows: true, out int row) || row < firstAffectedRow) {
+                if (!CanRewriteFormulaReference(match, sheetName, allowAbsoluteRows: true, allowOtherSheets: false, out int row) || row < firstAffectedRow) {
                     return match.Value;
                 }
 
@@ -1165,26 +1173,46 @@ namespace OfficeIMO.Excel {
                 return formula;
             }
 
-            return RewriteFormulaReferencesOutsideStrings(formula, segment => ReplaceFormulaReferences(segment, match => {
-                if (!CanRewriteFormulaReference(match, sheetName, allowAbsoluteRows: true, out int row)) {
-                    return match.Value;
+            return RewriteFormulaReferencesOutsideStrings(formula, segment => {
+                var protectedRanges = new List<string>();
+                string rewrittenRanges = ReplaceFormulaRanges(segment, match => {
+                    string replacement = RewriteDeletedFormulaRangeReference(match, firstDeletedRow, lastDeletedRow, rowDelta, sheetName);
+                    if (string.Equals(replacement, match.Value, StringComparison.Ordinal)) {
+                        return match.Value;
+                    }
+
+                    string placeholder = "\u0001R" + protectedRanges.Count.ToString(CultureInfo.InvariantCulture) + "\u0002";
+                    protectedRanges.Add(replacement);
+                    return placeholder;
+                });
+
+                string rewritten = ReplaceFormulaReferences(rewrittenRanges, match => {
+                    if (!CanRewriteFormulaReference(match, sheetName, allowAbsoluteRows: true, allowOtherSheets: false, out int row)) {
+                        return match.Value;
+                    }
+
+                    if (row >= firstDeletedRow && row <= lastDeletedRow) {
+                        return "#REF!";
+                    }
+
+                    if (row <= lastDeletedRow) {
+                        return match.Value;
+                    }
+
+                    int targetRow = row + rowDelta;
+                    if (targetRow <= 0 || targetRow > A1.MaxRows) {
+                        return match.Value;
+                    }
+
+                    return BuildFormulaReference(match, targetRow);
+                });
+
+                for (int i = 0; i < protectedRanges.Count; i++) {
+                    rewritten = rewritten.Replace("\u0001R" + i.ToString(CultureInfo.InvariantCulture) + "\u0002", protectedRanges[i]);
                 }
 
-                if (row >= firstDeletedRow && row <= lastDeletedRow) {
-                    return "#REF!";
-                }
-
-                if (row <= lastDeletedRow) {
-                    return match.Value;
-                }
-
-                int targetRow = row + rowDelta;
-                if (targetRow <= 0 || targetRow > A1.MaxRows) {
-                    return match.Value;
-                }
-
-                return BuildFormulaReference(match, targetRow);
-            }));
+                return rewritten;
+            });
         }
 
         private static string RewriteFormulaReferencesOutsideStrings(string formula, Func<string, string> rewriteSegment) {
@@ -1232,10 +1260,69 @@ namespace OfficeIMO.Excel {
                 TimeSpan.FromMilliseconds(200));
         }
 
-        private static bool CanRewriteFormulaReference(Match match, string? sheetName, bool allowAbsoluteRows, out int row) {
-            row = 0;
+        private static string ReplaceFormulaRanges(string segment, MatchEvaluator evaluator) {
+            return Regex.Replace(
+                segment,
+                @"(?<![A-Za-z0-9_\.])(?:(?<sheet>'(?:[^']|'')+'|[A-Za-z_][A-Za-z0-9_\.]*)!)?(?<startColAbs>\$?)(?<startCol>[A-Za-z]{1,3})(?<startRowAbs>\$?)(?<startRow>\d{1,7}):(?<endColAbs>\$?)(?<endCol>[A-Za-z]{1,3})(?<endRowAbs>\$?)(?<endRow>\d{1,7})(?=[:),+\-*/^&=<> \t\r\n]|$)",
+                evaluator,
+                RegexOptions.CultureInvariant,
+                TimeSpan.FromMilliseconds(200));
+        }
+
+        private static string RewriteDeletedFormulaRangeReference(Match match, int firstDeletedRow, int lastDeletedRow, int rowDelta, string? sheetName) {
             string sheetQualifier = match.Groups["sheet"].Value;
             if (sheetQualifier.Length > 0 && !IsCurrentSheetQualifier(sheetQualifier, sheetName)) {
+                return match.Value;
+            }
+
+            if (!int.TryParse(match.Groups["startRow"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int startRow)
+                || !int.TryParse(match.Groups["endRow"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int endRow)) {
+                return match.Value;
+            }
+
+            if (startRow > endRow || endRow < firstDeletedRow) {
+                return match.Value;
+            }
+
+            if (startRow >= firstDeletedRow && endRow <= lastDeletedRow) {
+                return "#REF!";
+            }
+
+            int targetStart = startRow;
+            int targetEnd = endRow;
+            if (startRow > lastDeletedRow) {
+                targetStart += rowDelta;
+            } else if (startRow >= firstDeletedRow) {
+                targetStart = firstDeletedRow;
+            }
+
+            if (endRow > lastDeletedRow) {
+                targetEnd += rowDelta;
+            } else if (endRow >= firstDeletedRow) {
+                targetEnd = firstDeletedRow - 1;
+            }
+
+            if (targetStart <= 0 || targetEnd <= 0 || targetEnd < targetStart || targetEnd > A1.MaxRows) {
+                return "#REF!";
+            }
+
+            return sheetQualifier
+                + (sheetQualifier.Length > 0 ? "!" : string.Empty)
+                + match.Groups["startColAbs"].Value
+                + match.Groups["startCol"].Value
+                + match.Groups["startRowAbs"].Value
+                + targetStart.ToString(CultureInfo.InvariantCulture)
+                + ":"
+                + match.Groups["endColAbs"].Value
+                + match.Groups["endCol"].Value
+                + match.Groups["endRowAbs"].Value
+                + targetEnd.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static bool CanRewriteFormulaReference(Match match, string? sheetName, bool allowAbsoluteRows, bool allowOtherSheets, out int row) {
+            row = 0;
+            string sheetQualifier = match.Groups["sheet"].Value;
+            if (sheetQualifier.Length > 0 && !allowOtherSheets && !IsCurrentSheetQualifier(sheetQualifier, sheetName)) {
                 return false;
             }
 
