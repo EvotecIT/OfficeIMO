@@ -372,7 +372,7 @@ namespace OfficeIMO.Excel {
                         return TryEvaluateLookupFunction(function, args, out result);
                     }
 
-                    if (!TryResolveFormulaArguments(args, out var values)) {
+                    if (!TryResolveFormulaArguments(args, out var values) || values.Any(value => value.IsUnresolvedFormula)) {
                         return false;
                     }
 
@@ -2130,13 +2130,20 @@ namespace OfficeIMO.Excel {
 
         private FormulaArgumentValue ResolveCellArgument(int row, int column) {
             var cell = TryGetExistingCell(row, column);
-            if (cell?.CellFormula != null
-                && _formulaEvaluationCache != null
-                && TryEvaluateFormulaCellValue(cell, out FormulaArgumentValue formulaResult)) {
-                return formulaResult;
+            bool unresolvedFormula = false;
+            if (cell?.CellFormula != null && _formulaEvaluationCache != null) {
+                if (TryEvaluateFormulaCellValue(cell, out FormulaArgumentValue formulaResult)) {
+                    return formulaResult;
+                }
+
+                unresolvedFormula = true;
             }
 
             var value = GetCellValueSnapshot(row, column);
+            if (unresolvedFormula && value.Value == null && string.IsNullOrEmpty(value.CachedText)) {
+                return FormulaArgumentValue.UnresolvedFormula();
+            }
+
             if (value.Value is double d) {
                 return new FormulaArgumentValue(d, value.CachedText);
             }
@@ -2169,14 +2176,20 @@ namespace OfficeIMO.Excel {
         }
 
         private readonly struct FormulaArgumentValue {
-            internal FormulaArgumentValue(double? number, string? text) {
+            internal FormulaArgumentValue(double? number, string? text, bool isUnresolvedFormula = false) {
                 Number = number;
                 Text = text;
+                IsUnresolvedFormula = isUnresolvedFormula;
             }
 
             internal double? Number { get; }
             internal string? Text { get; }
+            internal bool IsUnresolvedFormula { get; }
             internal bool HasValue => Number.HasValue || Text != null;
+
+            internal static FormulaArgumentValue UnresolvedFormula() {
+                return new FormulaArgumentValue(null, null, isUnresolvedFormula: true);
+            }
         }
 
         private readonly struct FormulaCriteria {
