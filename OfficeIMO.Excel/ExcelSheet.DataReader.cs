@@ -514,7 +514,7 @@ namespace OfficeIMO.Excel {
             bool useDirectStringCells,
             ref Dictionary<string, int>? sharedStringIndexes,
             CancellationToken ct) {
-            string rowReference = rowIndex.ToString(CultureInfo.InvariantCulture);
+            string rowReference = InvariantNumberText.Get(rowIndex);
             var row = new Row { RowIndex = (uint)rowIndex };
             for (int offset = 0; offset < headers.Count; offset++) {
                 ct.ThrowIfCancellationRequested();
@@ -541,7 +541,7 @@ namespace OfficeIMO.Excel {
             bool useDirectStringCells,
             ref Dictionary<string, int>? sharedStringIndexes,
             CancellationToken ct) {
-            string rowReference = rowIndex.ToString(CultureInfo.InvariantCulture);
+            string rowReference = InvariantNumberText.Get(rowIndex);
             var row = new Row { RowIndex = (uint)rowIndex };
             for (int offset = 0; offset < values.Count; offset++) {
                 ct.ThrowIfCancellationRequested();

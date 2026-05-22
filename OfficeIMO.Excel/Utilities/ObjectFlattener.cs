@@ -339,12 +339,35 @@ namespace OfficeIMO.Excel {
 
         private static object? HandleCollection(string path, IEnumerable enumerable, ObjectFlattenerOptions opts) {
             if (opts.CollectionMode == CollectionMode.JoinWith) {
-                var list = enumerable.Cast<object?>().Select(v => v?.ToString()).ToArray();
-                var joined = string.Join(opts.CollectionJoinWith, list);
+                var joined = JoinCollectionValues(enumerable, opts.CollectionJoinWith);
                 return ApplyFormatting(path, joined, opts);
             }
             // ExpandRows handled in SheetBuilder
             return enumerable;
+        }
+
+        private static string JoinCollectionValues(IEnumerable enumerable, string separator) {
+            var enumerator = enumerable.GetEnumerator();
+            try {
+                if (!enumerator.MoveNext()) {
+                    return string.Empty;
+                }
+
+                string first = enumerator.Current?.ToString() ?? string.Empty;
+                if (!enumerator.MoveNext()) {
+                    return first;
+                }
+
+                var joined = new StringBuilder(first);
+                do {
+                    joined.Append(separator);
+                    joined.Append(enumerator.Current?.ToString() ?? string.Empty);
+                } while (enumerator.MoveNext());
+
+                return joined.ToString();
+            } finally {
+                (enumerator as IDisposable)?.Dispose();
+            }
         }
 
         private static object? ApplyFormatting(string path, object? value, ObjectFlattenerOptions opts) {
@@ -396,7 +419,14 @@ namespace OfficeIMO.Excel {
             }
 
             var remaining = input.Where(p => !set.Contains(p)).ToList();
-            var prioritized = remaining.OrderBy(p => GetPriority(p)).ThenBy(p => input.IndexOf(p)).ToList();
+            var originalOrder = new Dictionary<string, int>(input.Count, StringComparer.Ordinal);
+            for (int i = 0; i < input.Count; i++) {
+                if (!originalOrder.ContainsKey(input[i])) {
+                    originalOrder.Add(input[i], i);
+                }
+            }
+
+            var prioritized = remaining.OrderBy(p => GetPriority(p)).ThenBy(p => originalOrder[p]).ToList();
 
             // 3) PinnedLast moved to the end in the given order
             var pinnedLastMatches = new List<string>();
@@ -406,7 +436,8 @@ namespace OfficeIMO.Excel {
                 if (!string.IsNullOrEmpty(match)) pinnedLastMatches.Add(match);
             }
             // Remove pinned-last matches from prioritized
-            var prioritizedNoPinnedLast = prioritized.Where(p => !pinnedLastMatches.Contains(p, StringComparer.OrdinalIgnoreCase)).ToList();
+            var pinnedLastSet = new HashSet<string>(pinnedLastMatches, StringComparer.OrdinalIgnoreCase);
+            var prioritizedNoPinnedLast = prioritized.Where(p => !pinnedLastSet.Contains(p)).ToList();
 
             // Merge
             foreach (var p in prioritizedNoPinnedLast) if (set.Add(p)) result.Add(p);

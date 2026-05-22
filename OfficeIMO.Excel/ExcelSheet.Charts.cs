@@ -41,35 +41,45 @@ namespace OfficeIMO.Excel {
             if (data == null) throw new ArgumentNullException(nameof(data));
             if (startRow <= 0 || startColumn <= 0) throw new ArgumentOutOfRangeException(nameof(startRow));
 
-            var cells = new List<(int Row, int Column, object Value)>();
+            IReadOnlyList<string> categories = data.Categories;
+            IReadOnlyList<ExcelChartSeries> series = data.Series;
+            int categoryCount = categories.Count;
+            int seriesCount = series.Count;
+            int cellCapacity = categoryCount * (seriesCount + 1);
+            if (includeHeaderRow) {
+                cellCapacity += seriesCount + 1;
+            }
+
+            var cells = new List<(int Row, int Column, object Value)>(cellCapacity);
             int rowOffset = includeHeaderRow ? 1 : 0;
             if (includeHeaderRow) {
                 string header = categoryHeader ?? string.Empty;
                 cells.Add((startRow, startColumn, header));
 
-                for (int s = 0; s < data.Series.Count; s++) {
-                    cells.Add((startRow, startColumn + s + 1, data.Series[s].Name));
+                for (int s = 0; s < seriesCount; s++) {
+                    cells.Add((startRow, startColumn + s + 1, series[s].Name));
                 }
             }
 
-            for (int i = 0; i < data.Categories.Count; i++) {
+            for (int i = 0; i < categoryCount; i++) {
                 int row = startRow + i + rowOffset;
-                object categoryValue = data.Categories[i];
+                string categoryText = categories[i];
+                object categoryValue = categoryText;
                 if (numericCategories) {
-                    if (!double.TryParse(data.Categories[i], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var numeric)) {
-                        throw new ArgumentException($"Category '{data.Categories[i]}' is not numeric. Scatter charts require numeric X values. Use AddScatterChartFromRanges for non-numeric categories.");
+                    if (!double.TryParse(categoryText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var numeric)) {
+                        throw new ArgumentException($"Category '{categoryText}' is not numeric. Scatter charts require numeric X values. Use AddScatterChartFromRanges for non-numeric categories.");
                     }
                     categoryValue = numeric;
                 }
                 cells.Add((row, startColumn, categoryValue));
-                for (int s = 0; s < data.Series.Count; s++) {
-                    cells.Add((row, startColumn + s + 1, data.Series[s].Values[i]));
+                for (int s = 0; s < seriesCount; s++) {
+                    cells.Add((row, startColumn + s + 1, series[s].Values[i]));
                 }
             }
 
             CellValues(cells, null);
 
-            return new ExcelChartDataRange(Name, startRow, startColumn, data.Categories.Count, data.Series.Count, hasHeaderRow: includeHeaderRow);
+            return new ExcelChartDataRange(Name, startRow, startColumn, categoryCount, seriesCount, hasHeaderRow: includeHeaderRow);
         }
 
         /// <summary>
@@ -82,9 +92,19 @@ namespace OfficeIMO.Excel {
 
             var dataSheet = _excelDocument.GetOrCreateChartDataSheet();
             int startRow = _excelDocument.ReserveChartDataStartRow(data.Categories.Count + 1);
-            bool numericCategories = type == ExcelChartType.Scatter || data.Series.Any(s => s.ChartType == ExcelChartType.Scatter);
+            bool numericCategories = type == ExcelChartType.Scatter || HasScatterSeries(data.Series);
             ExcelChartDataRange range = dataSheet.WriteChartData(data, startRow, 1, numericCategories: numericCategories);
             return AddChart(range, row, column, widthPixels, heightPixels, type, data, title);
+        }
+
+        private static bool HasScatterSeries(IReadOnlyList<ExcelChartSeries> series) {
+            for (int i = 0; i < series.Count; i++) {
+                if (series[i].ChartType == ExcelChartType.Scatter) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -179,11 +199,11 @@ namespace OfficeIMO.Excel {
             if (widthPixels <= 0 || heightPixels <= 0) throw new ArgumentOutOfRangeException(nameof(widthPixels));
             MaterializeDeferredDataSetImportIfNeeded();
 
-            var ranges = seriesRanges.ToList();
+            var ranges = seriesRanges as IReadOnlyList<ExcelChartSeriesRange> ?? seriesRanges.ToList();
             if (ranges.Count == 0) {
                 throw new ArgumentException("At least one series range is required.", nameof(seriesRanges));
             }
-            if (type == ExcelChartType.Bubble && ranges.Any(r => string.IsNullOrWhiteSpace(r.BubbleSizeRangeA1))) {
+            if (type == ExcelChartType.Bubble && HasMissingBubbleSizeRange(ranges)) {
                 throw new ArgumentException("Bubble charts require bubble size ranges for each series.", nameof(seriesRanges));
             }
 
@@ -249,6 +269,16 @@ namespace OfficeIMO.Excel {
             });
 
             return new ExcelChart(frame!, drawingPart!, this);
+        }
+
+        private static bool HasMissingBubbleSizeRange(IReadOnlyList<ExcelChartSeriesRange> ranges) {
+            for (int i = 0; i < ranges.Count; i++) {
+                if (string.IsNullOrWhiteSpace(ranges[i].BubbleSizeRangeA1)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private ExcelChart AddChartInternal(ExcelChartDataRange range, int row, int column, int widthPixels, int heightPixels,

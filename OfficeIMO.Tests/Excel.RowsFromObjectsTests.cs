@@ -191,5 +191,66 @@ namespace OfficeIMO.Tests {
 
             File.Delete(filePath);
         }
+
+        [Fact]
+        public void RowsFrom_CollectionExpandRows_StreamsNestedCollectionsOnce() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            var tags = new SinglePassEnumerable<string>("a", "b");
+            var data = new[] {
+                new Person { Name = "Alice", Age = 30, Tags = null }
+            };
+
+            using (var doc = ExcelDocument.Create(filePath)) {
+                doc.AsFluent()
+                    .Sheet("People", s => s.RowsFrom(new[] {
+                        new PersonWithEnumerableTags { Name = data[0].Name, Age = data[0].Age, Tags = tags }
+                    }, o => {
+                        o.ExpandProperties.Add(nameof(PersonWithEnumerableTags.Tags));
+                        o.CollectionMode = CollectionMode.ExpandRows;
+                    }))
+                    .End()
+                    .Save();
+            }
+
+            Assert.Equal(1, tags.EnumerationCount);
+            using (var document = SpreadsheetDocument.Open(filePath, false)) {
+                var wsPart = document.WorkbookPart!.WorksheetParts.First();
+                Assert.Equal("Alice", GetCellValue(document, wsPart, "A2"));
+                Assert.Equal("a", GetCellValue(document, wsPart, "C2"));
+                Assert.Equal("Alice", GetCellValue(document, wsPart, "A3"));
+                Assert.Equal("b", GetCellValue(document, wsPart, "C3"));
+            }
+
+            File.Delete(filePath);
+        }
+
+        private sealed class PersonWithEnumerableTags {
+            public string Name { get; set; } = string.Empty;
+
+            public int Age { get; set; }
+
+            public IEnumerable<string>? Tags { get; set; }
+        }
+
+        private sealed class SinglePassEnumerable<T> : IEnumerable<T> {
+            private readonly T[] _items;
+
+            public SinglePassEnumerable(params T[] items) {
+                _items = items;
+            }
+
+            public int EnumerationCount { get; private set; }
+
+            public IEnumerator<T> GetEnumerator() {
+                EnumerationCount++;
+                if (EnumerationCount > 1) {
+                    throw new InvalidOperationException("Nested collection should be streamed once.");
+                }
+
+                return ((IEnumerable<T>)_items).GetEnumerator();
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        }
     }
 }

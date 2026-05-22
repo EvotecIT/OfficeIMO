@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Serialize the short apply-to-DOM stage only.</summary>
         public static void ExecuteWrite(ReaderWriterLockSlim? lck, Action apply) {
-            if (IsNoLock || lck is null) {
+            if (IsNoLock || lck is null || lck.IsWriteLockHeld) {
                 apply();
                 return;
             }
@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Serialize the short apply-to-DOM stage only with return value.</summary>
         public static T ExecuteWrite<T>(ReaderWriterLockSlim? lck, Func<T> apply) {
-            if (IsNoLock || lck is null) {
+            if (IsNoLock || lck is null || lck.IsWriteLockHeld) {
                 return apply();
             }
 
@@ -49,7 +49,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Execute read operation with optional locking.</summary>
         public static T ExecuteRead<T>(ReaderWriterLockSlim? lck, Func<T> read) {
-            if (IsNoLock || lck is null) {
+            if (IsNoLock || lck is null || lck.IsWriteLockHeld || lck.IsReadLockHeld) {
                 return read();
             }
 
@@ -63,7 +63,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Execute read operation with optional locking.</summary>
         public static void ExecuteRead(ReaderWriterLockSlim? lck, Action read) {
-            if (IsNoLock || lck is null) {
+            if (IsNoLock || lck is null || lck.IsWriteLockHeld || lck.IsReadLockHeld) {
                 read();
                 return;
             }

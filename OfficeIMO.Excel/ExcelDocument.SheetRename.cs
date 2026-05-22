@@ -371,7 +371,7 @@ namespace OfficeIMO.Excel {
             CoerceValueHelper.ValidateSharedStringLength(text, nameof(text));
             int index = GetSharedStringIndex(text);
             cell.InlineString = null;
-            cell.CellValue = new CellValue(index.ToString(CultureInfo.InvariantCulture));
+            cell.CellValue = new CellValue(SharedStringIndexText.Get(index));
             cell.DataType = CellValues.SharedString;
         }
 

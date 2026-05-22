@@ -26,6 +26,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ObjectDataTableBuilder_FromReadOnlyList_DoesNotSnapshotEnumerate() {
+            var items = new ThrowOnEnumerateReadOnlyList<object?>(
+                new ObjectDataBaseRow { Name = "A", Value = 1 },
+                new ObjectDataBaseRow { Name = "B", Value = 2 });
+
+            var table = ObjectDataTableBuilder.FromObjects(items, "Data");
+
+            Assert.Equal(2, table.Rows.Count);
+            Assert.Equal("A", table.Rows[0]["Name"]);
+            Assert.Equal(1, table.Rows[0]["Value"]);
+            Assert.Equal("B", table.Rows[1]["Name"]);
+            Assert.Equal(2, table.Rows[1]["Value"]);
+        }
+
+        [Fact]
         public void Test_ObjectDataTableBuilder_FromDictionaries_PreservesColumnsAndDbNulls() {
             var items = new[] {
                 new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) {
@@ -124,5 +139,6 @@ namespace OfficeIMO.Tests {
             public new string Name { get; set; } = string.Empty;
             public new int Value { get; set; }
         }
+
     }
 }

@@ -31,6 +31,7 @@ namespace OfficeIMO.Excel {
         private readonly SpreadsheetDocument _spreadSheetDocument;
         private readonly ExcelDocument _excelDocument;
         private bool _isBatchOperation = false;
+        private bool _batchHasCellMutations;
         private bool _hasWorksheetMutations;
         private bool _requiresSavePreparation;
         private readonly List<TableDefinitionPart> _pendingTableDefinitionPartSaves = new();
@@ -42,6 +43,8 @@ namespace OfficeIMO.Excel {
         private int _lastAccessedCellColumnIndex;
         private SheetData? _sheetDataCache;
         private string?[]? _cellReferenceColumnNameCache;
+        private int _lastCellReferenceRowIndex;
+        private string? _lastCellReferenceRowText;
         private SharedStringCache? _cellTextSharedStringCache;
         private readonly object _findFirstCacheLock = new object();
         private string? _findFirstCacheText;
@@ -67,6 +70,39 @@ namespace OfficeIMO.Excel {
         /// Begin a no-lock context where operations bypass locking.
         /// </summary>
         public NoLockContext BeginNoLock() => new();
+
+        /// <summary>
+        /// Executes multiple worksheet mutations under a single workbook write lock.
+        /// </summary>
+        /// <param name="action">The worksheet updates to execute.</param>
+        public void Batch(Action<ExcelSheet> action) {
+            if (action == null) {
+                throw new ArgumentNullException(nameof(action));
+            }
+
+            if (_isBatchOperation || Locking.IsNoLock) {
+                action(this);
+                return;
+            }
+
+            MaterializeDeferredDataSetImportIfNeeded();
+            var lck = _excelDocument.EnsureLock();
+            lck.EnterWriteLock();
+            bool wasBatchOperation = _isBatchOperation;
+            bool hadBatchCellMutations = _batchHasCellMutations;
+            try {
+                _isBatchOperation = true;
+                _batchHasCellMutations = false;
+                action(this);
+                if (_batchHasCellMutations) {
+                    _excelDocument.MarkPackageDirty();
+                }
+            } finally {
+                _isBatchOperation = wasBatchOperation;
+                _batchHasCellMutations = hadBatchCellMutations;
+                lck.ExitWriteLock();
+            }
+        }
 
         /// <summary>
         /// Represents a scope where worksheet operations bypass locking.
@@ -454,7 +490,18 @@ namespace OfficeIMO.Excel {
 
         private string BuildCellReference(int row, int column) {
             string columnName = GetCachedColumnName(column);
-            return columnName + row.ToString(CultureInfo.InvariantCulture);
+            return columnName + GetCachedRowText(row);
+        }
+
+        private string GetCachedRowText(int rowIndex) {
+            if (_lastCellReferenceRowText != null && _lastCellReferenceRowIndex == rowIndex) {
+                return _lastCellReferenceRowText;
+            }
+
+            string rowText = InvariantNumberText.Get(rowIndex);
+            _lastCellReferenceRowIndex = rowIndex;
+            _lastCellReferenceRowText = rowText;
+            return rowText;
         }
 
         private string GetCachedColumnName(int columnIndex) {

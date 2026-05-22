@@ -86,7 +86,7 @@ namespace OfficeIMO.Excel.Fluent {
         /// <summary>Renders a compact grid of key/value pairs.</summary>
         public SheetComposer PropertiesGrid(IEnumerable<(string Key, object? Value)> properties, int columns = 2) {
             if (properties == null) return this;
-            var list = new List<(string Key, object? Value)>(properties);
+            var list = properties as IReadOnlyList<(string Key, object? Value)> ?? properties.ToList();
             if (list.Count == 0) return this;
             int idx = 0;
             while (idx < list.Count) {
@@ -129,7 +129,7 @@ namespace OfficeIMO.Excel.Fluent {
         /// <summary>Renders a compact KPI row of label/value pairs.</summary>
         public SheetComposer KpiRow(IEnumerable<(string Label, object? Value)> kpis, int perRow = 3, string? labelFillHex = null) {
             if (kpis == null) return this;
-            var list = new List<(string Label, object? Value)>(kpis);
+            var list = kpis as IReadOnlyList<(string Label, object? Value)> ?? kpis.ToList();
             if (list.Count == 0) return this;
 
             int idx = 0; string fill = labelFillHex ?? _theme.KeyFillHex;
@@ -172,12 +172,37 @@ namespace OfficeIMO.Excel.Fluent {
 
         /// <summary>Writes a simple References section with each URL as a hyperlink.</summary>
         public SheetComposer References(IEnumerable<string> urls) {
-            var list = urls is null ? null : new List<string>(urls);
-            if (list != null && list.Count > 0) {
-                Section("References");
-                foreach (var url in list) { Sheet.SetHyperlinkSmart(_row, 1, url); _row++; }
-                Spacer();
+            if (urls == null) {
+                return this;
             }
+
+            if (urls is IReadOnlyList<string> list) {
+                if (list.Count == 0) {
+                    return this;
+                }
+
+                Section("References");
+                for (int i = 0; i < list.Count; i++) {
+                    Sheet.SetHyperlinkSmart(_row, 1, list[i]);
+                    _row++;
+                }
+
+                Spacer();
+                return this;
+            }
+
+            using var enumerator = urls.GetEnumerator();
+            if (!enumerator.MoveNext()) {
+                return this;
+            }
+
+            Section("References");
+            do {
+                Sheet.SetHyperlinkSmart(_row, 1, enumerator.Current);
+                _row++;
+            } while (enumerator.MoveNext());
+
+            Spacer();
             return this;
         }
     }

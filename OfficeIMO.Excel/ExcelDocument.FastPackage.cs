@@ -111,7 +111,7 @@ namespace OfficeIMO.Excel {
                         ct.ThrowIfCancellationRequested();
                         WriteTextEntry(
                             archive,
-                            string.Format(CultureInfo.InvariantCulture, "xl/tables/table{0}.xml", i + 1),
+                            "xl/tables/table" + InvariantNumberText.Get(i + 1) + ".xml",
                             "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + model.Tables[i].OuterXml);
                     }
                 }
@@ -248,7 +248,7 @@ namespace OfficeIMO.Excel {
 
                         tables.Add(table);
                         string relId = worksheetPart.GetIdOfPart(tableDefinition);
-                        tablePartPaths[relId] = string.Format(CultureInfo.InvariantCulture, "../tables/table{0}.xml", tableIndex);
+                        tablePartPaths[relId] = "../tables/table" + InvariantNumberText.Get(tableIndex) + ".xml";
                         tableIndex++;
                     }
 
@@ -260,12 +260,12 @@ namespace OfficeIMO.Excel {
                         .ToList();
 
                     worksheets.Add(new FastWorksheetPackageModel(
-                        sheet.Name?.Value ?? "Sheet" + (sheetIndex + 1).ToString(CultureInfo.InvariantCulture),
+                        sheet.Name?.Value ?? "Sheet" + InvariantNumberText.Get(sheetIndex + 1),
                         sheet.SheetId?.Value ?? (uint)(sheetIndex + 1),
                         GetSheetStateText(sheet),
-                        "rId" + (sheetIndex + 1).ToString(CultureInfo.InvariantCulture),
-                        string.Format(CultureInfo.InvariantCulture, "xl/worksheets/sheet{0}.xml", sheetIndex + 1),
-                        string.Format(CultureInfo.InvariantCulture, "xl/worksheets/_rels/sheet{0}.xml.rels", sheetIndex + 1),
+                        "rId" + InvariantNumberText.Get(sheetIndex + 1),
+                        "xl/worksheets/sheet" + InvariantNumberText.Get(sheetIndex + 1) + ".xml",
+                        "xl/worksheets/_rels/sheet" + InvariantNumberText.Get(sheetIndex + 1) + ".xml.rels",
                         worksheet,
                         tablePartPaths,
                         hyperlinkRelationships));
@@ -576,7 +576,7 @@ namespace OfficeIMO.Excel {
             builder.Append("<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>");
             for (int i = 1; i <= worksheetCount; i++) {
                 builder.Append("<Override PartName=\"/xl/worksheets/sheet");
-                builder.Append(i.ToString(CultureInfo.InvariantCulture));
+                AppendInvariant(builder, i);
                 builder.Append(".xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>");
             }
 
@@ -590,7 +590,7 @@ namespace OfficeIMO.Excel {
 
             for (int i = 1; i <= tableCount; i++) {
                 builder.Append("<Override PartName=\"/xl/tables/table");
-                builder.Append(i.ToString(CultureInfo.InvariantCulture));
+                AppendInvariant(builder, i);
                 builder.Append(".xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml\"/>");
             }
 
@@ -630,7 +630,7 @@ namespace OfficeIMO.Excel {
             foreach (var worksheet in worksheets) {
                 writer.WriteStartElement("sheet");
                 writer.WriteAttributeString("name", worksheet.SheetName);
-                writer.WriteAttributeString("sheetId", worksheet.SheetId.ToString(CultureInfo.InvariantCulture));
+                writer.WriteAttributeString("sheetId", InvariantNumberText.Get(worksheet.SheetId));
                 writer.WriteAttributeString("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", worksheet.WorkbookRelationshipId);
                 if (!string.IsNullOrEmpty(worksheet.SheetState)) {
                     writer.WriteAttributeString("state", worksheet.SheetState);
@@ -665,13 +665,13 @@ namespace OfficeIMO.Excel {
 
             if (hasStyles) {
                 builder.Append("<Relationship Id=\"rId");
-                builder.Append((worksheets.Count + 1).ToString(CultureInfo.InvariantCulture));
+                AppendInvariant(builder, worksheets.Count + 1);
                 builder.Append("\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>");
             }
 
             if (hasSharedStrings) {
                 builder.Append("<Relationship Id=\"rId");
-                builder.Append((worksheets.Count + (hasStyles ? 2 : 1)).ToString(CultureInfo.InvariantCulture));
+                AppendInvariant(builder, worksheets.Count + (hasStyles ? 2 : 1));
                 builder.Append("\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings\" Target=\"sharedStrings.xml\"/>");
             }
 
@@ -816,7 +816,7 @@ namespace OfficeIMO.Excel {
             var tableParts = worksheet.GetFirstChild<TableParts>();
             if (tableParts != null && model.TablePartPaths.Count > 0) {
                 builder.Append("<tableParts count=\"");
-                builder.Append(model.TablePartPaths.Count.ToString(CultureInfo.InvariantCulture));
+                AppendInvariant(builder, model.TablePartPaths.Count);
                 builder.Append("\">");
                 foreach (var tablePart in tableParts.Elements<TablePart>()) {
                     string? id = tablePart.Id?.Value;
@@ -919,7 +919,7 @@ namespace OfficeIMO.Excel {
 
             if (cell.StyleIndex != null) {
                 builder.Append(" s=\"");
-                builder.Append(cell.StyleIndex.Value.ToString(CultureInfo.InvariantCulture));
+                AppendInvariant(builder, cell.StyleIndex.Value);
                 builder.Append('"');
             }
 
@@ -947,9 +947,14 @@ namespace OfficeIMO.Excel {
             }
 
             if (cell.CellValue != null) {
-                builder.Append("<v>");
-                AppendXmlEscaped(builder, text ?? string.Empty);
-                builder.Append("</v>");
+                string valueText = text ?? string.Empty;
+                if (valueText.Length == 0) {
+                    builder.Append("<v/>");
+                } else {
+                    builder.Append("<v>");
+                    AppendXmlEscaped(builder, valueText);
+                    builder.Append("</v>");
+                }
             }
 
             builder.Append("</c>");
@@ -981,7 +986,7 @@ namespace OfficeIMO.Excel {
             builder.Append(' ');
             builder.Append(name);
             builder.Append("=\"");
-            builder.Append(value.Value.ToString(CultureInfo.InvariantCulture));
+            AppendInvariant(builder, value.Value);
             builder.Append('"');
         }
 
@@ -993,7 +998,7 @@ namespace OfficeIMO.Excel {
             builder.Append(' ');
             builder.Append(name);
             builder.Append("=\"");
-            builder.Append(value.Value.ToString(CultureInfo.InvariantCulture));
+            AppendInvariant(builder, value.Value);
             builder.Append('"');
         }
 
@@ -1008,6 +1013,12 @@ namespace OfficeIMO.Excel {
             builder.Append(value.Value ? '1' : '0');
             builder.Append('"');
         }
+
+        private static void AppendInvariant(System.Text.StringBuilder builder, int value)
+            => builder.Append(InvariantNumberText.Get(value));
+
+        private static void AppendInvariant(System.Text.StringBuilder builder, uint value)
+            => builder.Append(InvariantNumberText.Get(value));
 
         private static XmlWriter CreateFastXmlWriter(Stream stream) =>
             XmlWriter.Create(stream, new XmlWriterSettings {

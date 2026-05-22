@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        private static readonly ConcurrentDictionary<Type, SimpleObjectExportPlan> SimpleObjectExportPlans = new();
+
         /// <summary>
         /// Inserts objects into the worksheet by flattening their properties into columns.
         /// </summary>
@@ -24,13 +26,18 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(items));
             }
 
-            var list = items.Cast<object?>().ToList();
-            if (list.Count == 0) {
+            var rows = items as IReadOnlyList<T> ?? items.ToList();
+            if (rows.Count == 0) {
                 return;
             }
 
-            if (TryInsertSimpleObjectRowsAsDeferredDirectSave(list, includeHeaders, startRow)) {
+            if (TryInsertSimpleObjectRowsAsDeferredDirectSave(rows, includeHeaders, startRow)) {
                 return;
+            }
+
+            var list = new List<object?>(rows.Count);
+            for (int i = 0; i < rows.Count; i++) {
+                list.Add(rows[i]);
             }
 
             var flattenedItems = new List<Dictionary<string, object?>>(list.Count);
@@ -113,34 +120,39 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("At least one column selector is required.", nameof(columns));
             }
 
-            var rows = items as IList<T> ?? items.ToList();
+            var rows = items as IReadOnlyList<T> ?? items.ToList();
             if (rows.Count == 0) {
                 return;
             }
 
-            var normalizedColumns = new (string Header, Func<T, object?> Selector)[columns.Length];
+            var headers = new string[columns.Length];
+            var selectors = new Func<T, object?>[columns.Length];
+            bool hasBlankDisplayHeader = false;
             for (int c = 0; c < columns.Length; c++) {
-                normalizedColumns[c] = (columns[c].Header ?? $"Column{c + 1}", columns[c].Selector ?? (_ => null));
+                string header = columns[c].Header ?? $"Column{c + 1}";
+                headers[c] = header;
+                selectors[c] = columns[c].Selector ?? NullObjectSelector;
+                if (includeHeaders && string.IsNullOrWhiteSpace(header)) {
+                    hasBlankDisplayHeader = true;
+                }
             }
 
             var values = new object?[rows.Count][];
             for (int r = 0; r < rows.Count; r++) {
-                var rowValues = new object?[normalizedColumns.Length];
-                for (int c = 0; c < normalizedColumns.Length; c++) {
-                    rowValues[c] = normalizedColumns[c].Selector(rows[r]);
+                var rowValues = new object?[selectors.Length];
+                for (int c = 0; c < selectors.Length; c++) {
+                    rowValues[c] = selectors[c](rows[r]);
                 }
 
                 values[r] = rowValues;
             }
 
             string? directSaveRange = null;
-            bool hasBlankDisplayHeader = includeHeaders && normalizedColumns.Any(column => string.IsNullOrWhiteSpace(column.Header));
-            if (!hasBlankDisplayHeader && CanRegisterDirectTabularSaveCandidate(startRow, 1, normalizedColumns.Length)) {
+            if (!hasBlankDisplayHeader && CanRegisterDirectTabularSaveCandidate(startRow, 1, headers.Length)) {
                 try {
-                    var headers = normalizedColumns.Select(column => column.Header).ToArray();
                     if (!HasDuplicateObjectExportHeaders(headers)) {
-                        var columnTypes = InferObjectExportColumnTypes(values, normalizedColumns.Length);
-                        directSaveRange = BuildObjectExportRange(startRow, normalizedColumns.Length, rows.Count, includeHeaders);
+                        var columnTypes = InferObjectExportColumnTypes(values, headers.Length);
+                        directSaveRange = BuildObjectExportRange(startRow, headers.Length, rows.Count, includeHeaders);
                         if (TryInsertRowsAsDeferredDirectSave(Name, headers, columnTypes, values, startRow, includeHeaders, directSaveRange)) {
                             return;
                         }
@@ -151,19 +163,19 @@ namespace OfficeIMO.Excel {
             }
 
             int headerRows = includeHeaders ? 1 : 0;
-            int totalCellCount = checked((rows.Count + headerRows) * normalizedColumns.Length);
+            int totalCellCount = checked((rows.Count + headerRows) * headers.Length);
             var cells = new (int Row, int Column, object Value)[totalCellCount];
             int cellIndex = 0;
             int row = startRow;
             if (includeHeaders) {
-                for (int c = 0; c < normalizedColumns.Length; c++) {
-                    cells[cellIndex++] = (row, c + 1, normalizedColumns[c].Header);
+                for (int c = 0; c < headers.Length; c++) {
+                    cells[cellIndex++] = (row, c + 1, headers[c]);
                 }
                 row++;
             }
 
             foreach (var item in rows) {
-                for (int c = 0; c < normalizedColumns.Length; c++) {
+                for (int c = 0; c < headers.Length; c++) {
                     object value = values[row - startRow - headerRows][c] ?? string.Empty;
                     cells[cellIndex++] = (row, c + 1, value);
                 }
@@ -172,6 +184,8 @@ namespace OfficeIMO.Excel {
 
             CellValues(cells, hasBlankDisplayHeader ? ExecutionMode.Parallel : null);
         }
+
+        private static object? NullObjectSelector<T>(T row) => null;
 
         internal bool TryInsertOwnedDataTableAsDeferredDirectSave(DataTable table, int startRow, bool includeHeaders, string range) {
             if (table == null) throw new ArgumentNullException(nameof(table));
@@ -275,8 +289,8 @@ namespace OfficeIMO.Excel {
             return A1.CellReference(startRow, 1) + ":" + A1.CellReference(startRow + rowCount - 1, columnCount);
         }
 
-        private bool TryInsertSimpleObjectRowsAsDeferredDirectSave(
-            IReadOnlyList<object?> rows,
+        private bool TryInsertSimpleObjectRowsAsDeferredDirectSave<T>(
+            IReadOnlyList<T> rows,
             bool includeHeaders,
             int startRow) {
             if (rows.Count == 0) {
@@ -288,24 +302,17 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            var properties = GetSimpleObjectExportProperties(rowType);
-            if (properties.Length == 0) {
+            SimpleObjectExportPlan plan = GetSimpleObjectExportPlan(rowType);
+            if (!plan.CanUseDirectSave) {
                 return false;
             }
 
-            if (!CanRegisterDirectTabularSaveCandidate(startRow, 1, properties.Length)) {
+            string[] headers = plan.Headers;
+            if (!CanRegisterDirectTabularSaveCandidate(startRow, 1, headers.Length)) {
                 return false;
             }
 
-            var headers = new string[properties.Length];
-            for (int i = 0; i < headers.Length; i++) {
-                headers[i] = properties[i].Name;
-            }
-
-            if (HasDuplicateObjectExportHeaders(headers)) {
-                return false;
-            }
-
+            SimpleObjectExportValueGetter[] getters = plan.Getters;
             var values = new object?[rows.Count][];
             for (int r = 0; r < rows.Count; r++) {
                 object? row = rows[r];
@@ -313,17 +320,62 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                var rowValues = new object?[properties.Length];
-                for (int c = 0; c < properties.Length; c++) {
-                    rowValues[c] = properties[c].GetValue(row, null);
+                var rowValues = new object?[getters.Length];
+                for (int c = 0; c < getters.Length; c++) {
+                    rowValues[c] = getters[c](row);
                 }
 
                 values[r] = rowValues;
             }
 
-            var columnTypes = InferSimpleObjectExportColumnTypes(properties);
-            string range = BuildObjectExportRange(startRow, properties.Length, rows.Count, includeHeaders);
-            return TryInsertRowsAsDeferredDirectSave(Name, headers, columnTypes, values, startRow, includeHeaders, range);
+            string range = BuildObjectExportRange(startRow, headers.Length, rows.Count, includeHeaders);
+            return TryInsertRowsAsDeferredDirectSave(Name, headers, plan.ColumnTypes, values, startRow, includeHeaders, range);
+        }
+
+        private static SimpleObjectExportPlan GetSimpleObjectExportPlan(Type type)
+            => SimpleObjectExportPlans.GetOrAdd(type, CreateSimpleObjectExportPlan);
+
+        private static SimpleObjectExportPlan CreateSimpleObjectExportPlan(Type type) {
+            var properties = GetSimpleObjectExportProperties(type);
+            if (properties.Length == 0) {
+                return SimpleObjectExportPlan.NotSupported;
+            }
+
+            var headers = new string[properties.Length];
+            var getters = new SimpleObjectExportValueGetter[properties.Length];
+            for (int i = 0; i < properties.Length; i++) {
+                headers[i] = properties[i].Name;
+                getters[i] = CreateSimpleObjectExportValueGetter(properties[i]);
+            }
+
+            if (HasDuplicateObjectExportHeaders(headers)) {
+                return SimpleObjectExportPlan.NotSupported;
+            }
+
+            return new SimpleObjectExportPlan(headers, getters, InferSimpleObjectExportColumnTypes(properties), canUseDirectSave: true);
+        }
+
+        private static SimpleObjectExportValueGetter CreateSimpleObjectExportValueGetter(PropertyInfo property) {
+            MethodInfo? getMethod = property.GetMethod;
+            if (getMethod == null || property.DeclaringType == null) {
+                return row => property.GetValue(row, null);
+            }
+
+            try {
+                return (SimpleObjectExportValueGetter)CreateSimpleObjectExportValueGetterMethod
+                    .MakeGenericMethod(property.DeclaringType, property.PropertyType)
+                    .Invoke(null, new object[] { getMethod })!;
+            } catch {
+                return row => property.GetValue(row, null);
+            }
+        }
+
+        private static readonly MethodInfo CreateSimpleObjectExportValueGetterMethod =
+            typeof(ExcelSheet).GetMethod(nameof(CreateSimpleObjectExportValueGetterCore), BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        private static SimpleObjectExportValueGetter CreateSimpleObjectExportValueGetterCore<TTarget, TValue>(MethodInfo getMethod) {
+            var getter = (Func<TTarget, TValue>)Delegate.CreateDelegate(typeof(Func<TTarget, TValue>), getMethod);
+            return row => getter((TTarget)row!);
         }
 
         private static PropertyInfo[] GetSimpleObjectExportProperties(Type type) {
@@ -360,6 +412,35 @@ namespace OfficeIMO.Excel {
                 || type == typeof(DateTimeOffset)
                 || type == typeof(Guid);
         }
+
+        private sealed class SimpleObjectExportPlan {
+            internal static readonly SimpleObjectExportPlan NotSupported = new(
+                Array.Empty<string>(),
+                Array.Empty<SimpleObjectExportValueGetter>(),
+                Array.Empty<Type>(),
+                canUseDirectSave: false);
+
+            internal SimpleObjectExportPlan(
+                string[] headers,
+                SimpleObjectExportValueGetter[] getters,
+                Type[] columnTypes,
+                bool canUseDirectSave) {
+                Headers = headers;
+                Getters = getters;
+                ColumnTypes = columnTypes;
+                CanUseDirectSave = canUseDirectSave;
+            }
+
+            internal string[] Headers { get; }
+
+            internal SimpleObjectExportValueGetter[] Getters { get; }
+
+            internal Type[] ColumnTypes { get; }
+
+            internal bool CanUseDirectSave { get; }
+        }
+
+        private delegate object? SimpleObjectExportValueGetter(object? row);
 
         private static object?[][] CreateObjectExportRows(IReadOnlyList<string> headers, IReadOnlyList<Dictionary<string, object?>> rows) {
             var values = new object?[rows.Count][];
@@ -531,7 +612,7 @@ namespace OfficeIMO.Excel {
             Cell cell = GetCell(update.Row, update.Column);
             if (update.IsSharedString) {
                 int sharedStringIndex = _excelDocument.GetSharedStringIndex(update.Text);
-                cell.CellValue = new CellValue(sharedStringIndex.ToString(CultureInfo.InvariantCulture));
+                cell.CellValue = new CellValue(SharedStringIndexText.Get(sharedStringIndex));
                 cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString;
             } else {
                 cell.CellValue = new CellValue(update.Text);

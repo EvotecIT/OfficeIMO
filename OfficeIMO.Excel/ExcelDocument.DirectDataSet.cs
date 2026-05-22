@@ -1014,20 +1014,24 @@ namespace OfficeIMO.Excel {
 
             private readonly DataTable? _sourceTable;
             private readonly DirectDataSetColumnModel[]? _columns;
+            private readonly int[]? _stringCandidateColumnIndexes;
             private readonly object?[][]? _rows;
 
             private DirectDataSetTableModel(DataTable sourceTable) {
                 _sourceTable = sourceTable;
                 _columns = CreateColumns(sourceTable);
+                _stringCandidateColumnIndexes = CreateStringCandidateColumnIndexes(_columns);
             }
 
             private DirectDataSetTableModel(DataTable sourceTable, DirectDataSetColumnModel[] columns) {
                 _sourceTable = sourceTable;
                 _columns = columns;
+                _stringCandidateColumnIndexes = CreateStringCandidateColumnIndexes(columns);
             }
 
             private DirectDataSetTableModel(DirectDataSetColumnModel[] columns, object?[][] rows) {
                 _columns = columns;
+                _stringCandidateColumnIndexes = CreateStringCandidateColumnIndexes(columns);
                 _rows = rows;
             }
 
@@ -1093,16 +1097,18 @@ namespace OfficeIMO.Excel {
 
             internal Type GetColumnType(int index) => _columns![index].DataType;
 
-            internal int[]? GetStringCandidateColumnIndexes() {
+            internal int[]? GetStringCandidateColumnIndexes() => _stringCandidateColumnIndexes;
+
+            private static int[]? CreateStringCandidateColumnIndexes(DirectDataSetColumnModel[] columns) {
                 int[]? indexes = null;
                 int count = 0;
-                for (int i = 0; i < _columns!.Length; i++) {
-                    Type dataType = _columns[i].DataType;
+                for (int i = 0; i < columns.Length; i++) {
+                    Type dataType = columns[i].DataType;
                     if (dataType != typeof(string) && dataType != typeof(object)) {
                         continue;
                     }
 
-                    indexes ??= new int[_columns.Length];
+                    indexes ??= new int[columns.Length];
                     indexes[count++] = i;
                 }
 
@@ -1120,22 +1126,14 @@ namespace OfficeIMO.Excel {
 
             internal DataRow? GetSourceRow(int rowIndex) => _sourceTable?.Rows[rowIndex];
 
+            internal object?[][]? BufferedRows => _rows;
+
             internal object?[]? GetBufferedRow(int rowIndex) => _rows?[rowIndex];
 
             internal object? GetValue(int rowIndex, int columnIndex) {
                 object? value = _sourceTable != null
                     ? _sourceTable.Rows[rowIndex][columnIndex]
                     : _rows![rowIndex][columnIndex];
-                return value == DBNull.Value ? null : value;
-            }
-
-            internal static object? GetValue(DataRow row, int columnIndex) {
-                object? value = row[columnIndex];
-                return value == DBNull.Value ? null : value;
-            }
-
-            internal static object? GetValue(object?[] row, int columnIndex) {
-                object? value = row[columnIndex];
                 return value == DBNull.Value ? null : value;
             }
 
@@ -1155,20 +1153,25 @@ namespace OfficeIMO.Excel {
                 AutoFitWidthKind[] widthKinds = CreateAutoFitWidthKinds();
                 Dictionary<string, double>?[]? stringWidthCaches = null;
                 int rowCount = RowCount;
-                for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
-                    ct.ThrowIfCancellationRequested();
-                    DataRow? sourceRow = GetSourceRow(rowIndex);
-                    if (sourceRow != null) {
+                DataRowCollection? sourceRows = _sourceTable?.Rows;
+                if (sourceRows != null) {
+                    for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+                        ct.ThrowIfCancellationRequested();
+                        DataRow sourceRow = sourceRows[rowIndex];
                         for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-                            object? value = GetValue(sourceRow, columnIndex);
+                            object? value = sourceRow[columnIndex];
                             widths[columnIndex] = Math.Max(
                                 widths[columnIndex],
                                 EstimateAutoFitWidth(value, widthKinds[columnIndex], dateTimeOffsetWriteStrategy, ref stringWidthCaches, columnIndex, columnCount));
                         }
-                    } else {
-                        object?[] bufferedRow = GetBufferedRow(rowIndex)!;
+                    }
+                } else {
+                    object?[][] bufferedRows = _rows!;
+                    for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+                        ct.ThrowIfCancellationRequested();
+                        object?[] bufferedRow = bufferedRows[rowIndex];
                         for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-                            object? value = GetValue(bufferedRow, columnIndex);
+                            object? value = bufferedRow[columnIndex];
                             widths[columnIndex] = Math.Max(
                                 widths[columnIndex],
                                 EstimateAutoFitWidth(value, widthKinds[columnIndex], dateTimeOffsetWriteStrategy, ref stringWidthCaches, columnIndex, columnCount));

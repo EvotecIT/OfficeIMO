@@ -4,8 +4,6 @@ using System.Globalization;
 namespace OfficeIMO.Excel;
 
 internal static class CoerceValueHelper {
-    private const long DoublePrecisionSafeIntegerBound = 9_007_199_254_740_992L;
-    private const ulong DoublePrecisionSafeIntegerBoundUnsigned = 9_007_199_254_740_992UL;
     private const int SharedStringCharacterLimit = 32_767;
 
     private static readonly CellValue EmptyStringTemplate = new(string.Empty);
@@ -16,6 +14,7 @@ internal static class CoerceValueHelper {
     private static readonly Func<DateTimeOffset, DateTime> DefaultDateTimeOffsetStrategy = static dto => dto.LocalDateTime;
     // Excel cannot represent serial dates earlier than 1900-01-01; 0 = 1899-12-30 and 2 = 1900-01-01.
     private const double ExcelMinimumSupportedSerial = 2d;
+    private static readonly DateTime ExcelMinimumSupportedDate = DateTime.FromOADate(ExcelMinimumSupportedSerial);
 
     /// <summary>
     /// Converts an arbitrary CLR value into the <see cref="CellValue" /> and <see cref="CellValues" /> tuple used by Excel.
@@ -48,7 +47,7 @@ internal static class CoerceValueHelper {
             System.DBNull => HandleEmptyString(),
             string s => HandleSharedString(s, sharedStringHandler, nameof(value)),
             double d => HandleNumber(d),
-            float f => HandleNumber(Convert.ToDouble(f)),
+            float f => HandleNumber((double)f),
             decimal dec => HandleDecimal(dec),
             int i => HandleSignedInteger(i),
             long l => HandleSignedInteger(l),
@@ -81,14 +80,10 @@ internal static class CoerceValueHelper {
         (CreateTextCellValue(value.ToString(CultureInfo.InvariantCulture)), CellValues.Number);
 
     internal static (CellValue, CellValues) HandleSignedInteger(long integer) =>
-        integer is >= -DoublePrecisionSafeIntegerBound and <= DoublePrecisionSafeIntegerBound
-            ? HandleNumber(integer)
-            : (CreateTextCellValue(integer.ToString(CultureInfo.InvariantCulture)), CellValues.Number);
+        (CreateTextCellValue(InvariantNumberText.Get(integer)), CellValues.Number);
 
     internal static (CellValue, CellValues) HandleUnsignedInteger(ulong integer) =>
-        integer <= DoublePrecisionSafeIntegerBoundUnsigned
-            ? HandleNumber(integer)
-            : (CreateTextCellValue(integer.ToString(CultureInfo.InvariantCulture)), CellValues.Number);
+        (CreateTextCellValue(InvariantNumberText.Get(integer)), CellValues.Number);
 
     internal static (CellValue, CellValues) HandleDateTimeOffset(
         DateTimeOffset value,
@@ -103,9 +98,6 @@ internal static class CoerceValueHelper {
             throw new ArgumentNullException(nameof(dateTimeOffsetStrategy));
         }
 
-        paramName ??= nameof(value);
-        string fallbackText = value.ToString("o", CultureInfo.InvariantCulture);
-
         DateTime converted;
         try {
             converted = dateTimeOffsetStrategy(value);
@@ -117,19 +109,24 @@ internal static class CoerceValueHelper {
             // Excel cannot represent serial dates earlier than 1900-01-01. Detect this
             // using the original UTC timestamp so the fallback works reliably regardless
             // of the configured write strategy or local time zone.
-            var excelEpoch = DateTime.FromOADate(ExcelMinimumSupportedSerial);
-            if (value.UtcDateTime < excelEpoch) {
-                return HandleSharedString(fallbackText, sharedStringHandler, paramName);
+            if (value.UtcDateTime < ExcelMinimumSupportedDate) {
+                return HandleDateTimeOffsetFallback(value, sharedStringHandler, paramName);
             }
 
             double serial = converted.ToOADate();
             return HandleNumber(serial);
         } catch (ArgumentException) {
-            return HandleSharedString(fallbackText, sharedStringHandler, paramName);
+            return HandleDateTimeOffsetFallback(value, sharedStringHandler, paramName);
         } catch (OverflowException) {
-            return HandleSharedString(fallbackText, sharedStringHandler, paramName);
+            return HandleDateTimeOffsetFallback(value, sharedStringHandler, paramName);
         }
     }
+
+    private static (CellValue, CellValues) HandleDateTimeOffsetFallback(
+        DateTimeOffset value,
+        Func<string, CellValue> sharedStringHandler,
+        string? paramName) =>
+        HandleSharedString(value.ToString("o", CultureInfo.InvariantCulture), sharedStringHandler, paramName ?? nameof(value));
 
     internal static (CellValue, CellValues) HandleBoolean(bool value) =>
         (CloneCellValue(value ? TrueTemplate : FalseTemplate), CellValues.Boolean);

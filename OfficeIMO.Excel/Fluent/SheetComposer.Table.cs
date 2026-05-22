@@ -15,20 +15,16 @@ namespace OfficeIMO.Excel.Fluent {
             System.Action<TableVisualOptions>? visuals = null) {
             if (!string.IsNullOrWhiteSpace(title)) Section(title!);
 
-            var data = items?.ToList() ?? new List<T>();
-            if (data.Count == 0) {
-                Sheet.Cell(_row, 1, "(no data)");
-                _row++;
-                return $"A{_row - 1}:A{_row - 1}";
-            }
-
             var opts = new ObjectFlattenerOptions();
             configure?.Invoke(opts);
             var flattener = new ObjectFlattener();
 
-            var rows = new List<System.Collections.Generic.Dictionary<string, object?>>();
-            foreach (var item in data)
-                rows.Add(flattener.Flatten(item, opts));
+            var rows = FlattenTableRows(items, flattener, opts);
+            if (rows.Count == 0) {
+                Sheet.Cell(_row, 1, "(no data)");
+                _row++;
+                return $"A{_row - 1}:A{_row - 1}";
+            }
 
             var paths = opts.Columns?.ToList();
             if (paths == null) {
@@ -158,6 +154,36 @@ namespace OfficeIMO.Excel.Fluent {
             } catch { }
             Spacer();
             return range;
+        }
+
+        private static List<System.Collections.Generic.Dictionary<string, object?>> FlattenTableRows<T>(
+            IEnumerable<T>? items,
+            ObjectFlattener flattener,
+            ObjectFlattenerOptions options) {
+            if (items == null) {
+                return new List<System.Collections.Generic.Dictionary<string, object?>>();
+            }
+
+            if (items is IReadOnlyList<T> indexedItems) {
+                var rows = new List<System.Collections.Generic.Dictionary<string, object?>>(indexedItems.Count);
+                for (int i = 0; i < indexedItems.Count; i++) {
+                    rows.Add(flattener.Flatten(indexedItems[i], options));
+                }
+
+                return rows;
+            }
+
+            int capacity = items is IReadOnlyCollection<T> readOnlyCollection
+                ? readOnlyCollection.Count
+                : items is ICollection<T> collection ? collection.Count : 0;
+            var materializedRows = capacity > 0
+                ? new List<System.Collections.Generic.Dictionary<string, object?>>(capacity)
+                : new List<System.Collections.Generic.Dictionary<string, object?>>();
+            foreach (var item in items) {
+                materializedRows.Add(flattener.Flatten(item, options));
+            }
+
+            return materializedRows;
         }
     }
 }

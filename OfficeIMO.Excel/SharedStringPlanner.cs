@@ -1,6 +1,5 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
-using System.Globalization;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -51,7 +50,7 @@ namespace OfficeIMO.Excel {
             // prepared.Val.Text currently holds the raw string; replace with index text
             var text = GetPreparedText(prepared.Val);
             if (_finalIndex.TryGetValue(text, out int idx)) {
-                prepared.Val = new CellValue(idx.ToString(CultureInfo.InvariantCulture));
+                prepared.Val = new CellValue(SharedStringIndexText.Get(idx));
             } else {
                 // Fallback: if not found (shouldn't happen), keep as string cell
                 var sanitized = Utilities.ExcelSanitizer.SanitizeString(text);

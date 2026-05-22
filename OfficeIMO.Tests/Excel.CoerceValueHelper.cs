@@ -109,7 +109,7 @@ public class ExcelCoerceValueHelper
         var offset = new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.FromHours(5));
         var expected = offset.LocalDateTime.ToOADate().ToString(CultureInfo.InvariantCulture);
 
-        var (value, type) = CoerceValueHelper.Coerce(offset, s => new CellValue(s));
+        var (value, type) = CoerceValueHelper.Coerce(offset, _ => throw new InvalidOperationException("Should not use shared strings"));
 
         Assert.Equal(CellValues.Number, type);
         Assert.Equal(expected, value.Text);
@@ -121,7 +121,7 @@ public class ExcelCoerceValueHelper
         var offset = new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.FromHours(-3));
         var expected = offset.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture);
 
-        var (value, type) = CoerceValueHelper.Coerce(offset, s => new CellValue(s), dto => dto.UtcDateTime);
+        var (value, type) = CoerceValueHelper.Coerce(offset, _ => throw new InvalidOperationException("Should not use shared strings"), dto => dto.UtcDateTime);
 
         Assert.Equal(CellValues.Number, type);
         Assert.Equal(expected, value.Text);

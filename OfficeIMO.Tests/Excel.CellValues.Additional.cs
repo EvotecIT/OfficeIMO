@@ -62,7 +62,6 @@ namespace OfficeIMO.Tests {
 
                 WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 var cells = wsPart.Worksheet.Descendants<Cell>().ToList();
-                SharedStringTablePart shared = spreadsheet.WorkbookPart!.SharedStringTablePart!;
 
                 Cell cellDto = cells.First(c => c.CellReference == "A1");
                 Assert.Equal(dateOffset.LocalDateTime.ToOADate().ToString(CultureInfo.InvariantCulture), cellDto.CellValue!.Text);
@@ -86,10 +85,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(nullableInt.Value.ToString(CultureInfo.InvariantCulture), cellNullableInt.CellValue!.Text);
 
                 Cell cellNullableNull = cells.First(c => c.CellReference == "A8");
-                Assert.Equal(CellValues.SharedString, cellNullableNull.DataType!.Value);
-                Assert.Equal("0", cellNullableNull.CellValue!.Text);
-                Assert.NotNull(shared);
-                Assert.Equal(string.Empty, shared!.SharedStringTable!.ElementAt(0).InnerText);
+                Assert.Equal(CellValues.String, cellNullableNull.DataType!.Value);
+                Assert.Equal(string.Empty, cellNullableNull.CellValue!.Text);
 
                 Cell cellNullableDto = cells.First(c => c.CellReference == "A9");
                 Assert.Equal(nullableDto.Value.LocalDateTime.ToOADate().ToString(CultureInfo.InvariantCulture), cellNullableDto.CellValue!.Text);
@@ -114,6 +111,40 @@ namespace OfficeIMO.Tests {
 #endif
             }
         }
+
+#if NET6_0_OR_GREATER
+        [Fact]
+        public void Test_CellValues_DateOnlyAndTimeOnly_AutomaticallyApplyNumberFormats() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesDateOnlyTimeOnlyStyles.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, new DateOnly(2026, 5, 22));
+                sheet.CellValue(2, 1, new TimeOnly(14, 30, 0));
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                ValidateSpreadsheetDocument(filePath, spreadsheet);
+
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cells = wsPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                var cellFormats = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.CellFormats!;
+
+                Cell dateCell = cells["A1"];
+                Assert.Equal(CellValues.Number, dateCell.DataType!.Value);
+                Assert.NotNull(dateCell.StyleIndex);
+                var dateFormat = cellFormats.Elements<CellFormat>().ElementAt((int)dateCell.StyleIndex!.Value);
+                Assert.Equal(14U, dateFormat.NumberFormatId!.Value);
+
+                Cell timeCell = cells["A2"];
+                Assert.Equal(CellValues.Number, timeCell.DataType!.Value);
+                Assert.NotNull(timeCell.StyleIndex);
+                var timeFormat = cellFormats.Elements<CellFormat>().ElementAt((int)timeCell.StyleIndex!.Value);
+                Assert.Equal(46U, timeFormat.NumberFormatId!.Value);
+            }
+        }
+#endif
 
         [Fact]
         public void Test_CellValues_LargeIntegers_AreSerializedExactly() {

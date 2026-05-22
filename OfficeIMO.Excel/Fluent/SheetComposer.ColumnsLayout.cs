@@ -88,19 +88,16 @@ namespace OfficeIMO.Excel.Fluent {
                 System.Action<TableVisualOptions>? visuals = null) {
                 if (!string.IsNullOrWhiteSpace(title)) Section(title!);
 
-                var list = items?.ToList() ?? new List<T>();
-                if (list.Count == 0) {
-                    _sheet.Cell(_row, _baseCol, "(no data)");
-                    _row++;
-                    return $"{SheetComposer.ColumnLetter(_baseCol)}{_row - 1}:{SheetComposer.ColumnLetter(_baseCol)}{_row - 1}";
-                }
-
                 var opts = new ObjectFlattenerOptions();
                 configure?.Invoke(opts);
                 var flattener = new ObjectFlattener();
 
-                var rows = new List<Dictionary<string, object?>>();
-                foreach (var item in list) rows.Add(flattener.Flatten(item, opts));
+                var rows = FlattenTableRows(items, flattener, opts);
+                if (rows.Count == 0) {
+                    _sheet.Cell(_row, _baseCol, "(no data)");
+                    _row++;
+                    return $"{SheetComposer.ColumnLetter(_baseCol)}{_row - 1}:{SheetComposer.ColumnLetter(_baseCol)}{_row - 1}";
+                }
 
                 var paths = opts.Columns?.ToList();
                 if (paths == null) {

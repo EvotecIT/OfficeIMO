@@ -632,6 +632,16 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        internal bool TryGetExistingSharedStringIndex(string text, out int index, out bool containsLineBreak, out int sharedStringCount) {
+            if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld)) {
+                return TryGetExistingSharedStringIndexCore(text, out index, out containsLineBreak, out sharedStringCount);
+            }
+
+            lock (_sharedStringLock) {
+                return TryGetExistingSharedStringIndexCore(text, out index, out containsLineBreak, out sharedStringCount);
+            }
+        }
+
         private int GetSharedStringIndexCore(string text, bool validateNewString) {
             // Check cache first
             if (_sharedStringCache.TryGetValue(text, out int cachedIndex)) {
@@ -689,6 +699,35 @@ namespace OfficeIMO.Excel {
             _sharedStringCache[text] = newIndex;
 
             return newIndex;
+        }
+
+        private bool TryGetExistingSharedStringIndexCore(string text, out int index, out bool containsLineBreak, out int sharedStringCount) {
+            if (_sharedStringCache.TryGetValue(text, out index)) {
+                containsLineBreak = GetCachedOrComputeSharedStringLineBreak(text);
+                sharedStringCount = _sharedStringTableCount >= 0 ? _sharedStringTableCount : _sharedStringCache.Count;
+                return true;
+            }
+
+            SharedStringTablePart? sharedStringTablePart = _sharedStringTablePart
+                ?? _workBookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
+            var sharedStringTable = sharedStringTablePart?.SharedStringTable;
+            if (sharedStringTable == null) {
+                index = -1;
+                containsLineBreak = false;
+                sharedStringCount = 0;
+                return false;
+            }
+
+            _sharedStringTablePart = sharedStringTablePart;
+            sharedStringCount = EnsureSharedStringCacheAndCount(sharedStringTable);
+            if (_sharedStringCache.TryGetValue(text, out index)) {
+                containsLineBreak = GetCachedOrComputeSharedStringLineBreak(text);
+                return true;
+            }
+
+            index = -1;
+            containsLineBreak = false;
+            return false;
         }
 
         private bool GetCachedOrComputeSharedStringLineBreak(string text) {

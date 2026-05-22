@@ -54,7 +54,8 @@ namespace OfficeIMO.Tests {
                 var row2 = sheetData?.Elements<Row>().FirstOrDefault(r => r.RowIndex?.Value == 2U);
                 var cellA2 = row2?.Elements<Cell>().FirstOrDefault(c => c.CellReference?.Value == "A2");
                 Assert.NotNull(cellA2);
-                Assert.Equal(CellValues.SharedString, cellA2!.DataType?.Value);
+                Assert.Equal(CellValues.String, cellA2!.DataType?.Value);
+                Assert.Equal(string.Empty, cellA2.CellValue!.Text);
             }
         }
 
