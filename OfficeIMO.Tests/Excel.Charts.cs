@@ -114,26 +114,43 @@ namespace OfficeIMO.Tests {
                 sheet.AddRevenueTrendChart("A1:B4", row: 1, column: 5);
                 sheet.AddTopNBarChart("A1:B4", row: 18, column: 5, title: "Top Revenue");
                 sheet.AddVarianceColumnChart("A1:B4", row: 35, column: 5, title: "Revenue Variance");
+                sheet.AddKpiScorecardChart("A1:B4", row: 52, column: 5, title: "Revenue KPI");
+                sheet.AddContributionChart("A1:B4", row: 69, column: 5, title: "Revenue Mix");
                 sheet.ChartFromTable("RevenueData")
                     .StatusBreakdown("Revenue Mix")
-                    .At(52, 5);
+                    .At(86, 5);
+                sheet.ChartFromTable("RevenueData")
+                    .VarianceWaterfall("Revenue Bridge")
+                    .At(103, 5);
 
                 document.Save();
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
                 WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
-                var plotAreas = wsPart.DrawingsPart!.ChartParts
-                    .Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!)
+                var charts = wsPart.DrawingsPart!.ChartParts
+                    .Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!)
                     .ToList();
+                var plotAreas = charts.Select(chart => chart.GetFirstChild<C.PlotArea>()!).ToList();
 
-                Assert.Equal(4, plotAreas.Count);
+                Assert.Equal(7, plotAreas.Count);
                 Assert.Contains(plotAreas, plotArea => plotArea.GetFirstChild<C.LineChart>() != null);
                 Assert.Contains(plotAreas, plotArea => plotArea.GetFirstChild<C.DoughnutChart>() != null);
                 Assert.Contains(plotAreas, plotArea => plotArea.Elements<C.BarChart>()
                     .Any(chart => chart.BarDirection?.Val?.Value == C.BarDirectionValues.Bar));
                 Assert.Contains(plotAreas, plotArea => plotArea.Elements<C.BarChart>()
                     .Any(chart => chart.BarDirection?.Val?.Value == C.BarDirectionValues.Column));
+                Assert.Contains(plotAreas, plotArea => plotArea.Elements<C.BarChart>()
+                    .Any(chart => chart.BarDirection?.Val?.Value == C.BarDirectionValues.Column
+                        && chart.BarGrouping?.Val?.Value == C.BarGroupingValues.Stacked));
+                Assert.Contains(charts, chart => chart.GetFirstChild<C.Legend>() == null
+                    && chart.GetFirstChild<C.PlotArea>()!.Elements<C.BarChart>().Any());
+                Assert.Contains(plotAreas.SelectMany(plotArea => plotArea.Descendants<C.DataLabels>()), labels =>
+                    labels.GetFirstChild<C.ShowCategoryName>()?.Val?.Value == true
+                    && labels.GetFirstChild<C.ShowPercent>()?.Val?.Value == true);
+                Assert.Contains(plotAreas.SelectMany(plotArea => plotArea.Descendants<C.DataLabels>()), labels =>
+                    labels.GetFirstChild<C.ShowValue>()?.Val?.Value == true
+                    && labels.GetFirstChild<C.DataLabelPosition>()?.Val?.Value == C.DataLabelPositionValues.OutsideEnd);
 
                 OpenXmlValidator validator = new OpenXmlValidator();
                 var errors = validator.Validate(spreadsheet).ToList();

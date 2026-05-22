@@ -43,7 +43,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (HasCalculationSaveWork()) {
+            if (HasCalculationSaveWork(options)) {
                 skipReason = "Calculation save work is pending.";
                 return false;
             }

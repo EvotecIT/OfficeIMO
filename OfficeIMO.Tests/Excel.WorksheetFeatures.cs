@@ -59,6 +59,54 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WorksheetComments_CanFindUpdateAndRemoveByFilter() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetComments.Filtered.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Comments");
+                sheet.SetComment("A1", "Review total", author: "Alice", initials: "AA");
+                sheet.SetComment("B2", "Review status", author: "Alice", initials: "AA");
+                sheet.SetComment("C3", "Keep status", author: "Bob", initials: "BB");
+
+                var aliceComments = sheet.FindComments(new ExcelCommentFilter { Author = "Alice (AA)" });
+                Assert.Equal(2, aliceComments.Count);
+                Assert.Contains(aliceComments, comment => comment.CellReference == "A1" && comment.Text == "Review total");
+
+                int updated = sheet.UpdateComments(
+                    new ExcelCommentFilter { Author = "Alice (AA)", TextContains = "status", A1Range = "A1:B2" },
+                    "Status reviewed",
+                    author: "Carol",
+                    initials: "CC");
+                Assert.Equal(1, updated);
+
+                var carolComment = Assert.Single(sheet.FindComments(new ExcelCommentFilter { Author = "Carol (CC)" }));
+                Assert.Equal("B2", carolComment.CellReference);
+                Assert.Equal("Status reviewed", carolComment.Text);
+
+                int removed = sheet.ClearComments(new ExcelCommentFilter { TextContains = "Review", A1Range = "A1:A1" });
+                Assert.Equal(1, removed);
+                Assert.False(sheet.HasComment(1, 1));
+                Assert.True(sheet.HasComment(2, 2));
+                Assert.True(sheet.HasComment(3, 3));
+                document.Save(false);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                var sheet = document.Sheets.First();
+                var comments = sheet.GetComments().OrderBy(comment => comment.CellReference).ToList();
+
+                Assert.Equal(2, comments.Count);
+                Assert.Equal("B2", comments[0].CellReference);
+                Assert.Equal("Carol (CC)", comments[0].Author);
+                Assert.Equal("Status reviewed", comments[0].Text);
+                Assert.Equal("C3", comments[1].CellReference);
+                Assert.Equal("Bob (BB)", comments[1].Author);
+                Assert.Equal("Keep status", comments[1].Text);
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void Test_WorksheetImages_MetadataAndSizing() {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetImages.Metadata.xlsx");
             var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");

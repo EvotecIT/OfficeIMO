@@ -163,9 +163,9 @@ namespace OfficeIMO.Excel {
     /// Describes the current lightweight formula calculation support in OfficeIMO.Excel.
     /// </summary>
     public sealed class ExcelFormulaCapabilities {
-        private static readonly string[] Functions = { "SUM", "AVERAGE", "MIN", "MAX", "COUNT", "COUNTA", "COUNTIF", "SUMIF", "AVERAGEIF", "COUNTIFS", "SUMIFS", "AVERAGEIFS", "PRODUCT", "MEDIAN", "LARGE", "SMALL", "SUMPRODUCT", "VLOOKUP", "HLOOKUP", "XLOOKUP", "ABS", "SIGN", "ROUND", "ROUNDUP", "ROUNDDOWN", "TRUNC", "INT", "CEILING", "FLOOR", "POWER", "SQRT", "LN", "LOG10", "EXP", "PI", "RADIANS", "DEGREES", "MOD", "DATE", "TIME", "TODAY", "NOW", "YEAR", "MONTH", "DAY", "HOUR", "MINUTE", "SECOND", "EDATE", "EOMONTH", "DAYS", "WEEKDAY", "NETWORKDAYS", "IF", "AND", "OR", "NOT", "IFERROR" };
+        private static readonly string[] Functions = { "SUM", "AVERAGE", "MIN", "MAX", "COUNT", "COUNTA", "COUNTIF", "SUMIF", "AVERAGEIF", "COUNTIFS", "SUMIFS", "AVERAGEIFS", "PRODUCT", "MEDIAN", "LARGE", "SMALL", "SUMPRODUCT", "VLOOKUP", "HLOOKUP", "XLOOKUP", "CONCAT", "TEXTJOIN", "LEFT", "RIGHT", "MID", "LEN", "TRIM", "ABS", "SIGN", "ROUND", "ROUNDUP", "ROUNDDOWN", "TRUNC", "INT", "CEILING", "FLOOR", "POWER", "SQRT", "LN", "LOG10", "EXP", "PI", "RADIANS", "DEGREES", "MOD", "DATE", "TIME", "TODAY", "NOW", "YEAR", "MONTH", "DAY", "HOUR", "MINUTE", "SECOND", "EDATE", "EOMONTH", "DAYS", "WEEKDAY", "NETWORKDAYS", "IF", "AND", "OR", "NOT", "IFERROR" };
         private static readonly string[] Operators = { "+", "-", "*", "/", ">", "<", ">=", "<=", "=", "<>" };
-        private static readonly string[] OperandKinds = { "number literal", "same-sheet A1 cell reference", "same-sheet A1 range for function arguments", "same-sheet numeric comparison for IF/AND/OR/NOT" };
+        private static readonly string[] OperandKinds = { "number literal", "same-sheet A1 cell reference", "same-sheet A1 range for function arguments", "cross-sheet A1 cell/range reference", "A1-backed named range reference", "simple table structured reference", "same-sheet numeric comparison for IF/AND/OR/NOT" };
 
         private ExcelFormulaCapabilities() {
         }
@@ -186,6 +186,6 @@ namespace OfficeIMO.Excel {
         public int MaxFormulaLength => 8192;
 
         /// <summary>Short human-readable summary of the current evaluator scope.</summary>
-        public string Summary => "Supports simple same-sheet arithmetic plus SUM/AVERAGE/MIN/MAX/COUNT/COUNTA/COUNTIF/SUMIF/AVERAGEIF/COUNTIFS/SUMIFS/AVERAGEIFS/PRODUCT/MEDIAN/LARGE/SMALL/SUMPRODUCT, exact-match VLOOKUP/HLOOKUP/XLOOKUP returning numeric values, ABS/SIGN/ROUND/ROUNDUP/ROUNDDOWN/TRUNC/INT/CEILING/FLOOR/POWER/SQRT/LN/LOG10/EXP/PI/RADIANS/DEGREES/MOD, DATE/TIME/TODAY/NOW/YEAR/MONTH/DAY/HOUR/MINUTE/SECOND/EDATE/EOMONTH/DAYS/WEEKDAY/NETWORKDAYS, numeric IF/AND/OR/NOT comparisons, and numeric IFERROR fallbacks over numbers, A1 cells, A1 ranges, and nested numeric formulas.";
+        public string Summary => "Supports simple same-sheet arithmetic plus SUM/AVERAGE/MIN/MAX/COUNT/COUNTA/COUNTIF/SUMIF/AVERAGEIF/COUNTIFS/SUMIFS/AVERAGEIFS/PRODUCT/MEDIAN/LARGE/SMALL/SUMPRODUCT, exact-match VLOOKUP/HLOOKUP/XLOOKUP returning numeric or text values, CONCAT/TEXTJOIN/LEFT/RIGHT/MID/LEN/TRIM text helpers, ABS/SIGN/ROUND/ROUNDUP/ROUNDDOWN/TRUNC/INT/CEILING/FLOOR/POWER/SQRT/LN/LOG10/EXP/PI/RADIANS/DEGREES/MOD, DATE/TIME/TODAY/NOW/YEAR/MONTH/DAY/HOUR/MINUTE/SECOND/EDATE/EOMONTH/DAYS/WEEKDAY/NETWORKDAYS, numeric IF/AND/OR/NOT comparisons, and numeric IFERROR fallbacks over numbers, text literals, A1 cells, A1 ranges, A1-backed named ranges, simple table structured references, cross-sheet references, and nested formulas.";
     }
 }

@@ -69,11 +69,47 @@ namespace OfficeIMO.Excel {
         public bool HasAdvancedFeatures => PreservedFeatures.Count > 0 || UnsupportedFeatures.Count > 0;
 
         /// <summary>
+        /// Returns discovered features matching the provided feature names.
+        /// </summary>
+        /// <param name="featureNames">Feature names to match, for example <c>VBA macros</c> or <c>External workbook links</c>.</param>
+        public IReadOnlyList<ExcelFeatureFinding> FindFeatures(params string[] featureNames) {
+            return FindFeatures((IEnumerable<string>)featureNames);
+        }
+
+        /// <summary>
+        /// Returns discovered features matching the provided feature names.
+        /// </summary>
+        /// <param name="featureNames">Feature names to match, for example <c>VBA macros</c> or <c>External workbook links</c>.</param>
+        public IReadOnlyList<ExcelFeatureFinding> FindFeatures(IEnumerable<string> featureNames) {
+            if (featureNames == null) throw new ArgumentNullException(nameof(featureNames));
+            var names = new HashSet<string>(featureNames.Where(name => !string.IsNullOrWhiteSpace(name)), StringComparer.OrdinalIgnoreCase);
+            if (names.Count == 0) return Array.Empty<ExcelFeatureFinding>();
+
+            return _features
+                .Where(feature => names.Contains(feature.Name))
+                .ToArray();
+        }
+
+        /// <summary>
+        /// Returns discovered features with one of the provided support levels.
+        /// </summary>
+        /// <param name="supportLevels">Support levels to match.</param>
+        public IReadOnlyList<ExcelFeatureFinding> FindFeatures(params ExcelFeatureSupportLevel[] supportLevels) {
+            if (supportLevels == null) throw new ArgumentNullException(nameof(supportLevels));
+            if (supportLevels.Length == 0) return Array.Empty<ExcelFeatureFinding>();
+
+            var levels = new HashSet<ExcelFeatureSupportLevel>(supportLevels);
+            return _features
+                .Where(feature => levels.Contains(feature.SupportLevel))
+                .ToArray();
+        }
+
+        /// <summary>
         /// Throws when the workbook contains unsupported features.
         /// </summary>
         public ExcelFeatureReport EnsureNoUnsupportedFeatures() {
             if (UnsupportedFeatures.Count > 0) {
-                throw new InvalidOperationException("Unsupported workbook features: " + string.Join(", ", UnsupportedFeatures.Select(feature => feature.Name)));
+                ThrowBlockedFeatures("Unsupported workbook features", UnsupportedFeatures);
             }
 
             return this;
@@ -84,13 +120,41 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelFeatureReport EnsureNoAdvancedFeatures() {
             if (HasAdvancedFeatures) {
-                var advanced = PreservedFeatures
-                    .Concat(UnsupportedFeatures)
-                    .Select(feature => feature.Name)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
-                    .ToArray();
-                throw new InvalidOperationException("Advanced workbook features need review before edit-heavy round trips: " + string.Join(", ", advanced));
+                ThrowBlockedFeatures("Advanced workbook features need review before edit-heavy round trips", PreservedFeatures.Concat(UnsupportedFeatures));
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Throws when the workbook contains any of the named features.
+        /// </summary>
+        /// <param name="featureNames">Feature names to reject, for example <c>VBA macros</c> or <c>External workbook links</c>.</param>
+        public ExcelFeatureReport EnsureNoFeatures(params string[] featureNames) {
+            return EnsureNoFeatures((IEnumerable<string>)featureNames);
+        }
+
+        /// <summary>
+        /// Throws when the workbook contains any of the named features.
+        /// </summary>
+        /// <param name="featureNames">Feature names to reject, for example <c>VBA macros</c> or <c>External workbook links</c>.</param>
+        public ExcelFeatureReport EnsureNoFeatures(IEnumerable<string> featureNames) {
+            var matches = FindFeatures(featureNames);
+            if (matches.Count > 0) {
+                ThrowBlockedFeatures("Workbook contains blocked features", matches);
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Throws when the workbook contains any features with the provided support levels.
+        /// </summary>
+        /// <param name="supportLevels">Support levels to reject.</param>
+        public ExcelFeatureReport EnsureNoFeatures(params ExcelFeatureSupportLevel[] supportLevels) {
+            var matches = FindFeatures(supportLevels);
+            if (matches.Count > 0) {
+                ThrowBlockedFeatures("Workbook contains blocked feature support levels", matches);
             }
 
             return this;
@@ -109,8 +173,8 @@ namespace OfficeIMO.Excel {
             builder.AppendLine($"Preserved features: {PreservedFeatures.Count}");
             builder.AppendLine($"Unsupported features: {UnsupportedFeatures.Count}");
             builder.AppendLine();
-            builder.AppendLine("| Category | Feature | Count | Support | Scope | Note |");
-            builder.AppendLine("| --- | --- | --- | --- | --- | --- |");
+            builder.AppendLine("| Category | Feature | Count | Support | Scope | Note | Details |");
+            builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- |");
 
             foreach (ExcelFeatureFinding feature in Features) {
                 builder.Append("| ");
@@ -125,14 +189,49 @@ namespace OfficeIMO.Excel {
                 builder.Append(EscapeMarkdownCell(feature.Scope ?? string.Empty));
                 builder.Append(" | ");
                 builder.Append(EscapeMarkdownCell(feature.Note));
+                builder.Append(" | ");
+                builder.Append(EscapeMarkdownCell(FormatDetails(feature.Details)));
                 builder.AppendLine(" |");
             }
 
             return builder.ToString();
         }
 
+        private static string FormatDetails(IReadOnlyList<string> details) {
+            if (details.Count == 0) return string.Empty;
+            const int maxDetails = 8;
+            if (details.Count <= maxDetails) {
+                return string.Join("; ", details);
+            }
+
+            return string.Join("; ", details.Take(maxDetails)) + $"; +{details.Count - maxDetails} more";
+        }
+
         private static string EscapeMarkdownCell(string value) {
             return value.Replace("\\", "\\\\").Replace("|", "\\|").Replace("\r", " ").Replace("\n", " ");
+        }
+
+        private static void ThrowBlockedFeatures(string message, IEnumerable<ExcelFeatureFinding> findings) {
+            var formatted = findings
+                .OrderBy(feature => feature.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(FormatBlockedFeature)
+                .ToArray();
+            throw new InvalidOperationException(message + ": " + string.Join(", ", formatted));
+        }
+
+        private static string FormatBlockedFeature(ExcelFeatureFinding feature) {
+            string summary = $"{feature.Name} ({feature.Count}, {feature.SupportLevel})";
+            if (feature.Details.Count == 0) {
+                return summary;
+            }
+
+            const int maxDetails = 3;
+            string details = string.Join("; ", feature.Details.Take(maxDetails));
+            if (feature.Details.Count > maxDetails) {
+                details += $"; +{feature.Details.Count - maxDetails} more";
+            }
+
+            return summary + " [" + details + "]";
         }
     }
 
@@ -140,13 +239,15 @@ namespace OfficeIMO.Excel {
     /// One feature discovered in a workbook.
     /// </summary>
     public sealed class ExcelFeatureFinding {
-        internal ExcelFeatureFinding(string category, string name, ExcelFeatureSupportLevel supportLevel, int count, string? scope, string note) {
+        internal ExcelFeatureFinding(string category, string name, ExcelFeatureSupportLevel supportLevel, int count, string? scope, string note,
+            IReadOnlyList<string>? details = null) {
             Category = string.IsNullOrWhiteSpace(category) ? throw new ArgumentNullException(nameof(category)) : category;
             Name = string.IsNullOrWhiteSpace(name) ? throw new ArgumentNullException(nameof(name)) : name;
             SupportLevel = supportLevel;
             Count = count;
             Scope = string.IsNullOrWhiteSpace(scope) ? null : scope;
             Note = string.IsNullOrWhiteSpace(note) ? string.Empty : note;
+            Details = details ?? Array.Empty<string>();
         }
 
         /// <summary>
@@ -178,6 +279,11 @@ namespace OfficeIMO.Excel {
         /// Short explanation of what OfficeIMO can do with this feature today.
         /// </summary>
         public string Note { get; }
+
+        /// <summary>
+        /// Optional package, relationship, or worksheet details that explain where the feature was found.
+        /// </summary>
+        public IReadOnlyList<string> Details { get; }
     }
 
     public partial class ExcelDocument {
@@ -208,6 +314,11 @@ namespace OfficeIMO.Excel {
             int threadedCommentPartCount = 0;
             int imagePartCount = 0;
             int oleObjectCount = 0;
+            int formControlCount = 0;
+            int externalHyperlinkCount = 0;
+            var oleObjectDetails = new List<string>();
+            var formControlDetails = new List<string>();
+            var externalHyperlinkDetails = new List<string>();
 
             foreach (var sheet in sheetElements) {
                 if (string.IsNullOrWhiteSpace(sheet.Id?.Value)) {
@@ -228,7 +339,16 @@ namespace OfficeIMO.Excel {
                 threadedCommentPartCount += CountPartsByUri(worksheetPart.Parts.Select(pair => pair.OpenXmlPart), "threadedComment");
                 imagePartCount += worksheetPart.DrawingsPart?.ImageParts.Count() ?? 0;
                 chartCount += worksheetPart.DrawingsPart?.ChartParts.Count() ?? 0;
-                oleObjectCount += CountDescendantsByLocalName(worksheet, "oleObject");
+                int sheetOleObjects = CountDescendantsByLocalName(worksheet, "oleObject");
+                int sheetFormControls = CountDescendantsByLocalName(worksheet, "control") + CountDescendantsByLocalName(worksheet, "formControl");
+                oleObjectCount += sheetOleObjects;
+                formControlCount += sheetFormControls;
+                externalHyperlinkCount += worksheetPart.HyperlinkRelationships.Count();
+                if (sheetOleObjects > 0) oleObjectDetails.Add($"{sheet.Name}: {sheetOleObjects} OLE object(s)");
+                if (sheetFormControls > 0) formControlDetails.Add($"{sheet.Name}: {sheetFormControls} form control marker(s)");
+                foreach (var relationship in worksheetPart.HyperlinkRelationships) {
+                    externalHyperlinkDetails.Add($"{sheet.Name}: {relationship.Id} -> {relationship.Uri}");
+                }
             }
 
             Add(features, "Data", "Tables", ExcelFeatureSupportLevel.Editable, tableCount, null,
@@ -250,7 +370,9 @@ namespace OfficeIMO.Excel {
             Add(features, "Media", "Images", ExcelFeatureSupportLevel.PartiallyEditable, imagePartCount, null,
                 "Images can be inserted in common worksheet/header/footer scenarios; advanced drawing behaviors remain partial.");
             Add(features, "Compatibility", "OLE objects", ExcelFeatureSupportLevel.Preserved, oleObjectCount, null,
-                "Embedded OLE objects are advanced package content and should be treated as preserve-only.");
+                "Embedded OLE objects are advanced package content and should be treated as preserve-only.", oleObjectDetails);
+            Add(features, "Compatibility", "Form controls", ExcelFeatureSupportLevel.Preserved, formControlCount, null,
+                "Form controls are preserve-only worksheet metadata.", formControlDetails);
 
             var formulas = InspectFormulas();
             Add(features, "Calculation", "Supported formulas", ExcelFeatureSupportLevel.PartiallyEditable, formulas.SupportedFormulas, null,
@@ -261,39 +383,53 @@ namespace OfficeIMO.Excel {
                 "Formulas without cached results need OfficeIMO calculation support or Excel recalculation before cached-value reads are reliable.");
 
             var allParts = EnumerateParts(workbookPart).ToList();
-            int vbaPartCount = CountPartsByUriOrContentType(allParts, "vbaProject");
-            int slicerPartCount = CountPartsByUriOrContentType(allParts, "slicer");
-            int timelinePartCount = CountPartsByUriOrContentType(allParts, "timeline");
-            int externalLinkPartCount = CountPartsByUriOrContentType(allParts, "externalLink");
-            int connectionPartCount = CountPartsByUriOrContentType(allParts, "connection") + CountPartsByUriOrContentType(allParts, "queryTable");
-            int customXmlPartCount = CountPartsByUri(allParts, "/customXml/");
-            int embeddedPackagePartCount = CountPartsByUri(allParts, "/embeddings/");
-            int externalRelationshipCount = allParts.Sum(part => part.ExternalRelationships.Count());
+            var vbaDetails = DescribePartsByUriOrContentType(allParts, "vbaProject");
+            var slicerDetails = DescribePartsByUriOrContentType(allParts, "slicer");
+            var timelineDetails = DescribePartsByUriOrContentType(allParts, "timeline");
+            var externalLinkDetails = DescribePartsByUriOrContentType(allParts, "externalLink");
+            var connectionDetails = DescribePartsByUriOrContentType(allParts, "connection")
+                .Concat(DescribePartsByUriOrContentType(allParts, "queryTable"))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var customXmlDetails = DescribePartsByUri(allParts, "/customXml/");
+            var embeddedPackageDetails = DescribePartsByUri(allParts, "/embeddings/");
+            var signatureDetails = DescribePartsByUriOrContentType(allParts, "signature")
+                .Concat(DescribePartsByUriOrContentType(allParts, "xmlsignatures"))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var externalRelationshipDetails = DescribeExternalRelationships(allParts)
+                .Concat(externalHyperlinkDetails)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
-            Add(features, "Compatibility", "VBA macros", ExcelFeatureSupportLevel.Preserved, vbaPartCount, null,
-                "Macro projects are preserve-only; OfficeIMO.Excel does not author or edit VBA modules.");
-            Add(features, "Compatibility", "Slicers", ExcelFeatureSupportLevel.Preserved, slicerPartCount, null,
-                "Slicer metadata is preserve-only; authoring slicers remains a roadmap item.");
-            Add(features, "Compatibility", "Timelines", ExcelFeatureSupportLevel.Preserved, timelinePartCount, null,
-                "Timeline metadata is preserve-only; authoring timelines remains a roadmap item.");
-            Add(features, "Compatibility", "External workbook links", ExcelFeatureSupportLevel.Preserved, externalLinkPartCount + externalRelationshipCount, null,
-                "External relationships and workbook-link parts should be treated carefully during round trips.");
-            Add(features, "Compatibility", "Connections and query tables", ExcelFeatureSupportLevel.Preserved, connectionPartCount, null,
-                "Connections and query-table metadata are preserve-only.");
-            Add(features, "Compatibility", "Custom XML parts", ExcelFeatureSupportLevel.Preserved, customXmlPartCount, null,
-                "Custom XML parts are preserve-only package metadata.");
-            Add(features, "Compatibility", "Embedded packages", ExcelFeatureSupportLevel.Preserved, embeddedPackagePartCount, null,
-                "Embedded packages are preserve-only package content.");
+            Add(features, "Compatibility", "VBA macros", ExcelFeatureSupportLevel.Preserved, vbaDetails.Count, null,
+                "Macro projects are preserve-only; OfficeIMO.Excel does not author or edit VBA modules.", vbaDetails);
+            Add(features, "Compatibility", "Slicers", ExcelFeatureSupportLevel.Preserved, slicerDetails.Count, null,
+                "Slicer metadata is preserve-only; authoring slicers remains a roadmap item.", slicerDetails);
+            Add(features, "Compatibility", "Timelines", ExcelFeatureSupportLevel.Preserved, timelineDetails.Count, null,
+                "Timeline metadata is preserve-only; authoring timelines remains a roadmap item.", timelineDetails);
+            Add(features, "Compatibility", "External workbook links", ExcelFeatureSupportLevel.Preserved, externalLinkDetails.Count + externalRelationshipDetails.Count, null,
+                "External relationships, external hyperlinks, and workbook-link parts should be treated carefully during round trips.",
+                externalLinkDetails.Concat(externalRelationshipDetails).ToArray());
+            Add(features, "Compatibility", "Connections and query tables", ExcelFeatureSupportLevel.Preserved, connectionDetails.Count, null,
+                "Connections and query-table metadata are preserve-only.", connectionDetails);
+            Add(features, "Compatibility", "Custom XML parts", ExcelFeatureSupportLevel.Preserved, customXmlDetails.Count, null,
+                "Custom XML parts are preserve-only package metadata.", customXmlDetails);
+            Add(features, "Compatibility", "Digital signatures", ExcelFeatureSupportLevel.Preserved, signatureDetails.Count, null,
+                "Digital signature parts are preserve-only package metadata.", signatureDetails);
+            Add(features, "Compatibility", "Embedded packages", ExcelFeatureSupportLevel.Preserved, embeddedPackageDetails.Count, null,
+                "Embedded packages are preserve-only package content.", embeddedPackageDetails);
 
             return new ExcelFeatureReport(features);
         }
 
-        private static void Add(List<ExcelFeatureFinding> features, string category, string name, ExcelFeatureSupportLevel supportLevel, int count, string? scope, string note) {
+        private static void Add(List<ExcelFeatureFinding> features, string category, string name, ExcelFeatureSupportLevel supportLevel, int count,
+            string? scope, string note, IReadOnlyList<string>? details = null) {
             if (count <= 0 && supportLevel != ExcelFeatureSupportLevel.Editable) {
                 return;
             }
 
-            features.Add(new ExcelFeatureFinding(category, name, supportLevel, count, scope, note));
+            features.Add(new ExcelFeatureFinding(category, name, supportLevel, count, scope, note, details));
         }
 
         private static IEnumerable<OpenXmlPart> EnumerateParts(OpenXmlPartContainer container) {
@@ -315,6 +451,39 @@ namespace OfficeIMO.Excel {
             return parts.Count(part =>
                 part.Uri.OriginalString.IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0
                 || part.ContentType.IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0);
+        }
+
+        private static List<string> DescribePartsByUri(IEnumerable<OpenXmlPart> parts, string uriFragment) {
+            return parts
+                .Where(part => part.Uri.OriginalString.IndexOf(uriFragment, StringComparison.OrdinalIgnoreCase) >= 0)
+                .Select(DescribePart)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static List<string> DescribePartsByUriOrContentType(IEnumerable<OpenXmlPart> parts, string fragment) {
+            return parts
+                .Where(part =>
+                    part.Uri.OriginalString.IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0
+                    || part.ContentType.IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0)
+                .Select(DescribePart)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static List<string> DescribeExternalRelationships(IEnumerable<OpenXmlPart> parts) {
+            return parts
+                .SelectMany(part => part.ExternalRelationships.Select(relationship =>
+                    $"{part.Uri}: {relationship.Id} -> {relationship.Uri}"))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static string DescribePart(OpenXmlPart part) {
+            return $"{part.Uri} ({part.ContentType})";
         }
 
         private static int CountDescendantsByLocalName(DocumentFormat.OpenXml.OpenXmlElement? root, string localName) {

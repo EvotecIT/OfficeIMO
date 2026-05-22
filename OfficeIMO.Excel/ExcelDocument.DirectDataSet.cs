@@ -572,7 +572,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (HasCalculationSaveWork()) {
+            if (HasCalculationSaveWork(options)) {
                 skipReason = "Calculation save policy requires the standard package finalization path.";
                 return false;
             }

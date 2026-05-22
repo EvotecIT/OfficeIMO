@@ -28,6 +28,28 @@ namespace OfficeIMO.Excel {
         public bool DisableFastPackageWriter { get; set; }
 
         /// <summary>
+        /// When true, evaluates supported formulas and writes cached values before this save.
+        /// Unsupported formulas are preserved for Excel-compatible applications to calculate.
+        /// </summary>
+        public bool EvaluateFormulasBeforeSave { get; set; }
+
+        /// <summary>
+        /// When true, removes cached formula results before this save. Ignored when
+        /// <see cref="EvaluateFormulasBeforeSave"/> is true.
+        /// </summary>
+        public bool ClearCachedFormulaResultsBeforeSave { get; set; }
+
+        /// <summary>
+        /// When true, marks formulas dirty before this save so Excel-compatible applications recalculate on open.
+        /// </summary>
+        public bool MarkFormulasDirtyBeforeSave { get; set; }
+
+        /// <summary>
+        /// When true, writes workbook calculation properties requesting a full recalculation on open.
+        /// </summary>
+        public bool ForceFullCalculationOnOpen { get; set; }
+
+        /// <summary>
         /// Returns an options instance with all features disabled.
         /// </summary>
         public static ExcelSaveOptions None => new ExcelSaveOptions();

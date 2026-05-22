@@ -20,39 +20,46 @@ This roadmap tracks where `OfficeIMO.Excel` should grow next while keeping the A
 
 Build the lightweight evaluator into a dependable reporting-calculation layer.
 
-- Add a public calculation facade such as `doc.Calculate()` and save options for calculate-before-save flows.
-- Add dependency ordering so formulas can depend on other formulas, not only literal cells and ranges.
-- Add cross-sheet references, named ranges, and simple table references.
-- Add text and lookup helpers such as `CONCAT`, `TEXTJOIN`, `LEFT`, `RIGHT`, `MID`, `LEN`, `TRIM`, and text-returning lookup results.
-- Add clear diagnostics for formulas that are preserved but not calculated by OfficeIMO.
+- Done initial slice: add `doc.Calculate()` and per-save formula options on `ExcelSaveOptions` for calculate-before-save flows.
+- Done initial slice: add same-sheet dependency ordering so supported formulas can depend on other supported formulas, not only literal cells and ranges.
+- Done initial slice: add numeric cross-sheet cell/range references for supported formulas.
+- Done initial slice: add workbook-global and sheet-local named range references for supported numeric formulas.
+- Done initial slice: add simple table structured references for supported numeric formulas.
+- Done initial slice: add text and lookup helpers for `CONCAT`, `TEXTJOIN`, `LEFT`, `RIGHT`, `MID`, `LEN`, `TRIM`, and exact-match lookup results that return text.
+- Done initial slice: add clearer unsupported-formula diagnostics for unsupported functions, unsupported argument shapes, semicolon-separated formulas, text concatenation, and array constants.
 
 ### 2. Charts, Pivots, And Dashboards
 
 Continue turning existing workbook features into polished report-building APIs.
 
-- Add chart presets for variance waterfall, KPI scorecard, and contribution charts.
+- Done initial slice: add chart presets for KPI scorecards, contribution charts, and waterfall-style variance bridges.
 - Expand chart type coverage in practical chunks: waterfall, funnel, histogram, treemap, sunburst, box-and-whisker, stock, radar, and surface.
 - Add pivot grouping for dates and numbers.
-- Add pivot value filters, label filters, top/bottom filters, calculated fields, and show-values-as options.
+- Done initial slice: add pivot show-values-as options for data fields, including a fluent percent-of-total helper.
+- Add pivot value filters, label filters, top/bottom filters, and calculated fields.
 - Add table and pivot slicers once the metadata model is solid.
 
 ### 3. Preservation And Feature Inspection
 
 Make it easy to understand what a workbook contains and what OfficeIMO will safely edit or preserve.
 
-- Expand `InspectFeatures()` with richer detail for workbook links, query tables, slicers, timelines, VBA projects, embedded objects, custom XML, signatures, and form controls.
-- Add round-trip preservation tests for features OfficeIMO does not fully author yet.
+- Done initial slice: expand `InspectFeatures()` findings with detail entries for preservation-sensitive package features, including workbook links/external relationships, query/connectors, slicers, timelines, VBA projects, embedded packages, custom XML, signatures, form controls, and OLE markers.
+- Done initial slice: add round-trip preservation proof for external hyperlink relationships and custom XML package metadata.
+- Done initial slice: add broader round-trip preservation proof for macro project parts and embedded package parts that OfficeIMO does not fully author yet.
+- Add broader round-trip preservation tests for additional package features OfficeIMO does not fully author yet.
 - Add a workbook corpus covering Excel-authored, LibreOffice-authored, Google Sheets-authored, and generated files.
-- Add small examples showing how to fail fast when a workbook contains features a workflow does not want to touch.
+- Done initial slice: add targeted feature-report guards and examples showing how to fail fast when a workbook contains features a workflow does not want to touch.
 
 ### 4. Template Workflows
 
 Turn workbook templates into a first-class report-generation path.
 
-- Add repeating rows and repeating sheets.
-- Add optional sections and missing-data policies.
-- Add image binding from byte arrays, streams, and URLs.
-- Add stronger formatter hooks for currency, percentages, dates, durations, and custom user formats.
+- Done initial slice: add single-row template repetition that inserts rows and binds each supplied row model.
+- Add repeating sheets.
+- Done initial slice: add template missing-data policies so optional markers can be preserved, cleared, or rejected.
+- Done initial slice: add optional row sections that can be kept and bound or removed while shifting following rows.
+- Done initial slice: add image binding for whole-cell template markers from byte arrays, streams, and URLs.
+- Done initial slice: add stronger formatter hooks for currency, percentages, dates, durations, and custom user formats.
 - Preserve surrounding formulas, named ranges, tables, styles, charts, and page setup during binding.
 
 ### 5. Comments, Notes, And Review Metadata
@@ -61,7 +68,7 @@ Improve collaboration metadata without making it heavy.
 
 - Add rich-text comment authoring.
 - Add threaded comment inspection and preservation checks.
-- Add APIs for finding, updating, and removing comments by author, range, and text.
+- Done initial slice: add APIs for finding, updating, and removing legacy comments by author, range, and text.
 - Document which comment features are editable and which are preservation-only.
 
 ### 6. Rendering Feasibility

@@ -102,6 +102,15 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Calculates formulas that are supported by OfficeIMO's lightweight formula engine and writes cached values.
+        /// Unsupported formulas are preserved unchanged for Excel-compatible applications to calculate.
+        /// </summary>
+        /// <returns>The number of formula cells with updated cached values.</returns>
+        public int Calculate() {
+            return RecalculateSupportedFormulas();
+        }
+
+        /// <summary>
         /// Inspects formula cells across all worksheets without changing workbook contents.
         /// </summary>
         public ExcelFormulaInspection InspectFormulas() {
@@ -151,20 +160,43 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal void ApplyCalculationPolicyBeforeSave() {
-            if (Calculation.EvaluateFormulasBeforeSave) {
+        internal void ApplyCalculationPolicyBeforeSave(ExcelSaveOptions? options) {
+            if (ShouldEvaluateFormulasBeforeSave(options)) {
                 RecalculateSupportedFormulas();
-            } else if (Calculation.ClearCachedFormulaResultsBeforeSave) {
+            } else if (ShouldClearCachedFormulaResultsBeforeSave(options)) {
                 ClearCachedFormulaResults();
             }
 
-            if (Calculation.MarkFormulasDirtyBeforeSave) {
+            if (ShouldMarkFormulasDirtyBeforeSave(options)) {
                 InvalidateFormulas();
             }
 
-            if (Calculation.ForceFullCalculationOnOpen) {
+            if (ShouldForceFullCalculationOnOpen(options)) {
                 ConfigureFullCalculationOnOpen();
             }
+        }
+
+        private bool ShouldEvaluateFormulasBeforeSave(ExcelSaveOptions? options) {
+            return Calculation.EvaluateFormulasBeforeSave || options?.EvaluateFormulasBeforeSave == true;
+        }
+
+        private bool ShouldClearCachedFormulaResultsBeforeSave(ExcelSaveOptions? options) {
+            return Calculation.ClearCachedFormulaResultsBeforeSave || options?.ClearCachedFormulaResultsBeforeSave == true;
+        }
+
+        private bool ShouldMarkFormulasDirtyBeforeSave(ExcelSaveOptions? options) {
+            return Calculation.MarkFormulasDirtyBeforeSave || options?.MarkFormulasDirtyBeforeSave == true;
+        }
+
+        private bool ShouldForceFullCalculationOnOpen(ExcelSaveOptions? options) {
+            return Calculation.ForceFullCalculationOnOpen || options?.ForceFullCalculationOnOpen == true;
+        }
+
+        private bool HasCalculationSaveWork(ExcelSaveOptions? options) {
+            return ShouldEvaluateFormulasBeforeSave(options)
+                || ShouldClearCachedFormulaResultsBeforeSave(options)
+                || ShouldMarkFormulasDirtyBeforeSave(options)
+                || ShouldForceFullCalculationOnOpen(options);
         }
     }
 }

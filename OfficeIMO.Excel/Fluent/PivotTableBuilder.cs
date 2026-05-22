@@ -92,10 +92,18 @@ namespace OfficeIMO.Excel.Fluent {
             DataConsolidateFunctionValues function,
             string? displayName = null,
             uint? numberFormatId = null,
-            string? numberFormat = null) {
+            string? numberFormat = null,
+            ShowDataAsValues? showDataAs = null,
+            int? baseField = null,
+            uint? baseItem = null) {
             if (string.IsNullOrWhiteSpace(fieldName)) throw new ArgumentNullException(nameof(fieldName));
-            _dataFields.Add(new ExcelPivotDataField(fieldName, function, displayName, numberFormatId, numberFormat));
+            _dataFields.Add(new ExcelPivotDataField(fieldName, function, displayName, numberFormatId, numberFormat, showDataAs, baseField, baseItem));
             return this;
+        }
+
+        /// <summary>Adds a Sum data field shown as a percentage of the pivot grand total.</summary>
+        public PivotTableBuilder PercentOfTotal(string fieldName, string? displayName = null, string? numberFormat = "0.0%") {
+            return Value(fieldName, DataConsolidateFunctionValues.Sum, displayName, numberFormat: numberFormat, showDataAs: ShowDataAsValues.PercentOfTotal);
         }
 
         /// <summary>Sets the pivot table style name, for example PivotStyleMedium9.</summary>

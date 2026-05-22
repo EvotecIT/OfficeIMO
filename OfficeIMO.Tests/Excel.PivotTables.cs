@@ -338,6 +338,56 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AddPivotTable_AppliesShowValuesAsDataFieldOptions() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableShowValuesAs.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+
+                sheet.CellValue(1, 1, "Region");
+                sheet.CellValue(1, 2, "Product");
+                sheet.CellValue(1, 3, "Sales");
+                sheet.CellValue(2, 1, "East");
+                sheet.CellValue(2, 2, "A");
+                sheet.CellValue(2, 3, 10);
+                sheet.CellValue(3, 1, "West");
+                sheet.CellValue(3, 2, "A");
+                sheet.CellValue(3, 3, 20);
+                sheet.CellValue(4, 1, "East");
+                sheet.CellValue(4, 2, "B");
+                sheet.CellValue(4, 3, 30);
+
+                sheet.Pivot("A1:C4")
+                    .Rows("Region")
+                    .PercentOfTotal("Sales", "% Total Sales")
+                    .At("E2", "SalesPivot");
+
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var pivotPart = spreadsheet.WorkbookPart!.WorksheetParts.SelectMany(part => part.PivotTableParts).Single();
+                var dataField = pivotPart.PivotTableDefinition!.DataFields!.Elements<DataField>().Single();
+
+                Assert.Equal("% Total Sales", dataField.Name!.Value);
+                Assert.Equal(ShowDataAsValues.PercentOfTotal, dataField.ShowDataAs!.Value);
+                Assert.True(dataField.NumberFormatId!.Value >= 164);
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var dataField = document.GetPivotTables().Single().DataFields.Single();
+
+                Assert.Equal("% Total Sales", dataField.DisplayName);
+                Assert.Equal(ShowDataAsValues.PercentOfTotal, dataField.ShowDataAs);
+                Assert.True(dataField.NumberFormatId >= 164);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void Test_AddPivotChartFromRange_WritesPivotSource() {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotChart.xlsx");
 
