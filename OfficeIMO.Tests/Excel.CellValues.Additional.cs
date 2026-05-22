@@ -112,6 +112,40 @@ namespace OfficeIMO.Tests {
             }
         }
 
+#if NET6_0_OR_GREATER
+        [Fact]
+        public void Test_CellValues_DateOnlyAndTimeOnly_AutomaticallyApplyNumberFormats() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesDateOnlyTimeOnlyStyles.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, new DateOnly(2026, 5, 22));
+                sheet.CellValue(2, 1, new TimeOnly(14, 30, 0));
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                ValidateSpreadsheetDocument(filePath, spreadsheet);
+
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cells = wsPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                var cellFormats = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.CellFormats!;
+
+                Cell dateCell = cells["A1"];
+                Assert.Equal(CellValues.Number, dateCell.DataType!.Value);
+                Assert.NotNull(dateCell.StyleIndex);
+                var dateFormat = cellFormats.Elements<CellFormat>().ElementAt((int)dateCell.StyleIndex!.Value);
+                Assert.Equal(14U, dateFormat.NumberFormatId!.Value);
+
+                Cell timeCell = cells["A2"];
+                Assert.Equal(CellValues.Number, timeCell.DataType!.Value);
+                Assert.NotNull(timeCell.StyleIndex);
+                var timeFormat = cellFormats.Elements<CellFormat>().ElementAt((int)timeCell.StyleIndex!.Value);
+                Assert.Equal(46U, timeFormat.NumberFormatId!.Value);
+            }
+        }
+#endif
+
         [Fact]
         public void Test_CellValues_LargeIntegers_AreSerializedExactly() {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesLargeIntegers.xlsx");

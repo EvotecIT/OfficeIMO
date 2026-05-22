@@ -338,6 +338,15 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("4", GetCellValue(spreadsheet, wsPart, "B10"));
                 Assert.Equal("5", GetCellValue(spreadsheet, wsPart, "B11"));
                 Assert.Equal("6", GetCellValue(spreadsheet, wsPart, "B12"));
+
+                var chartPart = wsPart.DrawingsPart!.ChartParts.Single();
+                var seriesText = chartPart.ChartSpace.Descendants<C.BarChartSeries>().Single().GetFirstChild<C.SeriesText>()!;
+                Assert.DoesNotContain(seriesText.ChildElements, child => child.LocalName == "strLit");
+                Assert.Equal("Series 1", seriesText.GetFirstChild<C.NumericValue>()!.Text);
+
+                OpenXmlValidator validator = new OpenXmlValidator();
+                var errors = validator.Validate(spreadsheet).ToList();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
         }
 

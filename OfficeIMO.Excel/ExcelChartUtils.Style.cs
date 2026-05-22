@@ -49,12 +49,6 @@ namespace OfficeIMO.Excel {
             return literal;
         }
 
-        private static StringLiteral CreateSingleStringLiteral(string? value) {
-            StringLiteral literal = new();
-            literal.Append(CreateSingleStringCache(value));
-            return literal;
-        }
-
         private static StringCache CreateSingleStringCache(string? value) {
             var cache = new StringCache();
             cache.Append(new PointCount { Val = 1U });

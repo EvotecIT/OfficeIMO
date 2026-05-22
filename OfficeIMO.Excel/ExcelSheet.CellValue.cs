@@ -222,15 +222,23 @@ namespace OfficeIMO.Excel {
 #if NET6_0_OR_GREATER
         private void CellDateOnlyValueCore(int row, int column, DateOnly value) {
             var cell = GetCell(row, column);
+            uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
             cell.CellValue = new CellValue(value.ToDateTime(TimeOnly.MinValue).ToOADate().ToString(CultureInfo.InvariantCulture));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
+            cell.StyleIndex = baseStyleIndex == 0U
+                ? (_cellValueDefaultDateStyleIndex ??= GetOrCreateBuiltInNumberFormatStyleIndex(0U, 14))
+                : GetOrAddBuiltInNumberFormatStyleIndex(ref _cellValueDateStyleIndexes, baseStyleIndex, 14);
             ClearHeaderCacheForCellMutation(row);
         }
 
         private void CellTimeOnlyValueCore(int row, int column, TimeOnly value) {
             var cell = GetCell(row, column);
+            uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
             cell.CellValue = new CellValue(value.ToTimeSpan().TotalDays.ToString(CultureInfo.InvariantCulture));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
+            cell.StyleIndex = baseStyleIndex == 0U
+                ? (_cellValueDefaultDurationStyleIndex ??= GetOrCreateBuiltInNumberFormatStyleIndex(0U, 46))
+                : GetOrAddBuiltInNumberFormatStyleIndex(ref _cellValueDurationStyleIndexes, baseStyleIndex, 46);
             ClearHeaderCacheForCellMutation(row);
         }
 #endif

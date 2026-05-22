@@ -666,13 +666,14 @@ namespace OfficeIMO.Excel {
             SeriesText seriesText = series.GetFirstChild<SeriesText>() ?? new SeriesText();
             seriesText.RemoveAllChildren<StringReference>();
             seriesText.RemoveAllChildren<StringLiteral>();
+            seriesText.RemoveAllChildren<NumericValue>();
 
             if (range.HasHeaderRow) {
                 string seriesCell = range.SeriesNameCellA1(seriesIndex);
                 string formula = BuildSheetQualifiedRange(range.SheetName, seriesCell);
                 seriesText.Append(CreateSingleStringReference(formula, seriesName));
             } else {
-                seriesText.Append(CreateSingleStringLiteral(seriesName));
+                seriesText.Append(new NumericValue { Text = seriesName });
             }
 
             if (seriesText.Parent == null) {
