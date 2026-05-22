@@ -1446,6 +1446,11 @@ namespace OfficeIMO.Excel {
             foreach (string token in tokens) {
                 if (TryResolveFormulaRange(token, out var rangeValues)) {
                     foreach (var rangeValue in rangeValues) {
+                        if (rangeValue.IsUnresolvedFormula) {
+                            values.Clear();
+                            return false;
+                        }
+
                         values.Add(FormulaValueToText(rangeValue));
                     }
 
@@ -1466,6 +1471,10 @@ namespace OfficeIMO.Excel {
         private bool TryResolveTextArgument(string token, out string text) {
             text = string.Empty;
             if (!TryResolveFormulaArgument(token, out FormulaArgumentValue value)) {
+                return false;
+            }
+
+            if (value.IsUnresolvedFormula) {
                 return false;
             }
 
@@ -1501,7 +1510,7 @@ namespace OfficeIMO.Excel {
         private bool TryResolveFormulaArgument(string token, out FormulaArgumentValue value) {
             string trimmed = token.Trim();
             if (trimmed.Length >= 2 && trimmed[0] == '"' && trimmed[trimmed.Length - 1] == '"') {
-                value = new FormulaArgumentValue(null, trimmed.Substring(1, trimmed.Length - 2));
+                value = new FormulaArgumentValue(null, trimmed.Substring(1, trimmed.Length - 2).Replace("\"\"", "\""));
                 return true;
             }
 

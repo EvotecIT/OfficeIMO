@@ -179,13 +179,14 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Invoice");
-                sheet.CellFormula(1, 4, "B4");
-                sheet.CellFormula(1, 5, "'Invoice'!B4");
+                sheet.CellFormula(1, 4, "B4+$B$4");
+                sheet.CellFormula(1, 5, "'Invoice'!$B$4");
                 sheet.CellAt(2, 1).SetValue("Intro");
                 sheet.CellAt(3, 1).SetValue("{{Name}}");
                 sheet.CellAt(3, 2).SetValue("{{Amount}}");
                 sheet.CellFormula(3, 3, "B3*2");
                 sheet.CellFormula(3, 4, "B2+B3+\"A3\"");
+                sheet.CellFormula(3, 6, "$B$3+B3");
                 sheet.CellAt(4, 1).SetValue("Footer");
                 sheet.CellAt(4, 2).SetValue(25);
                 sheet.CellFormula(4, 3, "B4");
@@ -226,11 +227,13 @@ namespace OfficeIMO.Tests {
                 var rows = worksheetPart.Worksheet.Descendants<Row>().ToDictionary(row => row.RowIndex!.Value);
                 MergeCell merge = Assert.Single(worksheetPart.Worksheet.Descendants<MergeCell>());
 
-                Assert.Equal("B5", cells["D1"].CellFormula!.Text);
-                Assert.Equal("'Invoice'!B5", cells["E1"].CellFormula!.Text);
+                Assert.Equal("B5+$B$5", cells["D1"].CellFormula!.Text);
+                Assert.Equal("'Invoice'!$B$5", cells["E1"].CellFormula!.Text);
                 Assert.Equal("B3*2", cells["C3"].CellFormula!.Text);
                 Assert.Equal("B4*2", cells["C4"].CellFormula!.Text);
                 Assert.Equal("B3+B4+\"A3\"", cells["D4"].CellFormula!.Text);
+                Assert.Equal("$B$3+B3", cells["F3"].CellFormula!.Text);
+                Assert.Equal("$B$3+B4", cells["F4"].CellFormula!.Text);
                 Assert.Equal("B5", cells["C5"].CellFormula!.Text);
                 Assert.Equal("A2:A5", merge.Reference!.Value);
                 Assert.True(rows[4U].Hidden!.Value);
@@ -334,9 +337,9 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Invoice");
                 sheet.CellAt(1, 1).SetValue("Header");
-                sheet.CellFormula(1, 4, "A4");
-                sheet.CellFormula(1, 5, "'Invoice'!A4");
-                sheet.CellFormula(1, 6, "A2");
+                sheet.CellFormula(1, 4, "A4+$A$4");
+                sheet.CellFormula(1, 5, "'Invoice'!$A$4");
+                sheet.CellFormula(1, 6, "$A$2");
                 sheet.CellFormula(1, 7, "IF(\"A4\"=\"A4\",A4,0)");
                 sheet.CellAt(2, 1).SetValue("Optional {{Note}}");
                 sheet.CellAt(3, 1).SetValue("Optional {{Amount}}");
@@ -353,8 +356,8 @@ namespace OfficeIMO.Tests {
                 var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
                 MergeCell merge = Assert.Single(worksheetPart.Worksheet.Descendants<MergeCell>());
 
-                Assert.Equal("A2", cells["D1"].CellFormula!.Text);
-                Assert.Equal("'Invoice'!A2", cells["E1"].CellFormula!.Text);
+                Assert.Equal("A2+$A$2", cells["D1"].CellFormula!.Text);
+                Assert.Equal("'Invoice'!$A$2", cells["E1"].CellFormula!.Text);
                 Assert.Equal("#REF!", cells["F1"].CellFormula!.Text);
                 Assert.Equal("IF(\"A4\"=\"A4\",A2,0)", cells["G1"].CellFormula!.Text);
                 Assert.Equal("B1:B2", merge.Reference!.Value);

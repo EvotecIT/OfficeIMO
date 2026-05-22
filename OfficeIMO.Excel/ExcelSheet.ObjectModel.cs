@@ -1128,7 +1128,7 @@ namespace OfficeIMO.Excel {
             }
 
             return RewriteFormulaReferencesOutsideStrings(formula, segment => ReplaceFormulaReferences(segment, match => {
-                if (!CanRewriteFormulaReference(match, sheetName, out int row)) {
+                if (!CanRewriteFormulaReference(match, sheetName, allowAbsoluteRows: false, out int row)) {
                     return match.Value;
                 }
 
@@ -1147,7 +1147,7 @@ namespace OfficeIMO.Excel {
             }
 
             return RewriteFormulaReferencesOutsideStrings(formula, segment => ReplaceFormulaReferences(segment, match => {
-                if (!CanRewriteFormulaReference(match, sheetName, out int row) || row < firstAffectedRow) {
+                if (!CanRewriteFormulaReference(match, sheetName, allowAbsoluteRows: true, out int row) || row < firstAffectedRow) {
                     return match.Value;
                 }
 
@@ -1166,7 +1166,7 @@ namespace OfficeIMO.Excel {
             }
 
             return RewriteFormulaReferencesOutsideStrings(formula, segment => ReplaceFormulaReferences(segment, match => {
-                if (!CanRewriteFormulaReference(match, sheetName, out int row)) {
+                if (!CanRewriteFormulaReference(match, sheetName, allowAbsoluteRows: true, out int row)) {
                     return match.Value;
                 }
 
@@ -1232,14 +1232,14 @@ namespace OfficeIMO.Excel {
                 TimeSpan.FromMilliseconds(200));
         }
 
-        private static bool CanRewriteFormulaReference(Match match, string? sheetName, out int row) {
+        private static bool CanRewriteFormulaReference(Match match, string? sheetName, bool allowAbsoluteRows, out int row) {
             row = 0;
             string sheetQualifier = match.Groups["sheet"].Value;
             if (sheetQualifier.Length > 0 && !IsCurrentSheetQualifier(sheetQualifier, sheetName)) {
                 return false;
             }
 
-            if (match.Groups["rowAbs"].Value == "$") {
+            if (!allowAbsoluteRows && match.Groups["rowAbs"].Value == "$") {
                 return false;
             }
 

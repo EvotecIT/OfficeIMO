@@ -445,8 +445,9 @@ namespace OfficeIMO.Tests {
                 sheet.CellFormula(7, 3, "TRIM(A3)");
                 sheet.CellFormula(8, 3, "XLOOKUP(\"US\",A5:A6,B5:B6)");
                 sheet.CellFormula(9, 3, "VLOOKUP(\"EU\",A5:B6,2,FALSE)");
+                sheet.CellFormula(10, 3, "CONCAT(\"A\"\"B\",\"-\",A1)");
 
-                Assert.Equal(9, document.Calculate());
+                Assert.Equal(10, document.Calculate());
 
                 ExcelFormulaInspection inspection = document.InspectFormulas();
                 Assert.Equal(0, inspection.MissingCachedResults);
@@ -459,6 +460,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(inspection.Formulas, formula => formula.CellReference == "C7" && formula.CachedValue == "East Hub");
                 Assert.Contains(inspection.Formulas, formula => formula.CellReference == "C8" && formula.CachedValue == "United States");
                 Assert.Contains(inspection.Formulas, formula => formula.CellReference == "C9" && formula.CachedValue == "Europe");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "C10" && formula.CachedValue == "A\"B-North");
                 document.Save();
             }
 
@@ -474,6 +476,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("8", cells["C6"].CellValue!.Text);
                 Assert.Equal("United States", cells["C8"].CellValue!.Text);
                 Assert.Equal("Europe", cells["C9"].CellValue!.Text);
+                Assert.Equal("A\"B-North", cells["C10"].CellValue!.Text);
             }
         }
 
@@ -492,6 +495,27 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, inspection.MissingCachedResults);
                 Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A1" && formula.CachedValue == null);
                 Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A2" && formula.CachedValue == null);
+                document.Save();
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_CalculateFacade_LeavesTextFormulasWithUnresolvedDependenciesUncached() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateUnresolvedTextDependencies.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Calc");
+                sheet.CellFormula(1, 1, "A2+1");
+                sheet.CellFormula(2, 1, "A1+1");
+                sheet.CellFormula(1, 2, "CONCAT(A1,\"x\")");
+                sheet.CellFormula(2, 2, "TEXTJOIN(\",\",TRUE,A1:A2)");
+
+                Assert.Equal(0, document.Calculate());
+
+                ExcelFormulaInspection inspection = document.InspectFormulas();
+                Assert.Equal(4, inspection.MissingCachedResults);
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "B1" && formula.CachedValue == null);
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "B2" && formula.CachedValue == null);
                 document.Save();
             }
         }
