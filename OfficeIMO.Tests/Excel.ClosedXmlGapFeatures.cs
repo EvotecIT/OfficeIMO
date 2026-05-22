@@ -387,6 +387,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ClosedXmlGap_CalculateFacade_EvaluatesCrossSheetTableFormulaDependencies() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateTableFormulaDependencies.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet calc = document.AddWorkSheet("Calc");
+                ExcelSheet data = document.AddWorkSheet("Data");
+                data.CellValue(1, 1, "Region");
+                data.CellValue(1, 2, "Base");
+                data.CellValue(1, 3, "Amount");
+                data.CellValue(2, 1, "EU");
+                data.CellValue(2, 2, 10d);
+                data.CellFormula(2, 3, "B2*2");
+                data.CellValue(3, 1, "US");
+                data.CellValue(3, 2, 5d);
+                data.CellFormula(3, 3, "B3*3");
+                data.Range("A1:C3").CreateTable("SalesData");
+
+                calc.CellFormula(1, 1, "SUM(SalesData[Amount])");
+
+                Assert.Equal(3, document.Calculate());
+
+                ExcelFormulaInspection inspection = document.InspectFormulas();
+                Assert.Equal(0, inspection.MissingCachedResults);
+                Assert.Contains(inspection.Formulas, formula => formula.SheetName == "Calc" && formula.CellReference == "A1" && formula.CachedValue == "35");
+                Assert.Contains(inspection.Formulas, formula => formula.SheetName == "Data" && formula.CellReference == "C2" && formula.CachedValue == "20");
+                Assert.Contains(inspection.Formulas, formula => formula.SheetName == "Data" && formula.CellReference == "C3" && formula.CachedValue == "15");
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFormulaInspection inspection = document.InspectFormulas();
+                Assert.Contains(inspection.Formulas, formula => formula.SheetName == "Calc" && formula.CellReference == "A1" && formula.CachedValue == "35");
+            }
+        }
+
+        [Fact]
         public void Test_ClosedXmlGap_CalculateFacade_EvaluatesTextHelpersAndLookupReturns() {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateTextHelpers.xlsx");
 

@@ -173,6 +173,71 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelTemplate_RepeatingRowsRebasesStationaryFormulasAndRowMetadata() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsStationaryFormulas.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Invoice");
+                sheet.CellFormula(1, 4, "B4");
+                sheet.CellFormula(1, 5, "'Invoice'!B4");
+                sheet.CellAt(2, 1).SetValue("Intro");
+                sheet.CellAt(3, 1).SetValue("{{Name}}");
+                sheet.CellAt(3, 2).SetValue("{{Amount}}");
+                sheet.CellFormula(3, 3, "B3*2");
+                sheet.CellAt(4, 1).SetValue("Footer");
+                sheet.CellAt(4, 2).SetValue(25);
+                sheet.CellFormula(4, 3, "B4");
+                sheet.MergeRange("A2:A4");
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Row templateRow = worksheetPart.Worksheet.Descendants<Row>().Single(row => row.RowIndex?.Value == 3U);
+                templateRow.Height = 30D;
+                templateRow.CustomHeight = true;
+                templateRow.Hidden = true;
+                templateRow.OutlineLevel = 1;
+                worksheetPart.Worksheet.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var sheet = document["Invoice"];
+                int replacements = sheet.ApplyTemplateRows(3, new[] {
+                    new Dictionary<string, object?> {
+                        ["Name"] = "Consulting",
+                        ["Amount"] = 1200
+                    },
+                    new Dictionary<string, object?> {
+                        ["Name"] = "Support",
+                        ["Amount"] = 300
+                    }
+                });
+
+                Assert.Equal(4, replacements);
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                var rows = worksheetPart.Worksheet.Descendants<Row>().ToDictionary(row => row.RowIndex!.Value);
+                MergeCell merge = Assert.Single(worksheetPart.Worksheet.Descendants<MergeCell>());
+
+                Assert.Equal("B5", cells["D1"].CellFormula!.Text);
+                Assert.Equal("'Invoice'!B5", cells["E1"].CellFormula!.Text);
+                Assert.Equal("B3*2", cells["C3"].CellFormula!.Text);
+                Assert.Equal("B4*2", cells["C4"].CellFormula!.Text);
+                Assert.Equal("B5", cells["C5"].CellFormula!.Text);
+                Assert.Equal("A2:A5", merge.Reference!.Value);
+                Assert.True(rows[4U].Hidden!.Value);
+                Assert.True(rows[4U].CustomHeight!.Value);
+                Assert.Equal(30D, rows[4U].Height!.Value);
+                Assert.Equal(1, rows[4U].OutlineLevel!.Value);
+            }
+        }
+
+        [Fact]
         public void Test_ExcelTemplate_OptionalRowsCanBeIncludedAndBound() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsIncluded.xlsx");
 
@@ -256,6 +321,35 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("B2", cell.CellFormula!.Text);
                 Assert.DoesNotContain(wsPart.Worksheet.Descendants<Cell>(), item => item.CellReference?.Value == "A4");
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelTemplate_RemovingOptionalRowsRebasesStationaryFormulasAndBoundaryMerges() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsRemovedStationaryFormulas.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Invoice");
+                sheet.CellAt(1, 1).SetValue("Header");
+                sheet.CellFormula(1, 4, "A4");
+                sheet.CellFormula(1, 5, "'Invoice'!A4");
+                sheet.CellAt(2, 1).SetValue("Optional {{Note}}");
+                sheet.CellAt(3, 1).SetValue("Optional {{Amount}}");
+                sheet.CellAt(4, 1).SetValue("Footer");
+                sheet.MergeRange("B1:B4");
+
+                sheet.RemoveTemplateOptionalRows(2, 2);
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                MergeCell merge = Assert.Single(worksheetPart.Worksheet.Descendants<MergeCell>());
+
+                Assert.Equal("A2", cells["D1"].CellFormula!.Text);
+                Assert.Equal("'Invoice'!A2", cells["E1"].CellFormula!.Text);
+                Assert.Equal("B1:B2", merge.Reference!.Value);
             }
         }
 

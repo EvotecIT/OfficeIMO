@@ -537,13 +537,10 @@ namespace OfficeIMO.Excel {
                     if (column > 0) {
                         cell.CellReference = BuildCellReference(newRowIndex, column);
                     }
-
-                    if (cell.CellFormula?.Text is string formulaText && formulaText.Length > 0) {
-                        cell.CellFormula.Text = RewriteShiftedFormulaReferences(formulaText, firstRow, count);
-                    }
                 }
             }
 
+            RewriteWorksheetFormulaReferences(firstRow, count);
             ShiftMergeCellsRows(firstRow, count);
 
             _lastAccessedRow = null;
@@ -588,14 +585,11 @@ namespace OfficeIMO.Excel {
                         if (column > 0) {
                             cell.CellReference = BuildCellReference(newRowIndex, column);
                         }
-
-                        if (cell.CellFormula?.Text is string formulaText && formulaText.Length > 0) {
-                            cell.CellFormula.Text = RewriteShiftedFormulaReferences(formulaText, lastRemovedRow + 1, -count);
-                        }
                     }
                 }
             }
 
+            RewriteWorksheetFormulaReferences(lastRemovedRow + 1, -count);
             ShiftMergeCellsRows(lastRemovedRow + 1, -count);
 
             _lastAccessedRow = null;
@@ -628,14 +622,19 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (bounds.r1 < firstAffectedRow) {
+                if (bounds.r2 < firstAffectedRow) {
                     count++;
                     continue;
                 }
 
-                int targetFirstRow = bounds.r1 + delta;
+                int targetFirstRow = bounds.r1 < firstAffectedRow ? bounds.r1 : bounds.r1 + delta;
                 int targetLastRow = bounds.r2 + delta;
                 if (targetFirstRow <= 0 || targetLastRow <= 0) {
+                    merge.Remove();
+                    continue;
+                }
+
+                if (targetLastRow < targetFirstRow) {
                     merge.Remove();
                     continue;
                 }

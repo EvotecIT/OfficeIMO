@@ -1784,7 +1784,10 @@ namespace OfficeIMO.Excel {
 
                     sheet = string.Equals(Name, sheetElement.Name?.Value, StringComparison.OrdinalIgnoreCase)
                         ? this
-                        : new ExcelSheet(_excelDocument, _spreadSheetDocument, sheetElement);
+                        : new ExcelSheet(_excelDocument, _spreadSheetDocument, sheetElement) {
+                            _formulaEvaluationCache = _formulaEvaluationCache,
+                            _formulaEvaluationStack = _formulaEvaluationStack
+                        };
                     return TryResolveTableReferenceRange(table, sections, out r1, out c1, out r2, out c2);
                 }
             }

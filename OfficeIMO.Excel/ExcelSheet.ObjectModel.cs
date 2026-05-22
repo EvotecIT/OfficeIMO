@@ -549,6 +549,10 @@ namespace OfficeIMO.Excel {
         private RowSnapshot CaptureRow(int rowIndex, int firstColumn, int lastColumn, int sortColumn) {
             var cells = new List<CellSnapshot>();
             object? sortValue = null;
+            var rowElement = WorksheetRoot.GetFirstChild<SheetData>()?
+                .Elements<Row>()
+                .FirstOrDefault(row => row.RowIndex?.Value == (uint)rowIndex);
+            var rowClone = rowElement == null ? null : (Row)rowElement.CloneNode(false);
             for (int column = firstColumn; column <= lastColumn; column++) {
                 var cell = TryGetExistingCell(rowIndex, column);
                 var clone = cell == null ? null : (Cell)cell.CloneNode(true);
@@ -558,7 +562,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            return new RowSnapshot(rowIndex, cells, sortValue);
+            return new RowSnapshot(rowIndex, rowClone, cells, sortValue);
         }
 
         private void WriteRowSnapshot(int targetRow, int firstColumn, int lastColumn, RowSnapshot snapshot, IReadOnlyDictionary<int, int> rowMap) {
@@ -593,6 +597,40 @@ namespace OfficeIMO.Excel {
                     && !(c is DocumentFormat.OpenXml.Spreadsheet.CellValue)
                     && !(c is InlineString))) {
                     cell.Append(child.CloneNode(true));
+                }
+            }
+
+            CopyRowMetadata(targetRow, snapshot.Row);
+        }
+
+        private void CopyRowMetadata(int targetRow, Row? source) {
+            if (source == null) {
+                return;
+            }
+
+            var row = TryGetExistingCell(targetRow, 1)?.Parent as Row;
+            if (row == null) {
+                row = GetCell(targetRow, 1).Parent as Row;
+                row?.Elements<Cell>().FirstOrDefault(cell => cell.CellReference?.Value == BuildCellReference(targetRow, 1) && cell.CellValue == null && cell.CellFormula == null && cell.InlineString == null)?.Remove();
+            }
+
+            if (row == null) {
+                return;
+            }
+
+            var attributes = source.GetAttributes()
+                .Where(attribute => !(attribute.LocalName == "r" && attribute.NamespaceUri.Length == 0))
+                .ToList();
+            row.ClearAllAttributes();
+            row.RowIndex = (uint)targetRow;
+            row.SetAttributes(attributes);
+            row.RowIndex = (uint)targetRow;
+        }
+
+        private void RewriteWorksheetFormulaReferences(int firstAffectedRow, int rowDelta) {
+            foreach (var cell in WorksheetRoot.Descendants<Cell>()) {
+                if (cell.CellFormula?.Text is string formulaText && formulaText.Length > 0) {
+                    cell.CellFormula.Text = RewriteShiftedFormulaReferences(formulaText, firstAffectedRow, rowDelta, Name);
                 }
             }
         }
@@ -939,17 +977,22 @@ namespace OfficeIMO.Excel {
                 TimeSpan.FromMilliseconds(200));
         }
 
-        private static string RewriteShiftedFormulaReferences(string formula, int firstAffectedRow, int rowDelta) {
+        private static string RewriteShiftedFormulaReferences(string formula, int firstAffectedRow, int rowDelta, string? sheetName = null) {
             if (rowDelta == 0 || firstAffectedRow <= 0 || string.IsNullOrEmpty(formula)) {
                 return formula;
             }
 
             return Regex.Replace(
                 formula,
-                @"(?<![A-Za-z0-9_\.!])(\$?)([A-Za-z]{1,3})(\$?)(\d{1,7})(?=[:),+\-*/^&=<> \t\r\n]|$)",
+                @"(?<![A-Za-z0-9_\.])(?:(?<sheet>'(?:[^']|'')+'|[A-Za-z_][A-Za-z0-9_\.]*)!)?(?<colAbs>\$?)(?<col>[A-Za-z]{1,3})(?<rowAbs>\$?)(?<row>\d{1,7})(?=[:),+\-*/^&=<> \t\r\n]|$)",
                 match => {
-                    bool rowAbsolute = match.Groups[3].Value == "$";
-                    if (rowAbsolute || !int.TryParse(match.Groups[4].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int row)) {
+                    string sheetQualifier = match.Groups["sheet"].Value;
+                    if (sheetQualifier.Length > 0 && !IsCurrentSheetQualifier(sheetQualifier, sheetName)) {
+                        return match.Value;
+                    }
+
+                    bool rowAbsolute = match.Groups["rowAbs"].Value == "$";
+                    if (rowAbsolute || !int.TryParse(match.Groups["row"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int row)) {
                         return match.Value;
                     }
 
@@ -962,20 +1005,40 @@ namespace OfficeIMO.Excel {
                         return match.Value;
                     }
 
-                    return match.Groups[1].Value + match.Groups[2].Value + match.Groups[3].Value + targetRow.ToString(CultureInfo.InvariantCulture);
+                    return sheetQualifier
+                        + (sheetQualifier.Length > 0 ? "!" : string.Empty)
+                        + match.Groups["colAbs"].Value
+                        + match.Groups["col"].Value
+                        + match.Groups["rowAbs"].Value
+                        + targetRow.ToString(CultureInfo.InvariantCulture);
                 },
                 RegexOptions.CultureInvariant,
                 TimeSpan.FromMilliseconds(200));
         }
 
+        private static bool IsCurrentSheetQualifier(string qualifier, string? sheetName) {
+            if (string.IsNullOrEmpty(sheetName)) {
+                return false;
+            }
+
+            string value = qualifier;
+            if (value.Length >= 2 && value[0] == '\'' && value[value.Length - 1] == '\'') {
+                value = value.Substring(1, value.Length - 2).Replace("''", "'");
+            }
+
+            return string.Equals(value, sheetName, StringComparison.OrdinalIgnoreCase);
+        }
+
         private sealed class RowSnapshot {
-            internal RowSnapshot(int originalRow, List<CellSnapshot> cells, object? sortValue) {
+            internal RowSnapshot(int originalRow, Row? row, List<CellSnapshot> cells, object? sortValue) {
                 OriginalRow = originalRow;
+                Row = row;
                 Cells = cells;
                 SortValue = sortValue;
             }
 
             internal int OriginalRow { get; }
+            internal Row? Row { get; }
             internal List<CellSnapshot> Cells { get; }
             internal object? SortValue { get; }
         }
