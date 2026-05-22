@@ -377,6 +377,20 @@ namespace OfficeIMO.Excel {
         }
 
         private void ClearHeaderCacheForCellMutation(int rowIndex) {
+            if (_hasWorksheetMutations
+                && _requiresSavePreparation
+                && !Volatile.Read(ref _headerMapCachePopulated)
+                && Volatile.Read(ref _cellTextSharedStringCache) == null
+                && !Volatile.Read(ref _findFirstCacheHasValue)) {
+                if (_isBatchOperation) {
+                    _batchHasCellMutations = true;
+                    return;
+                }
+
+                _excelDocument.MarkPackageDirty();
+                return;
+            }
+
             ClearHeaderCacheCore(
                 markWorksheetMutation: true,
                 invalidateHeaderMap: HeaderMapMayBeAffectedByCellMutation(rowIndex));

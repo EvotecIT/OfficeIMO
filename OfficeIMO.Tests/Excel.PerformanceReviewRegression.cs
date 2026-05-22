@@ -18,6 +18,123 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
+        public void PerformanceReview_InvariantNumberTextExpandsForMediumIndexes() {
+            string text = InvariantNumberText.Get(25000);
+
+            Assert.Equal("25000", text);
+            Assert.Same(text, InvariantNumberText.Get(25000));
+            Assert.True(InvariantNumberText.TryGet(25000, out string cached));
+            Assert.Same(text, cached);
+            Assert.Equal("-1", InvariantNumberText.Get(-1));
+        }
+
+        [Fact]
+        public void PerformanceReview_SheetBatchWritesCellsWithSinglePublicCall() {
+            using var memory = new MemoryStream();
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Batch");
+
+                sheet.Batch(s => {
+                    for (int row = 1; row <= 100; row++) {
+                        s.CellValue(row, 1, "Item " + (row % 10).ToString(CultureInfo.InvariantCulture));
+                        s.CellValue(row, 2, row);
+                        s.CellValue(row, 3, row % 2 == 0);
+                    }
+                });
+
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+
+            Assert.Equal(CellValues.SharedString, cells["A100"].DataType!.Value);
+            Assert.Equal("100", cells["B100"].CellValue!.Text);
+            Assert.Equal(CellValues.Boolean, cells["C100"].DataType!.Value);
+            Assert.Equal("1", cells["C100"].CellValue!.Text);
+        }
+
+        [Fact]
+        public void PerformanceReview_SheetBatchRejectsNullAction() {
+            using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+            var sheet = document.AddWorkSheet("Batch");
+
+            Assert.Throws<ArgumentNullException>(() => sheet.Batch(null!));
+        }
+
+        [Fact]
+        public void PerformanceReview_SheetBatchHeaderMutationRefreshesCachedHeadersInsideBatch() {
+            using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+            var sheet = document.AddWorkSheet("Batch");
+            sheet.CellValue(1, 1, "Status");
+            Assert.True(sheet.TryGetColumnIndexByHeader("Status", out int statusColumn));
+            Assert.Equal(1, statusColumn);
+
+            sheet.Batch(s => {
+                s.CellValue(1, 1, "State");
+
+                Assert.True(s.TryGetColumnIndexByHeader("State", out int stateColumn));
+                Assert.Equal(1, stateColumn);
+                Assert.False(s.TryGetColumnIndexByHeader("Status", out _));
+            });
+        }
+
+        [Fact]
+        public void PerformanceReview_CellValuesEmptyStringsUseDirectStringCells() {
+            using var memory = new MemoryStream();
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Empty");
+                sheet.CellValues(new[] {
+                    (1, 1, (object)string.Empty),
+                    (1, 2, (object)"Header"),
+                    (2, 1, (object)string.Empty)
+                });
+
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+
+            Assert.Equal(CellValues.String, cells["A1"].DataType!.Value);
+            Assert.Equal(string.Empty, cells["A1"].CellValue!.Text);
+            Assert.Equal(CellValues.String, cells["A2"].DataType!.Value);
+            Assert.Equal(string.Empty, cells["A2"].CellValue!.Text);
+            Assert.Equal(CellValues.SharedString, cells["B1"].DataType!.Value);
+            Assert.Single(spreadsheet.WorkbookPart.SharedStringTablePart!.SharedStringTable!.Elements<SharedStringItem>());
+        }
+
+        [Fact]
+        public void PerformanceReview_CellValuesReadOnlyListUsesDirectPackageWithoutSnapshotEnumeration() {
+            var values = new ThrowOnEnumerateReadOnlyList<(int Row, int Column, object Value)>(
+                (1, 1, (object)"Id"),
+                (1, 2, (object)"Name"),
+                (2, 1, (object)1),
+                (2, 2, (object)"Alpha"));
+
+            using var memory = new MemoryStream();
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValues(values);
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("1", cells["A2"].CellValue!.Text);
+        }
+
+        [Fact]
         public void PerformanceReview_LoadedWorkbookDirectAppend_PersistsAfterSave() {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.DirectAppendDirty.xlsx");
 
@@ -463,6 +580,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_WriteDataSet_SmallStringExportSkipsSharedStringTable() {
+            using var memory = new MemoryStream();
+            var dataSet = new DataSet("Export");
+            var table = new DataTable("Rows");
+            table.Columns.Add("Name", typeof(string));
+
+            for (int i = 0; i < 20; i++) {
+                table.Rows.Add("Row " + i.ToString(CultureInfo.InvariantCulture));
+            }
+
+            dataSet.Tables.Add(table);
+
+            ExcelDocument.WriteDataSet(memory, dataSet);
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            Assert.Null(spreadsheet.WorkbookPart!.SharedStringTablePart);
+
+            var worksheet = spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet;
+            var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal(CellValues.String, cells["A2"].DataType!.Value);
+            Assert.Equal("Row 0", cells["A2"].CellValue!.Text);
+        }
+
+        [Fact]
         public void PerformanceReview_WriteDataSet_DuplicateStringsBuildSharedStringIndexes() {
             using var memory = new MemoryStream();
             var dataSet = new DataSet("Export");
@@ -486,6 +628,24 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { "Name", "Repeated" }, sharedStrings.Select(item => item.InnerText).ToArray());
             Assert.Equal(CellValues.SharedString, cells["A2"].DataType!.Value);
             Assert.Equal("1", cells["A601"].CellValue!.Text);
+        }
+
+        [Fact]
+        public void PerformanceReview_WriteDataSet_SharedStringPlannerRejectsOverLimitSharedValue() {
+            using var memory = new MemoryStream();
+            var dataSet = new DataSet("Export");
+            var table = new DataTable("Rows");
+            table.Columns.Add("Name", typeof(string));
+            string tooLong = new('A', 32_768);
+
+            for (int i = 0; i < 511; i++) {
+                table.Rows.Add(tooLong);
+            }
+
+            dataSet.Tables.Add(table);
+
+            var exception = Assert.Throws<ArgumentException>(() => ExcelDocument.WriteDataSet(memory, dataSet));
+            Assert.Contains("32,767", exception.Message, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -547,6 +707,38 @@ namespace OfficeIMO.Tests {
             Assert.Equal("2", cells["A2"].CellValue!.Text);
             Assert.Equal(CellValues.String, cells["B2"].DataType!.Value);
             Assert.Equal("Unique 0", cells["B2"].CellValue!.Text);
+        }
+
+        [Fact]
+        public void PerformanceReview_CellValueDistinctStringsPromotesNewValuesToPlainStringsAfterSharedStringThreshold() {
+            using var memory = new MemoryStream();
+            int rowCount = ExcelSheet.CellValuePlainStringPromotionSharedStringCount + 3;
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Distinct");
+                for (int row = 1; row <= rowCount; row++) {
+                    sheet.CellValue(row, 1, "Distinct " + row.ToString(CultureInfo.InvariantCulture));
+                }
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.SimplePackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+            var sharedStrings = spreadsheet.WorkbookPart.SharedStringTablePart!.SharedStringTable!.Elements<SharedStringItem>().ToList();
+
+            Assert.Equal(ExcelSheet.CellValuePlainStringPromotionSharedStringCount, sharedStrings.Count);
+            Assert.Equal(CellValues.SharedString, cells["A1"].DataType!.Value);
+            Assert.Equal("Distinct 1", sharedStrings[int.Parse(cells["A1"].CellValue!.Text, CultureInfo.InvariantCulture)].InnerText);
+
+            string lastReference = "A" + rowCount.ToString(CultureInfo.InvariantCulture);
+            Assert.Equal(CellValues.String, cells[lastReference].DataType!.Value);
+            Assert.Equal("Distinct " + rowCount.ToString(CultureInfo.InvariantCulture), cells[lastReference].CellValue!.Text);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
         [Fact]
@@ -969,6 +1161,14 @@ namespace OfficeIMO.Tests {
                 document.Save(memory);
 
                 Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using (var archive = new ZipArchive(memory, ZipArchiveMode.Read, leaveOpen: true)) {
+                var worksheetEntry = archive.GetEntry("xl/worksheets/sheet1.xml")!;
+                using var reader = new StreamReader(worksheetEntry.Open());
+                string worksheetXml = reader.ReadToEnd();
+                Assert.Contains("<c r=\"A3\" t=\"str\"><v/></c>", worksheetXml, StringComparison.Ordinal);
             }
 
             memory.Position = 0;
@@ -2238,6 +2438,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_InsertObjects_ExplicitSelectorsReadOnlyListUsesDirectPackageWithoutSnapshotEnumeration() {
+            var rows = new ThrowOnEnumerateReadOnlyList<PerformanceObjectExportRow>(
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20)));
+
+            using var memory = new MemoryStream();
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+        }
+
+        [Fact]
         public void PerformanceReview_InsertObjects_ExplicitSelectorsPreserveBlankHeaders() {
             using var memory = new MemoryStream();
             var rows = new[] {
@@ -2321,6 +2542,24 @@ namespace OfficeIMO.Tests {
             Assert.Equal("10", cells["B2"].CellValue!.Text);
             Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_ReflectionReadOnlyListUsesDirectPackageWithoutSnapshotEnumeration() {
+            var rows = new ThrowOnEnumerateReadOnlyList<PerformanceObjectExportRow>(
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20)));
+
+            using var memory = new MemoryStream();
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows);
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
         }
 
         [Fact]
@@ -2539,6 +2778,85 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
             Assert.Empty(worksheetPart.TableDefinitionParts);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_FluentRowsFrom_NullableSimpleRowsUseDirectPackage() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new NullablePerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19), string.Empty),
+                new NullablePerformanceObjectExportRow(null, null, null, "Manual")
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                document.AsFluent()
+                    .Sheet("Data", sheet => sheet.RowsFrom(rows))
+                    .End()
+                    .Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Name", cells["A1"].CellValue!.Text);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("10", cells["B2"].CellValue!.Text);
+            Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
+            Assert.Equal(string.Empty, GetSpreadsheetCellText(spreadsheet, cells["A3"]));
+            Assert.Equal(string.Empty, GetSpreadsheetCellText(spreadsheet, cells["B3"]));
+            Assert.Equal(string.Empty, GetSpreadsheetCellText(spreadsheet, cells["C3"]));
+            Assert.Equal("Manual", GetSpreadsheetCellText(spreadsheet, cells["D3"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_FluentRowsFrom_RepeatedSimpleTypeUsesDirectPackage() {
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19))
+            };
+
+            using var first = new MemoryStream();
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                document.AsFluent()
+                    .Sheet("First", sheet => sheet.RowsFrom(rows))
+                    .End()
+                    .Save(first);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            using var second = new MemoryStream();
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                document.AsFluent()
+                    .Sheet("Second", sheet => sheet.RowsFrom(rows))
+                    .End()
+                    .Save(second);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+        }
+
+        [Fact]
+        public void PerformanceReview_FluentRowsFrom_ReadOnlyListUsesDirectPackageWithoutSnapshotEnumeration() {
+            var rows = new ThrowOnEnumerateReadOnlyList<PerformanceObjectExportRow>(
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20)));
+
+            using var memory = new MemoryStream();
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                document.AsFluent()
+                    .Sheet("Data", sheet => sheet.RowsFrom(rows))
+                    .End()
+                    .Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
         }
 
         [Fact]
@@ -3137,6 +3455,39 @@ namespace OfficeIMO.Tests {
             public int Score { get; }
 
             public DateTime Created { get; }
+        }
+
+        private sealed class NullablePerformanceObjectExportRow {
+            public NullablePerformanceObjectExportRow(string? name, int? score, DateTime? created, string note) {
+                Name = name;
+                Score = score;
+                Created = created;
+                Note = note;
+            }
+
+            public string? Name { get; }
+
+            public int? Score { get; }
+
+            public DateTime? Created { get; }
+
+            public string Note { get; }
+        }
+
+        private sealed class ThrowOnEnumerateReadOnlyList<T> : IReadOnlyList<T> {
+            private readonly T[] _items;
+
+            internal ThrowOnEnumerateReadOnlyList(params T[] items) {
+                _items = items;
+            }
+
+            public int Count => _items.Length;
+
+            public T this[int index] => _items[index];
+
+            public IEnumerator<T> GetEnumerator() => throw new InvalidOperationException("RowsFrom direct-save path should use IReadOnlyList<T> indexing without snapshot enumeration.");
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
         }
 
         private static void RemoveFirstRowIndex(string filePath) {

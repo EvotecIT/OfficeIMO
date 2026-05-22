@@ -23,6 +23,57 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelChartData_From_ReadOnlyListUsesIndexerWithoutSnapshotEnumeration() {
+            var items = new ThrowOnEnumerateReadOnlyList<ChartProjectionRow>(
+                new ChartProjectionRow("Q1", 10d),
+                new ChartProjectionRow("Q2", 20d));
+
+            var data = ExcelChartData.From(
+                items,
+                row => row.Category,
+                new ExcelChartSeriesDefinition<ChartProjectionRow>("Sales", row => row.Value));
+
+            Assert.Equal(new[] { "Q1", "Q2" }, data.Categories);
+            Assert.Equal(new[] { 10d, 20d }, data.Series[0].Values);
+        }
+
+        [Fact]
+        public void Test_ExcelChartData_From_StreamsEnumerableOnce() {
+            var items = new SinglePassChartRows(
+                new ChartProjectionRow("Q1", 10d),
+                new ChartProjectionRow("Q2", 20d));
+
+            var data = ExcelChartData.From(
+                items,
+                row => row.Category,
+                new ExcelChartSeriesDefinition<ChartProjectionRow>("Sales", row => row.Value),
+                new ExcelChartSeriesDefinition<ChartProjectionRow>("Target", row => row.Value + 5d));
+
+            Assert.Equal(1, items.EnumerationCount);
+            Assert.Equal(new[] { "Q1", "Q2" }, data.Categories);
+            Assert.Equal(new[] { 10d, 20d }, data.Series[0].Values);
+            Assert.Equal(new[] { 15d, 25d }, data.Series[1].Values);
+        }
+
+        [Fact]
+        public void Test_ExcelChartData_PublicConstructorsSnapshotMutableInputs() {
+            var categories = new List<string> { "Q1", "Q2" };
+            var values = new List<double> { 10d, 20d };
+            var sourceSeries = new List<ExcelChartSeries> {
+                new ExcelChartSeries("Sales", values)
+            };
+
+            var data = new ExcelChartData(categories, sourceSeries);
+            categories[0] = "Changed";
+            values[0] = 99d;
+            sourceSeries.Clear();
+
+            Assert.Equal(new[] { "Q1", "Q2" }, data.Categories);
+            Assert.Single(data.Series);
+            Assert.Equal(new[] { 10d, 20d }, data.Series[0].Values);
+        }
+
+        [Fact]
         public void Test_ExcelCharts_CanCreateChartFromData() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Basic.xlsx");
 
@@ -55,6 +106,38 @@ namespace OfficeIMO.Tests {
                 var errors = validator.Validate(spreadsheet).ToList();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
+        }
+
+        private sealed class ChartProjectionRow {
+            public ChartProjectionRow(string category, double value) {
+                Category = category;
+                Value = value;
+            }
+
+            public string Category { get; }
+
+            public double Value { get; }
+        }
+
+        private sealed class SinglePassChartRows : System.Collections.Generic.IEnumerable<ChartProjectionRow> {
+            private readonly ChartProjectionRow[] _items;
+
+            public SinglePassChartRows(params ChartProjectionRow[] items) {
+                _items = items;
+            }
+
+            public int EnumerationCount { get; private set; }
+
+            public System.Collections.Generic.IEnumerator<ChartProjectionRow> GetEnumerator() {
+                EnumerationCount++;
+                if (EnumerationCount > 1) {
+                    throw new InvalidOperationException("Chart projection should stream source rows once.");
+                }
+
+                return ((System.Collections.Generic.IEnumerable<ChartProjectionRow>)_items).GetEnumerator();
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
         }
 
         [Fact]
@@ -477,6 +560,32 @@ namespace OfficeIMO.Tests {
                 OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
                 var errors = validator.Validate(spreadsheet).ToList();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelCharts_RangeSeriesReadOnlyListUsesIndexerWithoutSnapshotEnumeration() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.RangeSeriesReadOnlyList.xlsx");
+            var ranges = new ThrowOnEnumerateReadOnlyList<ExcelChartSeriesRange>(
+                new ExcelChartSeriesRange("Series 1", "A2:A4", "B2:B4"));
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Summary");
+                sheet.CellValues(new[] {
+                    (1, 1, (object)"X"), (1, 2, (object)"Y"),
+                    (2, 1, (object)1d), (2, 2, (object)2d),
+                    (3, 1, (object)2d), (3, 2, (object)4d),
+                    (4, 1, (object)3d), (4, 2, (object)3d)
+                }, null);
+
+                sheet.AddScatterChartFromRanges(ranges, row: 1, column: 4, widthPixels: 480, heightPixels: 320, title: "Scatter");
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Assert.NotNull(wsPart.DrawingsPart);
+                Assert.Single(wsPart.DrawingsPart!.ChartParts);
             }
         }
 

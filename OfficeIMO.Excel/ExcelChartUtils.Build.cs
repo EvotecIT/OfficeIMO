@@ -31,18 +31,16 @@ namespace OfficeIMO.Excel {
 
             PlotArea plotArea = new() { Layout = new Layout() };
             List<SeriesDescriptor> descriptors = BuildSeriesDescriptors(range, data, type);
-            if (descriptors.Any(d => d.ChartType == ExcelChartType.Bubble)) {
+            SeriesDescriptorSummary summary = SummarizeSeriesDescriptors(descriptors);
+            if (summary.HasBubble) {
                 throw new NotSupportedException("Bubble charts require explicit X/Y/size ranges. Use AddBubbleChartFromRanges.");
             }
-            bool hasSecondary = descriptors.Any(d => d.AxisGroup == ExcelChartAxisGroup.Secondary);
-            bool hasScatter = descriptors.Any(d => d.ChartType == ExcelChartType.Scatter);
-            if (hasScatter && descriptors.Any(d => d.ChartType != ExcelChartType.Scatter)) {
+            if (summary.HasScatter && summary.HasMultipleTypes) {
                 throw new NotSupportedException("Scatter charts cannot be combined with other chart types.");
             }
-            bool hasMultipleTypes = descriptors.Select(d => d.ChartType).Distinct().Count() > 1;
 
-            if (hasScatter) {
-                if (hasMultipleTypes) {
+            if (summary.HasScatter) {
+                if (summary.HasMultipleTypes) {
                     throw new NotSupportedException("Scatter charts cannot be combined with other chart types.");
                 }
 
@@ -51,8 +49,8 @@ namespace OfficeIMO.Excel {
                 plotArea.Append(CreateScatterChart(range, descriptors, xAxisId, yAxisId, data));
                 plotArea.Append(CreateValueAxis(xAxisId, yAxisId, AxisPositionValues.Bottom));
                 plotArea.Append(CreateValueAxis(yAxisId, xAxisId, AxisPositionValues.Left));
-            } else if (hasMultipleTypes || hasSecondary) {
-                BuildComboPlotArea(plotArea, range, descriptors);
+            } else if (summary.HasMultipleTypes || summary.HasSecondary) {
+                BuildComboPlotArea(plotArea, range, descriptors, summary);
             } else {
                 ExcelChartType chartType = descriptors.Count > 0 ? descriptors[0].ChartType : type;
                 uint categoryAxisId = ExcelChartAxisIdGenerator.GetNextId();
@@ -133,7 +131,7 @@ namespace OfficeIMO.Excel {
             if (type != ExcelChartType.Scatter && type != ExcelChartType.Bubble) {
                 throw new NotSupportedException("Only scatter and bubble charts support explicit X/Y range definitions.");
             }
-            if (type == ExcelChartType.Bubble && seriesRanges.Any(r => string.IsNullOrWhiteSpace(r.BubbleSizeRangeA1))) {
+            if (type == ExcelChartType.Bubble && HasMissingBubbleSizeRange(seriesRanges)) {
                 throw new ArgumentException("Bubble charts require bubble size ranges for each series.", nameof(seriesRanges));
             }
 
@@ -177,27 +175,23 @@ namespace OfficeIMO.Excel {
             chartPart.ChartSpace = chartSpace;
         }
 
-        private static void BuildComboPlotArea(PlotArea plotArea, ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> descriptors) {
-            bool hasSecondary = descriptors.Any(d => d.AxisGroup == ExcelChartAxisGroup.Secondary);
-            bool hasScatter = descriptors.Any(d => d.ChartType == ExcelChartType.Scatter);
-            if (descriptors.Any(d => d.ChartType == ExcelChartType.Bubble)) {
+        private static void BuildComboPlotArea(PlotArea plotArea, ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> descriptors, SeriesDescriptorSummary summary) {
+            if (summary.HasBubble) {
                 throw new NotSupportedException("Bubble charts cannot be combined with other chart types.");
             }
-            if (hasScatter && descriptors.Any(d => d.ChartType != ExcelChartType.Scatter)) {
+            if (summary.HasScatter && summary.HasMultipleTypes) {
                 throw new NotSupportedException("Scatter charts cannot be combined with other chart types.");
             }
 
-            bool hasBar = descriptors.Any(d => IsBarChartType(d.ChartType));
-            bool hasNonBar = descriptors.Any(d => !IsBarChartType(d.ChartType));
-            if (hasBar && hasNonBar) {
+            if (summary.HasBar && summary.HasNonBar) {
                 throw new NotSupportedException("Cannot combine horizontal bar charts with other chart types.");
             }
 
-            if (descriptors.Any(d => d.ChartType == ExcelChartType.Pie || d.ChartType == ExcelChartType.Doughnut)) {
+            if (summary.HasPieOrDoughnut) {
                 throw new NotSupportedException("Pie and doughnut charts cannot be combined with other chart types.");
             }
 
-            bool isBarOrientation = hasBar;
+            bool isBarOrientation = summary.HasBar;
             AxisPositionValues primaryCategoryPosition = isBarOrientation ? AxisPositionValues.Left : AxisPositionValues.Bottom;
             AxisPositionValues primaryValuePosition = isBarOrientation ? AxisPositionValues.Bottom : AxisPositionValues.Left;
             AxisPositionValues secondaryCategoryPosition = isBarOrientation ? AxisPositionValues.Right : AxisPositionValues.Top;
@@ -205,40 +199,49 @@ namespace OfficeIMO.Excel {
 
             uint primaryCategoryId = ExcelChartAxisIdGenerator.GetNextId();
             uint primaryValueId = ExcelChartAxisIdGenerator.GetNextId();
-            uint secondaryCategoryId = hasSecondary ? ExcelChartAxisIdGenerator.GetNextId() : 0;
-            uint secondaryValueId = hasSecondary ? ExcelChartAxisIdGenerator.GetNextId() : 0;
+            uint secondaryCategoryId = summary.HasSecondary ? ExcelChartAxisIdGenerator.GetNextId() : 0;
+            uint secondaryValueId = summary.HasSecondary ? ExcelChartAxisIdGenerator.GetNextId() : 0;
 
-            foreach (var group in descriptors.GroupBy(d => new { d.ChartType, d.AxisGroup })) {
-                uint categoryAxisId = group.Key.AxisGroup == ExcelChartAxisGroup.Secondary ? secondaryCategoryId : primaryCategoryId;
-                uint valueAxisId = group.Key.AxisGroup == ExcelChartAxisGroup.Secondary ? secondaryValueId : primaryValueId;
-                var groupDescriptors = group.ToList();
+            foreach (SeriesDescriptorGroup group in GroupSeriesDescriptors(descriptors)) {
+                uint categoryAxisId = group.AxisGroup == ExcelChartAxisGroup.Secondary ? secondaryCategoryId : primaryCategoryId;
+                uint valueAxisId = group.AxisGroup == ExcelChartAxisGroup.Secondary ? secondaryValueId : primaryValueId;
 
-                switch (group.Key.ChartType) {
+                switch (group.ChartType) {
                     case ExcelChartType.ColumnClustered:
                     case ExcelChartType.ColumnStacked:
                     case ExcelChartType.BarClustered:
                     case ExcelChartType.BarStacked: {
-                        var settings = GetBarChartSettings(group.Key.ChartType);
-                        plotArea.Append(CreateBarChart(range, groupDescriptors, settings.Direction, settings.Grouping, categoryAxisId, valueAxisId));
+                        var settings = GetBarChartSettings(group.ChartType);
+                        plotArea.Append(CreateBarChart(range, group.Descriptors, settings.Direction, settings.Grouping, categoryAxisId, valueAxisId));
                         break;
                     }
                     case ExcelChartType.Line:
-                        plotArea.Append(CreateLineChart(range, groupDescriptors, categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateLineChart(range, group.Descriptors, categoryAxisId, valueAxisId));
                         break;
                     case ExcelChartType.Area:
-                        plotArea.Append(CreateAreaChart(range, groupDescriptors, categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateAreaChart(range, group.Descriptors, categoryAxisId, valueAxisId));
                         break;
                     default:
-                        throw new NotSupportedException($"Chart type {group.Key.ChartType} is not supported in combination charts.");
+                        throw new NotSupportedException($"Chart type {group.ChartType} is not supported in combination charts.");
                 }
             }
 
             plotArea.Append(CreateCategoryAxis(primaryCategoryId, primaryValueId, primaryCategoryPosition));
             plotArea.Append(CreateValueAxis(primaryValueId, primaryCategoryId, primaryValuePosition));
-            if (hasSecondary) {
+            if (summary.HasSecondary) {
                 plotArea.Append(CreateCategoryAxis(secondaryCategoryId, secondaryValueId, secondaryCategoryPosition));
                 plotArea.Append(CreateValueAxis(secondaryValueId, secondaryCategoryId, secondaryValuePosition));
             }
+        }
+
+        private static bool HasMissingBubbleSizeRange(IReadOnlyList<ExcelChartSeriesRange> seriesRanges) {
+            for (int i = 0; i < seriesRanges.Count; i++) {
+                if (string.IsNullOrWhiteSpace(seriesRanges[i].BubbleSizeRangeA1)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static BarChart CreateBarChart(ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> seriesDescriptors,
@@ -514,7 +517,7 @@ namespace OfficeIMO.Excel {
             if (range.HasHeaderRow) {
                 string seriesCell = range.SeriesNameCellA1(seriesIndex);
                 string formula = BuildSheetQualifiedRange(range.SheetName, seriesCell);
-                return new SeriesText(CreateStringReference(formula, new[] { name }));
+                return new SeriesText(CreateSingleStringReference(formula, name));
             }
 
             return new SeriesText(new NumericValue { Text = name });

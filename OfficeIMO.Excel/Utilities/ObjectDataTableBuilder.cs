@@ -20,12 +20,12 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(items));
             }
 
-            var list = items.ToList();
-            if (list.Count == 0) {
+            IReadOnlyList<object?> rows = items as IReadOnlyList<object?> ?? items.ToList();
+            if (rows.Count == 0) {
                 throw new ArgumentException("Provide at least one data row.", nameof(items));
             }
 
-            var first = list.FirstOrDefault();
+            var first = rows[0];
             if (first == null) {
                 throw new ArgumentException("Data rows cannot be null.", nameof(items));
             }
@@ -41,11 +41,12 @@ namespace OfficeIMO.Excel {
             }
 
             var projector = ObjectRowProjector.Create(first, columnNames);
-            table.MinimumCapacity = Math.Max(table.MinimumCapacity, list.Count);
+            table.MinimumCapacity = Math.Max(table.MinimumCapacity, rows.Count);
             var values = projector.CreateValuesBuffer();
             table.BeginLoadData();
             try {
-                foreach (var item in list) {
+                for (int i = 0; i < rows.Count; i++) {
+                    var item = rows[i];
                     if (item == null) {
                         throw new InvalidOperationException("Data rows cannot contain null entries.");
                     }

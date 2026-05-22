@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel {
             if (cells is null) {
                 throw new ArgumentNullException(nameof(cells));
             }
-            var list = cells as IList<(int Row, int Column, object Value)> ?? cells.ToList();
+            var list = cells as IReadOnlyList<(int Row, int Column, object Value)> ?? cells.ToList();
             if (list.Count == 0) return;
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
                 _excelDocument.MaterializeDeferredDataSetImport();
@@ -170,7 +170,7 @@ namespace OfficeIMO.Excel {
                 candidate.Range);
         }
 
-        private bool TryCreateDirectCellValuesAppendCandidate(IList<(int Row, int Column, object Value)> cells, out DirectCellValuesSaveCandidate? candidate) {
+        private bool TryCreateDirectCellValuesAppendCandidate(IReadOnlyList<(int Row, int Column, object Value)> cells, out DirectCellValuesSaveCandidate? candidate) {
             candidate = null;
             if (!TryGetCompleteColumnOneRectangle(cells, out int firstRow, out int rowCount, out int columnCount)
                 || firstRow != 2
@@ -296,7 +296,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool TryCreateDirectAppendCellValuesSaveCandidate(
-            IList<(int Row, int Column, object Value)> cells,
+            IReadOnlyList<(int Row, int Column, object Value)> cells,
             IReadOnlyList<string> headers,
             int columnCount,
             out DirectCellValuesSaveCandidate? candidate) {
@@ -324,7 +324,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool ContainsDirectCellValuesAutomaticFormattingText(IList<(int Row, int Column, object Value)> cells) {
+        private static bool ContainsDirectCellValuesAutomaticFormattingText(IReadOnlyList<(int Row, int Column, object Value)> cells) {
             for (int i = 0; i < cells.Count; i++) {
                 if (cells[i].Value is string text && (text.IndexOf('\r') >= 0 || text.IndexOf('\n') >= 0)) {
                     return true;
@@ -335,7 +335,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool TryCreateDirectCellValuesSaveCandidate(
-            IList<(int Row, int Column, object Value)> cells,
+            IReadOnlyList<(int Row, int Column, object Value)> cells,
             ExecutionMode? mode,
             out DirectCellValuesSaveCandidate? candidate) {
             candidate = null;
@@ -410,7 +410,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static bool TryGetCompleteA1Rectangle(IList<(int Row, int Column, object Value)> cells, out int rowCount, out int columnCount) {
+        private static bool TryGetCompleteA1Rectangle(IReadOnlyList<(int Row, int Column, object Value)> cells, out int rowCount, out int columnCount) {
             rowCount = 0;
             columnCount = 0;
             if (cells.Count == 0 || cells[0].Row != 1 || cells[0].Column != 1) {
@@ -442,7 +442,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool TryGetCompleteColumnOneRectangle(
-            IList<(int Row, int Column, object Value)> cells,
+            IReadOnlyList<(int Row, int Column, object Value)> cells,
             out int firstRow,
             out int rowCount,
             out int columnCount) {
@@ -478,7 +478,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool CanTreatFirstCellValuesRowAsHeaders(IList<(int Row, int Column, object Value)> cells, int columnCount, int rowCount) {
+        private static bool CanTreatFirstCellValuesRowAsHeaders(IReadOnlyList<(int Row, int Column, object Value)> cells, int columnCount, int rowCount) {
             if (rowCount < 2) {
                 return false;
             }
@@ -497,7 +497,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool FirstCellValuesRowLooksLikeHeaderText(IList<(int Row, int Column, object Value)> cells, int columnCount) {
+        private static bool FirstCellValuesRowLooksLikeHeaderText(IReadOnlyList<(int Row, int Column, object Value)> cells, int columnCount) {
             if (columnCount <= 0 || cells.Count < columnCount) {
                 return false;
             }
@@ -512,7 +512,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool TryInferDirectCellValuesColumnTypes(
-            IList<(int Row, int Column, object Value)> cells,
+            IReadOnlyList<(int Row, int Column, object Value)> cells,
             int dataStartIndex,
             int columnCount,
             out Type[] columnTypes) {
@@ -580,7 +580,7 @@ namespace OfficeIMO.Excel {
             return value!;
         }
 
-        private bool TryApplyPlainCellsByAppendingRows(IList<(int Row, int Column, object Value)> source, CancellationToken ct) {
+        private bool TryApplyPlainCellsByAppendingRows(IReadOnlyList<(int Row, int Column, object Value)> source, CancellationToken ct) {
             bool applied = false;
             System.Threading.ReaderWriterLockSlim? lck = _excelDocument._lock;
             if (lck == null) {
@@ -591,7 +591,7 @@ namespace OfficeIMO.Excel {
             return applied;
         }
 
-        private bool TryApplyPlainCellsByAppendingRowsCore(IList<(int Row, int Column, object Value)> source, CancellationToken ct) {
+        private bool TryApplyPlainCellsByAppendingRowsCore(IReadOnlyList<(int Row, int Column, object Value)> source, CancellationToken ct) {
             if (!TryGetPlainAppendLayout(source, out int firstRow, out int minColumn, out int maxColumn)) {
                 return false;
             }
@@ -661,7 +661,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     rowIndex = item.Row;
-                    rowReference = rowIndex.ToString(CultureInfo.InvariantCulture);
+                    rowReference = InvariantNumberText.Get(rowIndex);
                     row = new Row { RowIndex = (uint)rowIndex };
                     rowCells = new List<OpenXmlElement>(Math.Min(maxColumn, 16));
                 }
@@ -702,7 +702,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryGetPlainAppendLayout(
-            IList<(int Row, int Column, object Value)> source,
+            IReadOnlyList<(int Row, int Column, object Value)> source,
             out int firstRow,
             out int minColumn,
             out int maxColumn) {
@@ -806,11 +806,12 @@ namespace OfficeIMO.Excel {
             (CellValue cellValue, DocumentFormat.OpenXml.Spreadsheet.CellValues cellType) = value switch {
                 null => CoerceValueHelper.HandleEmptyString(),
                 DBNull => CoerceValueHelper.HandleEmptyString(),
+                string text when text.Length == 0 => CoerceValueHelper.HandleEmptyString(),
                 string text => useDirectStringCells
                     ? (CreatePrevalidatedPlainAppendStringValue(text), DocumentFormat.OpenXml.Spreadsheet.CellValues.String)
                     : (CreatePlainAppendSharedStringValue(text, ref sharedStringIndexes), DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString),
                 double number => CoerceValueHelper.HandleNumber(number),
-                float number => CoerceValueHelper.HandleNumber(Convert.ToDouble(number)),
+                float number => CoerceValueHelper.HandleNumber((double)number),
                 decimal number => CoerceValueHelper.HandleDecimal(number),
                 int number => CoerceValueHelper.HandleSignedInteger(number),
                 long number => CoerceValueHelper.HandleSignedInteger(number),
@@ -856,7 +857,7 @@ namespace OfficeIMO.Excel {
                 sharedStringIndexes[sanitized] = index;
             }
 
-            return new CellValue(index.ToString(CultureInfo.InvariantCulture));
+            return new CellValue(SharedStringIndexText.Get(index));
         }
 
         /// <summary>
@@ -869,7 +870,7 @@ namespace OfficeIMO.Excel {
 
         private void ApplyPreparedCells(
             (int Row, int Col, CellValue Val, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> Type)[] prepared,
-            IList<(int Row, int Column, object Value)> source) {
+            IReadOnlyList<(int Row, int Column, object Value)> source) {
             if (TryApplyPreparedCellsByAppendingRows(prepared, source)) {
                 return;
             }
@@ -890,7 +891,7 @@ namespace OfficeIMO.Excel {
 
         private bool TryApplyPreparedCellsByAppendingRows(
             (int Row, int Col, CellValue Val, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> Type)[] prepared,
-            IList<(int Row, int Column, object Value)> source) {
+            IReadOnlyList<(int Row, int Column, object Value)> source) {
             if (prepared.Length != source.Count) {
                 return false;
             }
@@ -963,7 +964,7 @@ namespace OfficeIMO.Excel {
                 var p = prepared[i];
                 if (p.Row != rowIndex) {
                     rowIndex = p.Row;
-                    rowReference = rowIndex.ToString(CultureInfo.InvariantCulture);
+                    rowReference = InvariantNumberText.Get(rowIndex);
                     row = new Row { RowIndex = (uint)rowIndex };
                     sheetData.Append(row);
                 }
@@ -1042,7 +1043,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    _rows[(int)row.RowIndex.Value] = new BatchRowState(row);
+                    _rows[(int)row.RowIndex.Value] = new BatchRowState(_sheet, row);
                     if (row.RowIndex.Value >= _lastRowIndex) {
                         _lastRowIndex = (int)row.RowIndex.Value;
                         _lastRow = row;
@@ -1053,7 +1054,7 @@ namespace OfficeIMO.Excel {
             internal Cell GetOrCreateCell(int rowIndex, int columnIndex) {
                 if (!_rows.TryGetValue(rowIndex, out BatchRowState? rowState)) {
                     var row = GetOrCreateRow(rowIndex);
-                    rowState = new BatchRowState(row);
+                    rowState = new BatchRowState(_sheet, row);
                     _rows[rowIndex] = rowState;
                 }
 
@@ -1079,12 +1080,14 @@ namespace OfficeIMO.Excel {
             }
 
             private sealed class BatchRowState {
+                private readonly ExcelSheet _sheet;
                 private readonly Row _row;
                 private readonly Dictionary<int, Cell> _cells;
                 private Cell? _lastCell;
                 private int _lastColumnIndex;
 
-                internal BatchRowState(Row row) {
+                internal BatchRowState(ExcelSheet sheet, Row row) {
+                    _sheet = sheet;
                     _row = row;
                     _cells = new Dictionary<int, Cell>();
 
@@ -1109,7 +1112,7 @@ namespace OfficeIMO.Excel {
                         return existing;
                     }
 
-                    string cellReference = A1.CellReference(rowIndex, columnIndex);
+                    string cellReference = _sheet.BuildCellReference(rowIndex, columnIndex);
                     var cell = new Cell { CellReference = cellReference };
 
                     if (_lastCell == null) {

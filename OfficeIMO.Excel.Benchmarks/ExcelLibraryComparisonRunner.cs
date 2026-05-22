@@ -204,6 +204,12 @@ internal static class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("EPPlus", "Assign high-cardinality distinct text cells one by one and save.", () => EpPlusWriteCellValueDistinctStrings(rowCount))
         ]);
 
+        AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalue-empty-strings", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Assign empty and non-empty text cells one by one and save.", () => OfficeImoWriteCellValueEmptyStrings(rowCount)),
+            new LibraryComparisonCase("ClosedXML", "Assign empty and non-empty text cells one by one and save.", () => ClosedXmlWriteCellValueEmptyStrings(rowCount)),
+            new LibraryComparisonCase("EPPlus", "Assign empty and non-empty text cells one by one and save.", () => EpPlusWriteCellValueEmptyStrings(rowCount))
+        ]);
+
         AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalue-numbers", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Assign numeric cells one by one and save.", () => OfficeImoWriteCellValueNumbers(rowCount)),
             new LibraryComparisonCase("ClosedXML", "Assign numeric cells one by one and save.", () => ClosedXmlWriteCellValueNumbers(rowCount)),
@@ -226,6 +232,18 @@ internal static class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("OfficeIMO.Excel", "Assign mixed object-typed cells one by one and save.", () => OfficeImoWriteCellValueObjectMixed(rowCount)),
             new LibraryComparisonCase("ClosedXML", "Assign mixed object-typed cells one by one and save.", () => ClosedXmlWriteCellValueObjectMixed(rowCount)),
             new LibraryComparisonCase("EPPlus", "Assign mixed object-typed cells one by one and save.", () => EpPlusWriteCellValueObjectMixed(rowCount))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalue-object-sparse", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Assign sparse object-typed cells with null blanks one by one and save.", () => OfficeImoWriteCellValueObjectSparse(rowCount)),
+            new LibraryComparisonCase("ClosedXML", "Assign sparse object-typed cells with null blanks one by one and save.", () => ClosedXmlWriteCellValueObjectSparse(rowCount)),
+            new LibraryComparisonCase("EPPlus", "Assign sparse object-typed cells with null blanks one by one and save.", () => EpPlusWriteCellValueObjectSparse(rowCount))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalue-object-sparse-batch", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Assign sparse object-typed cells inside one worksheet Batch and save.", () => OfficeImoWriteCellValueObjectSparseBatch(rowCount)),
+            new LibraryComparisonCase("ClosedXML", "Assign sparse object-typed cells with null blanks one by one and save.", () => ClosedXmlWriteCellValueObjectSparse(rowCount)),
+            new LibraryComparisonCase("EPPlus", "Assign sparse object-typed cells with null blanks one by one and save.", () => EpPlusWriteCellValueObjectSparse(rowCount))
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-cellformula", warmupIterations, measuredIterations, [
@@ -572,6 +590,12 @@ internal static class ExcelLibraryComparisonRunner {
             new PackageProfileCase("EPPlus", "Assign high-cardinality distinct text cells one by one and save.", () => EpPlusWriteCellValueDistinctStringsBytes(rowCount))
         ]);
 
+        AddPackageProfileGroup(scenarios, scenarioFilter, "write-cellvalue-empty-strings", warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Assign empty and non-empty text cells one by one and save.", () => OfficeImoWriteCellValueEmptyStringsBytes(rowCount)),
+            new PackageProfileCase("ClosedXML", "Assign empty and non-empty text cells one by one and save.", () => ClosedXmlWriteCellValueEmptyStringsBytes(rowCount)),
+            new PackageProfileCase("EPPlus", "Assign empty and non-empty text cells one by one and save.", () => EpPlusWriteCellValueEmptyStringsBytes(rowCount))
+        ]);
+
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-cellvalue-numbers", warmupIterations, measuredIterations, [
             new PackageProfileCase("OfficeIMO.Excel", "Assign numeric cells one by one and save.", () => OfficeImoWriteCellValueNumbersBytes(rowCount)),
             new PackageProfileCase("ClosedXML", "Assign numeric cells one by one and save.", () => ClosedXmlWriteCellValueNumbersBytes(rowCount)),
@@ -594,6 +618,18 @@ internal static class ExcelLibraryComparisonRunner {
             new PackageProfileCase("OfficeIMO.Excel", "Assign mixed object-typed cells one by one and save.", () => OfficeImoWriteCellValueObjectMixedBytes(rowCount)),
             new PackageProfileCase("ClosedXML", "Assign mixed object-typed cells one by one and save.", () => ClosedXmlWriteCellValueObjectMixedBytes(rowCount)),
             new PackageProfileCase("EPPlus", "Assign mixed object-typed cells one by one and save.", () => EpPlusWriteCellValueObjectMixedBytes(rowCount))
+        ]);
+
+        AddPackageProfileGroup(scenarios, scenarioFilter, "write-cellvalue-object-sparse", warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Assign sparse object-typed cells with null blanks one by one and save.", () => OfficeImoWriteCellValueObjectSparseBytes(rowCount)),
+            new PackageProfileCase("ClosedXML", "Assign sparse object-typed cells with null blanks one by one and save.", () => ClosedXmlWriteCellValueObjectSparseBytes(rowCount)),
+            new PackageProfileCase("EPPlus", "Assign sparse object-typed cells with null blanks one by one and save.", () => EpPlusWriteCellValueObjectSparseBytes(rowCount))
+        ]);
+
+        AddPackageProfileGroup(scenarios, scenarioFilter, "write-cellvalue-object-sparse-batch", warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Assign sparse object-typed cells inside one worksheet Batch and save.", () => OfficeImoWriteCellValueObjectSparseBatchBytes(rowCount)),
+            new PackageProfileCase("ClosedXML", "Assign sparse object-typed cells with null blanks one by one and save.", () => ClosedXmlWriteCellValueObjectSparseBytes(rowCount)),
+            new PackageProfileCase("EPPlus", "Assign sparse object-typed cells with null blanks one by one and save.", () => EpPlusWriteCellValueObjectSparseBytes(rowCount))
         ]);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-cellformula", warmupIterations, measuredIterations, [
@@ -2763,6 +2799,25 @@ internal static class ExcelLibraryComparisonRunner {
         return stream.ToArray();
     }
 
+    private static int OfficeImoWriteCellValueEmptyStrings(int rowCount)
+        => ByteCount(OfficeImoWriteCellValueEmptyStringsBytes(rowCount));
+
+    private static byte[] OfficeImoWriteCellValueEmptyStringsBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            var sheet = document.AddWorkSheet("EmptyText");
+            for (int row = 1; row <= rowCount; row++) {
+                sheet.CellValue(row, 1, string.Empty);
+                sheet.CellValue(row, 2, row % 3 == 0 ? string.Empty : "Status " + (row % 8).ToString(CultureInfo.InvariantCulture));
+                sheet.CellValue(row, 3, row % 5 == 0 ? string.Empty : "Note " + row.ToString(CultureInfo.InvariantCulture));
+            }
+
+            document.Save(stream);
+        }
+
+        return stream.ToArray();
+    }
+
     private static int OfficeImoWriteCellValueNumbers(int rowCount)
         => ByteCount(OfficeImoWriteCellValueNumbersBytes(rowCount));
 
@@ -2846,6 +2901,58 @@ internal static class ExcelLibraryComparisonRunner {
         return stream.ToArray();
     }
 
+    private static int OfficeImoWriteCellValueObjectSparse(int rowCount)
+        => ByteCount(OfficeImoWriteCellValueObjectSparseBytes(rowCount));
+
+    private static byte[] OfficeImoWriteCellValueObjectSparseBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            var sheet = document.AddWorkSheet("SparseObjects");
+            var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
+            for (int row = 1; row <= rowCount; row++) {
+                object? name = row % 3 == 0 ? null : "Item " + (row % 12).ToString(CultureInfo.InvariantCulture);
+                object? amount = row % 4 == 0 ? null : (double)row * 1.25d;
+                object? active = row % 5 == 0 ? null : row % 2 == 0;
+                object? created = row % 7 == 0 ? null : start.AddDays(row);
+                sheet.CellValue(row, 1, name);
+                sheet.CellValue(row, 2, amount);
+                sheet.CellValue(row, 3, active);
+                sheet.CellValue(row, 4, created);
+            }
+
+            document.Save(stream);
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int OfficeImoWriteCellValueObjectSparseBatch(int rowCount)
+        => ByteCount(OfficeImoWriteCellValueObjectSparseBatchBytes(rowCount));
+
+    private static byte[] OfficeImoWriteCellValueObjectSparseBatchBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            var sheet = document.AddWorkSheet("SparseObjects");
+            var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
+            sheet.Batch(s => {
+                for (int row = 1; row <= rowCount; row++) {
+                    object? name = row % 3 == 0 ? null : "Item " + (row % 12).ToString(CultureInfo.InvariantCulture);
+                    object? amount = row % 4 == 0 ? null : (double)row * 1.25d;
+                    object? active = row % 5 == 0 ? null : row % 2 == 0;
+                    object? created = row % 7 == 0 ? null : start.AddDays(row);
+                    s.CellValue(row, 1, name);
+                    s.CellValue(row, 2, amount);
+                    s.CellValue(row, 3, active);
+                    s.CellValue(row, 4, created);
+                }
+            });
+
+            document.Save(stream);
+        }
+
+        return stream.ToArray();
+    }
+
     private static int OfficeImoWriteCellFormula(int rowCount)
         => ByteCount(OfficeImoWriteCellFormulaBytes(rowCount));
 
@@ -2915,6 +3022,25 @@ internal static class ExcelLibraryComparisonRunner {
                 worksheet.Cell(row, 1).Value = DistinctText(row, 0);
                 worksheet.Cell(row, 2).Value = DistinctText(row, 1);
                 worksheet.Cell(row, 3).Value = DistinctText(row, 2);
+            }
+
+            workbook.SaveAs(stream);
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int ClosedXmlWriteCellValueEmptyStrings(int rowCount)
+        => ByteCount(ClosedXmlWriteCellValueEmptyStringsBytes(rowCount));
+
+    private static byte[] ClosedXmlWriteCellValueEmptyStringsBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var workbook = new XLWorkbook()) {
+            var worksheet = workbook.Worksheets.Add("EmptyText");
+            for (int row = 1; row <= rowCount; row++) {
+                worksheet.Cell(row, 1).Value = string.Empty;
+                worksheet.Cell(row, 2).Value = row % 3 == 0 ? string.Empty : "Status " + (row % 8).ToString(CultureInfo.InvariantCulture);
+                worksheet.Cell(row, 3).Value = row % 5 == 0 ? string.Empty : "Note " + row.ToString(CultureInfo.InvariantCulture);
             }
 
             workbook.SaveAs(stream);
@@ -3006,6 +3132,31 @@ internal static class ExcelLibraryComparisonRunner {
         return stream.ToArray();
     }
 
+    private static int ClosedXmlWriteCellValueObjectSparse(int rowCount)
+        => ByteCount(ClosedXmlWriteCellValueObjectSparseBytes(rowCount));
+
+    private static byte[] ClosedXmlWriteCellValueObjectSparseBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var workbook = new XLWorkbook()) {
+            var worksheet = workbook.Worksheets.Add("SparseObjects");
+            var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
+            for (int row = 1; row <= rowCount; row++) {
+                object? name = row % 3 == 0 ? null : "Item " + (row % 12).ToString(CultureInfo.InvariantCulture);
+                object? amount = row % 4 == 0 ? null : (double)row * 1.25d;
+                object? active = row % 5 == 0 ? null : row % 2 == 0;
+                object? created = row % 7 == 0 ? null : start.AddDays(row);
+                worksheet.Cell(row, 1).Value = name == null ? Blank.Value : XLCellValue.FromObject(name, CultureInfo.InvariantCulture);
+                worksheet.Cell(row, 2).Value = amount == null ? Blank.Value : XLCellValue.FromObject(amount, CultureInfo.InvariantCulture);
+                worksheet.Cell(row, 3).Value = active == null ? Blank.Value : XLCellValue.FromObject(active, CultureInfo.InvariantCulture);
+                worksheet.Cell(row, 4).Value = created == null ? Blank.Value : XLCellValue.FromObject(created, CultureInfo.InvariantCulture);
+            }
+
+            workbook.SaveAs(stream);
+        }
+
+        return stream.ToArray();
+    }
+
     private static int ClosedXmlWriteCellFormula(int rowCount)
         => ByteCount(ClosedXmlWriteCellFormulaBytes(rowCount));
 
@@ -3075,6 +3226,25 @@ internal static class ExcelLibraryComparisonRunner {
                 worksheet.Cells[row, 1].Value = DistinctText(row, 0);
                 worksheet.Cells[row, 2].Value = DistinctText(row, 1);
                 worksheet.Cells[row, 3].Value = DistinctText(row, 2);
+            }
+
+            package.Save();
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int EpPlusWriteCellValueEmptyStrings(int rowCount)
+        => ByteCount(EpPlusWriteCellValueEmptyStringsBytes(rowCount));
+
+    private static byte[] EpPlusWriteCellValueEmptyStringsBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var package = new ExcelPackage(stream)) {
+            var worksheet = package.Workbook.Worksheets.Add("EmptyText");
+            for (int row = 1; row <= rowCount; row++) {
+                worksheet.Cells[row, 1].Value = string.Empty;
+                worksheet.Cells[row, 2].Value = row % 3 == 0 ? string.Empty : "Status " + (row % 8).ToString(CultureInfo.InvariantCulture);
+                worksheet.Cells[row, 3].Value = row % 5 == 0 ? string.Empty : "Note " + row.ToString(CultureInfo.InvariantCulture);
             }
 
             package.Save();
@@ -3154,6 +3324,31 @@ internal static class ExcelLibraryComparisonRunner {
                 object? amount = (double)row * 1.25d;
                 object? active = row % 2 == 0;
                 object? created = start.AddDays(row);
+                worksheet.Cells[row, 1].Value = name;
+                worksheet.Cells[row, 2].Value = amount;
+                worksheet.Cells[row, 3].Value = active;
+                worksheet.Cells[row, 4].Value = created;
+            }
+
+            package.Save();
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int EpPlusWriteCellValueObjectSparse(int rowCount)
+        => ByteCount(EpPlusWriteCellValueObjectSparseBytes(rowCount));
+
+    private static byte[] EpPlusWriteCellValueObjectSparseBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var package = new ExcelPackage(stream)) {
+            var worksheet = package.Workbook.Worksheets.Add("SparseObjects");
+            var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
+            for (int row = 1; row <= rowCount; row++) {
+                object? name = row % 3 == 0 ? null : "Item " + (row % 12).ToString(CultureInfo.InvariantCulture);
+                object? amount = row % 4 == 0 ? null : (double)row * 1.25d;
+                object? active = row % 5 == 0 ? null : row % 2 == 0;
+                object? created = row % 7 == 0 ? null : start.AddDays(row);
                 worksheet.Cells[row, 1].Value = name;
                 worksheet.Cells[row, 2].Value = amount;
                 worksheet.Cells[row, 3].Value = active;

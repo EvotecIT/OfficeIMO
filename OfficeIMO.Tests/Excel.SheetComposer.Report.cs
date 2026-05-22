@@ -84,6 +84,124 @@ namespace OfficeIMO.Tests {
             }
             File.Delete(filePath);
         }
+
+        [Fact]
+        public void Composer_LayoutHelpers_ReadOnlyListsDoNotSnapshotEnumerate() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            var properties = new ThrowOnEnumerateReadOnlyList<(string Key, object? Value)>(
+                ("Name", "Alice"),
+                ("Score", 95),
+                ("Status", "OK"));
+            var kpis = new ThrowOnEnumerateReadOnlyList<(string Label, object? Value)>(
+                ("Total", 2),
+                ("Errors", 0));
+            var urls = new ThrowOnEnumerateReadOnlyList<string>(
+                "https://example.com",
+                "https://evotec.xyz");
+
+            using (var doc = ExcelDocument.Create(filePath)) {
+                doc.Compose("Details", c => {
+                    c.PropertiesGrid(properties, columns: 2);
+                    c.KpiRow(kpis, perRow: 2);
+                    c.References(urls);
+                    c.Finish(autoFitColumns: false);
+                });
+
+                doc.Save();
+            }
+
+            using (var ss = SpreadsheetDocument.Open(filePath, false)) {
+                var ws = ss.WorkbookPart!.WorksheetParts.First();
+                Assert.Equal("Name", GetCellText(ss, ws, "A1"));
+                Assert.Equal("Alice", GetCellText(ss, ws, "B1"));
+                Assert.Equal("Total", GetCellText(ss, ws, "A4"));
+                Assert.Equal("2", GetCellText(ss, ws, "A5"));
+                Assert.Equal("References", GetCellText(ss, ws, "A7"));
+                Assert.Equal("example.com", GetCellText(ss, ws, "A8"));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Composer_TableFrom_ReadOnlyListDoesNotSnapshotEnumerate() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            var rows = new ThrowOnEnumerateReadOnlyList<ComposerTableRow>(
+                new ComposerTableRow("Alpha", 10),
+                new ComposerTableRow("Beta", 20));
+
+            using (var doc = ExcelDocument.Create(filePath)) {
+                doc.Compose("Report", c => {
+                    c.TableFrom(rows, title: "Scores");
+                    c.Finish(autoFitColumns: false);
+                });
+
+                doc.Save();
+            }
+
+            using (var ss = SpreadsheetDocument.Open(filePath, false)) {
+                var ws = ss.WorkbookPart!.WorksheetParts.First();
+                Assert.True(ws.TableDefinitionParts.Any());
+                Assert.Equal("Alpha", GetCellText(ss, ws, "A3"));
+                Assert.Equal("10", GetCellText(ss, ws, "B3"));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void Composer_ColumnTableFrom_ReadOnlyListDoesNotSnapshotEnumerate() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            var rows = new ThrowOnEnumerateReadOnlyList<ComposerTableRow>(
+                new ComposerTableRow("Alpha", 10),
+                new ComposerTableRow("Beta", 20));
+
+            using (var doc = ExcelDocument.Create(filePath)) {
+                doc.Compose("Report", c => {
+                    c.Columns(2, columns => {
+                        columns[0].TableFrom(rows, title: "Scores");
+                    });
+                    c.Finish(autoFitColumns: false);
+                });
+
+                doc.Save();
+            }
+
+            using (var ss = SpreadsheetDocument.Open(filePath, false)) {
+                var ws = ss.WorkbookPart!.WorksheetParts.First();
+                Assert.True(ws.TableDefinitionParts.Any());
+                Assert.Equal("Alpha", GetCellText(ss, ws, "A3"));
+                Assert.Equal("10", GetCellText(ss, ws, "B3"));
+            }
+
+            File.Delete(filePath);
+        }
+
+        private sealed class ComposerTableRow {
+            public ComposerTableRow(string name, int score) {
+                Name = name;
+                Score = score;
+            }
+
+            public string Name { get; }
+
+            public int Score { get; }
+        }
+
+        private sealed class ThrowOnEnumerateReadOnlyList<T> : System.Collections.Generic.IReadOnlyList<T> {
+            private readonly T[] _items;
+
+            internal ThrowOnEnumerateReadOnlyList(params T[] items) {
+                _items = items;
+            }
+
+            public int Count => _items.Length;
+
+            public T this[int index] => _items[index];
+
+            public System.Collections.Generic.IEnumerator<T> GetEnumerator() => throw new InvalidOperationException("Composer should use IReadOnlyList<T> indexing without snapshot enumeration.");
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        }
     }
 }
-

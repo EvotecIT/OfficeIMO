@@ -77,6 +77,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CellValue_NullAndDbNullUseEmptyStringCells() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesNullEmptyString.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, (object?)null);
+                sheet.CellValue(2, 1, DBNull.Value);
+                sheet.CellValue(3, 1, (string?)null);
+                sheet.CellValue(4, 1, string.Empty);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                ValidateSpreadsheetDocument(filePath, spreadsheet);
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cells = wsPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+
+                Assert.Equal(CellValues.String, cells["A1"].DataType!.Value);
+                Assert.Equal(string.Empty, cells["A1"].CellValue!.Text);
+                Assert.Equal(CellValues.String, cells["A2"].DataType!.Value);
+                Assert.Equal(string.Empty, cells["A2"].CellValue!.Text);
+                Assert.Equal(CellValues.String, cells["A3"].DataType!.Value);
+                Assert.Equal(string.Empty, cells["A3"].CellValue!.Text);
+                Assert.Equal(CellValues.String, cells["A4"].DataType!.Value);
+                Assert.Equal(string.Empty, cells["A4"].CellValue!.Text);
+            }
+        }
+
+        [Fact]
         public void Test_CellValues_WritesCellsImmediately() {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesImmediate.xlsx");
 
@@ -373,6 +402,35 @@ namespace OfficeIMO.Tests {
                 Assert.True(sheet.TryGetCellText(1, 2, out var second));
                 Assert.Equal("Status Processed", first);
                 Assert.Equal("Status Processed", second);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ReplaceAll_DoesNotReadFormulaTextFromStringCellWithoutCachedValue() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesReplaceAllFormulaStringNoCache.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                var worksheet = document._spreadSheetDocument.WorkbookPart!.WorksheetParts.First().Worksheet;
+                var sheetData = worksheet.GetFirstChild<SheetData>()!;
+                var row = new Row { RowIndex = 1 };
+                var cell = new Cell {
+                    CellReference = "A1",
+                    DataType = CellValues.String,
+                    CellFormula = new CellFormula("CONCAT(\"ReviewTarget\",\"\")")
+                };
+                row.Append(cell);
+                sheetData.Append(row);
+
+                Assert.Equal(0, sheet.ReplaceAll("ReviewTarget", "Changed"));
+                Assert.Equal(CellValues.String, cell.DataType!.Value);
+                Assert.Equal("CONCAT(\"ReviewTarget\",\"\")", cell.CellFormula!.Text);
+                Assert.Null(cell.CellValue);
                 document.Save();
             }
 

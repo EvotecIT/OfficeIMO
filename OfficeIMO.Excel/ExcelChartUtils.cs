@@ -42,6 +42,45 @@ namespace OfficeIMO.Excel {
             public uint SecondaryValueId { get; }
         }
 
+        private readonly struct SeriesDescriptorSummary {
+            public SeriesDescriptorSummary(
+                bool hasSecondary,
+                bool hasScatter,
+                bool hasBubble,
+                bool hasBar,
+                bool hasNonBar,
+                bool hasPieOrDoughnut,
+                bool hasMultipleTypes) {
+                HasSecondary = hasSecondary;
+                HasScatter = hasScatter;
+                HasBubble = hasBubble;
+                HasBar = hasBar;
+                HasNonBar = hasNonBar;
+                HasPieOrDoughnut = hasPieOrDoughnut;
+                HasMultipleTypes = hasMultipleTypes;
+            }
+
+            public bool HasSecondary { get; }
+            public bool HasScatter { get; }
+            public bool HasBubble { get; }
+            public bool HasBar { get; }
+            public bool HasNonBar { get; }
+            public bool HasPieOrDoughnut { get; }
+            public bool HasMultipleTypes { get; }
+        }
+
+        private sealed class SeriesDescriptorGroup {
+            public SeriesDescriptorGroup(ExcelChartType chartType, ExcelChartAxisGroup axisGroup) {
+                ChartType = chartType;
+                AxisGroup = axisGroup;
+                Descriptors = new List<SeriesDescriptor>();
+            }
+
+            public ExcelChartType ChartType { get; }
+            public ExcelChartAxisGroup AxisGroup { get; }
+            public List<SeriesDescriptor> Descriptors { get; }
+        }
+
         internal static string BuildCellA1(int row, int column) {
             return A1.AbsoluteCellReference(row, column);
         }
@@ -94,10 +133,11 @@ namespace OfficeIMO.Excel {
 
         private static List<SeriesDescriptor> BuildSeriesDescriptors(ExcelChartDataRange range, ExcelChartData? data,
             ExcelChartType defaultType, bool useSeriesOverrides = true) {
-            int count = data?.Series.Count ?? range.SeriesCount;
+            IReadOnlyList<ExcelChartSeries>? seriesList = data?.Series;
+            int count = seriesList?.Count ?? range.SeriesCount;
             var descriptors = new List<SeriesDescriptor>(count);
             for (int i = 0; i < count; i++) {
-                var series = data?.Series.ElementAtOrDefault(i);
+                ExcelChartSeries? series = seriesList != null && i < seriesList.Count ? seriesList[i] : null;
                 ExcelChartType chartType = defaultType;
                 ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary;
                 if (useSeriesOverrides && series != null) {
@@ -129,6 +169,73 @@ namespace OfficeIMO.Excel {
 
         private static bool IsBarChartType(ExcelChartType chartType) {
             return chartType == ExcelChartType.BarClustered || chartType == ExcelChartType.BarStacked;
+        }
+
+        private static SeriesDescriptorSummary SummarizeSeriesDescriptors(IReadOnlyList<SeriesDescriptor> descriptors) {
+            bool hasSecondary = false;
+            bool hasScatter = false;
+            bool hasBubble = false;
+            bool hasBar = false;
+            bool hasNonBar = false;
+            bool hasPieOrDoughnut = false;
+            bool hasMultipleTypes = false;
+            bool hasFirstType = false;
+            ExcelChartType firstType = default;
+
+            for (int i = 0; i < descriptors.Count; i++) {
+                SeriesDescriptor descriptor = descriptors[i];
+                ExcelChartType chartType = descriptor.ChartType;
+                if (!hasFirstType) {
+                    firstType = chartType;
+                    hasFirstType = true;
+                } else if (chartType != firstType) {
+                    hasMultipleTypes = true;
+                }
+
+                if (descriptor.AxisGroup == ExcelChartAxisGroup.Secondary) {
+                    hasSecondary = true;
+                }
+
+                if (chartType == ExcelChartType.Scatter) {
+                    hasScatter = true;
+                } else if (chartType == ExcelChartType.Bubble) {
+                    hasBubble = true;
+                } else if (chartType == ExcelChartType.Pie || chartType == ExcelChartType.Doughnut) {
+                    hasPieOrDoughnut = true;
+                }
+
+                if (IsBarChartType(chartType)) {
+                    hasBar = true;
+                } else {
+                    hasNonBar = true;
+                }
+            }
+
+            return new SeriesDescriptorSummary(hasSecondary, hasScatter, hasBubble, hasBar, hasNonBar, hasPieOrDoughnut, hasMultipleTypes);
+        }
+
+        private static List<SeriesDescriptorGroup> GroupSeriesDescriptors(IReadOnlyList<SeriesDescriptor> descriptors) {
+            var groups = new List<SeriesDescriptorGroup>();
+            for (int i = 0; i < descriptors.Count; i++) {
+                SeriesDescriptor descriptor = descriptors[i];
+                SeriesDescriptorGroup? group = null;
+                for (int g = 0; g < groups.Count; g++) {
+                    SeriesDescriptorGroup candidate = groups[g];
+                    if (candidate.ChartType == descriptor.ChartType && candidate.AxisGroup == descriptor.AxisGroup) {
+                        group = candidate;
+                        break;
+                    }
+                }
+
+                if (group == null) {
+                    group = new SeriesDescriptorGroup(descriptor.ChartType, descriptor.AxisGroup);
+                    groups.Add(group);
+                }
+
+                group.Descriptors.Add(descriptor);
+            }
+
+            return groups;
         }
 
         private static (BarDirectionValues Direction, BarGroupingValues Grouping) GetBarChartSettings(ExcelChartType chartType) {

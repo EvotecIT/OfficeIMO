@@ -10,12 +10,19 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Creates a chart series with the specified name and values.
         /// </summary>
-        public ExcelChartSeries(string name, IEnumerable<double> values, ExcelChartType? chartType = null, ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary) {
+        public ExcelChartSeries(string name, IEnumerable<double> values, ExcelChartType? chartType = null, ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary)
+            : this(name, (values ?? Array.Empty<double>()).ToList(), chartType, axisGroup, ownsValues: true) {
+        }
+
+        private ExcelChartSeries(string name, IReadOnlyList<double> values, ExcelChartType? chartType, ExcelChartAxisGroup axisGroup, bool ownsValues) {
             Name = name ?? string.Empty;
-            Values = (values ?? Array.Empty<double>()).ToList();
+            Values = values ?? Array.Empty<double>();
             ChartType = chartType;
             AxisGroup = axisGroup;
         }
+
+        internal static ExcelChartSeries CreateOwned(string name, IReadOnlyList<double> values, ExcelChartType? chartType = null, ExcelChartAxisGroup axisGroup = ExcelChartAxisGroup.Primary)
+            => new(name, values, chartType, axisGroup, ownsValues: true);
 
         /// <summary>
         /// Gets the series name.

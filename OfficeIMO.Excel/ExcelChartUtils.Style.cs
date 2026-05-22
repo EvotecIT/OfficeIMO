@@ -31,6 +31,12 @@ namespace OfficeIMO.Excel {
             return reference;
         }
 
+        private static StringReference CreateSingleStringReference(string formula, string? value) {
+            var reference = new StringReference(new Formula { Text = formula });
+            reference.Append(CreateSingleStringCache(value));
+            return reference;
+        }
+
         private static StringLiteral CreateStringLiteral(IReadOnlyList<string> values) {
             StringLiteral literal = new();
             literal.Append(new PointCount { Val = (uint)values.Count });
@@ -41,6 +47,22 @@ namespace OfficeIMO.Excel {
                 });
             }
             return literal;
+        }
+
+        private static StringLiteral CreateSingleStringLiteral(string? value) {
+            StringLiteral literal = new();
+            literal.Append(CreateSingleStringCache(value));
+            return literal;
+        }
+
+        private static StringCache CreateSingleStringCache(string? value) {
+            var cache = new StringCache();
+            cache.Append(new PointCount { Val = 1U });
+            cache.Append(new StringPoint {
+                Index = 0U,
+                NumericValue = new NumericValue { Text = value ?? string.Empty }
+            });
+            return cache;
         }
 
         private static NumberReference CreateNumberReference(string formula, IReadOnlyList<double>? values) {

@@ -455,7 +455,7 @@ namespace OfficeIMO.Excel {
                 || dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.String) {
                 text = cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString
                     ? ExtractReplaceableInlineString(cell)
-                    : cell.CellValue?.InnerText ?? cell.InnerText;
+                    : cell.CellValue?.InnerText ?? string.Empty;
                 return true;
             }
 
