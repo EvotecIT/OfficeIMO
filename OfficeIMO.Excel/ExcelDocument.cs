@@ -1939,7 +1939,7 @@ namespace OfficeIMO.Excel {
             MaterializeDeferredDataSetImport();
 
             // Ensure all worksheets have up-to-date dimensions and proper element ordering before saving
-            ApplyCalculationPolicyBeforeSave();
+            ApplyCalculationPolicyBeforeSave(options);
 
             var sheets = Sheets;
             foreach (var sheet in sheets) {
@@ -2027,17 +2027,10 @@ namespace OfficeIMO.Excel {
             return !_packageDirty
                 && _packageContentTypesKnownNormalized
                 && _unchangedPackageBytes != null
-                && !HasCalculationSaveWork()
+                && !HasCalculationSaveWork(options)
                 && options?.SafePreflight != true
                 && options?.SafeRepairDefinedNames != true
                 && options?.ValidateOpenXml != true;
-        }
-
-        private bool HasCalculationSaveWork() {
-            return Calculation.EvaluateFormulasBeforeSave
-                || Calculation.ClearCachedFormulaResultsBeforeSave
-                || Calculation.MarkFormulasDirtyBeforeSave
-                || Calculation.ForceFullCalculationOnOpen;
         }
 
         private void MarkPackageClean(byte[]? packageBytes, bool simplePackageContentKnown = false) {

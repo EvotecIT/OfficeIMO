@@ -6,6 +6,48 @@ using System.Xml.Linq;
 
 namespace OfficeIMO.Excel {
     /// <summary>
+    /// Immutable worksheet comment metadata.
+    /// </summary>
+    public sealed class ExcelCommentInfo {
+        internal ExcelCommentInfo(string cellReference, int row, int column, string? author, string text) {
+            CellReference = cellReference;
+            Row = row;
+            Column = column;
+            Author = author;
+            Text = text;
+        }
+
+        /// <summary>A1 cell reference where the comment is attached.</summary>
+        public string CellReference { get; }
+
+        /// <summary>1-based row index where the comment is attached.</summary>
+        public int Row { get; }
+
+        /// <summary>1-based column index where the comment is attached.</summary>
+        public int Column { get; }
+
+        /// <summary>Comment author display name, when available.</summary>
+        public string? Author { get; }
+
+        /// <summary>Comment text content.</summary>
+        public string Text { get; }
+    }
+
+    /// <summary>
+    /// Filters worksheet comments by author, text, and A1 range.
+    /// </summary>
+    public sealed class ExcelCommentFilter {
+        /// <summary>Only match comments whose author equals this value, ignoring case.</summary>
+        public string? Author { get; set; }
+
+        /// <summary>Only match comments whose text contains this value, ignoring case.</summary>
+        public string? TextContains { get; set; }
+
+        /// <summary>Only match comments attached to cells inside this A1 cell or range.</summary>
+        public string? A1Range { get; set; }
+    }
+
+    /// <summary>
     /// Helpers for worksheet cell comments (notes).
     /// </summary>
     public partial class ExcelSheet {
@@ -113,6 +155,130 @@ namespace OfficeIMO.Excel {
                 .Any(c => string.Equals(c.Reference?.Value, reference, StringComparison.OrdinalIgnoreCase)) is true;
         }
 
+        /// <summary>
+        /// Gets all legacy worksheet comments (notes) on this sheet.
+        /// </summary>
+        public IReadOnlyList<ExcelCommentInfo> GetComments() {
+            return FindComments(null);
+        }
+
+        /// <summary>
+        /// Finds legacy worksheet comments (notes) that match the supplied filter.
+        /// </summary>
+        /// <param name="filter">Optional author, text, and A1 range filter.</param>
+        public IReadOnlyList<ExcelCommentInfo> FindComments(ExcelCommentFilter? filter) {
+            var commentsPart = WorksheetCommentsPartRoot;
+            var comments = commentsPart?.Comments;
+            if (comments?.CommentList == null) {
+                return Array.Empty<ExcelCommentInfo>();
+            }
+
+            var authors = comments.Authors?.Elements<Author>().Select(author => author.Text ?? string.Empty).ToList()
+                ?? new List<string>();
+            var results = new List<ExcelCommentInfo>();
+            foreach (var comment in comments.CommentList.Elements<Comment>()) {
+                var info = CreateCommentInfo(comment, authors);
+                if (info != null && CommentMatchesFilter(info, filter)) {
+                    results.Add(info);
+                }
+            }
+
+            return results;
+        }
+
+        /// <summary>
+        /// Replaces the text, and optionally author, for comments that match the supplied filter.
+        /// </summary>
+        /// <param name="filter">Author, text, and/or A1 range filter used to choose comments.</param>
+        /// <param name="text">Replacement comment text.</param>
+        /// <param name="author">Optional replacement author.</param>
+        /// <param name="initials">Optional replacement author initials.</param>
+        /// <returns>Number of comments updated.</returns>
+        public int UpdateComments(ExcelCommentFilter filter, string text, string? author = null, string? initials = null) {
+            if (filter == null) throw new ArgumentNullException(nameof(filter));
+            if (string.IsNullOrEmpty(text)) throw new ArgumentException("Comment text is required.", nameof(text));
+
+            int updated = 0;
+            WriteLock(() => {
+                var commentsPart = WorksheetCommentsPartRoot;
+                var comments = commentsPart?.Comments;
+                if (comments?.CommentList == null) {
+                    return;
+                }
+
+                comments.Authors ??= new Authors();
+                var authors = comments.Authors.Elements<Author>().Select(item => item.Text ?? string.Empty).ToList();
+                uint? newAuthorId = string.IsNullOrWhiteSpace(author)
+                    ? null
+                    : EnsureAuthorId(comments.Authors, NormalizeAuthor(author!, initials));
+
+                foreach (var comment in comments.CommentList.Elements<Comment>()) {
+                    var info = CreateCommentInfo(comment, authors);
+                    if (info == null || !CommentMatchesFilter(info, filter)) {
+                        continue;
+                    }
+
+                    comment.RemoveAllChildren<CommentText>();
+                    comment.Append(BuildCommentText(text));
+                    if (newAuthorId.HasValue) {
+                        comment.AuthorId = newAuthorId.Value;
+                    }
+
+                    updated++;
+                }
+
+                if (updated > 0) {
+                    comments.Save();
+                }
+            });
+
+            return updated;
+        }
+
+        /// <summary>
+        /// Removes comments that match the supplied filter.
+        /// </summary>
+        /// <param name="filter">Author, text, and/or A1 range filter used to choose comments.</param>
+        /// <returns>Number of comments removed.</returns>
+        public int ClearComments(ExcelCommentFilter filter) {
+            if (filter == null) throw new ArgumentNullException(nameof(filter));
+
+            int removed = 0;
+            WriteLock(() => {
+                var commentsPart = WorksheetCommentsPartRoot;
+                var comments = commentsPart?.Comments;
+                if (comments?.CommentList == null) {
+                    return;
+                }
+
+                var authors = comments.Authors?.Elements<Author>().Select(author => author.Text ?? string.Empty).ToList()
+                    ?? new List<string>();
+                var removals = new List<(Comment Comment, int Row, int Column)>();
+                foreach (var comment in comments.CommentList.Elements<Comment>()) {
+                    var info = CreateCommentInfo(comment, authors);
+                    if (info != null && CommentMatchesFilter(info, filter)) {
+                        removals.Add((comment, info.Row, info.Column));
+                    }
+                }
+
+                foreach (var removal in removals) {
+                    removal.Comment.Remove();
+                    RemoveCommentVmlShape(removal.Row, removal.Column);
+                }
+
+                removed = removals.Count;
+                if (removed > 0) {
+                    comments.Save();
+                    bool removedArtifacts = CleanupCommentArtifacts();
+                    if (removedArtifacts) {
+                        WorksheetRoot.Save();
+                    }
+                }
+            });
+
+            return removed;
+        }
+
         private static string NormalizeAuthor(string author, string? initials) {
             string name = string.IsNullOrWhiteSpace(author) ? "OfficeIMO" : author.Trim();
             if (string.IsNullOrWhiteSpace(initials)) return name;
@@ -150,6 +316,74 @@ namespace OfficeIMO.Excel {
             run.Append(new Text(normalizedText) { Space = SpaceProcessingModeValues.Preserve });
             commentText.Append(run);
             return commentText;
+        }
+
+        private static ExcelCommentInfo? CreateCommentInfo(Comment comment, IReadOnlyList<string> authors) {
+            string? reference = comment.Reference?.Value;
+            if (string.IsNullOrWhiteSpace(reference)) {
+                return null;
+            }
+
+            var parsed = A1.ParseCellRef(reference!);
+            if (parsed.Row <= 0 || parsed.Col <= 0) {
+                return null;
+            }
+
+            string? author = null;
+            if (comment.AuthorId != null && comment.AuthorId.Value < authors.Count) {
+                author = authors[(int)comment.AuthorId.Value];
+            }
+
+            return new ExcelCommentInfo(reference!, parsed.Row, parsed.Col, author, ExtractCommentText(comment.CommentText));
+        }
+
+        private static string ExtractCommentText(CommentText? commentText) {
+            if (commentText == null) {
+                return string.Empty;
+            }
+
+            return string.Concat(commentText.Descendants<Text>().Select(text => text.Text ?? string.Empty));
+        }
+
+        private static bool CommentMatchesFilter(ExcelCommentInfo info, ExcelCommentFilter? filter) {
+            if (filter == null) {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.Author)
+                && !string.Equals(info.Author, filter.Author!.Trim(), StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.TextContains)
+                && info.Text.IndexOf(filter.TextContains!.Trim(), StringComparison.OrdinalIgnoreCase) < 0) {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.A1Range)) {
+                var bounds = ParseCommentFilterRange(filter.A1Range!);
+                if (info.Row < bounds.FirstRow
+                    || info.Row > bounds.LastRow
+                    || info.Column < bounds.FirstColumn
+                    || info.Column > bounds.LastColumn) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static (int FirstRow, int FirstColumn, int LastRow, int LastColumn) ParseCommentFilterRange(string a1Range) {
+            if (A1.TryParseRange(a1Range, out int r1, out int c1, out int r2, out int c2)) {
+                return (r1, c1, r2, c2);
+            }
+
+            var cell = A1.ParseCellRef(a1Range);
+            if (cell.Row > 0 && cell.Col > 0) {
+                return (cell.Row, cell.Col, cell.Row, cell.Col);
+            }
+
+            throw new ArgumentException($"Address '{a1Range}' is not a valid A1 cell or range.", nameof(a1Range));
         }
 
         private WorksheetCommentsPart GetOrCreateCommentsPart() {

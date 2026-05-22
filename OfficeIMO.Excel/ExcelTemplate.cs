@@ -10,14 +10,31 @@ namespace OfficeIMO.Excel {
     public delegate string ExcelTemplateValueFormatter(object? value, IFormatProvider? provider);
 
     /// <summary>
+    /// Controls how template binding handles markers that are not supplied by the values/model.
+    /// </summary>
+    public enum ExcelTemplateMissingValueBehavior {
+        /// <summary>Leave the marker text unchanged.</summary>
+        PreserveMarker,
+
+        /// <summary>Replace the marker with an empty string.</summary>
+        EmptyString,
+
+        /// <summary>Throw an exception when a marker is missing.</summary>
+        Throw
+    }
+
+    /// <summary>
     /// Options used when applying workbook or worksheet template markers.
     /// </summary>
     public sealed class ExcelTemplateOptions {
         /// <summary>Format provider used by built-in aliases and custom formatters.</summary>
         public IFormatProvider? FormatProvider { get; set; }
 
-        /// <summary>Throws when a marker is not supplied by the values/model.</summary>
+        /// <summary>Throws when a marker is not supplied by the values/model. Equivalent to <see cref="ExcelTemplateMissingValueBehavior.Throw"/>.</summary>
         public bool ThrowOnMissing { get; set; }
+
+        /// <summary>Behavior used when a marker is not supplied by the values/model.</summary>
+        public ExcelTemplateMissingValueBehavior MissingValueBehavior { get; set; }
 
         /// <summary>Named custom formatters, keyed by marker format such as "upper" in {{Name:upper}}.</summary>
         public IDictionary<string, ExcelTemplateValueFormatter> Formatters { get; } =
@@ -37,6 +54,100 @@ namespace OfficeIMO.Excel {
                 FormatProvider = provider,
                 ThrowOnMissing = throwOnMissing
             };
+        }
+    }
+
+    /// <summary>
+    /// Image value that can be bound to a whole-cell template marker.
+    /// </summary>
+    public sealed class ExcelTemplateImage {
+        private ExcelTemplateImage(byte[]? bytes, string? url, string contentType, int widthPixels, int heightPixels, int offsetXPixels, int offsetYPixels, string? name, string? altText, bool lockAspectRatio) {
+            Bytes = bytes;
+            Url = url;
+            ContentType = contentType;
+            WidthPixels = widthPixels;
+            HeightPixels = heightPixels;
+            OffsetXPixels = offsetXPixels;
+            OffsetYPixels = offsetYPixels;
+            Name = name;
+            AltText = altText;
+            LockAspectRatio = lockAspectRatio;
+        }
+
+        /// <summary>Image bytes when the image is supplied directly.</summary>
+        public byte[]? Bytes { get; }
+
+        /// <summary>Remote image URL when the image should be downloaded during binding.</summary>
+        public string? Url { get; }
+
+        /// <summary>Image content type, such as image/png or image/jpeg.</summary>
+        public string ContentType { get; }
+
+        /// <summary>Image width in pixels.</summary>
+        public int WidthPixels { get; }
+
+        /// <summary>Image height in pixels.</summary>
+        public int HeightPixels { get; }
+
+        /// <summary>Horizontal pixel offset from the target cell.</summary>
+        public int OffsetXPixels { get; }
+
+        /// <summary>Vertical pixel offset from the target cell.</summary>
+        public int OffsetYPixels { get; }
+
+        /// <summary>Optional drawing name.</summary>
+        public string? Name { get; }
+
+        /// <summary>Optional alternative text description.</summary>
+        public string? AltText { get; }
+
+        /// <summary>Whether Excel should keep the picture aspect ratio locked.</summary>
+        public bool LockAspectRatio { get; }
+
+        /// <summary>
+        /// Creates a template image from bytes.
+        /// </summary>
+        public static ExcelTemplateImage FromBytes(byte[] bytes, string contentType = "image/png", int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null, bool lockAspectRatio = true) {
+            if (bytes == null || bytes.Length == 0) throw new ArgumentException("Image bytes are required.", nameof(bytes));
+            return new ExcelTemplateImage(bytes.ToArray(), null, NormalizeContentType(contentType), widthPixels, heightPixels, offsetXPixels, offsetYPixels, name, altText, lockAspectRatio);
+        }
+
+        /// <summary>
+        /// Creates a template image from a stream.
+        /// </summary>
+        public static ExcelTemplateImage FromStream(Stream stream, string contentType = "image/png", int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null, bool lockAspectRatio = true) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            using var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+            return FromBytes(buffer.ToArray(), contentType, widthPixels, heightPixels, offsetXPixels, offsetYPixels, name, altText, lockAspectRatio);
+        }
+
+        /// <summary>
+        /// Creates a template image from a remote URL. The image is downloaded when the template is applied.
+        /// </summary>
+        public static ExcelTemplateImage FromUrl(string url, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null, bool lockAspectRatio = true) {
+            if (string.IsNullOrWhiteSpace(url)) throw new ArgumentNullException(nameof(url));
+            return new ExcelTemplateImage(null, url.Trim(), "image/png", widthPixels, heightPixels, offsetXPixels, offsetYPixels, name, altText, lockAspectRatio);
+        }
+
+        internal bool TryAddToSheet(ExcelSheet sheet, int row, int column) {
+            if (Bytes != null) {
+                sheet.AddImage(row, column, Bytes, ContentType, WidthPixels, HeightPixels, OffsetXPixels, OffsetYPixels, Name, AltText, LockAspectRatio);
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(Url)
+                && ImageDownloader.TryFetch(Url!, timeoutSeconds: 5, maxBytes: 2_000_000, out var bytes, out var contentType)
+                && bytes != null) {
+                sheet.AddImage(row, column, bytes, string.IsNullOrWhiteSpace(contentType) ? ContentType : contentType!, WidthPixels, HeightPixels, OffsetXPixels, OffsetYPixels, Name, AltText, LockAspectRatio);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static string NormalizeContentType(string? contentType) {
+            return string.IsNullOrWhiteSpace(contentType) ? "image/png" : contentType!.Trim();
         }
     }
 
@@ -159,67 +270,375 @@ namespace OfficeIMO.Excel {
 
             int replacements = 0;
             WriteLock(() => {
-                foreach (var cell in WorksheetRoot.Descendants<Cell>().ToList()) {
-                    var value = GetCellValueSnapshot(cell);
-                    if (value.Value is not string text || text.IndexOf("{{", StringComparison.Ordinal) < 0) {
-                        continue;
-                    }
+                replacements = ApplyTemplateCellsCore(bindings, options, rowFilter: null);
+                WorksheetRoot.Save();
+            });
 
-                    var wholeMarker = WholeCellTemplateMarkerRegex.Match(text);
-                    if (wholeMarker.Success) {
-                        string marker = wholeMarker.Groups["name"].Value;
-                        if (!bindings.TryGetValue(marker, out object? replacement)) {
-                            if (options.ThrowOnMissing) {
-                                throw new InvalidOperationException($"Template marker '{marker}' was not supplied.");
-                            }
+            return replacements;
+        }
 
-                            continue;
-                        }
+        /// <summary>
+        /// Repeats a single template row for each supplied row value dictionary, inserting additional worksheet rows as needed.
+        /// </summary>
+        /// <param name="templateRow">1-based row number containing template markers.</param>
+        /// <param name="rows">Row value dictionaries. Each dictionary is bound to one copied row.</param>
+        /// <param name="options">Optional template binding options.</param>
+        public int ApplyTemplateRows(int templateRow, IEnumerable<IDictionary<string, object?>> rows, ExcelTemplateOptions? options = null) {
+            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            var bindings = rows.Select(ExcelTemplateBindingHelper.Create).Cast<IReadOnlyDictionary<string, object?>>().ToList();
+            return ApplyTemplateRowsCore(templateRow, bindings, options ?? new ExcelTemplateOptions());
+        }
 
-                        string? format = wholeMarker.Groups["format"].Success ? wholeMarker.Groups["format"].Value.Trim() : null;
-                        string? numberFormat = ResolveTemplateNumberFormatAlias(format, options.FormatProvider);
-                        if (numberFormat != null && replacement != null) {
-                            var reference = A1.ParseCellRef(cell.CellReference?.Value ?? string.Empty);
-                            if (reference.Row > 0 && reference.Col > 0) {
-                                CellValueCore(reference.Row, reference.Col, replacement);
-                                FormatCellCore(reference.Row, reference.Col, numberFormat);
-                                replacements++;
-                                continue;
-                            }
-                        }
-                    }
+        /// <summary>
+        /// Repeats a single template row for each supplied row model, inserting additional worksheet rows as needed.
+        /// Public properties are exposed as marker names, including nested dotted names.
+        /// </summary>
+        /// <param name="templateRow">1-based row number containing template markers.</param>
+        /// <param name="rows">Row models. Each model is bound to one copied row.</param>
+        /// <param name="options">Optional template binding options.</param>
+        public int ApplyTemplateRows<T>(int templateRow, IEnumerable<T> rows, ExcelTemplateOptions? options = null) {
+            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            var bindings = rows
+                .Select(row => row == null
+                    ? new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+                    : ExcelTemplateBindingHelper.Create(row))
+                .Cast<IReadOnlyDictionary<string, object?>>()
+                .ToList();
+            return ApplyTemplateRowsCore(templateRow, bindings, options ?? new ExcelTemplateOptions());
+        }
 
-                    int cellReplacements = 0;
-                    string replaced = TemplateMarkerRegex.Replace(text, match => {
-                        string marker = match.Groups["name"].Value;
-                        if (!bindings.TryGetValue(marker, out object? replacement)) {
-                            if (options.ThrowOnMissing) {
-                                throw new InvalidOperationException($"Template marker '{marker}' was not supplied.");
-                            }
+        /// <summary>
+        /// Includes or removes an optional worksheet row block. When included, markers in the block are bound with the supplied values.
+        /// When removed, following worksheet rows are shifted up.
+        /// </summary>
+        /// <param name="firstRow">1-based first row in the optional block.</param>
+        /// <param name="rowCount">Number of rows in the optional block.</param>
+        /// <param name="include">True to keep and bind the block; false to remove it.</param>
+        /// <param name="values">Values used when the block is included.</param>
+        /// <param name="options">Optional template binding options.</param>
+        public int ApplyTemplateOptionalRows(int firstRow, int rowCount, bool include, IDictionary<string, object?> values, ExcelTemplateOptions? options = null) {
+            if (values == null) throw new ArgumentNullException(nameof(values));
+            return ApplyTemplateOptionalRowsCore(firstRow, rowCount, include, ExcelTemplateBindingHelper.Create(values), options ?? new ExcelTemplateOptions());
+        }
 
-                            return match.Value;
-                        }
+        /// <summary>
+        /// Includes or removes an optional worksheet row block. When included, markers in the block are bound from public properties on the supplied model.
+        /// When removed, following worksheet rows are shifted up.
+        /// </summary>
+        /// <param name="firstRow">1-based first row in the optional block.</param>
+        /// <param name="rowCount">Number of rows in the optional block.</param>
+        /// <param name="include">True to keep and bind the block; false to remove it.</param>
+        /// <param name="model">Model used when the block is included.</param>
+        /// <param name="options">Optional template binding options.</param>
+        public int ApplyTemplateOptionalRows(int firstRow, int rowCount, bool include, object model, ExcelTemplateOptions? options = null) {
+            if (model == null) throw new ArgumentNullException(nameof(model));
+            return ApplyTemplateOptionalRowsCore(firstRow, rowCount, include, ExcelTemplateBindingHelper.Create(model), options ?? new ExcelTemplateOptions());
+        }
 
-                        cellReplacements++;
-                        string? format = match.Groups["format"].Success ? match.Groups["format"].Value.Trim() : null;
-                        return FormatTemplateValue(replacement, format, options);
-                    });
+        /// <summary>
+        /// Removes an optional worksheet row block and shifts following worksheet rows up.
+        /// </summary>
+        /// <param name="firstRow">1-based first row in the optional block.</param>
+        /// <param name="rowCount">Number of rows in the optional block.</param>
+        public int RemoveTemplateOptionalRows(int firstRow, int rowCount) {
+            return ApplyTemplateOptionalRowsCore(firstRow, rowCount, include: false, bindings: null, new ExcelTemplateOptions());
+        }
 
-                    if (cellReplacements == 0 || string.Equals(replaced, text, StringComparison.Ordinal)) {
-                        continue;
-                    }
+        private int ApplyTemplateRowsCore(int templateRow, IReadOnlyList<IReadOnlyDictionary<string, object?>> rowBindings, ExcelTemplateOptions options) {
+            if (templateRow <= 0) throw new ArgumentOutOfRangeException(nameof(templateRow));
+            if (rowBindings.Count == 0) return 0;
 
-                    cell.CellFormula = null;
-                    cell.CellValue = null;
-                    cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString;
-                    cell.InlineString = new InlineString(new Text(Utilities.ExcelSanitizer.SanitizeString(replaced)));
-                    replacements += cellReplacements;
+            int replacements = 0;
+            WriteLockConditional(() => {
+                var bounds = GetTemplateRowBounds(templateRow);
+                if (bounds == null) {
+                    return;
+                }
+
+                var snapshot = CaptureRow(templateRow, bounds.Value.FirstColumn, bounds.Value.LastColumn, bounds.Value.FirstColumn);
+                if (rowBindings.Count > 1) {
+                    ShiftRowsDown(templateRow + 1, rowBindings.Count - 1);
+                }
+
+                for (int index = 0; index < rowBindings.Count; index++) {
+                    int targetRow = templateRow + index;
+                    var rowMap = targetRow == templateRow
+                        ? new Dictionary<int, int>()
+                        : new Dictionary<int, int> { [templateRow] = targetRow };
+                    WriteRowSnapshot(targetRow, bounds.Value.FirstColumn, bounds.Value.LastColumn, snapshot, rowMap, targetRow - templateRow);
+                    replacements += ApplyTemplateCellsCore(rowBindings[index], options, targetRow);
                 }
 
                 WorksheetRoot.Save();
             });
 
             return replacements;
+        }
+
+        private int ApplyTemplateOptionalRowsCore(int firstRow, int rowCount, bool include, IReadOnlyDictionary<string, object?>? bindings, ExcelTemplateOptions options) {
+            if (firstRow <= 0) throw new ArgumentOutOfRangeException(nameof(firstRow));
+            if (rowCount <= 0) throw new ArgumentOutOfRangeException(nameof(rowCount));
+
+            int replacements = 0;
+            WriteLockConditional(() => {
+                if (include) {
+                    if (bindings != null) {
+                        int lastRow = firstRow + rowCount - 1;
+                        for (int row = firstRow; row <= lastRow; row++) {
+                            replacements += ApplyTemplateCellsCore(bindings, options, row);
+                        }
+                    }
+                } else {
+                    RemoveRowsAndShiftUp(firstRow, rowCount);
+                }
+
+                WorksheetRoot.Save();
+            });
+
+            return replacements;
+        }
+
+        private int ApplyTemplateCellsCore(IReadOnlyDictionary<string, object?> bindings, ExcelTemplateOptions options, int? rowFilter) {
+            int replacements = 0;
+            foreach (var cell in WorksheetRoot.Descendants<Cell>().ToList()) {
+                var reference = A1.ParseCellRef(cell.CellReference?.Value ?? string.Empty);
+                if (rowFilter.HasValue && reference.Row != rowFilter.Value) {
+                    continue;
+                }
+
+                var value = GetCellValueSnapshot(cell);
+                if (value.Value is not string text || text.IndexOf("{{", StringComparison.Ordinal) < 0) {
+                    continue;
+                }
+
+                var wholeMarker = WholeCellTemplateMarkerRegex.Match(text);
+                if (wholeMarker.Success) {
+                    string marker = wholeMarker.Groups["name"].Value;
+                    if (!bindings.TryGetValue(marker, out object? replacement)) {
+                        if (ShouldThrowOnMissing(options)) {
+                            ThrowMissingMarker(marker);
+                        }
+
+                        if (options.MissingValueBehavior == ExcelTemplateMissingValueBehavior.EmptyString
+                            && reference.Row > 0
+                            && reference.Col > 0) {
+                            CellValueCore(reference.Row, reference.Col, string.Empty);
+                            replacements++;
+                        }
+
+                        continue;
+                    }
+
+                    string? format = wholeMarker.Groups["format"].Success ? wholeMarker.Groups["format"].Value.Trim() : null;
+                    if (replacement is ExcelTemplateImage templateImage && reference.Row > 0 && reference.Col > 0) {
+                        using (Locking.EnterNoLockScope()) {
+                            if (!templateImage.TryAddToSheet(this, reference.Row, reference.Col)) {
+                                throw new InvalidOperationException($"Template marker '{marker}' image could not be loaded.");
+                            }
+                        }
+
+                        CellValueCore(reference.Row, reference.Col, string.Empty);
+                        replacements++;
+                        continue;
+                    }
+
+                    string? numberFormat = ResolveTemplateNumberFormatAlias(format, options.FormatProvider);
+                    if (numberFormat != null && replacement != null && reference.Row > 0 && reference.Col > 0) {
+                        CellValueCore(reference.Row, reference.Col, replacement);
+                        FormatCellCore(reference.Row, reference.Col, numberFormat);
+                        replacements++;
+                        continue;
+                    }
+                }
+
+                int cellReplacements = 0;
+                string replaced = TemplateMarkerRegex.Replace(text, match => {
+                    string marker = match.Groups["name"].Value;
+                    if (!bindings.TryGetValue(marker, out object? replacement)) {
+                        if (ShouldThrowOnMissing(options)) {
+                            ThrowMissingMarker(marker);
+                        }
+
+                        if (options.MissingValueBehavior == ExcelTemplateMissingValueBehavior.EmptyString) {
+                            cellReplacements++;
+                            return string.Empty;
+                        }
+
+                        return match.Value;
+                    }
+
+                    cellReplacements++;
+                    string? format = match.Groups["format"].Success ? match.Groups["format"].Value.Trim() : null;
+                    return FormatTemplateValue(replacement, format, options);
+                });
+
+                if (cellReplacements == 0 || string.Equals(replaced, text, StringComparison.Ordinal)) {
+                    continue;
+                }
+
+                cell.CellFormula = null;
+                cell.CellValue = null;
+                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString;
+                cell.InlineString = new InlineString(new Text(Utilities.ExcelSanitizer.SanitizeString(replaced)));
+                replacements += cellReplacements;
+            }
+
+            return replacements;
+        }
+
+        private (int FirstColumn, int LastColumn)? GetTemplateRowBounds(int templateRow) {
+            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
+            var row = sheetData?.Elements<Row>().FirstOrDefault(item => item.RowIndex?.Value == (uint)templateRow);
+            if (row == null) {
+                return null;
+            }
+
+            int firstColumn = int.MaxValue;
+            int lastColumn = 0;
+            foreach (var cell in row.Elements<Cell>()) {
+                if (cell.CellReference?.Value is not string reference || reference.Length == 0) {
+                    continue;
+                }
+
+                int column = GetColumnIndex(reference);
+                if (column <= 0) {
+                    continue;
+                }
+
+                firstColumn = Math.Min(firstColumn, column);
+                lastColumn = Math.Max(lastColumn, column);
+            }
+
+            return lastColumn == 0 ? null : (firstColumn, lastColumn);
+        }
+
+        private void ShiftRowsDown(int firstRow, int count) {
+            if (count <= 0) {
+                return;
+            }
+
+            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
+            if (sheetData == null) {
+                return;
+            }
+
+            foreach (var row in sheetData.Elements<Row>()
+                .Where(item => item.RowIndex?.Value >= (uint)firstRow)
+                .OrderByDescending(item => item.RowIndex?.Value ?? 0U)
+                .ToList()) {
+                int newRowIndex = (int)(row.RowIndex!.Value + (uint)count);
+                row.RowIndex = (uint)newRowIndex;
+                foreach (var cell in row.Elements<Cell>()) {
+                    if (cell.CellReference?.Value is not string reference || reference.Length == 0) {
+                        continue;
+                    }
+
+                    int column = GetColumnIndex(reference);
+                    if (column > 0) {
+                        cell.CellReference = BuildCellReference(newRowIndex, column);
+                    }
+                }
+            }
+
+            RewriteWorksheetFormulaReferences(firstRow, count);
+            RemapShiftedRowMetadata(firstRow, count);
+            ShiftMergeCellsRows(firstRow, count);
+
+            _lastAccessedRow = null;
+            _lastAccessedRowIndex = 0;
+            _lastAccessedCell = null;
+            _lastAccessedCellRowIndex = 0;
+            _lastAccessedCellColumnIndex = 0;
+            ClearHeaderCache();
+        }
+
+        private void RemoveRowsAndShiftUp(int firstRow, int count) {
+            if (count <= 0) {
+                return;
+            }
+
+            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
+            if (sheetData == null) {
+                return;
+            }
+
+            int lastRemovedRow = firstRow + count - 1;
+            foreach (var row in sheetData.Elements<Row>().ToList()) {
+                if (row.RowIndex == null) {
+                    continue;
+                }
+
+                int rowIndex = checked((int)row.RowIndex.Value);
+                if (rowIndex >= firstRow && rowIndex <= lastRemovedRow) {
+                    row.Remove();
+                    continue;
+                }
+
+                if (rowIndex > lastRemovedRow) {
+                    int newRowIndex = rowIndex - count;
+                    row.RowIndex = (uint)newRowIndex;
+                    foreach (var cell in row.Elements<Cell>()) {
+                        if (cell.CellReference?.Value is not string reference || reference.Length == 0) {
+                            continue;
+                        }
+
+                        int column = GetColumnIndex(reference);
+                        if (column > 0) {
+                            cell.CellReference = BuildCellReference(newRowIndex, column);
+                        }
+                    }
+                }
+            }
+
+            RewriteDeletedWorksheetFormulaReferences(firstRow, lastRemovedRow, -count);
+            RemapDeletedRowMetadata(firstRow, lastRemovedRow, -count);
+            ShiftMergeCellsRows(firstRow, -count, lastRemovedRow);
+
+            _lastAccessedRow = null;
+            _lastAccessedRowIndex = 0;
+            _lastAccessedCell = null;
+            _lastAccessedCellRowIndex = 0;
+            _lastAccessedCellColumnIndex = 0;
+            ClearHeaderCache();
+        }
+
+        private static bool ShouldThrowOnMissing(ExcelTemplateOptions options) {
+            return options.ThrowOnMissing || options.MissingValueBehavior == ExcelTemplateMissingValueBehavior.Throw;
+        }
+
+        private static void ThrowMissingMarker(string marker) {
+            throw new InvalidOperationException($"Template marker '{marker}' was not supplied.");
+        }
+
+        private void ShiftMergeCellsRows(int firstAffectedRow, int delta, int? lastDeletedRow = null) {
+            var merges = WorksheetRoot.GetFirstChild<MergeCells>();
+            if (merges == null || delta == 0) {
+                return;
+            }
+
+            uint count = 0;
+            foreach (var merge in merges.Elements<MergeCell>().ToList()) {
+                if (merge.Reference?.Value is not string reference
+                    || !TryParseReference(reference, out var bounds)) {
+                    count++;
+                    continue;
+                }
+
+                if (!TryRemapShiftedReferenceRows(bounds, firstAffectedRow, delta, lastDeletedRow, out var remappedBounds)) {
+                    count++;
+                    continue;
+                }
+
+                if (remappedBounds == null) {
+                    merge.Remove();
+                    continue;
+                }
+
+                merge.Reference = ToReference(remappedBounds.Value.r1, remappedBounds.Value.c1, remappedBounds.Value.r2, remappedBounds.Value.c2);
+                count++;
+            }
+
+            merges.Count = count;
         }
 
         /// <summary>
@@ -296,12 +715,34 @@ namespace OfficeIMO.Excel {
                 return string.Empty;
             }
 
+            if (value is TimeSpan timeSpan && IsDurationFormatAlias(format)) {
+                return FormatDurationText(timeSpan);
+            }
+
             string? resolvedFormat = ResolveTemplateFormatAlias(format);
             if (value is IFormattable formattable) {
                 return formattable.ToString(resolvedFormat, options.FormatProvider ?? CultureInfo.CurrentCulture) ?? string.Empty;
             }
 
             return Convert.ToString(value, options.FormatProvider as CultureInfo ?? CultureInfo.CurrentCulture) ?? string.Empty;
+        }
+
+        private static bool IsDurationFormatAlias(string? format) {
+            if (string.IsNullOrWhiteSpace(format)) {
+                return false;
+            }
+
+            string trimmed = format!.Trim();
+            return string.Equals(trimmed, "duration", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(trimmed, "durationhours", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(trimmed, "elapsed", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string FormatDurationText(TimeSpan value) {
+            string sign = value < TimeSpan.Zero ? "-" : string.Empty;
+            value = value.Duration();
+            int totalHours = (int)Math.Floor(value.TotalHours);
+            return string.Format(CultureInfo.InvariantCulture, "{0}{1}:{2:00}:{3:00}", sign, totalHours, value.Minutes, value.Seconds);
         }
 
         private static string? ResolveTemplateFormatAlias(string? format) {
@@ -328,6 +769,10 @@ namespace OfficeIMO.Excel {
                     return "yyyy-MM-dd HH:mm:ss";
                 case "time":
                     return "HH:mm:ss";
+                case "duration":
+                case "durationhours":
+                case "elapsed":
+                    return @"hh\:mm\:ss";
                 default:
                     return trimmed;
             }
@@ -357,6 +802,10 @@ namespace OfficeIMO.Excel {
                     return ExcelNumberFormats.Get(ExcelNumberPreset.DateTime);
                 case "time":
                     return ExcelNumberFormats.Get(ExcelNumberPreset.Time);
+                case "duration":
+                case "durationhours":
+                case "elapsed":
+                    return ExcelNumberFormats.Get(ExcelNumberPreset.DurationHours);
                 default:
                     return null;
             }

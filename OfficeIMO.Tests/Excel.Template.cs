@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
+using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -49,6 +52,460 @@ namespace OfficeIMO.Tests {
 
                 Assert.Throws<InvalidOperationException>(() =>
                     sheet.ApplyTemplate(new Dictionary<string, object?>(), throwOnMissing: true));
+
+                Assert.Throws<InvalidOperationException>(() =>
+                    sheet.ApplyTemplate(new Dictionary<string, object?>(), new ExcelTemplateOptions {
+                        MissingValueBehavior = ExcelTemplateMissingValueBehavior.Throw
+                    }));
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelTemplate_MissingValuePolicyCanReplaceMarkersWithEmptyStrings() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.MissingValuePolicy.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Template");
+                sheet.CellAt(1, 1).SetValue("Hello {{Name}} {{OptionalSuffix}}");
+                sheet.CellAt(2, 1).SetValue("{{OptionalTotal}}");
+                sheet.CellAt(3, 1).SetValue("Still {{Unknown}}");
+
+                int replacements = sheet.ApplyTemplate(new Dictionary<string, object?> {
+                    ["Name"] = "Adatum"
+                }, new ExcelTemplateOptions {
+                    MissingValueBehavior = ExcelTemplateMissingValueBehavior.EmptyString
+                });
+
+                Assert.Equal(4, replacements);
+                document.Save(false);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                var sheet = document["Template"];
+                Assert.Equal("Hello Adatum ", sheet.CellAt(1, 1).GetValue<string>());
+                Assert.Equal(string.Empty, sheet.CellAt(2, 1).GetValue<string>());
+                Assert.Equal("Still ", sheet.CellAt(3, 1).GetValue<string>());
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelTemplate_RepeatsTemplateRowAndShiftsFollowingRows() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRows.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Invoice");
+                sheet.CellAt(1, 1).SetValue("Item").HeaderStyle();
+                sheet.CellAt(1, 2).SetValue("Amount").HeaderStyle();
+                sheet.CellAt(2, 1).SetValue("{{Name}}");
+                sheet.CellAt(2, 2).SetValue("{{Amount:currency}}");
+                sheet.CellAt(3, 1).SetValue("Footer");
+
+                int replacements = sheet.ApplyTemplateRows(2, new[] {
+                    new Dictionary<string, object?> {
+                        ["Name"] = "Consulting",
+                        ["Amount"] = 1200m
+                    },
+                    new Dictionary<string, object?> {
+                        ["Name"] = "Support",
+                        ["Amount"] = 300m
+                    }
+                }, new ExcelTemplateOptions {
+                    FormatProvider = System.Globalization.CultureInfo.GetCultureInfo("en-US"),
+                    MissingValueBehavior = ExcelTemplateMissingValueBehavior.Throw
+                });
+
+                Assert.Equal(4, replacements);
+                document.Save(false);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                var sheet = document["Invoice"];
+                Assert.Equal("Consulting", sheet.CellAt(2, 1).GetValue<string>());
+                Assert.Equal(1200d, sheet.CellAt(2, 2).GetValue<double>());
+                Assert.Equal("Support", sheet.CellAt(3, 1).GetValue<string>());
+                Assert.Equal(300d, sheet.CellAt(3, 2).GetValue<double>());
+                Assert.Equal("Footer", sheet.CellAt(4, 1).GetValue<string>());
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelTemplate_RepeatingRowsRebasesFormulasAndShiftedMerges() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsFormulas.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Invoice");
+                sheet.CellAt(1, 1).SetValue("Item");
+                sheet.CellAt(1, 2).SetValue("Amount");
+                sheet.CellAt(1, 3).SetValue("Double");
+                sheet.CellAt(2, 1).SetValue("{{Name}}");
+                sheet.CellAt(2, 2).SetValue("{{Amount}}");
+                sheet.CellFormula(2, 3, "B2*2");
+                sheet.CellAt(3, 1).SetValue("Footer");
+                sheet.CellFormula(3, 3, "B3");
+                sheet.MergeRange("A3:B3");
+
+                int replacements = sheet.ApplyTemplateRows(2, new[] {
+                    new Dictionary<string, object?> {
+                        ["Name"] = "Consulting",
+                        ["Amount"] = 1200
+                    },
+                    new Dictionary<string, object?> {
+                        ["Name"] = "Support",
+                        ["Amount"] = 300
+                    }
+                });
+
+                Assert.Equal(4, replacements);
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cells = wsPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                var merge = Assert.Single(wsPart.Worksheet.Descendants<MergeCell>());
+
+                Assert.Equal("B2*2", cells["C2"].CellFormula!.Text);
+                Assert.Equal("B3*2", cells["C3"].CellFormula!.Text);
+                Assert.Equal("B4", cells["C4"].CellFormula!.Text);
+                Assert.Equal("A4:B4", merge.Reference!.Value);
+                Assert.DoesNotContain("{{", wsPart.Worksheet.OuterXml, StringComparison.Ordinal);
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelTemplate_RepeatingRowsRebasesStationaryFormulasAndRowMetadata() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsStationaryFormulas.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Invoice");
+                sheet.CellFormula(1, 4, "B4+$B$4");
+                sheet.CellFormula(1, 5, "'Invoice'!$B$4");
+                sheet.CellAt(2, 1).SetValue("Intro");
+                sheet.CellAt(3, 1).SetValue("{{Name}}");
+                sheet.CellAt(3, 2).SetValue("{{Amount}}");
+                sheet.CellFormula(3, 3, "B3*2");
+                sheet.CellFormula(3, 4, "B2+B3+\"A3\"");
+                sheet.CellFormula(3, 6, "$B$3+B3");
+                sheet.CellAt(4, 1).SetValue("Footer");
+                sheet.CellAt(4, 2).SetValue(25);
+                sheet.CellFormula(4, 3, "B4");
+                sheet.MergeRange("A2:A4");
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Row templateRow = worksheetPart.Worksheet.Descendants<Row>().Single(row => row.RowIndex?.Value == 3U);
+                templateRow.Height = 30D;
+                templateRow.CustomHeight = true;
+                templateRow.Hidden = true;
+                templateRow.OutlineLevel = 1;
+                worksheetPart.Worksheet.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var sheet = document["Invoice"];
+                int replacements = sheet.ApplyTemplateRows(3, new[] {
+                    new Dictionary<string, object?> {
+                        ["Name"] = "Consulting",
+                        ["Amount"] = 1200
+                    },
+                    new Dictionary<string, object?> {
+                        ["Name"] = "Support",
+                        ["Amount"] = 300
+                    }
+                });
+
+                Assert.Equal(4, replacements);
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                var rows = worksheetPart.Worksheet.Descendants<Row>().ToDictionary(row => row.RowIndex!.Value);
+                MergeCell merge = Assert.Single(worksheetPart.Worksheet.Descendants<MergeCell>());
+
+                Assert.Equal("B5+$B$5", cells["D1"].CellFormula!.Text);
+                Assert.Equal("'Invoice'!$B$5", cells["E1"].CellFormula!.Text);
+                Assert.Equal("B3*2", cells["C3"].CellFormula!.Text);
+                Assert.Equal("B4*2", cells["C4"].CellFormula!.Text);
+                Assert.Equal("B3+B4+\"A3\"", cells["D4"].CellFormula!.Text);
+                Assert.Equal("$B$3+B3", cells["F3"].CellFormula!.Text);
+                Assert.Equal("$B$3+B4", cells["F4"].CellFormula!.Text);
+                Assert.Equal("B5", cells["C5"].CellFormula!.Text);
+                Assert.Equal("A2:A5", merge.Reference!.Value);
+                Assert.True(rows[4U].Hidden!.Value);
+                Assert.True(rows[4U].CustomHeight!.Value);
+                Assert.Equal(30D, rows[4U].Height!.Value);
+                Assert.Equal(1, rows[4U].OutlineLevel!.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelTemplate_RepeatingRowsRebasesCrossSheetRelativeFormulas() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsCrossSheetFormulas.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var invoice = document.AddWorkSheet("Invoice");
+                document.AddWorkSheet("Inputs");
+                invoice.CellAt(2, 1).SetValue("{{Name}}");
+                invoice.CellFormula(2, 2, "'Inputs'!B2+'Inputs'!$C$2");
+
+                invoice.ApplyTemplateRows(2, new[] {
+                    new Dictionary<string, object?> {
+                        ["Name"] = "Consulting"
+                    },
+                    new Dictionary<string, object?> {
+                        ["Name"] = "Support"
+                    }
+                });
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = GetWorksheetPartByNameForTemplateTests(spreadsheet, "Invoice");
+                var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+
+                Assert.Equal("'Inputs'!B2+'Inputs'!$C$2", cells["B2"].CellFormula!.Text);
+                Assert.Equal("'Inputs'!B3+'Inputs'!$C$2", cells["B3"].CellFormula!.Text);
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelTemplate_OptionalRowsCanBeIncludedAndBound() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsIncluded.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Invoice");
+                sheet.CellAt(1, 1).SetValue("Header");
+                sheet.CellAt(2, 1).SetValue("Discount");
+                sheet.CellAt(2, 2).SetValue("{{Discount:currency}}");
+                sheet.CellAt(3, 1).SetValue("Reason");
+                sheet.CellAt(3, 2).SetValue("{{Reason}}");
+                sheet.CellAt(4, 1).SetValue("Footer");
+
+                int replacements = sheet.ApplyTemplateOptionalRows(2, 2, include: true, new {
+                    Discount = 25m,
+                    Reason = "Loyalty"
+                }, new ExcelTemplateOptions {
+                    FormatProvider = System.Globalization.CultureInfo.GetCultureInfo("en-US"),
+                    MissingValueBehavior = ExcelTemplateMissingValueBehavior.Throw
+                });
+
+                Assert.Equal(2, replacements);
+                document.Save(false);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                var sheet = document["Invoice"];
+                Assert.Equal("Header", sheet.CellAt(1, 1).GetValue<string>());
+                Assert.Equal("Discount", sheet.CellAt(2, 1).GetValue<string>());
+                Assert.Equal(25d, sheet.CellAt(2, 2).GetValue<double>());
+                Assert.Equal("Reason", sheet.CellAt(3, 1).GetValue<string>());
+                Assert.Equal("Loyalty", sheet.CellAt(3, 2).GetValue<string>());
+                Assert.Equal("Footer", sheet.CellAt(4, 1).GetValue<string>());
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelTemplate_OptionalRowsCanBeRemovedAndShiftFollowingRows() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsRemoved.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Invoice");
+                sheet.CellAt(1, 1).SetValue("Header");
+                sheet.CellAt(2, 1).SetValue("Optional {{Note}}");
+                sheet.CellAt(3, 1).SetValue("Optional {{Amount:currency}}");
+                sheet.CellAt(4, 1).SetValue("Footer");
+
+                int replacements = sheet.RemoveTemplateOptionalRows(2, 2);
+
+                Assert.Equal(0, replacements);
+                document.Save(false);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                var sheet = document["Invoice"];
+                Assert.Equal("Header", sheet.CellAt(1, 1).GetValue<string>());
+                Assert.Equal("Footer", sheet.CellAt(2, 1).GetValue<string>());
+                Assert.Null(sheet.CellAt(3, 1).GetValue<string>());
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelTemplate_RemovingOptionalRowsRewritesMovedFormulas() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsRemovedFormulas.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Invoice");
+                sheet.CellAt(1, 1).SetValue("Header");
+                sheet.CellAt(2, 1).SetValue("Optional {{Note}}");
+                sheet.CellAt(3, 1).SetValue("Optional {{Amount}}");
+                sheet.CellFormula(4, 1, "B4");
+
+                sheet.RemoveTemplateOptionalRows(2, 2);
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cell = wsPart.Worksheet.Descendants<Cell>().Single(item => item.CellReference?.Value == "A2");
+
+                Assert.Equal("B2", cell.CellFormula!.Text);
+                Assert.DoesNotContain(wsPart.Worksheet.Descendants<Cell>(), item => item.CellReference?.Value == "A4");
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelTemplate_RemovingOptionalRowsRebasesStationaryFormulasAndBoundaryMerges() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsRemovedStationaryFormulas.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Invoice");
+                sheet.CellAt(1, 1).SetValue("Header");
+                sheet.CellFormula(1, 4, "A4+$A$4");
+                sheet.CellFormula(1, 5, "'Invoice'!$A$4");
+                sheet.CellFormula(1, 6, "$A$2");
+                sheet.CellFormula(1, 7, "IF(\"A4\"=\"A4\",A4,0)");
+                sheet.CellFormula(1, 8, "SUM(A2:A5)");
+                sheet.CellFormula(1, 9, "SUM(A1:A3)");
+                sheet.CellFormula(1, 10, "SUM(A3:A4)");
+                sheet.CellAt(2, 1).SetValue("Optional {{Note}}");
+                sheet.CellAt(3, 1).SetValue("Optional {{Amount}}");
+                sheet.CellAt(4, 1).SetValue("Footer");
+                sheet.MergeRange("B1:B4");
+                sheet.MergeRange("C2:C3");
+
+                sheet.RemoveTemplateOptionalRows(2, 2);
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                MergeCell merge = Assert.Single(worksheetPart.Worksheet.Descendants<MergeCell>());
+
+                Assert.Equal("A2+$A$2", cells["D1"].CellFormula!.Text);
+                Assert.Equal("'Invoice'!$A$2", cells["E1"].CellFormula!.Text);
+                Assert.Equal("#REF!", cells["F1"].CellFormula!.Text);
+                Assert.Equal("IF(\"A4\"=\"A4\",A2,0)", cells["G1"].CellFormula!.Text);
+                Assert.Equal("SUM(A2:A3)", cells["H1"].CellFormula!.Text);
+                Assert.Equal("SUM(A1:A1)", cells["I1"].CellFormula!.Text);
+                Assert.Equal("SUM(A2:A2)", cells["J1"].CellFormula!.Text);
+                Assert.Equal("B1:B2", merge.Reference!.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelTemplate_RepeatingRowsRemapsRowBoundMetadata() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsMetadata.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Invoice");
+                sheet.CellAt(1, 1).SetValue("Header");
+                sheet.CellAt(2, 1).SetValue("{{Name}}");
+                sheet.CellAt(3, 1).SetValue("Footer");
+                sheet.CellAt(3, 2).SetValue("Choice");
+                sheet.CellAt(3, 3).SetValue(1);
+                sheet.SetComment(3, 1, "Footer note");
+                sheet.CellAt(4, 1).SetValue("Trailing");
+                sheet.SetComment(4, 1, "Trailing note");
+                sheet.SetHyperlink(3, 1, "https://example.org");
+                sheet.AddConditionalFormulaRule("C3", "C3>0");
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var worksheet = worksheetPart.Worksheet;
+                var validations = worksheet.GetFirstChild<DataValidations>() ?? worksheet.InsertAfter(new DataValidations(), worksheet.GetFirstChild<SheetData>());
+                validations.Append(new DataValidation {
+                    Type = DataValidationValues.List,
+                    SequenceOfReferences = new ListValue<StringValue> { InnerText = "B3" }
+                });
+                validations.Count = 1U;
+                worksheet.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var sheet = document["Invoice"];
+                sheet.ApplyTemplateRows(2, new[] {
+                    new Dictionary<string, object?> {
+                        ["Name"] = "Consulting"
+                    },
+                    new Dictionary<string, object?> {
+                        ["Name"] = "Support"
+                    }
+                });
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var worksheet = worksheetPart.Worksheet;
+                var comments = worksheetPart.WorksheetCommentsPart!.Comments!.CommentList!.Elements<Comment>()
+                    .OrderBy(comment => comment.Reference!.Value)
+                    .ToList();
+                Hyperlink hyperlink = Assert.Single(worksheet.Elements<Hyperlinks>().Single().Elements<Hyperlink>());
+                DataValidation validation = Assert.Single(worksheet.GetFirstChild<DataValidations>()!.Elements<DataValidation>());
+                ConditionalFormatting conditional = Assert.Single(worksheet.Elements<ConditionalFormatting>());
+                VmlDrawingPart vmlPart = Assert.Single(worksheetPart.VmlDrawingParts);
+                XDocument vml = XDocument.Load(vmlPart.GetStream());
+                XNamespace excelNamespace = "urn:schemas-microsoft-com:office:excel";
+                string[] vmlCoordinates = vml.Root!.Descendants(excelNamespace + "ClientData")
+                    .Select(clientData => string.Join(
+                        ",",
+                        clientData.Element(excelNamespace + "Row")?.Value.Trim(),
+                        clientData.Element(excelNamespace + "Column")?.Value.Trim()))
+                    .OrderBy(value => value, StringComparer.Ordinal)
+                    .ToArray();
+
+                Assert.Equal(new[] { "A4", "A5" }, comments.Select(comment => comment.Reference!.Value).ToArray());
+                Assert.Equal(new[] { "3,0", "4,0" }, vmlCoordinates);
+                Assert.Equal("A4", hyperlink.Reference!.Value);
+                Assert.Equal("B4", validation.SequenceOfReferences!.InnerText);
+                Assert.Equal("C4", conditional.SequenceOfReferences!.InnerText);
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelTemplate_ImageMarkersBindBytesAndStreams() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.ImageMarkers.xlsx");
+            byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Template");
+                sheet.CellAt(1, 1).SetValue("{{Logo}}");
+                sheet.CellAt(3, 1).SetValue("{{Badge}}");
+
+                using var badgeStream = new MemoryStream(png);
+                int replacements = sheet.ApplyTemplate(new Dictionary<string, object?> {
+                    ["Logo"] = ExcelTemplateImage.FromBytes(png, widthPixels: 24, heightPixels: 18, name: "Logo", altText: "Company logo"),
+                    ["Badge"] = ExcelTemplateImage.FromStream(badgeStream, widthPixels: 12, heightPixels: 10, name: "Badge", altText: "Status badge")
+                });
+
+                Assert.Equal(2, replacements);
+                Assert.Equal(2, sheet.Images.Count());
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var pictures = wsPart.DrawingsPart!.WorksheetDrawing!.Descendants<Xdr.Picture>().ToList();
+                var extents = wsPart.DrawingsPart.WorksheetDrawing.Descendants<Xdr.Extent>().ToList();
+
+                Assert.Equal(2, pictures.Count);
+                Assert.Contains(pictures, picture => picture.NonVisualPictureProperties!.NonVisualDrawingProperties!.Name == "Logo");
+                Assert.Contains(pictures, picture => picture.NonVisualPictureProperties!.NonVisualDrawingProperties!.Name == "Badge");
+                Assert.Contains(extents, extent => extent.Cx!.Value == 24L * 9525L && extent.Cy!.Value == 18L * 9525L);
+                Assert.Contains(extents, extent => extent.Cx!.Value == 12L * 9525L && extent.Cy!.Value == 10L * 9525L);
+                Assert.DoesNotContain("{{", wsPart.Worksheet!.OuterXml, StringComparison.Ordinal);
+                Assert.Equal(2, wsPart.DrawingsPart.ImageParts.Count());
             }
         }
 
@@ -162,6 +619,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelTemplate_DurationAliasFormatsTextAndTypedCells() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.DurationAlias.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Schedule");
+                sheet.CellAt(1, 1).SetValue("Elapsed {{Duration:duration}}");
+                sheet.CellAt(2, 1).SetValue("{{Duration:duration}}");
+
+                int replacements = sheet.ApplyTemplate(new {
+                    Duration = TimeSpan.FromMinutes(1650)
+                }, System.Globalization.CultureInfo.InvariantCulture);
+
+                Assert.Equal(2, replacements);
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cells = wsPart.Worksheet!.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                string stylesXml = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.OuterXml;
+
+                Assert.Equal("Elapsed 27:30:00", cells["A1"].InlineString!.Text!.Text);
+                Assert.Equal(CellValues.Number, cells["A2"].DataType!.Value);
+                Assert.Equal(TimeSpan.FromMinutes(1650).TotalDays.ToString(System.Globalization.CultureInfo.InvariantCulture), cells["A2"].CellValue!.Text);
+                Assert.Contains("[h]:mm:ss", stylesXml, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        [Fact]
         public void Test_ExcelTemplate_InspectionReportsMarkersAndMissingBindings() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.Inspect.xlsx");
 
@@ -208,6 +694,12 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(complete.MissingMarkers);
                 Assert.Throws<InvalidOperationException>(() => template.EnsureAllMarkersBound());
             }
+        }
+
+        private static WorksheetPart GetWorksheetPartByNameForTemplateTests(SpreadsheetDocument document, string sheetName) {
+            WorkbookPart workbookPart = document.WorkbookPart!;
+            Sheet sheet = workbookPart.Workbook.Sheets!.Elements<Sheet>().Single(item => item.Name == sheetName);
+            return (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
         }
 
         private sealed class InvoiceTemplateModel {

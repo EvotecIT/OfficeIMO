@@ -342,6 +342,9 @@ namespace OfficeIMO.Excel {
                     };
                     uint? numberFormatId = ResolveNumberFormatId(workbookPart, df.NumberFormatId, df.NumberFormat);
                     if (numberFormatId.HasValue) dataField.NumberFormatId = numberFormatId.Value;
+                    if (df.ShowDataAs.HasValue) dataField.ShowDataAs = df.ShowDataAs.Value;
+                    if (df.BaseField.HasValue) dataField.BaseField = df.BaseField.Value;
+                    if (df.BaseItem.HasValue) dataField.BaseItem = df.BaseItem.Value;
                     dataFieldsElement.Append(dataField);
                 }
 
@@ -796,7 +799,10 @@ namespace OfficeIMO.Excel {
                 var name = ResolveFieldName(idx, cacheFields);
                 var fn = field.Subtotal?.Value ?? DataConsolidateFunctionValues.Sum;
                 var display = field.Name?.Value;
-                list.Add(new ExcelPivotDataFieldInfo(name, fn, display, field.NumberFormatId?.Value));
+                list.Add(new ExcelPivotDataFieldInfo(name, fn, display, field.NumberFormatId?.Value,
+                    field.ShowDataAs?.Value,
+                    field.BaseField?.Value,
+                    field.BaseItem?.Value));
             }
             return list;
         }

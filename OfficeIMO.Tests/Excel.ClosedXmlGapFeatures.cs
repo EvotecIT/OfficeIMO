@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -165,6 +166,431 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ClosedXmlGap_CalculateFacade_EvaluatesSupportedFormulaCaches() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateFacade.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Calc");
+                sheet.CellValue(1, 1, 2d);
+                sheet.CellValue(2, 1, 3d);
+                sheet.CellFormula(3, 1, "SUM(A1:A2)");
+                sheet.CellFormula(4, 1, "A1+A2");
+
+                Assert.Equal(2, document.Calculate());
+
+                ExcelFormulaInspection inspection = document.InspectFormulas();
+                Assert.Equal(0, inspection.MissingCachedResults);
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A3" && formula.CachedValue == "5");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A4" && formula.CachedValue == "5");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Cell sumCell = worksheetPart.Worksheet.Descendants<Cell>().First(cell => cell.CellReference?.Value == "A3");
+                Cell binaryCell = worksheetPart.Worksheet.Descendants<Cell>().First(cell => cell.CellReference?.Value == "A4");
+
+                Assert.Equal("5", sumCell.CellValue!.Text);
+                Assert.Equal("5", binaryCell.CellValue!.Text);
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_CalculateFacade_EvaluatesSameSheetFormulaDependencies() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateDependencies.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Calc");
+                sheet.CellFormula(1, 1, "A2+1");
+                sheet.CellFormula(2, 1, "A3+1");
+                sheet.CellFormula(3, 1, "SUM(B1:B2)");
+                sheet.CellValue(1, 2, 2d);
+                sheet.CellValue(2, 2, 3d);
+
+                Assert.Equal(3, document.Calculate());
+
+                ExcelFormulaInspection inspection = document.InspectFormulas();
+                Assert.Equal(0, inspection.MissingCachedResults);
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A1" && formula.CachedValue == "7");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A2" && formula.CachedValue == "6");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A3" && formula.CachedValue == "5");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Dictionary<string, Cell> cells = worksheetPart.Worksheet.Descendants<Cell>()
+                    .Where(cell => cell.CellReference?.Value != null)
+                    .ToDictionary(cell => cell.CellReference!.Value!);
+
+                Assert.Equal("7", cells["A1"].CellValue!.Text);
+                Assert.Equal("6", cells["A2"].CellValue!.Text);
+                Assert.Equal("5", cells["A3"].CellValue!.Text);
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_CalculateFacade_EvaluatesCrossSheetNumericReferences() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateCrossSheetReferences.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet calc = document.AddWorkSheet("Calc");
+                ExcelSheet data = document.AddWorkSheet("Data Sheet");
+                ExcelSheet budget = document.AddWorkSheet("Budget $ FY26");
+                data.CellValue(1, 1, 2d);
+                data.CellValue(2, 1, 3d);
+                data.CellValue(1, 2, 4d);
+                data.CellValue(2, 2, 6d);
+                budget.CellValue(1, 1, 7d);
+
+                calc.CellFormula(1, 1, "'Data Sheet'!A1+'Data Sheet'!A2");
+                calc.CellFormula(2, 1, "SUM('Data Sheet'!B1:B2)");
+                calc.CellFormula(3, 1, "IF('Data Sheet'!B2>5,10,0)");
+                calc.CellFormula(4, 1, "'Budget $ FY26'!$A$1+1");
+                calc.CellFormula(5, 1, "IF('Budget $ FY26'!$A$1>6,11,0)");
+                calc.CellFormula(6, 1, "'Budget $ FY26'!A1+'Data Sheet'!A1");
+
+                Assert.Equal(6, document.Calculate());
+
+                ExcelFormulaInspection inspection = document.InspectFormulas();
+                Assert.Equal(0, inspection.MissingCachedResults);
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A1" && formula.CachedValue == "5");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A2" && formula.CachedValue == "10");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A3" && formula.CachedValue == "10");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A4" && formula.CachedValue == "8");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A5" && formula.CachedValue == "11");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A6" && formula.CachedValue == "9");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart calcPart = spreadsheet.WorkbookPart!.WorksheetParts
+                    .First(part => part.Worksheet.Descendants<Cell>().Any(cell => cell.CellReference?.Value == "A3" && cell.CellFormula != null));
+                Dictionary<string, Cell> cells = calcPart.Worksheet.Descendants<Cell>()
+                    .Where(cell => cell.CellReference?.Value != null)
+                    .ToDictionary(cell => cell.CellReference!.Value!);
+
+                Assert.Equal("5", cells["A1"].CellValue!.Text);
+                Assert.Equal("10", cells["A2"].CellValue!.Text);
+                Assert.Equal("10", cells["A3"].CellValue!.Text);
+                Assert.Equal("8", cells["A4"].CellValue!.Text);
+                Assert.Equal("11", cells["A5"].CellValue!.Text);
+                Assert.Equal("9", cells["A6"].CellValue!.Text);
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_CalculateFacade_EvaluatesCrossSheetFormulaDependencies() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateCrossSheetFormulaDependencies.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet calc = document.AddWorkSheet("Calc");
+                ExcelSheet data = document.AddWorkSheet("Data");
+                calc.CellFormula(1, 1, "Data!A1+1");
+                data.CellFormula(1, 1, "A2+1");
+                data.CellValue(2, 1, 4d);
+
+                Assert.Equal(2, document.Calculate());
+
+                ExcelFormulaInspection inspection = document.InspectFormulas();
+                Assert.Equal(0, inspection.MissingCachedResults);
+                Assert.Contains(inspection.Formulas, formula => formula.SheetName == "Calc" && formula.CellReference == "A1" && formula.CachedValue == "6");
+                Assert.Contains(inspection.Formulas, formula => formula.SheetName == "Data" && formula.CellReference == "A1" && formula.CachedValue == "5");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart calcPart = spreadsheet.WorkbookPart!.WorksheetParts
+                    .First(part => part.Worksheet.Descendants<Cell>().Any(cell => cell.CellReference?.Value == "A1" && cell.CellFormula?.Text == "Data!A1+1"));
+                Cell calcCell = calcPart.Worksheet.Descendants<Cell>().First(cell => cell.CellReference?.Value == "A1");
+
+                Assert.Equal("6", calcCell.CellValue!.Text);
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_CalculateFacade_EvaluatesNamedRangeReferences() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateNamedRanges.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet calc = document.AddWorkSheet("Calc");
+                ExcelSheet data = document.AddWorkSheet("Data Sheet");
+                data.CellValue(1, 1, 2d);
+                data.CellValue(2, 1, 3d);
+                data.CellValue(1, 2, 4d);
+
+                document.SetNamedRange("GlobalValues", "'Data Sheet'!A1:A2", save: false);
+                document.SetNamedRange("SharedInput", "'Data Sheet'!A1", save: false);
+                data.SetNamedRange("SharedInput", "B1", save: false);
+
+                calc.CellFormula(1, 1, "SUM(GlobalValues)");
+                calc.CellFormula(2, 1, "SharedInput*10");
+                calc.CellFormula(3, 1, "'Data Sheet'!SharedInput*5");
+                data.CellFormula(3, 2, "SharedInput*10");
+
+                Assert.Equal(4, document.Calculate());
+
+                ExcelFormulaInspection inspection = document.InspectFormulas();
+                Assert.Equal(0, inspection.MissingCachedResults);
+                Assert.Contains(inspection.Formulas, formula => formula.SheetName == "Calc" && formula.CellReference == "A1" && formula.CachedValue == "5");
+                Assert.Contains(inspection.Formulas, formula => formula.SheetName == "Calc" && formula.CellReference == "A2" && formula.CachedValue == "20");
+                Assert.Contains(inspection.Formulas, formula => formula.SheetName == "Calc" && formula.CellReference == "A3" && formula.CachedValue == "20");
+                Assert.Contains(inspection.Formulas, formula => formula.SheetName == "Data Sheet" && formula.CellReference == "B3" && formula.CachedValue == "40");
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFormulaInspection inspection = document.InspectFormulas();
+                Assert.Contains(inspection.Formulas, formula => formula.SheetName == "Calc" && formula.CellReference == "A1" && formula.CachedValue == "5");
+                Assert.Contains(inspection.Formulas, formula => formula.SheetName == "Calc" && formula.CellReference == "A2" && formula.CachedValue == "20");
+                Assert.Contains(inspection.Formulas, formula => formula.SheetName == "Calc" && formula.CellReference == "A3" && formula.CachedValue == "20");
+                Assert.Contains(inspection.Formulas, formula => formula.SheetName == "Data Sheet" && formula.CellReference == "B3" && formula.CachedValue == "40");
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_CalculateFacade_EvaluatesTableReferences() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateTableReferences.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet calc = document.AddWorkSheet("Calc");
+                ExcelSheet data = document.AddWorkSheet("Data");
+                data.CellValue(1, 1, "Region");
+                data.CellValue(1, 2, "Amount");
+                data.CellValue(1, 3, "Tax");
+                data.CellValue(2, 1, "EU");
+                data.CellValue(2, 2, 10d);
+                data.CellValue(2, 3, 1d);
+                data.CellValue(3, 1, "EU");
+                data.CellValue(3, 2, 20d);
+                data.CellValue(3, 3, 2d);
+                data.CellValue(4, 1, "US");
+                data.CellValue(4, 2, 30d);
+                data.CellValue(4, 3, 3d);
+                data.Range("A1:C4").CreateTable("SalesData");
+
+                calc.CellFormula(1, 1, "SUM(SalesData[Amount])");
+                calc.CellFormula(2, 1, "SUM(SalesData[[#Data],[Tax]])");
+                calc.CellFormula(3, 1, "COUNTIF(SalesData[Region],\"EU\")");
+                calc.CellFormula(4, 1, "SUM(SalesData)");
+                calc.CellFormula(5, 1, "XLOOKUP(\"US\",SalesData[Region],SalesData[Amount])");
+
+                Assert.Equal(5, document.Calculate());
+
+                ExcelFormulaInspection inspection = document.InspectFormulas();
+                Assert.Equal(0, inspection.MissingCachedResults);
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A1" && formula.CachedValue == "60");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A2" && formula.CachedValue == "6");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A3" && formula.CachedValue == "2");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A4" && formula.CachedValue == "66");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A5" && formula.CachedValue == "30");
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFormulaInspection inspection = document.InspectFormulas();
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A1" && formula.CachedValue == "60");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A2" && formula.CachedValue == "6");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A3" && formula.CachedValue == "2");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A4" && formula.CachedValue == "66");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A5" && formula.CachedValue == "30");
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_CalculateFacade_EvaluatesCrossSheetTableFormulaDependencies() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateTableFormulaDependencies.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet calc = document.AddWorkSheet("Calc");
+                ExcelSheet data = document.AddWorkSheet("Data");
+                data.CellValue(1, 1, "Region");
+                data.CellValue(1, 2, "Base");
+                data.CellValue(1, 3, "Amount");
+                data.CellValue(2, 1, "EU");
+                data.CellValue(2, 2, 10d);
+                data.CellFormula(2, 3, "B2*2");
+                data.CellValue(3, 1, "US");
+                data.CellValue(3, 2, 5d);
+                data.CellFormula(3, 3, "B3*3");
+                data.Range("A1:C3").CreateTable("SalesData");
+
+                calc.CellFormula(1, 1, "SUM(SalesData[Amount])");
+
+                Assert.Equal(3, document.Calculate());
+
+                ExcelFormulaInspection inspection = document.InspectFormulas();
+                Assert.Equal(0, inspection.MissingCachedResults);
+                Assert.Contains(inspection.Formulas, formula => formula.SheetName == "Calc" && formula.CellReference == "A1" && formula.CachedValue == "35");
+                Assert.Contains(inspection.Formulas, formula => formula.SheetName == "Data" && formula.CellReference == "C2" && formula.CachedValue == "20");
+                Assert.Contains(inspection.Formulas, formula => formula.SheetName == "Data" && formula.CellReference == "C3" && formula.CachedValue == "15");
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFormulaInspection inspection = document.InspectFormulas();
+                Assert.Contains(inspection.Formulas, formula => formula.SheetName == "Calc" && formula.CellReference == "A1" && formula.CachedValue == "35");
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_CalculateFacade_EvaluatesTextHelpersAndLookupReturns() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateTextHelpers.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Text");
+                sheet.CellValue(1, 1, "North");
+                sheet.CellValue(2, 1, "South");
+                sheet.CellValue(3, 1, "  East   Hub  ");
+                sheet.CellValue(5, 1, "EU");
+                sheet.CellValue(5, 2, "Europe");
+                sheet.CellValue(6, 1, "US");
+                sheet.CellValue(6, 2, "United States");
+
+                sheet.CellFormula(1, 3, "CONCAT(A1,\"-\",A2)");
+                sheet.CellFormula(2, 3, "TEXTJOIN(\",\",TRUE,A1:A3)");
+                sheet.CellFormula(3, 3, "LEFT(A2,2)");
+                sheet.CellFormula(4, 3, "RIGHT(A2,3)");
+                sheet.CellFormula(5, 3, "MID(A2,2,3)");
+                sheet.CellFormula(6, 3, "LEN(TRIM(A3))");
+                sheet.CellFormula(7, 3, "TRIM(A3)");
+                sheet.CellFormula(8, 3, "XLOOKUP(\"US\",A5:A6,B5:B6)");
+                sheet.CellFormula(9, 3, "VLOOKUP(\"EU\",A5:B6,2,FALSE)");
+                sheet.CellFormula(10, 3, "CONCAT(\"A\"\"B\",\"-\",A1)");
+
+                Assert.Equal(10, document.Calculate());
+
+                ExcelFormulaInspection inspection = document.InspectFormulas();
+                Assert.Equal(0, inspection.MissingCachedResults);
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "C1" && formula.CachedValue == "North-South");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "C2" && formula.CachedValue == "North,South,  East   Hub  ");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "C3" && formula.CachedValue == "So");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "C4" && formula.CachedValue == "uth");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "C5" && formula.CachedValue == "out");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "C6" && formula.CachedValue == "8");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "C7" && formula.CachedValue == "East Hub");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "C8" && formula.CachedValue == "United States");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "C9" && formula.CachedValue == "Europe");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "C10" && formula.CachedValue == "A\"B-North");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Dictionary<string, Cell> cells = worksheetPart.Worksheet.Descendants<Cell>()
+                    .Where(cell => cell.CellReference?.Value != null)
+                    .ToDictionary(cell => cell.CellReference!.Value!);
+
+                Assert.Equal(CellValues.String, cells["C1"].DataType!.Value);
+                Assert.Equal("North-South", cells["C1"].CellValue!.Text);
+                Assert.Equal(CellValues.Number, cells["C6"].DataType!.Value);
+                Assert.Equal("8", cells["C6"].CellValue!.Text);
+                Assert.Equal("United States", cells["C8"].CellValue!.Text);
+                Assert.Equal("Europe", cells["C9"].CellValue!.Text);
+                Assert.Equal("A\"B-North", cells["C10"].CellValue!.Text);
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_CalculateFacade_LeavesCircularFormulaDependenciesUncached() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateCircularDependencies.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Calc");
+                sheet.CellFormula(1, 1, "A2+1");
+                sheet.CellFormula(2, 1, "A1+1");
+
+                Assert.Equal(0, document.Calculate());
+
+                ExcelFormulaInspection inspection = document.InspectFormulas();
+                Assert.Equal(2, inspection.MissingCachedResults);
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A1" && formula.CachedValue == null);
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A2" && formula.CachedValue == null);
+                document.Save();
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_CalculateFacade_LeavesTextFormulasWithUnresolvedDependenciesUncached() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateUnresolvedTextDependencies.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Calc");
+                sheet.CellFormula(1, 1, "A2+1");
+                sheet.CellFormula(2, 1, "A1+1");
+                sheet.CellFormula(1, 2, "CONCAT(A1,\"x\")");
+                sheet.CellFormula(2, 2, "TEXTJOIN(\",\",TRUE,A1:A2)");
+
+                Assert.Equal(0, document.Calculate());
+
+                ExcelFormulaInspection inspection = document.InspectFormulas();
+                Assert.Equal(4, inspection.MissingCachedResults);
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "B1" && formula.CachedValue == null);
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "B2" && formula.CachedValue == null);
+                document.Save();
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_SaveOptions_CanEvaluateFormulasForSingleSave() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculationSaveOptions.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Calc");
+                sheet.CellFormula(1, 1, "A3*2");
+                sheet.CellValue(1, 2, 2d);
+                sheet.CellValue(2, 2, 3d);
+                sheet.CellFormula(3, 1, "SUM(B1:B2)");
+
+                document.Save(filePath, openExcel: false, options: new ExcelSaveOptions {
+                    EvaluateFormulasBeforeSave = true,
+                    ForceFullCalculationOnOpen = true
+                });
+
+                Assert.False(document.Calculation.EvaluateFormulasBeforeSave);
+                Assert.False(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                Cell dependentCell = worksheetPart.Worksheet.Descendants<Cell>().First(cell => cell.CellReference?.Value == "A1");
+                Cell sumCell = worksheetPart.Worksheet.Descendants<Cell>().First(cell => cell.CellReference?.Value == "A3");
+
+                Assert.Equal("10", dependentCell.CellValue!.Text);
+                Assert.Equal("5", sumCell.CellValue!.Text);
+                Assert.True(spreadsheet.WorkbookPart.Workbook.CalculationProperties!.ForceFullCalculation!.Value);
+                Assert.True(spreadsheet.WorkbookPart.Workbook.CalculationProperties!.FullCalculationOnLoad!.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_FormulaInspection_ReportsSpecificUnsupportedReasons() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.FormulaUnsupportedReasons.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Diagnostics");
+                sheet.CellValue(1, 1, "North");
+                sheet.CellValue(2, 1, "South");
+
+                sheet.CellFormula(1, 2, "UNIQUE(A1:A2)");
+                sheet.CellFormula(2, 2, "SUM(A1;A2)");
+                sheet.CellFormula(3, 2, "A1&A2");
+                sheet.CellFormula(4, 2, "SUM({1,2})");
+
+                ExcelFormulaInspection inspection = document.InspectFormulas();
+                Assert.Equal(4, inspection.UnsupportedFormulas);
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "B1"
+                    && formula.UnsupportedReason == "Function 'UNIQUE' is not supported by OfficeIMO's lightweight evaluator.");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "B2"
+                    && formula.UnsupportedReason == "Formula uses semicolon argument separators; OfficeIMO's lightweight evaluator expects Open XML comma-separated formulas.");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "B3"
+                    && formula.UnsupportedReason == "Formula uses the text concatenation operator, which OfficeIMO's lightweight evaluator does not currently support.");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "B4"
+                    && formula.UnsupportedReason == "Formula uses array constants, which OfficeIMO's lightweight evaluator does not currently support.");
+            }
+        }
+
+        [Fact]
         public void Test_ClosedXmlGap_FormulaInspection_ReportsSupportAndCacheStatus() {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.FormulaInspection.xlsx");
 
@@ -281,6 +707,13 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("VLOOKUP", sheetInspection.Capabilities.SupportedFunctions);
                 Assert.Contains("HLOOKUP", sheetInspection.Capabilities.SupportedFunctions);
                 Assert.Contains("XLOOKUP", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("CONCAT", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("TEXTJOIN", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("LEFT", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("RIGHT", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("MID", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("LEN", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("TRIM", sheetInspection.Capabilities.SupportedFunctions);
                 Assert.Contains("DATE", sheetInspection.Capabilities.SupportedFunctions);
                 Assert.Contains("TIME", sheetInspection.Capabilities.SupportedFunctions);
                 Assert.Contains("TODAY", sheetInspection.Capabilities.SupportedFunctions);
@@ -465,6 +898,169 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("# Excel Feature Report", markdown);
                 Assert.Contains("| Visualization | Pivot tables | 1 | PartiallyEditable |", markdown);
                 Assert.Contains("| Calculation | Missing formula caches | 1 | Preserved |", markdown);
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_FeatureReport_IncludesPreservationDetails() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.FeatureReportDetails.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Links");
+                sheet.CellValue(1, 1, "Resource");
+                sheet.CellValue(2, 1, "Spec");
+                sheet.SetHyperlink(2, 1, "https://example.org/spec", display: "Spec");
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                CustomXmlPart customXmlPart = spreadsheet.WorkbookPart!.AddCustomXmlPart(CustomXmlPartType.CustomXml);
+                using var stream = new MemoryStream(Encoding.UTF8.GetBytes("<metadata><owner>OfficeIMO</owner></metadata>"));
+                customXmlPart.FeedData(stream);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                ExcelFeatureFinding externalLinks = Assert.Single(report.PreservedFeatures, feature => feature.Name == "External workbook links");
+                Assert.Equal(1, externalLinks.Count);
+                Assert.Contains(externalLinks.Details, detail => detail.Contains("https://example.org/spec", StringComparison.OrdinalIgnoreCase));
+
+                ExcelFeatureFinding customXml = Assert.Single(report.PreservedFeatures, feature => feature.Name == "Custom XML parts");
+                Assert.Equal(1, customXml.Count);
+                Assert.Contains(customXml.Details, detail => detail.Contains("/customXml/", StringComparison.OrdinalIgnoreCase));
+
+                string markdown = report.ToMarkdown();
+                Assert.Contains("https://example.org/spec", markdown);
+                Assert.Contains("/customXml/", markdown);
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_FeatureReport_FailsFastForBlockedFeatures() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.FeatureReportFailFast.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Links");
+                sheet.CellValue(1, 1, "Resource");
+                sheet.SetHyperlink(2, 1, "https://example.org/spec", display: "Spec");
+                document.Save(false);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                Assert.Empty(report.FindFeatures("VBA macros"));
+                ExcelFeatureFinding externalLinks = Assert.Single(report.FindFeatures("External workbook links"));
+                Assert.Equal(ExcelFeatureSupportLevel.Preserved, externalLinks.SupportLevel);
+                Assert.Same(report, report.EnsureNoFeatures("VBA macros"));
+
+                InvalidOperationException namedException = Assert.Throws<InvalidOperationException>(
+                    () => report.EnsureNoFeatures("External workbook links", "VBA macros"));
+                Assert.Contains("External workbook links", namedException.Message);
+                Assert.Contains("https://example.org/spec", namedException.Message);
+
+                InvalidOperationException levelException = Assert.Throws<InvalidOperationException>(
+                    () => report.EnsureNoFeatures(ExcelFeatureSupportLevel.Preserved));
+                Assert.Contains("Preserved", levelException.Message);
+                Assert.Contains("External workbook links", levelException.Message);
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_RoundTrip_PreservesExternalLinksAndCustomXml() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.PreserveExternalLinksCustomXml.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Links");
+                sheet.CellValue(1, 1, "Resource");
+                sheet.CellValue(2, 1, "Spec");
+                sheet.SetHyperlink(2, 1, "https://example.org/spec", display: "Spec");
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                CustomXmlPart customXmlPart = spreadsheet.WorkbookPart!.AddCustomXmlPart(CustomXmlPartType.CustomXml);
+                using var stream = new MemoryStream(Encoding.UTF8.GetBytes("<metadata><owner>OfficeIMO</owner></metadata>"));
+                customXmlPart.FeedData(stream);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                document["Links"].CellValue(3, 1, "Edited");
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                Assert.Single(spreadsheet.WorkbookPart!.CustomXmlParts);
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart.WorksheetParts.Single();
+                HyperlinkRelationship relationship = Assert.Single(worksheetPart.HyperlinkRelationships);
+                Assert.Equal(new Uri("https://example.org/spec"), relationship.Uri);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+                Assert.Contains(report.PreservedFeatures, feature => feature.Name == "External workbook links"
+                    && feature.Details.Any(detail => detail.Contains("https://example.org/spec", StringComparison.OrdinalIgnoreCase)));
+                Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Custom XML parts"
+                    && feature.Details.Any(detail => detail.Contains("/customXml/", StringComparison.OrdinalIgnoreCase)));
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_RoundTrip_PreservesMacroAndEmbeddedPackageParts() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.PreserveMacroEmbeddedPackage.xlsx");
+            byte[] vbaBytes = Encoding.ASCII.GetBytes("OfficeIMO macro project placeholder");
+            byte[] embeddedBytes = Encoding.ASCII.GetBytes("OfficeIMO embedded workbook placeholder");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Package");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(2, 1, "Before");
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+                VbaProjectPart vbaProjectPart = workbookPart.AddNewPart<VbaProjectPart>();
+                using (var stream = new MemoryStream(vbaBytes)) {
+                    vbaProjectPart.FeedData(stream);
+                }
+
+                WorksheetPart worksheetPart = workbookPart.WorksheetParts.Single();
+                EmbeddedPackagePart embeddedPackagePart = worksheetPart.AddEmbeddedPackagePart(EmbeddedPackagePartType.Xlsx);
+                using var embeddedStream = new MemoryStream(embeddedBytes);
+                embeddedPackagePart.FeedData(embeddedStream);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                document["Package"].CellValue(3, 1, "After");
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+                Assert.NotNull(workbookPart.VbaProjectPart);
+                using (var stream = workbookPart.VbaProjectPart!.GetStream(FileMode.Open, FileAccess.Read)) {
+                    using var buffer = new MemoryStream();
+                    stream.CopyTo(buffer);
+                    Assert.Equal(vbaBytes, buffer.ToArray());
+                }
+
+                WorksheetPart worksheetPart = workbookPart.WorksheetParts.Single();
+                EmbeddedPackagePart embeddedPackagePart = Assert.Single(worksheetPart.EmbeddedPackageParts);
+                using (var stream = embeddedPackagePart.GetStream(FileMode.Open, FileAccess.Read)) {
+                    using var buffer = new MemoryStream();
+                    stream.CopyTo(buffer);
+                    Assert.Equal(embeddedBytes, buffer.ToArray());
+                }
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+                Assert.Contains(report.PreservedFeatures, feature => feature.Name == "VBA macros"
+                    && feature.Details.Any(detail => detail.Contains("vbaProject", StringComparison.OrdinalIgnoreCase)));
+                Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Embedded packages"
+                    && feature.Details.Any(detail => detail.Contains("/embeddings/", StringComparison.OrdinalIgnoreCase)));
             }
         }
 

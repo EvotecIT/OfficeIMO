@@ -307,7 +307,10 @@ sheet.ChartFromTable("SalesTable").ColumnClustered().Title("Sales").At(8, 6);
 sheet.AddRevenueTrendChart("A1:B13", row: 1, column: 6);
 sheet.AddStatusBreakdownChart("D1:E6", row: 18, column: 6);
 sheet.AddTopNBarChart("G1:H11", row: 35, column: 6, title: "Top Customers");
+sheet.AddKpiScorecardChart("J1:K5", row: 52, column: 6, title: "KPI Scorecard");
+sheet.AddContributionChart("M1:N6", row: 69, column: 6, title: "Contribution");
 sheet.ChartFromTable("SalesTable").RevenueTrend("Sales Trend").At(52, 6);
+sheet.ChartFromTable("VarianceBridge").VarianceWaterfall("Variance Bridge").At(86, 6);
 ```
 
 ```csharp
@@ -317,6 +320,7 @@ sheet.Pivot("A1:C100")
      .Columns("Product")
      .Filters("Channel")
      .Sum("Sales", "Total Sales", "$#,##0")
+     .PercentOfTotal("Sales", "% of Total", "0.0%")
      .Style("PivotStyleMedium9")
      .Layout(ExcelPivotLayout.Tabular)
      .GrandTotals(rows: true, columns: true)
@@ -462,12 +466,13 @@ var capabilities = formulas.Capabilities;
 // The lightweight evaluator supports same-sheet arithmetic plus common reporting
 // functions such as SUM, AVERAGE, COUNTIF, SUMIF, AVERAGEIF,
 // COUNTIFS, SUMIFS, AVERAGEIFS, PRODUCT, MEDIAN, LARGE, SMALL, SUMPRODUCT,
-// exact-match VLOOKUP, HLOOKUP, and XLOOKUP when the returned value is numeric,
+// exact-match VLOOKUP, HLOOKUP, and XLOOKUP when the returned value is numeric or text,
+// text helpers such as CONCAT, TEXTJOIN, LEFT, RIGHT, MID, LEN, and TRIM,
 // ABS, SIGN, ROUND, ROUNDUP, ROUNDDOWN, TRUNC, INT, CEILING, FLOOR,
 // POWER, SQRT, LN, LOG10, EXP, PI, RADIANS, DEGREES, MOD,
 // DATE, TIME, TODAY, NOW, YEAR, MONTH, DAY, HOUR, MINUTE, SECOND,
 // EDATE, EOMONTH, DAYS, WEEKDAY, NETWORKDAYS,
-// simple numeric IF/AND/OR/NOT comparisons, nested numeric formulas,
+// simple numeric IF/AND/OR/NOT comparisons, nested formulas,
 // and numeric IFERROR fallbacks.
 Console.WriteLine($"Formulas: {formulas.TotalFormulas}");
 Console.WriteLine($"OfficeIMO-supported: {formulas.SupportedFormulas}");
@@ -480,8 +485,19 @@ foreach (var formula in formulas.Formulas.Where(f => !f.IsSupportedByOfficeIMO))
 
 Console.WriteLine(formulas.ToMarkdown());
 
+// Unsupported formulas are preserved. Inspection reports the likely reason, such as
+// unsupported functions, unsupported argument shapes, semicolon separators, text
+// concatenation operators, or array constants.
+
 // Calculate formulas supported by OfficeIMO's lightweight evaluator and cache results.
-int calculated = doc.RecalculateSupportedFormulas();
+// Supported same-sheet formulas can depend on other supported formula cells.
+// Numeric cross-sheet cell/range references such as Data!A1 and 'Data Sheet'!A1:A3
+// are supported in the lightweight evaluator, as are workbook-global and sheet-local
+// named ranges that point to A1 cell/range references, plus simple table structured
+// references such as SalesData[Amount] and SalesData[[#Data],[Amount]]. Text
+// helpers such as CONCAT, TEXTJOIN, LEFT, RIGHT, MID, LEN, and TRIM can also
+// cache text results, and exact-match lookups can return text values.
+int calculated = doc.Calculate();
 
 // Ask Excel-compatible apps to calculate everything else on open.
 doc.ConfigureFullCalculationOnOpen();
@@ -490,6 +506,15 @@ doc.ConfigureFullCalculationOnOpen();
 doc.InspectFormulas().EnsureAllSupported();
 doc.InspectFormulas().EnsureAllHaveCachedResults();
 doc.Save();
+```
+
+For one-save calculation policy, use save options instead of setting persistent document defaults:
+
+```csharp
+doc.Save("report.xlsx", openExcel: false, options: new ExcelSaveOptions {
+    EvaluateFormulasBeforeSave = true,
+    ForceFullCalculationOnOpen = true
+});
 ```
 
 ## Feature Inspection
@@ -501,10 +526,18 @@ Console.WriteLine($"Advanced features: {report.HasAdvancedFeatures}");
 
 foreach (var feature in report.Features) {
     Console.WriteLine($"{feature.Category}: {feature.Name} = {feature.Count} [{feature.SupportLevel}]");
+    foreach (var detail in feature.Details) {
+        Console.WriteLine($"  - {detail}");
+    }
 }
 
 Console.WriteLine(report.ToMarkdown());
 report.EnsureNoUnsupportedFeatures();
+
+// Fail fast for workflow-specific risk. For example, a data refresh job may
+// reject macro-enabled templates or external workbook links before saving.
+report.EnsureNoFeatures("VBA macros", "External workbook links");
+report.EnsureNoFeatures(ExcelFeatureSupportLevel.Preserved);
 ```
 
 ## CSV And JSON Exchange
@@ -539,7 +572,8 @@ int replacements = doc.ApplyTemplate(new Dictionary<string, object?> {
 doc.ApplyTemplate(invoiceModel);
 
 // Format aliases and custom .NET formats are supported in markers:
-// {{Total:currency}}, {{Completion:percent}}, {{Issued:yyyy-MM-dd}}
+// {{Total:currency}}, {{Completion:percent}}, {{Issued:yyyy-MM-dd}},
+// {{Duration:duration}}
 var options = new ExcelTemplateOptions { ThrowOnMissing = true }
     .AddFormatter("upper", (value, provider) =>
         Convert.ToString(value, provider as CultureInfo ?? CultureInfo.CurrentCulture)?.ToUpperInvariant() ?? string.Empty)
@@ -564,6 +598,63 @@ Console.WriteLine(template.ToMarkdown());
 
 // Use throwOnMissing when templates must be fully bound.
 doc.ApplyTemplate(values, throwOnMissing: true);
+
+// Optional fields can be cleared instead of leaving the marker text in place.
+doc.ApplyTemplate(values, new ExcelTemplateOptions {
+    MissingValueBehavior = ExcelTemplateMissingValueBehavior.EmptyString
+});
+
+// A single worksheet row can be used as a repeating template row. Additional
+// rows are inserted below the template row and each item is bound to one row.
+sheet.ApplyTemplateRows(12, lineItems, new ExcelTemplateOptions {
+    FormatProvider = CultureInfo.GetCultureInfo("en-US"),
+    MissingValueBehavior = ExcelTemplateMissingValueBehavior.Throw
+});
+
+// Optional row sections can be kept and bound, or removed while following rows
+// shift up.
+sheet.ApplyTemplateOptionalRows(20, rowCount: 2, include: invoice.HasDiscount, invoice, options);
+if (!invoice.HasNotes) {
+    sheet.RemoveTemplateOptionalRows(24, rowCount: 3);
+}
+
+// Whole-cell markers can bind images into the drawing layer.
+sheet.CellAt(2, 6).SetValue("{{Logo}}");
+doc.ApplyTemplate(new Dictionary<string, object?> {
+    ["Logo"] = ExcelTemplateImage.FromBytes(
+        logoBytes,
+        contentType: "image/png",
+        widthPixels: 96,
+        heightPixels: 32,
+        name: "Logo",
+        altText: "Company logo")
+});
+
+// Streams and URLs are supported too:
+// ExcelTemplateImage.FromStream(stream, "image/png", widthPixels: 96, heightPixels: 32)
+// ExcelTemplateImage.FromUrl("https://example.com/logo.png", widthPixels: 96, heightPixels: 32)
+```
+
+## Comments And Notes
+
+```csharp
+sheet.SetComment("A1", "Review total", author: "Alice", initials: "AA");
+sheet.SetComment("B2", "Review status", author: "Alice", initials: "AA");
+
+var reviewNotes = sheet.FindComments(new ExcelCommentFilter {
+    Author = "Alice (AA)",
+    TextContains = "Review",
+    A1Range = "A1:B10"
+});
+
+sheet.UpdateComments(new ExcelCommentFilter {
+    TextContains = "status"
+}, "Status reviewed", author: "Carol", initials: "CC");
+
+sheet.ClearComments(new ExcelCommentFilter {
+    Author = "Alice (AA)",
+    A1Range = "A1:A1"
+});
 ```
 
 ## Data Operations

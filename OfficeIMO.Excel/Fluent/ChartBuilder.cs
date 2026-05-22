@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel.Fluent {
         private string? _title;
         private int _widthPixels = 640;
         private int _heightPixels = 360;
+        private Action<ExcelChart>? _configureChart;
 
         internal ChartBuilder(ExcelSheet sheet, string source, bool isTableSource) {
             _sheet = sheet ?? throw new ArgumentNullException(nameof(sheet));
@@ -74,6 +75,21 @@ namespace OfficeIMO.Excel.Fluent {
             return Recipe(ExcelChartType.ColumnClustered, title, widthPixels, heightPixels);
         }
 
+        /// <summary>Uses compact column-chart defaults suitable for a KPI scorecard.</summary>
+        public ChartBuilder KpiScorecard(string title = "KPI Scorecard", int widthPixels = 520, int heightPixels = 300) {
+            return Recipe(ExcelChartType.ColumnClustered, title, widthPixels, heightPixels, chart => ExcelSheet.ApplyKpiScorecardDefaults(chart));
+        }
+
+        /// <summary>Uses doughnut-chart defaults suitable for contribution and mix analysis.</summary>
+        public ChartBuilder Contribution(string title = "Contribution", int widthPixels = 520, int heightPixels = 320) {
+            return Recipe(ExcelChartType.Doughnut, title, widthPixels, heightPixels, chart => ExcelSheet.ApplyContributionChartDefaults(chart));
+        }
+
+        /// <summary>Uses stacked-column defaults suitable for variance bridges prepared with helper series.</summary>
+        public ChartBuilder VarianceWaterfall(string title = "Variance Bridge", int widthPixels = 720, int heightPixels = 360) {
+            return Recipe(ExcelChartType.ColumnStacked, title, widthPixels, heightPixels, chart => ExcelSheet.ApplyVarianceWaterfallDefaults(chart));
+        }
+
         /// <summary>Sets the chart title.</summary>
         public ChartBuilder Title(string title) {
             _title = string.IsNullOrWhiteSpace(title) ? throw new ArgumentNullException(nameof(title)) : title;
@@ -103,17 +119,24 @@ namespace OfficeIMO.Excel.Fluent {
 
         /// <summary>Creates the chart at the given worksheet coordinates.</summary>
         public ExcelChart At(int row, int column) {
+            ExcelChart chart;
             if (_isTableSource) {
-                return _sheet.AddChartFromTable(_source, row, column, _widthPixels, _heightPixels, _type, _title, _includeCachedData);
+                chart = _sheet.AddChartFromTable(_source, row, column, _widthPixels, _heightPixels, _type, _title, _includeCachedData);
+            } else {
+                chart = _sheet.AddChartFromRange(_source, row, column, _widthPixels, _heightPixels, _type, _hasHeaders, _title, _includeCachedData);
             }
 
-            return _sheet.AddChartFromRange(_source, row, column, _widthPixels, _heightPixels, _type, _hasHeaders, _title, _includeCachedData);
+            var configureChart = _configureChart;
+            _configureChart = null;
+            configureChart?.Invoke(chart);
+            return chart;
         }
 
-        private ChartBuilder Recipe(ExcelChartType type, string title, int widthPixels, int heightPixels) {
+        private ChartBuilder Recipe(ExcelChartType type, string title, int widthPixels, int heightPixels, Action<ExcelChart>? configureChart = null) {
             Type(type);
             Title(title);
             Size(widthPixels, heightPixels);
+            _configureChart = configureChart;
             return this;
         }
     }
