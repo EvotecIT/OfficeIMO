@@ -679,6 +679,7 @@ namespace OfficeIMO.Excel {
             bool canCancel = ct.CanBeCanceled;
             int nextColumnIndex = 1;
             bool canTrackColumns = rowValues.Length <= 64;
+            ulong allColumnsSeen = canTrackColumns ? CreateAllColumnsSeenMask(rowValues.Length) : 0UL;
             ulong seenColumns = 0;
             while (rowReader.Read()) {
                 if (canCancel) {
@@ -711,7 +712,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 rowValues[columnOffset] = ReadXmlCellValue(rowReader);
-                if (canTrackColumns && MarkRequestedColumnSeen(columnOffset, rowValues.Length, ref seenColumns)) {
+                if (canTrackColumns && MarkRequestedColumnSeen(columnOffset, allColumnsSeen, ref seenColumns)) {
                     SkipXmlElementContent(rowReader, depth, "row");
                     return;
                 }

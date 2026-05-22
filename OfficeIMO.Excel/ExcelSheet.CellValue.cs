@@ -6,14 +6,32 @@ using System.Globalization;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         internal const int CellValuePlainStringPromotionSharedStringCount = 4096;
+        private const int CellValueSharedStringIndexCacheLimit = 256;
         private static readonly DateTime CellValueExcelMinimumSupportedDate = DateTime.FromOADate(2d);
         private Dictionary<uint, uint>? _cellValueDateStyleIndexes;
         private Dictionary<uint, uint>? _cellValueDurationStyleIndexes;
+        private Dictionary<string, CellValueSharedStringIndexCacheEntry>? _cellValueSharedStringIndexCache;
         private uint? _cellValueDefaultDateStyleIndex;
         private uint? _cellValueDefaultDurationStyleIndex;
 
+        private readonly struct CellValueSharedStringIndexCacheEntry {
+            internal CellValueSharedStringIndexCacheEntry(int index, bool containsLineBreak) {
+                Index = index;
+                ContainsLineBreak = containsLineBreak;
+            }
+
+            internal int Index { get; }
+
+            internal bool ContainsLineBreak { get; }
+        }
+
         // Core implementation: single source of truth (no locks here)
         private void CellValueCore(int row, int column, object? value) {
+            MaterializeDeferredDataSetImportIfNeeded();
+            CellValueCoreNoMaterialize(row, column, value);
+        }
+
+        private void CellValueCoreNoMaterialize(int row, int column, object? value) {
             if (value == null || value == DBNull.Value) {
                 CellEmptyStringValueCore(row, column);
                 return;
@@ -95,20 +113,46 @@ namespace OfficeIMO.Excel {
 
             var cell = GetCell(row, column);
             string text = value!;
-            if (_excelDocument.TryGetExistingSharedStringIndex(
+            if (TryGetCellValueSharedStringIndex(text, out int cachedSharedStringIndex, out bool cachedContainsLineBreak)) {
+                SetExistingCellSharedStringValue(cell, cachedSharedStringIndex, cachedContainsLineBreak);
+            } else if (_excelDocument.TryGetOrAddSharedStringIndexBelowLimit(
                     text,
-                    out int existingSharedStringIndex,
-                    out bool existingContainsLineBreak,
-                    out int sharedStringCount)) {
-                SetExistingCellSharedStringValue(cell, existingSharedStringIndex, existingContainsLineBreak);
-            } else if (sharedStringCount >= CellValuePlainStringPromotionSharedStringCount) {
-                SetExistingCellPlainStringValue(cell, text);
-            } else {
-                int sharedStringIndex = _excelDocument.GetSharedStringIndex(text, validateNewString: true, out bool containsLineBreak);
+                    CellValuePlainStringPromotionSharedStringCount,
+                    validateNewString: true,
+                    out int sharedStringIndex,
+                    out bool containsLineBreak)) {
+                AddCellValueSharedStringIndex(text, sharedStringIndex, containsLineBreak);
                 SetExistingCellSharedStringValue(cell, sharedStringIndex, containsLineBreak);
+            } else {
+                SetExistingCellPlainStringValue(cell, text);
             }
 
             ClearHeaderCacheForCellMutation(row);
+        }
+
+        private bool TryGetCellValueSharedStringIndex(string text, out int index, out bool containsLineBreak) {
+            if (_cellValueSharedStringIndexCache != null
+                && _cellValueSharedStringIndexCache.TryGetValue(text, out CellValueSharedStringIndexCacheEntry entry)) {
+                index = entry.Index;
+                containsLineBreak = entry.ContainsLineBreak;
+                return true;
+            }
+
+            index = -1;
+            containsLineBreak = false;
+            return false;
+        }
+
+        private void AddCellValueSharedStringIndex(string text, int index, bool containsLineBreak) {
+            var cache = _cellValueSharedStringIndexCache;
+            if (cache == null) {
+                cache = new Dictionary<string, CellValueSharedStringIndexCacheEntry>(StringComparer.Ordinal);
+                _cellValueSharedStringIndexCache = cache;
+            } else if (cache.Count >= CellValueSharedStringIndexCacheLimit) {
+                return;
+            }
+
+            cache[text] = new CellValueSharedStringIndexCacheEntry(index, containsLineBreak);
         }
 
         private void CellEmptyStringValueCore(int row, int column) {
@@ -144,9 +188,20 @@ namespace OfficeIMO.Excel {
 
         private void CellDoubleValueCore(int row, int column, double value) {
             var cell = GetCell(row, column);
-            cell.CellValue = new CellValue(value.ToString(CultureInfo.InvariantCulture));
+            cell.CellValue = new CellValue(FormatDoubleCellValue(value));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
             ClearHeaderCacheForCellMutation(row);
+        }
+
+        private static string FormatDoubleCellValue(double value) {
+            if (value >= int.MinValue && value <= int.MaxValue) {
+                int integer = (int)value;
+                if (value == integer) {
+                    return InvariantNumberText.Get(integer);
+                }
+            }
+
+            return value.ToString(CultureInfo.InvariantCulture);
         }
 
         private void CellDecimalValueCore(int row, int column, decimal value) {
@@ -276,11 +331,10 @@ namespace OfficeIMO.Excel {
             return (cellValue, new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType));
         }
 
-
-
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, string value) {
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 CellStringValueCore(row, column, value);
                 return;
             }
@@ -298,6 +352,7 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, double value) {
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 CellDoubleValueCore(row, column, value);
                 return;
             }
@@ -315,6 +370,7 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, float value) {
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 CellDoubleValueCore(row, column, (double)value);
                 return;
             }
@@ -332,6 +388,7 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, decimal value) {
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 CellDecimalValueCore(row, column, value);
                 return;
             }
@@ -349,6 +406,7 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, int value) {
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
                 return;
             }
@@ -366,6 +424,7 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, long value) {
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
                 return;
             }
@@ -383,6 +442,7 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, short value) {
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
                 return;
             }
@@ -400,6 +460,7 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, DateTime value) {
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 CellDateTimeValueCore(row, column, value);
                 return;
             }
@@ -417,6 +478,7 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, DateTimeOffset value) {
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 CellDateTimeOffsetValueCore(row, column, value);
                 return;
             }
@@ -435,6 +497,7 @@ namespace OfficeIMO.Excel {
 #if NET6_0_OR_GREATER
         public void CellValue(int row, int column, DateOnly value) {
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 CellDateOnlyValueCore(row, column, value);
                 return;
             }
@@ -452,6 +515,7 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, TimeOnly value) {
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 CellTimeOnlyValueCore(row, column, value);
                 return;
             }
@@ -470,6 +534,7 @@ namespace OfficeIMO.Excel {
 #endif
         public void CellValue(int row, int column, TimeSpan value) {
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 CellTimeSpanValueCore(row, column, value);
                 return;
             }
@@ -487,6 +552,7 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, uint value) {
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
                 return;
             }
@@ -504,6 +570,7 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, ulong value) {
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
                 return;
             }
@@ -521,6 +588,7 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, ushort value) {
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
                 return;
             }
@@ -538,6 +606,7 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, byte value) {
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
                 return;
             }
@@ -555,6 +624,7 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, sbyte value) {
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
                 return;
             }
@@ -572,6 +642,7 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc cref="CellValue(int,int,object)" />
         public void CellValue(int row, int column, bool value) {
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 CellBooleanValueCore(row, column, value);
                 return;
             }
@@ -594,6 +665,7 @@ namespace OfficeIMO.Excel {
         /// <param name="formula">The formula expression.</param>
         public void CellFormula(int row, int column, string formula) {
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 CellFormulaCore(row, column, formula);
                 return;
             }
@@ -1525,7 +1597,7 @@ namespace OfficeIMO.Excel {
             var lck = _excelDocument.EnsureLock();
             lck.EnterWriteLock();
             try {
-                CellValueCore(row, column, value);
+                CellValueCoreNoMaterialize(row, column, value);
             } finally {
                 lck.ExitWriteLock();
             }
@@ -1540,6 +1612,7 @@ namespace OfficeIMO.Excel {
         /// <param name="value">The nullable value to assign.</param>
         public void CellValue<T>(int row, int column, T? value) where T : struct {
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 CellValueCore(row, column, value.HasValue ? value.Value : null);
                 return;
             }
@@ -1548,7 +1621,7 @@ namespace OfficeIMO.Excel {
             var lck = _excelDocument.EnsureLock();
             lck.EnterWriteLock();
             try {
-                CellValueCore(row, column, value.HasValue ? value.Value : null);
+                CellValueCoreNoMaterialize(row, column, value.HasValue ? value.Value : null);
             } finally {
                 lck.ExitWriteLock();
             }

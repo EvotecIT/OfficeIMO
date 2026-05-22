@@ -8,6 +8,8 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        private static readonly DataSet DirectTabularSnapshotOwner = new DataSet("DirectTabularExport") { Locale = CultureInfo.InvariantCulture };
+
         private static DateTime DefaultDateTimeOffsetWriteStrategy(DateTimeOffset value) => value.LocalDateTime;
 
         /// <summary>
@@ -103,8 +105,7 @@ namespace OfficeIMO.Excel {
                         autoFit,
                         _dateTimeOffsetWriteStrategy,
                         CancellationToken.None);
-                    var snapshotOwner = new DataSet("ObjectExport") { Locale = CultureInfo.InvariantCulture };
-                    _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(snapshotOwner, model, ClearDirectDataSetSaveCandidate, isDeferred: false, subscribeToSourceChanges: false);
+                    _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, ClearDirectDataSetSaveCandidate, isDeferred: false, subscribeToSourceChanges: false);
                 } else {
                     var dataSet = new DataSet("ObjectExport") {
                         Locale = CultureInfo.InvariantCulture
@@ -171,8 +172,7 @@ namespace OfficeIMO.Excel {
                     autoFit,
                     _dateTimeOffsetWriteStrategy,
                     CancellationToken.None);
-                var owner = new DataSet("DeferredTabularExport") { Locale = CultureInfo.InvariantCulture };
-                _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(owner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
+                _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
                 _packageDirty = true;
                 _unchangedPackageBytes = null;
                 _requiresSavePreflight = false;
@@ -188,7 +188,7 @@ namespace OfficeIMO.Excel {
             string tableNameForModel,
             IReadOnlyList<string> columnNames,
             IReadOnlyList<Type> columnTypes,
-            object?[][] rows,
+            IReadOnlyList<object?[]> rows,
             bool includeHeaders,
             string range,
             string? tableName = null,
@@ -222,8 +222,7 @@ namespace OfficeIMO.Excel {
                     autoFit,
                     _dateTimeOffsetWriteStrategy,
                     CancellationToken.None);
-                var owner = new DataSet("DeferredTabularExport") { Locale = CultureInfo.InvariantCulture };
-                _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(owner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
+                _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
                 _packageDirty = true;
                 _unchangedPackageBytes = null;
                 _requiresSavePreflight = false;
@@ -239,7 +238,7 @@ namespace OfficeIMO.Excel {
             string tableNameForModel,
             IReadOnlyList<string> columnNames,
             IReadOnlyList<Type> columnTypes,
-            object?[][] rows,
+            IReadOnlyList<object?[]> rows,
             bool includeHeaders,
             string range,
             string? tableName = null,
@@ -273,8 +272,7 @@ namespace OfficeIMO.Excel {
                     autoFit,
                     _dateTimeOffsetWriteStrategy,
                     CancellationToken.None);
-                var owner = new DataSet("TabularExport") { Locale = CultureInfo.InvariantCulture };
-                _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(owner, model, ClearDirectDataSetSaveCandidate, isDeferred: false, subscribeToSourceChanges: false);
+                _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, ClearDirectDataSetSaveCandidate, isDeferred: false, subscribeToSourceChanges: false);
             } catch {
                 ClearDirectDataSetSaveCandidate();
             }
@@ -599,7 +597,10 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            ct.ThrowIfCancellationRequested();
+            if (ct.CanBeCanceled) {
+                ct.ThrowIfCancellationRequested();
+            }
+
             PrepareDestinationStreamForWrite(destination);
             DirectDataSetWorkbookWriter.Write(destination, candidate.Model, ct);
             try { destination.Flush(); } catch (NotSupportedException) { }
@@ -681,8 +682,12 @@ namespace OfficeIMO.Excel {
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
                 CancellationToken ct) {
                 var sheets = new DirectDataSetSheetModel[Sheets.Count];
+                bool canCancel = ct.CanBeCanceled;
                 for (int i = 0; i < Sheets.Count; i++) {
-                    ct.ThrowIfCancellationRequested();
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
                     var sheet = Sheets[i];
                     if (!string.Equals(sheet.SheetName, sheetName, StringComparison.Ordinal)) {
                         sheets[i] = sheet;
@@ -718,8 +723,12 @@ namespace OfficeIMO.Excel {
                 CancellationToken ct) {
                 var sheets = new DirectDataSetSheetModel[Sheets.Count];
                 var results = new ExcelDataSetImportResult[Sheets.Count];
+                bool canCancel = ct.CanBeCanceled;
                 for (int i = 0; i < Sheets.Count; i++) {
-                    ct.ThrowIfCancellationRequested();
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
                     var sheet = Sheets[i];
                     if (!string.Equals(sheet.SheetName, sheetName, StringComparison.Ordinal)) {
                         sheets[i] = sheet;
@@ -769,8 +778,12 @@ namespace OfficeIMO.Excel {
                 var usedSheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 var usedTableNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 int index = 1;
+                bool canCancel = ct.CanBeCanceled;
                 foreach (DataTable table in dataSet.Tables) {
-                    ct.ThrowIfCancellationRequested();
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
                     var tableModel = snapshotTables
                         ? DirectDataSetTableModel.Snapshot(table, ct)
                         : DirectDataSetTableModel.Reference(table);
@@ -985,6 +998,27 @@ namespace OfficeIMO.Excel {
             internal double[]? ColumnWidths { get; }
         }
 
+        private readonly struct DirectBufferedRows {
+            private readonly object?[][]? _arrayRows;
+            private readonly List<object?[]>? _listRows;
+
+            internal DirectBufferedRows(object?[][] rows) {
+                _arrayRows = rows;
+                _listRows = null;
+            }
+
+            internal DirectBufferedRows(List<object?[]> rows) {
+                _arrayRows = null;
+                _listRows = rows;
+            }
+
+            internal int Count => _arrayRows?.Length ?? _listRows!.Count;
+
+            internal object?[] this[int index] => _arrayRows != null
+                ? _arrayRows[index]
+                : _listRows![index];
+        }
+
         private sealed class DirectDataSetTableModel {
             private const int MaxAutoFitStringWidthCacheEntriesPerColumn = 1024;
 
@@ -1015,7 +1049,8 @@ namespace OfficeIMO.Excel {
             private readonly DataTable? _sourceTable;
             private readonly DirectDataSetColumnModel[]? _columns;
             private readonly int[]? _stringCandidateColumnIndexes;
-            private readonly object?[][]? _rows;
+            private readonly object?[][]? _arrayRows;
+            private readonly List<object?[]>? _listRows;
 
             private DirectDataSetTableModel(DataTable sourceTable) {
                 _sourceTable = sourceTable;
@@ -1029,15 +1064,26 @@ namespace OfficeIMO.Excel {
                 _stringCandidateColumnIndexes = CreateStringCandidateColumnIndexes(columns);
             }
 
-            private DirectDataSetTableModel(DirectDataSetColumnModel[] columns, object?[][] rows) {
+            private DirectDataSetTableModel(DirectDataSetColumnModel[] columns, IReadOnlyList<object?[]> rows) {
                 _columns = columns;
                 _stringCandidateColumnIndexes = CreateStringCandidateColumnIndexes(columns);
-                _rows = rows;
+                if (rows is object?[][] arrayRows) {
+                    _arrayRows = arrayRows;
+                } else if (rows is List<object?[]> listRows) {
+                    _listRows = listRows;
+                } else {
+                    var copiedRows = new object?[rows.Count][];
+                    for (int i = 0; i < copiedRows.Length; i++) {
+                        copiedRows[i] = rows[i];
+                    }
+
+                    _arrayRows = copiedRows;
+                }
             }
 
             internal static DirectDataSetTableModel Reference(DataTable table) => new DirectDataSetTableModel(table);
 
-            internal static DirectDataSetTableModel FromRows(IReadOnlyList<string> columnNames, IReadOnlyList<Type> columnTypes, object?[][] rows) {
+            internal static DirectDataSetTableModel FromRows(IReadOnlyList<string> columnNames, IReadOnlyList<Type> columnTypes, IReadOnlyList<object?[]> rows) {
                 if (columnNames.Count != columnTypes.Count) {
                     throw new ArgumentException("Column name and type counts must match.", nameof(columnTypes));
                 }
@@ -1058,15 +1104,19 @@ namespace OfficeIMO.Excel {
 
                 return _sourceTable != null
                     ? new DirectDataSetTableModel(_sourceTable, columns)
-                    : new DirectDataSetTableModel(columns, _rows!);
+                    : new DirectDataSetTableModel(columns, GetBufferedRowsForReuse());
             }
 
             internal static DirectDataSetTableModel Snapshot(DataTable table, CancellationToken ct) {
                 var columns = CreateColumns(table);
 
                 var rows = new object?[table.Rows.Count][];
+                bool canCancel = ct.CanBeCanceled;
                 for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
-                    ct.ThrowIfCancellationRequested();
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
                     DataRow row = table.Rows[rowIndex];
                     var values = new object?[columns.Length];
                     for (int columnIndex = 0; columnIndex < columns.Length; columnIndex++) {
@@ -1091,7 +1141,7 @@ namespace OfficeIMO.Excel {
 
             internal int ColumnCount => _columns!.Length;
 
-            internal int RowCount => _sourceTable?.Rows.Count ?? _rows!.Length;
+            internal int RowCount => _sourceTable?.Rows.Count ?? _arrayRows?.Length ?? _listRows!.Count;
 
             internal string GetColumnName(int index) => _columns![index].Name;
 
@@ -1126,14 +1176,33 @@ namespace OfficeIMO.Excel {
 
             internal DataRow? GetSourceRow(int rowIndex) => _sourceTable?.Rows[rowIndex];
 
-            internal object?[][]? BufferedRows => _rows;
+            internal bool TryGetBufferedRows(out DirectBufferedRows rows) {
+                if (_arrayRows != null) {
+                    rows = new DirectBufferedRows(_arrayRows);
+                    return true;
+                }
 
-            internal object?[]? GetBufferedRow(int rowIndex) => _rows?[rowIndex];
+                if (_listRows != null) {
+                    rows = new DirectBufferedRows(_listRows);
+                    return true;
+                }
+
+                rows = default;
+                return false;
+            }
+
+            internal object?[]? GetBufferedRow(int rowIndex) {
+                if (_arrayRows != null) {
+                    return _arrayRows[rowIndex];
+                }
+
+                return _listRows?[rowIndex];
+            }
 
             internal object? GetValue(int rowIndex, int columnIndex) {
                 object? value = _sourceTable != null
                     ? _sourceTable.Rows[rowIndex][columnIndex]
-                    : _rows![rowIndex][columnIndex];
+                    : GetBufferedRow(rowIndex)![columnIndex];
                 return value == DBNull.Value ? null : value;
             }
 
@@ -1154,9 +1223,13 @@ namespace OfficeIMO.Excel {
                 Dictionary<string, double>?[]? stringWidthCaches = null;
                 int rowCount = RowCount;
                 DataRowCollection? sourceRows = _sourceTable?.Rows;
+                bool canCancel = ct.CanBeCanceled;
                 if (sourceRows != null) {
                     for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
-                        ct.ThrowIfCancellationRequested();
+                        if (canCancel) {
+                            ct.ThrowIfCancellationRequested();
+                        }
+
                         DataRow sourceRow = sourceRows[rowIndex];
                         for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
                             object? value = sourceRow[columnIndex];
@@ -1166,9 +1239,12 @@ namespace OfficeIMO.Excel {
                         }
                     }
                 } else {
-                    object?[][] bufferedRows = _rows!;
+                    TryGetBufferedRows(out DirectBufferedRows bufferedRows);
                     for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
-                        ct.ThrowIfCancellationRequested();
+                        if (canCancel) {
+                            ct.ThrowIfCancellationRequested();
+                        }
+
                         object?[] bufferedRow = bufferedRows[rowIndex];
                         for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
                             object? value = bufferedRow[columnIndex];
@@ -1180,6 +1256,14 @@ namespace OfficeIMO.Excel {
                 }
 
                 return widths;
+            }
+
+            private IReadOnlyList<object?[]> GetBufferedRowsForReuse() {
+                if (_arrayRows != null) {
+                    return _arrayRows;
+                }
+
+                return _listRows!;
             }
 
             private AutoFitWidthKind[] CreateAutoFitWidthKinds() {
@@ -1218,6 +1302,10 @@ namespace OfficeIMO.Excel {
             private static double EstimateAutoFitWidth(string text) {
                 if (string.IsNullOrEmpty(text)) {
                     return 0D;
+                }
+
+                if (text.IndexOf('\r') < 0 && text.IndexOf('\n') < 0) {
+                    return EstimateAutoFitWidthFromLength(text.Length);
                 }
 
                 int maxLineLength = 0;
@@ -1478,7 +1566,9 @@ namespace OfficeIMO.Excel {
 
                 table.BeginLoadData();
                 try {
-                    foreach (var row in _rows!) {
+                    TryGetBufferedRows(out DirectBufferedRows rows);
+                    for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+                        object?[] row = rows[rowIndex];
                         var values = new object?[row.Length];
                         for (int i = 0; i < row.Length; i++) {
                             values[i] = row[i] ?? DBNull.Value;
@@ -1508,6 +1598,7 @@ namespace OfficeIMO.Excel {
         private sealed class DirectDataSetSaveCandidate : IDisposable {
             private readonly DataSet _dataSet;
             private readonly Action _invalidate;
+            private readonly bool _subscribed;
             private bool _disposed;
 
             internal DirectDataSetSaveCandidate(DataSet dataSet, DirectDataSetWorkbookModel model, Action invalidate, bool isDeferred, bool subscribeToSourceChanges) {
@@ -1516,6 +1607,7 @@ namespace OfficeIMO.Excel {
                 _invalidate = invalidate;
                 IsDeferred = isDeferred;
                 if (subscribeToSourceChanges) {
+                    _subscribed = true;
                     Subscribe(dataSet);
                 }
             }
@@ -1597,9 +1689,11 @@ namespace OfficeIMO.Excel {
                 }
 
                 _disposed = true;
-                try {
-                    Unsubscribe(_dataSet);
-                } catch {
+                if (_subscribed) {
+                    try {
+                        Unsubscribe(_dataSet);
+                    } catch {
+                    }
                 }
             }
         }

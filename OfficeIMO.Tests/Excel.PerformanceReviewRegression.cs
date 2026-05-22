@@ -472,16 +472,41 @@ namespace OfficeIMO.Tests {
                 cells["A1"].CellValue = new CellValue("2024-01-02T03:04:05");
                 cells["B1"].DataType = CellValues.Number;
                 cells["B1"].CellValue = new CellValue("123.45");
+                var row = spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().First();
+                cells["C1"] = new Cell {
+                    CellReference = "C1",
+                    DataType = CellValues.Number,
+                    CellValue = new CellValue("1.2345E+2")
+                };
+                cells["D1"] = new Cell {
+                    CellReference = "D1",
+                    DataType = CellValues.Number,
+                    CellValue = new CellValue("0.000001")
+                };
+                cells["E1"] = new Cell {
+                    CellReference = "E1",
+                    DataType = CellValues.Number,
+                    CellValue = new CellValue("-9876543210.1234")
+                };
+                row.Append(cells["C1"]);
+                row.Append(cells["D1"]);
+                row.Append(cells["E1"]);
                 spreadsheet.WorkbookPart.WorksheetParts.First().Worksheet.Save();
             }
 
             using var reader = ExcelDocumentReader.Open(filePath, new ExcelReadOptions { NumericAsDecimal = true });
-            object?[,] values = reader.GetSheet("Data").ReadRange("A1:B1", ExecutionMode.Sequential);
+            object?[,] values = reader.GetSheet("Data").ReadRange("A1:E1", ExecutionMode.Sequential);
 
             var date = Assert.IsType<DateTime>(values[0, 0]);
             Assert.Equal(new DateTime(2024, 1, 2, 3, 4, 5), date);
             var number = Assert.IsType<decimal>(values[0, 1]);
             Assert.Equal(123.45m, number);
+            var exponentNumber = Assert.IsType<decimal>(values[0, 2]);
+            Assert.Equal(123.45m, exponentNumber);
+            var smallFraction = Assert.IsType<decimal>(values[0, 3]);
+            Assert.Equal(0.000001m, smallFraction);
+            var negativeNumber = Assert.IsType<decimal>(values[0, 4]);
+            Assert.Equal(-9876543210.1234m, negativeNumber);
         }
 
         [Fact]
@@ -2029,6 +2054,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_CellValuesDeferredDirectCandidate_MaterializesForNoLockCellMutation() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValues(new[] {
+                    (1, 1, (object)"Name"),
+                    (1, 2, (object)"Score"),
+                    (2, 1, (object)"Alpha"),
+                    (2, 2, (object)10),
+                    (3, 1, (object)"Beta"),
+                    (3, 2, (object)20)
+                }, ExecutionMode.Parallel);
+
+                using (sheet.BeginNoLock()) {
+                    sheet.CellValue(2, 2, 999);
+                }
+
+                document.Save(memory);
+
+                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var savedCells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, savedCells["A2"]));
+            Assert.Equal("999", GetSpreadsheetCellText(spreadsheet, savedCells["B2"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
         public void PerformanceReview_CellValuesHeaderlessRectangleThenHeaderedTable_MaterializesBeforeHeaderRepair() {
             using var memory = new MemoryStream();
 
@@ -3346,11 +3405,12 @@ namespace OfficeIMO.Tests {
             table.Columns.Add("Created", typeof(DateTime));
             table.Rows.Add("Alpha", 10, new DateTime(2026, 5, 19));
             table.Rows.Add("Beta", 20, new DateTime(2026, 5, 20));
+            table.Rows.Add("Gamma", DBNull.Value, DBNull.Value);
 
             using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
                 var sheet = document.AddWorkSheet("Data");
                 using IDataReader reader = table.CreateDataReader();
-                Assert.Equal("A1:C3", sheet.InsertDataReader(reader, tableName: "Reader Table", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4));
+                Assert.Equal("A1:C4", sheet.InsertDataReader(reader, tableName: "Reader Table", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4));
 
                 document.Save(memory);
 
@@ -3365,8 +3425,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
             Assert.Equal("10", cells["B2"].CellValue!.Text);
             Assert.True(cells["C2"].StyleIndex?.Value > 0U);
+            Assert.Equal("Gamma", GetSpreadsheetCellText(spreadsheet, cells["A4"]));
+            Assert.Equal(string.Empty, cells["B4"].CellValue!.Text);
+            Assert.Equal(string.Empty, cells["C4"].CellValue!.Text);
             var tableDefinition = worksheetPart.TableDefinitionParts.Single().Table!;
-            Assert.Equal("A1:C3", tableDefinition.Reference!.Value);
+            Assert.Equal("A1:C4", tableDefinition.Reference!.Value);
             Assert.Equal("Reader_Table", tableDefinition.Name!.Value);
             Assert.Equal("TableStyleMedium4", tableDefinition.TableStyleInfo!.Name!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());

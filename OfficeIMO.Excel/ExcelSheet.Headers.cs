@@ -387,7 +387,10 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                _excelDocument.MarkPackageDirty();
+                if (!_excelDocument.IsPackageDirtyWithoutPendingSaveCandidate) {
+                    _excelDocument.MarkPackageDirty();
+                }
+
                 return;
             }
 

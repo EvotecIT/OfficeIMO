@@ -8,7 +8,6 @@ using System.Xml;
 
 namespace OfficeIMO.Excel {
     internal sealed class SharedStringCache {
-        private const int MinimumInitialCapacity = 1024;
         private static readonly XmlReaderSettings SharedStringXmlReaderSettings = CreateSharedStringXmlReaderSettings();
 
         private readonly SharedStringTablePart? _part;
@@ -45,7 +44,7 @@ namespace OfficeIMO.Excel {
             var part = _part;
             if (part == null || part.SharedStringTable == null) return new List<string>();
             var table = part.SharedStringTable;
-            var list = new List<string>(Math.Max(MinimumInitialCapacity, (int)(table.Count?.Value ?? 0)));
+            var list = new List<string>((int)(table.UniqueCount?.Value ?? table.Count?.Value ?? 0));
             foreach (var item in table.Elements<SharedStringItem>()) {
                 if (item.Text?.Text != null)
                     list.Add(item.Text.Text);
@@ -59,7 +58,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryLoadItemsXmlFast(out List<string> items) {
-            items = new List<string>(MinimumInitialCapacity);
+            items = new List<string>();
 
             try {
                 using var stream = _part!.GetStream(FileMode.Open, FileAccess.Read);
@@ -75,7 +74,7 @@ namespace OfficeIMO.Excel {
                             capacity = ParsePositiveIntAttribute(reader.GetAttribute("count"));
                         }
 
-                        if (capacity > MinimumInitialCapacity) {
+                        if (capacity > 0) {
                             items.Capacity = capacity;
                         }
 

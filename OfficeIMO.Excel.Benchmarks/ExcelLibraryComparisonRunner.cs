@@ -186,6 +186,12 @@ internal static class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("MiniExcel", "Streaming typed row export with the same columns and headers.", () => MiniExcelWriteSalesRows(rows))
         ]);
 
+        AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalues-sparse-rectangle-direct", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Write a sparse A1 rectangle with CellValues and save.", () => OfficeImoWriteCellValuesSparseRectangle(rowCount)),
+            new LibraryComparisonCase("ClosedXML", "Assign sparse object-typed cells with null blanks one by one and save.", () => ClosedXmlWriteCellValueObjectSparse(rowCount)),
+            new LibraryComparisonCase("EPPlus", "Assign sparse object-typed cells with null blanks one by one and save.", () => EpPlusWriteCellValueObjectSparse(rowCount))
+        ]);
+
         AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalue-strings", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Assign repeated and distinct text-heavy cells one by one and save.", () => OfficeImoWriteCellValueStrings(rowCount)),
             new LibraryComparisonCase("ClosedXML", "Assign repeated and distinct text-heavy cells one by one and save.", () => ClosedXmlWriteSharedStrings(rowCount)),
@@ -297,10 +303,22 @@ internal static class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("EPPlus", "Enumerate cells from the requested A1 range.", () => EpPlusEnumerateRange(officeImoWorkbookBytes.Value, rowCount))
         ]);
 
+        AddScenarioGroup(scenarios, scenarioFilter, "enumerate-top-range", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Enumerate the first 100 data rows from a larger sheet.", () => OfficeImoEnumerateRange(officeImoWorkbookBytes.Value, topDataRange)),
+            new LibraryComparisonCase("ClosedXML", "Enumerate the first 100 data rows from the same larger sheet.", () => ClosedXmlEnumerateRange(officeImoWorkbookBytes.Value, topDataRows)),
+            new LibraryComparisonCase("EPPlus", "Enumerate the first 100 data rows from the same larger sheet.", () => EpPlusEnumerateRange(officeImoWorkbookBytes.Value, topDataRows))
+        ]);
+
         AddScenarioGroup(scenarios, scenarioFilter, "enumerate-cells", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Enumerate all typed cells from the worksheet.", () => OfficeImoEnumerateCells(officeImoWorkbookBytes.Value)),
             new LibraryComparisonCase("ClosedXML", "Enumerate all used cells from the worksheet.", () => ClosedXmlEnumerateRange(officeImoWorkbookBytes.Value, rowCount)),
             new LibraryComparisonCase("EPPlus", "Enumerate all used cells from the worksheet.", () => EpPlusEnumerateRange(officeImoWorkbookBytes.Value, rowCount))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "enumerate-first-column-from-wide-sheet", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Enumerate A1:A(row count + header) from the same 8-column workbook.", () => OfficeImoEnumerateFirstColumn(officeImoWorkbookBytes.Value, firstColumnRange, rowCount)),
+            new LibraryComparisonCase("ClosedXML", "Enumerate A1:A(row count + header) from the same 8-column workbook.", () => ClosedXmlEnumerateFirstColumn(officeImoWorkbookBytes.Value, rowCount)),
+            new LibraryComparisonCase("EPPlus", "Enumerate A1:A(row count + header) from the same 8-column workbook.", () => EpPlusEnumerateFirstColumn(officeImoWorkbookBytes.Value, rowCount))
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "read-first-column-from-wide-sheet", warmupIterations, measuredIterations, [
@@ -1313,6 +1331,21 @@ internal static class ExcelLibraryComparisonRunner {
         return stream.ToArray();
     }
 
+    private static int OfficeImoWriteCellValuesSparseRectangle(int rowCount)
+        => ByteCount(OfficeImoWriteCellValuesSparseRectangleBytes(rowCount));
+
+    private static byte[] OfficeImoWriteCellValuesSparseRectangleBytes(int rowCount) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            var sheet = document.AddWorkSheet("SparseObjects");
+            sheet.CellValues(BuildSparseObjectCells(rowCount), ExecutionMode.Parallel);
+            document.Save(stream);
+            AssertOfficeImoDirectPackageWriter(document, "CellValues sparse rectangle comparison");
+        }
+
+        return stream.ToArray();
+    }
+
     private static int OfficeImoWriteInsertObjects(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows)
         => ByteCount(OfficeImoWriteInsertObjectsBytes(rows));
 
@@ -1811,6 +1844,23 @@ internal static class ExcelLibraryComparisonRunner {
         return metric;
     }
 
+    private static int OfficeImoEnumerateFirstColumn(byte[] workbookBytes, string dataRange, int rowCount) {
+        using var reader = ExcelDocumentReader.Open(workbookBytes);
+        int expectedRows = rowCount + 1;
+        int metric = 0;
+        int cellsRead = 0;
+        foreach (var cell in reader.GetSheet("Data").EnumerateRange(dataRange)) {
+            cellsRead++;
+            metric = AddSalesIdColumnMetric(metric, cell.Row, rowCount, cell.Value);
+        }
+
+        if (cellsRead != expectedRows) {
+            throw new InvalidOperationException($"Expected {expectedRows.ToString(CultureInfo.InvariantCulture)} first-column cells, got {cellsRead.ToString(CultureInfo.InvariantCulture)}.");
+        }
+
+        return metric;
+    }
+
     private static int ClosedXmlEnumerateRange(byte[] workbookBytes, int rowCount) {
         using var stream = new MemoryStream(workbookBytes, writable: false);
         using var workbook = new XLWorkbook(stream);
@@ -1835,6 +1885,22 @@ internal static class ExcelLibraryComparisonRunner {
         return metric;
     }
 
+    private static int ClosedXmlEnumerateFirstColumn(byte[] workbookBytes, int rowCount) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using var workbook = new XLWorkbook(stream);
+        var worksheet = workbook.Worksheet("Data");
+        int metric = 0;
+        int expectedRows = rowCount + 1;
+        for (int row = 1; row <= expectedRows; row++) {
+            object value = row == 1
+                ? worksheet.Cell(row, 1).GetString()
+                : worksheet.Cell(row, 1).GetValue<int>();
+            metric = AddSalesIdColumnMetric(metric, row, rowCount, value);
+        }
+
+        return metric;
+    }
+
     private static int EpPlusEnumerateRange(byte[] workbookBytes, int rowCount) {
         using var stream = new MemoryStream(workbookBytes, writable: false);
         using var package = new ExcelPackage(stream);
@@ -1845,6 +1911,19 @@ internal static class ExcelLibraryComparisonRunner {
             for (int column = 1; column <= 8; column++) {
                 metric = AddSalesEnumeratedCellMetric(metric, row, column, worksheet.Cells[row, column].Value);
             }
+        }
+
+        return metric;
+    }
+
+    private static int EpPlusEnumerateFirstColumn(byte[] workbookBytes, int rowCount) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using var package = new ExcelPackage(stream);
+        var worksheet = package.Workbook.Worksheets["Data"];
+        int metric = 0;
+        int expectedRows = rowCount + 1;
+        for (int row = 1; row <= expectedRows; row++) {
+            metric = AddSalesIdColumnMetric(metric, row, rowCount, worksheet.Cells[row, 1].Value);
         }
 
         return metric;
@@ -3803,6 +3882,30 @@ internal static class ExcelLibraryComparisonRunner {
             cells[offset++] = (rowNumber, 6, row.Units);
             cells[offset++] = (rowNumber, 7, row.Active);
             cells[offset++] = (rowNumber, 8, row.Notes);
+        }
+
+        return cells;
+    }
+
+    private static (int Row, int Column, object Value)[] BuildSparseObjectCells(int rowCount) {
+        var cells = new (int Row, int Column, object Value)[(rowCount + 1) * 4];
+        int offset = 0;
+        cells[offset++] = (1, 1, "Name");
+        cells[offset++] = (1, 2, "Amount");
+        cells[offset++] = (1, 3, "Active");
+        cells[offset++] = (1, 4, "Created");
+
+        var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
+        for (int row = 1; row <= rowCount; row++) {
+            int rowNumber = row + 1;
+            object? name = row % 3 == 0 ? null : "Item " + (row % 12).ToString(CultureInfo.InvariantCulture);
+            object? amount = row % 4 == 0 ? null : (double)row * 1.25d;
+            object? active = row % 5 == 0 ? null : row % 2 == 0;
+            object? created = row % 7 == 0 ? null : start.AddDays(row);
+            cells[offset++] = (rowNumber, 1, name!);
+            cells[offset++] = (rowNumber, 2, amount!);
+            cells[offset++] = (rowNumber, 3, active!);
+            cells[offset++] = (rowNumber, 4, created!);
         }
 
         return cells;

@@ -337,11 +337,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal void MarkPackageDirty() {
-            if (_packageDirty
-                && _unchangedPackageBytes == null
-                && _directDataSetSaveCandidate == null
-                && !_preserveDirectDataSetSaveCandidateForNextDirtyMark
-                && _directDataSetSaveCandidatePreservationDepth == 0) {
+            if (IsPackageDirtyWithoutPendingSaveCandidate) {
                 return;
             }
 
@@ -368,6 +364,13 @@ namespace OfficeIMO.Excel {
         }
 
         internal bool IsPackageDirty => _packageDirty;
+
+        internal bool IsPackageDirtyWithoutPendingSaveCandidate
+            => _packageDirty
+                && _unchangedPackageBytes == null
+                && _directDataSetSaveCandidate == null
+                && !_preserveDirectDataSetSaveCandidateForNextDirtyMark
+                && _directDataSetSaveCandidatePreservationDepth == 0;
 
         internal bool HasPackagePropertiesDirty => _packagePropertiesDirty;
 
@@ -642,6 +645,16 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        internal bool TryGetOrAddSharedStringIndexBelowLimit(string text, int addLimit, bool validateNewString, out int index, out bool containsLineBreak) {
+            if (Locking.IsNoLock || (_lock != null && _lock.IsWriteLockHeld)) {
+                return TryGetOrAddSharedStringIndexBelowLimitCore(text, addLimit, validateNewString, out index, out containsLineBreak);
+            }
+
+            lock (_sharedStringLock) {
+                return TryGetOrAddSharedStringIndexBelowLimitCore(text, addLimit, validateNewString, out index, out containsLineBreak);
+            }
+        }
+
         private int GetSharedStringIndexCore(string text, bool validateNewString) {
             // Check cache first
             if (_sharedStringCache.TryGetValue(text, out int cachedIndex)) {
@@ -708,6 +721,13 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            if (_sharedStringTablePart != null && _sharedStringTableCount >= 0 && _sharedStringCache.Count > 0) {
+                index = -1;
+                containsLineBreak = false;
+                sharedStringCount = _sharedStringTableCount;
+                return false;
+            }
+
             SharedStringTablePart? sharedStringTablePart = _sharedStringTablePart
                 ?? _workBookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
             var sharedStringTable = sharedStringTablePart?.SharedStringTable;
@@ -728,6 +748,39 @@ namespace OfficeIMO.Excel {
             index = -1;
             containsLineBreak = false;
             return false;
+        }
+
+        private bool TryGetOrAddSharedStringIndexBelowLimitCore(string text, int addLimit, bool validateNewString, out int index, out bool containsLineBreak) {
+            if (_sharedStringCache.TryGetValue(text, out index)) {
+                containsLineBreak = GetCachedOrComputeSharedStringLineBreak(text);
+                return true;
+            }
+
+            var sharedStringTable = SharedStringTablePart.SharedStringTable ??= new SharedStringTable();
+            int tableCount = EnsureSharedStringCacheAndCount(sharedStringTable);
+            if (_sharedStringCache.TryGetValue(text, out index)) {
+                containsLineBreak = GetCachedOrComputeSharedStringLineBreak(text);
+                return true;
+            }
+
+            if (tableCount >= addLimit) {
+                index = -1;
+                containsLineBreak = ContainsLineBreak(text);
+                return false;
+            }
+
+            if (validateNewString) {
+                CoerceValueHelper.ValidateSharedStringLength(text, nameof(text));
+            }
+
+            containsLineBreak = ContainsLineBreak(text);
+            index = tableCount;
+            sharedStringTable.AppendChild(new SharedStringItem(new Text(text)));
+            _sharedStringTableCount = index + 1;
+            _sharedStringTableDirty = true;
+            MarkPackageDirty();
+            _sharedStringCache[text] = index;
+            return true;
         }
 
         private bool GetCachedOrComputeSharedStringLineBreak(string text) {

@@ -64,6 +64,11 @@ namespace OfficeIMO.Tests {
             public decimal? OptionalAmount { get; set; }
         }
 
+        private sealed class IntegerBoundaryTypedRow {
+            public int IntValue { get; set; }
+            public long LongValue { get; set; }
+        }
+
         private sealed class CultureDoubleTypedRow {
             public double Amount { get; set; }
         }
@@ -1655,6 +1660,37 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(678.90m, rows[0].OptionalAmount);
                 Assert.Equal(11.25m, rows[1].Amount);
                 Assert.Null(rows[1].OptionalAmount);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_TypedObjects_MapIntegerBoundaries() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderIntegerBoundaryTypedHeaders.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "IntValue");
+                    sheet.CellValue(1, 2, "LongValue");
+                    sheet.CellValue(2, 1, int.MinValue);
+                    sheet.CellValue(2, 2, long.MinValue);
+                    sheet.CellValue(3, 1, int.MaxValue);
+                    sheet.CellValue(3, 2, long.MaxValue);
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var rows = reader.GetSheet("Data").ReadObjects<IntegerBoundaryTypedRow>("A1:B3").ToList();
+
+                Assert.Equal(2, rows.Count);
+                Assert.Equal(int.MinValue, rows[0].IntValue);
+                Assert.Equal(long.MinValue, rows[0].LongValue);
+                Assert.Equal(int.MaxValue, rows[1].IntValue);
+                Assert.Equal(long.MaxValue, rows[1].LongValue);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

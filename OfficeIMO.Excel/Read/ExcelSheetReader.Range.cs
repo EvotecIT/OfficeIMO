@@ -179,6 +179,7 @@ namespace OfficeIMO.Excel {
             int dataRowCount = Math.Max(0, rows - startRow);
             var headerValues = headersInFirstRow ? new object?[cols] : null;
             var rowValues = new object?[dataRowCount][];
+            var completeRowsWithoutNulls = cols <= 64 ? new bool[dataRowCount] : null;
             var inferredTypes = new Type?[cols];
 
             try {
@@ -225,7 +226,10 @@ namespace OfficeIMO.Excel {
                     }
 
                     object?[] values = rowValues[rr] ??= new object?[cols];
-                    ReadXmlRowIntoDataTableBuffer(reader, c1, c2, cols, null, values, inferredTypes, ct);
+                    if (ReadXmlRowIntoDataTableBuffer(reader, c1, c2, cols, null, values, inferredTypes, ct)) {
+                        completeRowsWithoutNulls![rr] = true;
+                    }
+
                     seenRows.MarkSeen(rowIndex - r1);
                 }
 
@@ -248,7 +252,7 @@ namespace OfficeIMO.Excel {
                 dt.MinimumCapacity = Math.Max(dt.MinimumCapacity, dataRowCount);
                 dt.BeginLoadData();
                 try {
-                    AddBufferedRowsToDataTable(dt, rowValues, dataRowCount, cols, ct);
+                    AddBufferedRowsToDataTable(dt, rowValues, completeRowsWithoutNulls, dataRowCount, cols, ct);
                 } finally {
                     dt.EndLoadData();
                 }
@@ -273,7 +277,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void AddBufferedRowsToDataTable(DataTable dt, object?[][] rowValues, int dataRowCount, int cols, CancellationToken ct) {
+        private static void AddBufferedRowsToDataTable(DataTable dt, object?[][] rowValues, bool[]? completeRowsWithoutNulls, int dataRowCount, int cols, CancellationToken ct) {
             bool canCancel = ct.CanBeCanceled;
             object[]? blankRow = null;
             for (int r = 0; r < dataRowCount; r++) {
@@ -288,8 +292,10 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                for (int c = 0; c < cols; c++) {
-                    source[c] ??= DBNull.Value;
+                if (completeRowsWithoutNulls == null || !completeRowsWithoutNulls[r]) {
+                    for (int c = 0; c < cols; c++) {
+                        source[c] ??= DBNull.Value;
+                    }
                 }
 
                 dt.Rows.Add(source);
@@ -305,7 +311,7 @@ namespace OfficeIMO.Excel {
             return values;
         }
 
-        private void ReadXmlRowIntoDataTableBuffer(
+        private bool ReadXmlRowIntoDataTableBuffer(
             XmlReader rowReader,
             int c1,
             int c2,
@@ -315,21 +321,23 @@ namespace OfficeIMO.Excel {
             Type?[]? inferredTypes,
             CancellationToken ct) {
             if (rowReader.IsEmptyElement) {
-                return;
+                return false;
             }
 
             int depth = rowReader.Depth;
             bool canCancel = ct.CanBeCanceled;
             int nextColumnIndex = 1;
             bool canTrackColumns = cols <= 64;
+            ulong allColumnsSeen = canTrackColumns ? CreateAllColumnsSeenMask(cols) : 0UL;
             ulong seenColumns = 0;
+            bool hasNullValue = false;
             while (rowReader.Read()) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
                 }
 
                 if (rowReader.NodeType == XmlNodeType.EndElement && rowReader.Depth == depth && rowReader.LocalName == "row") {
-                    return;
+                    return canTrackColumns && seenColumns == allColumnsSeen && !hasNullValue;
                 }
 
                 if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
@@ -354,6 +362,10 @@ namespace OfficeIMO.Excel {
                 }
 
                 object? value = ReadXmlCellValue(rowReader);
+                if (value == null) {
+                    hasNullValue = true;
+                }
+
                 if (headerValues != null) {
                     headerValues[cc] = value;
                 } else if (rowValues != null) {
@@ -363,11 +375,13 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                if (canTrackColumns && MarkRequestedColumnSeen(cc, cols, ref seenColumns)) {
+                if (canTrackColumns && MarkRequestedColumnSeen(cc, allColumnsSeen, ref seenColumns)) {
                     SkipXmlElementContent(rowReader, depth, "row");
-                    return;
+                    return !hasNullValue;
                 }
             }
+
+            return canTrackColumns && seenColumns == allColumnsSeen && !hasNullValue;
         }
 
         private bool TryFillDataTableXmlFast(
@@ -515,6 +529,7 @@ namespace OfficeIMO.Excel {
             int nextColumnIndex = 1;
             int columnCount = c2 - c1 + 1;
             bool canTrackColumns = columnCount <= 64;
+            ulong allColumnsSeen = canTrackColumns ? CreateAllColumnsSeenMask(columnCount) : 0UL;
             ulong seenColumns = 0;
             while (rowReader.Read()) {
                 if (canCancel) {
@@ -555,7 +570,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                if (canTrackColumns && MarkRequestedColumnSeen(cc, columnCount, ref seenColumns)) {
+                if (canTrackColumns && MarkRequestedColumnSeen(cc, allColumnsSeen, ref seenColumns)) {
                     SkipXmlElementContent(rowReader, depth, "row");
                     return;
                 }
@@ -579,6 +594,7 @@ namespace OfficeIMO.Excel {
             }
 
             var rowValues = new object?[dataRowCount][];
+            var completeRowsWithoutNulls = cols <= 64 ? new bool[dataRowCount] : null;
 
             try {
                 using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
@@ -624,14 +640,16 @@ namespace OfficeIMO.Excel {
                     }
 
                     object?[] values = rowValues[rr] ??= new object?[cols];
-                    ReadXmlRowIntoDataTableBuffer(reader, c1, c2, cols, null, values, null, ct);
+                    if (ReadXmlRowIntoDataTableBuffer(reader, c1, c2, cols, null, values, null, ct)) {
+                        completeRowsWithoutNulls![rr] = true;
+                    }
                     seenRows.MarkSeen(rowIndex - r1);
                 }
 
                 dt.MinimumCapacity = Math.Max(dt.MinimumCapacity, dataRowCount);
                 dt.BeginLoadData();
                 try {
-                    AddBufferedRowsToDataTable(dt, rowValues, dataRowCount, cols, ct);
+                    AddBufferedRowsToDataTable(dt, rowValues, completeRowsWithoutNulls, dataRowCount, cols, ct);
                 } finally {
                     dt.EndLoadData();
                 }
@@ -816,7 +834,7 @@ namespace OfficeIMO.Excel {
             dt.MinimumCapacity = Math.Max(dt.MinimumCapacity, dataRowCount);
             dt.BeginLoadData();
             try {
-                AddBufferedRowsToDataTable(dt, rowValues, dataRowCount, cols, ct);
+                AddBufferedRowsToDataTable(dt, rowValues, null, dataRowCount, cols, ct);
             } finally {
                 dt.EndLoadData();
             }
@@ -1118,6 +1136,7 @@ namespace OfficeIMO.Excel {
             bool canCancel = ct.CanBeCanceled;
             int nextColumnIndex = 1;
             bool canTrackColumns = cols <= 64;
+            ulong allColumnsSeen = canTrackColumns ? CreateAllColumnsSeenMask(cols) : 0UL;
             ulong seenColumns = 0;
             while (rowReader.Read()) {
                 if (canCancel) {
@@ -1150,7 +1169,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 values[offset] = ReadXmlCellValue(rowReader);
-                if (canTrackColumns && MarkRequestedColumnSeen(offset, cols, ref seenColumns)) {
+                if (canTrackColumns && MarkRequestedColumnSeen(offset, allColumnsSeen, ref seenColumns)) {
                     SkipXmlElementContent(rowReader, depth, "row");
                     return CreateDictionaryRow(headers, values, cols);
                 }
@@ -1731,21 +1750,30 @@ namespace OfficeIMO.Excel {
         private struct CompletedRowTracker {
             private readonly int _rowCount;
             private bool[]? _seenRows;
-            private ulong _seenRowMask;
+            private ulong _seenRowMask0;
+            private ulong _seenRowMask1;
+            private ulong _seenRowMask2;
+            private ulong _seenRowMask3;
             private int _seenRowCount;
 
             internal CompletedRowTracker(int rowCount) {
                 if (rowCount <= 0 || rowCount > XmlFastCompletedRowTrackingLimit) {
                     _rowCount = 0;
                     _seenRows = null;
-                    _seenRowMask = 0;
+                    _seenRowMask0 = 0;
+                    _seenRowMask1 = 0;
+                    _seenRowMask2 = 0;
+                    _seenRowMask3 = 0;
                     _seenRowCount = 0;
                     return;
                 }
 
                 _rowCount = rowCount;
-                _seenRows = rowCount > 64 ? new bool[rowCount] : null;
-                _seenRowMask = 0;
+                _seenRows = rowCount > 256 ? new bool[rowCount] : null;
+                _seenRowMask0 = 0;
+                _seenRowMask1 = 0;
+                _seenRowMask2 = 0;
+                _seenRowMask3 = 0;
                 _seenRowCount = 0;
             }
 
@@ -1757,12 +1785,38 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (_seenRows == null) {
-                    ulong rowBit = 1UL << rowOffset;
-                    if ((_seenRowMask & rowBit) != 0) {
-                        return;
-                    }
+                    int maskIndex = rowOffset >> 6;
+                    ulong rowBit = 1UL << (rowOffset & 63);
+                    switch (maskIndex) {
+                        case 0:
+                            if ((_seenRowMask0 & rowBit) != 0) {
+                                return;
+                            }
 
-                    _seenRowMask |= rowBit;
+                            _seenRowMask0 |= rowBit;
+                            break;
+                        case 1:
+                            if ((_seenRowMask1 & rowBit) != 0) {
+                                return;
+                            }
+
+                            _seenRowMask1 |= rowBit;
+                            break;
+                        case 2:
+                            if ((_seenRowMask2 & rowBit) != 0) {
+                                return;
+                            }
+
+                            _seenRowMask2 |= rowBit;
+                            break;
+                        default:
+                            if ((_seenRowMask3 & rowBit) != 0) {
+                                return;
+                            }
+
+                            _seenRowMask3 |= rowBit;
+                            break;
+                    }
                 } else {
                     if (_seenRows[rowOffset]) {
                         return;
@@ -1775,13 +1829,12 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static bool MarkRequestedColumnSeen(int columnOffset, int columnCount, ref ulong seenColumns) {
-            if ((uint)columnOffset >= (uint)columnCount || (uint)columnCount > 64u) {
-                return false;
-            }
+        private static ulong CreateAllColumnsSeenMask(int columnCount) {
+            return columnCount == 64 ? ulong.MaxValue : (1UL << columnCount) - 1UL;
+        }
 
+        private static bool MarkRequestedColumnSeen(int columnOffset, ulong allColumnsSeen, ref ulong seenColumns) {
             seenColumns |= 1UL << columnOffset;
-            ulong allColumnsSeen = columnCount == 64 ? ulong.MaxValue : (1UL << columnCount) - 1UL;
             return seenColumns == allColumnsSeen;
         }
 
@@ -1800,6 +1853,7 @@ namespace OfficeIMO.Excel {
             bool canCancel = ct.CanBeCanceled;
             int nextColumnIndex = 1;
             bool canTrackColumns = width <= 64;
+            ulong allColumnsSeen = canTrackColumns ? CreateAllColumnsSeenMask(width) : 0UL;
             ulong seenColumns = 0;
             while (rowReader.Read()) {
                 if (canCancel) {
@@ -1832,7 +1886,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 result[rr, cc] = ReadXmlCellValue(rowReader);
-                if (canTrackColumns && MarkRequestedColumnSeen(cc, width, ref seenColumns)) {
+                if (canTrackColumns && MarkRequestedColumnSeen(cc, allColumnsSeen, ref seenColumns)) {
                     SkipXmlElementContent(rowReader, depth, "row");
                     return;
                 }
@@ -1946,7 +2000,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (numericAsDecimal
-                && decimal.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, culture, out decimal decimalNumber)) {
+                && TryParseRawDecimal(rawText, culture, out decimal decimalNumber)) {
                 return decimalNumber;
             }
 
@@ -2005,7 +2059,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (numericAsDecimal
-                && decimal.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, culture, out decimal decimalNumber)) {
+                && TryParseRawDecimal(rawText, culture, out decimal decimalNumber)) {
                 value = decimalNumber;
                 return true;
             }
