@@ -35,16 +35,11 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            var list = new List<object?>(rows.Count);
-            for (int i = 0; i < rows.Count; i++) {
-                list.Add(rows[i]);
-            }
-
-            var flattenedItems = new List<Dictionary<string, object?>>(list.Count);
+            var flattenedItems = new List<Dictionary<string, object?>>(rows.Count);
             List<string> headers = new List<string>();
             HashSet<string> headerSet = new HashSet<string>();
 
-            foreach (var item in list) {
+            foreach (var item in rows) {
                 var dict = new Dictionary<string, object?>();
                 FlattenObject(item, null, dict);
                 flattenedItems.Add(dict);
@@ -60,8 +55,7 @@ namespace OfficeIMO.Excel {
             if (!hasBlankDisplayHeader && CanRegisterDirectTabularSaveCandidate(startRow, 1, headers.Count)) {
                 try {
                     directSaveRange = BuildObjectExportRange(startRow, headers.Count, flattenedItems.Count, includeHeaders);
-                    var columnTypes = InferObjectExportColumnTypes(flattenedItems, headers);
-                    var directRows = CreateObjectExportRows(headers, flattenedItems);
+                    var directRows = CreateObjectExportRows(headers, flattenedItems, out var columnTypes);
                     if (TryInsertRowsAsDeferredDirectSave(Name, headers, columnTypes, directRows, startRow, includeHeaders, directSaveRange)) {
                         return;
                     }
@@ -71,7 +65,7 @@ namespace OfficeIMO.Excel {
             }
 
             int headerRows = includeHeaders ? 1 : 0;
-            int totalCellCount = checked((list.Count + headerRows) * Math.Max(1, headers.Count));
+            int totalCellCount = checked((rows.Count + headerRows) * Math.Max(1, headers.Count));
             var cells = new (int Row, int Column, object Value)[totalCellCount];
             int cellIndex = 0;
             int row = startRow;
@@ -138,10 +132,13 @@ namespace OfficeIMO.Excel {
             }
 
             var values = new object?[rows.Count][];
+            var inferredColumnTypes = new Type?[selectors.Length];
             for (int r = 0; r < rows.Count; r++) {
                 var rowValues = new object?[selectors.Length];
                 for (int c = 0; c < selectors.Length; c++) {
-                    rowValues[c] = selectors[c](rows[r]);
+                    object? value = selectors[c](rows[r]);
+                    rowValues[c] = value;
+                    UpdateObjectExportColumnType(inferredColumnTypes, c, value);
                 }
 
                 values[r] = rowValues;
@@ -151,7 +148,7 @@ namespace OfficeIMO.Excel {
             if (!hasBlankDisplayHeader && CanRegisterDirectTabularSaveCandidate(startRow, 1, headers.Length)) {
                 try {
                     if (!HasDuplicateObjectExportHeaders(headers)) {
-                        var columnTypes = InferObjectExportColumnTypes(values, headers.Length);
+                        var columnTypes = CompleteObjectExportColumnTypes(inferredColumnTypes);
                         directSaveRange = BuildObjectExportRange(startRow, headers.Length, rows.Count, includeHeaders);
                         if (TryInsertRowsAsDeferredDirectSave(Name, headers, columnTypes, values, startRow, includeHeaders, directSaveRange)) {
                             return;
@@ -249,8 +246,15 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            var sheets = WorkbookRoot.Sheets?.Elements<Sheet>().ToList();
-            if (sheets == null || sheets.Count != 1 || !ReferenceEquals(sheets[0], SheetElement)) {
+            var sheets = WorkbookRoot.Sheets;
+            if (sheets == null) {
+                return false;
+            }
+
+            using var sheetEnumerator = sheets.Elements<Sheet>().GetEnumerator();
+            if (!sheetEnumerator.MoveNext()
+                || !ReferenceEquals(sheetEnumerator.Current, SheetElement)
+                || sheetEnumerator.MoveNext()) {
                 return false;
             }
 
@@ -297,7 +301,8 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            Type rowType = rows[0]?.GetType() ?? typeof(object);
+            bool requireRuntimeTypeCheck = !typeof(T).IsValueType && !typeof(T).IsSealed;
+            Type rowType = requireRuntimeTypeCheck ? rows[0]?.GetType() ?? typeof(object) : typeof(T);
             if (rowType == typeof(object)) {
                 return false;
             }
@@ -316,7 +321,7 @@ namespace OfficeIMO.Excel {
             var values = new object?[rows.Count][];
             for (int r = 0; r < rows.Count; r++) {
                 object? row = rows[r];
-                if (row == null || row.GetType() != rowType) {
+                if (row == null || requireRuntimeTypeCheck && row.GetType() != rowType) {
                     return false;
                 }
 
@@ -442,80 +447,43 @@ namespace OfficeIMO.Excel {
 
         private delegate object? SimpleObjectExportValueGetter(object? row);
 
-        private static object?[][] CreateObjectExportRows(IReadOnlyList<string> headers, IReadOnlyList<Dictionary<string, object?>> rows) {
+        private static object?[][] CreateObjectExportRows(IReadOnlyList<string> headers, IReadOnlyList<Dictionary<string, object?>> rows, out Type[] columnTypes) {
             var values = new object?[rows.Count][];
+            var inferredColumnTypes = new Type?[headers.Count];
             for (int r = 0; r < rows.Count; r++) {
                 var rowValues = new object?[headers.Count];
                 for (int c = 0; c < headers.Count; c++) {
-                    rowValues[c] = rows[r].TryGetValue(headers[c], out var entry) ? entry : null;
+                    object? value = rows[r].TryGetValue(headers[c], out var entry) ? entry : null;
+                    rowValues[c] = value;
+                    UpdateObjectExportColumnType(inferredColumnTypes, c, value);
                 }
 
                 values[r] = rowValues;
             }
 
+            columnTypes = CompleteObjectExportColumnTypes(inferredColumnTypes);
             return values;
         }
 
-        private static Type[] InferObjectExportColumnTypes(IReadOnlyList<object?[]> values, int columnCount) {
-            var columnTypes = new Type[columnCount];
-            for (int c = 0; c < columnCount; c++) {
-                columnTypes[c] = InferObjectExportColumnType(values, c);
+        private static void UpdateObjectExportColumnType(Type?[] inferredColumnTypes, int columnIndex, object? value) {
+            if (value == null || value == DBNull.Value || inferredColumnTypes[columnIndex] == typeof(object)) {
+                return;
+            }
+
+            Type valueType = value.GetType();
+            Type? inferred = inferredColumnTypes[columnIndex];
+            inferredColumnTypes[columnIndex] = inferred == null || inferred == valueType
+                ? valueType
+                : typeof(object);
+        }
+
+        private static Type[] CompleteObjectExportColumnTypes(Type?[] inferredColumnTypes) {
+            var columnTypes = new Type[inferredColumnTypes.Length];
+            for (int i = 0; i < columnTypes.Length; i++) {
+                columnTypes[i] = inferredColumnTypes[i] ?? typeof(object);
             }
 
             return columnTypes;
-        }
-
-        private static Type[] InferObjectExportColumnTypes(IReadOnlyList<Dictionary<string, object?>> rows, IReadOnlyList<string> headers) {
-            var columnTypes = new Type[headers.Count];
-            for (int c = 0; c < headers.Count; c++) {
-                columnTypes[c] = InferObjectExportColumnType(rows, headers[c]);
-            }
-
-            return columnTypes;
-        }
-
-        private static Type InferObjectExportColumnType(IReadOnlyList<object?[]> values, int columnIndex) {
-            Type? inferred = null;
-            for (int r = 0; r < values.Count; r++) {
-                object? value = values[r][columnIndex];
-                if (value == null || value == DBNull.Value) {
-                    continue;
-                }
-
-                Type valueType = Nullable.GetUnderlyingType(value.GetType()) ?? value.GetType();
-                if (inferred == null) {
-                    inferred = valueType;
-                    continue;
-                }
-
-                if (inferred != valueType) {
-                    return typeof(object);
-                }
-            }
-
-            return inferred ?? typeof(object);
-        }
-
-        private static Type InferObjectExportColumnType(IReadOnlyList<Dictionary<string, object?>> rows, string header) {
-            Type? inferred = null;
-            for (int r = 0; r < rows.Count; r++) {
-                object? value = rows[r].TryGetValue(header, out var entry) ? entry : null;
-                if (value == null || value == DBNull.Value) {
-                    continue;
-                }
-
-                Type valueType = Nullable.GetUnderlyingType(value.GetType()) ?? value.GetType();
-                if (inferred == null) {
-                    inferred = valueType;
-                    continue;
-                }
-
-                if (inferred != valueType) {
-                    return typeof(object);
-                }
-            }
-
-            return inferred ?? typeof(object);
         }
 
         private static void FlattenObject(object? value, string? prefix, IDictionary<string, object?> result) {

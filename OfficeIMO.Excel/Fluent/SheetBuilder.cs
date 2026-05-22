@@ -404,6 +404,7 @@ namespace OfficeIMO.Excel.Fluent {
 
             var staticColumnTypes = new Type[properties.Length];
             var staticBlankAsEmptyString = new bool[properties.Length];
+            var staticRequiresBlankCoercion = new bool[properties.Length];
             var inferenceFallbackTypes = new Type[properties.Length];
             var inferColumns = new bool[properties.Length];
             var getters = new RowsFromSimpleValueGetter[properties.Length];
@@ -412,12 +413,19 @@ namespace OfficeIMO.Excel.Fluent {
             for (int i = 0; i < properties.Length; i++) {
                 getters[i] = CreateRowsFromSimpleValueGetter(properties[i]);
                 Type propertyType = properties[i].PropertyType;
-                Type declaredType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+                Type? nullableUnderlyingType = Nullable.GetUnderlyingType(propertyType);
+                Type declaredType = nullableUnderlyingType ?? propertyType;
                 if (declaredType == typeof(string)) {
                     staticColumnTypes[i] = typeof(string);
                     staticBlankAsEmptyString[i] = true;
+                    staticRequiresBlankCoercion[i] = true;
                     inferenceFallbackTypes[i] = typeof(string);
-                } else if (!declaredType.IsValueType || Nullable.GetUnderlyingType(propertyType) != null) {
+                } else if (nullableUnderlyingType != null && CanUseStaticNullableRowsFromColumnType(nullableUnderlyingType)) {
+                    staticColumnTypes[i] = nullableUnderlyingType;
+                    staticBlankAsEmptyString[i] = false;
+                    staticRequiresBlankCoercion[i] = true;
+                    inferenceFallbackTypes[i] = nullableUnderlyingType;
+                } else if (!declaredType.IsValueType || nullableUnderlyingType != null) {
                     inferColumns[i] = true;
                     inferenceColumnIndexes.Add(i);
                     hasInferenceColumns = true;
@@ -425,12 +433,13 @@ namespace OfficeIMO.Excel.Fluent {
                 } else {
                     staticColumnTypes[i] = declaredType;
                     staticBlankAsEmptyString[i] = false;
+                    staticRequiresBlankCoercion[i] = false;
                     inferenceFallbackTypes[i] = declaredType;
                 }
             }
 
             return CanUseRowsFromDataTable(headers)
-                ? new RowsFromSimpleTypePlan(getters, headers, staticColumnTypes, staticBlankAsEmptyString, inferenceFallbackTypes, inferColumns, inferenceColumnIndexes.ToArray(), hasInferenceColumns, canUseDirectSave: true)
+                ? new RowsFromSimpleTypePlan(getters, headers, staticColumnTypes, staticBlankAsEmptyString, staticRequiresBlankCoercion, inferenceFallbackTypes, inferColumns, inferenceColumnIndexes.ToArray(), hasInferenceColumns, canUseDirectSave: true)
                 : RowsFromSimpleTypePlan.NotSupported;
         }
 
@@ -476,6 +485,25 @@ namespace OfficeIMO.Excel.Fluent {
                 || type == typeof(Guid);
         }
 
+        private static bool CanUseStaticNullableRowsFromColumnType(Type type) {
+            if (type == typeof(DateTime)
+                || type == typeof(DateTimeOffset)
+                || type == typeof(TimeSpan)) {
+                return false;
+            }
+
+#if NET6_0_OR_GREATER
+            if (type == typeof(DateOnly) || type == typeof(TimeOnly)) {
+                return false;
+            }
+#endif
+
+            return type.IsPrimitive
+                || type.IsEnum
+                || type == typeof(decimal)
+                || type == typeof(Guid);
+        }
+
         private static object?[][] MaterializeSimpleRowsFromProperties<T>(RowsFromSimpleTypePlan typePlan, IReadOnlyList<T> rows, out Type[] columnTypes) {
             var directRows = new object?[rows.Count][];
             if (!typePlan.HasInferenceColumns) {
@@ -500,12 +528,16 @@ namespace OfficeIMO.Excel.Fluent {
         private static void MaterializeStaticSimpleRowsFromProperties<T>(RowsFromSimpleTypePlan typePlan, IReadOnlyList<T> rows, object?[][] directRows) {
             RowsFromSimpleValueGetter[] getters = typePlan.Getters;
             bool[] blankAsEmptyString = typePlan.StaticBlankAsEmptyString;
+            bool[] requiresBlankCoercion = typePlan.StaticRequiresBlankCoercion;
             int columnCount = getters.Length;
             for (int row = 0; row < rows.Count; row++) {
                 T sourceRow = rows[row];
                 var values = new object?[columnCount];
                 for (int column = 0; column < columnCount; column++) {
-                    values[column] = CoerceRowsFromDirectSaveValue(getters[column](sourceRow), blankAsEmptyString[column]);
+                    object? value = getters[column](sourceRow);
+                    values[column] = requiresBlankCoercion[column]
+                        ? CoerceRowsFromDirectSaveValue(value, blankAsEmptyString[column])
+                        : value;
                 }
 
                 directRows[row] = values;
@@ -516,6 +548,7 @@ namespace OfficeIMO.Excel.Fluent {
             RowsFromSimpleValueGetter[] getters = typePlan.Getters;
             bool[] inferColumns = typePlan.InferColumns;
             bool[] staticBlankAsEmptyString = typePlan.StaticBlankAsEmptyString;
+            bool[] staticRequiresBlankCoercion = typePlan.StaticRequiresBlankCoercion;
             int columnCount = getters.Length;
             var columnTypes = new Type[columnCount];
             Array.Copy(typePlan.StaticColumnTypes, columnTypes, columnTypes.Length);
@@ -527,7 +560,9 @@ namespace OfficeIMO.Excel.Fluent {
                 for (int column = 0; column < columnCount; column++) {
                     object? value = getters[column](sourceRow);
                     if (!inferColumns[column]) {
-                        values[column] = CoerceRowsFromDirectSaveValue(value, staticBlankAsEmptyString[column]);
+                        values[column] = staticRequiresBlankCoercion[column]
+                            ? CoerceRowsFromDirectSaveValue(value, staticBlankAsEmptyString[column])
+                            : value;
                         continue;
                     }
 
@@ -536,7 +571,7 @@ namespace OfficeIMO.Excel.Fluent {
                         continue;
                     }
 
-                    Type valueType = Nullable.GetUnderlyingType(value!.GetType()) ?? value.GetType();
+                    Type valueType = value!.GetType();
                     Type? inferred = inferredTypes![column];
                     if (inferred == null) {
                         inferredTypes[column] = valueType;
@@ -567,7 +602,7 @@ namespace OfficeIMO.Excel.Fluent {
                         continue;
                     }
 
-                    Type valueType = Nullable.GetUnderlyingType(value!.GetType()) ?? value.GetType();
+                    Type valueType = value!.GetType();
                     if (inferred == null) {
                         inferred = valueType;
                         continue;
@@ -653,6 +688,7 @@ namespace OfficeIMO.Excel.Fluent {
                 Array.Empty<string>(),
                 Array.Empty<Type>(),
                 Array.Empty<bool>(),
+                Array.Empty<bool>(),
                 Array.Empty<Type>(),
                 Array.Empty<bool>(),
                 Array.Empty<int>(),
@@ -664,6 +700,7 @@ namespace OfficeIMO.Excel.Fluent {
                 string[] headers,
                 Type[] staticColumnTypes,
                 bool[] staticBlankAsEmptyString,
+                bool[] staticRequiresBlankCoercion,
                 Type[] inferenceFallbackTypes,
                 bool[] inferColumns,
                 int[] inferenceColumnIndexes,
@@ -673,6 +710,7 @@ namespace OfficeIMO.Excel.Fluent {
                 Headers = headers;
                 StaticColumnTypes = staticColumnTypes;
                 StaticBlankAsEmptyString = staticBlankAsEmptyString;
+                StaticRequiresBlankCoercion = staticRequiresBlankCoercion;
                 InferenceFallbackTypes = inferenceFallbackTypes;
                 InferColumns = inferColumns;
                 InferenceColumnIndexes = inferenceColumnIndexes;
@@ -687,6 +725,8 @@ namespace OfficeIMO.Excel.Fluent {
             internal Type[] StaticColumnTypes { get; }
 
             internal bool[] StaticBlankAsEmptyString { get; }
+
+            internal bool[] StaticRequiresBlankCoercion { get; }
 
             internal Type[] InferenceFallbackTypes { get; }
 

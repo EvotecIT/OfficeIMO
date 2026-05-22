@@ -33,9 +33,7 @@ namespace OfficeIMO.Excel {
 
             DirectCellValuesSaveCandidate? directSaveCandidate = null;
             DirectCellValuesSaveCandidate? appendSaveCandidate = null;
-            bool hasAutomaticFormattingText = ContainsDirectCellValuesAutomaticFormattingText(list);
-            if (!hasAutomaticFormattingText
-                && TryCreateDirectCellValuesSaveCandidate(list, mode, out DirectCellValuesSaveCandidate? candidate)
+            if (TryCreateDirectCellValuesSaveCandidate(list, mode, out DirectCellValuesSaveCandidate? candidate)
                 && candidate != null
                 && CanRegisterDirectTabularSaveCandidate(1, 1, candidate.ColumnNames.Length)) {
                 directSaveCandidate = candidate;
@@ -48,7 +46,6 @@ namespace OfficeIMO.Excel {
             }
 
             if (mode == ExecutionMode.Parallel
-                && !hasAutomaticFormattingText
                 && TryCreateDirectCellValuesAppendCandidate(list, out DirectCellValuesSaveCandidate? appendCandidate)) {
                 appendSaveCandidate = appendCandidate;
             }
@@ -447,7 +444,9 @@ namespace OfficeIMO.Excel {
 
             if (columnCount <= DirectCellValuesLinearHeaderDuplicateCheckLimit) {
                 for (int column = 0; column < columnCount; column++) {
-                    if (cells[column].Value is not string header || string.IsNullOrWhiteSpace(header)) {
+                    if (cells[column].Value is not string header
+                        || string.IsNullOrWhiteSpace(header)
+                        || IsDirectCellValuesAutomaticFormattingText(header)) {
                         return false;
                     }
 
@@ -463,7 +462,10 @@ namespace OfficeIMO.Excel {
 
             var headers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             for (int column = 0; column < columnCount; column++) {
-                if (cells[column].Value is not string header || string.IsNullOrWhiteSpace(header) || !headers.Add(header)) {
+                if (cells[column].Value is not string header
+                    || string.IsNullOrWhiteSpace(header)
+                    || IsDirectCellValuesAutomaticFormattingText(header)
+                    || !headers.Add(header)) {
                     return false;
                 }
             }
@@ -495,16 +497,17 @@ namespace OfficeIMO.Excel {
             int dataRowCount = (cells.Count - dataStartIndex) / columnCount;
             rows = new object?[dataRowCount][];
             var inferredTypes = new Type?[columnCount];
-            bool[]? blankColumns = null;
 
             int rowOffset = 0;
             for (int index = dataStartIndex; index < cells.Count; index += columnCount) {
                 var row = new object?[columnCount];
                 for (int column = 0; column < columnCount; column++) {
                     object? value = cells[index + column].Value;
+                    if (value is string text && IsDirectCellValuesAutomaticFormattingText(text)) {
+                        return false;
+                    }
+
                     if (IsDirectCellValuesBlankValue(value)) {
-                        blankColumns ??= new bool[columnCount];
-                        blankColumns[column] = true;
                         row[column] = value;
                         continue;
                     }
@@ -540,40 +543,13 @@ namespace OfficeIMO.Excel {
                 columnTypes[column] = inferredTypes[column] ?? typeof(string);
             }
 
-            if (blankColumns != null) {
-                for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
-                    object?[] row = rows[rowIndex];
-                    for (int column = 0; column < columnCount; column++) {
-                        if (!blankColumns[column] || !IsDirectCellValuesBlankValue(row[column])) {
-                            continue;
-                        }
-
-                        Type columnType = columnTypes[column];
-                        row[column] = columnType == typeof(string) || columnType == typeof(object)
-                            ? string.Empty
-                            : DBNull.Value;
-                    }
-                }
-            }
-
             return true;
-        }
-
-        private static bool ContainsDirectCellValuesAutomaticFormattingText(IReadOnlyList<(int Row, int Column, object Value)> cells) {
-            for (int i = 0; i < cells.Count; i++) {
-                if (cells[i].Value is string text && IsDirectCellValuesAutomaticFormattingText(text)) {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         private static bool IsDirectCellValuesAutomaticFormattingText(string text)
             => text.IndexOf('\r') >= 0 || text.IndexOf('\n') >= 0;
 
         private static Type NormalizeDirectCellValuesColumnType(Type type) {
-            type = Nullable.GetUnderlyingType(type) ?? type;
             if (type == typeof(DBNull) || type == typeof(void)) {
                 return typeof(object);
             }

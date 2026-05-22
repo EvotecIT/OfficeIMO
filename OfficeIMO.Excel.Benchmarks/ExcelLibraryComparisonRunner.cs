@@ -82,6 +82,8 @@ internal static class ExcelLibraryComparisonRunner {
         var firstTableRows = rows.Take(rowCount / 2).ToList();
         var secondTableRows = rows.Skip(rowCount / 2).ToList();
         var salesDataTable = CreateSalesDataTable(rows, "SalesData");
+        var objectColumnSalesDataTable = CreateObjectColumnSalesDataTable(rows, "SalesData");
+        var dictionaryRows = CreateDictionaryRows(rows);
         var salesDataSet = CreateSalesDataSet(firstTableRows, secondTableRows);
         var sparseDataSet = CreateSparseDataSet(rowCount);
         var officeImoWorkbookBytes = new Lazy<byte[]>(() => ExcelBenchmarkScenarioFactory.CreateWorkbookBytes(rows));
@@ -155,6 +157,21 @@ internal static class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("ClosedXML", "Import a prepared DataTable as a styled worksheet table and save.", () => ClosedXmlWriteDataTable(salesDataTable, includeTable: true)),
             new LibraryComparisonCase("EPPlus", "Import a prepared DataTable as a styled worksheet table and save.", () => EpPlusWriteDataTable(salesDataTable, includeTable: true)),
             new LibraryComparisonCase("MiniExcel", "Streaming DataTable export with table styling configuration.", () => MiniExcelWriteDataTable(salesDataTable, includeTable: true))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-datatable-object-table-direct", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Insert an object-typed DataTable as a styled table through the normal worksheet API and save.", () => OfficeImoWriteDataTableAsTable(objectColumnSalesDataTable)),
+            new LibraryComparisonCase("ClosedXML", "Import an object-typed DataTable as a styled worksheet table and save.", () => ClosedXmlWriteDataTable(objectColumnSalesDataTable, includeTable: true)),
+            new LibraryComparisonCase("EPPlus", "Import an object-typed DataTable as a styled worksheet table and save.", () => EpPlusWriteDataTable(objectColumnSalesDataTable, includeTable: true)),
+            new LibraryComparisonCase("MiniExcel", "Streaming object-typed DataTable export with table styling configuration.", () => MiniExcelWriteDataTable(objectColumnSalesDataTable, includeTable: true))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "build-object-datatable-dictionaries", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Build a DataTable from dictionary rows matching the normalized PowerShell object shape.", () => ObjectDataTableBuilder.FromObjects(dictionaryRows, "SalesData").Rows.Count)
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-dictionary-objects-table-direct", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Build a DataTable from normalized dictionary rows, insert it as a styled table, and save.", () => OfficeImoWriteDataTableAsTable(ObjectDataTableBuilder.FromObjects(dictionaryRows, "SalesData")))
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-datareader-table", warmupIterations, measuredIterations, [
@@ -4096,6 +4113,42 @@ internal static class ExcelLibraryComparisonRunner {
     private static DataTable CreateSalesDataTable(IEnumerable<ExcelBenchmarkScenarioFactory.SalesRecord> rows, string tableName) {
         var table = CreateSalesDataTable();
         table.TableName = tableName;
+        foreach (var row in rows) {
+            table.Rows.Add(row.Id, row.Region, row.Owner, row.CreatedOn, row.Amount, row.Units, row.Active, row.Notes);
+        }
+
+        return table;
+    }
+
+    private static IReadOnlyList<object?> CreateDictionaryRows(IEnumerable<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
+        var result = new List<object?>();
+        foreach (var row in rows) {
+            result.Add(new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) {
+                ["Id"] = row.Id,
+                ["Region"] = row.Region,
+                ["Owner"] = row.Owner,
+                ["CreatedOn"] = row.CreatedOn,
+                ["Amount"] = row.Amount,
+                ["Units"] = row.Units,
+                ["Active"] = row.Active,
+                ["Notes"] = row.Notes
+            });
+        }
+
+        return result;
+    }
+
+    private static DataTable CreateObjectColumnSalesDataTable(IEnumerable<ExcelBenchmarkScenarioFactory.SalesRecord> rows, string tableName) {
+        var table = new DataTable(tableName) { Locale = CultureInfo.InvariantCulture };
+        table.Columns.Add("Id", typeof(object));
+        table.Columns.Add("Region", typeof(object));
+        table.Columns.Add("Owner", typeof(object));
+        table.Columns.Add("CreatedOn", typeof(object));
+        table.Columns.Add("Amount", typeof(object));
+        table.Columns.Add("Units", typeof(object));
+        table.Columns.Add("Active", typeof(object));
+        table.Columns.Add("Notes", typeof(object));
+
         foreach (var row in rows) {
             table.Rows.Add(row.Id, row.Region, row.Owner, row.CreatedOn, row.Amount, row.Units, row.Active, row.Notes);
         }

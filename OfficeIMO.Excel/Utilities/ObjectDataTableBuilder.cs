@@ -112,6 +112,14 @@ namespace OfficeIMO.Excel {
             }
 
             private bool TryFillDictionaryValues(object item, object?[] values) {
+                if (item is Dictionary<string, object?> exactDictionary) {
+                    for (int i = 0; i < _columns.Length; i++) {
+                        values[i] = exactDictionary.TryGetValue(_columns[i], out var value) ? value ?? DBNull.Value : DBNull.Value;
+                    }
+
+                    return true;
+                }
+
                 if (item is IReadOnlyDictionary<string, object?> readOnlyDictionary) {
                     for (int i = 0; i < _columns.Length; i++) {
                         values[i] = readOnlyDictionary.TryGetValue(_columns[i], out var value) ? value ?? DBNull.Value : DBNull.Value;
@@ -155,7 +163,8 @@ namespace OfficeIMO.Excel {
             }
 
             private static bool IsDictionaryLike(object item) {
-                return item is IReadOnlyDictionary<string, object?>
+                return item is Dictionary<string, object?>
+                    || item is IReadOnlyDictionary<string, object?>
                     || item is IDictionary<string, object?>
                     || item is System.Collections.IDictionary;
             }
