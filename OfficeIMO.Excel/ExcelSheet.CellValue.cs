@@ -737,6 +737,10 @@ namespace OfficeIMO.Excel {
                     }
                 }
                 text = GetCellText(cell);
+                if (string.IsNullOrEmpty(text) && cell.CellFormula != null && cell.CellValue == null && cell.InlineString == null) {
+                    text = cell.CellFormula.Text ?? string.Empty;
+                }
+
                 return cell.CellValue != null || cell.InlineString != null || !string.IsNullOrEmpty(text);
             } catch { return false; }
         }

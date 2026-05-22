@@ -438,5 +438,34 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
+
+        [Fact]
+        public void Test_TryGetCellText_ReadsFormulaTextWhenCellHasNoCachedValue() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesTryGetFormulaNoCache.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                var worksheet = document._spreadSheetDocument.WorkbookPart!.WorksheetParts.First().Worksheet;
+                var sheetData = worksheet.GetFirstChild<SheetData>()!;
+                var row = new Row { RowIndex = 1 };
+                var cell = new Cell {
+                    CellReference = "A1",
+                    CellFormula = new CellFormula("CONCAT(\"ReviewTarget\",\"\")")
+                };
+                row.Append(cell);
+                sheetData.Append(row);
+
+                Assert.True(sheet.TryGetCellText(1, 1, out string? text));
+                Assert.Equal("CONCAT(\"ReviewTarget\",\"\")", text);
+                Assert.Equal(0, sheet.ReplaceAll("ReviewTarget", "Changed"));
+                Assert.Equal("CONCAT(\"ReviewTarget\",\"\")", cell.CellFormula!.Text);
+                Assert.Null(cell.CellValue);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
     }
 }

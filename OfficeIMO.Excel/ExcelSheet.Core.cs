@@ -97,8 +97,6 @@ namespace OfficeIMO.Excel {
                 if (_batchHasCellMutations) {
                     _excelDocument.MarkPackageDirty();
                 }
-
-                MarkRequiresSavePreparation();
             } finally {
                 _isBatchOperation = wasBatchOperation;
                 _batchHasCellMutations = hadBatchCellMutations;

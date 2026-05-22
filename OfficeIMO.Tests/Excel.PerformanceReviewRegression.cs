@@ -65,6 +65,57 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_SheetBatchReadOnlyActionDoesNotDirtyLoadedWorkbook() {
+            using var memory = new MemoryStream();
+            using (var document = ExcelDocument.Create(memory, autoSave: false)) {
+                var sheet = document.AddWorkSheet("Batch");
+                sheet.CellValue(1, 1, "Status");
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var loaded = ExcelDocument.Load(memory, readOnly: false, autoSave: false);
+            var loadedSheet = loaded.Sheets[0];
+
+            Assert.False(loaded.IsPackageDirty);
+            Assert.False(loadedSheet.RequiresSavePreparation);
+
+            loadedSheet.Batch(s => {
+                Assert.True(s.TryGetCellText(1, 1, out string? text));
+                Assert.Equal("Status", text);
+            });
+
+            Assert.False(loaded.IsPackageDirty);
+            Assert.False(loadedSheet.RequiresSavePreparation);
+        }
+
+        [Fact]
+        public void PerformanceReview_SheetBatchAllowsNestedWriteLockOperations() {
+            using var memory = new MemoryStream();
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Batch");
+
+                sheet.Batch(s => {
+                    s.CellValue(1, 1, "Name");
+                    s.CellValue(1, 2, "Score");
+                    s.CellValue(2, 1, "Alpha");
+                    s.CellValue(2, 2, 42);
+                    s.AddTable("A1:B2", hasHeader: true, name: "BatchTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+                });
+
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
+            var table = spreadsheet.WorkbookPart!.WorksheetParts.First().TableDefinitionParts.Single().Table!;
+            Assert.Equal("BatchTable", table.Name!.Value);
+            Assert.Equal("A1:B2", table.Reference!.Value);
+        }
+
+        [Fact]
         public void PerformanceReview_SheetBatchHeaderMutationRefreshesCachedHeadersInsideBatch() {
             using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
             var sheet = document.AddWorkSheet("Batch");
