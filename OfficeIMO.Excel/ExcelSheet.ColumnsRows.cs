@@ -51,6 +51,22 @@ namespace OfficeIMO.Excel {
             AutoFitColumnsInternal(list, mode, ct);
         }
 
+        private void AutoFitContiguousColumns(int startColumn, int columnCount, ExecutionMode? mode = null, CancellationToken ct = default) {
+            if (startColumn <= 0 || columnCount <= 0) return;
+            _excelDocument.MaterializeDeferredDataSetImport();
+
+            var columns = new int[columnCount];
+            for (int i = 0; i < columns.Length; i++) {
+                columns[i] = startColumn + i;
+            }
+
+            if (CanSkipStableAutoFitColumns(columns)) {
+                return;
+            }
+
+            AutoFitColumnsInternal(columns, mode, ct);
+        }
+
         /// <summary>
         /// Automatically fits all columns except the supplied indexes.
         /// </summary>

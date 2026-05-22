@@ -27,7 +27,15 @@ namespace OfficeIMO.Excel {
         }
         private readonly UInt32Value _id;
         private readonly WorksheetPart _worksheetPart;
-        internal WorksheetPart WorksheetPart => _worksheetPart;
+        internal WorksheetPart WorksheetPart {
+            get {
+                if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
+                    MaterializeDeferredDataSetImportIfNeeded();
+                }
+
+                return _worksheetPart;
+            }
+        }
         private readonly SpreadsheetDocument _spreadSheetDocument;
         private readonly ExcelDocument _excelDocument;
         private bool _isBatchOperation = false;
@@ -81,6 +89,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 action(this);
                 return;
             }
@@ -251,7 +260,11 @@ namespace OfficeIMO.Excel {
                 rowElement = new Row { RowIndex = (uint)row };
                 createdRowElement = true;
                 if (insertAfterRow != null) {
-                    sheetData.InsertAfter(rowElement, insertAfterRow);
+                    if (insertAfterRow.NextSibling<Row>() == null) {
+                        sheetData.Append(rowElement);
+                    } else {
+                        sheetData.InsertAfter(rowElement, insertAfterRow);
+                    }
                 } else {
                     // Insert at beginning
                     var firstRow = sheetData.Elements<Row>().FirstOrDefault();
@@ -325,7 +338,11 @@ namespace OfficeIMO.Excel {
             if (cell == null) {
                 cell = new Cell { CellReference = BuildCellReference(row, column) };
                 if (insertAfterCell != null) {
-                    rowElement.InsertAfter(cell, insertAfterCell);
+                    if (insertAfterCell.NextSibling<Cell>() == null) {
+                        rowElement.Append(cell);
+                    } else {
+                        rowElement.InsertAfter(cell, insertAfterCell);
+                    }
                 } else {
                     // Insert at beginning or append when row is empty or existing first cell has larger column index
                     var firstCell = rowElement.Elements<Cell>().FirstOrDefault();
@@ -678,6 +695,7 @@ namespace OfficeIMO.Excel {
             // If we're already in a batch operation or in a NoLock scope,
             // just execute the action directly
             if (_isBatchOperation || Locking.IsNoLock) {
+                MaterializeDeferredDataSetImportIfNeeded();
                 action();
                 MarkRequiresSavePreparation();
             } else {

@@ -7,6 +7,8 @@ namespace OfficeIMO.Excel {
     /// Range enumeration for <see cref="ExcelSheetReader"/>.
     /// </summary>
     public sealed partial class ExcelSheetReader {
+        private const int CompletedEnumerateRangeOutsideRowProbeLimit = 16;
+
         /// <summary>
         /// Enumerates non-empty cells within the given A1 range as typed values.
         /// </summary>
@@ -50,6 +52,8 @@ namespace OfficeIMO.Excel {
             bool fillBlanks = _opt.FillBlanksInRanges;
             bool hasCustomConverter = _opt.CellValueConverter != null;
             int nextRowIndex = 1;
+            int outsideRowsAfterCompletedRange = 0;
+            var seenRows = CreateCompletedRowTracker(r2 - r1 + 1);
 
             while (reader.Read()) {
                 if (canCancel) {
@@ -67,16 +71,28 @@ namespace OfficeIMO.Excel {
 
                 nextRowIndex = rowIndex + 1;
                 if (rowIndex < r1 || rowIndex > r2) {
+                    if (rowIndex > r2 && seenRows.AllRowsSeen) {
+                        outsideRowsAfterCompletedRange++;
+                        if (outsideRowsAfterCompletedRange >= CompletedEnumerateRangeOutsideRowProbeLimit) {
+                            break;
+                        }
+                    }
+
                     SkipXmlElement(reader, "row");
                     continue;
                 }
 
+                outsideRowsAfterCompletedRange = 0;
                 if (reader.IsEmptyElement) {
                     continue;
                 }
 
                 int depth = reader.Depth;
                 int nextColumnIndex = 1;
+                int width = c2 - c1 + 1;
+                bool canTrackColumns = width <= 64;
+                ulong allColumnsSeen = canTrackColumns ? CreateAllColumnsSeenMask(width) : 0UL;
+                ulong seenColumns = 0;
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -101,6 +117,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
+                    int columnOffset = columnIndex - c1;
                     if (hasCustomConverter) {
                         if (TryReadXmlCellValueForEnumeration(reader, rowIndex, columnIndex, out object? customValue)) {
                             yield return new CellValueInfo(rowIndex, columnIndex, customValue);
@@ -113,7 +130,14 @@ namespace OfficeIMO.Excel {
                             yield return new CellValueInfo(rowIndex, columnIndex, cellValue);
                         }
                     }
+
+                    if (canTrackColumns && MarkRequestedColumnSeen(columnOffset, allColumnsSeen, ref seenColumns)) {
+                        SkipXmlElementContent(reader, depth, "row");
+                        break;
+                    }
                 }
+
+                seenRows.MarkSeen(rowIndex - r1);
             }
         }
 

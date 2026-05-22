@@ -559,6 +559,7 @@ namespace OfficeIMO.Excel {
             int nextColumnIndex = 1;
             int cols = values.Length;
             bool canTrackColumns = cols <= 64;
+            ulong allColumnsSeen = canTrackColumns ? CreateAllColumnsSeenMask(cols) : 0UL;
             ulong seenColumns = 0;
             while (rowReader.Read()) {
                 if (canCancel) {
@@ -581,7 +582,7 @@ namespace OfficeIMO.Excel {
 
                 CellRaw raw = ReadXmlCellRaw(rowReader, rowIndex, columnIndex);
                 values[columnIndex - c1] = ConvertRaw(raw).TypedValue;
-                if (canTrackColumns && MarkRequestedColumnSeen(columnIndex - c1, cols, ref seenColumns)) {
+                if (canTrackColumns && MarkRequestedColumnSeen(columnIndex - c1, allColumnsSeen, ref seenColumns)) {
                     SkipXmlElementContent(rowReader, depth, "row");
                     return;
                 }
@@ -1921,12 +1922,12 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
-                    if (int.TryParse(rawText, NumberStyles.Integer, _opt.Culture, out int intValue)) {
+                    if (TryParseRawInt32(rawText, out int intValue)) {
                         binding.SetInt32(target, intValue);
                         return true;
                     }
 
-                    if (double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out double doubleValue)
+                    if (TryParseRawDouble(rawText, out double doubleValue)
                         && doubleValue >= int.MinValue
                         && doubleValue <= int.MaxValue
                         && Math.Truncate(doubleValue) == doubleValue) {
@@ -1942,12 +1943,12 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
-                    if (long.TryParse(rawText, NumberStyles.Integer, _opt.Culture, out long longValue)) {
+                    if (TryParseRawInt64(rawText, out long longValue)) {
                         binding.SetInt64(target, longValue);
                         return true;
                     }
 
-                    if (double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out double doubleValue)
+                    if (TryParseRawDouble(rawText, out double doubleValue)
                         && doubleValue >= long.MinValue
                         && doubleValue <= long.MaxValue
                         && Math.Truncate(doubleValue) == doubleValue) {
@@ -1963,10 +1964,7 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
-                    if ((_opt.Culture != CultureInfo.InvariantCulture
-                            && double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out double doubleValue))
-                        || TryParseInvariantDoubleFast(rawText, out doubleValue)
-                        || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out doubleValue)) {
+                    if (TryParseRawDouble(rawText, out double doubleValue)) {
                         binding.SetDouble(target, doubleValue);
                         return true;
                     }
@@ -1979,8 +1977,7 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
-                    if (decimal.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out decimal decimalValue)
-                        || decimal.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out decimalValue)) {
+                    if (TryParseRawDecimal(rawText, out decimal decimalValue)) {
                         binding.SetDecimal(target, decimalValue);
                         return true;
                     }
@@ -2062,12 +2059,12 @@ namespace OfficeIMO.Excel {
             Type destinationType = binding.DestinationType;
 
             if (destinationType == typeof(int)) {
-                if (int.TryParse(rawText, NumberStyles.Integer, _opt.Culture, out int intValue)) {
+                if (TryParseRawInt32(rawText, out int intValue)) {
                     converted = intValue;
                     return true;
                 }
 
-                if (double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out double doubleValue)
+                if (TryParseRawDouble(rawText, out double doubleValue)
                     && doubleValue >= int.MinValue
                     && doubleValue <= int.MaxValue
                     && Math.Truncate(doubleValue) == doubleValue) {
@@ -2079,12 +2076,12 @@ namespace OfficeIMO.Excel {
             }
 
             if (destinationType == typeof(long)) {
-                if (long.TryParse(rawText, NumberStyles.Integer, _opt.Culture, out long longValue)) {
+                if (TryParseRawInt64(rawText, out long longValue)) {
                     converted = longValue;
                     return true;
                 }
 
-                if (double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out double doubleValue)
+                if (TryParseRawDouble(rawText, out double doubleValue)
                     && doubleValue >= long.MinValue
                     && doubleValue <= long.MaxValue
                     && Math.Truncate(doubleValue) == doubleValue) {
@@ -2096,10 +2093,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (destinationType == typeof(double)) {
-                if ((_opt.Culture != CultureInfo.InvariantCulture
-                        && double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out double doubleValue))
-                    || TryParseInvariantDoubleFast(rawText, out doubleValue)
-                    || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out doubleValue)) {
+                if (TryParseRawDouble(rawText, out double doubleValue)) {
                     converted = doubleValue;
                     return true;
                 }
@@ -2108,8 +2102,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (destinationType == typeof(decimal)) {
-                if (decimal.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, _opt.Culture, out decimal decimalValue)
-                    || decimal.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out decimalValue)) {
+                if (TryParseRawDecimal(rawText, out decimal decimalValue)) {
                     converted = decimalValue;
                     return true;
                 }
