@@ -129,6 +129,50 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelTemplate_RepeatingRowsRebasesFormulasAndShiftedMerges() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsFormulas.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Invoice");
+                sheet.CellAt(1, 1).SetValue("Item");
+                sheet.CellAt(1, 2).SetValue("Amount");
+                sheet.CellAt(1, 3).SetValue("Double");
+                sheet.CellAt(2, 1).SetValue("{{Name}}");
+                sheet.CellAt(2, 2).SetValue("{{Amount}}");
+                sheet.CellFormula(2, 3, "B2*2");
+                sheet.CellAt(3, 1).SetValue("Footer");
+                sheet.CellFormula(3, 3, "B3");
+                sheet.MergeRange("A3:B3");
+
+                int replacements = sheet.ApplyTemplateRows(2, new[] {
+                    new Dictionary<string, object?> {
+                        ["Name"] = "Consulting",
+                        ["Amount"] = 1200
+                    },
+                    new Dictionary<string, object?> {
+                        ["Name"] = "Support",
+                        ["Amount"] = 300
+                    }
+                });
+
+                Assert.Equal(4, replacements);
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cells = wsPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                var merge = Assert.Single(wsPart.Worksheet.Descendants<MergeCell>());
+
+                Assert.Equal("B2*2", cells["C2"].CellFormula!.Text);
+                Assert.Equal("B3*2", cells["C3"].CellFormula!.Text);
+                Assert.Equal("B4", cells["C4"].CellFormula!.Text);
+                Assert.Equal("A4:B4", merge.Reference!.Value);
+                Assert.DoesNotContain("{{", wsPart.Worksheet.OuterXml, StringComparison.Ordinal);
+            }
+        }
+
+        [Fact]
         public void Test_ExcelTemplate_OptionalRowsCanBeIncludedAndBound() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsIncluded.xlsx");
 
@@ -188,6 +232,30 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Footer", sheet.CellAt(2, 1).GetValue<string>());
                 Assert.Null(sheet.CellAt(3, 1).GetValue<string>());
                 Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelTemplate_RemovingOptionalRowsRewritesMovedFormulas() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsRemovedFormulas.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Invoice");
+                sheet.CellAt(1, 1).SetValue("Header");
+                sheet.CellAt(2, 1).SetValue("Optional {{Note}}");
+                sheet.CellAt(3, 1).SetValue("Optional {{Amount}}");
+                sheet.CellFormula(4, 1, "B4");
+
+                sheet.RemoveTemplateOptionalRows(2, 2);
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cell = wsPart.Worksheet.Descendants<Cell>().Single(item => item.CellReference?.Value == "A2");
+
+                Assert.Equal("B2", cell.CellFormula!.Text);
+                Assert.DoesNotContain(wsPart.Worksheet.Descendants<Cell>(), item => item.CellReference?.Value == "A4");
             }
         }
 

@@ -159,6 +159,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelCharts_RecipeCustomizationDoesNotLeakToNextBuilderChart() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.RecipeBuilderReuse.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Dashboard");
+                sheet.CellValue(1, 1, "Month");
+                sheet.CellValue(1, 2, "Revenue");
+                sheet.CellValue(2, 1, "Jan");
+                sheet.CellValue(2, 2, 10);
+                sheet.CellValue(3, 1, "Feb");
+                sheet.CellValue(3, 2, 16);
+                sheet.CellValue(4, 1, "Mar");
+                sheet.CellValue(4, 2, 13);
+                sheet.AddTable("A1:B4", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+
+                var builder = sheet.ChartFromTable("RevenueData");
+                builder.KpiScorecard("Revenue KPI").At(1, 5);
+                builder.ColumnClustered().Title("Revenue").At(18, 5);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var charts = wsPart.DrawingsPart!.ChartParts
+                    .Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!)
+                    .ToList();
+
+                Assert.Equal(2, charts.Count);
+                Assert.Single(charts, chart => chart.GetFirstChild<C.Legend>() == null);
+                Assert.Single(charts, chart => chart.GetFirstChild<C.Legend>() != null);
+            }
+        }
+
+        [Fact]
         public void Test_ExcelCharts_SeriesStyling_Validates() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SeriesStyling.xlsx");
 

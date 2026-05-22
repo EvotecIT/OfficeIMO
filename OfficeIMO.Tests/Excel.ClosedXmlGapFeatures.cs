@@ -269,6 +269,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ClosedXmlGap_CalculateFacade_EvaluatesCrossSheetFormulaDependencies() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateCrossSheetFormulaDependencies.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet calc = document.AddWorkSheet("Calc");
+                ExcelSheet data = document.AddWorkSheet("Data");
+                calc.CellFormula(1, 1, "Data!A1+1");
+                data.CellFormula(1, 1, "A2+1");
+                data.CellValue(2, 1, 4d);
+
+                Assert.Equal(2, document.Calculate());
+
+                ExcelFormulaInspection inspection = document.InspectFormulas();
+                Assert.Equal(0, inspection.MissingCachedResults);
+                Assert.Contains(inspection.Formulas, formula => formula.SheetName == "Calc" && formula.CellReference == "A1" && formula.CachedValue == "6");
+                Assert.Contains(inspection.Formulas, formula => formula.SheetName == "Data" && formula.CellReference == "A1" && formula.CachedValue == "5");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart calcPart = spreadsheet.WorkbookPart!.WorksheetParts
+                    .First(part => part.Worksheet.Descendants<Cell>().Any(cell => cell.CellReference?.Value == "A1" && cell.CellFormula?.Text == "Data!A1+1"));
+                Cell calcCell = calcPart.Worksheet.Descendants<Cell>().First(cell => cell.CellReference?.Value == "A1");
+
+                Assert.Equal("6", calcCell.CellValue!.Text);
+            }
+        }
+
+        [Fact]
         public void Test_ClosedXmlGap_CalculateFacade_EvaluatesNamedRangeReferences() {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateNamedRanges.xlsx");
 

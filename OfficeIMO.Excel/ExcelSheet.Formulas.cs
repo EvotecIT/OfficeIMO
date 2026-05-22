@@ -125,11 +125,12 @@ namespace OfficeIMO.Excel {
                 return TryEvaluateFormulaValue(cell.CellFormula.Text ?? string.Empty, out result);
             }
 
-            if (_formulaEvaluationCache.TryGetValue(reference, out result)) {
+            string cacheKey = GetFormulaEvaluationCacheKey(reference);
+            if (_formulaEvaluationCache.TryGetValue(cacheKey, out result)) {
                 return true;
             }
 
-            if (!_formulaEvaluationStack.Add(reference)) {
+            if (!_formulaEvaluationStack.Add(cacheKey)) {
                 return false;
             }
 
@@ -138,10 +139,10 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                _formulaEvaluationCache[reference] = result;
+                _formulaEvaluationCache[cacheKey] = result;
                 return true;
             } finally {
-                _formulaEvaluationStack.Remove(reference);
+                _formulaEvaluationStack.Remove(cacheKey);
             }
         }
 
@@ -2073,7 +2074,7 @@ namespace OfficeIMO.Excel {
 
         private static bool IsBuiltInFormulaDefinedName(string? name) {
             return !string.IsNullOrWhiteSpace(name)
-                && name.StartsWith("_xlnm.", StringComparison.OrdinalIgnoreCase);
+                && name!.StartsWith("_xlnm.", StringComparison.OrdinalIgnoreCase);
         }
 
         private bool TryGetFormulaReferenceSheet(string sheetName, out ExcelSheet sheet) {
@@ -2089,7 +2090,10 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            sheet = new ExcelSheet(_excelDocument, _spreadSheetDocument, sheetElement);
+            sheet = new ExcelSheet(_excelDocument, _spreadSheetDocument, sheetElement) {
+                _formulaEvaluationCache = _formulaEvaluationCache,
+                _formulaEvaluationStack = _formulaEvaluationStack
+            };
             return true;
         }
 
@@ -2149,7 +2153,7 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            var cellRef = A1.ParseCellRef(reference.Trim().Replace("$", string.Empty));
+            var cellRef = A1.ParseCellRef(reference!.Trim().Replace("$", string.Empty));
             if (cellRef.Row <= 0
                 || cellRef.Col <= 0
                 || cellRef.Row > A1.MaxRows
@@ -2158,6 +2162,10 @@ namespace OfficeIMO.Excel {
             }
 
             return A1.CellReference(cellRef.Row, cellRef.Col);
+        }
+
+        private string GetFormulaEvaluationCacheKey(string reference) {
+            return Name + "!" + reference;
         }
 
         private readonly struct FormulaArgumentValue {

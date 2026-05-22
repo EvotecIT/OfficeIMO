@@ -939,6 +939,35 @@ namespace OfficeIMO.Excel {
                 TimeSpan.FromMilliseconds(200));
         }
 
+        private static string RewriteShiftedFormulaReferences(string formula, int firstAffectedRow, int rowDelta) {
+            if (rowDelta == 0 || firstAffectedRow <= 0 || string.IsNullOrEmpty(formula)) {
+                return formula;
+            }
+
+            return Regex.Replace(
+                formula,
+                @"(?<![A-Za-z0-9_\.!])(\$?)([A-Za-z]{1,3})(\$?)(\d{1,7})(?=[:),+\-*/^&=<> \t\r\n]|$)",
+                match => {
+                    bool rowAbsolute = match.Groups[3].Value == "$";
+                    if (rowAbsolute || !int.TryParse(match.Groups[4].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int row)) {
+                        return match.Value;
+                    }
+
+                    if (row < firstAffectedRow) {
+                        return match.Value;
+                    }
+
+                    int targetRow = row + rowDelta;
+                    if (targetRow <= 0 || targetRow > A1.MaxRows) {
+                        return match.Value;
+                    }
+
+                    return match.Groups[1].Value + match.Groups[2].Value + match.Groups[3].Value + targetRow.ToString(CultureInfo.InvariantCulture);
+                },
+                RegexOptions.CultureInvariant,
+                TimeSpan.FromMilliseconds(200));
+        }
+
         private sealed class RowSnapshot {
             internal RowSnapshot(int originalRow, List<CellSnapshot> cells, object? sortValue) {
                 OriginalRow = originalRow;

@@ -126,7 +126,9 @@ namespace OfficeIMO.Excel.Fluent {
                 chart = _sheet.AddChartFromRange(_source, row, column, _widthPixels, _heightPixels, _type, _hasHeaders, _title, _includeCachedData);
             }
 
-            _configureChart?.Invoke(chart);
+            var configureChart = _configureChart;
+            _configureChart = null;
+            configureChart?.Invoke(chart);
             return chart;
         }
 

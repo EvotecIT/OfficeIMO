@@ -362,7 +362,10 @@ namespace OfficeIMO.Excel {
 
                 for (int index = 0; index < rowBindings.Count; index++) {
                     int targetRow = templateRow + index;
-                    WriteRowSnapshot(targetRow, bounds.Value.FirstColumn, bounds.Value.LastColumn, snapshot, new Dictionary<int, int>());
+                    var rowMap = targetRow == templateRow
+                        ? new Dictionary<int, int>()
+                        : new Dictionary<int, int> { [templateRow] = targetRow };
+                    WriteRowSnapshot(targetRow, bounds.Value.FirstColumn, bounds.Value.LastColumn, snapshot, rowMap);
                     replacements += ApplyTemplateCellsCore(rowBindings[index], options, targetRow);
                 }
 
@@ -534,8 +537,14 @@ namespace OfficeIMO.Excel {
                     if (column > 0) {
                         cell.CellReference = BuildCellReference(newRowIndex, column);
                     }
+
+                    if (cell.CellFormula?.Text is string formulaText && formulaText.Length > 0) {
+                        cell.CellFormula.Text = RewriteShiftedFormulaReferences(formulaText, firstRow, count);
+                    }
                 }
             }
+
+            ShiftMergeCellsRows(firstRow, count);
 
             _lastAccessedRow = null;
             _lastAccessedRowIndex = 0;
@@ -579,9 +588,15 @@ namespace OfficeIMO.Excel {
                         if (column > 0) {
                             cell.CellReference = BuildCellReference(newRowIndex, column);
                         }
+
+                        if (cell.CellFormula?.Text is string formulaText && formulaText.Length > 0) {
+                            cell.CellFormula.Text = RewriteShiftedFormulaReferences(formulaText, lastRemovedRow + 1, -count);
+                        }
                     }
                 }
             }
+
+            ShiftMergeCellsRows(lastRemovedRow + 1, -count);
 
             _lastAccessedRow = null;
             _lastAccessedRowIndex = 0;
@@ -597,6 +612,39 @@ namespace OfficeIMO.Excel {
 
         private static void ThrowMissingMarker(string marker) {
             throw new InvalidOperationException($"Template marker '{marker}' was not supplied.");
+        }
+
+        private void ShiftMergeCellsRows(int firstAffectedRow, int delta) {
+            var merges = WorksheetRoot.GetFirstChild<MergeCells>();
+            if (merges == null || delta == 0) {
+                return;
+            }
+
+            uint count = 0;
+            foreach (var merge in merges.Elements<MergeCell>().ToList()) {
+                if (merge.Reference?.Value is not string reference
+                    || !TryParseReference(reference, out var bounds)) {
+                    count++;
+                    continue;
+                }
+
+                if (bounds.r1 < firstAffectedRow) {
+                    count++;
+                    continue;
+                }
+
+                int targetFirstRow = bounds.r1 + delta;
+                int targetLastRow = bounds.r2 + delta;
+                if (targetFirstRow <= 0 || targetLastRow <= 0) {
+                    merge.Remove();
+                    continue;
+                }
+
+                merge.Reference = ToReference(targetFirstRow, bounds.c1, targetLastRow, bounds.c2);
+                count++;
+            }
+
+            merges.Count = count;
         }
 
         /// <summary>
