@@ -1663,7 +1663,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryResolveNumericOperand(string token, out double value) {
-            token = token.Trim().Replace("$", string.Empty);
+            token = token.Trim();
             if (double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out value)) {
                 return true;
             }

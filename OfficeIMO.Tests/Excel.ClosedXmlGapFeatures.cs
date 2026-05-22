@@ -236,22 +236,30 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet calc = document.AddWorkSheet("Calc");
                 ExcelSheet data = document.AddWorkSheet("Data Sheet");
+                ExcelSheet budget = document.AddWorkSheet("Budget $ FY26");
                 data.CellValue(1, 1, 2d);
                 data.CellValue(2, 1, 3d);
                 data.CellValue(1, 2, 4d);
                 data.CellValue(2, 2, 6d);
+                budget.CellValue(1, 1, 7d);
 
                 calc.CellFormula(1, 1, "'Data Sheet'!A1+'Data Sheet'!A2");
                 calc.CellFormula(2, 1, "SUM('Data Sheet'!B1:B2)");
                 calc.CellFormula(3, 1, "IF('Data Sheet'!B2>5,10,0)");
+                calc.CellFormula(4, 1, "'Budget $ FY26'!$A$1+1");
+                calc.CellFormula(5, 1, "IF('Budget $ FY26'!$A$1>6,11,0)");
+                calc.CellFormula(6, 1, "'Budget $ FY26'!A1+'Data Sheet'!A1");
 
-                Assert.Equal(3, document.Calculate());
+                Assert.Equal(6, document.Calculate());
 
                 ExcelFormulaInspection inspection = document.InspectFormulas();
                 Assert.Equal(0, inspection.MissingCachedResults);
                 Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A1" && formula.CachedValue == "5");
                 Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A2" && formula.CachedValue == "10");
                 Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A3" && formula.CachedValue == "10");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A4" && formula.CachedValue == "8");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A5" && formula.CachedValue == "11");
+                Assert.Contains(inspection.Formulas, formula => formula.CellReference == "A6" && formula.CachedValue == "9");
                 document.Save();
             }
 
@@ -265,6 +273,9 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("5", cells["A1"].CellValue!.Text);
                 Assert.Equal("10", cells["A2"].CellValue!.Text);
                 Assert.Equal("10", cells["A3"].CellValue!.Text);
+                Assert.Equal("8", cells["A4"].CellValue!.Text);
+                Assert.Equal("11", cells["A5"].CellValue!.Text);
+                Assert.Equal("9", cells["A6"].CellValue!.Text);
             }
         }
 
