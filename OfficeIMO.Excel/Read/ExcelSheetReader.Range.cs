@@ -25,14 +25,9 @@ namespace OfficeIMO.Excel {
             }
 
             if (_canStreamWorksheetPart
-                && TryGetWorksheetDimensionReferenceFromXml(out string dimensionReference)) {
-                _usedRangeA1 = dimensionReference;
-                return dimensionReference;
-            }
-
-            if (TryGetWorksheetDimensionReference(WorksheetRoot, out dimensionReference)) {
-                _usedRangeA1 = dimensionReference;
-                return dimensionReference;
+                && TryComputeUsedRangeReferenceFromXml(out string usedRangeReference)) {
+                _usedRangeA1 = usedRangeReference;
+                return usedRangeReference;
             }
 
             string reference = ExcelSheet.ComputeSheetDimensionReference(WorksheetRoot);
@@ -71,6 +66,53 @@ namespace OfficeIMO.Excel {
             }
 
             return false;
+        }
+
+        private bool TryComputeUsedRangeReferenceFromXml(out string reference) {
+            reference = string.Empty;
+            try {
+                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                RewindWorksheetStream(stream);
+                using var reader = OpenWorksheetXmlReader(stream);
+
+                int minRow = int.MaxValue;
+                int minColumn = int.MaxValue;
+                int maxRow = 0;
+                int maxColumn = 0;
+
+                while (reader.Read()) {
+                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "c") {
+                        continue;
+                    }
+
+                    string? cellReference = reader.GetAttribute("r");
+                    if (!A1.TryParseCellReferenceFast(cellReference, out int row, out int column)
+                        || row <= 0
+                        || column <= 0) {
+                        continue;
+                    }
+
+                    if (row < minRow) minRow = row;
+                    if (column < minColumn) minColumn = column;
+                    if (row > maxRow) maxRow = row;
+                    if (column > maxColumn) maxColumn = column;
+                }
+
+                if (maxRow <= 0 || maxColumn <= 0) {
+                    return false;
+                }
+
+                reference = A1.CellReference(minRow, minColumn) + ":" + A1.CellReference(maxRow, maxColumn);
+                return true;
+            } catch (XmlException) {
+                return false;
+            } catch (IOException) {
+                return false;
+            } catch (UnauthorizedAccessException) {
+                return false;
+            } catch (ObjectDisposedException) {
+                return false;
+            }
         }
 
         private static bool TryGetWorksheetDimensionReference(Worksheet worksheet, out string reference) {

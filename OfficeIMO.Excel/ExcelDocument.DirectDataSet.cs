@@ -152,7 +152,9 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            ClearDirectDataSetSaveCandidate();
+            if (!TryBeginDeferredDirectSaveCandidateRegistration()) {
+                return false;
+            }
 
             try {
                 string requestedName = string.IsNullOrWhiteSpace(table.TableName) ? sheet.Name : table.TableName;
@@ -196,7 +198,8 @@ namespace OfficeIMO.Excel {
             TableStyle tableStyle = TableStyle.TableStyleMedium2,
             bool includeAutoFilter = false,
             bool autoFit = false,
-            bool useCellValueNumberFormats = false) {
+            bool useCellValueNumberFormats = false,
+            bool replacingPendingDirectCellValues = false) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
             if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
@@ -205,7 +208,9 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            ClearDirectDataSetSaveCandidate();
+            if (!TryBeginDeferredDirectSaveCandidateRegistration(replacingPendingDirectCellValues)) {
+                return false;
+            }
 
             try {
                 string requestedName = string.IsNullOrWhiteSpace(tableNameForModel) ? sheet.Name : tableNameForModel;
@@ -441,7 +446,9 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            ClearDirectDataSetSaveCandidate();
+            if (!TryBeginDeferredDirectSaveCandidateRegistration()) {
+                return false;
+            }
 
             try {
                 string requestedName = string.IsNullOrWhiteSpace(tableNameForModel) ? sheet.Name : tableNameForModel;
@@ -491,7 +498,9 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            ClearDirectDataSetSaveCandidate();
+            if (!TryBeginDeferredDirectSaveCandidateRegistration()) {
+                return false;
+            }
 
             try {
                 string requestedName = string.IsNullOrWhiteSpace(tableNameForModel) ? sheet.Name : tableNameForModel;
@@ -541,7 +550,9 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            ClearDirectDataSetSaveCandidate();
+            if (!TryBeginDeferredDirectSaveCandidateRegistration()) {
+                return false;
+            }
 
             try {
                 string requestedName = string.IsNullOrWhiteSpace(tableNameForModel) ? sheet.Name : tableNameForModel;
@@ -655,7 +666,9 @@ namespace OfficeIMO.Excel {
             CancellationToken ct,
             out IReadOnlyList<ExcelDataSetImportResult> results) {
             results = Array.Empty<ExcelDataSetImportResult>();
-            ClearDirectDataSetSaveCandidate();
+            if (!TryBeginDeferredDirectSaveCandidateRegistration()) {
+                return false;
+            }
 
             try {
                 var model = DirectDataSetWorkbookModel.Create(
@@ -688,6 +701,25 @@ namespace OfficeIMO.Excel {
 
             _directDataSetSaveCandidate = null;
             candidate.Dispose();
+        }
+
+        private bool TryBeginDeferredDirectSaveCandidateRegistration(bool replacingPendingDirectCellValues = false) {
+            var candidate = _directDataSetSaveCandidate;
+            if (candidate != null) {
+                if (candidate.IsDeferred && candidate.IsValid) {
+                    MaterializeDeferredDataSetImport();
+                    return false;
+                }
+
+                ClearDirectDataSetSaveCandidate();
+            }
+
+            if (_pendingDirectCellValueSheet != null && !replacingPendingDirectCellValues) {
+                MaterializePendingDirectCellValueSheetIfNeeded();
+                return false;
+            }
+
+            return true;
         }
 
         internal bool TryReservePendingDirectCellValueSheet(ExcelSheet sheet) {
@@ -1389,6 +1421,7 @@ namespace OfficeIMO.Excel {
             private readonly IReadOnlyList<Dictionary<string, object?>>? _exactDictionaryRows;
             private readonly IReadOnlyList<IReadOnlyDictionary<string, object?>>? _dictionaryRows;
             private readonly IReadOnlyList<System.Collections.IDictionary>? _legacyDictionaryRows;
+            private readonly bool _legacyDictionaryExactKeyLookup;
             private string[]? _columnNameArray;
 
             private DirectDataSetTableModel(DataTable sourceTable) {
@@ -1432,10 +1465,11 @@ namespace OfficeIMO.Excel {
                 _exactDictionaryRows = exactDictionaryRows;
             }
 
-            private DirectDataSetTableModel(DirectDataSetColumnModel[] columns, IReadOnlyList<System.Collections.IDictionary> legacyDictionaryRows) {
+            private DirectDataSetTableModel(DirectDataSetColumnModel[] columns, IReadOnlyList<System.Collections.IDictionary> legacyDictionaryRows, bool exactKeyLookup = false) {
                 _columns = columns;
                 _stringCandidateColumnIndexes = CreateStringCandidateColumnIndexes(columns);
                 _legacyDictionaryRows = legacyDictionaryRows;
+                _legacyDictionaryExactKeyLookup = exactKeyLookup;
             }
 
             internal static DirectDataSetTableModel Reference(DataTable table) => new DirectDataSetTableModel(table);
@@ -1463,7 +1497,7 @@ namespace OfficeIMO.Excel {
                     columns[i] = new DirectDataSetColumnModel(columnNames[i], columnTypes[i]);
                 }
 
-                return new DirectDataSetTableModel(columns, rows);
+                return new DirectDataSetTableModel(columns, rows, HasCaseInsensitiveDuplicateColumnNames(columnNames));
             }
 
             internal static DirectDataSetTableModel FromExactDictionaries(IReadOnlyList<string> columnNames, IReadOnlyList<Type> columnTypes, IReadOnlyList<Dictionary<string, object?>> rows) {
@@ -1511,7 +1545,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (_legacyDictionaryRows != null) {
-                    return new DirectDataSetTableModel(columns, _legacyDictionaryRows);
+                    return new DirectDataSetTableModel(columns, _legacyDictionaryRows, _legacyDictionaryExactKeyLookup);
                 }
 
                 return new DirectDataSetTableModel(columns, GetBufferedRowsForReuse());
@@ -1569,6 +1603,17 @@ namespace OfficeIMO.Excel {
 
                 _columnNameArray = columnNames;
                 return columnNames;
+            }
+
+            private static bool HasCaseInsensitiveDuplicateColumnNames(IReadOnlyList<string> columnNames) {
+                var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                for (int i = 0; i < columnNames.Count; i++) {
+                    if (!seen.Add(columnNames[i] ?? string.Empty)) {
+                        return true;
+                    }
+                }
+
+                return false;
             }
 
             internal int[]? GetStringCandidateColumnIndexes() => _stringCandidateColumnIndexes;
@@ -1668,7 +1713,7 @@ namespace OfficeIMO.Excel {
                         ? dictionaryValue
                         : null;
                 } else if (_legacyDictionaryRows != null) {
-                    value = GetLegacyDictionaryValue(_legacyDictionaryRows[rowIndex], GetColumnName(columnIndex));
+                    value = GetLegacyDictionaryValue(_legacyDictionaryRows[rowIndex], GetColumnName(columnIndex), _legacyDictionaryExactKeyLookup);
                 } else {
                     value = GetBufferedRow(rowIndex)![columnIndex];
                 }
@@ -1676,9 +1721,13 @@ namespace OfficeIMO.Excel {
                 return value == DBNull.Value ? null : value;
             }
 
-            internal static object? GetLegacyDictionaryValue(System.Collections.IDictionary dictionary, string column) {
+            internal static object? GetLegacyDictionaryValue(System.Collections.IDictionary dictionary, string column, bool exactKeyLookup = false) {
                 if (dictionary.Contains(column)) {
                     return dictionary[column];
+                }
+
+                if (exactKeyLookup) {
+                    return null;
                 }
 
                 foreach (System.Collections.DictionaryEntry entry in dictionary) {
@@ -1841,7 +1890,7 @@ namespace OfficeIMO.Excel {
                         System.Collections.IDictionary row = _legacyDictionaryRows[rowIndex];
                         if (selectedColumnIndexes == null) {
                             for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-                                object? value = GetLegacyDictionaryValue(row, columnNames[columnIndex]);
+                                object? value = GetValue(rowIndex, columnIndex);
                                 widths[columnIndex] = Math.Max(
                                     widths[columnIndex],
                                     EstimateAutoFitWidth(value == DBNull.Value ? null : value, widthKinds[columnIndex], dateTimeOffsetWriteStrategy, ref stringWidthCaches, columnIndex, columnCount));
@@ -1849,7 +1898,7 @@ namespace OfficeIMO.Excel {
                         } else {
                             for (int i = 0; i < selectedColumnIndexes.Length; i++) {
                                 int columnIndex = selectedColumnIndexes[i];
-                                object? value = GetLegacyDictionaryValue(row, columnNames[columnIndex]);
+                                object? value = GetValue(rowIndex, columnIndex);
                                 widths[columnIndex] = Math.Max(
                                     widths[columnIndex],
                                     EstimateAutoFitWidth(value == DBNull.Value ? null : value, widthKinds[columnIndex], dateTimeOffsetWriteStrategy, ref stringWidthCaches, columnIndex, columnCount));

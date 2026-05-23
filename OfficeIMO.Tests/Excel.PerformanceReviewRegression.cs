@@ -822,6 +822,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_DeferredObjectExportMaterializesExistingDirectCellValuesBeforeFallback() {
+            using var memory = new MemoryStream();
+            var seedCells = Enumerable.Range(1, 160)
+                .Select(row => (Row: row, Column: 1, Value: (object)("seed-" + row.ToString(CultureInfo.InvariantCulture))))
+                .ToList();
+            var rows = new[] {
+                new { Name = "Alpha" }
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValues(seedCells);
+                sheet.InsertObjects(rows);
+
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+
+            Assert.Equal("Name", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("seed-160", GetSpreadsheetCellText(spreadsheet, cells["A160"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
         public void PerformanceReview_WriteDataSet_OmitsSparseBlankCellsButPreservesEmptyStrings() {
             using var memory = new MemoryStream();
             var dataSet = new DataSet("Export");
@@ -3211,17 +3240,16 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_FlatHashtableRowsPreserveExactKeyPrecedenceInDirectPackage() {
+        public void PerformanceReview_InsertObjects_FlatHashtableRowsPreserveCaseDistinctKeysInDirectPackage() {
             using var memory = new MemoryStream();
             var rows = new List<System.Collections.Specialized.OrderedDictionary> {
                 new System.Collections.Specialized.OrderedDictionary {
-                    ["Column0"] = "First",
-                    ["Column1"] = 1
+                    ["Key"] = "Upper",
+                    ["key"] = "Lower"
                 },
                 new System.Collections.Specialized.OrderedDictionary {
-                    ["column0"] = "Insensitive",
-                    ["Column0"] = "Exact",
-                    ["column1"] = 2
+                    ["Key"] = "ExactUpper",
+                    ["key"] = "ExactLower"
                 }
             };
 
@@ -3239,11 +3267,12 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal("Column0", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
-            Assert.Equal("Column1", GetSpreadsheetCellText(spreadsheet, cells["B1"]));
-            Assert.Equal("First", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
-            Assert.Equal("Exact", GetSpreadsheetCellText(spreadsheet, cells["A3"]));
-            Assert.Equal("2", cells["B3"].CellValue!.Text);
+            Assert.Equal("Key", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
+            Assert.Equal("key", GetSpreadsheetCellText(spreadsheet, cells["B1"]));
+            Assert.Equal("Upper", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("Lower", GetSpreadsheetCellText(spreadsheet, cells["B2"]));
+            Assert.Equal("ExactUpper", GetSpreadsheetCellText(spreadsheet, cells["A3"]));
+            Assert.Equal("ExactLower", GetSpreadsheetCellText(spreadsheet, cells["B3"]));
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 

@@ -259,7 +259,11 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool HasDuplicateObjectExportHeaders(IEnumerable<string> columnNames) {
-            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            return HasDuplicateObjectExportHeaders(columnNames, StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static bool HasDuplicateObjectExportHeaders(IEnumerable<string> columnNames, StringComparer comparer) {
+            var seen = new HashSet<string>(comparer);
             foreach (var columnName in columnNames) {
                 if (!seen.Add(columnName ?? string.Empty)) {
                     return true;
@@ -762,7 +766,7 @@ namespace OfficeIMO.Excel {
             bool includeHeaders,
             int startRow) {
             var headers = new List<string>();
-            var headerIndexes = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var headerIndexes = new Dictionary<string, int>(StringComparer.Ordinal);
             var dictionaryRows = new System.Collections.IDictionary[rows.Count];
             var state = new FlatDictionaryProjectionState();
 
@@ -798,7 +802,7 @@ namespace OfficeIMO.Excel {
 
             if (headers.Count == 0
                 || includeHeaders && state.HasBlankDisplayHeader
-                || HasDuplicateObjectExportHeaders(headers)
+                || HasDuplicateObjectExportHeaders(headers, StringComparer.Ordinal)
                 || !CanRegisterDirectTabularSaveCandidate(startRow, 1, headers.Count)) {
                 return false;
             }

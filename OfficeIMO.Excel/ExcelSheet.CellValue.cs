@@ -8,6 +8,8 @@ namespace OfficeIMO.Excel {
         internal const int CellValuePlainStringPromotionSharedStringCount = 4096;
         private const int CellValueSharedStringIndexCacheLimit = 256;
         private const int PendingDirectCellValueMinimumCellCount = 128;
+        private static readonly bool EnablePendingDirectCellValueBuffer = true;
+        private static readonly bool MirrorPendingDirectCellValueBufferToWorksheet = true;
         private static readonly DateTime CellValueExcelMinimumSupportedDate = DateTime.FromOADate(2d);
         private Dictionary<uint, uint>? _cellValueDateStyleIndexes;
         private Dictionary<uint, uint>? _cellValueDurationStyleIndexes;
@@ -166,7 +168,8 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TrySetPendingDirectCellValue(int row, int column, object? value) {
-            if (_materializingPendingCellValueDirectSaveBuffer
+            if (!EnablePendingDirectCellValueBuffer
+                || _materializingPendingCellValueDirectSaveBuffer
                 || _excelDocument.HasDeferredDirectDataSetImport
                 || !TryPreparePendingDirectCellValue(value, out object? directValue)
                 || (_pendingCellValueDirectSaveBuffer == null && _hasCellValueDomWrites)
@@ -196,6 +199,10 @@ namespace OfficeIMO.Excel {
             if (!buffer.TryAdd(row, column, value)) {
                 MaterializePendingDirectCellValues();
                 return false;
+            }
+
+            if (MirrorPendingDirectCellValueBufferToWorksheet) {
+                CellValueCoreNoMaterialize(row, column, value);
             }
 
             if (!_excelDocument.IsPackageDirty) {
@@ -289,6 +296,10 @@ namespace OfficeIMO.Excel {
 
             _pendingCellValueDirectSaveBuffer = null;
             _excelDocument.ClearPendingDirectCellValueSheet(this);
+            if (MirrorPendingDirectCellValueBufferToWorksheet) {
+                return;
+            }
+
             _materializingPendingCellValueDirectSaveBuffer = true;
             try {
                 foreach (var cell in buffer.EnumerateWrittenCells()) {
@@ -326,7 +337,8 @@ namespace OfficeIMO.Excel {
                 buffer.Rows,
                 includeHeaders: false,
                 range,
-                useCellValueNumberFormats: true);
+                useCellValueNumberFormats: true,
+                replacingPendingDirectCellValues: true);
             if (registered) {
                 _pendingCellValueDirectSaveBuffer = null;
                 _excelDocument.ClearPendingDirectCellValueSheet(this);

@@ -923,17 +923,15 @@ namespace OfficeIMO.Excel {
                                     return null;
                                 }
                             }
-                        } else if (sheet.Table.TryGetLegacyDictionaryRows(out var legacyDictionaryRows)) {
-                            string[] columnNames = sheet.Table.CreateColumnNameArray();
+                        } else if (sheet.Table.TryGetLegacyDictionaryRows(out _)) {
                             for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                                 if (canCancel) {
                                     ct.ThrowIfCancellationRequested();
                                 }
 
-                                System.Collections.IDictionary row = legacyDictionaryRows[rowIndex];
                                 for (int stringColumnIndex = 0; stringColumnIndex < stringColumnCount; stringColumnIndex++) {
                                     int columnIndex = stringColumnIndexes[stringColumnIndex];
-                                    if (DirectDataSetTableModel.GetLegacyDictionaryValue(row, columnNames[columnIndex]) is string text) {
+                                    if (sheet.Table.GetValue(rowIndex, columnIndex) is string text) {
                                         NoteString(text);
                                     }
                                 }
@@ -967,10 +965,6 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (duplicateReferences < MinimumDuplicateReferences && duplicateCharacters < MinimumDuplicateCharacters) {
-                        return null;
-                    }
-
-                    if (duplicateCharacters * MinimumDuplicateCharacterShareDenominator < totalStringCharacters * MinimumDuplicateCharacterShareNumerator) {
                         return null;
                     }
 
@@ -1143,8 +1137,8 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                if (sheet.Table.TryGetLegacyDictionaryRows(out var legacyDictionaryRows)) {
-                    WriteLegacyDictionaryValueRows(writer, legacyDictionaryRows, sheet, rowCount, columnCount, startRowIndex, cellReferencePrefixes, sheet.Table.CreateColumnNameArray(), styleAttributes, cellValueKinds, valueStyleColumns, dateTimeOffsetWriteStrategy, sharedStrings, ct);
+                if (sheet.Table.TryGetLegacyDictionaryRows(out _)) {
+                    WriteLegacyDictionaryValueRows(writer, sheet, rowCount, columnCount, startRowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, valueStyleColumns, dateTimeOffsetWriteStrategy, sharedStrings, ct);
                     return;
                 }
 
@@ -1513,13 +1507,11 @@ namespace OfficeIMO.Excel {
 
             private static void WriteLegacyDictionaryValueRows(
                 TextWriter writer,
-                IReadOnlyList<System.Collections.IDictionary> rows,
                 DirectDataSetSheetModel sheet,
                 int rowCount,
                 int columnCount,
                 int startRowIndex,
                 string[] cellReferencePrefixes,
-                string[] columnNames,
                 string?[]? styleAttributes,
                 DirectCellValueKind[] cellValueKinds,
                 bool[]? valueStyleColumns,
@@ -1529,7 +1521,7 @@ namespace OfficeIMO.Excel {
                 bool canCancel = ct.CanBeCanceled;
                 int rowIndex = startRowIndex;
                 if (!sheet.OmitBlankCells && valueStyleColumns == null) {
-                    WriteFixedKindLegacyDictionaryRows(writer, rows, rowCount, columnCount, rowIndex, cellReferencePrefixes, columnNames, styleAttributes, cellValueKinds, dateTimeOffsetWriteStrategy, sharedStrings, ct);
+                    WriteFixedKindLegacyDictionaryRows(writer, sheet, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, dateTimeOffsetWriteStrategy, sharedStrings, ct);
                     return;
                 }
 
@@ -1541,9 +1533,8 @@ namespace OfficeIMO.Excel {
 
                         bool rowStarted = false;
                         string rowReference = InvariantNumberText.Get(rowIndex);
-                        System.Collections.IDictionary row = rows[sourceRowIndex];
                         for (int c = 0; c < columnCount; c++) {
-                            object? value = DirectDataSetTableModel.GetLegacyDictionaryValue(row, columnNames[c]);
+                            object? value = sheet.Table.GetValue(sourceRowIndex, c);
                             if (IsBlankCellValue(value)) {
                                 continue;
                             }
@@ -1574,12 +1565,11 @@ namespace OfficeIMO.Excel {
                     }
 
                     string rowReference = InvariantNumberText.Get(rowIndex);
-                    System.Collections.IDictionary row = rows[sourceRowIndex];
                     writer.Write("<row r=\"");
                     writer.Write(rowReference);
                     writer.Write("\">");
                     for (int c = 0; c < columnCount; c++) {
-                        object? value = DirectDataSetTableModel.GetLegacyDictionaryValue(row, columnNames[c]);
+                        object? value = sheet.Table.GetValue(sourceRowIndex, c);
                         WriteDirectValueCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], valueStyleColumns?[c] ?? false, cellValueKinds[c], sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, sharedStrings);
                     }
 
@@ -1590,12 +1580,11 @@ namespace OfficeIMO.Excel {
 
             private static void WriteFixedKindLegacyDictionaryRows(
                 TextWriter writer,
-                IReadOnlyList<System.Collections.IDictionary> rows,
+                DirectDataSetSheetModel sheet,
                 int rowCount,
                 int columnCount,
                 int startRowIndex,
                 string[] cellReferencePrefixes,
-                string[] columnNames,
                 string?[]? styleAttributes,
                 DirectCellValueKind[] cellValueKinds,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
@@ -1610,7 +1599,6 @@ namespace OfficeIMO.Excel {
                         }
 
                         string rowReference = InvariantNumberText.Get(rowIndex);
-                        System.Collections.IDictionary row = rows[sourceRowIndex];
                         writer.Write("<row r=\"");
                         writer.Write(rowReference);
                         writer.Write("\">");
@@ -1618,7 +1606,7 @@ namespace OfficeIMO.Excel {
                             writer.Write(cellReferencePrefixes[c]);
                             writer.Write(rowReference);
                             writer.Write('"');
-                            object? value = DirectDataSetTableModel.GetLegacyDictionaryValue(row, columnNames[c]);
+                            object? value = sheet.Table.GetValue(sourceRowIndex, c);
                             WriteCellValue(writer, value, cellValueKinds[c], dateTimeOffsetWriteStrategy, sharedStrings);
                         }
 
@@ -1635,7 +1623,6 @@ namespace OfficeIMO.Excel {
                     }
 
                     string rowReference = InvariantNumberText.Get(rowIndex);
-                    System.Collections.IDictionary row = rows[sourceRowIndex];
                     writer.Write("<row r=\"");
                     writer.Write(rowReference);
                     writer.Write("\">");
@@ -1648,7 +1635,7 @@ namespace OfficeIMO.Excel {
                             writer.Write(styleAttribute);
                         }
 
-                        object? value = DirectDataSetTableModel.GetLegacyDictionaryValue(row, columnNames[c]);
+                        object? value = sheet.Table.GetValue(sourceRowIndex, c);
                         WriteCellValue(writer, value, cellValueKinds[c], dateTimeOffsetWriteStrategy, sharedStrings);
                     }
 
