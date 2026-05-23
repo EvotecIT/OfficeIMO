@@ -45,6 +45,7 @@ namespace OfficeIMO.Excel {
 
             ExcelChartType defaultType = InferChartType(plotArea);
             List<SeriesDescriptor> descriptors = BuildSeriesDescriptors(range, data, defaultType, useSeriesOverrides: chartElementCount > 1);
+            ValidateSingleSeriesPieVariants(descriptors);
 
             if (plotArea.GetFirstChild<ScatterChart>() is ScatterChart scatterChart) {
                 if (chartElementCount > 1) {

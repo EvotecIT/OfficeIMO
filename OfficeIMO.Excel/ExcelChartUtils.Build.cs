@@ -31,6 +31,7 @@ namespace OfficeIMO.Excel {
 
             PlotArea plotArea = new() { Layout = new Layout() };
             List<SeriesDescriptor> descriptors = BuildSeriesDescriptors(range, data, type);
+            ValidateSingleSeriesPieVariants(descriptors);
             SeriesDescriptorSummary summary = SummarizeSeriesDescriptors(descriptors);
             if (summary.HasBubble) {
                 throw new NotSupportedException("Bubble charts require explicit X/Y/size ranges. Use AddBubbleChartFromRanges.");

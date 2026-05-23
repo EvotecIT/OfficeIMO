@@ -1192,6 +1192,82 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AddPivotTable_AppliesFieldOptionsToGeneratedDateHierarchyFields() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableDateHierarchyFieldOptions.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "OrderDate");
+                sheet.CellValue(1, 2, "Region");
+                sheet.CellValue(1, 3, "Sales");
+                sheet.CellValue(2, 1, new DateTime(2025, 12, 30));
+                sheet.CellValue(2, 2, "West");
+                sheet.CellValue(2, 3, 75);
+                sheet.CellValue(3, 1, new DateTime(2026, 1, 3));
+                sheet.CellValue(3, 2, "East");
+                sheet.CellValue(3, 3, 40);
+                sheet.CellValue(4, 1, new DateTime(2026, 4, 8));
+                sheet.CellValue(4, 2, "East");
+                sheet.CellValue(4, 3, 180);
+
+                sheet.Pivot("A1:C4")
+                    .Rows("OrderDate")
+                    .Sum("Sales", "Total Sales")
+                    .DateHierarchy("OrderDate", GroupByValues.Years, GroupByValues.Months)
+                    .SortField("OrderDate", FieldSortValues.Descending)
+                    .Subtotals("OrderDate", false)
+                    .FieldLayout("OrderDate", compact: false, outline: true)
+                    .HideItems("OrderDate", "2025")
+                    .At("E2", "SalesPivot");
+
+                sheet.Pivot("A1:C4")
+                    .Sum("Sales", "Filtered Sales")
+                    .DateHierarchy("OrderDate", GroupByValues.Years, GroupByValues.Months)
+                    .SelectPageItem("OrderDate", "2026")
+                    .At("E12", "FilterPivot");
+
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var pivotParts = spreadsheet.WorkbookPart!.WorksheetParts.SelectMany(part => part.PivotTableParts).ToList();
+                var pivotPart = pivotParts.Single(part => part.PivotTableDefinition!.Name == "SalesPivot");
+                var pivotFields = pivotPart.PivotTableDefinition!.PivotFields!.Elements<PivotField>().ToList();
+                Assert.Equal(5, pivotFields.Count);
+
+                var sourceField = pivotFields[0];
+                Assert.Null(sourceField.Items);
+
+                var yearsField = pivotFields[3];
+                Assert.Equal(FieldSortValues.Descending, yearsField.SortType!.Value);
+                Assert.False(yearsField.DefaultSubtotal!.Value);
+                Assert.False(yearsField.Compact!.Value);
+                Assert.True(yearsField.Outline!.Value);
+                var hiddenYear = Assert.Single(yearsField.Items!.Elements<Item>(), item => item.Hidden?.Value == true);
+                Assert.Equal(0U, hiddenYear.Index!.Value);
+
+                var monthsField = pivotFields[4];
+                Assert.Equal(FieldSortValues.Descending, monthsField.SortType!.Value);
+                Assert.False(monthsField.DefaultSubtotal!.Value);
+                Assert.False(monthsField.Compact!.Value);
+                Assert.True(monthsField.Outline!.Value);
+                Assert.Null(monthsField.Items);
+
+                var filterPivotPart = pivotParts.Single(part => part.PivotTableDefinition!.Name == "FilterPivot");
+                var pageFields = filterPivotPart.PivotTableDefinition!.PageFields!.Elements<PageField>().ToList();
+                Assert.Equal(2, pageFields.Count);
+                Assert.Equal(3, pageFields[0].Field!.Value);
+                Assert.Equal(1U, pageFields[0].Item!.Value);
+                Assert.Equal(4, pageFields[1].Field!.Value);
+                Assert.Null(pageFields[1].Item);
+
+                OpenXmlValidator validator = new OpenXmlValidator();
+                var errors = validator.Validate(spreadsheet).ToList();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            }
+        }
+
+        [Fact]
         public void Test_AddPivotChartFromRange_WritesPivotSource() {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotChart.xlsx");
 

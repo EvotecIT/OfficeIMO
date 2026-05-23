@@ -313,7 +313,6 @@ namespace OfficeIMO.Excel {
 
                 var workbookPart = WorkbookPartRoot;
                 var workbook = workbookPart.Workbook ??= new Workbook();
-                var fieldOptionMap = BuildPivotFieldOptionMap(fieldOptions, headerIndex);
                 var fieldValueMap = BuildPivotFieldValueMap(headers.Count, r1 + 1, r2, c1, groupingMap);
                 var generatedFieldValueMap = BuildGeneratedPivotFieldValueMap(generatedGroupingFields, r1 + 1, r2, c1);
                 var allFieldValueMap = fieldValueMap
@@ -324,6 +323,8 @@ namespace OfficeIMO.Excel {
                 for (int i = 0; i < calculatedFieldList.Count; i++) {
                     allFieldValueMap.Add(Array.Empty<string>());
                 }
+                var fieldOptionMap = BuildPivotFieldOptionMap(fieldOptions, headerIndex);
+                ExpandGeneratedGroupingFieldOptions(fieldOptionMap, generatedFieldsBySource, allFields, allFieldValueMap);
                 uint cacheId = NextPivotCacheId(workbookPart);
 
                 var cacheDefPart = workbookPart.AddNewPart<PivotTableCacheDefinitionPart>();
@@ -655,6 +656,66 @@ namespace OfficeIMO.Excel {
             }
 
             return map;
+        }
+
+        private static void ExpandGeneratedGroupingFieldOptions(
+            IDictionary<int, ExcelPivotFieldOptions> fieldOptionMap,
+            IReadOnlyDictionary<int, IReadOnlyList<int>> generatedFieldsBySource,
+            IReadOnlyList<string> allFields,
+            IReadOnlyList<IReadOnlyList<string>> allFieldValueMap) {
+            foreach (var pair in generatedFieldsBySource) {
+                if (!fieldOptionMap.TryGetValue(pair.Key, out var sourceOptions)) continue;
+
+                fieldOptionMap[pair.Key] = ClonePivotFieldOptions(sourceOptions, sourceOptions.FieldName);
+                foreach (int generatedIndex in pair.Value) {
+                    if (generatedIndex < 0 || generatedIndex >= allFields.Count || generatedIndex >= allFieldValueMap.Count) continue;
+                    fieldOptionMap[generatedIndex] = ClonePivotFieldOptionsForGeneratedField(
+                        sourceOptions,
+                        allFields[generatedIndex],
+                        allFieldValueMap[generatedIndex]);
+                }
+            }
+        }
+
+        private static ExcelPivotFieldOptions ClonePivotFieldOptionsForGeneratedField(
+            ExcelPivotFieldOptions sourceOptions,
+            string fieldName,
+            IReadOnlyList<string> generatedValues) {
+            var valueSet = new HashSet<string>(generatedValues, StringComparer.OrdinalIgnoreCase);
+            string[] hiddenItems = sourceOptions.HiddenItems.Where(valueSet.Contains).ToArray();
+            string[] visibleItems = sourceOptions.VisibleItems.Where(valueSet.Contains).ToArray();
+            string? selectedItem = sourceOptions.SelectedItem != null && valueSet.Contains(sourceOptions.SelectedItem)
+                ? sourceOptions.SelectedItem
+                : null;
+
+            return ClonePivotFieldOptions(sourceOptions, fieldName, hiddenItems, visibleItems, selectedItem);
+        }
+
+        private static ExcelPivotFieldOptions ClonePivotFieldOptions(
+            ExcelPivotFieldOptions sourceOptions,
+            string fieldName,
+            IEnumerable<string>? hiddenItems = null,
+            IEnumerable<string>? visibleItems = null,
+            string? selectedItem = null) {
+            return new ExcelPivotFieldOptions(
+                fieldName,
+                sourceOptions.SortType,
+                sourceOptions.NumberFormatId,
+                sourceOptions.NumberFormat,
+                sourceOptions.ShowAll,
+                sourceOptions.DefaultSubtotal,
+                sourceOptions.SubtotalTop,
+                sourceOptions.InsertBlankRow,
+                sourceOptions.InsertPageBreak,
+                sourceOptions.Compact,
+                sourceOptions.Outline,
+                sourceOptions.ShowDropDowns,
+                sourceOptions.MultipleItemSelectionAllowed,
+                sourceOptions.IncludeNewItemsInFilter,
+                sourceOptions.SubtotalCaption,
+                hiddenItems,
+                visibleItems,
+                selectedItem);
         }
 
         private static Dictionary<int, ExcelPivotGrouping> BuildPivotGroupingMap(IEnumerable<ExcelPivotGrouping>? groupings,

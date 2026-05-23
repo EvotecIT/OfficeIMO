@@ -247,6 +247,25 @@ namespace OfficeIMO.Excel {
                 || chartType == ExcelChartType.Area3DStacked100;
         }
 
+        private static bool IsSingleSeriesPieVariant(ExcelChartType chartType) {
+            return chartType == ExcelChartType.Pie3D
+                || chartType == ExcelChartType.PieOfPie
+                || chartType == ExcelChartType.BarOfPie;
+        }
+
+        private static void ValidateSingleSeriesPieVariants(IReadOnlyList<SeriesDescriptor> descriptors) {
+            foreach (var group in descriptors.Where(descriptor => IsSingleSeriesPieVariant(descriptor.ChartType)).GroupBy(descriptor => descriptor.ChartType)) {
+                if (group.Count() <= 1) continue;
+                string chartName = group.Key switch {
+                    ExcelChartType.Pie3D => "3-D pie",
+                    ExcelChartType.PieOfPie => "pie-of-pie",
+                    ExcelChartType.BarOfPie => "bar-of-pie",
+                    _ => "pie"
+                };
+                throw new NotSupportedException($"{chartName} charts support exactly one series.");
+            }
+        }
+
         private static bool IsSurfaceChartType(ExcelChartType chartType) {
             return chartType == ExcelChartType.Surface
                 || chartType == ExcelChartType.SurfaceWireframe

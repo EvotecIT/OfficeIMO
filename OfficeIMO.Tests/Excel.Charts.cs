@@ -936,6 +936,35 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Theory]
+        [InlineData(ExcelChartType.Pie3D, "3-D pie")]
+        [InlineData(ExcelChartType.PieOfPie, "pie-of-pie")]
+        [InlineData(ExcelChartType.BarOfPie, "bar-of-pie")]
+        public void Test_ExcelCharts_SingleSeriesPieVariantsRejectMultipleSeries(ExcelChartType type, string chartName) {
+            string filePath = Path.Combine(_directoryWithFiles, $"ExcelCharts.{type}.MultipleSeries.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Share");
+                sheet.CellValue(1, 1, "Segment");
+                sheet.CellValue(1, 2, "Current");
+                sheet.CellValue(1, 3, "Previous");
+                sheet.CellValue(2, 1, "Core");
+                sheet.CellValue(2, 2, 40);
+                sheet.CellValue(2, 3, 35);
+                sheet.CellValue(3, 1, "Growth");
+                sheet.CellValue(3, 2, 24);
+                sheet.CellValue(3, 3, 20);
+                sheet.CellValue(4, 1, "Services");
+                sheet.CellValue(4, 2, 26);
+                sheet.CellValue(4, 3, 30);
+
+                var exception = Assert.Throws<NotSupportedException>(() =>
+                    sheet.AddChartFromRange("A1:C4", row: 1, column: 5, type: type));
+                Assert.Contains(chartName, exception.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("exactly one series", exception.Message, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
         [Fact]
         public void Test_ExcelCharts_Line3DChart_CanCreateAndUpdate() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Line3D.xlsx");
