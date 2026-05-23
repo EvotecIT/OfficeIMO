@@ -301,9 +301,11 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                rowFieldIndices = ExpandGeneratedGroupingFieldIndices(rowFieldIndices, generatedFieldsBySource);
-                columnFieldIndices = ExpandGeneratedGroupingFieldIndices(columnFieldIndices, generatedFieldsBySource);
-                pageFieldIndices = ExpandGeneratedGroupingFieldIndices(pageFieldIndices, generatedFieldsBySource);
+                (rowFieldIndices, columnFieldIndices, pageFieldIndices) = ExpandGeneratedGroupingFieldIndices(
+                    rowFieldIndices,
+                    columnFieldIndices,
+                    pageFieldIndices,
+                    generatedFieldsBySource);
 
                 var dataFieldIndices = new HashSet<int>();
                 foreach (var df in dataFieldList) {
@@ -642,6 +644,17 @@ namespace OfficeIMO.Excel {
             }
 
             return expanded;
+        }
+
+        private static (List<int> RowFields, List<int> ColumnFields, List<int> PageFields) ExpandGeneratedGroupingFieldIndices(
+            IReadOnlyList<int> rowFieldIndices,
+            IReadOnlyList<int> columnFieldIndices,
+            IReadOnlyList<int> pageFieldIndices,
+            IReadOnlyDictionary<int, IReadOnlyList<int>> generatedFieldsBySource) {
+            return (
+                ExpandGeneratedGroupingFieldIndices(rowFieldIndices, generatedFieldsBySource),
+                ExpandGeneratedGroupingFieldIndices(columnFieldIndices, generatedFieldsBySource),
+                ExpandGeneratedGroupingFieldIndices(pageFieldIndices, generatedFieldsBySource));
         }
 
         private static Dictionary<int, ExcelPivotFieldOptions> BuildPivotFieldOptionMap(IEnumerable<ExcelPivotFieldOptions>? fieldOptions,

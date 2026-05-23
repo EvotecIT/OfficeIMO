@@ -659,9 +659,8 @@ namespace OfficeIMO.Excel {
         private static Pie3DChart CreatePie3DChart(ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> seriesDescriptors) {
             var pieChart = new Pie3DChart(new VaryColors { Val = true });
 
-            foreach (var descriptor in seriesDescriptors) {
-                pieChart.Append(CreatePieChartSeries(descriptor.Index, range, descriptor.Series));
-            }
+            var descriptor = GetSingleSeriesDescriptor(seriesDescriptors, "3-D pie");
+            pieChart.Append(CreatePieChartSeries(descriptor.Index, range, descriptor.Series));
 
             pieChart.Append(CreateDefaultDataLabels());
             return pieChart;
@@ -672,9 +671,9 @@ namespace OfficeIMO.Excel {
                 new OfPieType { Val = type },
                 new VaryColors { Val = true });
 
-            foreach (var descriptor in seriesDescriptors) {
-                chart.Append(CreatePieChartSeries(descriptor.Index, range, descriptor.Series));
-            }
+            string chartName = type == OfPieValues.Bar ? "bar-of-pie" : "pie-of-pie";
+            var descriptor = GetSingleSeriesDescriptor(seriesDescriptors, chartName);
+            chart.Append(CreatePieChartSeries(descriptor.Index, range, descriptor.Series));
 
             chart.Append(CreateDefaultDataLabels());
             chart.Append(new GapWidth { Val = (UInt16Value)150U });
@@ -683,6 +682,14 @@ namespace OfficeIMO.Excel {
             chart.Append(new SecondPieSize { Val = (UInt16Value)75U });
             chart.Append(new SeriesLines());
             return chart;
+        }
+
+        private static SeriesDescriptor GetSingleSeriesDescriptor(IReadOnlyList<SeriesDescriptor> seriesDescriptors, string chartName) {
+            if (seriesDescriptors.Count != 1) {
+                throw new NotSupportedException($"{chartName} charts support exactly one series.");
+            }
+
+            return seriesDescriptors[0];
         }
 
         private static PieChartSeries CreatePieChartSeries(int seriesIndex, ExcelChartDataRange range, ExcelChartSeries? series) {
