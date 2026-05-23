@@ -237,6 +237,23 @@
       "preserveOnWarnings": true
     },
     {
+      "task": "exec",
+      "id": "generate-excel-benchmark-data",
+      "dependsOn": ["build-excel"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./Build/Generate-ExcelBenchmarkWebsiteData.ps1",
+        "-PackageProfilePath",
+        ".\\Docs\\benchmarks\\officeimo.excel.package-profile-blog-2023-20-string-columns-10k-current.json;.\\Docs\\benchmarks\\officeimo.excel.package-profile-blog-2023-20-string-columns-300k-current.json",
+        "-RunMode",
+        "quick"
+      ],
+      "workingDirectory": ".."
+    },
+    {
       "task": "build",
       "id": "build-site",
       "dependsOn": [
@@ -249,7 +266,8 @@
         "build-visio",
         "build-reader",
         "build-release-hub",
-        "build-ecosystem-stats"
+        "build-ecosystem-stats",
+        "generate-excel-benchmark-data"
       ],
       "config": "./site.json",
       "out": "./_site",
@@ -309,6 +327,7 @@
       "baseUrl": "/api/excel",
       "format": "both",
       "legacyAliasMode": "omit",
+      "suppressWarnings": ["PFWEB.APIDOCS.MEMBER.SIGNATURES"],
       "template": "docs",
       "nav": "./site.json",
       "navContextPath": "/",

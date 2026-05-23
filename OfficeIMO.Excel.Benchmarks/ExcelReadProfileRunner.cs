@@ -103,6 +103,7 @@ internal static class ExcelReadProfileRunner {
             new ReadProfileCase("ReadColumn.Dense.CustomConverterFallback", "Dense single-column enumeration through a custom converter hook that falls back to built-in conversion.", () => OfficeImoReadDenseColumnCustomConverterFallback(workbookBytes, $"A1:A{rowCount + 1}")),
             new ReadProfileCase("ReadColumn.Dense.CustomConverterCultureFallback", "Dense single-column enumeration through a custom converter fallback with non-invariant culture.", () => OfficeImoReadDenseColumnCustomConverterCultureFallback(workbookBytes, $"A1:A{rowCount + 1}"))
         ], warmupIterations, measuredIterations));
+        scenarios.Add(Measure("OfficeIMO.Excel", "GetUsedRangeA1.Cached", "Repeated used-range lookup through ExcelDocumentReader after the worksheet dimension has been resolved.", () => OfficeImoGetUsedRangeCached(workbookBytes), warmupIterations, measuredIterations));
         scenarios.Add(Measure("OfficeIMO.Excel", "GetHeaderMap.LargeUsedRange", "Build the header lookup map from the first used row of a larger worksheet.", () => OfficeImoGetHeaderMap(workbookBytes), warmupIterations, measuredIterations));
         scenarios.Add(Measure("OfficeIMO.Excel", "GetHeaderMap.LoadedRebuild", "Rebuild the header lookup map on an already loaded worksheet after cache invalidation.", () => OfficeImoGetHeaderMapLoadedRebuild(loadedHeaderSheet), warmupIterations, measuredIterations));
         scenarios.Add(Measure("OfficeIMO.Excel", "GetHeaderMap.LoadedSharedStrings", "Rebuild headers when the worksheet has many unique shared strings below the header row.", () => OfficeImoGetHeaderMapLoadedRebuild(loadedSharedStringHeaderSheet), warmupIterations, measuredIterations));
@@ -392,6 +393,17 @@ internal static class ExcelReadProfileRunner {
         }
 
         return rows + populated;
+    }
+
+    private static int OfficeImoGetUsedRangeCached(byte[] workbookBytes) {
+        using var reader = ExcelDocumentReader.Open(workbookBytes);
+        var sheet = reader.GetSheet("Data");
+        int total = 0;
+        for (int i = 0; i < HeaderLookupIterations; i++) {
+            total += sheet.GetUsedRangeA1().Length;
+        }
+
+        return total;
     }
 
     private static int OfficeImoGetHeaderMap(byte[] workbookBytes) {

@@ -973,6 +973,87 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_GetUsedRangeA1_UsesSavedWorksheetDimension() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderUsedRangeSavedDimension.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    sheet.CellValue(1, 2, "Value");
+                    sheet.CellValue(2, 1, "Alpha");
+                    sheet.CellValue(2, 2, 10);
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var sheetReader = reader.GetSheet("Data");
+                Assert.Equal("A1:B2", sheetReader.GetUsedRangeA1());
+                Assert.Equal("A1:B2", sheetReader.GetUsedRangeA1());
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_GetUsedRangeA1_FallsBackWhenDimensionIsDefaultA1() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderUsedRangeDefaultDimensionFallback.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(3, 2, "Value");
+                    document.Save();
+                }
+
+                using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet;
+                    worksheet.GetFirstChild<SheetDimension>()!.Reference = "A1";
+                    worksheet.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var sheetReader = reader.GetSheet("Data");
+                Assert.Equal("B3:B3", sheetReader.GetUsedRangeA1());
+                Assert.Equal("B3:B3", sheetReader.GetUsedRangeA1());
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_GetUsedRangeA1_IgnoresStaleOversizedWorksheetDimension() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderUsedRangeStaleDimension.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(3, 2, "Value");
+                    document.Save();
+                }
+
+                using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet;
+                    worksheet.GetFirstChild<SheetDimension>()!.Reference = "A1:Z1000";
+                    worksheet.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var sheetReader = reader.GetSheet("Data");
+                Assert.Equal("B3:B3", sheetReader.GetUsedRangeA1());
+                Assert.Equal("B3:B3", sheetReader.GetUsedRangeA1());
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Sheet_HeaderMapCache_RebuildsAfterHeaderRenameWithinSameUsedRange() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderHeaderCacheRename.xlsx");
 

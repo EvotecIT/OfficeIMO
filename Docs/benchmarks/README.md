@@ -8,6 +8,8 @@ This folder stores small, committed benchmark artifacts for `OfficeIMO.Excel`.
 - `officeimo.excel.library-comparison.json`: local opt-in comparison across matching library surfaces
 - `comparison-current\officeimo.excel.comparison-suite-manifest.json`: release-style suite manifest that points to the speed, package, dense `HelloWorld`, and summary artifacts
 - `comparison-current\officeimo.excel.comparison-summary.md|csv|json`: one-table decision summary with mean, standard deviation, standard error, speed ratios, allocation ratios, package-size ratios, winners, losses, and package-part metrics
+- `officeimo.excel.comparison-report.md`: generated website/blog-oriented report distilled from the comparison summary and optional focused package profiles
+- `Website\data\benchmarks-excel.json|benchmarks-excel-summary.json|benchmarks-excel-index.json`: generated website-facing Excel benchmark data, summary, and run index
 
 Benchmark artifacts now store raw sample lists and medians in addition to averages so noisy runs are easier to spot. Comparison artifacts also include mean/median allocation samples captured with `GC.GetAllocatedBytesForCurrentThread`. Write profiles include OfficeIMO timing-hook sub-stages such as AutoFit plan, width calculation, and width application when those hooks are emitted.
 OfficeIMO benchmark runs use the report-export AutoFit mode (`Execution.SaveWorksheetAfterAutoFit = false`) so worksheet changes are committed once at document save/dispose time instead of after each AutoFit operation.
@@ -19,6 +21,18 @@ dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-write .\Docs\benchmarks\officeimo.excel.write-profile-YYYY-MM-DD.json
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-read .\Docs\benchmarks\officeimo.excel.read-profile-YYYY-MM-DD.json
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- comparison-suite --out-dir .\Docs\benchmarks\comparison-current --row-set 2500,25000 --warmup 1 --iterations 3
+```
+
+After a comparison-suite run, generate the website/blog data layer:
+
+```powershell
+.\Build\Generate-ExcelBenchmarkWebsiteData.ps1 -SummaryPath .\Docs\benchmarks\comparison-current\officeimo.excel.comparison-summary.json -ManifestPath .\Docs\benchmarks\comparison-current\officeimo.excel.comparison-suite-manifest.json -RunMode quick
+```
+
+Focused package-profile artifacts can be folded into the same generated data without changing the suite. This is useful for externally inspired benchmarks such as the 2023 LargeXlsx/MiniExcel/ClosedXML 20-string-column workload:
+
+```powershell
+.\Build\Generate-ExcelBenchmarkWebsiteData.ps1 -PackageProfilePath .\Docs\benchmarks\officeimo.excel.package-profile-blog-2023-20-string-columns-10k-current.json, .\Docs\benchmarks\officeimo.excel.package-profile-blog-2023-20-string-columns-300k-current.json -RunMode quick
 ```
 
 Commands that write artifacts also accept `--out`, `--output`, or `--output-path` when an explicit output path is clearer than the positional form.

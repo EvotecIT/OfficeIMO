@@ -320,6 +320,10 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(range));
             }
 
+            if (_excelDocument.HasPendingDirectCellValues) {
+                MaterializeDeferredDataSetImportIfNeeded();
+            }
+
             if (_excelDocument.ShouldMaterializeDeferredDirectTabularSaveCandidateForTable(this, range, hasHeader)) {
                 _excelDocument.MaterializeDeferredDataSetImport();
             }

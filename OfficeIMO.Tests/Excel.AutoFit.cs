@@ -411,6 +411,7 @@ namespace OfficeIMO.Tests {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "1234567890.12345");
                 sheet.CellValue(1, 2, "12");
+                sheet.MaterializePendingDirectCellValues();
 
                 uint style = AddFontStyle(document._spreadSheetDocument, fontName, 20);
                 SetCellStyle(document._spreadSheetDocument, "A1", style);
@@ -438,6 +439,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, 1234.5d);
+                Assert.True(sheet.TryGetCellText(1, 1, out _));
 
                 var workbookPart = document._spreadSheetDocument.WorkbookPart!;
                 var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
@@ -550,6 +552,7 @@ namespace OfficeIMO.Tests {
                 var sheet = document.AddWorkSheet("Data");
                 sheet.CellValue(1, 1, "Tiny HugeWideText");
                 sheet.CellValue(1, 2, "Tiny HugeWideText");
+                sheet.MaterializePendingDirectCellValues();
 
                 WorksheetPart wsPart = document._spreadSheetDocument.WorkbookPart!.WorksheetParts.First();
                 var richCell = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "A1");

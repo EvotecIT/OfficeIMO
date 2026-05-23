@@ -40,7 +40,6 @@ namespace OfficeIMO.Excel {
             }
 
             if (directSaveCandidate != null
-                && (directSaveCandidate.IncludeHeaders || mode == ExecutionMode.Parallel)
                 && RegisterDeferredDirectCellValuesSaveCandidateIfPossible(directSaveCandidate)) {
                 return;
             }

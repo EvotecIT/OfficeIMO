@@ -79,10 +79,13 @@
   "Head": {
     "Links": [
       { "Rel": "icon", "Href": "/favicon.svg", "Type": "image/svg+xml" }
-    ],
-    "Meta": [
-      { "Name": "robots", "Content": "index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1" }
     ]
+  },
+  "Seo": {
+    "CrawlPolicy": {
+      "Enabled": true,
+      "DefaultRobots": "index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1"
+    }
   },
   "Social": {
     "Enabled": true,
@@ -303,7 +306,7 @@
         "PrimaryMenu": "main",
         "SidebarMenu": "docs"
       },
-      { "Name": "notFound", "Path": "/404/", "PrimaryMenu": "main" }
+      { "Name": "notFound", "Path": "/404.html", "PrimaryMenu": "main" }
     ],
     "Auto": [{ "Collection": "docs", "Menu": "docs", "Sort": "order,title" }],
     "Menus": [
