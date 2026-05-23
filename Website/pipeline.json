@@ -327,6 +327,7 @@
       "baseUrl": "/api/excel",
       "format": "both",
       "legacyAliasMode": "omit",
+      "suppressWarnings": ["PFWEB.APIDOCS.MEMBER.SIGNATURES"],
       "template": "docs",
       "nav": "./site.json",
       "navContextPath": "/",
