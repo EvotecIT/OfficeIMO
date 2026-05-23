@@ -7,6 +7,9 @@ namespace OfficeIMO.Excel.Fluent {
         private readonly SheetTheme _theme;
         private ExcelSheet _sheet;
         private int _row;
+        private static readonly HashSet<string> HeaderAcronyms = new HashSet<string>(new[] {
+            "ID", "URL", "URI", "DNS", "MX", "SPF", "DKIM", "DMARC", "BIMI", "IP", "TLS", "AAA", "AAAA", "SRV", "TXT", "CNAME", "NS", "CAA", "MTA", "STS", "TLS-RPT"
+        }, StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Creates a new sheet and prepares a composer for adding content top-to-bottom.
@@ -61,15 +64,21 @@ namespace OfficeIMO.Excel.Fluent {
                     foreach (var p in parts) yield return p;
                 }
             }
-            var acronym = new HashSet<string>(new[]{
-                "ID","URL","URI","DNS","MX","SPF","DKIM","DMARC","BIMI","IP","TLS","AAA","AAAA","SRV","TXT","CNAME","NS","CAA","MTA","STS","TLS-RPT"
-            }, StringComparer.OrdinalIgnoreCase);
             IEnumerable<string> segments = path.Split('.'); var words = new List<string>();
             foreach (var seg in segments) words.AddRange(Humanize(seg));
             var ti = System.Globalization.CultureInfo.CurrentCulture.TextInfo;
             for (int i = 0; i < words.Count; i++)
-                words[i] = acronym.Contains(words[i]) ? words[i].ToUpperInvariant() : ti.ToTitleCase(words[i].ToLowerInvariant());
+                words[i] = HeaderAcronyms.Contains(words[i]) ? words[i].ToUpperInvariant() : ti.ToTitleCase(words[i].ToLowerInvariant());
             return string.Join(" ", words);
+        }
+
+        private static List<string> BuildTransformedHeaders(IReadOnlyList<string> paths, ObjectFlattenerOptions opts) {
+            var headers = new List<string>(paths.Count);
+            for (int i = 0; i < paths.Count; i++) {
+                headers.Add(TransformHeader(paths[i], opts));
+            }
+
+            return headers;
         }
 
         private static string SanitizeName(string name) {

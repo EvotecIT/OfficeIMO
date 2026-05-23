@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Data;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
@@ -53,6 +54,7 @@ namespace OfficeIMO.Excel {
 
                     projector.FillValues(item, values);
                     table.Rows.Add(values);
+                    projector.ResetValues(values);
                 }
             } finally {
                 table.EndLoadData();
@@ -62,61 +64,130 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class ObjectRowProjector {
-            private readonly string[] _columns;
-            private readonly PropertyInfo[]? _properties;
-            private readonly Type? _sourceType;
+            private static readonly ConcurrentDictionary<Type, CachedObjectRowProjection> TypedProjectionCache = new();
 
-            private ObjectRowProjector(IReadOnlyList<string> columns, PropertyInfo[]? properties, Type? sourceType) {
-                _columns = columns.ToArray();
-                _properties = properties;
+            private readonly string[] _columns;
+            private readonly Dictionary<string, int>? _ordinalColumnIndexes;
+            private readonly Dictionary<string, int>? _ignoreCaseColumnIndexes;
+            private readonly ObjectValueGetter[]? _getters;
+            private readonly Type? _sourceType;
+            private int[]? _sparseTouchedColumns;
+            private byte[]? _sparseColumnStates;
+            private int _sparseTouchedCount;
+            private bool _valuesReadyForSparseProjection;
+
+            private ObjectRowProjector(string[] columns, ObjectValueGetter[]? getters, Type? sourceType, bool createOrdinalColumnIndexes) {
+                _columns = columns;
+                _ordinalColumnIndexes = createOrdinalColumnIndexes ? CreateOrdinalColumnIndexes(columns) : null;
+                _ignoreCaseColumnIndexes = createOrdinalColumnIndexes ? CreateIgnoreCaseColumnIndexes(columns) : null;
+                _getters = getters;
                 _sourceType = sourceType;
             }
 
             internal static ObjectRowProjector Create(object first, IReadOnlyList<string> columns) {
                 var firstType = first.GetType();
                 if (IsDictionaryLike(first)) {
-                    return new ObjectRowProjector(columns, properties: null, sourceType: null);
+                    return new ObjectRowProjector(columns.ToArray(), getters: null, sourceType: null, createOrdinalColumnIndexes: true);
                 }
 
-                var properties = new PropertyInfo[columns.Count];
+                var cachedProjection = TypedProjectionCache.GetOrAdd(firstType, type => CreateCachedProjection(type, columns));
+                if (ColumnsMatch(cachedProjection.Columns, columns)) {
+                    return new ObjectRowProjector(cachedProjection.Columns, cachedProjection.Getters, firstType, createOrdinalColumnIndexes: false);
+                }
+
+                var getters = CreateGetters(firstType, columns);
+                if (getters == null) {
+                    return new ObjectRowProjector(columns.ToArray(), getters: null, sourceType: null, createOrdinalColumnIndexes: false);
+                }
+
+                return new ObjectRowProjector(columns.ToArray(), getters, firstType, createOrdinalColumnIndexes: false);
+            }
+
+            private static CachedObjectRowProjection CreateCachedProjection(Type firstType, IReadOnlyList<string> columns) {
+                var getters = CreateGetters(firstType, columns);
+                return new CachedObjectRowProjection(columns.ToArray(), getters);
+            }
+
+            private static ObjectValueGetter[]? CreateGetters(Type firstType, IReadOnlyList<string> columns) {
+                var getters = new ObjectValueGetter[columns.Count];
                 for (int i = 0; i < columns.Count; i++) {
                     var property = firstType.GetProperty(columns[i], BindingFlags.Public | BindingFlags.Instance);
                     if (property == null || !property.CanRead || property.GetIndexParameters().Length != 0) {
-                        return new ObjectRowProjector(columns, properties: null, sourceType: null);
+                        return null;
                     }
 
-                    properties[i] = property;
+                    getters[i] = CreateObjectValueGetter(property);
                 }
 
-                return new ObjectRowProjector(columns, properties, firstType);
+                return getters;
+            }
+
+            private static bool ColumnsMatch(string[] cachedColumns, IReadOnlyList<string> columns) {
+                if (cachedColumns.Length != columns.Count) {
+                    return false;
+                }
+
+                for (int i = 0; i < cachedColumns.Length; i++) {
+                    if (!string.Equals(cachedColumns[i], columns[i], StringComparison.Ordinal)) {
+                        return false;
+                    }
+                }
+
+                return true;
             }
 
             internal object?[] CreateValuesBuffer() => new object?[_columns.Length];
 
             internal void FillValues(object item, object?[] values) {
+                _sparseTouchedCount = 0;
                 if (TryFillDictionaryValues(item, values)) {
                     return;
                 }
 
-                if (_properties != null && item.GetType() == _sourceType) {
-                    for (int i = 0; i < _properties.Length; i++) {
-                        values[i] = _properties[i].GetValue(item) ?? DBNull.Value;
+                if (_getters != null && item.GetType() == _sourceType) {
+                    for (int i = 0; i < _getters.Length; i++) {
+                        values[i] = _getters[i](item) ?? DBNull.Value;
                     }
 
+                    _valuesReadyForSparseProjection = false;
                     return;
                 }
 
                 for (int i = 0; i < _columns.Length; i++) {
                     values[i] = ObjectDataHelpers.GetValue(item, _columns[i]) ?? DBNull.Value;
                 }
+
+                _valuesReadyForSparseProjection = false;
+            }
+
+            internal void ResetValues(object?[] values) {
+                if (_sparseTouchedCount == 0) {
+                    return;
+                }
+
+                for (int i = 0; i < _sparseTouchedCount; i++) {
+                    int columnIndex = _sparseTouchedColumns![i];
+                    values[columnIndex] = DBNull.Value;
+                    if (_sparseColumnStates != null) {
+                        _sparseColumnStates[columnIndex] = 0;
+                    }
+                }
+
+                _sparseTouchedCount = 0;
             }
 
             private bool TryFillDictionaryValues(object item, object?[] values) {
                 if (item is Dictionary<string, object?> exactDictionary) {
+                    if (CanUseOrdinalEntryProjection(exactDictionary.Comparer)
+                        && TryFillSparseDictionaryValues(exactDictionary, values)) {
+                        return true;
+                    }
+
                     for (int i = 0; i < _columns.Length; i++) {
                         values[i] = exactDictionary.TryGetValue(_columns[i], out var value) ? value ?? DBNull.Value : DBNull.Value;
                     }
 
+                    _valuesReadyForSparseProjection = false;
                     return true;
                 }
 
@@ -125,6 +196,7 @@ namespace OfficeIMO.Excel {
                         values[i] = readOnlyDictionary.TryGetValue(_columns[i], out var value) ? value ?? DBNull.Value : DBNull.Value;
                     }
 
+                    _valuesReadyForSparseProjection = false;
                     return true;
                 }
 
@@ -133,18 +205,121 @@ namespace OfficeIMO.Excel {
                         values[i] = dictionary.TryGetValue(_columns[i], out var value) ? value ?? DBNull.Value : DBNull.Value;
                     }
 
+                    _valuesReadyForSparseProjection = false;
                     return true;
                 }
 
                 if (item is System.Collections.IDictionary legacyDictionary) {
+                    if (TryFillSparseLegacyDictionaryValues(legacyDictionary, values)) {
+                        return true;
+                    }
+
                     for (int i = 0; i < _columns.Length; i++) {
                         values[i] = GetLegacyDictionaryValue(legacyDictionary, _columns[i]) ?? DBNull.Value;
                     }
 
+                    _valuesReadyForSparseProjection = false;
                     return true;
                 }
 
                 return false;
+            }
+
+            private bool TryFillSparseDictionaryValues(IEnumerable<KeyValuePair<string, object?>> dictionary, object?[] values) {
+                if (_ordinalColumnIndexes == null || dictionary is ICollection<KeyValuePair<string, object?>> collection && collection.Count >= _columns.Length) {
+                    return false;
+                }
+
+                if (!_valuesReadyForSparseProjection) {
+                    FillDbNull(values);
+                    _valuesReadyForSparseProjection = true;
+                }
+
+                foreach (var entry in dictionary) {
+                    if (_ordinalColumnIndexes.TryGetValue(entry.Key, out int columnIndex)) {
+                        values[columnIndex] = entry.Value ?? DBNull.Value;
+                        TrackSparseTouchedColumn(columnIndex);
+                    }
+                }
+
+                return true;
+            }
+
+            private bool TryFillSparseLegacyDictionaryValues(System.Collections.IDictionary dictionary, object?[] values) {
+                if (_ordinalColumnIndexes == null
+                    || _ignoreCaseColumnIndexes == null
+                    || dictionary.Count >= _columns.Length) {
+                    return false;
+                }
+
+                if (!_valuesReadyForSparseProjection) {
+                    FillDbNull(values);
+                    _valuesReadyForSparseProjection = true;
+                }
+
+                _sparseColumnStates ??= new byte[_columns.Length];
+                foreach (System.Collections.DictionaryEntry entry in dictionary) {
+                    string key = entry.Key?.ToString() ?? string.Empty;
+                    if (_ordinalColumnIndexes.TryGetValue(key, out int exactColumnIndex)) {
+                        TrackSparseLegacyColumn(exactColumnIndex);
+                        values[exactColumnIndex] = entry.Value ?? DBNull.Value;
+                        _sparseColumnStates[exactColumnIndex] = 2;
+                        continue;
+                    }
+
+                    if (_ignoreCaseColumnIndexes.TryGetValue(key, out int ignoreCaseColumnIndex)
+                        && _sparseColumnStates[ignoreCaseColumnIndex] == 0) {
+                        TrackSparseLegacyColumn(ignoreCaseColumnIndex);
+                        values[ignoreCaseColumnIndex] = entry.Value ?? DBNull.Value;
+                        _sparseColumnStates[ignoreCaseColumnIndex] = 1;
+                    }
+                }
+
+                return true;
+            }
+
+            private void TrackSparseTouchedColumn(int columnIndex) {
+                _sparseTouchedColumns ??= new int[_columns.Length];
+                _sparseTouchedColumns[_sparseTouchedCount++] = columnIndex;
+            }
+
+            private void TrackSparseLegacyColumn(int columnIndex) {
+                if (_sparseColumnStates![columnIndex] != 0) {
+                    return;
+                }
+
+                TrackSparseTouchedColumn(columnIndex);
+            }
+
+            private static Dictionary<string, int> CreateOrdinalColumnIndexes(string[] columns) {
+                var indexes = new Dictionary<string, int>(columns.Length, StringComparer.Ordinal);
+                for (int i = 0; i < columns.Length; i++) {
+                    indexes[columns[i]] = i;
+                }
+
+                return indexes;
+            }
+
+            private static Dictionary<string, int> CreateIgnoreCaseColumnIndexes(string[] columns) {
+                var indexes = new Dictionary<string, int>(columns.Length, StringComparer.OrdinalIgnoreCase);
+                for (int i = 0; i < columns.Length; i++) {
+                    if (!indexes.ContainsKey(columns[i])) {
+                        indexes.Add(columns[i], i);
+                    }
+                }
+
+                return indexes;
+            }
+
+            private static void FillDbNull(object?[] values) {
+                for (int i = 0; i < values.Length; i++) {
+                    values[i] = DBNull.Value;
+                }
+            }
+
+            private static bool CanUseOrdinalEntryProjection(IEqualityComparer<string> comparer) {
+                return ReferenceEquals(comparer, EqualityComparer<string>.Default)
+                    || ReferenceEquals(comparer, StringComparer.Ordinal);
             }
 
             private static object? GetLegacyDictionaryValue(System.Collections.IDictionary dictionary, string column) {
@@ -168,7 +343,43 @@ namespace OfficeIMO.Excel {
                     || item is IDictionary<string, object?>
                     || item is System.Collections.IDictionary;
             }
+
+            private static ObjectValueGetter CreateObjectValueGetter(PropertyInfo property) {
+                MethodInfo? getMethod = property.GetMethod;
+                if (getMethod == null || property.DeclaringType == null) {
+                    return row => property.GetValue(row, null);
+                }
+
+                try {
+                    return (ObjectValueGetter)CreateObjectValueGetterMethod
+                        .MakeGenericMethod(property.DeclaringType, property.PropertyType)
+                        .Invoke(null, new object[] { getMethod })!;
+                } catch {
+                    return row => property.GetValue(row, null);
+                }
+            }
+
+            private static readonly MethodInfo CreateObjectValueGetterMethod =
+                typeof(ObjectRowProjector).GetMethod(nameof(CreateObjectValueGetterCore), BindingFlags.NonPublic | BindingFlags.Static)!;
+
+            private static ObjectValueGetter CreateObjectValueGetterCore<TTarget, TValue>(MethodInfo getMethod) {
+                var getter = (Func<TTarget, TValue>)Delegate.CreateDelegate(typeof(Func<TTarget, TValue>), getMethod);
+                return row => getter((TTarget)row!);
+            }
+
+            private sealed class CachedObjectRowProjection {
+                internal CachedObjectRowProjection(string[] columns, ObjectValueGetter[]? getters) {
+                    Columns = columns;
+                    Getters = getters;
+                }
+
+                internal string[] Columns { get; }
+
+                internal ObjectValueGetter[]? Getters { get; }
+            }
         }
+
+        private delegate object? ObjectValueGetter(object row);
 
     }
 }

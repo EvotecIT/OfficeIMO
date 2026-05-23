@@ -120,6 +120,8 @@ namespace OfficeIMO.Excel.Fluent {
                 // Enforce fixed-grid overflow behavior if configured
                 List<string> effPaths = paths;
                 bool summarize = false;
+                List<string>? summarizedPaths = null;
+                List<string>? summarizedLabels = null;
                 if (_maxTableColumns.HasValue && paths.Count > _maxTableColumns.Value) {
                     if (_overflowMode == OverflowMode.Throw)
                         throw new InvalidOperationException($"Table has {paths.Count} columns but only {_maxTableColumns.Value} fit in the fixed grid. Increase columnWidth or use ColumnsAdaptive(...).");
@@ -135,6 +137,8 @@ namespace OfficeIMO.Excel.Fluent {
                             effPaths.Add("__More__");
                         }
                         summarize = true;
+                        summarizedPaths = paths.Skip(keep).ToList();
+                        summarizedLabels = BuildTransformedHeaders(summarizedPaths, opts);
                         try { _sheet.EffectiveExecution.ReportInfo($"[Columns Summarize] Sheet='{_sheet.Name}', baseCol={_baseCol}, kept={(effPaths.Contains("__More__") ? effPaths.Count - 1 : effPaths.Count)}, summarized={paths.Count - (effPaths.Contains("__More__") ? effPaths.Count - 1 : effPaths.Count)}"); } catch { }
                     }
                 }
@@ -147,22 +151,21 @@ namespace OfficeIMO.Excel.Fluent {
                     while (!usedHeaders.Add(candidate)) candidate = $"{baseName} ({suffix++})";
                     headersT[i] = candidate;
                 }
+
+                var cells = new List<(int Row, int Column, object Value)>(System.Math.Max(1, (rows.Count + 1) * System.Math.Max(1, headersT.Count)));
                 for (int i = 0; i < headersT.Count; i++) {
-                    _sheet.Cell(headerRow, _baseCol + i, headersT[i]);
-                    _sheet.CellBold(headerRow, _baseCol + i, true);
-                    _sheet.CellBackground(headerRow, _baseCol + i, _theme.KeyFillHex);
+                    cells.Add((headerRow, _baseCol + i, headersT[i]));
                 }
                 _row++;
                 foreach (var dict in rows) {
                     if (summarize) {
                         string more = string.Empty;
-                        if (_maxTableColumns.HasValue && paths.Count > _maxTableColumns.Value) {
-                            int keep = Math.Max(1, _maxTableColumns.Value - 1);
-                            var omitted = paths.Skip(keep);
-                            var parts = new System.Collections.Generic.List<string>();
-                            foreach (var p in omitted) {
+                        if (summarizedPaths != null && summarizedLabels != null) {
+                            var parts = new System.Collections.Generic.List<string>(summarizedPaths.Count);
+                            for (int omittedIndex = 0; omittedIndex < summarizedPaths.Count; omittedIndex++) {
+                                var p = summarizedPaths[omittedIndex];
                                 dict.TryGetValue(p, out var v);
-                                var label = SheetComposer.TransformHeader(p, opts);
+                                var label = summarizedLabels[omittedIndex];
                                 parts.Add(string.Concat(label, "=", v?.ToString() ?? string.Empty));
                             }
                             more = string.Join("; ", parts);
@@ -170,15 +173,21 @@ namespace OfficeIMO.Excel.Fluent {
                         for (int i = 0; i < effPaths.Count; i++) {
                             object? val;
                             if (effPaths[i] == "__More__") val = more; else { dict.TryGetValue(effPaths[i], out val); }
-                            _sheet.Cell(_row, _baseCol + i, val ?? string.Empty);
+                            cells.Add((_row, _baseCol + i, val ?? string.Empty));
                         }
                     } else {
                         for (int i = 0; i < effPaths.Count; i++) {
                             dict.TryGetValue(effPaths[i], out var val);
-                            _sheet.Cell(_row, _baseCol + i, val ?? string.Empty);
+                            cells.Add((_row, _baseCol + i, val ?? string.Empty));
                         }
                     }
                     _row++;
+                }
+
+                _sheet.CellValues(cells);
+                for (int i = 0; i < headersT.Count; i++) {
+                    _sheet.CellBold(headerRow, _baseCol + i, true);
+                    _sheet.CellBackground(headerRow, _baseCol + i, _theme.KeyFillHex);
                 }
 
                 int lastRow = _row - 1;

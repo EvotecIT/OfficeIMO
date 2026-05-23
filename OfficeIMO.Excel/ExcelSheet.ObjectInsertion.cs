@@ -35,6 +35,14 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            if (TryInsertSimpleObjectRowsAsCellValues(rows, includeHeaders, startRow)) {
+                return;
+            }
+
+            if (TryInsertFlatDictionaryRowsAsDeferredDirectSave(rows, includeHeaders, startRow)) {
+                return;
+            }
+
             var flattenedItems = new List<Dictionary<string, object?>>(rows.Count);
             List<string> headers = new List<string>();
             HashSet<string> headerSet = new HashSet<string>();
@@ -131,28 +139,17 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            var values = new object?[rows.Count][];
-            var inferredColumnTypes = new Type?[selectors.Length];
-            for (int r = 0; r < rows.Count; r++) {
-                var rowValues = new object?[selectors.Length];
-                for (int c = 0; c < selectors.Length; c++) {
-                    object? value = selectors[c](rows[r]);
-                    rowValues[c] = value;
-                    UpdateObjectExportColumnType(inferredColumnTypes, c, value);
-                }
-
-                values[r] = rowValues;
-            }
-
-            string? directSaveRange = null;
-            if (!hasBlankDisplayHeader && CanRegisterDirectTabularSaveCandidate(startRow, 1, headers.Length)) {
+            object?[][]? values = null;
+            if (!hasBlankDisplayHeader
+                && !HasDuplicateObjectExportHeaders(headers)
+                && CanRegisterDirectTabularSaveCandidate(startRow, 1, headers.Length)) {
+                Type?[] inferredColumnTypes;
+                values = CreateExplicitObjectExportRows(rows, selectors, out inferredColumnTypes);
                 try {
-                    if (!HasDuplicateObjectExportHeaders(headers)) {
-                        var columnTypes = CompleteObjectExportColumnTypes(inferredColumnTypes);
-                        directSaveRange = BuildObjectExportRange(startRow, headers.Length, rows.Count, includeHeaders);
-                        if (TryInsertRowsAsDeferredDirectSave(Name, headers, columnTypes, values, startRow, includeHeaders, directSaveRange)) {
-                            return;
-                        }
+                    var columnTypes = CompleteObjectExportColumnTypes(inferredColumnTypes);
+                    string directSaveRange = BuildObjectExportRange(startRow, headers.Length, rows.Count, includeHeaders);
+                    if (TryInsertRowsAsDeferredDirectSave(Name, headers, columnTypes, values, startRow, includeHeaders, directSaveRange)) {
+                        return;
                     }
                 } catch {
                     // Direct-save registration is opportunistic; fall back to the normal cell path.
@@ -171,18 +168,48 @@ namespace OfficeIMO.Excel {
                 row++;
             }
 
-            foreach (var item in rows) {
-                for (int c = 0; c < headers.Length; c++) {
-                    object value = values[row - startRow - headerRows][c] ?? string.Empty;
-                    cells[cellIndex++] = (row, c + 1, value);
+            if (values != null) {
+                foreach (object?[] rowValues in values) {
+                    for (int c = 0; c < headers.Length; c++) {
+                        cells[cellIndex++] = (row, c + 1, rowValues[c] ?? string.Empty);
+                    }
+
+                    row++;
                 }
-                row++;
+            } else {
+                foreach (var item in rows) {
+                    for (int c = 0; c < headers.Length; c++) {
+                        cells[cellIndex++] = (row, c + 1, selectors[c](item) ?? string.Empty);
+                    }
+
+                    row++;
+                }
             }
 
             CellValues(cells, hasBlankDisplayHeader ? ExecutionMode.Parallel : null);
         }
 
         private static object? NullObjectSelector<T>(T row) => null;
+
+        private static object?[][] CreateExplicitObjectExportRows<T>(
+            IReadOnlyList<T> rows,
+            IReadOnlyList<Func<T, object?>> selectors,
+            out Type?[] inferredColumnTypes) {
+            var values = new object?[rows.Count][];
+            inferredColumnTypes = new Type?[selectors.Count];
+            for (int r = 0; r < rows.Count; r++) {
+                var rowValues = new object?[selectors.Count];
+                for (int c = 0; c < selectors.Count; c++) {
+                    object? value = selectors[c](rows[r]);
+                    rowValues[c] = value;
+                    UpdateObjectExportColumnType(inferredColumnTypes, c, value);
+                }
+
+                values[r] = rowValues;
+            }
+
+            return values;
+        }
 
         internal bool TryInsertOwnedDataTableAsDeferredDirectSave(DataTable table, int startRow, bool includeHeaders, string range) {
             if (table == null) throw new ArgumentNullException(nameof(table));
@@ -337,6 +364,57 @@ namespace OfficeIMO.Excel {
             return TryInsertRowsAsDeferredDirectSave(Name, headers, plan.ColumnTypes, values, startRow, includeHeaders, range);
         }
 
+        private bool TryInsertSimpleObjectRowsAsCellValues<T>(
+            IReadOnlyList<T> rows,
+            bool includeHeaders,
+            int startRow) {
+            if (rows.Count == 0) {
+                return false;
+            }
+
+            bool requireRuntimeTypeCheck = !typeof(T).IsValueType && !typeof(T).IsSealed;
+            Type rowType = requireRuntimeTypeCheck ? rows[0]?.GetType() ?? typeof(object) : typeof(T);
+            if (rowType == typeof(object)) {
+                return false;
+            }
+
+            SimpleObjectExportPlan plan = GetSimpleObjectExportPlan(rowType);
+            if (!plan.CanUseDirectSave) {
+                return false;
+            }
+
+            string[] headers = plan.Headers;
+            SimpleObjectExportValueGetter[] getters = plan.Getters;
+            int headerRows = includeHeaders ? 1 : 0;
+            int totalCellCount = checked((rows.Count + headerRows) * headers.Length);
+            var cells = new (int Row, int Column, object Value)[totalCellCount];
+            int cellIndex = 0;
+            int row = startRow;
+            if (includeHeaders) {
+                for (int c = 0; c < headers.Length; c++) {
+                    cells[cellIndex++] = (row, c + 1, headers[c]);
+                }
+
+                row++;
+            }
+
+            for (int r = 0; r < rows.Count; r++) {
+                object? item = rows[r];
+                if (item == null || requireRuntimeTypeCheck && item.GetType() != rowType) {
+                    return false;
+                }
+
+                for (int c = 0; c < getters.Length; c++) {
+                    cells[cellIndex++] = (row, c + 1, getters[c](item) ?? string.Empty);
+                }
+
+                row++;
+            }
+
+            CellValues(cells);
+            return true;
+        }
+
         private static SimpleObjectExportPlan GetSimpleObjectExportPlan(Type type)
             => SimpleObjectExportPlans.GetOrAdd(type, CreateSimpleObjectExportPlan);
 
@@ -484,6 +562,218 @@ namespace OfficeIMO.Excel {
             }
 
             return columnTypes;
+        }
+
+        private bool TryInsertFlatDictionaryRowsAsDeferredDirectSave<T>(
+            IReadOnlyList<T> rows,
+            bool includeHeaders,
+            int startRow) {
+            if (rows.Count == 0) {
+                return false;
+            }
+
+            if (!CanRegisterDirectTabularSaveCandidate(startRow, 1, columnCount: 1)) {
+                return false;
+            }
+
+            var headers = new List<string>();
+            var headerIndexes = new Dictionary<string, int>(StringComparer.Ordinal);
+            var directRows = new object?[rows.Count][];
+            var state = new FlatDictionaryProjectionState();
+
+            for (int r = 0; r < rows.Count; r++) {
+                if (!TryProjectFlatDictionaryRow(
+                    rows[r],
+                    r,
+                    headers,
+                    headerIndexes,
+                    directRows,
+                    state)) {
+                    return false;
+                }
+            }
+
+            NormalizeFlatDictionaryRowWidths(directRows, headers.Count);
+            state.NormalizeColumnTypeWidth(headers.Count);
+
+            if (headers.Count == 0
+                || includeHeaders && state.HasBlankDisplayHeader
+                || HasDuplicateObjectExportHeaders(headers)
+                || !CanRegisterDirectTabularSaveCandidate(startRow, 1, headers.Count)) {
+                return false;
+            }
+
+            string range = BuildObjectExportRange(startRow, headers.Count, directRows.Length, includeHeaders);
+            return TryInsertRowsAsDeferredDirectSave(
+                Name,
+                headers,
+                CompleteObjectExportColumnTypes(state.InferredColumnTypes),
+                directRows,
+                startRow,
+                includeHeaders,
+                range);
+        }
+
+        private static bool TryProjectFlatDictionaryRow(
+            object? item,
+            int rowIndex,
+            List<string> headers,
+            Dictionary<string, int> headerIndexes,
+            object?[][] directRows,
+            FlatDictionaryProjectionState state) {
+            if (item == null) {
+                return false;
+            }
+
+            object?[] rowValues = new object?[GetFlatDictionaryInitialRowCapacity(item, headers.Count)];
+            if (item is Dictionary<string, object?> exactDictionary) {
+                foreach (var entry in exactDictionary) {
+                    if (!TryAddFlatDictionaryValue(entry.Key, entry.Value)) {
+                        return false;
+                    }
+                }
+
+                directRows[rowIndex] = rowValues;
+                return true;
+            }
+
+            if (item is IReadOnlyDictionary<string, object?> readOnlyDictionary) {
+                foreach (var entry in readOnlyDictionary) {
+                    if (!TryAddFlatDictionaryValue(entry.Key, entry.Value)) {
+                        return false;
+                    }
+                }
+
+                directRows[rowIndex] = rowValues;
+                return true;
+            }
+
+            if (item is IDictionary<string, object?> dictionary) {
+                foreach (var entry in dictionary) {
+                    if (!TryAddFlatDictionaryValue(entry.Key, entry.Value)) {
+                        return false;
+                    }
+                }
+
+                directRows[rowIndex] = rowValues;
+                return true;
+            }
+
+            if (item is System.Collections.IDictionary legacyDictionary) {
+                foreach (System.Collections.DictionaryEntry entry in legacyDictionary) {
+                    string key = entry.Key?.ToString() ?? string.Empty;
+                    if (!TryAddFlatDictionaryValue(key, entry.Value)) {
+                        return false;
+                    }
+                }
+
+                directRows[rowIndex] = rowValues;
+                return true;
+            }
+
+            return false;
+
+            bool TryAddFlatDictionaryValue(string? key, object? value) {
+                if (!IsFlatDictionaryObjectExportValue(value)) {
+                    return false;
+                }
+
+                string columnName = key ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(columnName)) {
+                    state.HasBlankDisplayHeader = true;
+                }
+
+                if (!headerIndexes.TryGetValue(columnName, out int columnIndex)) {
+                    columnIndex = headers.Count;
+                    headers.Add(columnName);
+                    headerIndexes.Add(columnName, columnIndex);
+                    state.EnsureColumnTypeCapacity(headers.Count);
+                    EnsureFlatDictionaryRowCapacity(ref rowValues, headers.Count);
+                }
+
+                rowValues[columnIndex] = value;
+                UpdateObjectExportColumnType(state.InferredColumnTypes, columnIndex, value);
+                return true;
+            }
+        }
+
+        private static int GetFlatDictionaryInitialRowCapacity(object item, int existingHeaderCount) {
+            int entryCount =
+                item is System.Collections.ICollection collection
+                    ? collection.Count
+                    : item is IReadOnlyCollection<KeyValuePair<string, object?>> readOnlyCollection
+                        ? readOnlyCollection.Count
+                        : 0;
+
+            if (existingHeaderCount == 0) {
+                return entryCount;
+            }
+
+            return entryCount > existingHeaderCount * 2
+                ? existingHeaderCount + entryCount
+                : existingHeaderCount;
+        }
+
+        private static void EnsureFlatDictionaryRowCapacity(ref object?[] row, int requiredLength) {
+            if (row.Length >= requiredLength) {
+                return;
+            }
+
+            int newLength = row.Length == 0 ? 4 : row.Length * 2;
+            if (newLength < requiredLength) {
+                newLength = requiredLength;
+            }
+
+            Array.Resize(ref row, newLength);
+        }
+
+        private static void NormalizeFlatDictionaryRowWidths(object?[][] rows, int columnCount) {
+            for (int i = 0; i < rows.Length; i++) {
+                if (rows[i].Length == columnCount) {
+                    continue;
+                }
+
+                object?[] row = rows[i];
+                Array.Resize(ref row, columnCount);
+                rows[i] = row;
+            }
+        }
+
+        private sealed class FlatDictionaryProjectionState {
+            internal Type?[] InferredColumnTypes = Array.Empty<Type?>();
+
+            internal bool HasBlankDisplayHeader;
+
+            internal void EnsureColumnTypeCapacity(int requiredLength) {
+                if (InferredColumnTypes.Length >= requiredLength) {
+                    return;
+                }
+
+                int newLength = InferredColumnTypes.Length == 0 ? 4 : InferredColumnTypes.Length * 2;
+                if (newLength < requiredLength) {
+                    newLength = requiredLength;
+                }
+
+                Array.Resize(ref InferredColumnTypes, newLength);
+            }
+
+            internal void NormalizeColumnTypeWidth(int columnCount) {
+                if (InferredColumnTypes.Length == columnCount) {
+                    return;
+                }
+
+                Array.Resize(ref InferredColumnTypes, columnCount);
+            }
+        }
+
+        private static bool IsFlatDictionaryObjectExportValue(object? value) {
+            return value == null
+                || value is string
+                || value is decimal
+                || value is DateTime
+                || value is DateTimeOffset
+                || value is Guid
+                || value.GetType().IsPrimitive;
         }
 
         private static void FlattenObject(object? value, string? prefix, IDictionary<string, object?> result) {

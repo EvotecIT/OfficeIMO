@@ -44,7 +44,7 @@ namespace OfficeIMO.Excel.Fluent {
                 throw new ArgumentException("Values array dimensions must match the range.", nameof(values));
             }
 
-            var cells = new List<(int Row, int Column, object Value)>();
+            var cells = new List<(int Row, int Column, object Value)>(Math.Max(1, rows * cols));
             for (int r = 0; r < rows; r++) {
                 for (int c = 0; c < cols; c++) {
                     cells.Add((_fromRow + r, _fromCol + c, values[r, c]));

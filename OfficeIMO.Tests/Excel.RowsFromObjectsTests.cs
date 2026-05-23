@@ -125,6 +125,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void RowsFrom_HeaderCaseTransformsNestedPaths() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            var data = new[] {
+                new Person { Name = "Alice", Address = new Address { City = "NY", Street = "1st" } }
+            };
+
+            using (var doc = ExcelDocument.Create(filePath)) {
+                doc.AsFluent()
+                    .Sheet("Pascal", s => s.RowsFrom(data, o => {
+                        o.ExpandProperties.Add(nameof(Person.Address));
+                        o.HeaderCase = HeaderCase.Pascal;
+                    }))
+                    .Sheet("Title", s => s.RowsFrom(data, o => {
+                        o.ExpandProperties.Add(nameof(Person.Address));
+                        o.HeaderCase = HeaderCase.Title;
+                    }))
+                    .End()
+                    .Save();
+            }
+
+            using (var document = SpreadsheetDocument.Open(filePath, false)) {
+                var workbookPart = document.WorkbookPart;
+                Assert.NotNull(workbookPart);
+                var sheets = workbookPart!.Workbook.Descendants<Sheet>().ToList();
+                var pascalPart = (WorksheetPart)workbookPart.GetPartById(sheets.First(s => s.Name == "Pascal").Id!.Value!);
+                var titlePart = (WorksheetPart)workbookPart.GetPartById(sheets.First(s => s.Name == "Title").Id!.Value!);
+
+                Assert.Equal("AddressCity", GetCellValue(document, pascalPart, "C1"));
+                Assert.Equal("Address City", GetCellValue(document, titlePart, "C1"));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void RowsFrom_NullPolicyAndFormatter() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             var data = new[] {

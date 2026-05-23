@@ -60,14 +60,7 @@ namespace OfficeIMO.Excel.Fluent {
                 }
                 headersT[i] = candidate;
             }
-            var seen = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
             for (int i = 0; i < headersT.Count; i++) {
-                var h = headersT[i];
-                if (!seen.Add(h)) {
-                    int n = 2; string candidate;
-                    do { candidate = h + "_" + n++; } while (!seen.Add(candidate));
-                    headersT[i] = candidate;
-                }
                 cells.Add((_row, i + 1, headersT[i]));
             }
             _row++;
