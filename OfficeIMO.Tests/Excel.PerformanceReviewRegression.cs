@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
@@ -2659,6 +2660,122 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_InsertObjects_FlatDictionaryRowsUseDirectPackageWhenWorkbookIsClean() {
+            using var memory = new MemoryStream();
+            var rows = new List<Dictionary<string, object?>> {
+                new Dictionary<string, object?> {
+                    ["Name"] = "Alpha",
+                    ["Score"] = 10,
+                    ["Created"] = new DateTime(2026, 5, 19)
+                },
+                new Dictionary<string, object?> {
+                    ["Name"] = "Beta",
+                    ["Score"] = 20,
+                    ["Created"] = new DateTime(2026, 5, 20),
+                    ["Active"] = true
+                }
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows);
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Name", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
+            Assert.Equal("Score", GetSpreadsheetCellText(spreadsheet, cells["B1"]));
+            Assert.Equal("Created", GetSpreadsheetCellText(spreadsheet, cells["C1"]));
+            Assert.Equal("Active", GetSpreadsheetCellText(spreadsheet, cells["D1"]));
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("10", cells["B2"].CellValue!.Text);
+            Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
+            Assert.Equal(string.Empty, GetSpreadsheetCellText(spreadsheet, cells["D2"]));
+            Assert.Equal("Beta", GetSpreadsheetCellText(spreadsheet, cells["A3"]));
+            Assert.Equal("20", cells["B3"].CellValue!.Text);
+            Assert.Equal("1", cells["D3"].CellValue!.Text);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_FlatDictionaryWideLateColumnsUseDirectPackageWhenWorkbookIsClean() {
+            using var memory = new MemoryStream();
+            var rows = new List<Dictionary<string, object?>> {
+                new Dictionary<string, object?> {
+                    ["Name"] = "Alpha"
+                },
+                new Dictionary<string, object?> {
+                    ["Name"] = "Beta"
+                }
+            };
+
+            for (int i = 1; i <= 32; i++) {
+                rows[1]["Metric" + i.ToString(CultureInfo.InvariantCulture)] = i;
+            }
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows);
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Name", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
+            Assert.Equal("Metric32", GetSpreadsheetCellText(spreadsheet, cells["AG1"]));
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal(string.Empty, GetSpreadsheetCellText(spreadsheet, cells["AG2"]));
+            Assert.Equal("Beta", GetSpreadsheetCellText(spreadsheet, cells["A3"]));
+            Assert.Equal("32", cells["AG3"].CellValue!.Text);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_FlatHashtableRowsUseDirectPackageWhenWorkbookIsClean() {
+            using var memory = new MemoryStream();
+            var rows = new List<Hashtable> {
+                new Hashtable {
+                    ["Name"] = "Alpha"
+                },
+                new Hashtable {
+                    ["Name"] = "Beta"
+                }
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows);
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Name", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("Beta", GetSpreadsheetCellText(spreadsheet, cells["A3"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
         public void PerformanceReview_InsertObjects_ReflectionOverloadUsesDirectPackageWhenWorkbookIsClean() {
             using var memory = new MemoryStream();
             var rows = new[] {
@@ -2686,6 +2803,39 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Alpha", cells["A2"].CellValue!.Text);
             Assert.Equal("10", cells["B2"].CellValue!.Text);
             Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_ReflectionOverloadDirtyWorkbookPreservesSimpleRows() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(5, 5, "Manual edit");
+                sheet.InsertObjects(rows);
+
+                document.Save(memory);
+
+                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!;
+            var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Name", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
+            Assert.Equal("Score", GetSpreadsheetCellText(spreadsheet, cells["B1"]));
+            Assert.Equal("Created", GetSpreadsheetCellText(spreadsheet, cells["C1"]));
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("10", cells["B2"].CellValue!.Text);
+            Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
+            Assert.Equal("Beta", GetSpreadsheetCellText(spreadsheet, cells["A3"]));
+            Assert.Equal("Manual edit", GetSpreadsheetCellText(spreadsheet, cells["E5"]));
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
@@ -3002,6 +3152,40 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
                 Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
+        }
+
+        [Fact]
+        public void PerformanceReview_FluentRowsFrom_DirtyWorkbookPreservesSimpleRows() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                document.AsFluent()
+                    .Sheet("Data", sheet => sheet
+                        .Cell(5, 5, "Manual edit")
+                        .RowsFrom(rows))
+                    .End()
+                    .Save(memory);
+
+                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Name", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
+            Assert.Equal("Score", GetSpreadsheetCellText(spreadsheet, cells["B1"]));
+            Assert.Equal("Created", GetSpreadsheetCellText(spreadsheet, cells["C1"]));
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("10", cells["B2"].CellValue!.Text);
+            Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
+            Assert.Equal("Beta", GetSpreadsheetCellText(spreadsheet, cells["A3"]));
+            Assert.Equal("Manual edit", GetSpreadsheetCellText(spreadsheet, cells["E5"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
         [Fact]
@@ -3557,6 +3741,59 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_InsertDataReader_UsesBulkValueReadsWhenAvailable() {
+            using var memory = new MemoryStream();
+            var table = new DataTable("ReaderData");
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("Score", typeof(int));
+            table.Columns.Add("Note", typeof(string));
+            table.Rows.Add("Alpha", 10, "Ready");
+            table.Rows.Add("Beta", 20, DBNull.Value);
+
+            using var reader = new CountingDataReader(table.CreateDataReader());
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertDataReader(reader, tableName: "ReaderTable");
+                document.Save(memory);
+            }
+
+            Assert.Equal(2, reader.GetValuesCalls);
+            Assert.Equal(0, reader.GetValueCalls);
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal(string.Empty, cells["C3"].CellValue!.Text);
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertDataReader_FallsBackWhenBulkValueReadsAreUnsupported() {
+            using var memory = new MemoryStream();
+            var table = new DataTable("ReaderData");
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("Score", typeof(int));
+            table.Rows.Add("Alpha", 10);
+            table.Rows.Add("Beta", 20);
+
+            using var reader = new CountingDataReader(table.CreateDataReader(), throwOnGetValues: true);
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertDataReader(reader, tableName: "ReaderTable");
+                document.Save(memory);
+            }
+
+            Assert.Equal(1, reader.GetValuesCalls);
+            Assert.Equal(4, reader.GetValueCalls);
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Beta", GetSpreadsheetCellText(spreadsheet, cells["A3"]));
+            Assert.Equal("20", cells["B3"].CellValue!.Text);
+        }
+
+        [Fact]
         public void PerformanceReview_WriteDataSet_ObjectColumnDateAndTimeValuesUseValueStyles() {
             using var memory = new MemoryStream();
             var dataSet = new DataSet();
@@ -3637,6 +3874,96 @@ namespace OfficeIMO.Tests {
             public IEnumerator<T> GetEnumerator() => throw new InvalidOperationException("RowsFrom direct-save path should use IReadOnlyList<T> indexing without snapshot enumeration.");
 
             System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+
+        private sealed class CountingDataReader : IDataReader {
+            private readonly IDataReader _inner;
+            private readonly bool _throwOnGetValues;
+
+            internal CountingDataReader(IDataReader inner, bool throwOnGetValues = false) {
+                _inner = inner;
+                _throwOnGetValues = throwOnGetValues;
+            }
+
+            internal int GetValuesCalls { get; private set; }
+
+            internal int GetValueCalls { get; private set; }
+
+            public object this[int i] => _inner[i];
+
+            public object this[string name] => _inner[name];
+
+            public int Depth => _inner.Depth;
+
+            public bool IsClosed => _inner.IsClosed;
+
+            public int RecordsAffected => _inner.RecordsAffected;
+
+            public int FieldCount => _inner.FieldCount;
+
+            public void Close() => _inner.Close();
+
+            public void Dispose() => _inner.Dispose();
+
+            public bool GetBoolean(int i) => _inner.GetBoolean(i);
+
+            public byte GetByte(int i) => _inner.GetByte(i);
+
+            public long GetBytes(int i, long fieldOffset, byte[]? buffer, int bufferoffset, int length) => _inner.GetBytes(i, fieldOffset, buffer, bufferoffset, length);
+
+            public char GetChar(int i) => _inner.GetChar(i);
+
+            public long GetChars(int i, long fieldoffset, char[]? buffer, int bufferoffset, int length) => _inner.GetChars(i, fieldoffset, buffer, bufferoffset, length);
+
+            public IDataReader GetData(int i) => _inner.GetData(i);
+
+            public string GetDataTypeName(int i) => _inner.GetDataTypeName(i);
+
+            public DateTime GetDateTime(int i) => _inner.GetDateTime(i);
+
+            public decimal GetDecimal(int i) => _inner.GetDecimal(i);
+
+            public double GetDouble(int i) => _inner.GetDouble(i);
+
+            public Type GetFieldType(int i) => _inner.GetFieldType(i);
+
+            public float GetFloat(int i) => _inner.GetFloat(i);
+
+            public Guid GetGuid(int i) => _inner.GetGuid(i);
+
+            public short GetInt16(int i) => _inner.GetInt16(i);
+
+            public int GetInt32(int i) => _inner.GetInt32(i);
+
+            public long GetInt64(int i) => _inner.GetInt64(i);
+
+            public string GetName(int i) => _inner.GetName(i);
+
+            public int GetOrdinal(string name) => _inner.GetOrdinal(name);
+
+            public DataTable? GetSchemaTable() => _inner.GetSchemaTable();
+
+            public string GetString(int i) => _inner.GetString(i);
+
+            public object GetValue(int i) {
+                GetValueCalls++;
+                return _inner.GetValue(i);
+            }
+
+            public int GetValues(object[] values) {
+                GetValuesCalls++;
+                if (_throwOnGetValues) {
+                    throw new NotSupportedException();
+                }
+
+                return _inner.GetValues(values);
+            }
+
+            public bool IsDBNull(int i) => _inner.IsDBNull(i);
+
+            public bool NextResult() => _inner.NextResult();
+
+            public bool Read() => _inner.Read();
         }
 
         private static void RemoveFirstRowIndex(string filePath) {

@@ -35,6 +35,80 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DataExchange_CsvImportKeepsRowsWiderThanHeader() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataExchange.CsvWideRows.xlsx");
+            const string csv = "Name\r\nAlpha,Extra\r\n";
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                string range = sheet.FromCsv(csv);
+                Assert.Equal("A1:B2", range);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelSheet sheet = document.GetSheet("Data");
+                DataTable table = sheet.ToDataTable("A1:B2");
+
+                Assert.Equal(new[] { "Name", "Column2" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray());
+                Assert.Equal("Alpha", table.Rows[0]["Name"]);
+                Assert.Equal("Extra", table.Rows[0]["Column2"]);
+            }
+        }
+
+        [Fact]
+        public void Test_DataExchange_CsvImportKeepsSparseRowsBlank() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataExchange.CsvSparseRows.xlsx");
+            const string csv = "Name,Value,Note\r\nAlpha,1\r\nBeta,,Done\r\n";
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                string range = sheet.FromCsv(csv);
+                Assert.Equal("A1:C3", range);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelSheet sheet = document.GetSheet("Data");
+                DataTable table = sheet.ToDataTable("A1:C3");
+
+                Assert.Equal("Alpha", table.Rows[0]["Name"]);
+                Assert.Equal("1", table.Rows[0]["Value"]);
+                Assert.Equal(string.Empty, table.Rows[0]["Note"]);
+                Assert.Equal("Beta", table.Rows[1]["Name"]);
+                Assert.Equal(string.Empty, table.Rows[1]["Value"]);
+                Assert.Equal("Done", table.Rows[1]["Note"]);
+            }
+        }
+
+        [Fact]
+        public void Test_DataExchange_CsvImportPlainRowsKeepTrailingEmptyFields() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataExchange.CsvPlainTrailingEmpty.xlsx");
+            const string csv = "Name,Value,Note,\r\nAlpha,1,,\r\nBeta,2,Done,\r\n";
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                string range = sheet.FromCsv(csv);
+                Assert.Equal("A1:D3", range);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelSheet sheet = document.GetSheet("Data");
+                DataTable table = sheet.ToDataTable("A1:D3");
+
+                Assert.Equal(new[] { "Name", "Value", "Note", "Column4" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray());
+                Assert.Equal("Alpha", table.Rows[0]["Name"]);
+                Assert.Equal("1", table.Rows[0]["Value"]);
+                Assert.Equal(string.Empty, table.Rows[0]["Note"]);
+                Assert.Equal(string.Empty, table.Rows[0]["Column4"]);
+                Assert.Equal("Beta", table.Rows[1]["Name"]);
+                Assert.Equal("Done", table.Rows[1]["Note"]);
+                Assert.Equal(string.Empty, table.Rows[1]["Column4"]);
+            }
+        }
+
+        [Fact]
         public void Test_DataExchange_JsonRoundTripUsesHeaderObjects() {
             string filePath = Path.Combine(_directoryWithFiles, "DataExchange.Json.xlsx");
             const string json = "[{\"Name\":\"Alpha\",\"Amount\":10,\"Active\":true},{\"Name\":\"Beta\",\"Amount\":20.5,\"Active\":false}]";
@@ -58,6 +132,104 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(10, rows[0].GetProperty("Amount").GetInt32());
                 Assert.True(rows[0].GetProperty("Active").GetBoolean());
                 Assert.Equal("Beta", rows[1].GetProperty("Name").GetString());
+            }
+        }
+
+        [Fact]
+        public void Test_DataExchange_JsonCustomOptionsStillApply() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataExchange.JsonOptions.xlsx");
+            const string json = "[{\"FirstName\":\"Alpha\"}]";
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                sheet.FromJson(json);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelSheet sheet = document.GetSheet("Data");
+                string exported = sheet.ToJson("A1:A2", jsonOptions: new JsonSerializerOptions {
+                    DictionaryKeyPolicy = JsonNamingPolicy.CamelCase
+                });
+
+                using JsonDocument parsed = JsonDocument.Parse(exported);
+                Assert.True(parsed.RootElement[0].TryGetProperty("firstName", out JsonElement firstName));
+                Assert.Equal("Alpha", firstName.GetString());
+            }
+        }
+
+        [Fact]
+        public void Test_DataExchange_JsonImportHandlesLateColumnsAndHeaderCasing() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataExchange.JsonLateColumns.xlsx");
+            const string json = "[{\"Name\":\"Alpha\"},{\"name\":\"Beta\",\"Score\":20}]";
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                string range = sheet.FromJson(json);
+                Assert.Equal("A1:B3", range);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelSheet sheet = document.GetSheet("Data");
+                DataTable table = sheet.ToDataTable("A1:B3");
+
+                Assert.Equal(new[] { "Name", "Score" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray());
+                Assert.Equal("Alpha", table.Rows[0]["Name"]);
+                Assert.Equal(string.Empty, table.Rows[0]["Score"]);
+                Assert.Equal("Beta", table.Rows[1]["Name"]);
+                Assert.Equal(20D, Convert.ToDouble(table.Rows[1]["Score"]));
+            }
+        }
+
+        [Fact]
+        public void Test_DataExchange_JsonImportHandlesSparseLateWideColumns() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataExchange.JsonSparseLateWideColumns.xlsx");
+            const string json = "[{\"Name\":\"Alpha\"},{\"Name\":\"Beta\",\"Metric25\":25},{\"Metric50\":50}]";
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                string range = sheet.FromJson(json);
+                Assert.Equal("A1:C4", range);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelSheet sheet = document.GetSheet("Data");
+                DataTable table = sheet.ToDataTable("A1:C4");
+
+                Assert.Equal(new[] { "Name", "Metric25", "Metric50" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray());
+                Assert.Equal("Alpha", table.Rows[0]["Name"]);
+                Assert.Equal(string.Empty, table.Rows[0]["Metric25"]);
+                Assert.Equal(string.Empty, table.Rows[0]["Metric50"]);
+                Assert.Equal("Beta", table.Rows[1]["Name"]);
+                Assert.Equal(25D, Convert.ToDouble(table.Rows[1]["Metric25"]));
+                Assert.Equal(string.Empty, table.Rows[1]["Metric50"]);
+                Assert.Equal(string.Empty, table.Rows[2]["Name"]);
+                Assert.Equal(string.Empty, table.Rows[2]["Metric25"]);
+                Assert.Equal(50D, Convert.ToDouble(table.Rows[2]["Metric50"]));
+            }
+        }
+
+        [Fact]
+        public void Test_DataExchange_JsonImportSparseRowsKeepLastDuplicateValue() {
+            string filePath = Path.Combine(_directoryWithFiles, "DataExchange.JsonSparseDuplicateValues.xlsx");
+            string columns = string.Join(",", Enumerable.Range(0, 40).Select(index => "\"Metric" + index + "\":" + index));
+            string json = "[{" + columns + "},{\"Metric0\":\"Keep\",\"metric0\":null,\"Metric39\":39}]";
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                string range = sheet.FromJson(json);
+                Assert.Equal("A1:AN3", range);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelSheet sheet = document.GetSheet("Data");
+                DataTable table = sheet.ToDataTable("A1:AN3");
+
+                Assert.Equal(string.Empty, table.Rows[1]["Metric0"]);
+                Assert.Equal(39D, Convert.ToDouble(table.Rows[1]["Metric39"]));
             }
         }
     }

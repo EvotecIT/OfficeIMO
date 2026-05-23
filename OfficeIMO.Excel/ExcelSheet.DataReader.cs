@@ -7,7 +7,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private const int DirectDataReaderSaveCandidateRowLimit = 65536;
-        private const int DirectDataReaderInitialRowCapacity = 512;
+        private const int DirectDataReaderInitialRowCapacity = 4096;
 
         /// <summary>
         /// Streams rows from an <see cref="IDataReader"/> (including provider-owned DbDataReader implementations) into the worksheet and optionally creates an Excel table.
@@ -132,19 +132,19 @@ namespace OfficeIMO.Excel {
 
             int dataRows = 0;
             bool canCancel = ct.CanBeCanceled;
+            bool useBulkRead = CanUseBulkDataReaderValues(reader);
+            object?[]? reusableValues = directRows == null ? new object?[headers.Length] : null;
             while (reader.Read()) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                object?[]? directRow = directRows != null ? new object?[headers.Length] : null;
+                object?[] values = directRows != null
+                    ? new object?[headers.Length]
+                    : reusableValues ??= new object?[headers.Length];
+                FillDataReaderValues(reader, values, headers.Length, ref useBulkRead);
                 for (int i = 0; i < headers.Length; i++) {
-                    object rawValue = reader.GetValue(i);
-                    object? value = rawValue == DBNull.Value ? null : rawValue;
-                    if (directRow != null) {
-                        directRow[i] = value;
-                    }
-
+                    object? value = values[i];
                     int column = startColumn + i;
                     CellValue(row, column, value);
 
@@ -158,7 +158,7 @@ namespace OfficeIMO.Excel {
                 dataRows++;
                 if (directRows != null) {
                     if (directRows.Count < DirectDataReaderSaveCandidateRowLimit) {
-                        directRows.Add(directRow!);
+                        directRows.Add(values);
                     } else {
                         directRows = null;
                     }
@@ -217,6 +217,7 @@ namespace OfficeIMO.Excel {
             int columnCount = headers.Count;
             var rows = CreateDirectDataReaderRowBuffer();
             bool canCancel = ct.CanBeCanceled;
+            bool useBulkRead = CanUseBulkDataReaderValues(reader);
             while (reader.Read()) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
@@ -227,10 +228,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 var values = new object?[columnCount];
-                for (int offset = 0; offset < columnCount; offset++) {
-                    object value = reader.GetValue(offset);
-                    values[offset] = value == DBNull.Value ? null : value;
-                }
+                FillDataReaderValues(reader, values, columnCount, ref useBulkRead);
 
                 rows.Add(values);
             }
@@ -423,10 +421,7 @@ namespace OfficeIMO.Excel {
             }
 
             int columnCount = headers.Count;
-            var columnNames = new string[startColumn + columnCount];
-            for (int column = startColumn; column < startColumn + columnCount; column++) {
-                columnNames[column] = GetColumnName(column);
-            }
+            string[] columnReferencePrefixes = BuildColumnReferencePrefixes(startColumn, columnCount);
 
             string?[] numberFormats = BuildReaderNumberFormats(fieldTypes);
             var stylePlanner = new StylePlanner();
@@ -474,9 +469,11 @@ namespace OfficeIMO.Excel {
             bool canCancel = ct.CanBeCanceled;
 
             if (includeHeaders) {
-                appendedRows.Add(CreateDataReaderHeaderRow(rowIndex++, startColumn, columnNames, headers, useDirectStringCells, ref sharedStringIndexes, canCancel, ct));
+                appendedRows.Add(CreateDataReaderHeaderRow(rowIndex++, columnReferencePrefixes, headers, useDirectStringCells, ref sharedStringIndexes, canCancel, ct));
             }
 
+            bool useBulkRead = CanUseBulkDataReaderValues(reader);
+            object?[]? reusableValues = directRows == null ? new object?[columnCount] : null;
             while (reader.Read()) {
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
@@ -486,19 +483,17 @@ namespace OfficeIMO.Excel {
                     throw new InvalidOperationException("Data reader import exceeds the maximum worksheet row count.");
                 }
 
-                object?[]? directRow = directRows != null ? new object?[columnCount] : null;
-                object?[] values = directRow ?? new object?[columnCount];
-                for (int offset = 0; offset < columnCount; offset++) {
-                    object value = reader.GetValue(offset);
-                    values[offset] = value == DBNull.Value ? null : value;
-                }
+                object?[] values = directRows != null
+                    ? new object?[columnCount]
+                    : reusableValues ??= new object?[columnCount];
+                FillDataReaderValues(reader, values, columnCount, ref useBulkRead);
 
-                appendedRows.Add(CreateDataReaderValueRow(rowIndex++, startColumn, columnNames, values, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct));
+                appendedRows.Add(CreateDataReaderValueRow(rowIndex++, columnReferencePrefixes, values, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct));
                 dataRows++;
 
                 if (directRows != null) {
                     if (directRows.Count < DirectDataReaderSaveCandidateRowLimit) {
-                        directRows.Add(directRow!);
+                        directRows.Add(values);
                     } else {
                         directRows = null;
                     }
@@ -523,8 +518,7 @@ namespace OfficeIMO.Excel {
 
         private Row CreateDataReaderHeaderRow(
             int rowIndex,
-            int startColumn,
-            IReadOnlyList<string> columnNames,
+            string[] columnReferencePrefixes,
             IReadOnlyList<string> headers,
             bool useDirectStringCells,
             ref Dictionary<string, int>? sharedStringIndexes,
@@ -537,10 +531,9 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                int column = startColumn + offset;
                 var (cellValue, cellType) = CoerceDataTableAppendValue(headers[offset], useDirectStringCells, ref sharedStringIndexes);
                 row.Append(new Cell {
-                    CellReference = columnNames[column] + rowReference,
+                    CellReference = columnReferencePrefixes[offset] + rowReference,
                     CellValue = cellValue,
                     DataType = new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType)
                 });
@@ -551,8 +544,7 @@ namespace OfficeIMO.Excel {
 
         private Row CreateDataReaderValueRow(
             int rowIndex,
-            int startColumn,
-            IReadOnlyList<string> columnNames,
+            string[] columnReferencePrefixes,
             IReadOnlyList<object?> values,
             IReadOnlyList<uint?> styleIndexes,
             uint? objectDateTimeStyleIndex,
@@ -569,10 +561,9 @@ namespace OfficeIMO.Excel {
                 }
 
                 object? value = values[offset];
-                int column = startColumn + offset;
                 var (cellValue, cellType) = CoerceDataTableAppendValue(value, useDirectStringCells, ref sharedStringIndexes);
                 var cell = new Cell {
-                    CellReference = columnNames[column] + rowReference,
+                    CellReference = columnReferencePrefixes[offset] + rowReference,
                     CellValue = cellValue,
                     DataType = new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType)
                 };
@@ -645,6 +636,37 @@ namespace OfficeIMO.Excel {
         }
 
         private static List<object?[]> CreateDirectDataReaderRowBuffer() => new List<object?[]>(DirectDataReaderInitialRowCapacity);
+
+        private static bool CanUseBulkDataReaderValues(IDataReader reader) {
+            return reader is not DataTableReader;
+        }
+
+        private static void FillDataReaderValues(IDataReader reader, object?[] values, int columnCount, ref bool useBulkRead) {
+            int copied = 0;
+            if (useBulkRead) {
+                try {
+                    copied = reader.GetValues((object[])values!);
+                } catch (Exception) {
+                    useBulkRead = false;
+                    copied = 0;
+                }
+
+                if (copied > columnCount) {
+                    copied = columnCount;
+                }
+
+                for (int i = 0; i < copied; i++) {
+                    if (values[i] == DBNull.Value) {
+                        values[i] = null;
+                    }
+                }
+            }
+
+            for (int i = copied; i < columnCount; i++) {
+                object rawValue = reader.GetValue(i);
+                values[i] = rawValue == DBNull.Value ? null : rawValue;
+            }
+        }
 
         private static Type[] BuildReaderFieldTypes(IDataReader reader) {
             var types = new Type[reader.FieldCount];

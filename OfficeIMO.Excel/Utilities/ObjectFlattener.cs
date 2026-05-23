@@ -132,15 +132,24 @@ namespace OfficeIMO.Excel {
     /// Flattens objects to a dictionary of dotted-path keys to values suitable for table generation.
     /// </summary>
     public class ObjectFlattener {
-        private static readonly ConcurrentDictionary<Type, PropertyInfo[]> _cache = new();
+        private static readonly ConcurrentDictionary<Type, ObjectFlattenerProperty[]> _propertyCache = new();
+        private static readonly ConcurrentDictionary<CollectionMapAccessorKey, CollectionMapAccessors> _collectionMapAccessorCache = new();
+        private static readonly ConcurrentDictionary<Type, FieldInfo[]> _valueTupleFieldCache = new();
+        private static readonly Type? _iTupleType = Type.GetType("System.Runtime.CompilerServices.ITuple");
+        private static readonly PropertyInfo? _iTupleLengthProperty = _iTupleType?.GetProperty("Length");
+        private static readonly PropertyInfo? _iTupleItemProperty = _iTupleType?.GetProperty("Item");
 
         /// <summary>
         /// Flattens <paramref name="item"/> into a dictionary according to <paramref name="opts"/>.
         /// </summary>
         public Dictionary<string, object?> Flatten<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(T item, ObjectFlattenerOptions opts) {
-            var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-            if (item == null) return result;
-            FlattenInternal(item!, result, string.Empty, 0, opts);
+            if (item == null) {
+                return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            object source = item!;
+            var result = new Dictionary<string, object?>(GetInitialFlattenCapacity(source.GetType(), opts), StringComparer.OrdinalIgnoreCase);
+            FlattenInternal(source, result, string.Empty, 0, opts);
             return result;
         }
 
@@ -148,28 +157,29 @@ namespace OfficeIMO.Excel {
         /// Computes all reachable dotted paths for a given <paramref name="type"/> under <paramref name="opts"/>.
         /// </summary>
         public List<string> GetPaths([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] Type type, ObjectFlattenerOptions opts) {
-            var paths = new List<string>();
+            var paths = new List<string>(GetInitialFlattenCapacity(type, opts));
             BuildPaths(type, string.Empty, 0, opts, paths);
-            // Apply prefix-based ignore first
-            var filtered = paths
-                .Where(p => !opts.Ignore.Any(i => p.StartsWith(i, StringComparison.OrdinalIgnoreCase)))
-                .ToList();
+            var filtered = opts.IncludeProperties.Length == 0 && opts.ExcludeProperties.Length == 0
+                ? paths
+                : ApplySelection(paths, opts);
+            return (opts.PinnedFirst == null || opts.PinnedFirst.Length == 0)
+                   && (opts.PinnedLast == null || opts.PinnedLast.Length == 0)
+                   && opts.PropertyPriority.Count == 0
+                ? filtered
+                : ApplyOrdering(filtered, opts);
+        }
 
-            // Apply property-name based excludes
-            if (opts.ExcludeProperties.Length > 0) {
-                var ex = new HashSet<string>(opts.ExcludeProperties, StringComparer.OrdinalIgnoreCase);
-                filtered = filtered.Where(p => !ex.Contains(p) && !ex.Contains(LastSegment(p))).ToList();
+        private static int GetInitialFlattenCapacity(Type type, ObjectFlattenerOptions opts) {
+            if (opts.Columns != null && opts.Columns.Length > 0) {
+                return opts.Columns.Length;
             }
 
-            // Apply property-name based includes (acts as a filter if provided)
-            if (opts.IncludeProperties.Length > 0) {
-                var inc = new HashSet<string>(opts.IncludeProperties, StringComparer.OrdinalIgnoreCase);
-                filtered = filtered.Where(p => inc.Contains(p) || inc.Contains(LastSegment(p))).ToList();
+            if (IsValueTuple(type)) {
+                int fieldCount = GetValueTupleFields(type).Length;
+                return fieldCount > 0 ? fieldCount : type.IsGenericType ? type.GetGenericArguments().Length : 0;
             }
 
-            // Apply ordering preferences
-            filtered = ApplyOrdering(filtered, opts);
-            return filtered;
+            return GetObjectFlattenerProperties(type).Length;
         }
 
         private static void FlattenInternal(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts) {
@@ -183,12 +193,16 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            var props = _cache.GetOrAdd(type, t => t.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                                                                .OrderBy(p => p.MetadataToken).ToArray());
+            var props = GetObjectFlattenerProperties(type);
+            if (opts.ExpandProperties.Count == 0) {
+                FlattenInternalWithoutExpansion(obj, dict, prefix, opts, props);
+                return;
+            }
+
             foreach (var prop in props) {
                 var value = prop.GetValue(obj);
                 var path = string.IsNullOrEmpty(prefix) ? prop.Name : prefix + "." + prop.Name;
-                if (opts.Ignore.Any(i => path.StartsWith(i, StringComparison.OrdinalIgnoreCase))) continue;
+                if (ShouldIgnorePath(path, opts.Ignore)) continue;
 
                 bool expand = opts.ExpandProperties.Contains(prop.Name) || opts.ExpandProperties.Contains(path);
                 bool isCollection = value is IEnumerable && value is not string;
@@ -232,32 +246,26 @@ namespace OfficeIMO.Excel {
 
         private static void FlattenValueTuple(object obj, Dictionary<string, object?> dict, string prefix, int depth, ObjectFlattenerOptions opts) {
             // Try ITuple via reflection (available on newer frameworks). Avoids compile-time dependency for netstandard2.0
-            var iTupleType = Type.GetType("System.Runtime.CompilerServices.ITuple");
-            if (iTupleType != null && iTupleType.IsAssignableFrom(obj.GetType())) {
-                var lenProp = iTupleType.GetProperty("Length");
-                var itemProp = iTupleType.GetProperty("Item"); // indexer
-                if (lenProp != null && itemProp != null) {
-                    int length = Convert.ToInt32(lenProp.GetValue(obj, null));
-                    for (int i = 0; i < length; i++) {
-                        var path = string.IsNullOrEmpty(prefix) ? $"Item{i + 1}" : $"{prefix}.Item{i + 1}";
-                        var val = itemProp.GetValue(obj, new object[] { i });
-                        if (val == null) {
-                            dict[path] = ApplyNullPolicy(path, null, opts);
-                        } else if (IsSimple(val.GetType())) {
-                            dict[path] = ApplyFormatting(path, val, opts);
-                        } else {
-                            FlattenInternal(val, dict, path, depth + 1, opts);
-                        }
+            if (_iTupleType != null && _iTupleLengthProperty != null && _iTupleItemProperty != null && _iTupleType.IsAssignableFrom(obj.GetType())) {
+                int length = Convert.ToInt32(_iTupleLengthProperty.GetValue(obj, null));
+                var indexArguments = new object[1];
+                for (int i = 0; i < length; i++) {
+                    var path = string.IsNullOrEmpty(prefix) ? $"Item{i + 1}" : $"{prefix}.Item{i + 1}";
+                    indexArguments[0] = i;
+                    var val = _iTupleItemProperty.GetValue(obj, indexArguments);
+                    if (val == null) {
+                        dict[path] = ApplyNullPolicy(path, null, opts);
+                    } else if (IsSimple(val.GetType())) {
+                        dict[path] = ApplyFormatting(path, val, opts);
+                    } else {
+                        FlattenInternal(val, dict, path, depth + 1, opts);
                     }
-                    return;
                 }
+                return;
             }
 
             // Fallback: reflect public instance fields Item1..ItemN
-            var fields = obj.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance)
-                .Where(f => f.Name.StartsWith("Item", StringComparison.Ordinal))
-                .OrderBy(f => f.Name, StringComparer.Ordinal)
-                .ToArray();
+            var fields = GetValueTupleFields(obj.GetType());
             int idx = 1;
             foreach (var f in fields) {
                 var path = string.IsNullOrEmpty(prefix) ? $"Item{idx}" : $"{prefix}.Item{idx}";
@@ -274,22 +282,51 @@ namespace OfficeIMO.Excel {
         }
 
         private static void MapCollectionToColumns(string basePath, IEnumerable enumerable, CollectionColumnMapping map, Dictionary<string, object?> dict, ObjectFlattenerOptions opts) {
+            Type? lastType = null;
+            CollectionMapAccessors? lastAccessors = null;
             foreach (var item in enumerable) {
                 if (item == null) continue;
-                var t = item.GetType();
-                var keyProp = t.GetProperty(map.KeyProperty);
-                var valProp = t.GetProperty(map.ValueProperty);
-                if (keyProp == null || valProp == null) continue;
+                Type itemType = item.GetType();
+                var accessors = itemType == lastType
+                    ? lastAccessors!
+                    : GetCollectionMapAccessors(itemType, map);
+                lastType = itemType;
+                lastAccessors = accessors;
+                if (!accessors.IsValid) continue;
 
-                var keyObj = keyProp.GetValue(item);
+                var keyObj = accessors.GetKey(item);
                 if (keyObj == null) continue;
                 var key = keyObj.ToString() ?? string.Empty;
                 if (string.IsNullOrWhiteSpace(key)) continue;
 
                 var colPath = basePath + "." + key;
-                if (opts.Ignore.Any(i => colPath.StartsWith(i, StringComparison.OrdinalIgnoreCase))) continue;
-                var value = valProp.GetValue(item);
+                if (ShouldIgnorePath(colPath, opts.Ignore)) continue;
+                var value = accessors.GetValue(item);
                 dict[colPath] = ApplyFormatting(colPath, value, opts);
+            }
+        }
+
+        private static void FlattenInternalWithoutExpansion(object obj, Dictionary<string, object?> dict, string prefix, ObjectFlattenerOptions opts, ObjectFlattenerProperty[] props) {
+            foreach (var prop in props) {
+                var value = prop.GetValue(obj);
+                var path = string.IsNullOrEmpty(prefix) ? prop.Name : prefix + "." + prop.Name;
+                if (ShouldIgnorePath(path, opts.Ignore)) continue;
+
+                if (value == null) {
+                    dict[path] = ApplyNullPolicy(path, null, opts);
+                    continue;
+                }
+
+                if (value is IEnumerable enumerable && value is not string) {
+                    if (opts.CollectionMapColumns.TryGetValue(path, out var map)) {
+                        MapCollectionToColumns(path, enumerable, map, dict, opts);
+                    } else {
+                        dict[path] = HandleCollection(path, enumerable, opts);
+                    }
+                    continue;
+                }
+
+                dict[path] = ApplyFormatting(path, value, opts);
             }
         }
 
@@ -297,23 +334,28 @@ namespace OfficeIMO.Excel {
             if (depth >= opts.MaxDepth) return;
             if (IsValueTuple(type)) {
                 // Prefer counting actual Item* fields for precision (covers non-generic System.ValueTuple)
-                int itemCount = objFieldCount(type);
+                int itemCount = GetValueTupleFields(type).Length;
                 // If field count is 0 but the type is generic, fall back to generic arity (covers ITuple-backed cases)
                 if (itemCount == 0 && type.IsGenericType)
                     itemCount = type.GetGenericArguments().Length;
 
                 for (int i = 1; i <= itemCount; i++) {
                     var path = string.IsNullOrEmpty(prefix) ? $"Item{i}" : $"{prefix}.Item{i}";
-                    if (!opts.Ignore.Any(x => path.StartsWith(x, StringComparison.OrdinalIgnoreCase)))
+                    if (!ShouldIgnorePath(path, opts.Ignore))
                         paths.Add(path);
                 }
                 return;
             }
-            var props = _cache.GetOrAdd(type, t => t.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                                                   .OrderBy(p => p.MetadataToken).ToArray());
+
+            var props = GetObjectFlattenerProperties(type);
+            if (opts.ExpandProperties.Count == 0) {
+                BuildPathsWithoutExpansion(prefix, opts, paths, props);
+                return;
+            }
+
             foreach (var prop in props) {
                 var path = string.IsNullOrEmpty(prefix) ? prop.Name : prefix + "." + prop.Name;
-                if (opts.Ignore.Any(i => path.StartsWith(i, StringComparison.OrdinalIgnoreCase))) continue;
+                if (ShouldIgnorePath(path, opts.Ignore)) continue;
                 bool expand = opts.ExpandProperties.Contains(prop.Name) || opts.ExpandProperties.Contains(path);
                 bool isCollection = typeof(IEnumerable).IsAssignableFrom(prop.PropertyType) && prop.PropertyType != typeof(string);
                 if (isCollection) {
@@ -329,12 +371,17 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static int objFieldCount(Type valueTupleType) {
+        private static FieldInfo[] GetValueTupleFields(Type valueTupleType)
+            => _valueTupleFieldCache.GetOrAdd(valueTupleType, CreateValueTupleFields);
+
+        private static FieldInfo[] CreateValueTupleFields(Type valueTupleType) {
             try {
                 return valueTupleType
                     .GetFields(BindingFlags.Public | BindingFlags.Instance)
-                    .Count(f => f.Name.StartsWith("Item", StringComparison.Ordinal));
-            } catch { return 0; }
+                    .Where(f => f.Name.StartsWith("Item", StringComparison.Ordinal))
+                    .OrderBy(f => f.Name, StringComparer.Ordinal)
+                    .ToArray();
+            } catch { return Array.Empty<FieldInfo>(); }
         }
 
         private static object? HandleCollection(string path, IEnumerable enumerable, ObjectFlattenerOptions opts) {
@@ -390,57 +437,274 @@ namespace OfficeIMO.Excel {
             return type.IsPrimitive || type.IsEnum || type == typeof(string) || type == typeof(decimal) || type == typeof(DateTime) || type == typeof(DateTimeOffset) || type == typeof(TimeSpan) || type == typeof(Guid);
         }
 
+        private static bool ShouldIgnorePath(string path, string[] ignorePaths) {
+            for (int i = 0; i < ignorePaths.Length; i++) {
+                if (path.StartsWith(ignorePaths[i], StringComparison.OrdinalIgnoreCase)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static ObjectFlattenerProperty[] GetObjectFlattenerProperties(Type type)
+            => _propertyCache.GetOrAdd(type, CreateObjectFlattenerProperties);
+
+        private static CollectionMapAccessors GetCollectionMapAccessors(Type type, CollectionColumnMapping map) {
+            var key = new CollectionMapAccessorKey(type, map.KeyProperty, map.ValueProperty);
+            return _collectionMapAccessorCache.GetOrAdd(key, CreateCollectionMapAccessors);
+        }
+
+        private static CollectionMapAccessors CreateCollectionMapAccessors(CollectionMapAccessorKey key) {
+            var keyProperty = key.ItemType.GetProperty(key.KeyProperty);
+            var valueProperty = key.ItemType.GetProperty(key.ValueProperty);
+            if (keyProperty == null || valueProperty == null) {
+                return CollectionMapAccessors.Missing;
+            }
+
+            return new CollectionMapAccessors(
+                CreateObjectFlattenerPropertyGetter(keyProperty),
+                CreateObjectFlattenerPropertyGetter(valueProperty));
+        }
+
+        private static ObjectFlattenerProperty[] CreateObjectFlattenerProperties(Type type) {
+            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .OrderBy(p => p.MetadataToken)
+                .ToArray();
+            var result = new ObjectFlattenerProperty[properties.Length];
+            for (int i = 0; i < properties.Length; i++) {
+                result[i] = new ObjectFlattenerProperty(properties[i], CreateObjectFlattenerPropertyGetter(properties[i]));
+            }
+
+            return result;
+        }
+
+        private static ObjectFlattenerPropertyGetter CreateObjectFlattenerPropertyGetter(PropertyInfo property) {
+            MethodInfo? getMethod = property.GetMethod;
+            if (getMethod == null || property.DeclaringType == null) {
+                return row => property.GetValue(row, null);
+            }
+
+            try {
+                return (ObjectFlattenerPropertyGetter)CreateObjectFlattenerPropertyGetterMethod
+                    .MakeGenericMethod(property.DeclaringType, property.PropertyType)
+                    .Invoke(null, new object[] { getMethod })!;
+            } catch {
+                return row => property.GetValue(row, null);
+            }
+        }
+
+        private static void BuildPathsWithoutExpansion(string prefix, ObjectFlattenerOptions opts, List<string> paths, ObjectFlattenerProperty[] props) {
+            foreach (var prop in props) {
+                var path = string.IsNullOrEmpty(prefix) ? prop.Name : prefix + "." + prop.Name;
+                if (!ShouldIgnorePath(path, opts.Ignore)) {
+                    paths.Add(path);
+                }
+            }
+        }
+
+        private static readonly MethodInfo CreateObjectFlattenerPropertyGetterMethod =
+            typeof(ObjectFlattener).GetMethod(nameof(CreateObjectFlattenerPropertyGetterCore), BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        private static ObjectFlattenerPropertyGetter CreateObjectFlattenerPropertyGetterCore<TTarget, TValue>(MethodInfo getMethod) {
+            var getter = (Func<TTarget, TValue>)Delegate.CreateDelegate(typeof(Func<TTarget, TValue>), getMethod);
+            return row => getter((TTarget)row!);
+        }
+
         private static string LastSegment(string path) {
             if (string.IsNullOrEmpty(path)) return path;
             int i = path.LastIndexOf('.');
             return i >= 0 ? path.Substring(i + 1) : path;
         }
 
+        private static bool LastSegmentEquals(string path, string value) {
+            if (string.Equals(path, value, StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+
+            int start = path.LastIndexOf('.') + 1;
+            if (start == 0 || path.Length - start != value.Length) {
+                return false;
+            }
+
+            return string.Compare(path, start, value, 0, value.Length, StringComparison.OrdinalIgnoreCase) == 0;
+        }
+
+        private sealed class ObjectFlattenerProperty {
+            private readonly ObjectFlattenerPropertyGetter _getter;
+
+            internal ObjectFlattenerProperty(PropertyInfo property, ObjectFlattenerPropertyGetter getter) {
+                Name = property.Name;
+                PropertyType = property.PropertyType;
+                _getter = getter;
+            }
+
+            internal string Name { get; }
+
+            internal Type PropertyType { get; }
+
+            internal object? GetValue(object source) => _getter(source);
+        }
+
+        private delegate object? ObjectFlattenerPropertyGetter(object row);
+
+        private readonly struct CollectionMapAccessorKey : IEquatable<CollectionMapAccessorKey> {
+            internal CollectionMapAccessorKey(Type itemType, string keyProperty, string valueProperty) {
+                ItemType = itemType;
+                KeyProperty = keyProperty;
+                ValueProperty = valueProperty;
+            }
+
+            internal Type ItemType { get; }
+
+            internal string KeyProperty { get; }
+
+            internal string ValueProperty { get; }
+
+            public bool Equals(CollectionMapAccessorKey other)
+                => ItemType == other.ItemType
+                   && string.Equals(KeyProperty, other.KeyProperty, StringComparison.Ordinal)
+                   && string.Equals(ValueProperty, other.ValueProperty, StringComparison.Ordinal);
+
+            public override bool Equals(object? obj)
+                => obj is CollectionMapAccessorKey other && Equals(other);
+
+            public override int GetHashCode() {
+                unchecked {
+                    int hash = ItemType.GetHashCode();
+                    hash = (hash * 397) ^ StringComparer.Ordinal.GetHashCode(KeyProperty);
+                    hash = (hash * 397) ^ StringComparer.Ordinal.GetHashCode(ValueProperty);
+                    return hash;
+                }
+            }
+        }
+
+        private sealed class CollectionMapAccessors {
+            internal static readonly CollectionMapAccessors Missing = new CollectionMapAccessors();
+
+            private readonly ObjectFlattenerPropertyGetter? _keyGetter;
+            private readonly ObjectFlattenerPropertyGetter? _valueGetter;
+
+            private CollectionMapAccessors() {
+            }
+
+            internal CollectionMapAccessors(ObjectFlattenerPropertyGetter keyGetter, ObjectFlattenerPropertyGetter valueGetter) {
+                _keyGetter = keyGetter;
+                _valueGetter = valueGetter;
+                IsValid = true;
+            }
+
+            internal bool IsValid { get; }
+
+            internal object? GetKey(object source) => _keyGetter!(source);
+
+            internal object? GetValue(object source) => _valueGetter!(source);
+        }
+
+        private readonly struct OrderedPath {
+            internal OrderedPath(string path, int originalIndex, int priority) {
+                Path = path;
+                OriginalIndex = originalIndex;
+                Priority = priority;
+            }
+
+            internal string Path { get; }
+
+            internal int OriginalIndex { get; }
+
+            internal int Priority { get; }
+        }
+
         internal static List<string> ApplyOrdering(List<string> input, ObjectFlattenerOptions opts) {
             if (input == null || input.Count == 0) return new List<string>();
 
+            if ((opts.PinnedFirst == null || opts.PinnedFirst.Length == 0)
+                && (opts.PinnedLast == null || opts.PinnedLast.Length == 0)
+                && opts.PropertyPriority.Count == 0) {
+                return new List<string>(input);
+            }
+
+            string[] pinnedFirst = opts.PinnedFirst ?? Array.Empty<string>();
+            string[] pinnedLast = opts.PinnedLast ?? Array.Empty<string>();
             var result = new List<string>(input.Count);
             var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             // 1) PinnedFirst in the given order
-            foreach (var pin in opts.PinnedFirst) {
-                var match = input.FirstOrDefault(p => string.Equals(p, pin, StringComparison.OrdinalIgnoreCase) ||
-                                                       string.Equals(LastSegment(p), pin, StringComparison.OrdinalIgnoreCase));
+            foreach (var pin in pinnedFirst) {
+                var match = input.FirstOrDefault(p => LastSegmentEquals(p, pin));
                 if (!string.IsNullOrEmpty(match) && set.Add(match)) result.Add(match);
             }
 
             // 2) Remaining, grouped by priority ascending
             int GetPriority(string path) {
-                var key = opts.PropertyPriority
-                    .FirstOrDefault(kv => string.Equals(kv.Key, path, StringComparison.OrdinalIgnoreCase) ||
-                                          string.Equals(LastSegment(path), kv.Key, StringComparison.OrdinalIgnoreCase)).Key;
-                if (!string.IsNullOrEmpty(key) && opts.PropertyPriority.TryGetValue(key, out var pr)) return pr;
+                if (opts.PropertyPriority.Count == 0) {
+                    return 0;
+                }
+
+                string segment = LastSegment(path);
+                bool hasPath = opts.PropertyPriority.TryGetValue(path, out int pathPriority);
+                int segmentPriority = 0;
+                bool hasSegment = !string.Equals(path, segment, StringComparison.Ordinal)
+                    && opts.PropertyPriority.TryGetValue(segment, out segmentPriority);
+
+                if (hasPath && hasSegment && pathPriority != segmentPriority) {
+                    foreach (var priority in opts.PropertyPriority) {
+                        if (string.Equals(priority.Key, path, StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(priority.Key, segment, StringComparison.OrdinalIgnoreCase)) {
+                            return priority.Value;
+                        }
+                    }
+                }
+
+                if (hasPath) return pathPriority;
+                if (hasSegment) return segmentPriority;
                 return 0;
             }
 
-            var remaining = input.Where(p => !set.Contains(p)).ToList();
-            var originalOrder = new Dictionary<string, int>(input.Count, StringComparer.Ordinal);
+            var remaining = new List<OrderedPath>(input.Count);
             for (int i = 0; i < input.Count; i++) {
-                if (!originalOrder.ContainsKey(input[i])) {
-                    originalOrder.Add(input[i], i);
+                string path = input[i];
+                if (pinnedFirst.Length != 0 && set.Contains(path)) {
+                    continue;
+                }
+
+                remaining.Add(new OrderedPath(path, i, GetPriority(path)));
+            }
+
+            remaining.Sort((left, right) => {
+                int priorityComparison = left.Priority.CompareTo(right.Priority);
+                return priorityComparison != 0
+                    ? priorityComparison
+                    : left.OriginalIndex.CompareTo(right.OriginalIndex);
+            });
+
+            // 3) PinnedLast moved to the end in the given order
+            if (pinnedLast.Length == 0) {
+                foreach (var ordered in remaining) if (set.Add(ordered.Path)) result.Add(ordered.Path);
+                return result;
+            }
+
+            var pinnedLastMatches = new List<string>(pinnedLast.Length);
+            foreach (var pin in pinnedLast) {
+                foreach (var ordered in remaining) {
+                    string path = ordered.Path;
+                    if (LastSegmentEquals(path, pin)) {
+                        pinnedLastMatches.Add(path);
+                        break;
+                    }
                 }
             }
 
-            var prioritized = remaining.OrderBy(p => GetPriority(p)).ThenBy(p => originalOrder[p]).ToList();
-
-            // 3) PinnedLast moved to the end in the given order
-            var pinnedLastMatches = new List<string>();
-            foreach (var pin in opts.PinnedLast ?? Array.Empty<string>()) {
-                var match = prioritized.FirstOrDefault(p => string.Equals(p, pin, StringComparison.OrdinalIgnoreCase) ||
-                                                            string.Equals(LastSegment(p), pin, StringComparison.OrdinalIgnoreCase));
-                if (!string.IsNullOrEmpty(match)) pinnedLastMatches.Add(match);
+            if (pinnedLastMatches.Count == 0) {
+                foreach (var ordered in remaining) if (set.Add(ordered.Path)) result.Add(ordered.Path);
+                return result;
             }
+
             // Remove pinned-last matches from prioritized
             var pinnedLastSet = new HashSet<string>(pinnedLastMatches, StringComparer.OrdinalIgnoreCase);
-            var prioritizedNoPinnedLast = prioritized.Where(p => !pinnedLastSet.Contains(p)).ToList();
 
             // Merge
-            foreach (var p in prioritizedNoPinnedLast) if (set.Add(p)) result.Add(p);
+            foreach (var ordered in remaining) if (!pinnedLastSet.Contains(ordered.Path) && set.Add(ordered.Path)) result.Add(ordered.Path);
             foreach (var p in pinnedLastMatches) if (set.Add(p)) result.Add(p);
 
             return result;
@@ -449,18 +713,40 @@ namespace OfficeIMO.Excel {
         internal static List<string> ApplySelection(List<string> input, ObjectFlattenerOptions opts) {
             if (input == null || input.Count == 0) return new List<string>();
 
-            var filtered = input
-                .Where(p => !opts.Ignore.Any(i => p.StartsWith(i, StringComparison.OrdinalIgnoreCase)))
-                .ToList();
-
-            if (opts.ExcludeProperties.Length > 0) {
-                var ex = new HashSet<string>(opts.ExcludeProperties, StringComparer.OrdinalIgnoreCase);
-                filtered = filtered.Where(p => !ex.Contains(p) && !ex.Contains(LastSegment(p))).ToList();
+            if (opts.Ignore.Length == 0
+                && opts.ExcludeProperties.Length == 0
+                && opts.IncludeProperties.Length == 0) {
+                return new List<string>(input);
             }
 
-            if (opts.IncludeProperties.Length > 0) {
-                var inc = new HashSet<string>(opts.IncludeProperties, StringComparer.OrdinalIgnoreCase);
-                filtered = filtered.Where(p => inc.Contains(p) || inc.Contains(LastSegment(p))).ToList();
+            HashSet<string>? exclude = opts.ExcludeProperties.Length > 0
+                ? new HashSet<string>(opts.ExcludeProperties, StringComparer.OrdinalIgnoreCase)
+                : null;
+            HashSet<string>? include = opts.IncludeProperties.Length > 0
+                ? new HashSet<string>(opts.IncludeProperties, StringComparer.OrdinalIgnoreCase)
+                : null;
+            var filtered = new List<string>(input.Count);
+            foreach (string path in input) {
+                if (ShouldIgnorePath(path, opts.Ignore)) {
+                    continue;
+                }
+
+                string? segment = null;
+                if (exclude != null) {
+                    segment = LastSegment(path);
+                    if (exclude.Contains(path) || exclude.Contains(segment)) {
+                        continue;
+                    }
+                }
+
+                if (include != null) {
+                    segment ??= LastSegment(path);
+                    if (!include.Contains(path) && !include.Contains(segment)) {
+                        continue;
+                    }
+                }
+
+                filtered.Add(path);
             }
 
             return filtered;

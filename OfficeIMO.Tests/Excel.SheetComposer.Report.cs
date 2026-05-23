@@ -177,6 +177,38 @@ namespace OfficeIMO.Tests {
             File.Delete(filePath);
         }
 
+        [Fact]
+        public void Composer_ColumnTableFrom_SummarizeOverflowPreservesMoreColumn() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            var rows = new[] {
+                new WideComposerTableRow("Alpha", 10, 5, 7),
+                new WideComposerTableRow("Beta", 20, 6, 8)
+            };
+
+            using (var doc = ExcelDocument.Create(filePath)) {
+                doc.Compose("Report", c => {
+                    c.Columns(2, columns => {
+                        columns[0].TableFrom(rows, title: "Wide");
+                    }, columnWidth: 2, overflow: OverflowMode.Summarize);
+                    c.Finish(autoFitColumns: false);
+                });
+
+                doc.Save();
+            }
+
+            using (var ss = SpreadsheetDocument.Open(filePath, false)) {
+                var ws = ss.WorkbookPart!.WorksheetParts.First();
+                Assert.True(ws.TableDefinitionParts.Any());
+                Assert.Equal("Metric A", GetCellText(ss, ws, "A2"));
+                Assert.Equal("More", GetCellText(ss, ws, "B2"));
+                Assert.Equal("5", GetCellText(ss, ws, "A3"));
+                Assert.Contains("Name=Alpha", GetCellText(ss, ws, "B3"), StringComparison.Ordinal);
+                Assert.Contains("Score=10", GetCellText(ss, ws, "B3"), StringComparison.Ordinal);
+            }
+
+            File.Delete(filePath);
+        }
+
         private sealed class ComposerTableRow {
             public ComposerTableRow(string name, int score) {
                 Name = name;
@@ -186,6 +218,23 @@ namespace OfficeIMO.Tests {
             public string Name { get; }
 
             public int Score { get; }
+        }
+
+        private sealed class WideComposerTableRow {
+            public WideComposerTableRow(string name, int score, int metricA, int metricB) {
+                Name = name;
+                Score = score;
+                MetricA = metricA;
+                MetricB = metricB;
+            }
+
+            public string Name { get; }
+
+            public int Score { get; }
+
+            public int MetricA { get; }
+
+            public int MetricB { get; }
         }
 
         private sealed class ThrowOnEnumerateReadOnlyList<T> : System.Collections.Generic.IReadOnlyList<T> {

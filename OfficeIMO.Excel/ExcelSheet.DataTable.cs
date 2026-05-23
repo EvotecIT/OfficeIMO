@@ -276,10 +276,7 @@ namespace OfficeIMO.Excel {
             }
 
             int columnCount = table.Columns.Count;
-            var columnNames = new string[startColumn + columnCount];
-            for (int column = startColumn; column < startColumn + columnCount; column++) {
-                columnNames[column] = GetColumnName(column);
-            }
+            string[] columnReferencePrefixes = BuildColumnReferencePrefixes(startColumn, columnCount);
 
             string?[] numberFormats = BuildDataTableNumberFormats(table);
             var stylePlanner = new StylePlanner();
@@ -325,14 +322,18 @@ namespace OfficeIMO.Excel {
             Dictionary<string, int>? sharedStringIndexes = null;
             var appendedRows = new List<OpenXmlElement>(Math.Max(1, table.Rows.Count + (includeHeaders ? 1 : 0)));
             int rowIndex = startRow;
+            bool canCancel = ct.CanBeCanceled;
 
             if (includeHeaders) {
-                appendedRows.Add(CreateDataTableHeaderRow(rowIndex++, startColumn, columnNames, table, useDirectStringCells, ref sharedStringIndexes, ct));
+                appendedRows.Add(CreateDataTableHeaderRow(rowIndex++, columnReferencePrefixes, table, useDirectStringCells, ref sharedStringIndexes, canCancel, ct));
             }
 
             foreach (DataRow dataRow in table.Rows) {
-                ct.ThrowIfCancellationRequested();
-                appendedRows.Add(CreateDataTableValueRow(rowIndex++, startColumn, columnNames, dataRow, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, ct));
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
+                appendedRows.Add(CreateDataTableValueRow(rowIndex++, columnReferencePrefixes, dataRow, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct));
             }
 
             sheetData.Append(appendedRows);
@@ -350,20 +351,22 @@ namespace OfficeIMO.Excel {
 
         private Row CreateDataTableHeaderRow(
             int rowIndex,
-            int startColumn,
-            IReadOnlyList<string> columnNames,
+            string[] columnReferencePrefixes,
             DataTable table,
             bool useDirectStringCells,
             ref Dictionary<string, int>? sharedStringIndexes,
+            bool canCancel,
             CancellationToken ct) {
             string rowReference = InvariantNumberText.Get(rowIndex);
             var row = new Row { RowIndex = (uint)rowIndex };
             for (int offset = 0; offset < table.Columns.Count; offset++) {
-                ct.ThrowIfCancellationRequested();
-                int column = startColumn + offset;
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
                 var (cellValue, cellType) = CoerceDataTableAppendValue(table.Columns[offset].ColumnName, useDirectStringCells, ref sharedStringIndexes);
                 var cell = new Cell {
-                    CellReference = columnNames[column] + rowReference,
+                    CellReference = columnReferencePrefixes[offset] + rowReference,
                     CellValue = cellValue,
                     DataType = new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType)
                 };
@@ -376,29 +379,31 @@ namespace OfficeIMO.Excel {
 
         private Row CreateDataTableValueRow(
             int rowIndex,
-            int startColumn,
-            IReadOnlyList<string> columnNames,
+            string[] columnReferencePrefixes,
             DataRow dataRow,
             IReadOnlyList<uint?> styleIndexes,
             uint? objectDateTimeStyleIndex,
             uint? objectTimeSpanStyleIndex,
             bool useDirectStringCells,
             ref Dictionary<string, int>? sharedStringIndexes,
+            bool canCancel,
             CancellationToken ct) {
             string rowReference = InvariantNumberText.Get(rowIndex);
             int columnCount = dataRow.Table.Columns.Count;
             var row = new Row { RowIndex = (uint)rowIndex };
             for (int offset = 0; offset < columnCount; offset++) {
-                ct.ThrowIfCancellationRequested();
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
                 object? value = dataRow[offset];
                 if (value == DBNull.Value) {
                     value = null;
                 }
 
-                int column = startColumn + offset;
                 var (cellValue, cellType) = CoerceDataTableAppendValue(value, useDirectStringCells, ref sharedStringIndexes);
                 var cell = new Cell {
-                    CellReference = columnNames[column] + rowReference,
+                    CellReference = columnReferencePrefixes[offset] + rowReference,
                     CellValue = cellValue,
                     DataType = new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType)
                 };
@@ -413,6 +418,15 @@ namespace OfficeIMO.Excel {
             }
 
             return row;
+        }
+
+        private static string[] BuildColumnReferencePrefixes(int startColumn, int columnCount) {
+            var columnReferencePrefixes = new string[columnCount];
+            for (int offset = 0; offset < columnReferencePrefixes.Length; offset++) {
+                columnReferencePrefixes[offset] = GetColumnName(startColumn + offset);
+            }
+
+            return columnReferencePrefixes;
         }
 
         private (CellValue cellValue, DocumentFormat.OpenXml.Spreadsheet.CellValues cellType) CoerceDataTableAppendValue(
@@ -647,10 +661,8 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException($"Table '{tableName}' has a totals row. Appending before totals rows is not supported yet.");
             }
 
-            var tableColumnNames = table.TableColumns?.Elements<TableColumn>()
-                .Select(column => column.Name?.Value ?? string.Empty)
-                .ToList() ?? new List<string>();
             int tableColumnCount = endColumn - startColumn + 1;
+            var tableColumnNames = GetTableColumnNames(table.TableColumns, tableColumnCount);
             if (tableColumnNames.Count != tableColumnCount) {
                 throw new InvalidOperationException($"Table '{tableName}' column metadata does not match its range.");
             }
@@ -711,48 +723,62 @@ namespace OfficeIMO.Excel {
                 return source;
             }
 
-            var sourceColumns = new Dictionary<string, DataColumn>(StringComparer.OrdinalIgnoreCase);
+            var sourceColumns = new Dictionary<string, int>(source.Columns.Count, StringComparer.OrdinalIgnoreCase);
             foreach (DataColumn column in source.Columns) {
                 if (sourceColumns.ContainsKey(column.ColumnName)) {
                     throw new ArgumentException($"Source table contains duplicate column '{column.ColumnName}'.", nameof(source));
                 }
 
-                sourceColumns.Add(column.ColumnName, column);
+                sourceColumns.Add(column.ColumnName, column.Ordinal);
             }
 
-            var orderedColumns = new DataColumn[tableColumnNames.Count];
-            var matchedSourceNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var orderedColumnIndexes = new int[tableColumnNames.Count];
+            var matchedSourceColumns = new bool[source.Columns.Count];
             for (int i = 0; i < tableColumnNames.Count; i++) {
                 string tableColumnName = tableColumnNames[i];
-                if (!sourceColumns.TryGetValue(tableColumnName, out DataColumn? sourceColumn)) {
+                if (!sourceColumns.TryGetValue(tableColumnName, out int sourceColumnIndex)) {
                     throw new ArgumentException($"Source table is missing column '{tableColumnName}'.", nameof(source));
                 }
 
-                orderedColumns[i] = sourceColumn;
-                matchedSourceNames.Add(sourceColumn.ColumnName);
+                orderedColumnIndexes[i] = sourceColumnIndex;
+                matchedSourceColumns[sourceColumnIndex] = true;
             }
 
             foreach (DataColumn column in source.Columns) {
-                if (!matchedSourceNames.Contains(column.ColumnName)) {
+                if (!matchedSourceColumns[column.Ordinal]) {
                     throw new ArgumentException($"Source table column '{column.ColumnName}' does not exist in the Excel table.", nameof(source));
                 }
             }
 
             var ordered = new DataTable(source.TableName);
-            foreach (DataColumn sourceColumn in orderedColumns) {
+            for (int i = 0; i < orderedColumnIndexes.Length; i++) {
+                DataColumn sourceColumn = source.Columns[orderedColumnIndexes[i]];
                 ordered.Columns.Add(sourceColumn.ColumnName, sourceColumn.DataType);
             }
 
             foreach (DataRow sourceRow in source.Rows) {
                 DataRow row = ordered.NewRow();
-                for (int i = 0; i < orderedColumns.Length; i++) {
-                    row[i] = sourceRow[orderedColumns[i]];
+                for (int i = 0; i < orderedColumnIndexes.Length; i++) {
+                    row[i] = sourceRow[orderedColumnIndexes[i]];
                 }
 
                 ordered.Rows.Add(row);
             }
 
             return ordered;
+        }
+
+        private static List<string> GetTableColumnNames(TableColumns? tableColumns, int capacity) {
+            if (tableColumns == null) {
+                return new List<string>();
+            }
+
+            var names = new List<string>(Math.Max(0, capacity));
+            foreach (TableColumn column in tableColumns.Elements<TableColumn>()) {
+                names.Add(column.Name?.Value ?? string.Empty);
+            }
+
+            return names;
         }
 
         private static bool ShouldMapAppendColumnsByHeader(DataTable source, IReadOnlyList<string> tableColumnNames, bool hasHeaderRow) {

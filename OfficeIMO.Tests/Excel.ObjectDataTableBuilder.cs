@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using OfficeIMO.Excel;
@@ -66,6 +67,68 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ObjectDataTableBuilder_FromSparseOrdinalDictionaries_PreservesBlanks() {
+            var first = new Dictionary<string, object?>();
+            for (int i = 0; i < 32; i++) {
+                first["Column" + i] = i == 0 ? "First" : null;
+            }
+
+            var second = new Dictionary<string, object?> {
+                ["Column0"] = "Second",
+                ["Column31"] = 31
+            };
+
+            var table = ObjectDataTableBuilder.FromObjects(new object?[] { first, second }, "Data");
+
+            Assert.Equal(32, table.Columns.Count);
+            Assert.Equal("First", table.Rows[0]["Column0"]);
+            Assert.Equal(DBNull.Value, table.Rows[0]["Column31"]);
+            Assert.Equal("Second", table.Rows[1]["Column0"]);
+            Assert.Equal(DBNull.Value, table.Rows[1]["Column1"]);
+            Assert.Equal(31, table.Rows[1]["Column31"]);
+        }
+
+        [Fact]
+        public void Test_ObjectDataTableBuilder_FromCaseInsensitiveDictionaries_UsesDictionaryComparer() {
+            var items = new[] {
+                new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) {
+                    ["Name"] = "A",
+                    ["Value"] = 1
+                },
+                new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) {
+                    ["name"] = "B",
+                    ["value"] = 2
+                }
+            };
+
+            var table = ObjectDataTableBuilder.FromObjects(items, "Data");
+
+            Assert.Equal("B", table.Rows[1]["Name"]);
+            Assert.Equal(2, table.Rows[1]["Value"]);
+        }
+
+        [Fact]
+        public void Test_ObjectDataTableBuilder_FromSparseHashtables_PreservesCaseInsensitiveLookupAndExactPrecedence() {
+            var first = new Hashtable();
+            for (int i = 0; i < 40; i++) {
+                first["Column" + i] = i;
+            }
+
+            var second = new Hashtable {
+                ["column0"] = "Insensitive",
+                ["Column0"] = "Exact",
+                ["column39"] = 39
+            };
+
+            var table = ObjectDataTableBuilder.FromObjects(new object?[] { first, second }, "Data");
+
+            Assert.Equal(40, table.Columns.Count);
+            Assert.Equal("Exact", table.Rows[1]["Column0"]);
+            Assert.Equal(DBNull.Value, table.Rows[1]["Column1"]);
+            Assert.Equal(39, table.Rows[1]["Column39"]);
+        }
+
+        [Fact]
         public void Test_ObjectDataTableBuilder_FromObjects_InheritedProperties() {
             var items = new InheritedObjectRow[] {
                 new() { Name = "A", Value = 1, Notes = "First" },
@@ -87,6 +150,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_ObjectDataTableBuilder_FromObjects_HiddenDerivedPropertiesUseRuntimeMember() {
+            ObjectDataTableBuilder.FromObjects(new ObjectDataBaseRow[] {
+                new() { Name = "Warm", Value = 0 }
+            }, "Warmup");
+
             var items = new ObjectDataBaseRow[] {
                 new() { Name = "Base", Value = 1 },
                 new HiddenObjectRow { Name = "Derived", Value = 2 }

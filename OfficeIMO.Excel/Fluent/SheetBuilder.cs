@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Data;
 using System.Reflection;
+using System.Text;
 using OfficeColor = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Excel.Fluent {
@@ -64,16 +65,16 @@ namespace OfficeIMO.Excel.Fluent {
             if (rows.Count == 0) return this;
 
             int startRow = _currentRow;
-            if (configure == null && TryRowsFromSimpleDirectSave(rows, startRow)) {
+            if (configure == null && TryRowsFromSimpleFastPath(rows, startRow)) {
                 return this;
             }
 
             options ??= new ObjectFlattenerOptions();
             var flattener = new ObjectFlattener();
             var paths = options.Columns?.ToList() ?? flattener.GetPaths(typeof(T), options);
-            var headers = paths.Select(p => TransformHeader(p, options)).ToList();
+            var headers = BuildTransformedHeaders(paths, options);
 
-            var rowValues = new List<object?[]>();
+            var rowValues = new List<object?[]>(rows.Count);
             int dataRows = 0;
             foreach (var item in rows) {
                 var dict = flattener.Flatten(item, options);
@@ -154,8 +155,8 @@ namespace OfficeIMO.Excel.Fluent {
             return projected;
         }
 
-        private bool TryRowsFromSimpleDirectSave<T>(IReadOnlyList<T> rows, int startRow) {
-            if (Sheet == null || startRow != 1) {
+        private bool TryRowsFromSimpleFastPath<T>(IReadOnlyList<T> rows, int startRow) {
+            if (Sheet == null) {
                 return false;
             }
 
@@ -168,10 +169,13 @@ namespace OfficeIMO.Excel.Fluent {
             int tableEndRow = startRow + rows.Count;
             string[] headers = typePlan.Headers;
             string range = $"A{startRow}:{ColumnLetter(headers.Length)}{tableEndRow}";
-            if (!Sheet.TryInsertRowsAsDeferredDirectSave("RowsFrom", headers, columnTypes, directRows, startRow, includeHeaders: true, range: range)) {
-                return false;
+            if (startRow == 1 && Sheet.TryInsertRowsAsDeferredDirectSave("RowsFrom", headers, columnTypes, directRows, startRow, includeHeaders: true, range: range)) {
+                _currentRow = tableEndRow + 1;
+                _lastRange = range;
+                return true;
             }
 
+            AddSimpleRowsFromCellValues(startRow, headers, directRows);
             _currentRow = tableEndRow + 1;
             _lastRange = range;
             return true;
@@ -224,7 +228,7 @@ namespace OfficeIMO.Excel.Fluent {
                 throw new ArgumentException("Values array dimensions must match the specified range.", nameof(values));
             }
 
-            var cells = new List<(int Row, int Column, object Value)>();
+            var cells = new List<(int Row, int Column, object Value)>(Math.Max(1, rowCount * colCount));
             for (int r = 0; r < rowCount; r++) {
                 for (int c = 0; c < colCount; c++) {
                     object cellValue = values != null ? values[r, c] : string.Empty;
@@ -337,11 +341,52 @@ namespace OfficeIMO.Excel.Fluent {
                 }
             }
             return opts.HeaderCase switch {
-                HeaderCase.Pascal => string.Concat(path.Split('.').Select(s => char.ToUpperInvariant(s[0]) + s.Substring(1))),
+                HeaderCase.Pascal => TransformHeaderPascal(path),
                 HeaderCase.Title => string.Join(" ", path.Split('.').Select(s => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s.ToLowerInvariant()))),
                 _ => path
             };
         }
+
+        private static List<string> BuildTransformedHeaders(IReadOnlyList<string> paths, ObjectFlattenerOptions options) {
+            var headers = new List<string>(paths.Count);
+            for (int i = 0; i < paths.Count; i++) {
+                headers.Add(TransformHeader(paths[i], options));
+            }
+
+            return headers;
+        }
+
+        private static string TransformHeaderPascal(string path) {
+            if (path.Length == 0) {
+                ThrowEmptyHeaderSegment();
+            }
+
+            var builder = new StringBuilder(path.Length);
+            int segmentStart = 0;
+            for (int i = 0; i <= path.Length; i++) {
+                if (i < path.Length && path[i] != '.') {
+                    continue;
+                }
+
+                AppendPascalSegment(builder, path, segmentStart, i - segmentStart);
+                segmentStart = i + 1;
+            }
+
+            return builder.ToString();
+        }
+
+        private static void AppendPascalSegment(StringBuilder builder, string path, int start, int length) {
+            if (length == 0) {
+                ThrowEmptyHeaderSegment();
+            }
+
+            builder.Append(char.ToUpperInvariant(path[start]));
+            if (length > 1) {
+                builder.Append(path, start + 1, length - 1);
+            }
+        }
+
+        private static void ThrowEmptyHeaderSegment() => throw new IndexOutOfRangeException();
 
         private static bool CanUseRowsFromDataTable(IReadOnlyList<string> headers) {
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -654,6 +699,24 @@ namespace OfficeIMO.Excel.Fluent {
                     cells.Add((startRow + r + 1, c + 1, value ?? string.Empty));
                 }
             }
+        }
+
+        private void AddSimpleRowsFromCellValues(int startRow, IReadOnlyList<string> headers, IReadOnlyList<object?[]> rowValues) {
+            int totalCellCount = checked((rowValues.Count + 1) * headers.Count);
+            var cells = new (int Row, int Column, object Value)[totalCellCount];
+            int cellIndex = 0;
+            for (int i = 0; i < headers.Count; i++) {
+                cells[cellIndex++] = (startRow, i + 1, headers[i]);
+            }
+
+            for (int r = 0; r < rowValues.Count; r++) {
+                object?[] values = rowValues[r];
+                for (int c = 0; c < headers.Count; c++) {
+                    cells[cellIndex++] = (startRow + r + 1, c + 1, values[c] ?? string.Empty);
+                }
+            }
+
+            Sheet!.CellValues(cells);
         }
 
         private static string ColumnLetter(int column) {
