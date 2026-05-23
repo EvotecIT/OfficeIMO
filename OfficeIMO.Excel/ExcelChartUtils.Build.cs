@@ -31,9 +31,25 @@ namespace OfficeIMO.Excel {
 
             PlotArea plotArea = new() { Layout = new Layout() };
             List<SeriesDescriptor> descriptors = BuildSeriesDescriptors(range, data, type);
+            ValidateSingleSeriesPieVariants(descriptors);
             SeriesDescriptorSummary summary = SummarizeSeriesDescriptors(descriptors);
             if (summary.HasBubble) {
                 throw new NotSupportedException("Bubble charts require explicit X/Y/size ranges. Use AddBubbleChartFromRanges.");
+            }
+            if (summary.HasStock && (summary.HasMultipleTypes || summary.HasSecondary)) {
+                throw new NotSupportedException("Stock charts cannot be combined with other chart types or secondary axes.");
+            }
+            if (summary.HasSurface && (summary.HasMultipleTypes || summary.HasSecondary)) {
+                throw new NotSupportedException("Surface charts cannot be combined with other chart types or secondary axes.");
+            }
+            if (summary.HasLine3D && (summary.HasMultipleTypes || summary.HasSecondary)) {
+                throw new NotSupportedException("3-D line charts cannot be combined with other chart types or secondary axes.");
+            }
+            if (summary.HasBar3D && (summary.HasMultipleTypes || summary.HasSecondary)) {
+                throw new NotSupportedException("3-D bar and column charts cannot be combined with other chart types or secondary axes.");
+            }
+            if (summary.HasArea3D && (summary.HasMultipleTypes || summary.HasSecondary)) {
+                throw new NotSupportedException("3-D area charts cannot be combined with other chart types or secondary axes.");
             }
             if (summary.HasScatter && summary.HasMultipleTypes) {
                 throw new NotSupportedException("Scatter charts cannot be combined with other chart types.");
@@ -55,6 +71,7 @@ namespace OfficeIMO.Excel {
                 ExcelChartType chartType = descriptors.Count > 0 ? descriptors[0].ChartType : type;
                 uint categoryAxisId = ExcelChartAxisIdGenerator.GetNextId();
                 uint valueAxisId = ExcelChartAxisIdGenerator.GetNextId();
+                uint seriesAxisId = IsSurfaceChartType(chartType) || chartType == ExcelChartType.Line3D || IsBar3DChartType(chartType) || IsArea3DChartType(chartType) ? ExcelChartAxisIdGenerator.GetNextId() : 0;
 
                 switch (chartType) {
                     case ExcelChartType.ColumnClustered:
@@ -64,6 +81,11 @@ namespace OfficeIMO.Excel {
                         break;
                     case ExcelChartType.ColumnStacked:
                         plotArea.Append(CreateBarChart(range, descriptors, BarDirectionValues.Column, BarGroupingValues.Stacked, categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                        break;
+                    case ExcelChartType.ColumnStacked100:
+                        plotArea.Append(CreateBarChart(range, descriptors, BarDirectionValues.Column, BarGroupingValues.PercentStacked, categoryAxisId, valueAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         break;
@@ -77,18 +99,146 @@ namespace OfficeIMO.Excel {
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId, AxisPositionValues.Left));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId, AxisPositionValues.Bottom));
                         break;
+                    case ExcelChartType.BarStacked100:
+                        plotArea.Append(CreateBarChart(range, descriptors, BarDirectionValues.Bar, BarGroupingValues.PercentStacked, categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId, AxisPositionValues.Left));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId, AxisPositionValues.Bottom));
+                        break;
+                    case ExcelChartType.Column3DClustered:
+                        plotArea.Append(CreateBar3DChart(range, descriptors, BarDirectionValues.Column, BarGroupingValues.Clustered, categoryAxisId, valueAxisId, seriesAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                        plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
+                        break;
+                    case ExcelChartType.Column3DStacked:
+                        plotArea.Append(CreateBar3DChart(range, descriptors, BarDirectionValues.Column, BarGroupingValues.Stacked, categoryAxisId, valueAxisId, seriesAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                        plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
+                        break;
+                    case ExcelChartType.Column3DStacked100:
+                        plotArea.Append(CreateBar3DChart(range, descriptors, BarDirectionValues.Column, BarGroupingValues.PercentStacked, categoryAxisId, valueAxisId, seriesAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                        plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
+                        break;
+                    case ExcelChartType.Bar3DClustered:
+                        plotArea.Append(CreateBar3DChart(range, descriptors, BarDirectionValues.Bar, BarGroupingValues.Clustered, categoryAxisId, valueAxisId, seriesAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId, AxisPositionValues.Left));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId, AxisPositionValues.Bottom));
+                        plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
+                        break;
+                    case ExcelChartType.Bar3DStacked:
+                        plotArea.Append(CreateBar3DChart(range, descriptors, BarDirectionValues.Bar, BarGroupingValues.Stacked, categoryAxisId, valueAxisId, seriesAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId, AxisPositionValues.Left));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId, AxisPositionValues.Bottom));
+                        plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
+                        break;
+                    case ExcelChartType.Bar3DStacked100:
+                        plotArea.Append(CreateBar3DChart(range, descriptors, BarDirectionValues.Bar, BarGroupingValues.PercentStacked, categoryAxisId, valueAxisId, seriesAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId, AxisPositionValues.Left));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId, AxisPositionValues.Bottom));
+                        plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
+                        break;
                     case ExcelChartType.Line:
-                        plotArea.Append(CreateLineChart(range, descriptors, categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateLineChart(range, descriptors, GroupingValues.Standard, categoryAxisId, valueAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         break;
-                    case ExcelChartType.Area:
-                        plotArea.Append(CreateAreaChart(range, descriptors, categoryAxisId, valueAxisId));
+                    case ExcelChartType.LineStacked:
+                        plotArea.Append(CreateLineChart(range, descriptors, GroupingValues.Stacked, categoryAxisId, valueAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                        break;
+                    case ExcelChartType.LineStacked100:
+                        plotArea.Append(CreateLineChart(range, descriptors, GroupingValues.PercentStacked, categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                        break;
+                    case ExcelChartType.Line3D:
+                        plotArea.Append(CreateLine3DChart(range, descriptors, categoryAxisId, valueAxisId, seriesAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                        plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
+                        break;
+                    case ExcelChartType.Area:
+                        plotArea.Append(CreateAreaChart(range, descriptors, GroupingValues.Standard, categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                        break;
+                    case ExcelChartType.AreaStacked:
+                        plotArea.Append(CreateAreaChart(range, descriptors, GroupingValues.Stacked, categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                        break;
+                    case ExcelChartType.AreaStacked100:
+                        plotArea.Append(CreateAreaChart(range, descriptors, GroupingValues.PercentStacked, categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                        break;
+                    case ExcelChartType.Area3D:
+                        plotArea.Append(CreateArea3DChart(range, descriptors, GroupingValues.Standard, categoryAxisId, valueAxisId, seriesAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                        plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
+                        break;
+                    case ExcelChartType.Area3DStacked:
+                        plotArea.Append(CreateArea3DChart(range, descriptors, GroupingValues.Stacked, categoryAxisId, valueAxisId, seriesAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                        plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
+                        break;
+                    case ExcelChartType.Area3DStacked100:
+                        plotArea.Append(CreateArea3DChart(range, descriptors, GroupingValues.PercentStacked, categoryAxisId, valueAxisId, seriesAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                        plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
+                        break;
+                    case ExcelChartType.Radar:
+                        plotArea.Append(CreateRadarChart(range, descriptors, categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                        break;
+                    case ExcelChartType.Stock:
+                        plotArea.Append(CreateStockChart(range, descriptors, categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                        break;
+                    case ExcelChartType.Surface:
+                        plotArea.Append(CreateSurface3DChart(range, descriptors, false, categoryAxisId, valueAxisId, seriesAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                        plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
+                        break;
+                    case ExcelChartType.SurfaceWireframe:
+                        plotArea.Append(CreateSurface3DChart(range, descriptors, true, categoryAxisId, valueAxisId, seriesAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                        plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
+                        break;
+                    case ExcelChartType.SurfaceContour:
+                        plotArea.Append(CreateSurfaceChart(range, descriptors, false, categoryAxisId, valueAxisId, seriesAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                        plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
+                        break;
+                    case ExcelChartType.SurfaceContourWireframe:
+                        plotArea.Append(CreateSurfaceChart(range, descriptors, true, categoryAxisId, valueAxisId, seriesAxisId));
+                        plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
+                        plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
+                        plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
                         break;
                     case ExcelChartType.Pie:
                         plotArea.Append(CreatePieChart(range, descriptors));
+                        break;
+                    case ExcelChartType.Pie3D:
+                        plotArea.Append(CreatePie3DChart(range, descriptors));
+                        break;
+                    case ExcelChartType.PieOfPie:
+                        plotArea.Append(CreateOfPieChart(range, descriptors, OfPieValues.Pie));
+                        break;
+                    case ExcelChartType.BarOfPie:
+                        plotArea.Append(CreateOfPieChart(range, descriptors, OfPieValues.Bar));
                         break;
                     case ExcelChartType.Doughnut:
                         plotArea.Append(CreateDoughnutChart(range, descriptors));
@@ -179,6 +329,21 @@ namespace OfficeIMO.Excel {
             if (summary.HasBubble) {
                 throw new NotSupportedException("Bubble charts cannot be combined with other chart types.");
             }
+            if (summary.HasStock) {
+                throw new NotSupportedException("Stock charts cannot be combined with other chart types.");
+            }
+            if (summary.HasSurface) {
+                throw new NotSupportedException("Surface charts cannot be combined with other chart types.");
+            }
+            if (summary.HasLine3D) {
+                throw new NotSupportedException("3-D line charts cannot be combined with other chart types.");
+            }
+            if (summary.HasBar3D) {
+                throw new NotSupportedException("3-D bar and column charts cannot be combined with other chart types.");
+            }
+            if (summary.HasArea3D) {
+                throw new NotSupportedException("3-D area charts cannot be combined with other chart types.");
+            }
             if (summary.HasScatter && summary.HasMultipleTypes) {
                 throw new NotSupportedException("Scatter charts cannot be combined with other chart types.");
             }
@@ -209,17 +374,23 @@ namespace OfficeIMO.Excel {
                 switch (group.ChartType) {
                     case ExcelChartType.ColumnClustered:
                     case ExcelChartType.ColumnStacked:
+                    case ExcelChartType.ColumnStacked100:
                     case ExcelChartType.BarClustered:
-                    case ExcelChartType.BarStacked: {
+                    case ExcelChartType.BarStacked:
+                    case ExcelChartType.BarStacked100: {
                         var settings = GetBarChartSettings(group.ChartType);
                         plotArea.Append(CreateBarChart(range, group.Descriptors, settings.Direction, settings.Grouping, categoryAxisId, valueAxisId));
                         break;
                     }
                     case ExcelChartType.Line:
-                        plotArea.Append(CreateLineChart(range, group.Descriptors, categoryAxisId, valueAxisId));
+                    case ExcelChartType.LineStacked:
+                    case ExcelChartType.LineStacked100:
+                        plotArea.Append(CreateLineChart(range, group.Descriptors, GetLineGrouping(group.ChartType), categoryAxisId, valueAxisId));
                         break;
                     case ExcelChartType.Area:
-                        plotArea.Append(CreateAreaChart(range, group.Descriptors, categoryAxisId, valueAxisId));
+                    case ExcelChartType.AreaStacked:
+                    case ExcelChartType.AreaStacked100:
+                        plotArea.Append(CreateAreaChart(range, group.Descriptors, GetAreaGrouping(group.ChartType), categoryAxisId, valueAxisId));
                         break;
                     default:
                         throw new NotSupportedException($"Chart type {group.ChartType} is not supported in combination charts.");
@@ -274,10 +445,31 @@ namespace OfficeIMO.Excel {
             );
         }
 
+        private static Bar3DChart CreateBar3DChart(ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> seriesDescriptors,
+            BarDirectionValues direction, BarGroupingValues grouping, uint categoryAxisId, uint valueAxisId, uint seriesAxisId) {
+            var barChart = new Bar3DChart(
+                new BarDirection { Val = direction },
+                new BarGrouping { Val = grouping },
+                new VaryColors { Val = false });
+
+            foreach (var descriptor in seriesDescriptors) {
+                barChart.Append(CreateBarChartSeries(descriptor.Index, range, descriptor.Series));
+            }
+
+            barChart.Append(CreateDefaultDataLabels());
+            barChart.Append(new GapWidth { Val = (UInt16Value)150U });
+            barChart.Append(new GapDepth { Val = (UInt16Value)150U });
+            barChart.Append(new Shape { Val = ShapeValues.Box });
+            barChart.Append(new AxisId { Val = categoryAxisId });
+            barChart.Append(new AxisId { Val = valueAxisId });
+            barChart.Append(new AxisId { Val = seriesAxisId });
+            return barChart;
+        }
+
         private static LineChart CreateLineChart(ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> seriesDescriptors,
-            uint categoryAxisId, uint valueAxisId) {
+            GroupingValues grouping, uint categoryAxisId, uint valueAxisId) {
             var lineChart = new LineChart(
-                new Grouping { Val = GroupingValues.Standard },
+                new Grouping { Val = grouping },
                 new VaryColors { Val = false });
 
             foreach (var descriptor in seriesDescriptors) {
@@ -300,10 +492,28 @@ namespace OfficeIMO.Excel {
             );
         }
 
-        private static AreaChart CreateAreaChart(ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> seriesDescriptors,
-            uint categoryAxisId, uint valueAxisId) {
-            var areaChart = new AreaChart(
+        private static Line3DChart CreateLine3DChart(ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> seriesDescriptors,
+            uint categoryAxisId, uint valueAxisId, uint seriesAxisId) {
+            var lineChart = new Line3DChart(
                 new Grouping { Val = GroupingValues.Standard },
+                new VaryColors { Val = false });
+
+            foreach (var descriptor in seriesDescriptors) {
+                lineChart.Append(CreateLineChartSeries(descriptor.Index, range, descriptor.Series));
+            }
+
+            lineChart.Append(CreateDefaultDataLabels());
+            lineChart.Append(new GapDepth { Val = (UInt16Value)150U });
+            lineChart.Append(new AxisId { Val = categoryAxisId });
+            lineChart.Append(new AxisId { Val = valueAxisId });
+            lineChart.Append(new AxisId { Val = seriesAxisId });
+            return lineChart;
+        }
+
+        private static AreaChart CreateAreaChart(ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> seriesDescriptors,
+            GroupingValues grouping, uint categoryAxisId, uint valueAxisId) {
+            var areaChart = new AreaChart(
+                new Grouping { Val = grouping },
                 new VaryColors { Val = false });
 
             foreach (var descriptor in seriesDescriptors) {
@@ -326,6 +536,115 @@ namespace OfficeIMO.Excel {
             );
         }
 
+        private static Area3DChart CreateArea3DChart(ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> seriesDescriptors,
+            GroupingValues grouping, uint categoryAxisId, uint valueAxisId, uint seriesAxisId) {
+            var areaChart = new Area3DChart(
+                new Grouping { Val = grouping },
+                new VaryColors { Val = false });
+
+            foreach (var descriptor in seriesDescriptors) {
+                areaChart.Append(CreateAreaChartSeries(descriptor.Index, range, descriptor.Series));
+            }
+
+            areaChart.Append(CreateDefaultDataLabels());
+            areaChart.Append(new GapDepth { Val = (UInt16Value)150U });
+            areaChart.Append(new AxisId { Val = categoryAxisId });
+            areaChart.Append(new AxisId { Val = valueAxisId });
+            areaChart.Append(new AxisId { Val = seriesAxisId });
+            return areaChart;
+        }
+
+        private static RadarChart CreateRadarChart(ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> seriesDescriptors,
+            uint categoryAxisId, uint valueAxisId) {
+            var radarChart = new RadarChart(
+                new RadarStyle { Val = RadarStyleValues.Standard },
+                new VaryColors { Val = false });
+
+            foreach (var descriptor in seriesDescriptors) {
+                radarChart.Append(CreateRadarChartSeries(descriptor.Index, range, descriptor.Series));
+            }
+
+            radarChart.Append(CreateDefaultDataLabels());
+            radarChart.Append(new AxisId { Val = categoryAxisId });
+            radarChart.Append(new AxisId { Val = valueAxisId });
+            return radarChart;
+        }
+
+        private static RadarChartSeries CreateRadarChartSeries(int seriesIndex, ExcelChartDataRange range, ExcelChartSeries? series) {
+            return new RadarChartSeries(
+                new ChartIndex { Val = (uint)seriesIndex },
+                new Order { Val = (uint)seriesIndex },
+                CreateSeriesText(range, seriesIndex, series?.Name ?? $"Series {seriesIndex + 1}"),
+                CreateCategoryAxisData(range),
+                CreateValues(range, seriesIndex, series)
+            );
+        }
+
+        private static StockChart CreateStockChart(ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> seriesDescriptors,
+            uint categoryAxisId, uint valueAxisId) {
+            if (seriesDescriptors.Count < 3 || seriesDescriptors.Count > 4) {
+                throw new ArgumentException("Stock charts require three series (high-low-close) or four series (open-high-low-close).", nameof(seriesDescriptors));
+            }
+
+            var stockChart = new StockChart();
+            foreach (var descriptor in seriesDescriptors) {
+                stockChart.Append(CreateLineChartSeries(descriptor.Index, range, descriptor.Series));
+            }
+
+            stockChart.Append(CreateDefaultDataLabels());
+            stockChart.Append(new HighLowLines());
+            if (seriesDescriptors.Count == 4) {
+                stockChart.Append(new UpDownBars(
+                    new GapWidth { Val = (UInt16Value)150U },
+                    new UpBars(),
+                    new DownBars()));
+            }
+            stockChart.Append(new AxisId { Val = categoryAxisId });
+            stockChart.Append(new AxisId { Val = valueAxisId });
+            return stockChart;
+        }
+
+        private static Surface3DChart CreateSurface3DChart(ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> seriesDescriptors,
+            bool wireframe, uint categoryAxisId, uint valueAxisId, uint seriesAxisId) {
+            var surfaceChart = new Surface3DChart(
+                new Wireframe { Val = wireframe },
+                new VaryColors { Val = false });
+
+            foreach (var descriptor in seriesDescriptors) {
+                surfaceChart.Append(CreateSurfaceChartSeries(descriptor.Index, range, descriptor.Series));
+            }
+
+            surfaceChart.Append(new AxisId { Val = categoryAxisId });
+            surfaceChart.Append(new AxisId { Val = valueAxisId });
+            surfaceChart.Append(new AxisId { Val = seriesAxisId });
+            return surfaceChart;
+        }
+
+        private static SurfaceChart CreateSurfaceChart(ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> seriesDescriptors,
+            bool wireframe, uint categoryAxisId, uint valueAxisId, uint seriesAxisId) {
+            var surfaceChart = new SurfaceChart(
+                new Wireframe { Val = wireframe });
+
+            foreach (var descriptor in seriesDescriptors) {
+                surfaceChart.Append(CreateSurfaceChartSeries(descriptor.Index, range, descriptor.Series));
+            }
+
+            surfaceChart.Append(new AxisId { Val = categoryAxisId });
+            surfaceChart.Append(new AxisId { Val = valueAxisId });
+            surfaceChart.Append(new AxisId { Val = seriesAxisId });
+            return surfaceChart;
+        }
+
+        private static SurfaceChartSeries CreateSurfaceChartSeries(int seriesIndex, ExcelChartDataRange range, ExcelChartSeries? series) {
+            return new SurfaceChartSeries(
+                new ChartIndex { Val = (uint)seriesIndex },
+                new Order { Val = (uint)seriesIndex },
+                CreateSeriesText(range, seriesIndex, series?.Name ?? $"Series {seriesIndex + 1}"),
+                CreateCategoryAxisData(range),
+                CreateValues(range, seriesIndex, series)
+            );
+        }
+
         private static PieChart CreatePieChart(ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> seriesDescriptors) {
             var pieChart = new PieChart(new VaryColors { Val = true });
 
@@ -335,6 +654,42 @@ namespace OfficeIMO.Excel {
 
             pieChart.Append(CreateDefaultDataLabels());
             return pieChart;
+        }
+
+        private static Pie3DChart CreatePie3DChart(ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> seriesDescriptors) {
+            var pieChart = new Pie3DChart(new VaryColors { Val = true });
+
+            var descriptor = GetSingleSeriesDescriptor(seriesDescriptors, "3-D pie");
+            pieChart.Append(CreatePieChartSeries(descriptor.Index, range, descriptor.Series));
+
+            pieChart.Append(CreateDefaultDataLabels());
+            return pieChart;
+        }
+
+        private static OfPieChart CreateOfPieChart(ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> seriesDescriptors, OfPieValues type) {
+            var chart = new OfPieChart(
+                new OfPieType { Val = type },
+                new VaryColors { Val = true });
+
+            string chartName = type == OfPieValues.Bar ? "bar-of-pie" : "pie-of-pie";
+            var descriptor = GetSingleSeriesDescriptor(seriesDescriptors, chartName);
+            chart.Append(CreatePieChartSeries(descriptor.Index, range, descriptor.Series));
+
+            chart.Append(CreateDefaultDataLabels());
+            chart.Append(new GapWidth { Val = (UInt16Value)150U });
+            chart.Append(new SplitType { Val = SplitValues.Position });
+            chart.Append(new SplitPosition { Val = 2D });
+            chart.Append(new SecondPieSize { Val = (UInt16Value)75U });
+            chart.Append(new SeriesLines());
+            return chart;
+        }
+
+        private static SeriesDescriptor GetSingleSeriesDescriptor(IReadOnlyList<SeriesDescriptor> seriesDescriptors, string chartName) {
+            if (seriesDescriptors.Count != 1) {
+                throw new NotSupportedException($"{chartName} charts support exactly one series.");
+            }
+
+            return seriesDescriptors[0];
         }
 
         private static PieChartSeries CreatePieChartSeries(int seriesIndex, ExcelChartDataRange range, ExcelChartSeries? series) {
@@ -499,6 +854,20 @@ namespace OfficeIMO.Excel {
                 new CrossingAxis { Val = crossingAxisId },
                 new Crosses { Val = CrossesValues.AutoZero },
                 new CrossBetween { Val = CrossBetweenValues.Between }
+            );
+        }
+
+        private static SeriesAxis CreateSeriesAxis(uint axisId, uint crossingAxisId, AxisPositionValues? position = null) {
+            AxisPositionValues axisPosition = position ?? AxisPositionValues.Right;
+            return new SeriesAxis(
+                new AxisId { Val = axisId },
+                new Scaling(new Orientation { Val = OrientationValues.MinMax }),
+                new Delete { Val = false },
+                new AxisPosition { Val = axisPosition },
+                new MajorTickMark { Val = TickMarkValues.None },
+                new MinorTickMark { Val = TickMarkValues.None },
+                new TickLabelPosition { Val = TickLabelPositionValues.NextTo },
+                new CrossingAxis { Val = crossingAxisId }
             );
         }
 

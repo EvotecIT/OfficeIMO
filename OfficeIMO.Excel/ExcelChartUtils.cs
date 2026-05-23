@@ -47,6 +47,11 @@ namespace OfficeIMO.Excel {
                 bool hasSecondary,
                 bool hasScatter,
                 bool hasBubble,
+                bool hasStock,
+                bool hasSurface,
+                bool hasLine3D,
+                bool hasBar3D,
+                bool hasArea3D,
                 bool hasBar,
                 bool hasNonBar,
                 bool hasPieOrDoughnut,
@@ -54,6 +59,11 @@ namespace OfficeIMO.Excel {
                 HasSecondary = hasSecondary;
                 HasScatter = hasScatter;
                 HasBubble = hasBubble;
+                HasStock = hasStock;
+                HasSurface = hasSurface;
+                HasLine3D = hasLine3D;
+                HasBar3D = hasBar3D;
+                HasArea3D = hasArea3D;
                 HasBar = hasBar;
                 HasNonBar = hasNonBar;
                 HasPieOrDoughnut = hasPieOrDoughnut;
@@ -63,6 +73,11 @@ namespace OfficeIMO.Excel {
             public bool HasSecondary { get; }
             public bool HasScatter { get; }
             public bool HasBubble { get; }
+            public bool HasStock { get; }
+            public bool HasSurface { get; }
+            public bool HasLine3D { get; }
+            public bool HasBar3D { get; }
+            public bool HasArea3D { get; }
             public bool HasBar { get; }
             public bool HasNonBar { get; }
             public bool HasPieOrDoughnut { get; }
@@ -154,27 +169,119 @@ namespace OfficeIMO.Excel {
                 BarDirectionValues direction = barChart.GetFirstChild<BarDirection>()?.Val ?? BarDirectionValues.Column;
                 BarGroupingValues grouping = barChart.GetFirstChild<BarGrouping>()?.Val ?? BarGroupingValues.Clustered;
                 if (direction == BarDirectionValues.Bar) {
+                    if (grouping == BarGroupingValues.PercentStacked) return ExcelChartType.BarStacked100;
                     return grouping == BarGroupingValues.Stacked ? ExcelChartType.BarStacked : ExcelChartType.BarClustered;
                 }
+                if (grouping == BarGroupingValues.PercentStacked) return ExcelChartType.ColumnStacked100;
                 return grouping == BarGroupingValues.Stacked ? ExcelChartType.ColumnStacked : ExcelChartType.ColumnClustered;
             }
-            if (plotArea.GetFirstChild<LineChart>() != null) return ExcelChartType.Line;
-            if (plotArea.GetFirstChild<AreaChart>() != null) return ExcelChartType.Area;
+            if (plotArea.GetFirstChild<Bar3DChart>() is Bar3DChart bar3DChart) {
+                BarDirectionValues direction = bar3DChart.GetFirstChild<BarDirection>()?.Val ?? BarDirectionValues.Column;
+                BarGroupingValues grouping = bar3DChart.GetFirstChild<BarGrouping>()?.Val ?? BarGroupingValues.Clustered;
+                if (direction == BarDirectionValues.Bar) {
+                    if (grouping == BarGroupingValues.PercentStacked) return ExcelChartType.Bar3DStacked100;
+                    return grouping == BarGroupingValues.Stacked ? ExcelChartType.Bar3DStacked : ExcelChartType.Bar3DClustered;
+                }
+                if (grouping == BarGroupingValues.PercentStacked) return ExcelChartType.Column3DStacked100;
+                return grouping == BarGroupingValues.Stacked ? ExcelChartType.Column3DStacked : ExcelChartType.Column3DClustered;
+            }
+            if (plotArea.GetFirstChild<Line3DChart>() != null) return ExcelChartType.Line3D;
+            if (plotArea.GetFirstChild<LineChart>() is LineChart lineChart) {
+                GroupingValues grouping = lineChart.GetFirstChild<Grouping>()?.Val ?? GroupingValues.Standard;
+                if (grouping == GroupingValues.PercentStacked) return ExcelChartType.LineStacked100;
+                return grouping == GroupingValues.Stacked ? ExcelChartType.LineStacked : ExcelChartType.Line;
+            }
+            if (plotArea.GetFirstChild<Area3DChart>() is Area3DChart area3DChart) {
+                GroupingValues grouping = area3DChart.GetFirstChild<Grouping>()?.Val ?? GroupingValues.Standard;
+                if (grouping == GroupingValues.PercentStacked) return ExcelChartType.Area3DStacked100;
+                return grouping == GroupingValues.Stacked ? ExcelChartType.Area3DStacked : ExcelChartType.Area3D;
+            }
+            if (plotArea.GetFirstChild<AreaChart>() is AreaChart areaChart) {
+                GroupingValues grouping = areaChart.GetFirstChild<Grouping>()?.Val ?? GroupingValues.Standard;
+                if (grouping == GroupingValues.PercentStacked) return ExcelChartType.AreaStacked100;
+                return grouping == GroupingValues.Stacked ? ExcelChartType.AreaStacked : ExcelChartType.Area;
+            }
+            if (plotArea.GetFirstChild<OfPieChart>() is OfPieChart ofPieChart) {
+                OfPieValues type = ofPieChart.GetFirstChild<OfPieType>()?.Val ?? OfPieValues.Pie;
+                return type == OfPieValues.Bar ? ExcelChartType.BarOfPie : ExcelChartType.PieOfPie;
+            }
+            if (plotArea.GetFirstChild<Pie3DChart>() != null) return ExcelChartType.Pie3D;
             if (plotArea.GetFirstChild<PieChart>() != null) return ExcelChartType.Pie;
             if (plotArea.GetFirstChild<DoughnutChart>() != null) return ExcelChartType.Doughnut;
             if (plotArea.GetFirstChild<ScatterChart>() != null) return ExcelChartType.Scatter;
             if (plotArea.GetFirstChild<BubbleChart>() != null) return ExcelChartType.Bubble;
+            if (plotArea.GetFirstChild<RadarChart>() != null) return ExcelChartType.Radar;
+            if (plotArea.GetFirstChild<StockChart>() != null) return ExcelChartType.Stock;
+            if (plotArea.GetFirstChild<Surface3DChart>() is Surface3DChart surface3DChart) {
+                bool wireframe = surface3DChart.GetFirstChild<Wireframe>()?.Val ?? false;
+                return wireframe ? ExcelChartType.SurfaceWireframe : ExcelChartType.Surface;
+            }
+            if (plotArea.GetFirstChild<SurfaceChart>() is SurfaceChart surfaceChart) {
+                bool wireframe = surfaceChart.GetFirstChild<Wireframe>()?.Val ?? false;
+                return wireframe ? ExcelChartType.SurfaceContourWireframe : ExcelChartType.SurfaceContour;
+            }
             return ExcelChartType.ColumnClustered;
         }
 
         private static bool IsBarChartType(ExcelChartType chartType) {
-            return chartType == ExcelChartType.BarClustered || chartType == ExcelChartType.BarStacked;
+            return chartType == ExcelChartType.BarClustered
+                || chartType == ExcelChartType.BarStacked
+                || chartType == ExcelChartType.BarStacked100
+                || chartType == ExcelChartType.Bar3DClustered
+                || chartType == ExcelChartType.Bar3DStacked
+                || chartType == ExcelChartType.Bar3DStacked100;
+        }
+
+        private static bool IsBar3DChartType(ExcelChartType chartType) {
+            return chartType == ExcelChartType.Column3DClustered
+                || chartType == ExcelChartType.Column3DStacked
+                || chartType == ExcelChartType.Column3DStacked100
+                || chartType == ExcelChartType.Bar3DClustered
+                || chartType == ExcelChartType.Bar3DStacked
+                || chartType == ExcelChartType.Bar3DStacked100;
+        }
+
+        private static bool IsArea3DChartType(ExcelChartType chartType) {
+            return chartType == ExcelChartType.Area3D
+                || chartType == ExcelChartType.Area3DStacked
+                || chartType == ExcelChartType.Area3DStacked100;
+        }
+
+        private static bool IsSingleSeriesPieVariant(ExcelChartType chartType) {
+            return chartType == ExcelChartType.Pie3D
+                || chartType == ExcelChartType.PieOfPie
+                || chartType == ExcelChartType.BarOfPie;
+        }
+
+        private static void ValidateSingleSeriesPieVariants(IReadOnlyList<SeriesDescriptor> descriptors) {
+            foreach (var group in descriptors.Where(descriptor => IsSingleSeriesPieVariant(descriptor.ChartType)).GroupBy(descriptor => descriptor.ChartType)) {
+                if (group.Count() <= 1) continue;
+                string chartName = group.Key switch {
+                    ExcelChartType.Pie3D => "3-D pie",
+                    ExcelChartType.PieOfPie => "pie-of-pie",
+                    ExcelChartType.BarOfPie => "bar-of-pie",
+                    _ => "pie"
+                };
+                throw new NotSupportedException($"{chartName} charts support exactly one series.");
+            }
+        }
+
+        private static bool IsSurfaceChartType(ExcelChartType chartType) {
+            return chartType == ExcelChartType.Surface
+                || chartType == ExcelChartType.SurfaceWireframe
+                || chartType == ExcelChartType.SurfaceContour
+                || chartType == ExcelChartType.SurfaceContourWireframe;
         }
 
         private static SeriesDescriptorSummary SummarizeSeriesDescriptors(IReadOnlyList<SeriesDescriptor> descriptors) {
             bool hasSecondary = false;
             bool hasScatter = false;
             bool hasBubble = false;
+            bool hasStock = false;
+            bool hasSurface = false;
+            bool hasLine3D = false;
+            bool hasBar3D = false;
+            bool hasArea3D = false;
             bool hasBar = false;
             bool hasNonBar = false;
             bool hasPieOrDoughnut = false;
@@ -200,7 +307,21 @@ namespace OfficeIMO.Excel {
                     hasScatter = true;
                 } else if (chartType == ExcelChartType.Bubble) {
                     hasBubble = true;
-                } else if (chartType == ExcelChartType.Pie || chartType == ExcelChartType.Doughnut) {
+                } else if (chartType == ExcelChartType.Stock) {
+                    hasStock = true;
+                } else if (IsSurfaceChartType(chartType)) {
+                    hasSurface = true;
+                } else if (chartType == ExcelChartType.Line3D) {
+                    hasLine3D = true;
+                } else if (IsBar3DChartType(chartType)) {
+                    hasBar3D = true;
+                } else if (IsArea3DChartType(chartType)) {
+                    hasArea3D = true;
+                } else if (chartType == ExcelChartType.Pie
+                    || chartType == ExcelChartType.Pie3D
+                    || chartType == ExcelChartType.PieOfPie
+                    || chartType == ExcelChartType.BarOfPie
+                    || chartType == ExcelChartType.Doughnut) {
                     hasPieOrDoughnut = true;
                 }
 
@@ -211,7 +332,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            return new SeriesDescriptorSummary(hasSecondary, hasScatter, hasBubble, hasBar, hasNonBar, hasPieOrDoughnut, hasMultipleTypes);
+            return new SeriesDescriptorSummary(hasSecondary, hasScatter, hasBubble, hasStock, hasSurface, hasLine3D, hasBar3D, hasArea3D, hasBar, hasNonBar, hasPieOrDoughnut, hasMultipleTypes);
         }
 
         private static List<SeriesDescriptorGroup> GroupSeriesDescriptors(IReadOnlyList<SeriesDescriptor> descriptors) {
@@ -238,12 +359,38 @@ namespace OfficeIMO.Excel {
             return groups;
         }
 
+        private static GroupingValues GetAreaGrouping(ExcelChartType chartType) {
+            return chartType switch {
+                ExcelChartType.AreaStacked => GroupingValues.Stacked,
+                ExcelChartType.AreaStacked100 => GroupingValues.PercentStacked,
+                ExcelChartType.Area3DStacked => GroupingValues.Stacked,
+                ExcelChartType.Area3DStacked100 => GroupingValues.PercentStacked,
+                _ => GroupingValues.Standard
+            };
+        }
+
+        private static GroupingValues GetLineGrouping(ExcelChartType chartType) {
+            return chartType switch {
+                ExcelChartType.LineStacked => GroupingValues.Stacked,
+                ExcelChartType.LineStacked100 => GroupingValues.PercentStacked,
+                _ => GroupingValues.Standard
+            };
+        }
+
         private static (BarDirectionValues Direction, BarGroupingValues Grouping) GetBarChartSettings(ExcelChartType chartType) {
             return chartType switch {
                 ExcelChartType.ColumnClustered => (BarDirectionValues.Column, BarGroupingValues.Clustered),
                 ExcelChartType.ColumnStacked => (BarDirectionValues.Column, BarGroupingValues.Stacked),
+                ExcelChartType.ColumnStacked100 => (BarDirectionValues.Column, BarGroupingValues.PercentStacked),
+                ExcelChartType.Column3DClustered => (BarDirectionValues.Column, BarGroupingValues.Clustered),
+                ExcelChartType.Column3DStacked => (BarDirectionValues.Column, BarGroupingValues.Stacked),
+                ExcelChartType.Column3DStacked100 => (BarDirectionValues.Column, BarGroupingValues.PercentStacked),
                 ExcelChartType.BarClustered => (BarDirectionValues.Bar, BarGroupingValues.Clustered),
                 ExcelChartType.BarStacked => (BarDirectionValues.Bar, BarGroupingValues.Stacked),
+                ExcelChartType.BarStacked100 => (BarDirectionValues.Bar, BarGroupingValues.PercentStacked),
+                ExcelChartType.Bar3DClustered => (BarDirectionValues.Bar, BarGroupingValues.Clustered),
+                ExcelChartType.Bar3DStacked => (BarDirectionValues.Bar, BarGroupingValues.Stacked),
+                ExcelChartType.Bar3DStacked100 => (BarDirectionValues.Bar, BarGroupingValues.PercentStacked),
                 _ => (BarDirectionValues.Column, BarGroupingValues.Clustered)
             };
         }

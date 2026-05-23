@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using Threaded = DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -28,6 +29,7 @@ namespace OfficeIMO.Excel {
                 var workbook = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook is missing.");
                 var styleContext = StyleInspectionContext.Create(workbookPart.WorkbookStylesPart?.Stylesheet);
                 var sheetElements = workbook.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
+                var threadedCommentPeople = BuildThreadedCommentPersonMap(workbookPart);
 
                 for (int sheetIndex = 0; sheetIndex < sheetElements.Count; sheetIndex++) {
                     var sheet = sheetElements[sheetIndex];
@@ -38,6 +40,7 @@ namespace OfficeIMO.Excel {
                     var typedValues = BuildTypedCellMap(readerSheet);
                     var hyperlinkMap = BuildHyperlinkMap(worksheetPart);
                     var commentMap = BuildCommentMap(worksheetPart);
+                    var threadedCommentMap = BuildThreadedCommentMap(worksheetPart, threadedCommentPeople);
 
                     var worksheetSnapshot = new ExcelWorksheetSnapshot {
                         Name = sheetName,
@@ -115,8 +118,15 @@ namespace OfficeIMO.Excel {
                                     Style = BuildCellStyleSnapshot(styleContext, cell.StyleIndex?.Value),
                                     Hyperlink = hyperlinkMap.TryGetValue(cellReference, out var hyperlink) ? hyperlink : null,
                                     Comment = commentMap.TryGetValue(cellReference, out var comment) ? comment : null,
+                                    ThreadedComment = threadedCommentMap.TryGetValue(cellReference, out var threadedComments) ? threadedComments[0] : null,
                                 });
                             }
+                        }
+                    }
+
+                    foreach (var threadedComments in threadedCommentMap.Values) {
+                        foreach (var threadedComment in threadedComments) {
+                            worksheetSnapshot.AddThreadedComment(threadedComment);
                         }
                     }
 
@@ -305,6 +315,85 @@ namespace OfficeIMO.Excel {
 
             return builder
                 .ToString()
+                .Replace("\r\n", "\n")
+                .Replace('\r', '\n');
+        }
+
+        private static Dictionary<string, string> BuildThreadedCommentPersonMap(WorkbookPart workbookPart) {
+            var people = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var personPart in workbookPart.WorkbookPersonParts) {
+                var personList = personPart.PersonList;
+                if (personList == null) {
+                    continue;
+                }
+
+                foreach (var person in personList.Elements<Threaded.Person>()) {
+                    var id = person.Id?.Value;
+                    if (string.IsNullOrWhiteSpace(id)) {
+                        continue;
+                    }
+
+                    var displayName = person.DisplayName?.Value;
+                    if (!string.IsNullOrWhiteSpace(displayName)) {
+                        people[id!] = displayName!;
+                    }
+                }
+            }
+
+            return people;
+        }
+
+        private static Dictionary<string, List<ExcelThreadedCommentSnapshot>> BuildThreadedCommentMap(
+            WorksheetPart worksheetPart,
+            IReadOnlyDictionary<string, string> people) {
+            var map = new Dictionary<string, List<ExcelThreadedCommentSnapshot>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var commentsPart in worksheetPart.WorksheetThreadedCommentsParts) {
+                var threadedComments = commentsPart.ThreadedComments;
+                if (threadedComments == null) {
+                    continue;
+                }
+
+                foreach (var comment in threadedComments.Elements<Threaded.ThreadedComment>()) {
+                    var reference = comment.Ref?.Value;
+                    if (string.IsNullOrWhiteSpace(reference)) {
+                        continue;
+                    }
+
+                    var personId = comment.PersonId?.Value;
+                    string? author = null;
+                    if (!string.IsNullOrWhiteSpace(personId) && people.TryGetValue(personId!, out var displayName)) {
+                        author = displayName;
+                    }
+
+                    var snapshot = new ExcelThreadedCommentSnapshot {
+                        CellReference = reference!,
+                        Id = NullIfWhiteSpace(comment.Id?.Value),
+                        ParentId = NullIfWhiteSpace(comment.ParentId?.Value),
+                        PersonId = NullIfWhiteSpace(personId),
+                        Author = author,
+                        Text = NormalizeMultilineText(comment.ThreadedCommentText?.InnerText ?? string.Empty),
+                        Date = comment.DT?.Value,
+                        Done = comment.Done?.Value == true,
+                    };
+
+                    if (!map.TryGetValue(reference!, out var comments)) {
+                        comments = new List<ExcelThreadedCommentSnapshot>();
+                        map[reference!] = comments;
+                    }
+
+                    comments.Add(snapshot);
+                }
+            }
+
+            return map;
+        }
+
+        private static string? NullIfWhiteSpace(string? value) {
+            return string.IsNullOrWhiteSpace(value) ? null : value;
+        }
+
+        private static string NormalizeMultilineText(string value) {
+            return value
                 .Replace("\r\n", "\n")
                 .Replace('\r', '\n');
         }
