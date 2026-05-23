@@ -9,12 +9,13 @@ namespace OfficeIMO.Excel {
     /// Immutable worksheet comment metadata.
     /// </summary>
     public sealed class ExcelCommentInfo {
-        internal ExcelCommentInfo(string cellReference, int row, int column, string? author, string text) {
+        internal ExcelCommentInfo(string cellReference, int row, int column, string? author, string text, IReadOnlyList<ExcelRichTextRun>? richTextRuns = null) {
             CellReference = cellReference;
             Row = row;
             Column = column;
             Author = author;
             Text = text;
+            RichTextRuns = richTextRuns ?? Array.Empty<ExcelRichTextRun>();
         }
 
         /// <summary>A1 cell reference where the comment is attached.</summary>
@@ -31,6 +32,9 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Comment text content.</summary>
         public string Text { get; }
+
+        /// <summary>Rich text runs stored in the legacy comment text.</summary>
+        public IReadOnlyList<ExcelRichTextRun> RichTextRuns { get; }
     }
 
     /// <summary>
@@ -63,7 +67,24 @@ namespace OfficeIMO.Excel {
             if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row), "Row and column are 1-based and must be positive.");
             if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column), "Row and column are 1-based and must be positive.");
             if (string.IsNullOrEmpty(text)) throw new ArgumentException("Comment text is required.", nameof(text));
+            SetCommentInternal(row, column, BuildCommentText(text), author, initials);
+        }
 
+        /// <summary>
+        /// Adds or replaces a rich-text comment on the specified cell.
+        /// </summary>
+        /// <param name="row">1-based row index.</param>
+        /// <param name="column">1-based column index.</param>
+        /// <param name="runs">Rich text runs that make up the comment text.</param>
+        /// <param name="author">Author name (optional).</param>
+        /// <param name="initials">Author initials (optional).</param>
+        public void SetCommentRichText(int row, int column, IEnumerable<ExcelRichTextRun> runs, string author = "OfficeIMO", string? initials = null) {
+            if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row), "Row and column are 1-based and must be positive.");
+            if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column), "Row and column are 1-based and must be positive.");
+            SetCommentInternal(row, column, BuildCommentText(runs), author, initials);
+        }
+
+        private void SetCommentInternal(int row, int column, CommentText commentText, string author, string? initials) {
             WriteLock(() => {
                 string reference = A1.CellReference(row, column);
                 string authorDisplay = NormalizeAuthor(author, initials);
@@ -77,7 +98,7 @@ namespace OfficeIMO.Excel {
                 RemoveCommentInternal(comments.CommentList, reference);
 
                 var comment = new Comment { Reference = reference, AuthorId = authorId };
-                comment.Append(BuildCommentText(text));
+                comment.Append(commentText);
                 comments.CommentList.Append(comment);
                 comments.Save();
 
@@ -97,6 +118,19 @@ namespace OfficeIMO.Excel {
             var (row, col) = A1.ParseCellRef(a1);
             if (row <= 0 || col <= 0) throw new ArgumentException($"Address '{a1}' is not a valid A1 reference.", nameof(a1));
             SetComment(row, col, text, author, initials);
+        }
+
+        /// <summary>
+        /// Adds or replaces a rich-text comment on the specified A1 cell reference.
+        /// </summary>
+        /// <param name="a1">A1 cell reference (e.g., "B5").</param>
+        /// <param name="runs">Rich text runs that make up the comment text.</param>
+        /// <param name="author">Author name (optional).</param>
+        /// <param name="initials">Author initials (optional).</param>
+        public void SetCommentRichText(string a1, IEnumerable<ExcelRichTextRun> runs, string author = "OfficeIMO", string? initials = null) {
+            var (row, col) = A1.ParseCellRef(a1);
+            if (row <= 0 || col <= 0) throw new ArgumentException($"Address '{a1}' is not a valid A1 reference.", nameof(a1));
+            SetCommentRichText(row, col, runs, author, initials);
         }
 
         /// <summary>
@@ -198,6 +232,24 @@ namespace OfficeIMO.Excel {
             if (filter == null) throw new ArgumentNullException(nameof(filter));
             if (string.IsNullOrEmpty(text)) throw new ArgumentException("Comment text is required.", nameof(text));
 
+            return UpdateCommentsInternal(filter, BuildCommentText(text), author, initials);
+        }
+
+        /// <summary>
+        /// Replaces rich text, and optionally author, for comments that match the supplied filter.
+        /// </summary>
+        /// <param name="filter">Author, text, and/or A1 range filter used to choose comments.</param>
+        /// <param name="runs">Replacement rich text runs.</param>
+        /// <param name="author">Optional replacement author.</param>
+        /// <param name="initials">Optional replacement author initials.</param>
+        /// <returns>Number of comments updated.</returns>
+        public int UpdateCommentsRichText(ExcelCommentFilter filter, IEnumerable<ExcelRichTextRun> runs, string? author = null, string? initials = null) {
+            if (filter == null) throw new ArgumentNullException(nameof(filter));
+
+            return UpdateCommentsInternal(filter, BuildCommentText(runs), author, initials);
+        }
+
+        private int UpdateCommentsInternal(ExcelCommentFilter filter, CommentText commentText, string? author, string? initials) {
             int updated = 0;
             WriteLock(() => {
                 var commentsPart = WorksheetCommentsPartRoot;
@@ -219,7 +271,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     comment.RemoveAllChildren<CommentText>();
-                    comment.Append(BuildCommentText(text));
+                    comment.Append((CommentText)commentText.CloneNode(true));
                     if (newAuthorId.HasValue) {
                         comment.AuthorId = newAuthorId.Value;
                     }
@@ -310,12 +362,56 @@ namespace OfficeIMO.Excel {
         }
 
         private static CommentText BuildCommentText(string text) {
+            return BuildCommentText(new[] { new ExcelRichTextRun(text) });
+        }
+
+        private static CommentText BuildCommentText(IEnumerable<ExcelRichTextRun> runs) {
+            var normalizedRuns = NormalizeCommentRuns(runs);
             var commentText = new CommentText();
-            var run = new Run();
-            string normalizedText = text.Replace("\r\n", "\n").Replace('\r', '\n');
-            run.Append(new Text(normalizedText) { Space = SpaceProcessingModeValues.Preserve });
-            commentText.Append(run);
+            foreach (var richRun in normalizedRuns) {
+                var run = new Run();
+                var properties = new RunProperties();
+                if (richRun.Bold) properties.Append(new Bold());
+                if (richRun.Italic) properties.Append(new Italic());
+                if (richRun.Underline) properties.Append(new Underline());
+                if (!string.IsNullOrWhiteSpace(richRun.FontColor)) properties.Append(new Color { Rgb = NormalizeHexColor(richRun.FontColor!) });
+                if (!string.IsNullOrWhiteSpace(richRun.FontName)) properties.Append(new RunFont { Val = richRun.FontName });
+                if (richRun.FontSize.HasValue) properties.Append(new FontSize { Val = richRun.FontSize.Value });
+                if (properties.HasChildren) {
+                    run.Append(properties);
+                }
+
+                run.Append(new Text(NormalizeCommentText(richRun.Text)) { Space = SpaceProcessingModeValues.Preserve });
+                commentText.Append(run);
+            }
+
             return commentText;
+        }
+
+        private static IReadOnlyList<ExcelRichTextRun> NormalizeCommentRuns(IEnumerable<ExcelRichTextRun> runs) {
+            if (runs == null) throw new ArgumentNullException(nameof(runs));
+            var normalized = new List<ExcelRichTextRun>();
+            foreach (var run in runs) {
+                if (run == null) continue;
+                normalized.Add(new ExcelRichTextRun(run.Text ?? string.Empty) {
+                    Bold = run.Bold,
+                    Italic = run.Italic,
+                    Underline = run.Underline,
+                    FontColor = run.FontColor,
+                    FontName = run.FontName,
+                    FontSize = run.FontSize
+                });
+            }
+
+            if (normalized.Count == 0 || normalized.All(run => string.IsNullOrEmpty(run.Text))) {
+                throw new ArgumentException("At least one comment text run is required.", nameof(runs));
+            }
+
+            return normalized;
+        }
+
+        private static string NormalizeCommentText(string? text) {
+            return (text ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
         }
 
         private static ExcelCommentInfo? CreateCommentInfo(Comment comment, IReadOnlyList<string> authors) {
@@ -334,7 +430,7 @@ namespace OfficeIMO.Excel {
                 author = authors[(int)comment.AuthorId.Value];
             }
 
-            return new ExcelCommentInfo(reference!, parsed.Row, parsed.Col, author, ExtractCommentText(comment.CommentText));
+            return new ExcelCommentInfo(reference!, parsed.Row, parsed.Col, author, ExtractCommentText(comment.CommentText), ExtractCommentRuns(comment.CommentText));
         }
 
         private static string ExtractCommentText(CommentText? commentText) {
@@ -343,6 +439,34 @@ namespace OfficeIMO.Excel {
             }
 
             return string.Concat(commentText.Descendants<Text>().Select(text => text.Text ?? string.Empty));
+        }
+
+        private static IReadOnlyList<ExcelRichTextRun> ExtractCommentRuns(CommentText? commentText) {
+            if (commentText == null) {
+                return Array.Empty<ExcelRichTextRun>();
+            }
+
+            var runs = new List<ExcelRichTextRun>();
+            foreach (var run in commentText.Elements<Run>()) {
+                var properties = run.RunProperties;
+                runs.Add(new ExcelRichTextRun(run.Text?.Text ?? string.Empty) {
+                    Bold = properties?.GetFirstChild<Bold>() != null,
+                    Italic = properties?.GetFirstChild<Italic>() != null,
+                    Underline = properties?.GetFirstChild<Underline>() != null,
+                    FontColor = properties?.GetFirstChild<Color>()?.Rgb?.Value,
+                    FontName = properties?.GetFirstChild<RunFont>()?.Val?.Value,
+                    FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value
+                });
+            }
+
+            if (runs.Count == 0) {
+                string plainText = ExtractCommentText(commentText);
+                if (!string.IsNullOrEmpty(plainText)) {
+                    runs.Add(new ExcelRichTextRun(plainText));
+                }
+            }
+
+            return runs;
         }
 
         private static bool CommentMatchesFilter(ExcelCommentInfo info, ExcelCommentFilter? filter) {

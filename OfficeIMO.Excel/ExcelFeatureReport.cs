@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using System.Text;
+using Threaded = DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -336,7 +337,8 @@ namespace OfficeIMO.Excel {
                 conditionalFormattingCount += worksheet?.Elements<DocumentFormat.OpenXml.Spreadsheet.ConditionalFormatting>().Count() ?? 0;
                 sparklineCount += CountDescendantsByLocalName(worksheet, "sparkline");
                 legacyCommentCount += worksheetPart.WorksheetCommentsPart?.Comments?.CommentList?.Elements<DocumentFormat.OpenXml.Spreadsheet.Comment>().Count() ?? 0;
-                threadedCommentPartCount += CountPartsByUri(worksheetPart.Parts.Select(pair => pair.OpenXmlPart), "threadedComment");
+                threadedCommentPartCount += worksheetPart.WorksheetThreadedCommentsParts
+                    .Sum(part => part.ThreadedComments?.Elements<Threaded.ThreadedComment>().Count() ?? 0);
                 imagePartCount += worksheetPart.DrawingsPart?.ImageParts.Count() ?? 0;
                 chartCount += worksheetPart.DrawingsPart?.ChartParts.Count() ?? 0;
                 int sheetOleObjects = CountDescendantsByLocalName(worksheet, "oleObject");
@@ -358,15 +360,15 @@ namespace OfficeIMO.Excel {
             Add(features, "Formatting", "Conditional formatting", ExcelFeatureSupportLevel.PartiallyEditable, conditionalFormattingCount, null,
                 "Common rule types are editable; full Excel conditional-formatting parity remains a roadmap item.");
             Add(features, "Visualization", "Charts", ExcelFeatureSupportLevel.PartiallyEditable, chartCount, null,
-                "Common chart authoring and updates are supported; advanced chart families remain partial.");
+                "Common chart authoring and updates are supported, including stacked/100% stacked column/bar/line/area variants, 3-D area/line/column/bar/pie, pie-of-pie/bar-of-pie, radar, stock, and filled/wireframe/contour surface charts; advanced chart families remain partial.");
             Add(features, "Visualization", "Pivot tables", ExcelFeatureSupportLevel.PartiallyEditable, pivotCount, null,
-                "Source-range pivot creation and inspection are supported; grouping, slicers, and advanced filters remain partial.");
+                "Source-range pivot creation and inspection are supported, including composable fluent field sort/subtotal/layout/display/number-format helpers with built-in/custom id/code readback, field item/page filters with fluent helpers plus hidden, visible, and selected-item readback, common label/value filters, negated filter variants, fixed and dynamic date filters, top/bottom count/percent/sum filters, formula-backed calculated fields with number-format id/code readback, date/number grouping metadata, generated multi-level date hierarchy fields with base/parent relationships, and explicit grouped-cache item metadata; slicers, deeper Excel interoperability checks, and advanced filters remain partial.");
             Add(features, "Visualization", "Sparklines", ExcelFeatureSupportLevel.Editable, sparklineCount, null,
                 "Line, column, and win/loss sparklines can be authored.");
             Add(features, "Collaboration", "Legacy comments", ExcelFeatureSupportLevel.PartiallyEditable, legacyCommentCount, null,
-                "Legacy comments can be authored and inspected; rich/threaded comment workflows remain limited.");
+                "Legacy comments can be authored and inspected, including rich-text runs for authored comments; threaded comment workflows remain preserve-only.");
             Add(features, "Collaboration", "Threaded comments", ExcelFeatureSupportLevel.Preserved, threadedCommentPartCount, null,
-                "Threaded comments are advanced Excel metadata and should be treated as preserve-only.");
+                "Threaded comments can be inspected and round-trip preserved, but authoring/editing modern conversations remains preserve-only.");
             Add(features, "Media", "Images", ExcelFeatureSupportLevel.PartiallyEditable, imagePartCount, null,
                 "Images can be inserted in common worksheet/header/footer scenarios; advanced drawing behaviors remain partial.");
             Add(features, "Compatibility", "OLE objects", ExcelFeatureSupportLevel.Preserved, oleObjectCount, null,

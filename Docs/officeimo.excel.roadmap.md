@@ -33,10 +33,40 @@ Build the lightweight evaluator into a dependable reporting-calculation layer.
 Continue turning existing workbook features into polished report-building APIs.
 
 - Done initial slice: add chart presets for KPI scorecards, contribution charts, and waterfall-style variance bridges.
-- Expand chart type coverage in practical chunks: waterfall, funnel, histogram, treemap, sunburst, box-and-whisker, stock, radar, and surface.
-- Add pivot grouping for dates and numbers.
+- Done initial slice: add radar chart authoring, fluent range/table helper coverage, data update support, and OpenXML validation coverage.
+- Done initial slice: add stock chart authoring for high-low-close and open-high-low-close ranges with update/readback validation.
+- Done initial slice: add 3-D surface chart authoring, update support, series styling, and OpenXML validation coverage.
+- Done initial slice: add wireframe surface, contour surface, and wireframe contour surface chart variants with update/readback support and OpenXML validation coverage.
+- Done initial slice: add 3-D pie chart authoring, update/readback support, data labels, series styling, and OpenXML validation coverage.
+- Done initial slice: add pie-of-pie and bar-of-pie chart authoring, update/readback support, labels, styling, and OpenXML validation coverage.
+- Done initial slice: add 3-D clustered/stacked column and bar chart authoring, update/readback support, labels, styling, and OpenXML validation coverage.
+- Done initial slice: add 100% stacked column/bar chart variants, including 3-D 100% stacked column/bar, update/readback support, styling, and OpenXML validation coverage.
+- Done initial slice: add stacked and 100% stacked line chart variants, update/readback support, labels, markers, styling, and OpenXML validation coverage.
+- Done initial slice: add 3-D line chart authoring, update/readback support, labels, markers, styling, and OpenXML validation coverage.
+- Done initial slice: add 3-D standard/stacked area chart authoring, update/readback support, labels, styling, and OpenXML validation coverage.
+- Done initial slice: add stacked and 100% stacked area chart variants, including 3-D 100% stacked area, update/readback support, styling, and OpenXML validation coverage.
+- Expand chart type coverage in practical chunks: waterfall, funnel, histogram, treemap, sunburst, and box-and-whisker.
+- Done initial slice: add pivot date and number grouping metadata with fluent helpers, typed cache shared items, and readback metadata.
 - Done initial slice: add pivot show-values-as options for data fields, including a fluent percent-of-total helper.
-- Add pivot value filters, label filters, top/bottom filters, and calculated fields.
+- Done initial slice: add pivot label and value filters with fluent helpers and readback metadata.
+- Done initial slice: add pivot top/bottom count, percent, and sum filters with readback metadata.
+- Done initial slice: add formula-backed pivot calculated fields that can be used as data fields.
+- Done initial slice: add broader label/value pivot filter helper variants, including negated and not-between filters.
+- Done initial slice: add fixed date pivot filter helpers for date comparisons and date ranges.
+- Done initial slice: add dynamic date pivot filter helpers for relative periods, months, and quarters.
+- Done initial slice: add generated multi-level pivot date hierarchy fields for year/quarter/month-style row grouping, with cache metadata and readback coverage.
+- Done initial slice: add explicit pivot grouping item metadata for grouped cache fields, including generated date hierarchy readback.
+- Done initial slice: add base/parent field relationship metadata for generated pivot date hierarchy fields.
+- Done initial slice: add fluent pivot helpers for item visibility filters and selected page/filter items.
+- Done initial slice: add selected page/filter item readback on pivot field inspection.
+- Done initial slice: add visible item readback for pivot field item filters.
+- Done initial slice: add composable fluent pivot field helpers for sort and subtotal placement.
+- Done initial slice: add fluent pivot field helpers for layout, display flags, breaks, and subtotal captions.
+- Done initial slice: add fluent pivot field number-format helpers that compose with other field options.
+- Done initial slice: add pivot field, data field, and calculated field number-format code readback.
+- Done initial slice: add built-in Excel number-format code readback for pivot fields and data fields.
+- Continue pivot grouping work with deeper Excel interoperability checks against real Excel-authored grouped pivot files.
+- Add calculated item/member scenarios.
 - Add table and pivot slicers once the metadata model is solid.
 
 ### 3. Preservation And Feature Inspection
@@ -66,8 +96,8 @@ Turn workbook templates into a first-class report-generation path.
 
 Improve collaboration metadata without making it heavy.
 
-- Add rich-text comment authoring.
-- Add threaded comment inspection and preservation checks.
+- Done initial slice: add rich-text legacy comment authoring and update support using the existing `ExcelRichTextRun` model.
+- Done initial slice: add threaded comment inspection and preservation checks.
 - Done initial slice: add APIs for finding, updating, and removing legacy comments by author, range, and text.
 - Document which comment features are editable and which are preservation-only.
 

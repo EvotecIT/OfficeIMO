@@ -24,11 +24,15 @@ namespace OfficeIMO.Excel {
             bool? multipleItemSelectionAllowed = null,
             bool? includeNewItemsInFilter = null,
             string? subtotalCaption = null,
-            IReadOnlyList<string>? hiddenItems = null) {
+            IReadOnlyList<string>? hiddenItems = null,
+            string? selectedItem = null,
+            IReadOnlyList<string>? visibleItems = null,
+            string? numberFormatCode = null) {
             FieldName = fieldName;
             Axis = axis;
             SortType = sortType;
             NumberFormatId = numberFormatId;
+            NumberFormatCode = numberFormatCode;
             ShowAll = showAll;
             DefaultSubtotal = defaultSubtotal;
             SubtotalTop = subtotalTop;
@@ -41,6 +45,8 @@ namespace OfficeIMO.Excel {
             IncludeNewItemsInFilter = includeNewItemsInFilter;
             SubtotalCaption = subtotalCaption;
             HiddenItems = hiddenItems ?? Array.Empty<string>();
+            SelectedItem = selectedItem;
+            VisibleItems = visibleItems ?? Array.Empty<string>();
         }
 
         /// <summary>
@@ -62,6 +68,11 @@ namespace OfficeIMO.Excel {
         /// Gets the field number format id.
         /// </summary>
         public uint? NumberFormatId { get; }
+
+        /// <summary>
+        /// Gets the custom number format code for the field, when it can be resolved from workbook styles.
+        /// </summary>
+        public string? NumberFormatCode { get; }
 
         /// <summary>
         /// Gets whether all items should be shown.
@@ -122,5 +133,15 @@ namespace OfficeIMO.Excel {
         /// Gets hidden item captions captured from the field item list.
         /// </summary>
         public IReadOnlyList<string> HiddenItems { get; }
+
+        /// <summary>
+        /// Gets the selected item caption when this field is used as a page/filter field.
+        /// </summary>
+        public string? SelectedItem { get; }
+
+        /// <summary>
+        /// Gets visible item captions captured from the field item list.
+        /// </summary>
+        public IReadOnlyList<string> VisibleItems { get; }
     }
 }

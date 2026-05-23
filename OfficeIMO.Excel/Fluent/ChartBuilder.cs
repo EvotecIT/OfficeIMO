@@ -34,26 +34,101 @@ namespace OfficeIMO.Excel.Fluent {
         /// <summary>Uses a stacked column chart.</summary>
         public ChartBuilder ColumnStacked() => Type(ExcelChartType.ColumnStacked);
 
+        /// <summary>Uses a 100% stacked column chart.</summary>
+        public ChartBuilder ColumnStacked100() => Type(ExcelChartType.ColumnStacked100);
+
+        /// <summary>Uses a 3-D clustered column chart.</summary>
+        public ChartBuilder Column3DClustered() => Type(ExcelChartType.Column3DClustered);
+
+        /// <summary>Uses a 3-D stacked column chart.</summary>
+        public ChartBuilder Column3DStacked() => Type(ExcelChartType.Column3DStacked);
+
+        /// <summary>Uses a 3-D 100% stacked column chart.</summary>
+        public ChartBuilder Column3DStacked100() => Type(ExcelChartType.Column3DStacked100);
+
         /// <summary>Uses a clustered bar chart.</summary>
         public ChartBuilder BarClustered() => Type(ExcelChartType.BarClustered);
 
         /// <summary>Uses a stacked bar chart.</summary>
         public ChartBuilder BarStacked() => Type(ExcelChartType.BarStacked);
 
+        /// <summary>Uses a 100% stacked bar chart.</summary>
+        public ChartBuilder BarStacked100() => Type(ExcelChartType.BarStacked100);
+
+        /// <summary>Uses a 3-D clustered bar chart.</summary>
+        public ChartBuilder Bar3DClustered() => Type(ExcelChartType.Bar3DClustered);
+
+        /// <summary>Uses a 3-D stacked bar chart.</summary>
+        public ChartBuilder Bar3DStacked() => Type(ExcelChartType.Bar3DStacked);
+
+        /// <summary>Uses a 3-D 100% stacked bar chart.</summary>
+        public ChartBuilder Bar3DStacked100() => Type(ExcelChartType.Bar3DStacked100);
+
         /// <summary>Uses a line chart.</summary>
         public ChartBuilder Line() => Type(ExcelChartType.Line);
+
+        /// <summary>Uses a stacked line chart.</summary>
+        public ChartBuilder LineStacked() => Type(ExcelChartType.LineStacked);
+
+        /// <summary>Uses a 100% stacked line chart.</summary>
+        public ChartBuilder LineStacked100() => Type(ExcelChartType.LineStacked100);
+
+        /// <summary>Uses a 3-D line chart.</summary>
+        public ChartBuilder Line3D() => Type(ExcelChartType.Line3D);
 
         /// <summary>Uses an area chart.</summary>
         public ChartBuilder Area() => Type(ExcelChartType.Area);
 
+        /// <summary>Uses a stacked area chart.</summary>
+        public ChartBuilder AreaStacked() => Type(ExcelChartType.AreaStacked);
+
+        /// <summary>Uses a 100% stacked area chart.</summary>
+        public ChartBuilder AreaStacked100() => Type(ExcelChartType.AreaStacked100);
+
+        /// <summary>Uses a 3-D area chart.</summary>
+        public ChartBuilder Area3D() => Type(ExcelChartType.Area3D);
+
+        /// <summary>Uses a 3-D stacked area chart.</summary>
+        public ChartBuilder Area3DStacked() => Type(ExcelChartType.Area3DStacked);
+
+        /// <summary>Uses a 3-D 100% stacked area chart.</summary>
+        public ChartBuilder Area3DStacked100() => Type(ExcelChartType.Area3DStacked100);
+
         /// <summary>Uses a pie chart.</summary>
         public ChartBuilder Pie() => Type(ExcelChartType.Pie);
+
+        /// <summary>Uses a 3-D pie chart.</summary>
+        public ChartBuilder Pie3D() => Type(ExcelChartType.Pie3D);
+
+        /// <summary>Uses a pie-of-pie chart.</summary>
+        public ChartBuilder PieOfPie() => Type(ExcelChartType.PieOfPie);
+
+        /// <summary>Uses a bar-of-pie chart.</summary>
+        public ChartBuilder BarOfPie() => Type(ExcelChartType.BarOfPie);
 
         /// <summary>Uses a doughnut chart.</summary>
         public ChartBuilder Doughnut() => Type(ExcelChartType.Doughnut);
 
         /// <summary>Uses a scatter chart. Category values must be numeric.</summary>
         public ChartBuilder Scatter() => Type(ExcelChartType.Scatter);
+
+        /// <summary>Uses a radar chart.</summary>
+        public ChartBuilder Radar() => Type(ExcelChartType.Radar);
+
+        /// <summary>Uses a stock chart. Provide high-low-close or open-high-low-close series.</summary>
+        public ChartBuilder Stock() => Type(ExcelChartType.Stock);
+
+        /// <summary>Uses a 3-D surface chart.</summary>
+        public ChartBuilder Surface() => Type(ExcelChartType.Surface);
+
+        /// <summary>Uses a wireframe 3-D surface chart.</summary>
+        public ChartBuilder SurfaceWireframe() => Type(ExcelChartType.SurfaceWireframe);
+
+        /// <summary>Uses a contour surface chart.</summary>
+        public ChartBuilder SurfaceContour() => Type(ExcelChartType.SurfaceContour);
+
+        /// <summary>Uses a wireframe contour surface chart.</summary>
+        public ChartBuilder SurfaceContourWireframe() => Type(ExcelChartType.SurfaceContourWireframe);
 
         /// <summary>Uses defaults suitable for a time-series revenue or volume trend.</summary>
         public ChartBuilder RevenueTrend(string title = "Revenue Trend", int widthPixels = 720, int heightPixels = 320) {

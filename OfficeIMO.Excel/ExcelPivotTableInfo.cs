@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel {
             : this(name, cacheId, location, sourceSheet, sourceRange, sheetName, sheetIndex, pivotStyle,
                 layout, dataOnRows, showHeaders, showEmptyRows, showEmptyColumns, showDrill,
                 null, null, null, null, null, null, null, null, null, null, null, null, null,
-                rowFields, columnFields, pageFields, dataFields, null) {
+                rowFields, columnFields, pageFields, dataFields, null, null, null) {
         }
 
         /// <summary>
@@ -66,7 +66,53 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<string> columnFields,
             IReadOnlyList<string> pageFields,
             IReadOnlyList<ExcelPivotDataFieldInfo> dataFields,
-            IReadOnlyList<ExcelPivotFieldInfo>? fields = null) {
+            IReadOnlyList<ExcelPivotFieldInfo>? fields = null)
+            : this(name, cacheId, location, sourceSheet, sourceRange, sheetName, sheetIndex, pivotStyle,
+                layout, dataOnRows, showHeaders, showEmptyRows, showEmptyColumns, showDrill,
+                rowGrandTotals, columnGrandTotals, rowHeaderCaption, columnHeaderCaption, grandTotalCaption,
+                missingCaption, errorCaption, showDataDropDown, showDropZones, showDataTips,
+                showMemberPropertyTips, fieldListSortAscending, customListSort,
+                rowFields, columnFields, pageFields, dataFields, fields, null, null) {
+        }
+
+        /// <summary>
+        /// Creates a pivot table info instance.
+        /// </summary>
+        public ExcelPivotTableInfo(string name,
+            uint cacheId,
+            string? location,
+            string? sourceSheet,
+            string? sourceRange,
+            string sheetName,
+            int sheetIndex,
+            string? pivotStyle,
+            ExcelPivotLayout layout,
+            bool? dataOnRows,
+            bool? showHeaders,
+            bool? showEmptyRows,
+            bool? showEmptyColumns,
+            bool? showDrill,
+            bool? rowGrandTotals,
+            bool? columnGrandTotals,
+            string? rowHeaderCaption,
+            string? columnHeaderCaption,
+            string? grandTotalCaption,
+            string? missingCaption,
+            string? errorCaption,
+            bool? showDataDropDown,
+            bool? showDropZones,
+            bool? showDataTips,
+            bool? showMemberPropertyTips,
+            bool? fieldListSortAscending,
+            bool? customListSort,
+            IReadOnlyList<string> rowFields,
+            IReadOnlyList<string> columnFields,
+            IReadOnlyList<string> pageFields,
+            IReadOnlyList<ExcelPivotDataFieldInfo> dataFields,
+            IReadOnlyList<ExcelPivotFieldInfo>? fields = null,
+            IReadOnlyList<ExcelPivotFilterInfo>? filters = null,
+            IReadOnlyList<ExcelPivotCalculatedFieldInfo>? calculatedFields = null,
+            IReadOnlyList<ExcelPivotGroupingInfo>? groupings = null) {
             Name = name;
             CacheId = cacheId;
             Location = location;
@@ -99,6 +145,9 @@ namespace OfficeIMO.Excel {
             PageFields = pageFields;
             DataFields = dataFields;
             Fields = fields ?? Array.Empty<ExcelPivotFieldInfo>();
+            Filters = filters ?? Array.Empty<ExcelPivotFilterInfo>();
+            CalculatedFields = calculatedFields ?? Array.Empty<ExcelPivotCalculatedFieldInfo>();
+            Groupings = groupings ?? Array.Empty<ExcelPivotGroupingInfo>();
         }
 
         /// <summary>
@@ -260,5 +309,20 @@ namespace OfficeIMO.Excel {
         /// Gets detailed field metadata.
         /// </summary>
         public IReadOnlyList<ExcelPivotFieldInfo> Fields { get; }
+
+        /// <summary>
+        /// Gets pivot label and value filters.
+        /// </summary>
+        public IReadOnlyList<ExcelPivotFilterInfo> Filters { get; }
+
+        /// <summary>
+        /// Gets calculated pivot cache fields.
+        /// </summary>
+        public IReadOnlyList<ExcelPivotCalculatedFieldInfo> CalculatedFields { get; }
+
+        /// <summary>
+        /// Gets pivot field grouping metadata.
+        /// </summary>
+        public IReadOnlyList<ExcelPivotGroupingInfo> Groupings { get; }
     }
 }

@@ -27,12 +27,21 @@ namespace OfficeIMO.Excel {
 
             int chartElementCount =
                 plotArea.Elements<BarChart>().Count()
+                + plotArea.Elements<Bar3DChart>().Count()
                 + plotArea.Elements<LineChart>().Count()
+                + plotArea.Elements<Line3DChart>().Count()
                 + plotArea.Elements<AreaChart>().Count()
+                + plotArea.Elements<Area3DChart>().Count()
                 + plotArea.Elements<PieChart>().Count()
+                + plotArea.Elements<Pie3DChart>().Count()
+                + plotArea.Elements<OfPieChart>().Count()
                 + plotArea.Elements<DoughnutChart>().Count()
                 + plotArea.Elements<ScatterChart>().Count()
-                + plotArea.Elements<BubbleChart>().Count();
+                + plotArea.Elements<BubbleChart>().Count()
+                + plotArea.Elements<RadarChart>().Count()
+                + plotArea.Elements<StockChart>().Count()
+                + plotArea.Elements<Surface3DChart>().Count()
+                + plotArea.Elements<SurfaceChart>().Count();
 
             ExcelChartType defaultType = InferChartType(plotArea);
             List<SeriesDescriptor> descriptors = BuildSeriesDescriptors(range, data, defaultType, useSeriesOverrides: chartElementCount > 1);
@@ -49,6 +58,27 @@ namespace OfficeIMO.Excel {
             if (plotArea.GetFirstChild<BubbleChart>() != null) {
                 throw new NotSupportedException("Updating bubble charts is not supported. Use range-based charts for bubble data.");
             }
+            if (plotArea.GetFirstChild<StockChart>() is StockChart stockChart) {
+                if (chartElementCount > 1) {
+                    throw new NotSupportedException("Stock charts cannot be updated as combination charts.");
+                }
+                UpdateStockChartSeries(stockChart, data, range, descriptors);
+                return;
+            }
+            if (plotArea.GetFirstChild<Surface3DChart>() is Surface3DChart surface3DChart) {
+                if (chartElementCount > 1) {
+                    throw new NotSupportedException("Surface charts cannot be updated as combination charts.");
+                }
+                UpdateSurfaceChartSeries(surface3DChart, data, range, descriptors);
+                return;
+            }
+            if (plotArea.GetFirstChild<SurfaceChart>() is SurfaceChart surfaceChart) {
+                if (chartElementCount > 1) {
+                    throw new NotSupportedException("Surface charts cannot be updated as combination charts.");
+                }
+                UpdateSurfaceChartSeries(surfaceChart, data, range, descriptors);
+                return;
+            }
 
             if (chartElementCount > 1) {
                 UpdateComboChartData(plotArea, data, range, descriptors);
@@ -59,16 +89,40 @@ namespace OfficeIMO.Excel {
                 UpdateBarChartSeries(barChart, data, range, descriptors);
                 return;
             }
+            if (plotArea.GetFirstChild<Bar3DChart>() is Bar3DChart bar3DChart) {
+                UpdateBar3DChartSeries(bar3DChart, data, range, descriptors);
+                return;
+            }
             if (plotArea.GetFirstChild<LineChart>() is LineChart lineChart) {
                 UpdateLineChartSeries(lineChart, data, range, descriptors);
+                return;
+            }
+            if (plotArea.GetFirstChild<Line3DChart>() is Line3DChart line3DChart) {
+                UpdateLine3DChartSeries(line3DChart, data, range, descriptors);
                 return;
             }
             if (plotArea.GetFirstChild<AreaChart>() is AreaChart areaChart) {
                 UpdateAreaChartSeries(areaChart, data, range, descriptors);
                 return;
             }
+            if (plotArea.GetFirstChild<Area3DChart>() is Area3DChart area3DChart) {
+                UpdateArea3DChartSeries(area3DChart, data, range, descriptors);
+                return;
+            }
+            if (plotArea.GetFirstChild<RadarChart>() is RadarChart radarChart) {
+                UpdateRadarChartSeries(radarChart, data, range, descriptors);
+                return;
+            }
             if (plotArea.GetFirstChild<PieChart>() is PieChart pieChart) {
                 UpdatePieChartSeries(pieChart, data, range, descriptors);
+                return;
+            }
+            if (plotArea.GetFirstChild<Pie3DChart>() is Pie3DChart pie3DChart) {
+                UpdatePie3DChartSeries(pie3DChart, data, range, descriptors);
+                return;
+            }
+            if (plotArea.GetFirstChild<OfPieChart>() is OfPieChart ofPieChart) {
+                UpdateOfPieChartSeries(ofPieChart, data, range, descriptors);
                 return;
             }
             if (plotArea.GetFirstChild<DoughnutChart>() is DoughnutChart doughnutChart) {
@@ -87,14 +141,32 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<OpenXmlCompositeElement> seriesList;
             if (plotArea.GetFirstChild<BarChart>() is BarChart bar) {
                 seriesList = bar.Elements<BarChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
+            } else if (plotArea.GetFirstChild<Bar3DChart>() is Bar3DChart bar3D) {
+                seriesList = bar3D.Elements<BarChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
             } else if (plotArea.GetFirstChild<LineChart>() is LineChart line) {
                 seriesList = line.Elements<LineChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
+            } else if (plotArea.GetFirstChild<Line3DChart>() is Line3DChart line3D) {
+                seriesList = line3D.Elements<LineChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
             } else if (plotArea.GetFirstChild<AreaChart>() is AreaChart area) {
                 seriesList = area.Elements<AreaChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
+            } else if (plotArea.GetFirstChild<Area3DChart>() is Area3DChart area3D) {
+                seriesList = area3D.Elements<AreaChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
             } else if (plotArea.GetFirstChild<PieChart>() is PieChart pie) {
                 seriesList = pie.Elements<PieChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
+            } else if (plotArea.GetFirstChild<Pie3DChart>() is Pie3DChart pie3D) {
+                seriesList = pie3D.Elements<PieChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
+            } else if (plotArea.GetFirstChild<OfPieChart>() is OfPieChart ofPie) {
+                seriesList = ofPie.Elements<PieChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
             } else if (plotArea.GetFirstChild<DoughnutChart>() is DoughnutChart doughnut) {
                 seriesList = doughnut.Elements<PieChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
+            } else if (plotArea.GetFirstChild<RadarChart>() is RadarChart radar) {
+                seriesList = radar.Elements<RadarChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
+            } else if (plotArea.GetFirstChild<StockChart>() is StockChart stock) {
+                seriesList = stock.Elements<LineChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
+            } else if (plotArea.GetFirstChild<Surface3DChart>() is Surface3DChart surface3D) {
+                seriesList = surface3D.Elements<SurfaceChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
+            } else if (plotArea.GetFirstChild<SurfaceChart>() is SurfaceChart surface) {
+                seriesList = surface.Elements<SurfaceChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
             } else if (plotArea.GetFirstChild<ScatterChart>() is ScatterChart scatter) {
                 seriesList = scatter.Elements<ScatterChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
             } else {
@@ -230,7 +302,63 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private static void UpdateBar3DChartSeries(Bar3DChart barChart, ExcelChartData data, ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> descriptors) {
+            List<BarChartSeries> existingSeries = barChart.Elements<BarChartSeries>().ToList();
+            BarChartSeries? template = existingSeries.LastOrDefault();
+            var indexSet = CreateDescriptorIndexSet(descriptors);
+            var existingByIndex = CreateSeriesIndexMap(existingSeries);
+
+            foreach (var descriptor in descriptors) {
+                BarChartSeries seriesElement;
+                if (!existingByIndex.TryGetValue(descriptor.Index, out seriesElement!)) {
+                    seriesElement = template != null ? (BarChartSeries)template.CloneNode(true) : new BarChartSeries();
+                    InsertSeries(barChart, seriesElement);
+                }
+
+                UpdateSeriesIndexOrder(seriesElement, descriptor.Index);
+                string name = descriptor.Series?.Name ?? $"Series {descriptor.Index + 1}";
+                UpdateSeriesText(seriesElement, range, descriptor.Index, name);
+                UpdateCategoryAxisData(seriesElement, range, data.Categories);
+                UpdateValues(seriesElement, range, descriptor.Index, data.Series[descriptor.Index].Values);
+            }
+
+            foreach (var seriesElement in existingSeries) {
+                int idx = GetSeriesIndex(seriesElement);
+                if (!indexSet.Contains(idx)) {
+                    seriesElement.Remove();
+                }
+            }
+        }
+
         private static void UpdateLineChartSeries(LineChart lineChart, ExcelChartData data, ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> descriptors) {
+            List<LineChartSeries> existingSeries = lineChart.Elements<LineChartSeries>().ToList();
+            LineChartSeries? template = existingSeries.LastOrDefault();
+            var indexSet = CreateDescriptorIndexSet(descriptors);
+            var existingByIndex = CreateSeriesIndexMap(existingSeries);
+
+            foreach (var descriptor in descriptors) {
+                LineChartSeries seriesElement;
+                if (!existingByIndex.TryGetValue(descriptor.Index, out seriesElement!)) {
+                    seriesElement = template != null ? (LineChartSeries)template.CloneNode(true) : new LineChartSeries();
+                    InsertSeries(lineChart, seriesElement);
+                }
+
+                UpdateSeriesIndexOrder(seriesElement, descriptor.Index);
+                string name = descriptor.Series?.Name ?? $"Series {descriptor.Index + 1}";
+                UpdateSeriesText(seriesElement, range, descriptor.Index, name);
+                UpdateCategoryAxisData(seriesElement, range, data.Categories);
+                UpdateValues(seriesElement, range, descriptor.Index, data.Series[descriptor.Index].Values);
+            }
+
+            foreach (var seriesElement in existingSeries) {
+                int idx = GetSeriesIndex(seriesElement);
+                if (!indexSet.Contains(idx)) {
+                    seriesElement.Remove();
+                }
+            }
+        }
+
+        private static void UpdateLine3DChartSeries(Line3DChart lineChart, ExcelChartData data, ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> descriptors) {
             List<LineChartSeries> existingSeries = lineChart.Elements<LineChartSeries>().ToList();
             LineChartSeries? template = existingSeries.LastOrDefault();
             var indexSet = CreateDescriptorIndexSet(descriptors);
@@ -286,7 +414,181 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private static void UpdateArea3DChartSeries(Area3DChart areaChart, ExcelChartData data, ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> descriptors) {
+            List<AreaChartSeries> existingSeries = areaChart.Elements<AreaChartSeries>().ToList();
+            AreaChartSeries? template = existingSeries.LastOrDefault();
+            var indexSet = CreateDescriptorIndexSet(descriptors);
+            var existingByIndex = CreateSeriesIndexMap(existingSeries);
+
+            foreach (var descriptor in descriptors) {
+                AreaChartSeries seriesElement;
+                if (!existingByIndex.TryGetValue(descriptor.Index, out seriesElement!)) {
+                    seriesElement = template != null ? (AreaChartSeries)template.CloneNode(true) : new AreaChartSeries();
+                    InsertSeries(areaChart, seriesElement);
+                }
+
+                UpdateSeriesIndexOrder(seriesElement, descriptor.Index);
+                string name = descriptor.Series?.Name ?? $"Series {descriptor.Index + 1}";
+                UpdateSeriesText(seriesElement, range, descriptor.Index, name);
+                UpdateCategoryAxisData(seriesElement, range, data.Categories);
+                UpdateValues(seriesElement, range, descriptor.Index, data.Series[descriptor.Index].Values);
+            }
+
+            foreach (var seriesElement in existingSeries) {
+                int idx = GetSeriesIndex(seriesElement);
+                if (!indexSet.Contains(idx)) {
+                    seriesElement.Remove();
+                }
+            }
+        }
+
+        private static void UpdateRadarChartSeries(RadarChart radarChart, ExcelChartData data, ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> descriptors) {
+            List<RadarChartSeries> existingSeries = radarChart.Elements<RadarChartSeries>().ToList();
+            RadarChartSeries? template = existingSeries.LastOrDefault();
+            var indexSet = CreateDescriptorIndexSet(descriptors);
+            var existingByIndex = CreateSeriesIndexMap(existingSeries);
+
+            foreach (var descriptor in descriptors) {
+                RadarChartSeries seriesElement;
+                if (!existingByIndex.TryGetValue(descriptor.Index, out seriesElement!)) {
+                    seriesElement = template != null ? (RadarChartSeries)template.CloneNode(true) : new RadarChartSeries();
+                    InsertSeries(radarChart, seriesElement);
+                }
+
+                UpdateSeriesIndexOrder(seriesElement, descriptor.Index);
+                string name = descriptor.Series?.Name ?? $"Series {descriptor.Index + 1}";
+                UpdateSeriesText(seriesElement, range, descriptor.Index, name);
+                UpdateCategoryAxisData(seriesElement, range, data.Categories);
+                UpdateValues(seriesElement, range, descriptor.Index, data.Series[descriptor.Index].Values);
+            }
+
+            foreach (var seriesElement in existingSeries) {
+                int idx = GetSeriesIndex(seriesElement);
+                if (!indexSet.Contains(idx)) {
+                    seriesElement.Remove();
+                }
+            }
+        }
+
+        private static void UpdateStockChartSeries(StockChart stockChart, ExcelChartData data, ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> descriptors) {
+            if (descriptors.Count < 3 || descriptors.Count > 4) {
+                throw new ArgumentException("Stock charts require three series (high-low-close) or four series (open-high-low-close).", nameof(descriptors));
+            }
+
+            List<LineChartSeries> existingSeries = stockChart.Elements<LineChartSeries>().ToList();
+            LineChartSeries? template = existingSeries.LastOrDefault();
+            var indexSet = CreateDescriptorIndexSet(descriptors);
+            var existingByIndex = CreateSeriesIndexMap(existingSeries);
+
+            foreach (var descriptor in descriptors) {
+                LineChartSeries seriesElement;
+                if (!existingByIndex.TryGetValue(descriptor.Index, out seriesElement!)) {
+                    seriesElement = template != null ? (LineChartSeries)template.CloneNode(true) : new LineChartSeries();
+                    InsertSeries(stockChart, seriesElement);
+                }
+
+                UpdateSeriesIndexOrder(seriesElement, descriptor.Index);
+                string name = descriptor.Series?.Name ?? $"Series {descriptor.Index + 1}";
+                UpdateSeriesText(seriesElement, range, descriptor.Index, name);
+                UpdateCategoryAxisData(seriesElement, range, data.Categories);
+                UpdateValues(seriesElement, range, descriptor.Index, data.Series[descriptor.Index].Values);
+            }
+
+            foreach (var seriesElement in existingSeries) {
+                int idx = GetSeriesIndex(seriesElement);
+                if (!indexSet.Contains(idx)) {
+                    seriesElement.Remove();
+                }
+            }
+
+            EnsureStockChartLines(stockChart, descriptors.Count);
+        }
+
+        private static void UpdateSurfaceChartSeries(OpenXmlCompositeElement surfaceChart, ExcelChartData data, ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> descriptors) {
+            List<SurfaceChartSeries> existingSeries = surfaceChart.Elements<SurfaceChartSeries>().ToList();
+            SurfaceChartSeries? template = existingSeries.LastOrDefault();
+            var indexSet = CreateDescriptorIndexSet(descriptors);
+            var existingByIndex = CreateSeriesIndexMap(existingSeries);
+
+            foreach (var descriptor in descriptors) {
+                SurfaceChartSeries seriesElement;
+                if (!existingByIndex.TryGetValue(descriptor.Index, out seriesElement!)) {
+                    seriesElement = template != null ? (SurfaceChartSeries)template.CloneNode(true) : new SurfaceChartSeries();
+                    InsertSeries(surfaceChart, seriesElement);
+                }
+
+                UpdateSeriesIndexOrder(seriesElement, descriptor.Index);
+                string name = descriptor.Series?.Name ?? $"Series {descriptor.Index + 1}";
+                UpdateSeriesText(seriesElement, range, descriptor.Index, name);
+                UpdateCategoryAxisData(seriesElement, range, data.Categories);
+                UpdateValues(seriesElement, range, descriptor.Index, data.Series[descriptor.Index].Values);
+            }
+
+            foreach (var seriesElement in existingSeries) {
+                int idx = GetSeriesIndex(seriesElement);
+                if (!indexSet.Contains(idx)) {
+                    seriesElement.Remove();
+                }
+            }
+        }
+
         private static void UpdatePieChartSeries(PieChart chart, ExcelChartData data, ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> descriptors) {
+            List<PieChartSeries> existingSeries = chart.Elements<PieChartSeries>().ToList();
+            PieChartSeries? template = existingSeries.LastOrDefault();
+            var indexSet = CreateDescriptorIndexSet(descriptors);
+            var existingByIndex = CreateSeriesIndexMap(existingSeries);
+
+            foreach (var descriptor in descriptors) {
+                PieChartSeries seriesElement;
+                if (!existingByIndex.TryGetValue(descriptor.Index, out seriesElement!)) {
+                    seriesElement = template != null ? (PieChartSeries)template.CloneNode(true) : new PieChartSeries();
+                    InsertSeries(chart, seriesElement);
+                }
+
+                UpdateSeriesIndexOrder(seriesElement, descriptor.Index);
+                string name = descriptor.Series?.Name ?? $"Series {descriptor.Index + 1}";
+                UpdateSeriesText(seriesElement, range, descriptor.Index, name);
+                UpdateCategoryAxisData(seriesElement, range, data.Categories);
+                UpdateValues(seriesElement, range, descriptor.Index, data.Series[descriptor.Index].Values);
+            }
+
+            foreach (var seriesElement in existingSeries) {
+                int idx = GetSeriesIndex(seriesElement);
+                if (!indexSet.Contains(idx)) {
+                    seriesElement.Remove();
+                }
+            }
+        }
+
+        private static void UpdatePie3DChartSeries(Pie3DChart chart, ExcelChartData data, ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> descriptors) {
+            List<PieChartSeries> existingSeries = chart.Elements<PieChartSeries>().ToList();
+            PieChartSeries? template = existingSeries.LastOrDefault();
+            var indexSet = CreateDescriptorIndexSet(descriptors);
+            var existingByIndex = CreateSeriesIndexMap(existingSeries);
+
+            foreach (var descriptor in descriptors) {
+                PieChartSeries seriesElement;
+                if (!existingByIndex.TryGetValue(descriptor.Index, out seriesElement!)) {
+                    seriesElement = template != null ? (PieChartSeries)template.CloneNode(true) : new PieChartSeries();
+                    InsertSeries(chart, seriesElement);
+                }
+
+                UpdateSeriesIndexOrder(seriesElement, descriptor.Index);
+                string name = descriptor.Series?.Name ?? $"Series {descriptor.Index + 1}";
+                UpdateSeriesText(seriesElement, range, descriptor.Index, name);
+                UpdateCategoryAxisData(seriesElement, range, data.Categories);
+                UpdateValues(seriesElement, range, descriptor.Index, data.Series[descriptor.Index].Values);
+            }
+
+            foreach (var seriesElement in existingSeries) {
+                int idx = GetSeriesIndex(seriesElement);
+                if (!indexSet.Contains(idx)) {
+                    seriesElement.Remove();
+                }
+            }
+        }
+
+        private static void UpdateOfPieChartSeries(OfPieChart chart, ExcelChartData data, ExcelChartDataRange range, IReadOnlyList<SeriesDescriptor> descriptors) {
             List<PieChartSeries> existingSeries = chart.Elements<PieChartSeries>().ToList();
             PieChartSeries? template = existingSeries.LastOrDefault();
             var indexSet = CreateDescriptorIndexSet(descriptors);
@@ -377,6 +679,21 @@ namespace OfficeIMO.Excel {
             }
 
             SeriesDescriptorSummary summary = SummarizeSeriesDescriptors(descriptors);
+            if (summary.HasStock) {
+                throw new NotSupportedException("Stock charts cannot be used in combination chart updates.");
+            }
+            if (summary.HasSurface) {
+                throw new NotSupportedException("Surface charts cannot be used in combination chart updates.");
+            }
+            if (summary.HasLine3D) {
+                throw new NotSupportedException("3-D line charts cannot be used in combination chart updates.");
+            }
+            if (summary.HasBar3D) {
+                throw new NotSupportedException("3-D bar and column charts cannot be used in combination chart updates.");
+            }
+            if (summary.HasArea3D) {
+                throw new NotSupportedException("3-D area charts cannot be used in combination chart updates.");
+            }
             if (summary.HasBar && summary.HasNonBar) {
                 throw new NotSupportedException("Cannot combine horizontal bar charts with other chart types.");
             }
@@ -405,17 +722,27 @@ namespace OfficeIMO.Excel {
                     case ExcelChartType.ColumnStacked:
                         usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionValues.Column, BarGroupingValues.Stacked, categoryAxisId, valueAxisId));
                         break;
+                    case ExcelChartType.ColumnStacked100:
+                        usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionValues.Column, BarGroupingValues.PercentStacked, categoryAxisId, valueAxisId));
+                        break;
                     case ExcelChartType.BarClustered:
                         usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionValues.Bar, BarGroupingValues.Clustered, categoryAxisId, valueAxisId));
                         break;
                     case ExcelChartType.BarStacked:
                         usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionValues.Bar, BarGroupingValues.Stacked, categoryAxisId, valueAxisId));
                         break;
+                    case ExcelChartType.BarStacked100:
+                        usedCharts.Add(UpdateOrCreateBarChart(plotArea, group.Descriptors, data, range, BarDirectionValues.Bar, BarGroupingValues.PercentStacked, categoryAxisId, valueAxisId));
+                        break;
                     case ExcelChartType.Line:
-                        usedCharts.Add(UpdateOrCreateLineChart(plotArea, group.Descriptors, data, range, categoryAxisId, valueAxisId));
+                    case ExcelChartType.LineStacked:
+                    case ExcelChartType.LineStacked100:
+                        usedCharts.Add(UpdateOrCreateLineChart(plotArea, group.Descriptors, data, range, GetLineGrouping(group.ChartType), categoryAxisId, valueAxisId));
                         break;
                     case ExcelChartType.Area:
-                        usedCharts.Add(UpdateOrCreateAreaChart(plotArea, group.Descriptors, data, range, categoryAxisId, valueAxisId));
+                    case ExcelChartType.AreaStacked:
+                    case ExcelChartType.AreaStacked100:
+                        usedCharts.Add(UpdateOrCreateAreaChart(plotArea, group.Descriptors, data, range, GetAreaGrouping(group.ChartType), categoryAxisId, valueAxisId));
                         break;
                     case ExcelChartType.Scatter:
                         usedCharts.Add(UpdateOrCreateScatterChart(plotArea, group.Descriptors, data, range, categoryAxisId, valueAxisId));
@@ -548,15 +875,19 @@ namespace OfficeIMO.Excel {
         }
 
         private static LineChart UpdateOrCreateLineChart(PlotArea plotArea, IReadOnlyList<SeriesDescriptor> descriptors, ExcelChartData data, ExcelChartDataRange range,
-            uint categoryAxisId, uint valueAxisId) {
+            GroupingValues grouping, uint categoryAxisId, uint valueAxisId) {
             LineChart? chart = plotArea.Elements<LineChart>()
-                .FirstOrDefault(c => ChartHasAxisIds(c, categoryAxisId, valueAxisId))
-                ?? plotArea.Elements<LineChart>().FirstOrDefault();
+                .FirstOrDefault(c => (c.GetFirstChild<Grouping>()?.Val ?? GroupingValues.Standard) == grouping
+                                     && ChartHasAxisIds(c, categoryAxisId, valueAxisId));
+
+            chart ??= plotArea.Elements<LineChart>()
+                .FirstOrDefault(c => (c.GetFirstChild<Grouping>()?.Val ?? GroupingValues.Standard) == grouping);
 
             if (chart == null) {
-                chart = CreateLineChart(range, descriptors, categoryAxisId, valueAxisId);
+                chart = CreateLineChart(range, descriptors, grouping, categoryAxisId, valueAxisId);
                 plotArea.Append(chart);
             } else {
+                EnsureGrouping(chart, grouping);
                 ResetAxisIds(chart, categoryAxisId, valueAxisId);
                 UpdateLineChartSeries(chart, data, range, descriptors);
             }
@@ -565,20 +896,32 @@ namespace OfficeIMO.Excel {
         }
 
         private static AreaChart UpdateOrCreateAreaChart(PlotArea plotArea, IReadOnlyList<SeriesDescriptor> descriptors, ExcelChartData data, ExcelChartDataRange range,
-            uint categoryAxisId, uint valueAxisId) {
+            GroupingValues grouping, uint categoryAxisId, uint valueAxisId) {
             AreaChart? chart = plotArea.Elements<AreaChart>()
-                .FirstOrDefault(c => ChartHasAxisIds(c, categoryAxisId, valueAxisId))
-                ?? plotArea.Elements<AreaChart>().FirstOrDefault();
+                .FirstOrDefault(c => (c.GetFirstChild<Grouping>()?.Val ?? GroupingValues.Standard) == grouping
+                                     && ChartHasAxisIds(c, categoryAxisId, valueAxisId));
+
+            chart ??= plotArea.Elements<AreaChart>()
+                .FirstOrDefault(c => (c.GetFirstChild<Grouping>()?.Val ?? GroupingValues.Standard) == grouping);
 
             if (chart == null) {
-                chart = CreateAreaChart(range, descriptors, categoryAxisId, valueAxisId);
+                chart = CreateAreaChart(range, descriptors, grouping, categoryAxisId, valueAxisId);
                 plotArea.Append(chart);
             } else {
+                EnsureGrouping(chart, grouping);
                 ResetAxisIds(chart, categoryAxisId, valueAxisId);
                 UpdateAreaChartSeries(chart, data, range, descriptors);
             }
 
             return chart;
+        }
+
+        private static void EnsureGrouping(OpenXmlCompositeElement chart, GroupingValues groupingValue) {
+            Grouping grouping = chart.GetFirstChild<Grouping>() ?? new Grouping();
+            grouping.Val = groupingValue;
+            if (grouping.Parent == null) {
+                chart.PrependChild(grouping);
+            }
         }
 
         private static ScatterChart UpdateOrCreateScatterChart(PlotArea plotArea, IReadOnlyList<SeriesDescriptor> descriptors, ExcelChartData data, ExcelChartDataRange range,
@@ -739,7 +1082,12 @@ namespace OfficeIMO.Excel {
             OpenXmlElement? insertBefore = chart.ChildElements.FirstOrDefault(child =>
                 child is DataLabels ||
                 child is GapWidth ||
+                child is GapDepth ||
                 child is Overlap ||
+                child is HighLowLines ||
+                child is UpDownBars ||
+                child is BandFormats ||
+                child is Shape ||
                 child is AxisId ||
                 child is Marker ||
                 child is Smooth ||
@@ -749,6 +1097,36 @@ namespace OfficeIMO.Excel {
                 chart.InsertBefore(series, insertBefore);
             } else {
                 chart.Append(series);
+            }
+        }
+
+        private static void EnsureStockChartLines(StockChart stockChart, int seriesCount) {
+            if (stockChart.GetFirstChild<HighLowLines>() == null) {
+                OpenXmlElement? insertBefore = stockChart.GetFirstChild<UpDownBars>();
+                insertBefore ??= stockChart.GetFirstChild<AxisId>();
+                if (insertBefore != null) {
+                    stockChart.InsertBefore(new HighLowLines(), insertBefore);
+                } else {
+                    stockChart.Append(new HighLowLines());
+                }
+            }
+
+            UpDownBars? bars = stockChart.GetFirstChild<UpDownBars>();
+            if (seriesCount == 4) {
+                if (bars == null) {
+                    bars = new UpDownBars(
+                        new GapWidth { Val = (UInt16Value)150U },
+                        new UpBars(),
+                        new DownBars());
+                    OpenXmlElement? insertBefore = stockChart.GetFirstChild<AxisId>();
+                    if (insertBefore != null) {
+                        stockChart.InsertBefore(bars, insertBefore);
+                    } else {
+                        stockChart.Append(bars);
+                    }
+                }
+            } else {
+                bars?.Remove();
             }
         }
     }

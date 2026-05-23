@@ -161,6 +161,18 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string? SelectedItem { get; }
 
+        /// <summary>Creates field options that hide the specified source item captions.</summary>
+        public static ExcelPivotFieldOptions HideItems(string fieldName, params string[] items)
+            => new ExcelPivotFieldOptions(fieldName, hiddenItems: items);
+
+        /// <summary>Creates field options that show only the specified source item captions.</summary>
+        public static ExcelPivotFieldOptions ShowOnlyItems(string fieldName, params string[] items)
+            => new ExcelPivotFieldOptions(fieldName, visibleItems: items);
+
+        /// <summary>Creates field options that select an item for a page/filter field.</summary>
+        public static ExcelPivotFieldOptions SelectPageItem(string fieldName, string item)
+            => new ExcelPivotFieldOptions(fieldName, selectedItem: item);
+
         private static IReadOnlyList<string> NormalizeItems(IEnumerable<string>? items) {
             if (items == null) return Array.Empty<string>();
             return items

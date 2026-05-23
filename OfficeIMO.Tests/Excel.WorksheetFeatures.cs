@@ -9,6 +9,7 @@ using OfficeIMO.Excel;
 using A = DocumentFormat.OpenXml.Drawing;
 using OfficeFormula = DocumentFormat.OpenXml.Office.Excel.Formula;
 using OfficeReferenceSequence = DocumentFormat.OpenXml.Office.Excel.ReferenceSequence;
+using Threaded = DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using Xunit;
 
@@ -103,6 +104,129 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Bob (BB)", comments[1].Author);
                 Assert.Equal("Keep status", comments[1].Text);
                 Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_WorksheetComments_RichTextAuthoringAndUpdate() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetComments.RichText.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Comments");
+                sheet.SetCommentRichText("A1", new[] {
+                    new ExcelRichTextRun("Important ") { Bold = true, FontColor = "#FF0000" },
+                    new ExcelRichTextRun("note") { Italic = true, Underline = true, FontName = "Arial", FontSize = 14D }
+                }, author: "Alice", initials: "AA");
+
+                var comment = Assert.Single(sheet.GetComments());
+                Assert.Equal("Important note", comment.Text);
+                Assert.Equal(2, comment.RichTextRuns.Count);
+                Assert.True(comment.RichTextRuns[0].Bold);
+                Assert.Equal("FFFF0000", comment.RichTextRuns[0].FontColor);
+
+                int updated = sheet.UpdateCommentsRichText(
+                    new ExcelCommentFilter { Author = "Alice (AA)", TextContains = "note" },
+                    new[] {
+                        new ExcelRichTextRun("Reviewed") { Bold = true },
+                        new ExcelRichTextRun(" item") { FontColor = "0563C1" }
+                    },
+                    author: "Bob",
+                    initials: "BB");
+                Assert.Equal(1, updated);
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var comment = spreadsheet.WorkbookPart!.WorksheetParts.Single().WorksheetCommentsPart!.Comments!.CommentList!.Elements<Comment>().Single();
+                var runs = comment.CommentText!.Elements<Run>().ToList();
+
+                Assert.Equal("A1", comment.Reference!.Value);
+                Assert.Equal(2, runs.Count);
+                Assert.Equal("Reviewed", runs[0].Text!.Text);
+                Assert.NotNull(runs[0].RunProperties!.GetFirstChild<Bold>());
+                Assert.Equal(" item", runs[1].Text!.Text);
+                Assert.Equal("FF0563C1", runs[1].RunProperties!.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Color>()!.Rgb!.Value);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                var comment = Assert.Single(document.Sheets.First().GetComments());
+                Assert.Equal("Bob (BB)", comment.Author);
+                Assert.Equal("Reviewed item", comment.Text);
+                Assert.Equal(2, comment.RichTextRuns.Count);
+                Assert.True(comment.RichTextRuns[0].Bold);
+                Assert.Equal("FF0563C1", comment.RichTextRuns[1].FontColor);
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_WorksheetThreadedComments_InspectAndPreserve() {
+            var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetThreadedComments.xlsx");
+            const string personId = "{11111111-1111-1111-1111-111111111111}";
+            const string commentId = "{22222222-2222-2222-2222-222222222222}";
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Threaded");
+                sheet.CellValue(1, 1, "Revenue");
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                var workbookPart = spreadsheet.WorkbookPart!;
+                var personPart = workbookPart.AddNewPart<WorkbookPersonPart>();
+                personPart.PersonList = new Threaded.PersonList(
+                    new Threaded.Person {
+                        DisplayName = "Modern Reviewer",
+                        Id = personId,
+                        UserId = "modern.reviewer@example.test",
+                        ProviderId = "OfficeIMO.Tests"
+                    });
+                personPart.PersonList.Save();
+
+                var worksheetPart = workbookPart.WorksheetParts.Single();
+                var threadedPart = worksheetPart.AddNewPart<WorksheetThreadedCommentsPart>();
+                threadedPart.ThreadedComments = new Threaded.ThreadedComments(
+                    new Threaded.ThreadedComment(
+                        new Threaded.ThreadedCommentText("Discuss revenue"))
+                    {
+                        Ref = "A1",
+                        PersonId = personId,
+                        Id = commentId,
+                        DT = new DateTime(2026, 5, 22, 10, 0, 0, DateTimeKind.Utc),
+                        Done = false
+                    });
+                threadedPart.ThreadedComments.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath)) {
+                var snapshot = document.CreateInspectionSnapshot();
+                var worksheet = Assert.Single(snapshot.Worksheets);
+                var threadedComment = Assert.Single(worksheet.ThreadedComments);
+
+                Assert.Equal("A1", threadedComment.CellReference);
+                Assert.Equal(commentId, threadedComment.Id);
+                Assert.Equal(personId, threadedComment.PersonId);
+                Assert.Equal("Modern Reviewer", threadedComment.Author);
+                Assert.Equal("Discuss revenue", threadedComment.Text);
+                Assert.False(threadedComment.Done);
+
+                var cell = Assert.Single(worksheet.Cells, c => c.Row == 1 && c.Column == 1);
+                Assert.Same(threadedComment, cell.ThreadedComment);
+
+                var feature = Assert.Single(document.InspectFeatures().FindFeatures("Threaded comments"));
+                Assert.Equal(ExcelFeatureSupportLevel.Preserved, feature.SupportLevel);
+                Assert.Equal(1, feature.Count);
+                document.Save(false);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+                var threadedPart = Assert.Single(worksheetPart.WorksheetThreadedCommentsParts);
+                var threadedComment = Assert.Single(threadedPart.ThreadedComments!.Elements<Threaded.ThreadedComment>());
+
+                Assert.Equal("A1", threadedComment.Ref!.Value);
+                Assert.Equal(commentId, threadedComment.Id!.Value);
+                Assert.Equal("Discuss revenue", threadedComment.ThreadedCommentText!.InnerText);
             }
         }
 

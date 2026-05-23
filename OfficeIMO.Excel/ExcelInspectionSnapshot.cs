@@ -47,6 +47,7 @@ namespace OfficeIMO.Excel {
         private readonly List<ExcelRowSnapshot> _rows = new List<ExcelRowSnapshot>();
         private readonly List<ExcelDataValidationSnapshot> _validations = new List<ExcelDataValidationSnapshot>();
         private readonly List<ExcelTableSnapshot> _tables = new List<ExcelTableSnapshot>();
+        private readonly List<ExcelThreadedCommentSnapshot> _threadedComments = new List<ExcelThreadedCommentSnapshot>();
 
         /// <summary>
         /// Worksheet name.
@@ -128,6 +129,11 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IReadOnlyList<ExcelTableSnapshot> Tables => _tables;
 
+        /// <summary>
+        /// Preserve-only threaded comments discovered on the worksheet.
+        /// </summary>
+        public IReadOnlyList<ExcelThreadedCommentSnapshot> ThreadedComments => _threadedComments;
+
         internal void AddCell(ExcelCellSnapshot cell) {
             if (cell == null) throw new ArgumentNullException(nameof(cell));
             _cells.Add(cell);
@@ -156,6 +162,11 @@ namespace OfficeIMO.Excel {
         internal void AddTable(ExcelTableSnapshot table) {
             if (table == null) throw new ArgumentNullException(nameof(table));
             _tables.Add(table);
+        }
+
+        internal void AddThreadedComment(ExcelThreadedCommentSnapshot comment) {
+            if (comment == null) throw new ArgumentNullException(nameof(comment));
+            _threadedComments.Add(comment);
         }
     }
 
@@ -317,6 +328,11 @@ namespace OfficeIMO.Excel {
         /// Comment metadata attached to the cell, when present.
         /// </summary>
         public ExcelCommentSnapshot? Comment { get; internal set; }
+
+        /// <summary>
+        /// Preserve-only threaded comment metadata attached to the cell, when present.
+        /// </summary>
+        public ExcelThreadedCommentSnapshot? ThreadedComment { get; internal set; }
     }
 
     /// <summary>
@@ -332,6 +348,51 @@ namespace OfficeIMO.Excel {
         /// Comment text content.
         /// </summary>
         public string Text { get; internal set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Immutable threaded comment metadata discovered during inspection.
+    /// </summary>
+    public sealed class ExcelThreadedCommentSnapshot {
+        /// <summary>
+        /// Cell reference in A1 notation.
+        /// </summary>
+        public string CellReference { get; internal set; } = string.Empty;
+
+        /// <summary>
+        /// Comment identifier, when present.
+        /// </summary>
+        public string? Id { get; internal set; }
+
+        /// <summary>
+        /// Parent comment identifier for replies, when present.
+        /// </summary>
+        public string? ParentId { get; internal set; }
+
+        /// <summary>
+        /// Person identifier from the threaded comment part.
+        /// </summary>
+        public string? PersonId { get; internal set; }
+
+        /// <summary>
+        /// Resolved author display name from workbook person metadata, when available.
+        /// </summary>
+        public string? Author { get; internal set; }
+
+        /// <summary>
+        /// Threaded comment text content.
+        /// </summary>
+        public string Text { get; internal set; } = string.Empty;
+
+        /// <summary>
+        /// Timestamp stored by Excel for the threaded comment, when present.
+        /// </summary>
+        public DateTime? Date { get; internal set; }
+
+        /// <summary>
+        /// Whether the threaded comment is marked done or resolved.
+        /// </summary>
+        public bool Done { get; internal set; }
     }
 
     /// <summary>

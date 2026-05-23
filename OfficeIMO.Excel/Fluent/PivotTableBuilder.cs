@@ -12,6 +12,9 @@ namespace OfficeIMO.Excel.Fluent {
         private readonly List<string> _pageFields = new();
         private readonly List<ExcelPivotDataField> _dataFields = new();
         private readonly List<ExcelPivotFieldOptions> _fieldOptions = new();
+        private readonly List<ExcelPivotFilter> _pivotFilters = new();
+        private readonly List<ExcelPivotCalculatedField> _calculatedFields = new();
+        private readonly List<ExcelPivotGrouping> _groupings = new();
         private bool _showRowGrandTotals = true;
         private bool _showColumnGrandTotals = true;
         private string? _pivotStyleName;
@@ -181,6 +184,142 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        /// <summary>Hides specific source items for a pivot field.</summary>
+        public PivotTableBuilder HideItems(string fieldName, params string[] items) {
+            return UpdateFieldOptions(
+                fieldName,
+                hiddenItems: items,
+                replaceHiddenItems: true,
+                visibleItems: Array.Empty<string>(),
+                replaceVisibleItems: true);
+        }
+
+        /// <summary>Shows only specific source items for a pivot field.</summary>
+        public PivotTableBuilder ShowOnlyItems(string fieldName, params string[] items) {
+            return UpdateFieldOptions(
+                fieldName,
+                hiddenItems: Array.Empty<string>(),
+                replaceHiddenItems: true,
+                visibleItems: items,
+                replaceVisibleItems: true);
+        }
+
+        /// <summary>Selects an item for a page/filter field and adds the field to the page area if needed.</summary>
+        public PivotTableBuilder SelectPageItem(string fieldName, string item) {
+            if (string.IsNullOrWhiteSpace(fieldName)) throw new ArgumentNullException(nameof(fieldName));
+            if (string.IsNullOrWhiteSpace(item)) throw new ArgumentNullException(nameof(item));
+            if (!_pageFields.Contains(fieldName, StringComparer.OrdinalIgnoreCase)) {
+                _pageFields.Add(fieldName);
+            }
+
+            return UpdateFieldOptions(fieldName, selectedItem: item, replaceSelectedItem: true);
+        }
+
+        /// <summary>Sets the sort mode for a pivot field.</summary>
+        public PivotTableBuilder SortField(string fieldName, FieldSortValues sortType) {
+            return UpdateFieldOptions(fieldName, sortType: sortType);
+        }
+
+        /// <summary>Controls whether the pivot field uses its default subtotal.</summary>
+        public PivotTableBuilder Subtotals(string fieldName, bool enabled = true) {
+            return UpdateFieldOptions(fieldName, defaultSubtotal: enabled);
+        }
+
+        /// <summary>Controls whether subtotals are shown at the top for a pivot field.</summary>
+        public PivotTableBuilder SubtotalsAtTop(string fieldName, bool enabled = true) {
+            return UpdateFieldOptions(fieldName, subtotalTop: enabled);
+        }
+
+        /// <summary>Controls compact and outline layout flags for a pivot field.</summary>
+        public PivotTableBuilder FieldLayout(string fieldName, bool? compact = null, bool? outline = null) {
+            return UpdateFieldOptions(fieldName, compact: compact, outline: outline);
+        }
+
+        /// <summary>Controls blank-row and page-break insertion after pivot field items.</summary>
+        public PivotTableBuilder FieldBreaks(string fieldName, bool? insertBlankRow = null, bool? insertPageBreak = null) {
+            return UpdateFieldOptions(fieldName, insertBlankRow: insertBlankRow, insertPageBreak: insertPageBreak);
+        }
+
+        /// <summary>Controls common pivot field display flags.</summary>
+        public PivotTableBuilder FieldDisplay(
+            string fieldName,
+            bool? showAll = null,
+            bool? showDropDowns = null,
+            bool? multipleItemSelectionAllowed = null,
+            bool? includeNewItemsInFilter = null) {
+            return UpdateFieldOptions(
+                fieldName,
+                showAll: showAll,
+                showDropDowns: showDropDowns,
+                multipleItemSelectionAllowed: multipleItemSelectionAllowed,
+                includeNewItemsInFilter: includeNewItemsInFilter);
+        }
+
+        /// <summary>Sets a number format code for a pivot field.</summary>
+        public PivotTableBuilder FieldNumberFormat(string fieldName, string numberFormat) {
+            if (string.IsNullOrWhiteSpace(numberFormat)) throw new ArgumentNullException(nameof(numberFormat));
+            return UpdateFieldOptions(fieldName, numberFormat: numberFormat, replaceNumberFormat: true);
+        }
+
+        /// <summary>Sets a built-in or custom number format id for a pivot field.</summary>
+        public PivotTableBuilder FieldNumberFormatId(string fieldName, uint numberFormatId) {
+            return UpdateFieldOptions(fieldName, numberFormatId: numberFormatId, replaceNumberFormat: true);
+        }
+
+        /// <summary>Sets a custom subtotal caption for a pivot field.</summary>
+        public PivotTableBuilder SubtotalCaption(string fieldName, string caption) {
+            if (string.IsNullOrWhiteSpace(caption)) throw new ArgumentNullException(nameof(caption));
+            return UpdateFieldOptions(fieldName, subtotalCaption: caption, replaceSubtotalCaption: true);
+        }
+
+        /// <summary>Adds label or value filters to the pivot table.</summary>
+        public PivotTableBuilder Filter(params ExcelPivotFilter[] filters) {
+            if (filters == null) throw new ArgumentNullException(nameof(filters));
+            foreach (var filter in filters) {
+                if (filter != null) {
+                    _pivotFilters.Add(filter);
+                }
+            }
+
+            return this;
+        }
+
+        /// <summary>Adds a formula-backed calculated pivot field.</summary>
+        public PivotTableBuilder CalculatedField(string name, string formula, string? caption = null, uint? numberFormatId = null, string? numberFormat = null) {
+            _calculatedFields.Add(new ExcelPivotCalculatedField(name, formula, caption, numberFormatId, numberFormat));
+            return this;
+        }
+
+        /// <summary>Adds date or numeric grouping metadata for pivot fields.</summary>
+        public PivotTableBuilder Group(params ExcelPivotGrouping[] groupings) {
+            if (groupings == null) throw new ArgumentNullException(nameof(groupings));
+            foreach (var grouping in groupings) {
+                if (grouping != null) {
+                    _groupings.Add(grouping);
+                }
+            }
+
+            return this;
+        }
+
+        /// <summary>Adds date grouping metadata for a pivot field.</summary>
+        public PivotTableBuilder DateGroup(string fieldName, GroupByValues groupBy, DateTime? startDate = null, DateTime? endDate = null, double? interval = null) {
+            _groupings.Add(ExcelPivotGrouping.Date(fieldName, groupBy, startDate, endDate, interval));
+            return this;
+        }
+
+        /// <summary>Adds generated date hierarchy fields for a pivot field, such as years, quarters, and months.</summary>
+        public PivotTableBuilder DateHierarchy(string fieldName, params GroupByValues[] levels) {
+            _groupings.Add(ExcelPivotGrouping.DateHierarchy(fieldName, levels));
+            return this;
+        }
+
+        /// <summary>Adds numeric range grouping metadata for a pivot field.</summary>
+        public PivotTableBuilder NumberGroup(string fieldName, double interval, double? startNumber = null, double? endNumber = null) {
+            _groupings.Add(ExcelPivotGrouping.Number(fieldName, interval, startNumber, endNumber));
+            return this;
+        }
+
         /// <summary>Creates the pivot table at the destination cell and returns the source sheet.</summary>
         public ExcelSheet At(string destinationCell, string? name = null) {
             if (string.IsNullOrWhiteSpace(destinationCell)) throw new ArgumentNullException(nameof(destinationCell));
@@ -213,7 +352,10 @@ namespace OfficeIMO.Excel.Fluent {
                 showDataTips: _showDataTips,
                 showMemberPropertyTips: _showMemberPropertyTips,
                 fieldListSortAscending: _fieldListSortAscending,
-                customListSort: _customListSort);
+                customListSort: _customListSort,
+                pivotFilters: _pivotFilters.Count == 0 ? null : _pivotFilters,
+                calculatedFields: _calculatedFields.Count == 0 ? null : _calculatedFields,
+                groupings: _groupings.Count == 0 ? null : _groupings);
 
             return _sheet;
         }
@@ -227,6 +369,70 @@ namespace OfficeIMO.Excel.Fluent {
 
                 target.Add(fieldName);
             }
+        }
+
+        private PivotTableBuilder UpdateFieldOptions(
+            string fieldName,
+            FieldSortValues? sortType = null,
+            uint? numberFormatId = null,
+            string? numberFormat = null,
+            bool replaceNumberFormat = false,
+            bool? showAll = null,
+            bool? defaultSubtotal = null,
+            bool? subtotalTop = null,
+            bool? insertBlankRow = null,
+            bool? insertPageBreak = null,
+            bool? compact = null,
+            bool? outline = null,
+            bool? showDropDowns = null,
+            bool? multipleItemSelectionAllowed = null,
+            bool? includeNewItemsInFilter = null,
+            string? subtotalCaption = null,
+            bool replaceSubtotalCaption = false,
+            IEnumerable<string>? hiddenItems = null,
+            bool replaceHiddenItems = false,
+            IEnumerable<string>? visibleItems = null,
+            bool replaceVisibleItems = false,
+            string? selectedItem = null,
+            bool replaceSelectedItem = false) {
+            if (string.IsNullOrWhiteSpace(fieldName)) throw new ArgumentNullException(nameof(fieldName));
+
+            int existingIndex = -1;
+            for (int i = _fieldOptions.Count - 1; i >= 0; i--) {
+                if (string.Equals(_fieldOptions[i].FieldName, fieldName, StringComparison.OrdinalIgnoreCase)) {
+                    existingIndex = i;
+                    break;
+                }
+            }
+
+            ExcelPivotFieldOptions? existing = existingIndex >= 0 ? _fieldOptions[existingIndex] : null;
+            var updated = new ExcelPivotFieldOptions(
+                fieldName,
+                sortType: sortType ?? existing?.SortType,
+                numberFormatId: replaceNumberFormat ? numberFormatId : existing?.NumberFormatId,
+                numberFormat: replaceNumberFormat ? numberFormat : existing?.NumberFormat,
+                showAll: showAll ?? existing?.ShowAll,
+                defaultSubtotal: defaultSubtotal ?? existing?.DefaultSubtotal,
+                subtotalTop: subtotalTop ?? existing?.SubtotalTop,
+                insertBlankRow: insertBlankRow ?? existing?.InsertBlankRow,
+                insertPageBreak: insertPageBreak ?? existing?.InsertPageBreak,
+                compact: compact ?? existing?.Compact,
+                outline: outline ?? existing?.Outline,
+                showDropDowns: showDropDowns ?? existing?.ShowDropDowns,
+                multipleItemSelectionAllowed: multipleItemSelectionAllowed ?? existing?.MultipleItemSelectionAllowed,
+                includeNewItemsInFilter: includeNewItemsInFilter ?? existing?.IncludeNewItemsInFilter,
+                subtotalCaption: replaceSubtotalCaption ? subtotalCaption : existing?.SubtotalCaption,
+                hiddenItems: replaceHiddenItems ? hiddenItems : existing?.HiddenItems,
+                visibleItems: replaceVisibleItems ? visibleItems : existing?.VisibleItems,
+                selectedItem: replaceSelectedItem ? selectedItem : existing?.SelectedItem);
+
+            if (existingIndex >= 0) {
+                _fieldOptions[existingIndex] = updated;
+            } else {
+                _fieldOptions.Add(updated);
+            }
+
+            return this;
         }
     }
 }

@@ -300,8 +300,16 @@ namespace OfficeIMO.Excel {
                 ApplyDataLabels(barChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
                     position, numberFormat, sourceLinked);
             }
+            foreach (C.Bar3DChart barChart in plotArea.Elements<C.Bar3DChart>()) {
+                ApplyDataLabels(barChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
+                    position, numberFormat, sourceLinked);
+            }
 
             foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
+                ApplyDataLabels(lineChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
+                    position, numberFormat, sourceLinked);
+            }
+            foreach (C.Line3DChart lineChart in plotArea.Elements<C.Line3DChart>()) {
                 ApplyDataLabels(lineChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
                     position, numberFormat, sourceLinked);
             }
@@ -310,8 +318,20 @@ namespace OfficeIMO.Excel {
                 ApplyDataLabels(areaChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
                     position, numberFormat, sourceLinked);
             }
+            foreach (C.Area3DChart areaChart in plotArea.Elements<C.Area3DChart>()) {
+                ApplyDataLabels(areaChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
+                    position, numberFormat, sourceLinked);
+            }
 
             foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
+                ApplyDataLabels(pieChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
+                    position, numberFormat, sourceLinked);
+            }
+            foreach (C.Pie3DChart pieChart in plotArea.Elements<C.Pie3DChart>()) {
+                ApplyDataLabels(pieChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
+                    position, numberFormat, sourceLinked);
+            }
+            foreach (C.OfPieChart pieChart in plotArea.Elements<C.OfPieChart>()) {
                 ApplyDataLabels(pieChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
                     position, numberFormat, sourceLinked);
             }
@@ -328,6 +348,14 @@ namespace OfficeIMO.Excel {
 
             foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
                 ApplyDataLabels(bubbleChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
+                    position, numberFormat, sourceLinked);
+            }
+            foreach (C.RadarChart radarChart in plotArea.Elements<C.RadarChart>()) {
+                ApplyDataLabels(radarChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
+                    position, numberFormat, sourceLinked);
+            }
+            foreach (C.StockChart stockChart in plotArea.Elements<C.StockChart>()) {
+                ApplyDataLabels(stockChart, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
                     position, numberFormat, sourceLinked);
             }
 
@@ -351,13 +379,28 @@ namespace OfficeIMO.Excel {
             foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
                 ApplyDataLabelTextStyle(EnsureDataLabels(barChart), fontSizePoints, bold, italic, color, fontName);
             }
+            foreach (C.Bar3DChart barChart in plotArea.Elements<C.Bar3DChart>()) {
+                ApplyDataLabelTextStyle(EnsureDataLabels(barChart), fontSizePoints, bold, italic, color, fontName);
+            }
             foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
+                ApplyDataLabelTextStyle(EnsureDataLabels(lineChart), fontSizePoints, bold, italic, color, fontName);
+            }
+            foreach (C.Line3DChart lineChart in plotArea.Elements<C.Line3DChart>()) {
                 ApplyDataLabelTextStyle(EnsureDataLabels(lineChart), fontSizePoints, bold, italic, color, fontName);
             }
             foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
                 ApplyDataLabelTextStyle(EnsureDataLabels(areaChart), fontSizePoints, bold, italic, color, fontName);
             }
+            foreach (C.Area3DChart areaChart in plotArea.Elements<C.Area3DChart>()) {
+                ApplyDataLabelTextStyle(EnsureDataLabels(areaChart), fontSizePoints, bold, italic, color, fontName);
+            }
             foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
+                ApplyDataLabelTextStyle(EnsureDataLabels(pieChart), fontSizePoints, bold, italic, color, fontName);
+            }
+            foreach (C.Pie3DChart pieChart in plotArea.Elements<C.Pie3DChart>()) {
+                ApplyDataLabelTextStyle(EnsureDataLabels(pieChart), fontSizePoints, bold, italic, color, fontName);
+            }
+            foreach (C.OfPieChart pieChart in plotArea.Elements<C.OfPieChart>()) {
                 ApplyDataLabelTextStyle(EnsureDataLabels(pieChart), fontSizePoints, bold, italic, color, fontName);
             }
             foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
@@ -368,6 +411,12 @@ namespace OfficeIMO.Excel {
             }
             foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
                 ApplyDataLabelTextStyle(EnsureDataLabels(bubbleChart), fontSizePoints, bold, italic, color, fontName);
+            }
+            foreach (C.RadarChart radarChart in plotArea.Elements<C.RadarChart>()) {
+                ApplyDataLabelTextStyle(EnsureDataLabels(radarChart), fontSizePoints, bold, italic, color, fontName);
+            }
+            foreach (C.StockChart stockChart in plotArea.Elements<C.StockChart>()) {
+                ApplyDataLabelTextStyle(EnsureDataLabels(stockChart), fontSizePoints, bold, italic, color, fontName);
             }
 
             Save();
@@ -390,13 +439,28 @@ namespace OfficeIMO.Excel {
             foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
                 ApplyDataLabelShapeStyle(EnsureDataLabels(barChart), fillColor, lineColor, lineWidthPoints, noFill, noLine);
             }
+            foreach (C.Bar3DChart barChart in plotArea.Elements<C.Bar3DChart>()) {
+                ApplyDataLabelShapeStyle(EnsureDataLabels(barChart), fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            }
             foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
+                ApplyDataLabelShapeStyle(EnsureDataLabels(lineChart), fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            }
+            foreach (C.Line3DChart lineChart in plotArea.Elements<C.Line3DChart>()) {
                 ApplyDataLabelShapeStyle(EnsureDataLabels(lineChart), fillColor, lineColor, lineWidthPoints, noFill, noLine);
             }
             foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
                 ApplyDataLabelShapeStyle(EnsureDataLabels(areaChart), fillColor, lineColor, lineWidthPoints, noFill, noLine);
             }
+            foreach (C.Area3DChart areaChart in plotArea.Elements<C.Area3DChart>()) {
+                ApplyDataLabelShapeStyle(EnsureDataLabels(areaChart), fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            }
             foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
+                ApplyDataLabelShapeStyle(EnsureDataLabels(pieChart), fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            }
+            foreach (C.Pie3DChart pieChart in plotArea.Elements<C.Pie3DChart>()) {
+                ApplyDataLabelShapeStyle(EnsureDataLabels(pieChart), fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            }
+            foreach (C.OfPieChart pieChart in plotArea.Elements<C.OfPieChart>()) {
                 ApplyDataLabelShapeStyle(EnsureDataLabels(pieChart), fillColor, lineColor, lineWidthPoints, noFill, noLine);
             }
             foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
@@ -407,6 +471,12 @@ namespace OfficeIMO.Excel {
             }
             foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
                 ApplyDataLabelShapeStyle(EnsureDataLabels(bubbleChart), fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            }
+            foreach (C.RadarChart radarChart in plotArea.Elements<C.RadarChart>()) {
+                ApplyDataLabelShapeStyle(EnsureDataLabels(radarChart), fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            }
+            foreach (C.StockChart stockChart in plotArea.Elements<C.StockChart>()) {
+                ApplyDataLabelShapeStyle(EnsureDataLabels(stockChart), fillColor, lineColor, lineWidthPoints, noFill, noLine);
             }
 
             Save();
@@ -472,13 +542,28 @@ namespace OfficeIMO.Excel {
             foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
                 ApplyDataLabelLeaderLines(EnsureDataLabels(barChart), showLeaderLines, lineColor, lineWidthPoints);
             }
+            foreach (C.Bar3DChart barChart in plotArea.Elements<C.Bar3DChart>()) {
+                ApplyDataLabelLeaderLines(EnsureDataLabels(barChart), showLeaderLines, lineColor, lineWidthPoints);
+            }
             foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
+                ApplyDataLabelLeaderLines(EnsureDataLabels(lineChart), showLeaderLines, lineColor, lineWidthPoints);
+            }
+            foreach (C.Line3DChart lineChart in plotArea.Elements<C.Line3DChart>()) {
                 ApplyDataLabelLeaderLines(EnsureDataLabels(lineChart), showLeaderLines, lineColor, lineWidthPoints);
             }
             foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
                 ApplyDataLabelLeaderLines(EnsureDataLabels(areaChart), showLeaderLines, lineColor, lineWidthPoints);
             }
+            foreach (C.Area3DChart areaChart in plotArea.Elements<C.Area3DChart>()) {
+                ApplyDataLabelLeaderLines(EnsureDataLabels(areaChart), showLeaderLines, lineColor, lineWidthPoints);
+            }
             foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
+                ApplyDataLabelLeaderLines(EnsureDataLabels(pieChart), showLeaderLines, lineColor, lineWidthPoints);
+            }
+            foreach (C.Pie3DChart pieChart in plotArea.Elements<C.Pie3DChart>()) {
+                ApplyDataLabelLeaderLines(EnsureDataLabels(pieChart), showLeaderLines, lineColor, lineWidthPoints);
+            }
+            foreach (C.OfPieChart pieChart in plotArea.Elements<C.OfPieChart>()) {
                 ApplyDataLabelLeaderLines(EnsureDataLabels(pieChart), showLeaderLines, lineColor, lineWidthPoints);
             }
             foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
@@ -489,6 +574,12 @@ namespace OfficeIMO.Excel {
             }
             foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
                 ApplyDataLabelLeaderLines(EnsureDataLabels(bubbleChart), showLeaderLines, lineColor, lineWidthPoints);
+            }
+            foreach (C.RadarChart radarChart in plotArea.Elements<C.RadarChart>()) {
+                ApplyDataLabelLeaderLines(EnsureDataLabels(radarChart), showLeaderLines, lineColor, lineWidthPoints);
+            }
+            foreach (C.StockChart stockChart in plotArea.Elements<C.StockChart>()) {
+                ApplyDataLabelLeaderLines(EnsureDataLabels(stockChart), showLeaderLines, lineColor, lineWidthPoints);
             }
 
             Save();
@@ -854,13 +945,28 @@ namespace OfficeIMO.Excel {
             foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
                 ApplyDataLabelSeparator(EnsureDataLabels(barChart), separator);
             }
+            foreach (C.Bar3DChart barChart in plotArea.Elements<C.Bar3DChart>()) {
+                ApplyDataLabelSeparator(EnsureDataLabels(barChart), separator);
+            }
             foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
+                ApplyDataLabelSeparator(EnsureDataLabels(lineChart), separator);
+            }
+            foreach (C.Line3DChart lineChart in plotArea.Elements<C.Line3DChart>()) {
                 ApplyDataLabelSeparator(EnsureDataLabels(lineChart), separator);
             }
             foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
                 ApplyDataLabelSeparator(EnsureDataLabels(areaChart), separator);
             }
+            foreach (C.Area3DChart areaChart in plotArea.Elements<C.Area3DChart>()) {
+                ApplyDataLabelSeparator(EnsureDataLabels(areaChart), separator);
+            }
             foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
+                ApplyDataLabelSeparator(EnsureDataLabels(pieChart), separator);
+            }
+            foreach (C.Pie3DChart pieChart in plotArea.Elements<C.Pie3DChart>()) {
+                ApplyDataLabelSeparator(EnsureDataLabels(pieChart), separator);
+            }
+            foreach (C.OfPieChart pieChart in plotArea.Elements<C.OfPieChart>()) {
                 ApplyDataLabelSeparator(EnsureDataLabels(pieChart), separator);
             }
             foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
@@ -871,6 +977,12 @@ namespace OfficeIMO.Excel {
             }
             foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
                 ApplyDataLabelSeparator(EnsureDataLabels(bubbleChart), separator);
+            }
+            foreach (C.RadarChart radarChart in plotArea.Elements<C.RadarChart>()) {
+                ApplyDataLabelSeparator(EnsureDataLabels(radarChart), separator);
+            }
+            foreach (C.StockChart stockChart in plotArea.Elements<C.StockChart>()) {
+                ApplyDataLabelSeparator(EnsureDataLabels(stockChart), separator);
             }
 
             Save();
@@ -2422,10 +2534,14 @@ namespace OfficeIMO.Excel {
                 insertBefore ??= chartElement.GetFirstChild<C.ExtensionList>();
             } else {
                 insertBefore = chartElement.GetFirstChild<C.GapWidth>();
+                insertBefore ??= chartElement.GetFirstChild<C.GapDepth>();
                 insertBefore ??= chartElement.GetFirstChild<C.Overlap>();
                 insertBefore ??= chartElement.GetFirstChild<C.BubbleScale>();
                 insertBefore ??= chartElement.GetFirstChild<C.ShowNegativeBubbles>();
                 insertBefore ??= chartElement.GetFirstChild<C.SizeRepresents>();
+                insertBefore ??= chartElement.GetFirstChild<C.HighLowLines>();
+                insertBefore ??= chartElement.GetFirstChild<C.UpDownBars>();
+                insertBefore ??= chartElement.GetFirstChild<C.Shape>();
                 insertBefore ??= chartElement.GetFirstChild<C.AxisId>();
                 insertBefore ??= chartElement.GetFirstChild<C.ExtensionList>();
             }
@@ -3199,12 +3315,21 @@ namespace OfficeIMO.Excel {
             }
 
             if (ApplySeriesByIndex(plotArea.Elements<C.BarChart>(), seriesIndex, apply)) return true;
+            if (ApplySeriesByIndex(plotArea.Elements<C.Bar3DChart>(), seriesIndex, apply)) return true;
             if (ApplySeriesByIndex(plotArea.Elements<C.LineChart>(), seriesIndex, apply)) return true;
+            if (ApplySeriesByIndex(plotArea.Elements<C.Line3DChart>(), seriesIndex, apply)) return true;
             if (ApplySeriesByIndex(plotArea.Elements<C.AreaChart>(), seriesIndex, apply)) return true;
+            if (ApplySeriesByIndex(plotArea.Elements<C.Area3DChart>(), seriesIndex, apply)) return true;
             if (ApplySeriesByIndex(plotArea.Elements<C.PieChart>(), seriesIndex, apply)) return true;
+            if (ApplySeriesByIndex(plotArea.Elements<C.Pie3DChart>(), seriesIndex, apply)) return true;
+            if (ApplySeriesByIndex(plotArea.Elements<C.OfPieChart>(), seriesIndex, apply)) return true;
             if (ApplySeriesByIndex(plotArea.Elements<C.DoughnutChart>(), seriesIndex, apply)) return true;
             if (ApplySeriesByIndex(plotArea.Elements<C.ScatterChart>(), seriesIndex, apply)) return true;
             if (ApplySeriesByIndex(plotArea.Elements<C.BubbleChart>(), seriesIndex, apply)) return true;
+            if (ApplySeriesByIndex(plotArea.Elements<C.RadarChart>(), seriesIndex, apply)) return true;
+            if (ApplySeriesByIndex(plotArea.Elements<C.StockChart>(), seriesIndex, apply)) return true;
+            if (ApplySeriesByIndex(plotArea.Elements<C.Surface3DChart>(), seriesIndex, apply)) return true;
+            if (ApplySeriesByIndex(plotArea.Elements<C.SurfaceChart>(), seriesIndex, apply)) return true;
 
             return false;
         }
@@ -3217,12 +3342,21 @@ namespace OfficeIMO.Excel {
             }
 
             if (ApplySeriesByName(plotArea.Elements<C.BarChart>(), seriesName, ignoreCase, apply)) return true;
+            if (ApplySeriesByName(plotArea.Elements<C.Bar3DChart>(), seriesName, ignoreCase, apply)) return true;
             if (ApplySeriesByName(plotArea.Elements<C.LineChart>(), seriesName, ignoreCase, apply)) return true;
+            if (ApplySeriesByName(plotArea.Elements<C.Line3DChart>(), seriesName, ignoreCase, apply)) return true;
             if (ApplySeriesByName(plotArea.Elements<C.AreaChart>(), seriesName, ignoreCase, apply)) return true;
+            if (ApplySeriesByName(plotArea.Elements<C.Area3DChart>(), seriesName, ignoreCase, apply)) return true;
             if (ApplySeriesByName(plotArea.Elements<C.PieChart>(), seriesName, ignoreCase, apply)) return true;
+            if (ApplySeriesByName(plotArea.Elements<C.Pie3DChart>(), seriesName, ignoreCase, apply)) return true;
+            if (ApplySeriesByName(plotArea.Elements<C.OfPieChart>(), seriesName, ignoreCase, apply)) return true;
             if (ApplySeriesByName(plotArea.Elements<C.DoughnutChart>(), seriesName, ignoreCase, apply)) return true;
             if (ApplySeriesByName(plotArea.Elements<C.ScatterChart>(), seriesName, ignoreCase, apply)) return true;
             if (ApplySeriesByName(plotArea.Elements<C.BubbleChart>(), seriesName, ignoreCase, apply)) return true;
+            if (ApplySeriesByName(plotArea.Elements<C.RadarChart>(), seriesName, ignoreCase, apply)) return true;
+            if (ApplySeriesByName(plotArea.Elements<C.StockChart>(), seriesName, ignoreCase, apply)) return true;
+            if (ApplySeriesByName(plotArea.Elements<C.Surface3DChart>(), seriesName, ignoreCase, apply)) return true;
+            if (ApplySeriesByName(plotArea.Elements<C.SurfaceChart>(), seriesName, ignoreCase, apply)) return true;
 
             return false;
         }
@@ -3235,7 +3369,10 @@ namespace OfficeIMO.Excel {
             }
 
             if (ApplySeriesMarkerByIndex(plotArea.Elements<C.LineChart>(), seriesIndex, apply)) return true;
+            if (ApplySeriesMarkerByIndex(plotArea.Elements<C.Line3DChart>(), seriesIndex, apply)) return true;
             if (ApplySeriesMarkerByIndex(plotArea.Elements<C.ScatterChart>(), seriesIndex, apply)) return true;
+            if (ApplySeriesMarkerByIndex(plotArea.Elements<C.RadarChart>(), seriesIndex, apply)) return true;
+            if (ApplySeriesMarkerByIndex(plotArea.Elements<C.StockChart>(), seriesIndex, apply)) return true;
 
             return false;
         }
@@ -3248,7 +3385,10 @@ namespace OfficeIMO.Excel {
             }
 
             if (ApplySeriesMarkerByName(plotArea.Elements<C.LineChart>(), seriesName, ignoreCase, apply)) return true;
+            if (ApplySeriesMarkerByName(plotArea.Elements<C.Line3DChart>(), seriesName, ignoreCase, apply)) return true;
             if (ApplySeriesMarkerByName(plotArea.Elements<C.ScatterChart>(), seriesName, ignoreCase, apply)) return true;
+            if (ApplySeriesMarkerByName(plotArea.Elements<C.RadarChart>(), seriesName, ignoreCase, apply)) return true;
+            if (ApplySeriesMarkerByName(plotArea.Elements<C.StockChart>(), seriesName, ignoreCase, apply)) return true;
 
             return false;
         }
@@ -3361,7 +3501,9 @@ namespace OfficeIMO.Excel {
                    element is C.AreaChartSeries ||
                    element is C.PieChartSeries ||
                    element is C.ScatterChartSeries ||
-                   element is C.BubbleChartSeries;
+                   element is C.BubbleChartSeries ||
+                   element is C.RadarChartSeries ||
+                   element is C.SurfaceChartSeries;
         }
 
         private static int GetSeriesIndex(OpenXmlCompositeElement series) {
