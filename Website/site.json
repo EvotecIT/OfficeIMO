@@ -303,7 +303,7 @@
         "PrimaryMenu": "main",
         "SidebarMenu": "docs"
       },
-      { "Name": "notFound", "Path": "/404/", "PrimaryMenu": "main" }
+      { "Name": "notFound", "Path": "/404.html", "PrimaryMenu": "main" }
     ],
     "Auto": [{ "Collection": "docs", "Menu": "docs", "Sort": "order,title" }],
     "Menus": [
