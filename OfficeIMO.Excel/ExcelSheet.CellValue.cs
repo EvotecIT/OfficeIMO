@@ -17,6 +17,8 @@ namespace OfficeIMO.Excel {
         private uint? _cellValueDefaultDateStyleIndex;
         private uint? _cellValueDefaultDurationStyleIndex;
         private CellValueDirectSaveBuffer? _pendingCellValueDirectSaveBuffer;
+        private int _pendingCellValueDirectSaveThreadId;
+        private bool _disablePendingCellValueDirectSaveBuffer;
         private bool _materializingPendingCellValueDirectSaveBuffer;
         private bool _hasCellValueDomWrites;
 
@@ -170,6 +172,7 @@ namespace OfficeIMO.Excel {
         private bool TrySetPendingDirectCellValue(int row, int column, object? value) {
             if (!EnablePendingDirectCellValueBuffer
                 || _materializingPendingCellValueDirectSaveBuffer
+                || _disablePendingCellValueDirectSaveBuffer
                 || _excelDocument.HasDeferredDirectDataSetImport
                 || !TryPreparePendingDirectCellValue(value, out object? directValue)
                 || (_pendingCellValueDirectSaveBuffer == null && _hasCellValueDomWrites)
@@ -192,6 +195,15 @@ namespace OfficeIMO.Excel {
 
         private bool TrySetPendingDirectCellValueCore(int row, int column, object? value) {
             if (!_excelDocument.TryReservePendingDirectCellValueSheet(this)) {
+                return false;
+            }
+
+            int currentThreadId = Environment.CurrentManagedThreadId;
+            if (_pendingCellValueDirectSaveBuffer == null) {
+                _pendingCellValueDirectSaveThreadId = currentThreadId;
+            } else if (_pendingCellValueDirectSaveThreadId != currentThreadId) {
+                _disablePendingCellValueDirectSaveBuffer = true;
+                MaterializePendingDirectCellValues();
                 return false;
             }
 
