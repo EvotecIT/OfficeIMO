@@ -377,6 +377,8 @@ namespace OfficeIMO.Excel {
         }
 
         private void ClearHeaderCacheForCellMutation(int rowIndex) {
+            _hasCellValueDomWrites = true;
+
             if (_hasWorksheetMutations
                 && _requiresSavePreparation
                 && !Volatile.Read(ref _headerMapCachePopulated)

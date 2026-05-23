@@ -322,6 +322,7 @@ namespace OfficeIMO.Excel {
         private byte[]? _unchangedPackageBytes;
         private bool _simplePackageContentKnown;
         private DirectDataSetSaveCandidate? _directDataSetSaveCandidate;
+        private ExcelSheet? _pendingDirectCellValueSheet;
         private bool _materializingDeferredDataSetImport;
 
         /// <summary>

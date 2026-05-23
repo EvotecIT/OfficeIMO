@@ -19,6 +19,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            _excelDocument.MaterializeDeferredDataSetImport();
             if (CanSkipStableAutoFitColumns(null)) {
                 return;
             }
@@ -41,9 +42,13 @@ namespace OfficeIMO.Excel {
         /// <param name="ct">Cancels the auto-fit pass for the selected columns.</param>
         public void AutoFitColumnsFor(IEnumerable<int> columnIndexes, ExecutionMode? mode = null, CancellationToken ct = default) {
             if (columnIndexes == null) return;
-            _excelDocument.MaterializeDeferredDataSetImport();
             var list = columnIndexes.Where(i => i > 0).Distinct().OrderBy(i => i).ToList();
             if (list.Count == 0) return;
+            if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, list)) {
+                return;
+            }
+
+            _excelDocument.MaterializeDeferredDataSetImport();
             if (CanSkipStableAutoFitColumns(list)) {
                 return;
             }
@@ -53,6 +58,17 @@ namespace OfficeIMO.Excel {
 
         private void AutoFitContiguousColumns(int startColumn, int columnCount, ExecutionMode? mode = null, CancellationToken ct = default) {
             if (startColumn <= 0 || columnCount <= 0) return;
+            if (startColumn == 1) {
+                int[] directCandidateColumns = new int[columnCount];
+                for (int i = 0; i < directCandidateColumns.Length; i++) {
+                    directCandidateColumns[i] = i + 1;
+                }
+
+                if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, directCandidateColumns)) {
+                    return;
+                }
+            }
+
             _excelDocument.MaterializeDeferredDataSetImport();
 
             var columns = new int[columnCount];
@@ -74,8 +90,15 @@ namespace OfficeIMO.Excel {
         /// <param name="mode">Overrides how the auto-fit work is scheduled for the remaining columns.</param>
         /// <param name="ct">Cancels the auto-fit pass before it completes.</param>
         public void AutoFitColumnsExcept(IEnumerable<int> columnsToSkip, ExecutionMode? mode = null, CancellationToken ct = default) {
-            _excelDocument.MaterializeDeferredDataSetImport();
             var skip = new HashSet<int>(columnsToSkip ?? Array.Empty<int>());
+            if (_excelDocument.TryGetDirectTabularSaveCandidateColumnCount(this, out int directColumnCount)) {
+                var directRemaining = Enumerable.Range(1, directColumnCount).Where(i => !skip.Contains(i)).ToList();
+                if (directRemaining.Count == 0 || _excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, directRemaining)) {
+                    return;
+                }
+            }
+
+            _excelDocument.MaterializeDeferredDataSetImport();
             var remaining = GetAllColumnIndices().Where(i => i > 0 && !skip.Contains(i)).OrderBy(i => i).ToList();
             if (remaining.Count == 0) return;
             if (CanSkipStableAutoFitColumns(remaining)) {
@@ -446,15 +469,15 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            string raw = cell.CellValue?.InnerText ?? string.Empty;
-            if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out _)) {
-                return false;
-            }
-
             uint numberFormatId = GetCellNumberFormatId(cell, textContext);
             string? formatCode = GetNumberFormatCode(numberFormatId, textContext);
             if (!IsDateNumberFormat(numberFormatId, formatCode)
                 || !TryGetAutoFitDateSample(numberFormatId, formatCode, out string sample)) {
+                return false;
+            }
+
+            string raw = cell.CellValue?.InnerText ?? string.Empty;
+            if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out _)) {
                 return false;
             }
 
@@ -482,11 +505,12 @@ namespace OfficeIMO.Excel {
             }
 
             uint numberFormatId = GetCellNumberFormatId(cell, textContext);
-            string? formatCode = GetNumberFormatCode(numberFormatId, textContext);
-            if (numberFormatId != 0U
-                && !string.IsNullOrWhiteSpace(formatCode)
-                && !string.Equals(formatCode, "General", StringComparison.OrdinalIgnoreCase)) {
-                return false;
+            if (numberFormatId != 0U) {
+                string? formatCode = GetNumberFormatCode(numberFormatId, textContext);
+                if (!string.IsNullOrWhiteSpace(formatCode)
+                    && !string.Equals(formatCode, "General", StringComparison.OrdinalIgnoreCase)) {
+                    return false;
+                }
             }
 
             for (int i = 0; i < raw.Length; i++) {
@@ -1066,6 +1090,7 @@ namespace OfficeIMO.Excel {
         /// <param name="mode">Overrides how the auto-fit work is scheduled across rows.</param>
         /// <param name="ct">Cancels the row auto-fit pass while heights are being calculated or applied.</param>
         public void AutoFitRows(ExecutionMode? mode = null, CancellationToken ct = default) {
+            _excelDocument.MaterializeDeferredDataSetImport();
             var worksheet = WorksheetRoot;
             SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) return;
@@ -1137,6 +1162,19 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="columnIndex">1-based column index.</param>
         public void AutoFitColumn(int columnIndex) {
+            if (columnIndex <= 0) {
+                return;
+            }
+
+            if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, [columnIndex])) {
+                return;
+            }
+
+            _excelDocument.MaterializeDeferredDataSetImport();
+            if (CanSkipStableAutoFitColumns([columnIndex])) {
+                return;
+            }
+
             WriteLockConditional(() => {
                 var width = CalculateColumnWidths([columnIndex], CancellationToken.None)[0];
                 SetColumnWidthCore(columnIndex, width);

@@ -62,6 +62,7 @@ internal static class ExcelComparisonSummaryWriter {
                 ArtifactKind = artifact.Kind,
                 RowCount = artifact.RowCount,
                 Workload = GetWorkloadKind(scenarioName, artifact.Kind),
+                Category = GetScenarioCategory(scenarioName, artifact.Kind),
                 Scenario = scenarioName,
                 Library = library,
                 Notes = GetString(scenario, "Notes"),
@@ -181,6 +182,88 @@ internal static class ExcelComparisonSummaryWriter {
         return "other";
     }
 
+    private static string GetScenarioCategory(string scenario, string artifactKind) {
+        if (artifactKind.Contains("package", StringComparison.OrdinalIgnoreCase)) {
+            return "Package size";
+        }
+
+        if (scenario.Contains("autofit", StringComparison.OrdinalIgnoreCase)) {
+            return "AutoFit and mutation";
+        }
+
+        if (scenario.StartsWith("read-", StringComparison.OrdinalIgnoreCase)
+            || scenario.StartsWith("enumerate-", StringComparison.OrdinalIgnoreCase)) {
+            if (scenario.Contains("objects", StringComparison.OrdinalIgnoreCase)) {
+                return "Typed object read";
+            }
+
+            if (scenario.Contains("stream", StringComparison.OrdinalIgnoreCase)) {
+                return "Streaming read";
+            }
+
+            if (scenario.Contains("sparse", StringComparison.OrdinalIgnoreCase)) {
+                return "Sparse read";
+            }
+
+            if (scenario.Contains("shared-string", StringComparison.OrdinalIgnoreCase)
+                || scenario.Contains("helloworld", StringComparison.OrdinalIgnoreCase)) {
+                return "Dense string read";
+            }
+
+            return "Range and table read";
+        }
+
+        if (scenario.StartsWith("build-object-datatable", StringComparison.OrdinalIgnoreCase)) {
+            return "Object projection";
+        }
+
+        if (scenario.Contains("shared-strings", StringComparison.OrdinalIgnoreCase)
+            || scenario.Contains("cellvalue-strings", StringComparison.OrdinalIgnoreCase)) {
+            return "Shared string write";
+        }
+
+        if (scenario.Contains("blog-2023", StringComparison.OrdinalIgnoreCase)) {
+            return "Plain string export";
+        }
+
+        if (scenario.Contains("formula", StringComparison.OrdinalIgnoreCase)) {
+            return "Formula write/read";
+        }
+
+        if (string.Equals(scenario, "write-bulk-report", StringComparison.OrdinalIgnoreCase)) {
+            return "Formatted report write";
+        }
+
+        if (scenario.Contains("dataset", StringComparison.OrdinalIgnoreCase)) {
+            return scenario.Contains("direct-export", StringComparison.OrdinalIgnoreCase)
+                ? "Plain streaming export"
+                : "DataSet table export";
+        }
+
+        if (scenario.Contains("datatable", StringComparison.OrdinalIgnoreCase)
+            || scenario.Contains("datareader", StringComparison.OrdinalIgnoreCase)) {
+            return scenario.Contains("plain", StringComparison.OrdinalIgnoreCase)
+                ? "Plain streaming export"
+                : "DataTable table export";
+        }
+
+        if (scenario.Contains("insertobjects", StringComparison.OrdinalIgnoreCase)
+            || scenario.Contains("rowsfrom", StringComparison.OrdinalIgnoreCase)) {
+            return "Typed object export";
+        }
+
+        if (scenario.Contains("cellvalues", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(scenario, "append-plain-rows", StringComparison.OrdinalIgnoreCase)) {
+            return "Plain cell export";
+        }
+
+        if (scenario.Contains("cellvalue-", StringComparison.OrdinalIgnoreCase)) {
+            return "Cell writer";
+        }
+
+        return "Other";
+    }
+
     private static string BuildCsv(IReadOnlyList<ComparisonSummaryRow> rows) {
         var builder = new StringBuilder();
         builder.AppendLine(string.Join(",", CsvHeaders.Select(EscapeCsv)));
@@ -208,10 +291,10 @@ internal static class ExcelComparisonSummaryWriter {
         var officeRows = rows.Where(row => IsOfficeImo(row.Library)).ToArray();
         builder.AppendLine("## At a glance");
         builder.AppendLine();
-        builder.AppendLine("| Row count | Artifact | Workload | OfficeIMO wins | OfficeIMO losses | Biggest loss |");
-        builder.AppendLine("| ---: | --- | --- | ---: | ---: | --- |");
+        builder.AppendLine("| Row count | Artifact | Workload | Category | OfficeIMO wins | OfficeIMO losses | Biggest loss |");
+        builder.AppendLine("| ---: | --- | --- | --- | ---: | ---: | --- |");
 
-        foreach (var group in officeRows.GroupBy(row => (row.RowCount, row.ArtifactKind, row.Workload)).OrderBy(group => group.Key.RowCount).ThenBy(group => group.Key.ArtifactKind).ThenBy(group => group.Key.Workload)) {
+        foreach (var group in officeRows.GroupBy(row => (row.RowCount, row.ArtifactKind, row.Workload, row.Category)).OrderBy(group => group.Key.RowCount).ThenBy(group => group.Key.ArtifactKind).ThenBy(group => group.Key.Workload).ThenBy(group => group.Key.Category)) {
             int wins = group.Count(row => row.Outcome == "Win");
             var losses = group.Where(row => row.Outcome.StartsWith("Loss", StringComparison.Ordinal)).ToArray();
             var biggestLoss = losses
@@ -224,6 +307,8 @@ internal static class ExcelComparisonSummaryWriter {
             builder.Append(EscapeMarkdown(group.Key.ArtifactKind));
             builder.Append(" | ");
             builder.Append(EscapeMarkdown(group.Key.Workload));
+            builder.Append(" | ");
+            builder.Append(EscapeMarkdown(group.Key.Category));
             builder.Append(" | ");
             builder.Append(wins.ToString(CultureInfo.InvariantCulture));
             builder.Append(" | ");
@@ -242,16 +327,18 @@ internal static class ExcelComparisonSummaryWriter {
         var officeRows = rows.Where(row => IsOfficeImo(row.Library)).ToArray();
         builder.AppendLine("## OfficeIMO decision table");
         builder.AppendLine();
-        builder.AppendLine("| Row count | Artifact | Workload | Scenario | OfficeIMO mean | Best | OfficeIMO vs best | Alloc | Package |");
-        builder.AppendLine("| ---: | --- | --- | --- | ---: | --- | ---: | ---: | ---: |");
+        builder.AppendLine("| Row count | Artifact | Workload | Category | Scenario | OfficeIMO mean | Best | OfficeIMO vs best | Alloc | Package |");
+        builder.AppendLine("| ---: | --- | --- | --- | --- | ---: | --- | ---: | ---: | ---: |");
 
-        foreach (var row in officeRows.OrderBy(row => row.RowCount).ThenBy(row => row.ArtifactKind).ThenBy(row => row.Workload).ThenBy(row => row.Scenario)) {
+        foreach (var row in officeRows.OrderBy(row => row.RowCount).ThenBy(row => row.ArtifactKind).ThenBy(row => row.Workload).ThenBy(row => row.Category).ThenBy(row => row.Scenario)) {
             builder.Append("| ");
             builder.Append(row.RowCount.ToString(CultureInfo.InvariantCulture));
             builder.Append(" | ");
             builder.Append(EscapeMarkdown(row.ArtifactKind));
             builder.Append(" | ");
             builder.Append(EscapeMarkdown(row.Workload));
+            builder.Append(" | ");
+            builder.Append(EscapeMarkdown(row.Category));
             builder.Append(" | ");
             builder.Append(EscapeMarkdown(row.Scenario));
             builder.Append(" | ");
@@ -273,14 +360,18 @@ internal static class ExcelComparisonSummaryWriter {
     private static void AppendFullTable(StringBuilder builder, IReadOnlyList<ComparisonSummaryRow> rows) {
         builder.AppendLine("## Full comparison table");
         builder.AppendLine();
-        builder.AppendLine("| Row count | Artifact | Scenario | Library | Mean | StdDev | StdErr | Ratio to OfficeIMO | Ratio to best | Alloc | Alloc ratio | Package | Package ratio | Outcome |");
-        builder.AppendLine("| ---: | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |");
+        builder.AppendLine("| Row count | Artifact | Workload | Category | Scenario | Library | Mean | StdDev | StdErr | Ratio to OfficeIMO | Ratio to best | Alloc | Alloc ratio | Package | Package ratio | Outcome |");
+        builder.AppendLine("| ---: | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |");
 
-        foreach (var row in rows.OrderBy(row => row.RowCount).ThenBy(row => row.ArtifactKind).ThenBy(row => row.Scenario).ThenBy(row => row.MeanMilliseconds)) {
+        foreach (var row in rows.OrderBy(row => row.RowCount).ThenBy(row => row.ArtifactKind).ThenBy(row => row.Workload).ThenBy(row => row.Category).ThenBy(row => row.Scenario).ThenBy(row => row.MeanMilliseconds)) {
             builder.Append("| ");
             builder.Append(row.RowCount.ToString(CultureInfo.InvariantCulture));
             builder.Append(" | ");
             builder.Append(EscapeMarkdown(row.ArtifactKind));
+            builder.Append(" | ");
+            builder.Append(EscapeMarkdown(row.Workload));
+            builder.Append(" | ");
+            builder.Append(EscapeMarkdown(row.Category));
             builder.Append(" | ");
             builder.Append(EscapeMarkdown(row.Scenario));
             builder.Append(" | ");
@@ -313,6 +404,7 @@ internal static class ExcelComparisonSummaryWriter {
         "RowCount",
         "ArtifactKind",
         "Workload",
+        "Category",
         "Scenario",
         "Library",
         "MeanMilliseconds",
@@ -346,6 +438,7 @@ internal static class ExcelComparisonSummaryWriter {
         yield return row.RowCount.ToString(CultureInfo.InvariantCulture);
         yield return row.ArtifactKind;
         yield return row.Workload;
+        yield return row.Category;
         yield return row.Scenario;
         yield return row.Library;
         yield return row.MeanMilliseconds.ToString("F6", CultureInfo.InvariantCulture);
@@ -467,6 +560,7 @@ internal static class ExcelComparisonSummaryWriter {
         public string ArtifactKind { get; init; } = string.Empty;
         public int RowCount { get; init; }
         public string Workload { get; init; } = string.Empty;
+        public string Category { get; init; } = string.Empty;
         public string Scenario { get; init; } = string.Empty;
         public string Library { get; init; } = string.Empty;
         public string Notes { get; init; } = string.Empty;

@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public sealed partial class ExcelSheetReader {
         private const int DenseSnapshotCapacityLimit = 100_000;
+        private const int DataTableBufferedSinglePassCapacityLimit = 1_000_000;
         private const int XmlFastCompletedRowTrackingLimit = 4096;
 
         /// <summary>
@@ -19,8 +20,97 @@ namespace OfficeIMO.Excel {
         /// If the sheet is empty, returns "A1:A1".
         /// </summary>
         public string GetUsedRangeA1() {
+            if (_usedRangeA1 != null) {
+                return _usedRangeA1;
+            }
+
+            if (_canStreamWorksheetPart
+                && TryGetWorksheetDimensionReferenceFromXml(out string dimensionReference)) {
+                _usedRangeA1 = dimensionReference;
+                return dimensionReference;
+            }
+
+            if (TryGetWorksheetDimensionReference(WorksheetRoot, out dimensionReference)) {
+                _usedRangeA1 = dimensionReference;
+                return dimensionReference;
+            }
+
             string reference = ExcelSheet.ComputeSheetDimensionReference(WorksheetRoot);
-            return reference.IndexOf(":", StringComparison.Ordinal) >= 0 ? reference : reference + ":" + reference;
+            string usedRange = reference.IndexOf(":", StringComparison.Ordinal) >= 0 ? reference : reference + ":" + reference;
+            _usedRangeA1 = usedRange;
+            return usedRange;
+        }
+
+        private bool TryGetWorksheetDimensionReferenceFromXml(out string reference) {
+            reference = string.Empty;
+            try {
+                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                RewindWorksheetStream(stream);
+                using var reader = OpenWorksheetXmlReader(stream);
+                while (reader.Read()) {
+                    if (reader.NodeType != XmlNodeType.Element) {
+                        continue;
+                    }
+
+                    if (reader.LocalName == "dimension") {
+                        return TryNormalizeWorksheetDimensionReference(reader.GetAttribute("ref"), out reference);
+                    }
+
+                    if (reader.LocalName == "sheetData") {
+                        return false;
+                    }
+                }
+            } catch (XmlException) {
+                return false;
+            } catch (IOException) {
+                return false;
+            } catch (UnauthorizedAccessException) {
+                return false;
+            } catch (ObjectDisposedException) {
+                return false;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetWorksheetDimensionReference(Worksheet worksheet, out string reference) {
+            reference = string.Empty;
+            string? rawReference = worksheet.SheetDimension?.Reference?.Value;
+            return TryNormalizeWorksheetDimensionReference(rawReference, out reference);
+        }
+
+        private static bool TryNormalizeWorksheetDimensionReference(string? rawReference, out string reference) {
+            reference = string.Empty;
+            if (string.IsNullOrWhiteSpace(rawReference)) {
+                return false;
+            }
+
+            rawReference = rawReference!.Trim();
+            if (rawReference.Equals("A1", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            if (rawReference.IndexOf(':') >= 0) {
+                if (!A1.TryParseRange(rawReference, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)
+                    || firstRow <= 0
+                    || firstColumn <= 0
+                    || lastRow < firstRow
+                    || lastColumn < firstColumn) {
+                    return false;
+                }
+
+                reference = rawReference;
+                return true;
+            }
+
+            if (!A1.TryParseCellReferenceFast(rawReference, out int row, out int column)
+                || row <= 0
+                || column <= 0) {
+                return false;
+            }
+
+            reference = rawReference + ":" + rawReference;
+            return true;
         }
         /// <summary>
         /// Reads a rectangular A1 range (e.g., "A1:C10") into a dense 2D array of typed values.
@@ -170,7 +260,7 @@ namespace OfficeIMO.Excel {
             int workload,
             CancellationToken ct) {
             if (!_opt.InferDataTableColumnTypes
-                || workload > DenseSnapshotCapacityLimit
+                || workload > DataTableBufferedSinglePassCapacityLimit
                 || !CanUseDataTableXmlBufferedReader()) {
                 return false;
             }

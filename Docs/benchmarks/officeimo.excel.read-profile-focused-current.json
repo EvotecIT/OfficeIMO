@@ -1,0 +1,517 @@
+{
+  "GeneratedAtUtc": "2026-05-23T12:54:30.7636635Z",
+  "Framework": ".NET 8.0.27",
+  "MachineName": "EVOMAGIC",
+  "BuildConfiguration": "Release",
+  "RowCount": 2500,
+  "WarmupIterations": 1,
+  "MeasuredIterations": 1,
+  "Scenarios": [
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadObjects",
+      "Notes": "Automatic execution policy.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 17.4712,
+      "MedianMilliseconds": 17.4712,
+      "SamplesMilliseconds": [
+        17.4712
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadObjects.Sequential",
+      "Notes": "Forced sequential range conversion.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 17.0414,
+      "MedianMilliseconds": 17.0414,
+      "SamplesMilliseconds": [
+        17.0414
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadObjects.Parallel",
+      "Notes": "Forced parallel range conversion.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 76.8221,
+      "MedianMilliseconds": 76.8221,
+      "SamplesMilliseconds": [
+        76.8221
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadObjectsAs",
+      "Notes": "Typed object materialization with automatic execution policy.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 21.5166,
+      "MedianMilliseconds": 21.5166,
+      "SamplesMilliseconds": [
+        21.5166
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadObjectsAs.Sequential",
+      "Notes": "Typed object materialization with forced sequential range conversion.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 23.8877,
+      "MedianMilliseconds": 23.8877,
+      "SamplesMilliseconds": [
+        23.8877
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadObjectsAs.Parallel",
+      "Notes": "Typed object materialization with forced parallel range conversion.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 80.9458,
+      "MedianMilliseconds": 80.9458,
+      "SamplesMilliseconds": [
+        80.9458
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadObjectsAs.CustomConverterFallback",
+      "Notes": "Typed object materialization through a custom converter hook that falls back to built-in conversion.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 28.7561,
+      "MedianMilliseconds": 28.7561,
+      "SamplesMilliseconds": [
+        28.7561
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadObjectsAs.CustomConverterCultureFallback",
+      "Notes": "Typed object materialization through a custom converter fallback with non-invariant culture.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 30.0532,
+      "MedianMilliseconds": 30.0532,
+      "SamplesMilliseconds": [
+        30.0532
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadObjectsStreamAs",
+      "Notes": "Streaming typed object materialization without full result buffering.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 27.1846,
+      "MedianMilliseconds": 27.1846,
+      "SamplesMilliseconds": [
+        27.1846
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadObjectsStreamAs.CustomConverterFallback",
+      "Notes": "Streaming typed object materialization through a custom converter hook that falls back to built-in conversion.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 24.9082,
+      "MedianMilliseconds": 24.9082,
+      "SamplesMilliseconds": [
+        24.9082
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadObjectsStreamAs.CustomConverterCultureFallback",
+      "Notes": "Streaming typed object materialization through a custom converter fallback with non-invariant culture.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 23.2203,
+      "MedianMilliseconds": 23.2203,
+      "SamplesMilliseconds": [
+        23.2203
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRange",
+      "Notes": "Dense 2D array read with automatic execution policy.",
+      "OutputMetric": 20008,
+      "AverageMilliseconds": 19.6879,
+      "MedianMilliseconds": 19.6879,
+      "SamplesMilliseconds": [
+        19.6879
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRange.Sequential",
+      "Notes": "Dense 2D array read with forced sequential conversion.",
+      "OutputMetric": 20008,
+      "AverageMilliseconds": 20.5842,
+      "MedianMilliseconds": 20.5842,
+      "SamplesMilliseconds": [
+        20.5842
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRange.Parallel",
+      "Notes": "Dense 2D array read with forced parallel conversion.",
+      "OutputMetric": 20008,
+      "AverageMilliseconds": 96.8038,
+      "MedianMilliseconds": 96.8038,
+      "SamplesMilliseconds": [
+        96.8038
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRangeAsDataTable",
+      "Notes": "Automatic execution policy.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 33.0089,
+      "MedianMilliseconds": 33.0089,
+      "SamplesMilliseconds": [
+        33.0089
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRangeAsDataTable.Sequential",
+      "Notes": "Forced sequential range conversion.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 25.8941,
+      "MedianMilliseconds": 25.8941,
+      "SamplesMilliseconds": [
+        25.8941
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRangeAsDataTable.Parallel",
+      "Notes": "Forced parallel range conversion.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 102.8048,
+      "MedianMilliseconds": 102.8048,
+      "SamplesMilliseconds": [
+        102.8048
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRangeAsDataTable.HeadersNoInference",
+      "Notes": "Header row with type inference disabled.",
+      "OutputMetric": 2508,
+      "AverageMilliseconds": 20.9521,
+      "MedianMilliseconds": 20.9521,
+      "SamplesMilliseconds": [
+        20.9521
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRangeAsDataTable.NoHeadersNoInference",
+      "Notes": "Generated columns with type inference disabled.",
+      "OutputMetric": 2509,
+      "AverageMilliseconds": 18.4834,
+      "MedianMilliseconds": 18.4834,
+      "SamplesMilliseconds": [
+        18.4834
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRangeAsDataTable.MixedTypeInference",
+      "Notes": "Infer object columns from mixed-type data.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 19.6357,
+      "MedianMilliseconds": 19.6357,
+      "SamplesMilliseconds": [
+        19.6357
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRangeAsDataTable.CustomConverterFallback",
+      "Notes": "Sequential DataTable read through a custom converter hook that falls back to built-in conversion.",
+      "OutputMetric": 2508,
+      "AverageMilliseconds": 24.8841,
+      "MedianMilliseconds": 24.8841,
+      "SamplesMilliseconds": [
+        24.8841
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRangeAsDataTable.CustomConverterCultureFallback",
+      "Notes": "Sequential DataTable read through a custom converter fallback with non-invariant culture.",
+      "OutputMetric": 2508,
+      "AverageMilliseconds": 25.6876,
+      "MedianMilliseconds": 25.6876,
+      "SamplesMilliseconds": [
+        25.6876
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRangeStream",
+      "Notes": "Streaming row chunks with automatic execution policy.",
+      "OutputMetric": 2501,
+      "AverageMilliseconds": 21.546,
+      "MedianMilliseconds": 21.546,
+      "SamplesMilliseconds": [
+        21.546
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRangeStream.Sequential",
+      "Notes": "Streaming row chunks with forced sequential conversion.",
+      "OutputMetric": 2501,
+      "AverageMilliseconds": 15.5809,
+      "MedianMilliseconds": 15.5809,
+      "SamplesMilliseconds": [
+        15.5809
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRangeStream.Parallel",
+      "Notes": "Streaming row chunks with forced parallel conversion.",
+      "OutputMetric": 2501,
+      "AverageMilliseconds": 80.4792,
+      "MedianMilliseconds": 80.4792,
+      "SamplesMilliseconds": [
+        80.4792
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRangeStream.CustomConverterFallback",
+      "Notes": "Streaming row chunks through a custom converter hook that falls back to built-in conversion.",
+      "OutputMetric": 2501,
+      "AverageMilliseconds": 19.1634,
+      "MedianMilliseconds": 19.1634,
+      "SamplesMilliseconds": [
+        19.1634
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRangeStream.CustomConverterCultureFallback",
+      "Notes": "Streaming row chunks through a custom converter fallback with non-invariant culture.",
+      "OutputMetric": 2501,
+      "AverageMilliseconds": 19.5147,
+      "MedianMilliseconds": 19.5147,
+      "SamplesMilliseconds": [
+        19.5147
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRows.Dense",
+      "Notes": "Dense row enumeration over the same workbook payload.",
+      "OutputMetric": 22509,
+      "AverageMilliseconds": 16.2211,
+      "MedianMilliseconds": 16.2211,
+      "SamplesMilliseconds": [
+        16.2211
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRows.Dense.CustomConverterFallback",
+      "Notes": "Dense row enumeration through a custom converter hook that falls back to built-in conversion.",
+      "OutputMetric": 22509,
+      "AverageMilliseconds": 20.5475,
+      "MedianMilliseconds": 20.5475,
+      "SamplesMilliseconds": [
+        20.5475
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRows.Dense.CustomConverterCultureFallback",
+      "Notes": "Dense row enumeration through a custom converter fallback with non-invariant culture.",
+      "OutputMetric": 22509,
+      "AverageMilliseconds": 19.3463,
+      "MedianMilliseconds": 19.3463,
+      "SamplesMilliseconds": [
+        19.3463
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadColumn.Dense",
+      "Notes": "Dense single-column enumeration over the same workbook payload.",
+      "OutputMetric": 5002,
+      "AverageMilliseconds": 11.4863,
+      "MedianMilliseconds": 11.4863,
+      "SamplesMilliseconds": [
+        11.4863
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadColumn.Dense.CustomConverterFallback",
+      "Notes": "Dense single-column enumeration through a custom converter hook that falls back to built-in conversion.",
+      "OutputMetric": 5002,
+      "AverageMilliseconds": 14.5949,
+      "MedianMilliseconds": 14.5949,
+      "SamplesMilliseconds": [
+        14.5949
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadColumn.Dense.CustomConverterCultureFallback",
+      "Notes": "Dense single-column enumeration through a custom converter fallback with non-invariant culture.",
+      "OutputMetric": 5002,
+      "AverageMilliseconds": 10.1644,
+      "MedianMilliseconds": 10.1644,
+      "SamplesMilliseconds": [
+        10.1644
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "GetUsedRangeA1.Cached",
+      "Notes": "Repeated used-range lookup through ExcelDocumentReader after the worksheet dimension has been resolved.",
+      "OutputMetric": 80000,
+      "AverageMilliseconds": 1.4303,
+      "MedianMilliseconds": 1.4303,
+      "SamplesMilliseconds": [
+        1.4303
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "GetHeaderMap.LargeUsedRange",
+      "Notes": "Build the header lookup map from the first used row of a larger worksheet.",
+      "OutputMetric": 9,
+      "AverageMilliseconds": 81.4996,
+      "MedianMilliseconds": 81.4996,
+      "SamplesMilliseconds": [
+        81.4996
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "GetHeaderMap.LoadedRebuild",
+      "Notes": "Rebuild the header lookup map on an already loaded worksheet after cache invalidation.",
+      "OutputMetric": 9,
+      "AverageMilliseconds": 1.6293,
+      "MedianMilliseconds": 1.6293,
+      "SamplesMilliseconds": [
+        1.6293
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "GetHeaderMap.LoadedSharedStrings",
+      "Notes": "Rebuild headers when the worksheet has many unique shared strings below the header row.",
+      "OutputMetric": 5,
+      "AverageMilliseconds": 1.1861,
+      "MedianMilliseconds": 1.1861,
+      "SamplesMilliseconds": [
+        1.1861
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "TryGetColumnIndexByHeader.Cached",
+      "Notes": "Repeated cached header lookup without exposing the mutable header map.",
+      "OutputMetric": 50000,
+      "AverageMilliseconds": 5033.701,
+      "MedianMilliseconds": 5033.701,
+      "SamplesMilliseconds": [
+        5033.701
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "HeaderOps.SetByHeader.Cached",
+      "Notes": "Repeated header-based data-row updates through the normal SetByHeader API.",
+      "OutputMetric": 12515000,
+      "AverageMilliseconds": 4637.3704,
+      "MedianMilliseconds": 4637.3704,
+      "SamplesMilliseconds": [
+        4637.3704
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "LoadedText.FindFirst.SharedStrings",
+      "Notes": "Repeated loaded-sheet text search over cells backed by many shared strings.",
+      "OutputMetric": 100,
+      "AverageMilliseconds": 49.2617,
+      "MedianMilliseconds": 49.2617,
+      "SamplesMilliseconds": [
+        49.2617
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "LoadedText.ReplaceAll.SharedStrings",
+      "Notes": "Batch replacement over a loaded worksheet with many shared-string cells.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 36.6109,
+      "MedianMilliseconds": 36.6109,
+      "SamplesMilliseconds": [
+        36.6109
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "HeaderOps.AutoFilterByHeaders.BatchMap",
+      "Notes": "Repeated multi-header AutoFilter updates using one internal cached header map per operation.",
+      "OutputMetric": 800,
+      "AverageMilliseconds": 44.4012,
+      "MedianMilliseconds": 44.4012,
+      "SamplesMilliseconds": [
+        44.4012
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadColumn.LargeSparse",
+      "Notes": "Sparse A1:A100001 read with only the first and last rows populated.",
+      "OutputMetric": 100001,
+      "AverageMilliseconds": 2.8338,
+      "MedianMilliseconds": 2.8338,
+      "SamplesMilliseconds": [
+        2.8338
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadColumn.LargeSparse.CustomConverterFallback",
+      "Notes": "Sparse A1:A100001 read through a custom converter hook that falls back to built-in conversion.",
+      "OutputMetric": 100001,
+      "AverageMilliseconds": 2.9188,
+      "MedianMilliseconds": 2.9188,
+      "SamplesMilliseconds": [
+        2.9188
+      ]
+    },
+    {
+      "Library": "OfficeIMO.Excel",
+      "Name": "ReadRows.LargeSparse",
+      "Notes": "Sparse A1:A100001 row read with only the first and last rows populated.",
+      "OutputMetric": 100001,
+      "AverageMilliseconds": 2.7236,
+      "MedianMilliseconds": 2.7236,
+      "SamplesMilliseconds": [
+        2.7236
+      ]
+    },
+    {
+      "Library": "ClosedXML",
+      "Name": "ReadRows",
+      "Notes": "Worksheet row iteration over the same workbook payload.",
+      "OutputMetric": 2500,
+      "AverageMilliseconds": 93.63,
+      "MedianMilliseconds": 93.63,
+      "SamplesMilliseconds": [
+        93.63
+      ]
+    }
+  ]
+}

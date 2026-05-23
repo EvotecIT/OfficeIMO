@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "generatedUtc": "2026-05-23T13:48:50.3578200Z",
+      "runMode": "quick",
+      "publish": false,
+      "framework": ".NET 8.0.27",
+      "summaryPath": ".\\Website\\data\\benchmarks-excel-summary.json",
+      "dataPath": ".\\Website\\data\\benchmarks-excel.json",
+      "markdownPath": ".\\Docs\\benchmarks\\officeimo.excel.comparison-report.md",
+      "meta": {
+        "commit": "fe226106c0987108ce8d6f678505358cf62b5a9f",
+        "branch": "codex/excel-perf-competition-loop",
+        "dotnetSdk": "10.0.300",
+        "runtime": ".NET 9.0.14",
+        "osDescription": "Microsoft Windows 10.0.26200",
+        "osArchitecture": "X64",
+        "processArchitecture": "X64",
+        "machineName": "EVOMAGIC",
+        "processorCount": 32
+      }
+    }
+  ]
+}

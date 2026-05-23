@@ -19,6 +19,7 @@ namespace OfficeIMO.Excel {
         private readonly ExcelReadOptions _opt;
         private readonly bool _canStreamWorksheetPart;
         private bool? _hasWorksheetPartStreamContent;
+        private string? _usedRangeA1;
         private static readonly XmlReaderSettings WorksheetXmlReaderSettings = CreateWorksheetXmlReaderSettings();
 
         internal ExcelSheetReader(string sheetName, WorksheetPart wsPart, SharedStringCache sst, StylesCache styles, ExcelReadOptions opt, bool canStreamWorksheetPart) {

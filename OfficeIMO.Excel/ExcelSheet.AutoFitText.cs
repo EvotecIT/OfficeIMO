@@ -79,9 +79,13 @@ namespace OfficeIMO.Excel {
             }
 
             uint numberFormatId = GetCellNumberFormatId(cell, context);
+            if (numberFormatId == 0U) {
+                return raw;
+            }
+
             string? formatCode = GetNumberFormatCode(numberFormatId, context);
 
-            if (numberFormatId == 0U || string.IsNullOrWhiteSpace(formatCode) || string.Equals(formatCode, "General", StringComparison.OrdinalIgnoreCase)) {
+            if (string.IsNullOrWhiteSpace(formatCode) || string.Equals(formatCode, "General", StringComparison.OrdinalIgnoreCase)) {
                 return raw;
             }
 
