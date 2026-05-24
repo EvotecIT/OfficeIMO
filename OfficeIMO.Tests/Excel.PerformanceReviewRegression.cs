@@ -3023,6 +3023,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_InsertObjects_ExplicitSelectorsSnapshotValuesBeforeDeferredSave() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new MutablePerformanceObjectExportRow { Name = "Alpha", Score = 10 }
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score));
+
+                rows[0].Name = "Changed";
+                rows[0].Score = 99;
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("10", cells["B2"].CellValue!.Text);
+        }
+
+        [Fact]
         public void PerformanceReview_InsertObjects_ExplicitSelectorsPreserveBlankHeaders() {
             using var memory = new MemoryStream();
             var rows = new[] {
@@ -3305,6 +3334,33 @@ namespace OfficeIMO.Tests {
             Assert.Equal("10", cells["B2"].CellValue!.Text);
             Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_ReflectionOverloadSnapshotsValuesBeforeDeferredSave() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new MutablePerformanceObjectExportRow { Name = "Alpha", Score = 10 }
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows);
+
+                rows[0].Name = "Changed";
+                rows[0].Score = 99;
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!.Descendants<Cell>()
+                .ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("10", cells["B2"].CellValue!.Text);
         }
 
         [Fact]
@@ -4641,6 +4697,12 @@ namespace OfficeIMO.Tests {
             public DateTime? Created { get; }
 
             public string Note { get; }
+        }
+
+        private sealed class MutablePerformanceObjectExportRow {
+            public string Name { get; set; } = string.Empty;
+
+            public int Score { get; set; }
         }
 
 #if NET6_0_OR_GREATER

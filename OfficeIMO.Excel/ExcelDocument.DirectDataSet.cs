@@ -1499,23 +1499,26 @@ namespace OfficeIMO.Excel {
         }
 
         private readonly struct DirectCellValueRows {
-            private readonly object?[] _values;
-            private readonly int _columnCount;
-
             internal DirectCellValueRows(
                 object?[] values,
                 int columnCount,
                 int rowCount) {
-                _values = values;
-                _columnCount = columnCount;
+                Values = values;
+                ColumnCount = columnCount;
                 Count = rowCount;
             }
 
+            internal object?[] Values { get; }
+
+            internal int ColumnCount { get; }
+
             internal int Count { get; }
 
+            internal int GetRowOffset(int rowIndex) => rowIndex * ColumnCount;
+
             internal object? GetValue(int rowIndex, int columnIndex) {
-                int index = (rowIndex * _columnCount) + columnIndex;
-                return _values[index];
+                int index = GetRowOffset(rowIndex) + columnIndex;
+                return Values[index];
             }
         }
 

@@ -140,16 +140,16 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            object?[][]? values = null;
+            object?[]? values = null;
             if (!hasBlankDisplayHeader
                 && !HasDuplicateObjectExportHeaders(headers)
                 && CanRegisterDirectTabularSaveCandidate(startRow, 1, headers.Length)) {
                 Type?[] inferredColumnTypes;
-                values = CreateExplicitObjectExportRows(rows, selectors, out inferredColumnTypes);
+                values = CreateExplicitObjectExportCellValues(rows, selectors, out inferredColumnTypes);
                 try {
                     var columnTypes = CompleteObjectExportColumnTypes(inferredColumnTypes);
                     string directSaveRange = BuildObjectExportRange(startRow, headers.Length, rows.Count, includeHeaders);
-                    if (TryInsertRowsAsDeferredDirectSave(Name, headers, columnTypes, values, startRow, includeHeaders, directSaveRange)) {
+                    if (TryInsertCellValuesAsDeferredDirectSave(Name, headers, columnTypes, values, headers.Length, rows.Count, startRow, includeHeaders, directSaveRange)) {
                         return;
                     }
                 } catch {
@@ -170,9 +170,10 @@ namespace OfficeIMO.Excel {
             }
 
             if (values != null) {
-                foreach (object?[] rowValues in values) {
+                for (int r = 0; r < rows.Count; r++) {
+                    int rowOffset = r * headers.Length;
                     for (int c = 0; c < headers.Length; c++) {
-                        cells[cellIndex++] = (row, c + 1, rowValues[c] ?? string.Empty);
+                        cells[cellIndex++] = (row, c + 1, values[rowOffset + c] ?? string.Empty);
                     }
 
                     row++;
@@ -192,21 +193,19 @@ namespace OfficeIMO.Excel {
 
         private static object? NullObjectSelector<T>(T row) => null;
 
-        private static object?[][] CreateExplicitObjectExportRows<T>(
+        private static object?[] CreateExplicitObjectExportCellValues<T>(
             IReadOnlyList<T> rows,
             IReadOnlyList<Func<T, object?>> selectors,
             out Type?[] inferredColumnTypes) {
-            var values = new object?[rows.Count][];
+            var values = new object?[checked(rows.Count * selectors.Count)];
             inferredColumnTypes = new Type?[selectors.Count];
             for (int r = 0; r < rows.Count; r++) {
-                var rowValues = new object?[selectors.Count];
+                int rowOffset = r * selectors.Count;
                 for (int c = 0; c < selectors.Count; c++) {
                     object? value = selectors[c](rows[r]);
-                    rowValues[c] = value;
+                    values[rowOffset + c] = value;
                     UpdateObjectExportColumnType(inferredColumnTypes, c, value);
                 }
-
-                values[r] = rowValues;
             }
 
             return values;
@@ -254,6 +253,43 @@ namespace OfficeIMO.Excel {
                 columnNames,
                 columnTypes,
                 rows,
+                includeHeaders,
+                range);
+        }
+
+        private bool TryInsertCellValuesAsDeferredDirectSave(
+            string tableNameForModel,
+            IReadOnlyList<string> columnNames,
+            IReadOnlyList<Type> columnTypes,
+            object?[] values,
+            int columnCount,
+            int rowCount,
+            int startRow,
+            bool includeHeaders,
+            string range) {
+            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
+            if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
+            if (values == null) throw new ArgumentNullException(nameof(values));
+            if (string.IsNullOrEmpty(range)) {
+                return false;
+            }
+
+            if (!CanRegisterDirectTabularSaveCandidate(startRow, 1, columnNames.Count)) {
+                return false;
+            }
+
+            if (HasDuplicateObjectExportHeaders(columnNames)) {
+                return false;
+            }
+
+            return _excelDocument.RegisterDeferredDirectCellValuesSaveCandidate(
+                this,
+                tableNameForModel,
+                columnNames,
+                columnTypes,
+                values,
+                columnCount,
+                rowCount,
                 includeHeaders,
                 range);
         }
@@ -350,23 +386,21 @@ namespace OfficeIMO.Excel {
             }
 
             SimpleObjectExportValueGetter[] getters = plan.Getters;
-            var values = new object?[rows.Count][];
+            var values = new object?[checked(rows.Count * getters.Length)];
             for (int r = 0; r < rows.Count; r++) {
                 object? row = rows[r];
                 if (row == null || requireRuntimeTypeCheck && row.GetType() != rowType) {
                     return false;
                 }
 
-                var rowValues = new object?[getters.Length];
+                int rowOffset = r * getters.Length;
                 for (int c = 0; c < getters.Length; c++) {
-                    rowValues[c] = getters[c](row);
+                    values[rowOffset + c] = getters[c](row);
                 }
-
-                values[r] = rowValues;
             }
 
             string range = BuildObjectExportRange(startRow, headers.Length, rows.Count, includeHeaders);
-            return TryInsertRowsAsDeferredDirectSave(Name, headers, plan.ColumnTypes, values, startRow, includeHeaders, range);
+            return TryInsertCellValuesAsDeferredDirectSave(Name, headers, plan.ColumnTypes, values, headers.Length, rows.Count, startRow, includeHeaders, range);
         }
 
         private bool TryInsertSimpleObjectRowsAsCellValues<T>(
