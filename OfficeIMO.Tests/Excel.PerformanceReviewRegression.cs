@@ -3762,6 +3762,79 @@ namespace OfficeIMO.Tests {
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
+        [Fact]
+        public void PerformanceReview_InsertObjects_PowerShellObjectBagWideShapeUsesDirectPackage() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                CreateWidePowerShellObject(1),
+                CreateWidePowerShellObject(2)
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows);
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Metric36", GetSpreadsheetCellText(spreadsheet, cells["AN1"]));
+            Assert.Equal("36", cells["AN2"].CellValue!.Text);
+            Assert.Equal("72", cells["AN3"].CellValue!.Text);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+
+            static System.Management.Automation.PSObject CreateWidePowerShellObject(int id) {
+                var properties = new System.Management.Automation.PSPropertyInfo[40];
+                properties[0] = new System.Management.Automation.PSPropertyInfo("Id", id);
+                properties[1] = new System.Management.Automation.PSPropertyInfo("Name", "Server-" + id.ToString("D6", CultureInfo.InvariantCulture));
+                properties[2] = new System.Management.Automation.PSPropertyInfo("Created", new DateTime(2026, 5, 20).AddDays(id));
+                properties[3] = new System.Management.Automation.PSPropertyInfo("Enabled", id % 2 == 1);
+                for (int metric = 1; metric <= 36; metric++) {
+                    properties[metric + 3] = new System.Management.Automation.PSPropertyInfo("Metric" + metric.ToString(CultureInfo.InvariantCulture), id * metric);
+                }
+
+                return new System.Management.Automation.PSObject(properties);
+            }
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_PowerShellObjectBagLateColumnsUseDirectPackage() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new System.Management.Automation.PSObject(
+                    new System.Management.Automation.PSPropertyInfo("Id", 1),
+                    new System.Management.Automation.PSPropertyInfo("Name", "Server-000001")),
+                new System.Management.Automation.PSObject(
+                    new System.Management.Automation.PSPropertyInfo("Id", 2),
+                    new System.Management.Automation.PSPropertyInfo("Name", "Server-000002"),
+                    new System.Management.Automation.PSPropertyInfo("TicketCount", 3))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows);
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("TicketCount", GetSpreadsheetCellText(spreadsheet, cells["C1"]));
+            Assert.True(!cells.TryGetValue("C2", out var blankTicketCount)
+                || string.IsNullOrEmpty(GetSpreadsheetCellText(spreadsheet, blankTicketCount)));
+            Assert.Equal("3", cells["C3"].CellValue!.Text);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
 #if NET6_0_OR_GREATER
         [Fact]
         public void PerformanceReview_InsertObjects_ExtendedSimpleScalarTypesUseDirectPackage() {

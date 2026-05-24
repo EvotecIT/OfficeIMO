@@ -360,6 +360,8 @@ static string[] FilterPackageProfileScenarios(IReadOnlyCollection<string> scenar
         "write-insertobjects-flat-dictionaries-direct",
         "write-insertobjects-legacy-dictionaries-direct",
         "write-powershell-mixed-objects-direct",
+        "write-powershell-psobject-mixed-direct",
+        "write-powershell-psobject-wide-direct",
         "write-fluent-rowsfrom-direct",
         "append-plain-rows",
         "autofit-existing",
