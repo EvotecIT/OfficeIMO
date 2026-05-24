@@ -94,7 +94,8 @@ namespace OfficeIMO.Excel {
                     }
 
                     int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
-                    if (rowIndex <= 0) {
+                    bool hasExplicitRowIndex = rowIndex > 0;
+                    if (!hasExplicitRowIndex) {
                         rowIndex = nextRowIndex;
                     }
 
@@ -103,10 +104,12 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
+                    int rowMinRow = int.MaxValue;
+                    int rowMaxRow = 0;
                     int rowMinColumn = int.MaxValue;
                     int rowMaxColumn = 0;
                     int rowDepth = reader.Depth;
-                    int cellOrdinal = 0;
+                    int lastColumn = 0;
                     while (reader.Read()) {
                         if (reader.NodeType == XmlNodeType.EndElement
                             && reader.Depth == rowDepth
@@ -118,10 +121,22 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        cellOrdinal++;
-                        int column = A1.ParseColumnIndexFromCellReferenceWithKnownRowFast(reader.GetAttribute("r"));
+                        int cellRow = rowIndex;
+                        int column = 0;
+                        string? cellReference = reader.GetAttribute("r");
+                        if (A1.TryParseCellReferenceFast(cellReference, out int parsedRow, out int parsedColumn)) {
+                            cellRow = parsedRow;
+                            column = parsedColumn;
+                        }
+
                         if (column <= 0) {
-                            column = cellOrdinal;
+                            column = lastColumn + 1;
+                        }
+
+                        lastColumn = column;
+                        if (!hasExplicitRowIndex && cellRow > 0) {
+                            if (cellRow < rowMinRow) rowMinRow = cellRow;
+                            if (cellRow > rowMaxRow) rowMaxRow = cellRow;
                         }
 
                         if (column > 0) {
@@ -136,10 +151,18 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    if (rowIndex < minRow) minRow = rowIndex;
-                    if (rowIndex > maxRow) maxRow = rowIndex;
+                    if (rowMaxRow <= 0) {
+                        rowMinRow = rowIndex;
+                        rowMaxRow = rowIndex;
+                    }
+
+                    if (rowMinRow < minRow) minRow = rowMinRow;
+                    if (rowMaxRow > maxRow) maxRow = rowMaxRow;
                     if (rowMinColumn < minColumn) minColumn = rowMinColumn;
                     if (rowMaxColumn > maxColumn) maxColumn = rowMaxColumn;
+                    if (!hasExplicitRowIndex) {
+                        nextRowIndex = rowMaxRow + 1;
+                    }
                 }
 
                 if (maxRow <= 0 || maxColumn <= 0) {

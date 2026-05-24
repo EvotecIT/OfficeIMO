@@ -1026,6 +1026,63 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_GetUsedRangeA1_UsesCellReferenceRowWhenRowIndexIsMissing() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderUsedRangeMissingRowIndex.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(10, 2, "Value");
+                    document.Save();
+                }
+
+                using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet;
+                    worksheet.GetFirstChild<SheetDimension>()!.Reference = "A1";
+                    Row row = worksheet.GetFirstChild<SheetData>()!.Elements<Row>().Single();
+                    row.RowIndex = null;
+                    worksheet.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                Assert.Equal("B10:B10", reader.GetSheet("Data").GetUsedRangeA1());
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_GetUsedRangeA1_AdvancesImplicitCellColumnAfterExplicitReference() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderUsedRangeMixedExplicitImplicitCells.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 3, "Explicit");
+                    sheet.CellValue(1, 4, "Implicit");
+                    document.Save();
+                }
+
+                using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet;
+                    worksheet.GetFirstChild<SheetDimension>()!.Reference = "A1";
+                    Cell implicitCell = worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "D1");
+                    implicitCell.CellReference = null;
+                    worksheet.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                Assert.Equal("C1:D1", reader.GetSheet("Data").GetUsedRangeA1());
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Reader_GetUsedRangeA1_IgnoresStaleOversizedWorksheetDimension() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderUsedRangeStaleDimension.xlsx");
 
