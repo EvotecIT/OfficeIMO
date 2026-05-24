@@ -7,13 +7,20 @@ using System.Threading;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private static class DirectDataSetWorkbookWriter {
-            private const int XmlWriterBufferSize = 65536;
+            private const int XmlWriterBufferSize = 32768;
+            private const int StackallocTextEntryByteLimit = 4096;
             private const string DateStyleAttribute = " s=\"1\"";
             private const string TimeStyleAttribute = " s=\"2\"";
             private const string CellValueDateStyleAttribute = " s=\"3\"";
             private const string CellValueTimeStyleAttribute = " s=\"4\"";
+            private const int CachedRawIntegerCellLimit = 4096;
+            private const int CachedSharedStringCellLimit = 1024;
+            private const int CachedCellReferencePrefixColumnLimit = 64;
             private static readonly UTF8Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
             private static readonly DateTime ExcelMinimumSupportedDateTimeOffset = DateTime.FromOADate(2);
+            private static readonly string[] RawNonNegativeIntegerCellCache = CreateRawNonNegativeIntegerCellCache();
+            private static readonly string?[] SharedStringCellCache = new string?[CachedSharedStringCellLimit];
+            private static readonly string[][] CellReferencePrefixCache = CreateCellReferencePrefixCache();
 
             internal static void Write(Stream stream, DirectDataSetWorkbookModel model, CancellationToken ct) {
                 DirectColumnWritePlan[] columnWritePlans = CreateColumnWritePlans(model, ct);
@@ -224,6 +231,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 bool hasBufferedRows = sheet.Table.TryGetBufferedRows(out DirectBufferedRows bufferedRows);
+                bool hasCellValueRows = sheet.Table.TryGetCellValueRows(out DirectCellValueRows cellValueRows);
                 if (hasBufferedRows
                     && !sheet.OmitBlankCells
                     && styleAttributes == null
@@ -235,6 +243,11 @@ namespace OfficeIMO.Excel {
                     && !sheet.OmitBlankCells
                     && valueStyleColumns == null) {
                     WriteFixedKindBufferedRows(writer, bufferedRows, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, dateTimeOffsetWriteStrategy, sharedStrings, ct);
+                    rowIndex += rowCount;
+                } else if (hasCellValueRows
+                    && !sheet.OmitBlankCells
+                    && valueStyleColumns == null) {
+                    WriteFixedKindCellValueRows(writer, cellValueRows, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, dateTimeOffsetWriteStrategy, sharedStrings, ct);
                     rowIndex += rowCount;
                 } else if (valueStyleColumns == null) {
                     if (hasBufferedRows) {
@@ -458,6 +471,70 @@ namespace OfficeIMO.Excel {
                 writer.Write("</worksheet>");
             }
 
+            private static void WriteFixedKindCellValueRows(
+                TextWriter writer,
+                DirectCellValueRows cellValueRows,
+                int rowCount,
+                int columnCount,
+                int startRowIndex,
+                string[] cellReferencePrefixes,
+                string?[]? styleAttributes,
+                DirectCellValueKind[] cellValueKinds,
+                Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
+                DirectSharedStringTable? sharedStrings,
+                CancellationToken ct) {
+                bool canCancel = ct.CanBeCanceled;
+                int rowIndex = startRowIndex;
+                if (styleAttributes == null) {
+                    for (int sourceRowIndex = 0; sourceRowIndex < rowCount; sourceRowIndex++) {
+                        if (canCancel) {
+                            ct.ThrowIfCancellationRequested();
+                        }
+
+                        string rowReference = InvariantNumberText.Get(rowIndex);
+                        writer.Write("<row r=\"");
+                        writer.Write(rowReference);
+                        writer.Write("\">");
+                        for (int c = 0; c < columnCount; c++) {
+                            writer.Write(cellReferencePrefixes[c]);
+                            writer.Write(rowReference);
+                            writer.Write('"');
+                            WriteCellValue(writer, cellValueRows.GetValue(sourceRowIndex, c), cellValueKinds[c], dateTimeOffsetWriteStrategy, sharedStrings);
+                        }
+
+                        writer.Write("</row>");
+                        rowIndex++;
+                    }
+
+                    return;
+                }
+
+                for (int sourceRowIndex = 0; sourceRowIndex < rowCount; sourceRowIndex++) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    string rowReference = InvariantNumberText.Get(rowIndex);
+                    writer.Write("<row r=\"");
+                    writer.Write(rowReference);
+                    writer.Write("\">");
+                    for (int c = 0; c < columnCount; c++) {
+                        writer.Write(cellReferencePrefixes[c]);
+                        writer.Write(rowReference);
+                        writer.Write('"');
+                        string? styleAttribute = styleAttributes[c];
+                        if (styleAttribute != null) {
+                            writer.Write(styleAttribute);
+                        }
+
+                        WriteCellValue(writer, cellValueRows.GetValue(sourceRowIndex, c), cellValueKinds[c], dateTimeOffsetWriteStrategy, sharedStrings);
+                    }
+
+                    writer.Write("</row>");
+                    rowIndex++;
+                }
+            }
+
             private static void WriteFixedKindBufferedRows(
                 TextWriter writer,
                 DirectBufferedRows bufferedRows,
@@ -533,6 +610,11 @@ namespace OfficeIMO.Excel {
                 string[] cellReferencePrefixes,
                 DirectSharedStringTable? sharedStrings,
                 CancellationToken ct) {
+                if (sharedStrings == null) {
+                    WritePlainInlineStringBufferedRows(writer, bufferedRows, rowCount, columnCount, startRowIndex, cellReferencePrefixes, ct);
+                    return;
+                }
+
                 bool canCancel = ct.CanBeCanceled;
                 int rowIndex = startRowIndex;
                 for (int sourceRowIndex = 0; sourceRowIndex < rowCount; sourceRowIndex++) {
@@ -564,6 +646,45 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            private static void WritePlainInlineStringBufferedRows(
+                TextWriter writer,
+                DirectBufferedRows bufferedRows,
+                int rowCount,
+                int columnCount,
+                int startRowIndex,
+                string[] cellReferencePrefixes,
+                CancellationToken ct) {
+                bool canCancel = ct.CanBeCanceled;
+                int rowIndex = startRowIndex;
+                for (int sourceRowIndex = 0; sourceRowIndex < rowCount; sourceRowIndex++) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    string rowReference = InvariantNumberText.Get(rowIndex);
+                    object?[] bufferedRow = bufferedRows[sourceRowIndex];
+                    writer.Write("<row r=\"");
+                    writer.Write(rowReference);
+                    writer.Write("\">");
+                    for (int c = 0; c < columnCount; c++) {
+                        writer.Write(cellReferencePrefixes[c]);
+                        writer.Write(rowReference);
+                        writer.Write('"');
+                        object? value = bufferedRow[c];
+                        if (value is string text) {
+                            WriteStringCell(writer, text, validateLength: true);
+                        } else if (value == null || value == DBNull.Value) {
+                            writer.Write(" t=\"str\"><v/></c>");
+                        } else {
+                            WriteStringCell(writer, value.ToString() ?? string.Empty, validateLength: true);
+                        }
+                    }
+
+                    writer.Write("</row>");
+                    rowIndex++;
+                }
+            }
+
             private static bool AllColumnsUseCellValueKind(DirectCellValueKind[] cellValueKinds, DirectCellValueKind expected) {
                 for (int i = 0; i < cellValueKinds.Length; i++) {
                     if (cellValueKinds[i] != expected) {
@@ -579,12 +700,31 @@ namespace OfficeIMO.Excel {
             }
 
             private static string[] CreateCellReferencePrefixes(int columnCount) {
+                if ((uint)columnCount <= CachedCellReferencePrefixColumnLimit) {
+                    return CellReferencePrefixCache[columnCount];
+                }
+
                 var columns = new string[columnCount];
                 for (int i = 0; i < columnCount; i++) {
                     columns[i] = "<c r=\"" + A1.ColumnIndexToLetters(i + 1);
                 }
 
                 return columns;
+            }
+
+            private static string[][] CreateCellReferencePrefixCache() {
+                var cache = new string[CachedCellReferencePrefixColumnLimit + 1][];
+                cache[0] = Array.Empty<string>();
+                for (int columnCount = 1; columnCount < cache.Length; columnCount++) {
+                    var columns = new string[columnCount];
+                    for (int i = 0; i < columnCount; i++) {
+                        columns[i] = "<c r=\"" + A1.ColumnIndexToLetters(i + 1);
+                    }
+
+                    cache[columnCount] = columns;
+                }
+
+                return cache;
             }
 
             private static DirectColumnWritePlan CreateColumnWritePlan(DirectDataSetTableModel table, bool useCellValueNumberFormats) {
@@ -649,6 +789,7 @@ namespace OfficeIMO.Excel {
             }
 
             private static DirectCellValueKind GetCellValueKind(Type dataType) {
+                if (dataType == typeof(DirectFormulaCellValue)) return DirectCellValueKind.Formula;
                 if (dataType == typeof(string)) return DirectCellValueKind.String;
                 if (dataType == typeof(bool)) return DirectCellValueKind.Boolean;
                 if (dataType == typeof(DateTime)) return DirectCellValueKind.DateTime;
@@ -712,54 +853,55 @@ namespace OfficeIMO.Excel {
             }
 
             private static void WriteTable(ZipArchive archive, DirectDataSetSheetModel sheet) {
-                var entry = archive.CreateEntry("xl/tables/table" + InvariantNumberText.Get(sheet.Index) + ".xml", CompressionLevel.Fastest);
-                using var stream = entry.Open();
-                using var writer = new StreamWriter(stream, Utf8NoBom, XmlWriterBufferSize);
-
-                writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-                writer.Write("<table xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" id=\"");
-                WriteInvariant(writer, sheet.Index);
-                writer.Write("\" name=\"");
-                WriteEscaped(writer, sheet.TableName!);
-                writer.Write("\" displayName=\"");
-                WriteEscaped(writer, sheet.TableName!);
-                writer.Write("\" ref=\"");
-                WriteEscaped(writer, sheet.Range);
-                writer.Write("\" headerRowCount=\"");
-                writer.Write(sheet.IncludeHeaders ? "1" : "0");
-                writer.Write("\" totalsRowShown=\"0\">");
+                int columnCount = sheet.Table.ColumnCount;
+                var builder = new StringBuilder(512 + (columnCount * 72));
+                string sheetIndexText = InvariantNumberText.Get(sheet.Index);
+                builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+                builder.Append("<table xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" id=\"");
+                builder.Append(sheetIndexText);
+                builder.Append("\" name=\"");
+                AppendEscaped(builder, sheet.TableName!);
+                builder.Append("\" displayName=\"");
+                AppendEscaped(builder, sheet.TableName!);
+                builder.Append("\" ref=\"");
+                AppendEscaped(builder, sheet.Range);
+                builder.Append("\" headerRowCount=\"");
+                builder.Append(sheet.IncludeHeaders ? "1" : "0");
+                builder.Append("\" totalsRowShown=\"0\">");
                 if (sheet.IncludeAutoFilter && sheet.IncludeHeaders) {
-                    writer.Write("<autoFilter ref=\"");
-                    WriteEscaped(writer, sheet.Range);
-                    writer.Write("\"/>");
+                    builder.Append("<autoFilter ref=\"");
+                    AppendEscaped(builder, sheet.Range);
+                    builder.Append("\"/>");
                 }
 
-                writer.Write("<tableColumns count=\"");
-                int columnCount = sheet.Table.ColumnCount;
-                WriteInvariant(writer, columnCount);
-                writer.Write("\">");
+                builder.Append("<tableColumns count=\"");
+                builder.Append(InvariantNumberText.Get(columnCount));
+                builder.Append("\">");
                 for (int i = 0; i < columnCount; i++) {
-                    writer.Write("<tableColumn id=\"");
-                    WriteInvariant(writer, i + 1);
-                    writer.Write("\" name=\"");
+                    string columnIndexText = InvariantNumberText.Get(i + 1);
+                    builder.Append("<tableColumn id=\"");
+                    builder.Append(columnIndexText);
+                    builder.Append("\" name=\"");
                     string columnName = sheet.Table.GetColumnName(i);
                     if (string.IsNullOrWhiteSpace(columnName)) {
-                        writer.Write("Column");
-                        WriteInvariant(writer, i + 1);
+                        builder.Append("Column");
+                        builder.Append(columnIndexText);
                     } else {
-                        WriteEscaped(writer, columnName);
+                        AppendEscaped(builder, columnName);
                     }
 
-                    writer.Write("\"/>");
+                    builder.Append("\"/>");
                 }
 
-                writer.Write("</tableColumns><tableStyleInfo name=\"");
-                writer.Write(sheet.TableStyle.ToString());
-                writer.Write("\" showFirstColumn=\"0\" showLastColumn=\"0\" showRowStripes=\"1\" showColumnStripes=\"0\"/></table>");
+                builder.Append("</tableColumns><tableStyleInfo name=\"");
+                builder.Append(sheet.TableStyle.ToString());
+                builder.Append("\" showFirstColumn=\"0\" showLastColumn=\"0\" showRowStripes=\"1\" showColumnStripes=\"0\"/></table>");
+                WriteTextEntry(archive, "xl/tables/table" + sheetIndexText + ".xml", builder.ToString());
             }
 
             private enum DirectCellValueKind {
                 Object,
+                Formula,
                 String,
                 Boolean,
                 DateTime,
@@ -823,15 +965,24 @@ namespace OfficeIMO.Excel {
                         return null;
                     }
 
-                    var seenOnce = new HashSet<string>(StringComparer.Ordinal);
-                    var sharedCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+                    var stringCounts = new Dictionary<string, int>(StringComparer.Ordinal);
                     int totalStringReferences = 0;
                     int duplicateReferences = 0;
+                    int sharedValueCount = 0;
+                    int seenOnceCount = 0;
                     long totalStringCharacters = 0L;
                     long duplicateCharacters = 0L;
                     bool canCancel = ct.CanBeCanceled;
                     for (int sheetIndex = 0; sheetIndex < model.Sheets.Count; sheetIndex++) {
                         var sheet = model.Sheets[sheetIndex];
+                        // Dictionary-backed exports already pay keyed lookup cost while writing; for these
+                        // workloads the shared-string prepass tends to add CPU/allocation and larger packages.
+                        if (sheet.Table.TryGetExactDictionaryRows(out _)
+                            || sheet.Table.TryGetDictionaryRows(out _)
+                            || sheet.Table.TryGetLegacyDictionaryRows(out _)) {
+                            return null;
+                        }
+
                         int columnCount = sheet.Table.ColumnCount;
                         if (sheet.IncludeHeaders) {
                             for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
@@ -960,7 +1111,7 @@ namespace OfficeIMO.Excel {
                         }
                     }
 
-                    if (totalStringReferences < MinimumStringReferences || sharedCounts.Count == 0) {
+                    if (totalStringReferences < MinimumStringReferences || sharedValueCount == 0) {
                         return null;
                     }
 
@@ -968,15 +1119,20 @@ namespace OfficeIMO.Excel {
                         return null;
                     }
 
-                    var indexes = new Dictionary<string, int>(sharedCounts.Count, StringComparer.Ordinal);
-                    var values = new string[sharedCounts.Count];
+                    var indexes = new Dictionary<string, int>(sharedValueCount, StringComparer.Ordinal);
+                    var values = new string[sharedValueCount];
                     int nextIndex = 0;
                     int sharedStringReferences = 0;
-                    foreach (var entry in sharedCounts) {
+                    foreach (var entry in stringCounts) {
+                        int referenceCount = entry.Value < 0 ? -entry.Value : entry.Value;
+                        if (referenceCount == 1 && entry.Value > 0) {
+                            continue;
+                        }
+
                         CoerceValueHelper.ValidateSharedStringLength(entry.Key, "value");
                         values[nextIndex] = entry.Key;
                         indexes[entry.Key] = nextIndex;
-                        sharedStringReferences += entry.Value;
+                        sharedStringReferences += referenceCount;
                         nextIndex++;
                     }
 
@@ -985,46 +1141,39 @@ namespace OfficeIMO.Excel {
                     void NoteString(string text, bool forceShared = false) {
                         totalStringReferences++;
                         totalStringCharacters += text.Length;
-                        if (sharedCounts.TryGetValue(text, out int count)) {
-                            sharedCounts[text] = count + 1;
+                        if (stringCounts.TryGetValue(text, out int count)) {
+                            if (count == 1) {
+                                seenOnceCount--;
+                                sharedValueCount++;
+                                stringCounts[text] = 2;
+                            } else if (count > 1) {
+                                stringCounts[text] = count + 1;
+                            } else {
+                                stringCounts[text] = count - 1;
+                            }
+
                             duplicateReferences++;
                             duplicateCharacters += text.Length;
                             return;
                         }
 
                         if (forceShared) {
-                            if (seenOnce.Remove(text)) {
-                                sharedCounts.Add(text, 2);
-                                duplicateReferences++;
-                                duplicateCharacters += text.Length;
-                            } else {
-                                sharedCounts.Add(text, 1);
-                            }
-
+                            stringCounts.Add(text, -1);
+                            sharedValueCount++;
                             return;
                         }
 
-                        if (seenOnce.Count >= MaximumSeenOnceCandidates) {
-                            if (seenOnce.Remove(text)) {
-                                sharedCounts.Add(text, 2);
-                                duplicateReferences++;
-                                duplicateCharacters += text.Length;
-                            }
-
+                        if (seenOnceCount >= MaximumSeenOnceCandidates) {
                             return;
                         }
 
-                        if (!seenOnce.Add(text)) {
-                            seenOnce.Remove(text);
-                            sharedCounts.Add(text, 2);
-                            duplicateReferences++;
-                            duplicateCharacters += text.Length;
-                        }
+                        stringCounts.Add(text, 1);
+                        seenOnceCount++;
                     }
 
                     bool ShouldAbandonSharedStrings() {
                         return totalStringReferences >= MinimumEarlyUniqueHeavyStringReferences
-                            && seenOnce.Count >= MaximumSeenOnceCandidates
+                            && seenOnceCount >= MaximumSeenOnceCandidates
                             && duplicateCharacters * MinimumDuplicateCharacterShareDenominator < totalStringCharacters * MinimumDuplicateCharacterShareNumerator;
                     }
                 }
@@ -1725,6 +1874,13 @@ namespace OfficeIMO.Excel {
                 }
 
                 switch (cellValueKind) {
+                    case DirectCellValueKind.Formula:
+                        if (value is DirectFormulaCellValue formulaValue) {
+                            WriteFormulaCellValue(writer, formulaValue.Formula);
+                            return;
+                        }
+
+                        break;
                     case DirectCellValueKind.String:
                         if (value is string stringValue) {
                             WriteStringCellValue(writer, stringValue, sharedStrings);
@@ -1864,6 +2020,9 @@ namespace OfficeIMO.Excel {
                     case DBNull:
                         writer.Write(" t=\"str\"><v/></c>");
                         return;
+                    case DirectFormulaCellValue formulaValue:
+                        WriteFormulaCellValue(writer, formulaValue.Formula);
+                        return;
                     case string stringValue:
                         WriteStringCellValue(writer, stringValue, sharedStrings);
                         return;
@@ -1926,6 +2085,12 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            private static void WriteFormulaCellValue(TextWriter writer, string formula) {
+                writer.Write("><f>");
+                WriteEscaped(writer, formula);
+                writer.Write("</f></c>");
+            }
+
             private static void WriteStringCellValue(TextWriter writer, string value, DirectSharedStringTable? sharedStrings) {
                 if (sharedStrings != null && sharedStrings.TryGetIndex(value, out int sharedStringIndex)) {
                     WriteSharedStringCell(writer, sharedStringIndex);
@@ -1977,6 +2142,17 @@ namespace OfficeIMO.Excel {
             }
 
             private static void WriteSharedStringCell(TextWriter writer, int sharedStringIndex) {
+                if ((uint)sharedStringIndex < (uint)SharedStringCellCache.Length) {
+                    string? cached = SharedStringCellCache[sharedStringIndex];
+                    if (cached == null) {
+                        cached = " t=\"s\"><v>" + InvariantNumberText.Get(sharedStringIndex) + "</v></c>";
+                        SharedStringCellCache[sharedStringIndex] = cached;
+                    }
+
+                    writer.Write(cached);
+                    return;
+                }
+
                 writer.Write(" t=\"s\"><v>");
                 WriteInvariant(writer, sharedStringIndex);
                 writer.Write("</v></c>");
@@ -2001,21 +2177,72 @@ namespace OfficeIMO.Excel {
             }
 
             private static void WriteRawValueCell(TextWriter writer, int value) {
+                if (TryWriteCachedRawNonNegativeIntegerCell(writer, value)) {
+                    return;
+                }
+
                 writer.Write(" t=\"n\"><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
 
             private static void WriteRawValueCell(TextWriter writer, long value) {
+                if (TryWriteCachedRawNonNegativeIntegerCell(writer, value)) {
+                    return;
+                }
+
                 writer.Write(" t=\"n\"><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
 
             private static void WriteRawValueCell(TextWriter writer, ulong value) {
+                if (TryWriteCachedRawNonNegativeIntegerCell(writer, value)) {
+                    return;
+                }
+
                 writer.Write(" t=\"n\"><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
+            }
+
+            private static bool TryWriteCachedRawNonNegativeIntegerCell(TextWriter writer, int value) {
+                var cache = RawNonNegativeIntegerCellCache;
+                if ((uint)value >= (uint)cache.Length) {
+                    return false;
+                }
+
+                writer.Write(cache[value]);
+                return true;
+            }
+
+            private static bool TryWriteCachedRawNonNegativeIntegerCell(TextWriter writer, long value) {
+                var cache = RawNonNegativeIntegerCellCache;
+                if ((ulong)value >= (ulong)cache.Length) {
+                    return false;
+                }
+
+                writer.Write(cache[(int)value]);
+                return true;
+            }
+
+            private static bool TryWriteCachedRawNonNegativeIntegerCell(TextWriter writer, ulong value) {
+                var cache = RawNonNegativeIntegerCellCache;
+                if (value >= (ulong)cache.Length) {
+                    return false;
+                }
+
+                writer.Write(cache[(int)value]);
+                return true;
+            }
+
+            private static string[] CreateRawNonNegativeIntegerCellCache() {
+                var cache = new string[CachedRawIntegerCellLimit];
+                for (int i = 0; i < cache.Length; i++) {
+                    cache[i] = " t=\"n\"><v>" + InvariantNumberText.Get(i) + "</v></c>";
+                }
+
+                return cache;
             }
 
             private static void WriteInvariant(TextWriter writer, double value) {
@@ -2113,8 +2340,17 @@ namespace OfficeIMO.Excel {
             private static void WriteTextEntry(ZipArchive archive, string path, string text) {
                 var entry = archive.CreateEntry(path, CompressionLevel.Fastest);
                 using var stream = entry.Open();
-                using var writer = new StreamWriter(stream, Utf8NoBom, XmlWriterBufferSize);
-                writer.Write(text);
+#if NET6_0_OR_GREATER
+                int byteCount = Utf8NoBom.GetByteCount(text);
+                if (byteCount <= StackallocTextEntryByteLimit) {
+                    Span<byte> stackBytes = stackalloc byte[byteCount];
+                    int written = Utf8NoBom.GetBytes(text.AsSpan(), stackBytes);
+                    stream.Write(stackBytes.Slice(0, written));
+                    return;
+                }
+#endif
+                byte[] bytes = Utf8NoBom.GetBytes(text);
+                stream.Write(bytes, 0, bytes.Length);
             }
 
             private static void AppendEscaped(StringBuilder builder, string value) {
@@ -2167,7 +2403,7 @@ namespace OfficeIMO.Excel {
                 int start = 0;
                 for (int i = 0; i < value.Length; i++) {
                     char current = value[i];
-                    if (!IsInvalidXmlControl(current) && !IsXmlEscape(current)) {
+                    if (!IsInvalidXmlControl(current) && !IsXmlTextEscape(current)) {
                         continue;
                     }
 
@@ -2176,7 +2412,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (!IsInvalidXmlControl(current)) {
-                        WriteEscapedCharacter(writer, current);
+                        WriteEscapedTextCharacter(writer, current);
                     }
 
                     start = i + 1;
@@ -2210,6 +2446,9 @@ namespace OfficeIMO.Excel {
 
             private static bool IsXmlEscape(char value)
                 => value is '&' or '<' or '>' or '"' or '\'';
+
+            private static bool IsXmlTextEscape(char value)
+                => value is '&' or '<' or '>';
 
             private static bool NeedsPreserveSpace(string value) {
                 return value.Length > 0 && (char.IsWhiteSpace(value[0]) || char.IsWhiteSpace(value[value.Length - 1]));
@@ -2251,6 +2490,20 @@ namespace OfficeIMO.Excel {
                         break;
                     case '\'':
                         writer.Write("&apos;");
+                        break;
+                }
+            }
+
+            private static void WriteEscapedTextCharacter(TextWriter writer, char value) {
+                switch (value) {
+                    case '&':
+                        writer.Write("&amp;");
+                        break;
+                    case '<':
+                        writer.Write("&lt;");
+                        break;
+                    case '>':
+                        writer.Write("&gt;");
                         break;
                 }
             }

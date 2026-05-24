@@ -15,14 +15,15 @@ namespace OfficeIMO.Excel {
         private readonly string _sheetName;
         private readonly WorksheetPart _wsPart;
         private readonly SharedStringCache _sst;
-        private readonly StylesCache _styles;
+        private readonly StylesCacheProvider _styles;
         private readonly ExcelReadOptions _opt;
         private readonly bool _canStreamWorksheetPart;
+        private StylesCache? _stylesCache;
         private bool? _hasWorksheetPartStreamContent;
         private string? _usedRangeA1;
         private static readonly XmlReaderSettings WorksheetXmlReaderSettings = CreateWorksheetXmlReaderSettings();
 
-        internal ExcelSheetReader(string sheetName, WorksheetPart wsPart, SharedStringCache sst, StylesCache styles, ExcelReadOptions opt, bool canStreamWorksheetPart) {
+        internal ExcelSheetReader(string sheetName, WorksheetPart wsPart, SharedStringCache sst, StylesCacheProvider styles, ExcelReadOptions opt, bool canStreamWorksheetPart) {
             _sheetName = sheetName;
             _wsPart = wsPart;
             _sst = sst;
@@ -30,6 +31,8 @@ namespace OfficeIMO.Excel {
             _opt = opt;
             _canStreamWorksheetPart = canStreamWorksheetPart;
         }
+
+        private StylesCache Styles => _stylesCache ??= _styles.Value;
 
         /// <summary>
         /// Worksheet name.
@@ -240,6 +243,19 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private static bool TryPrepareWorksheetStream(Stream stream) {
+            if (!stream.CanSeek) {
+                return true;
+            }
+
+            if (stream.Length == 0) {
+                return false;
+            }
+
+            stream.Position = 0;
+            return true;
+        }
+
         private static XmlReader OpenWorksheetXmlReader(Stream stream) {
             return XmlReader.Create(stream, WorksheetXmlReaderSettings);
         }
@@ -305,9 +321,9 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            uint? styleIndex = null;
-            if (NeedsStyleForConversion(typeHint, rawText)) {
-                styleIndex = cell.StyleIndex?.Value;
+            uint? styleIndex = cell.StyleIndex?.Value;
+            if (!NeedsStyleForConversion(typeHint, rawText, styleIndex)) {
+                styleIndex = null;
             }
 
             value = TryConvertWithoutCustomHook(typeHint, styleIndex, rawText, inlineText, out object? converted)
@@ -316,15 +332,16 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private bool NeedsStyleForConversion(CellValues? typeHint, string? rawText) {
+        private bool NeedsStyleForConversion(CellValues? typeHint, string? rawText, uint? styleIndex) {
             return rawText != null
+                && styleIndex is not null
                 && _opt.TreatDatesUsingNumberFormat
-                && _styles.HasDateStyles
                 && typeHint != CellValues.SharedString
                 && typeHint != CellValues.Boolean
                 && typeHint != CellValues.String
                 && typeHint != CellValues.InlineString
-                && typeHint != CellValues.Date;
+                && typeHint != CellValues.Date
+                && Styles.HasDateStyles;
         }
 
         private static XmlCellKind ParseXmlCellKind(string? type) {
@@ -450,7 +467,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && _styles.IsDateLike(styleIndex.Value)) {
+            if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                 if (TryParseInvariantDoubleFast(rawText, out var oa)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa)) {
                     value = DateTime.FromOADate(oa);
@@ -789,7 +806,7 @@ namespace OfficeIMO.Excel {
                 return rawText == "1";
 
             if (type == CellValues.Number && rawText != null) {
-                if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && _styles.IsDateLike(styleIndex.Value)) {
+                if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                     if (TryParseInvariantDoubleFast(rawText, out var oa)
                         || double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
                         return System.DateTime.FromOADate(oa);
@@ -820,7 +837,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (rawText != null) {
-                if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && _styles.IsDateLike(styleIndex.Value)) {
+                if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                     if (TryParseInvariantDoubleFast(rawText, out var oa)
                         || double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
                         return System.DateTime.FromOADate(oa);

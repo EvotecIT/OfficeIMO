@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "entries": [
     {
-      "generatedUtc": "2026-05-23T13:48:50.3578200Z",
+      "generatedUtc": "2026-05-24T11:44:30.9671195Z",
       "runMode": "quick",
       "publish": false,
       "framework": ".NET 8.0.27",
@@ -10,8 +10,8 @@
       "dataPath": ".\\Website\\data\\benchmarks-excel.json",
       "markdownPath": ".\\Docs\\benchmarks\\officeimo.excel.comparison-report.md",
       "meta": {
-        "commit": "fe226106c0987108ce8d6f678505358cf62b5a9f",
-        "branch": "codex/excel-perf-competition-loop",
+        "commit": "e1d2dec305036e5c4adb0f1a2d08d642b4715b09",
+        "branch": "codex/excel-perf-competition-loop-next",
         "dotnetSdk": "10.0.300",
         "runtime": ".NET 9.0.14",
         "osDescription": "Microsoft Windows 10.0.26200",

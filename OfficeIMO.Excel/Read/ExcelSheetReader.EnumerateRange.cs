@@ -93,8 +93,11 @@ namespace OfficeIMO.Excel {
                 bool canTrackColumns = width <= 64;
                 ulong allColumnsSeen = canTrackColumns ? CreateAllColumnsSeenMask(width) : 0UL;
                 ulong seenColumns = 0;
+                bool canUseOrderedFullWidthExit = canTrackColumns;
+                int nextExpectedColumn = c1;
+                int visitedNodes = 0;
                 while (reader.Read()) {
-                    if (canCancel) {
+                    if (canCancel && (++visitedNodes & 1023) == 0) {
                         ct.ThrowIfCancellationRequested();
                     }
 
@@ -108,16 +111,34 @@ namespace OfficeIMO.Excel {
 
                     int columnIndex = GetXmlCellColumnIndex(reader, ref nextColumnIndex);
                     if (columnIndex <= 0) {
+                        if (canUseOrderedFullWidthExit) {
+                            canUseOrderedFullWidthExit = false;
+                            int orderedSeen = nextExpectedColumn - c1;
+                            seenColumns = orderedSeen <= 0 ? 0UL : CreateAllColumnsSeenMask(orderedSeen);
+                        }
+
                         SkipXmlElement(reader, "c");
                         continue;
                     }
 
                     if (columnIndex < c1 || columnIndex > c2) {
+                        if (canUseOrderedFullWidthExit && columnIndex > c2 && nextExpectedColumn <= c2) {
+                            canUseOrderedFullWidthExit = false;
+                            int orderedSeen = nextExpectedColumn - c1;
+                            seenColumns = orderedSeen <= 0 ? 0UL : CreateAllColumnsSeenMask(orderedSeen);
+                        }
+
                         SkipXmlElement(reader, "c");
                         continue;
                     }
 
                     int columnOffset = columnIndex - c1;
+                    if (canUseOrderedFullWidthExit && columnIndex != nextExpectedColumn) {
+                        canUseOrderedFullWidthExit = false;
+                        int orderedSeen = nextExpectedColumn - c1;
+                        seenColumns = orderedSeen <= 0 ? 0UL : CreateAllColumnsSeenMask(orderedSeen);
+                    }
+
                     if (hasCustomConverter) {
                         if (TryReadXmlCellValueForEnumeration(reader, rowIndex, columnIndex, out object? customValue)) {
                             yield return new CellValueInfo(rowIndex, columnIndex, customValue);
@@ -131,7 +152,16 @@ namespace OfficeIMO.Excel {
                         }
                     }
 
-                    if (canTrackColumns && MarkRequestedColumnSeen(columnOffset, allColumnsSeen, ref seenColumns)) {
+                    if (canUseOrderedFullWidthExit) {
+                        nextExpectedColumn++;
+                    }
+
+                    if (canUseOrderedFullWidthExit && columnIndex >= c2) {
+                        SkipXmlElementContent(reader, depth, "row");
+                        break;
+                    }
+
+                    if (canTrackColumns && !canUseOrderedFullWidthExit && MarkRequestedColumnSeen(columnOffset, allColumnsSeen, ref seenColumns)) {
                         SkipXmlElementContent(reader, depth, "row");
                         break;
                     }

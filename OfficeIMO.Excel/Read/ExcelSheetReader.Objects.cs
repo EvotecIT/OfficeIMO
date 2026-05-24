@@ -183,7 +183,9 @@ namespace OfficeIMO.Excel {
             ulong mappedColumns = 0;
             int nextRowIndex = 1;
             bool sawRow = false;
-            var seenRows = CreateCompletedRowTracker(rows);
+            bool sawHeader = false;
+            bool[]? assignedRows = null;
+            int assignedRowCount = 0;
 
             while (reader.Read()) {
                 if (canCancel) {
@@ -202,7 +204,7 @@ namespace OfficeIMO.Excel {
 
                 nextRowIndex = rowIndex + 1;
                 if (rowIndex < r1 || rowIndex > r2) {
-                    if (rowIndex > r2 && seenRows.AllRowsSeen) {
+                    if (rowIndex > r2 && sawHeader && assignedRowCount == dataRowCount) {
                         break;
                     }
 
@@ -215,7 +217,7 @@ namespace OfficeIMO.Excel {
                     var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => headerValues[c]?.ToString(), _opt.NormalizeHeaders);
                     bindings = GetTypedHeaderBindings<T>(headers, a1Range).Bindings;
                     canTrackMappedColumns = TryGetMappedColumnMask(bindings, out mappedColumns);
-                    seenRows.MarkSeen(0);
+                    sawHeader = true;
                     continue;
                 }
 
@@ -231,7 +233,15 @@ namespace OfficeIMO.Excel {
                 }
 
                 ReadXmlRowIntoTypedObject(reader, rowIndex, c1, c2, bindings, canTrackMappedColumns, mappedColumns, result[resultIndex], ct);
-                seenRows.MarkSeen(rowIndex - r1);
+                if (assignedRows == null && resultIndex == assignedRowCount) {
+                    assignedRowCount++;
+                } else {
+                    assignedRows ??= CreateAssignedRowTracker(assignedRowCount, result.Count);
+                    if (!assignedRows[resultIndex]) {
+                        assignedRows[resultIndex] = true;
+                        assignedRowCount++;
+                    }
+                }
             }
 
             if (!sawRow) {
@@ -365,7 +375,8 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            var assignedRows = new bool[dataRows];
+            bool[]? assignedRows = null;
+            int assignedRowCount = 0;
             TypedPropertyBinding<T>?[]? bindings = null;
             bool canTrackMappedColumns = false;
             ulong mappedColumns = 0;
@@ -377,7 +388,6 @@ namespace OfficeIMO.Excel {
                 using var reader = OpenWorksheetXmlReader(stream);
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
-                var seenRows = CreateCompletedRowTracker(rows);
                 while (reader.Read()) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -394,7 +404,7 @@ namespace OfficeIMO.Excel {
 
                     nextRowIndex = rowIndex + 1;
                     if (rowIndex < r1 || rowIndex > r2) {
-                        if (rowIndex > r2 && seenRows.AllRowsSeen) {
+                        if (rowIndex > r2 && sawHeader && assignedRowCount == dataRows) {
                             break;
                         }
 
@@ -413,7 +423,6 @@ namespace OfficeIMO.Excel {
                         bindings = GetTypedHeaderBindings<T>(headers, a1Range).Bindings;
                         canTrackMappedColumns = TryGetMappedColumnMask(bindings, out mappedColumns);
                         sawHeader = true;
-                        seenRows.MarkSeen(0);
                         continue;
                     }
 
@@ -431,13 +440,28 @@ namespace OfficeIMO.Excel {
                     var target = new T();
                     ReadXmlRowIntoTypedObject(reader, rowIndex, c1, c2, bindings, canTrackMappedColumns, mappedColumns, target, ct);
                     results[dataRowOffset] = target;
-                    assignedRows[dataRowOffset] = true;
-                    seenRows.MarkSeen(rowIndex - r1);
+                    if (assignedRows == null && dataRowOffset == assignedRowCount) {
+                        assignedRowCount++;
+                    } else {
+                        assignedRows ??= CreateAssignedRowTracker(assignedRowCount, results.Length);
+                        if (!assignedRows[dataRowOffset]) {
+                            assignedRows[dataRowOffset] = true;
+                            assignedRowCount++;
+                        }
+                    }
                 }
 
-                for (int i = 0; i < results.Length; i++) {
-                    if (!assignedRows[i]) {
-                        results[i] = new T();
+                if (assignedRowCount != results.Length) {
+                    if (assignedRows == null) {
+                        for (int i = assignedRowCount; i < results.Length; i++) {
+                            results[i] = new T();
+                        }
+                    } else {
+                        for (int i = 0; i < results.Length; i++) {
+                            if (!assignedRows[i]) {
+                                results[i] = new T();
+                            }
+                        }
                     }
                 }
 
@@ -455,6 +479,15 @@ namespace OfficeIMO.Excel {
                 results = Array.Empty<T>();
                 return false;
             }
+        }
+
+        private static bool[] CreateAssignedRowTracker(int assignedDensePrefixLength, int rowCount) {
+            var assignedRows = new bool[rowCount];
+            for (int i = 0; i < assignedDensePrefixLength; i++) {
+                assignedRows[i] = true;
+            }
+
+            return assignedRows;
         }
 
         private IEnumerable<T> ReadObjectsStreamXmlFast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
@@ -561,8 +594,9 @@ namespace OfficeIMO.Excel {
             bool canTrackColumns = cols <= 64;
             ulong allColumnsSeen = canTrackColumns ? CreateAllColumnsSeenMask(cols) : 0UL;
             ulong seenColumns = 0;
+            int visitedNodes = 0;
             while (rowReader.Read()) {
-                if (canCancel) {
+                if (canCancel && (++visitedNodes & 1023) == 0) {
                     ct.ThrowIfCancellationRequested();
                 }
 
@@ -580,8 +614,15 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                CellRaw raw = ReadXmlCellRaw(rowReader, rowIndex, columnIndex);
-                values[columnIndex - c1] = ConvertRaw(raw).TypedValue;
+                object? value;
+                if (_opt.CellValueConverter == null) {
+                    value = ReadXmlCellValue(rowReader);
+                } else {
+                    CellRaw raw = ReadXmlCellRaw(rowReader, rowIndex, columnIndex);
+                    value = ConvertRaw(raw).TypedValue;
+                }
+
+                values[columnIndex - c1] = value;
                 if (canTrackColumns && MarkRequestedColumnSeen(columnIndex - c1, allColumnsSeen, ref seenColumns)) {
                     SkipXmlElementContent(rowReader, depth, "row");
                     return;
@@ -608,6 +649,8 @@ namespace OfficeIMO.Excel {
             int nextColumnIndex = 1;
             int convertedCells = 0;
             ulong seenMappedColumns = 0;
+            bool canUseOrderedAllMappedExit = canTrackMappedColumns && mappedColumns == CreateAllColumnsSeenMask(bindings.Length);
+            int nextExpectedMappedColumn = c1;
             while (rowReader.Read()) {
                 if (canCancel && (++convertedCells & 1023) == 0) {
                     ct.ThrowIfCancellationRequested();
@@ -623,8 +666,20 @@ namespace OfficeIMO.Excel {
 
                 int columnIndex = GetXmlCellColumnIndex(rowReader, ref nextColumnIndex);
                 if (columnIndex < c1 || columnIndex > c2) {
+                    if (canUseOrderedAllMappedExit && columnIndex > c2 && nextExpectedMappedColumn <= c2) {
+                        canUseOrderedAllMappedExit = false;
+                        int orderedSeen = nextExpectedMappedColumn - c1;
+                        seenMappedColumns = orderedSeen <= 0 ? 0UL : CreateAllColumnsSeenMask(orderedSeen);
+                    }
+
                     SkipXmlElement(rowReader, "c");
                     continue;
+                }
+
+                if (canUseOrderedAllMappedExit && columnIndex != nextExpectedMappedColumn) {
+                    canUseOrderedAllMappedExit = false;
+                    int orderedSeen = nextExpectedMappedColumn - c1;
+                    seenMappedColumns = orderedSeen <= 0 ? 0UL : CreateAllColumnsSeenMask(orderedSeen);
                 }
 
                 var binding = bindings[columnIndex - c1];
@@ -633,9 +688,17 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                CellRaw raw = ReadXmlCellRaw(rowReader, rowIndex, columnIndex, binding);
-                TrySetRawCellForBinding(raw, binding, target);
-                if (canTrackMappedColumns) {
+                ReadXmlCellIntoTypedObject(rowReader, rowIndex, columnIndex, binding, target);
+                if (canUseOrderedAllMappedExit) {
+                    nextExpectedMappedColumn++;
+                }
+
+                if (canUseOrderedAllMappedExit && columnIndex >= c2) {
+                    SkipXmlElementContent(rowReader, depth, "row");
+                    return;
+                }
+
+                if (canTrackMappedColumns && !canUseOrderedAllMappedExit) {
                     seenMappedColumns |= 1UL << (columnIndex - c1);
                     if (seenMappedColumns == mappedColumns) {
                         SkipXmlElementContent(rowReader, depth, "row");
@@ -680,7 +743,6 @@ namespace OfficeIMO.Excel {
         private CellRaw ReadXmlCellRaw(XmlReader cellReader, int rowIndex, int columnIndex) {
             XmlCellKind cellKind = ParseXmlCellKind(cellReader.GetAttribute("t"));
             bool readStyleIndex = _opt.TreatDatesUsingNumberFormat
-                && _styles.HasDateStyles
                 && CellKindCanUseDateStyle(cellKind);
             return ReadXmlCellRaw(cellReader, rowIndex, columnIndex, cellKind, readStyleIndex);
         }
@@ -689,10 +751,189 @@ namespace OfficeIMO.Excel {
             XmlCellKind cellKind = ParseXmlCellKind(cellReader.GetAttribute("t"));
             bool readStyleIndex = _opt.CellValueConverter != null
                 || (_opt.TreatDatesUsingNumberFormat
-                && _styles.HasDateStyles
                 && binding.NeedsDateStyleConversion
                 && CellKindCanUseDateStyle(cellKind));
             return ReadXmlCellRaw(cellReader, rowIndex, columnIndex, cellKind, readStyleIndex);
+        }
+
+        private void ReadXmlCellIntoTypedObject<TTarget>(XmlReader cellReader, int rowIndex, int columnIndex, TypedPropertyBinding<TTarget> binding, TTarget target) {
+            if (_opt.CellValueConverter != null || _opt.TypeConverter != null) {
+                CellRaw converterRaw = ReadXmlCellRaw(cellReader, rowIndex, columnIndex, binding);
+                TrySetRawCellForBinding(converterRaw, binding, target);
+                return;
+            }
+
+            XmlCellKind cellKind = ParseXmlCellKind(cellReader.GetAttribute("t"));
+            uint? styleIndex = null;
+            if (_opt.TreatDatesUsingNumberFormat
+                && binding.NeedsDateStyleConversion
+                && CellKindCanUseDateStyle(cellKind)
+                && TryParseUInt(cellReader.GetAttribute("s"), out uint parsedStyle)) {
+                if (Styles.HasDateStyles) {
+                    styleIndex = parsedStyle;
+                }
+            }
+
+            if (cellReader.IsEmptyElement) {
+                TrySetRawCellForBinding(CreateRawCell(rowIndex, columnIndex, cellKind, styleIndex, hasFormula: false, formulaText: null, rawText: null, inlineText: null), binding, target);
+                return;
+            }
+
+            int depth = cellReader.Depth;
+            string? rawText = null;
+            string? inlineText = null;
+            string? formulaText = null;
+            bool hasFormula = false;
+            bool sawUnsupportedNode = false;
+            bool hasNode = cellReader.Read();
+            while (hasNode) {
+                if (cellReader.NodeType == XmlNodeType.EndElement && cellReader.Depth == depth && cellReader.LocalName == "c") {
+                    break;
+                }
+
+                if (cellReader.NodeType == XmlNodeType.Element) {
+                    if (cellReader.LocalName == "v") {
+                        rawText = cellReader.ReadElementContentAsString();
+                        if (cellReader.NodeType == XmlNodeType.EndElement
+                            && cellReader.Depth == depth
+                            && cellReader.LocalName == "c"
+                            && TrySetSimpleRawTextCell(cellKind, styleIndex, rawText, binding, target)) {
+                            return;
+                        }
+
+                        hasNode = true;
+                        continue;
+                    }
+
+                    if (cellReader.LocalName == "f") {
+                        hasFormula = true;
+                        formulaText = cellReader.ReadElementContentAsString();
+                        if (!_opt.UseCachedFormulaResult) {
+                            SkipXmlElementContent(cellReader, depth, "c");
+                            TrySetRawCellForBinding(CreateRawCell(rowIndex, columnIndex, cellKind, styleIndex, hasFormula: true, formulaText, rawText: null, inlineText: null), binding, target);
+                            return;
+                        }
+
+                        hasNode = true;
+                        continue;
+                    }
+
+                    if (cellReader.LocalName == "is") {
+                        inlineText = ReadXmlInlineString(cellReader);
+                        hasNode = true;
+                        continue;
+                    }
+
+                    sawUnsupportedNode = true;
+                }
+
+                hasNode = cellReader.Read();
+            }
+
+            bool preferFormulaText = hasFormula && !_opt.UseCachedFormulaResult && formulaText != null;
+            if (!sawUnsupportedNode
+                && !hasFormula
+                && inlineText == null
+                && rawText != null
+                && TrySetSimpleRawTextCell(cellKind, styleIndex, rawText, binding, target)) {
+                return;
+            }
+
+            TrySetRawCellForBinding(CreateRawCell(
+                rowIndex,
+                columnIndex,
+                cellKind,
+                styleIndex,
+                hasFormula,
+                formulaText,
+                preferFormulaText ? null : rawText,
+                preferFormulaText ? null : inlineText),
+                binding,
+                target);
+        }
+
+        private bool TrySetSimpleRawTextCell<TTarget>(
+            XmlCellKind cellKind,
+            uint? styleIndex,
+            string rawText,
+            TypedPropertyBinding<TTarget> binding,
+            TTarget target) {
+            switch (cellKind) {
+                case XmlCellKind.SharedString: {
+                    string? text = TryParseSharedStringIndex(rawText, out int sstIndex) ? _sst.Get(sstIndex) : rawText;
+                    return TrySetStringTextBinding(text, binding, target);
+                }
+
+                case XmlCellKind.Boolean:
+                    if (binding.SetBoolean != null && binding.BindingKind == TypedBindingKind.Boolean) {
+                        binding.SetBoolean(target, rawText == "1");
+                        return true;
+                    }
+
+                    if (binding.SetString != null && binding.BindingKind == TypedBindingKind.String) {
+                        binding.SetString(target, (rawText == "1").ToString());
+                        return true;
+                    }
+
+                    return false;
+
+                case XmlCellKind.String:
+                case XmlCellKind.InlineString:
+                    return TrySetStringTextBinding(rawText, binding, target);
+
+                case XmlCellKind.Date:
+                    if (binding.SetDateTime != null
+                        && DateTime.TryParse(rawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dateValue)) {
+                        binding.SetDateTime(target, dateValue);
+                        return true;
+                    }
+
+                    return TrySetStringTextBinding(rawText, binding, target);
+            }
+
+            if (_opt.TreatDatesUsingNumberFormat
+                && binding.NeedsDateStyleConversion
+                && styleIndex is not null
+                && Styles.IsDateLike(styleIndex.Value)) {
+                if (TryParseInvariantDoubleFast(rawText, out var oa)
+                    || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa)) {
+                    DateTime dateValue = DateTime.FromOADate(oa);
+                    if (binding.SetDateTime != null && binding.BindingKind == TypedBindingKind.DateTime) {
+                        binding.SetDateTime(target, dateValue);
+                        return true;
+                    }
+
+                    if (binding.SetString != null && binding.BindingKind == TypedBindingKind.String) {
+                        binding.SetString(target, dateValue.ToString(_opt.Culture));
+                        return true;
+                    }
+                }
+
+                return TrySetStringTextBinding(rawText, binding, target);
+            }
+
+            return TrySetNumericTextBinding(rawText, binding, target);
+        }
+
+        private static CellRaw CreateRawCell(
+            int rowIndex,
+            int columnIndex,
+            XmlCellKind cellKind,
+            uint? styleIndex,
+            bool hasFormula,
+            string? formulaText,
+            string? rawText,
+            string? inlineText) {
+            return new CellRaw {
+                Row = rowIndex,
+                Col = columnIndex,
+                TypeHint = ToCellValueType(cellKind),
+                StyleIndex = styleIndex,
+                HasFormula = hasFormula,
+                FormulaText = formulaText,
+                RawText = rawText,
+                InlineText = inlineText
+            };
         }
 
         private CellRaw ReadXmlCellRaw(XmlReader cellReader, int rowIndex, int columnIndex, XmlCellKind cellKind, bool readStyleIndex) {
@@ -1202,14 +1443,19 @@ namespace OfficeIMO.Excel {
                 .Where(p => p.CanWrite)
                 .ToArray();
 
-            internal static readonly Dictionary<PropertyInfo, TypedPropertyBinding<TTarget>> Bindings = WritableProperties
-                .ToDictionary(prop => prop, CreateBinding);
+            internal static readonly Dictionary<PropertyInfo, TypedPropertyBinding<TTarget>> Bindings = CreateBindings();
 
             internal static readonly TypedPropertyMapCache PropertyMaps = CreatePropertyMaps();
+
+            private static readonly TypedHeaderBindingCache<TTarget> WritablePropertyOrderBindings = CreateWritablePropertyOrderBindings();
 
             private static readonly ConcurrentDictionary<string, TypedHeaderBindingCache<TTarget>> HeaderBindings = new ConcurrentDictionary<string, TypedHeaderBindingCache<TTarget>>(StringComparer.Ordinal);
 
             internal static TypedHeaderBindingCache<TTarget> GetHeaderBindings(string[] headers) {
+                if (HeadersMatchWritablePropertyOrder(headers)) {
+                    return WritablePropertyOrderBindings;
+                }
+
                 string key = CreateHeaderBindingKey(headers);
                 if (HeaderBindings.TryGetValue(key, out var cached)) {
                     return cached;
@@ -1221,6 +1467,38 @@ namespace OfficeIMO.Excel {
                 }
 
                 return created;
+            }
+
+            private static Dictionary<PropertyInfo, TypedPropertyBinding<TTarget>> CreateBindings() {
+                var bindings = new Dictionary<PropertyInfo, TypedPropertyBinding<TTarget>>(WritableProperties.Length);
+                foreach (var property in WritableProperties) {
+                    bindings.Add(property, CreateBinding(property));
+                }
+
+                return bindings;
+            }
+
+            private static TypedHeaderBindingCache<TTarget> CreateWritablePropertyOrderBindings() {
+                var map = new TypedPropertyBinding<TTarget>?[WritableProperties.Length];
+                for (int i = 0; i < WritableProperties.Length; i++) {
+                    map[i] = Bindings[WritableProperties[i]];
+                }
+
+                return new TypedHeaderBindingCache<TTarget>(map, Array.Empty<string>());
+            }
+
+            private static bool HeadersMatchWritablePropertyOrder(string[] headers) {
+                if (headers.Length != WritableProperties.Length) {
+                    return false;
+                }
+
+                for (int i = 0; i < headers.Length; i++) {
+                    if (!string.Equals(headers[i], WritableProperties[i].Name, StringComparison.Ordinal)) {
+                        return false;
+                    }
+                }
+
+                return true;
             }
 
             private static TypedPropertyBinding<TTarget> CreateBinding(PropertyInfo property) {
@@ -1410,13 +1688,24 @@ namespace OfficeIMO.Excel {
 
             private static TypedHeaderBindingCache<TTarget> CreateHeaderBindings(string[] headers) {
                 var map = new TypedPropertyBinding<TTarget>?[headers.Length];
-                var assignedProps = new HashSet<PropertyInfo>();
+                int mappedCount = 0;
 
                 // Exact property matches win first so alias/friendly fallback does not steal
                 // a property from a later exact-name column.
                 for (int c = 0; c < headers.Length; c++) {
                     if (PropertyMaps.ExactProperties.TryGetValue(headers[c], out var pi)) {
                         map[c] = Bindings[pi];
+                        mappedCount++;
+                    }
+                }
+
+                if (mappedCount == headers.Length) {
+                    return new TypedHeaderBindingCache<TTarget>(map, Array.Empty<string>());
+                }
+
+                var assignedProps = new HashSet<PropertyInfo>();
+                for (int c = 0; c < map.Length; c++) {
+                    if (map[c] != null && PropertyMaps.ExactProperties.TryGetValue(headers[c], out var pi)) {
                         assignedProps.Add(pi);
                     }
                 }
@@ -1591,7 +1880,7 @@ namespace OfficeIMO.Excel {
             uint? styleIndex = null;
             if (_opt.TreatDatesUsingNumberFormat && binding.NeedsDateStyleConversion) {
                 styleIndex = cell.StyleIndex?.Value;
-                if (styleIndex is not null && _styles.IsDateLike(styleIndex.Value)) {
+                if (styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                     if ((TryParseInvariantDoubleFast(rawText, out var oa)
                             || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
                         && ReturnBindingConversion(TryConvertDateTimeForBinding(DateTime.FromOADate(oa), binding, out converted), binding, converted)) {
@@ -1694,7 +1983,7 @@ namespace OfficeIMO.Excel {
             if (_opt.TreatDatesUsingNumberFormat
                 && binding.NeedsDateStyleConversion
                 && raw.StyleIndex is not null
-                && _styles.IsDateLike(raw.StyleIndex.Value)) {
+                && Styles.IsDateLike(raw.StyleIndex.Value)) {
                 if (TryParseInvariantDoubleFast(raw.RawText, out var oa)
                     || double.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa)) {
                     return TryConvertDateTimeForBinding(DateTime.FromOADate(oa), binding, out converted);
@@ -1836,7 +2125,7 @@ namespace OfficeIMO.Excel {
             if (_opt.TreatDatesUsingNumberFormat
                 && binding.NeedsDateStyleConversion
                 && raw.StyleIndex is not null
-                && _styles.IsDateLike(raw.StyleIndex.Value)) {
+                && Styles.IsDateLike(raw.StyleIndex.Value)) {
                 if (TryParseInvariantDoubleFast(raw.RawText, out var oa)
                     || double.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa)) {
                     DateTime dateValue = DateTime.FromOADate(oa);
@@ -2036,7 +2325,7 @@ namespace OfficeIMO.Excel {
                 || !IsNumericBindingDestination(binding.BindingKind)
                 || raw.RawText == null
                 || raw.StyleIndex is null
-                || !_styles.IsDateLike(raw.StyleIndex.Value)) {
+                || !Styles.IsDateLike(raw.StyleIndex.Value)) {
                 return false;
             }
 

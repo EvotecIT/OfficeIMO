@@ -1719,6 +1719,102 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_TypedObjects_HandlePrefixThenOutOfOrderCellsWithinRows() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderTypedPrefixThenOutOfOrderCells.xlsx");
+            var expectedDate = new DateTime(2024, 5, 12, 9, 30, 0);
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Score");
+                    sheet.CellValue(1, 2, "Active");
+                    sheet.CellValue(1, 3, "CreatedOn");
+                    sheet.CellValue(1, 4, "Amount");
+                    sheet.CellValue(2, 1, 42);
+                    sheet.CellValue(2, 2, true);
+                    sheet.CellValue(2, 3, expectedDate);
+                    sheet.CellValue(2, 4, 123.45);
+                    document.Save();
+                }
+
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                    var row = worksheetPart.Worksheet!.GetFirstChild<SheetData>()!.Elements<Row>().Single(r => r.RowIndex?.Value == 2U);
+                    var cells = row.Elements<Cell>().ToDictionary(c => c.CellReference!.Value!);
+                    row.RemoveAllChildren<Cell>();
+                    row.Append(cells["A2"]);
+                    row.Append(cells["C2"]);
+                    row.Append(cells["B2"]);
+                    row.Append(cells["D2"]);
+                    worksheetPart.Worksheet.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var sheetReader = reader.GetSheet("Data");
+
+                var rowFromMaterializedReader = Assert.Single(sheetReader.ReadObjects<NullableTypedRow>("A1:D2"));
+                Assert.Equal(42, rowFromMaterializedReader.Score);
+                Assert.True(rowFromMaterializedReader.Active);
+                Assert.Equal(expectedDate, rowFromMaterializedReader.CreatedOn);
+                Assert.Equal(123.45, rowFromMaterializedReader.Amount);
+
+                var rowFromStreamingReader = Assert.Single(sheetReader.ReadObjectsStream<NullableTypedRow>("A1:D2"));
+                Assert.Equal(42, rowFromStreamingReader.Score);
+                Assert.True(rowFromStreamingReader.Active);
+                Assert.Equal(expectedDate, rowFromStreamingReader.CreatedOn);
+                Assert.Equal(123.45, rowFromStreamingReader.Amount);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_DictionaryObjects_HandlePrefixThenOutOfOrderCellsWithinRows() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderDictionaryPrefixThenOutOfOrderCells.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "First");
+                    sheet.CellValue(1, 2, "Second");
+                    sheet.CellValue(1, 3, "Third");
+                    sheet.CellValue(1, 4, "Fourth");
+                    sheet.CellValue(2, 1, "A");
+                    sheet.CellValue(2, 2, "B");
+                    sheet.CellValue(2, 3, "C");
+                    sheet.CellValue(2, 4, "D");
+                    document.Save();
+                }
+
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                    var row = worksheetPart.Worksheet!.GetFirstChild<SheetData>()!.Elements<Row>().Single(r => r.RowIndex?.Value == 2U);
+                    var cells = row.Elements<Cell>().ToDictionary(c => c.CellReference!.Value!);
+                    row.RemoveAllChildren<Cell>();
+                    row.Append(cells["A2"]);
+                    row.Append(cells["C2"]);
+                    row.Append(cells["B2"]);
+                    row.Append(cells["D2"]);
+                    worksheetPart.Worksheet.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var rowObject = Assert.Single(reader.GetSheet("Data").ReadObjects("A1:D2"));
+
+                Assert.Equal("A", rowObject["First"]);
+                Assert.Equal("B", rowObject["Second"]);
+                Assert.Equal("C", rowObject["Third"]);
+                Assert.Equal("D", rowObject["Fourth"]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Reader_TypedObjects_MapDecimalValueTypes() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderDecimalTypedHeaders.xlsx");
 

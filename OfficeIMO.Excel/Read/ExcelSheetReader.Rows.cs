@@ -34,24 +34,35 @@ namespace OfficeIMO.Excel {
                     && TryReadRowsAdaptiveBufferedXmlFast(r1, c1, r2, c2, width, height, ct, out var adaptiveRows)) {
                     if (adaptiveRows.TryGetSparseRows(out var sparseOffsets, out var sparseValues)) {
                         int sparseIndex = 0;
-                        for (int r = 0; r < adaptiveRows.Count; r++) {
-                            if (canCancel) {
+                        if (canCancel) {
+                            for (int r = 0; r < adaptiveRows.Count; r++) {
                                 ct.ThrowIfCancellationRequested();
-                            }
 
-                            if (sparseIndex < sparseOffsets.Length && sparseOffsets[sparseIndex] == r) {
-                                yield return sparseValues[sparseIndex];
-                                sparseIndex++;
-                            } else {
-                                yield return null;
+                                if (sparseIndex < sparseOffsets.Length && sparseOffsets[sparseIndex] == r) {
+                                    yield return sparseValues[sparseIndex];
+                                    sparseIndex++;
+                                } else {
+                                    yield return null;
+                                }
                             }
+                        } else {
+                            for (int r = 0; r < adaptiveRows.Count; r++) {
+                                if (sparseIndex < sparseOffsets.Length && sparseOffsets[sparseIndex] == r) {
+                                    yield return sparseValues[sparseIndex];
+                                    sparseIndex++;
+                                } else {
+                                    yield return null;
+                                }
+                            }
+                        }
+                    } else if (canCancel) {
+                        for (int r = 0; r < adaptiveRows.Count; r++) {
+                            ct.ThrowIfCancellationRequested();
+
+                            yield return adaptiveRows.GetDenseRow(r);
                         }
                     } else {
                         for (int r = 0; r < adaptiveRows.Count; r++) {
-                            if (canCancel) {
-                                ct.ThrowIfCancellationRequested();
-                            }
-
                             yield return adaptiveRows.GetDenseRow(r);
                         }
                     }
@@ -61,13 +72,18 @@ namespace OfficeIMO.Excel {
 
                 if (ShouldUseOrderedBufferedXmlStream(height, c1, c2)
                     && TryReadRowsOrderedBufferedXmlFast(r1, c1, r2, c2, width, height, ct, out var orderedRows)) {
-                    for (int r = 0; r < orderedRows.Length; r++) {
-                        if (canCancel) {
+                    if (canCancel) {
+                        for (int r = 0; r < orderedRows.Length; r++) {
                             ct.ThrowIfCancellationRequested();
-                        }
 
-                        yield return orderedRows[r];
+                            yield return orderedRows[r];
+                        }
+                    } else {
+                        for (int r = 0; r < orderedRows.Length; r++) {
+                            yield return orderedRows[r];
+                        }
                     }
+
 
                     yield break;
                 }
@@ -174,11 +190,13 @@ namespace OfficeIMO.Excel {
             CancellationToken ct,
             out OrderedRowsBuffer rows) {
             rows = default;
-            var sparseOffsets = new List<int>(Math.Min(height, 1024));
-            var sparseValues = new List<object?[]?>(Math.Min(height, 1024));
+            int sparseCapacity = Math.Min(height, SparseReadInitialBufferCapacity);
+            var sparseOffsets = new List<int>(sparseCapacity);
+            var sparseValues = new List<object?[]?>(sparseCapacity);
             object?[]?[]? denseRows = null;
             int populatedRows = 0;
             int previousSparseOffset = -1;
+            bool sparseOffsetsSorted = true;
             HashSet<int>? sparseOffsetSet = null;
 
             try {
@@ -227,6 +245,10 @@ namespace OfficeIMO.Excel {
 
                     if (sparseOffsetSet != null || rowOffset <= previousSparseOffset) {
                         sparseOffsetSet ??= new HashSet<int>(sparseOffsets);
+                        if (rowOffset <= previousSparseOffset) {
+                            sparseOffsetsSorted = false;
+                        }
+
                         if (sparseOffsetSet.Contains(rowOffset)) {
                             ReplaceSparseRow(sparseOffsets, sparseValues, rowOffset, rowValues);
                             previousSparseOffset = Math.Max(previousSparseOffset, rowOffset);
@@ -263,7 +285,7 @@ namespace OfficeIMO.Excel {
 
                 rows = denseRows != null
                     ? OrderedRowsBuffer.FromDense(denseRows)
-                    : OrderedRowsBuffer.FromSparse(height, sparseOffsets, sparseValues);
+                    : OrderedRowsBuffer.FromSparse(height, sparseOffsets, sparseValues, sparseOffsetsSorted);
                 return true;
             } catch (XmlException) {
                 rows = default;
@@ -311,7 +333,7 @@ namespace OfficeIMO.Excel {
                 return new OrderedRowsBuffer(denseRows.Length, denseRows, null, null);
             }
 
-            internal static OrderedRowsBuffer FromSparse(int count, List<int> sparseOffsets, List<object?[]?> sparseValues) {
+            internal static OrderedRowsBuffer FromSparse(int count, List<int> sparseOffsets, List<object?[]?> sparseValues, bool offsetsSorted) {
                 if (sparseOffsets.Count == 0) {
                     return new OrderedRowsBuffer(count, null, Array.Empty<int>(), Array.Empty<object?[]?>());
                 }
@@ -322,7 +344,10 @@ namespace OfficeIMO.Excel {
                     values[i] = sparseValues[i];
                 }
 
-                Array.Sort(offsets, values);
+                if (!offsetsSorted) {
+                    Array.Sort(offsets, values);
+                }
+
                 return new OrderedRowsBuffer(count, null, offsets, values);
             }
 
@@ -478,8 +503,11 @@ namespace OfficeIMO.Excel {
             bool canTrackColumns = width <= 64;
             ulong allColumnsSeen = canTrackColumns ? CreateAllColumnsSeenMask(width) : 0UL;
             ulong seenColumns = 0;
+            bool canUseOrderedFullWidthExit = canTrackColumns;
+            int nextExpectedColumn = c1;
+            int visitedNodes = 0;
             while (rowReader.Read()) {
-                if (canCancel) {
+                if (canCancel && (++visitedNodes & 1023) == 0) {
                     ct.ThrowIfCancellationRequested();
                 }
 
@@ -493,11 +521,23 @@ namespace OfficeIMO.Excel {
 
                 int columnIndex = GetXmlCellColumnIndex(rowReader, ref nextColumnIndex);
                 if (columnIndex <= 0) {
+                    if (canUseOrderedFullWidthExit) {
+                        canUseOrderedFullWidthExit = false;
+                        int orderedSeen = nextExpectedColumn - c1;
+                        seenColumns = orderedSeen <= 0 ? 0UL : CreateAllColumnsSeenMask(orderedSeen);
+                    }
+
                     SkipXmlElement(rowReader, "c");
                     continue;
                 }
 
                 if (columnIndex < c1 || columnIndex > c2) {
+                    if (canUseOrderedFullWidthExit && columnIndex > c2 && nextExpectedColumn <= c2) {
+                        canUseOrderedFullWidthExit = false;
+                        int orderedSeen = nextExpectedColumn - c1;
+                        seenColumns = orderedSeen <= 0 ? 0UL : CreateAllColumnsSeenMask(orderedSeen);
+                    }
+
                     SkipXmlElement(rowReader, "c");
                     continue;
                 }
@@ -509,8 +549,23 @@ namespace OfficeIMO.Excel {
                 }
 
                 values ??= new object?[width];
+                if (canUseOrderedFullWidthExit && columnIndex != nextExpectedColumn) {
+                    canUseOrderedFullWidthExit = false;
+                    int orderedSeen = nextExpectedColumn - c1;
+                    seenColumns = orderedSeen <= 0 ? 0UL : CreateAllColumnsSeenMask(orderedSeen);
+                }
+
                 values[offset] = ReadXmlCellValue(rowReader);
-                if (canTrackColumns && MarkRequestedColumnSeen(offset, allColumnsSeen, ref seenColumns)) {
+                if (canUseOrderedFullWidthExit) {
+                    nextExpectedColumn++;
+                }
+
+                if (canUseOrderedFullWidthExit && columnIndex >= c2) {
+                    SkipXmlElementContent(rowReader, depth, "row");
+                    return values;
+                }
+
+                if (canTrackColumns && !canUseOrderedFullWidthExit && MarkRequestedColumnSeen(offset, allColumnsSeen, ref seenColumns)) {
                     SkipXmlElementContent(rowReader, depth, "row");
                     return values;
                 }

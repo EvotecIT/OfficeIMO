@@ -4,12 +4,22 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
 
 namespace OfficeIMO.Excel {
+    internal readonly struct DirectFormulaCellValue {
+        internal DirectFormulaCellValue(string formula) {
+            Formula = formula;
+        }
+
+        internal string Formula { get; }
+
+        public override string ToString() => Formula;
+    }
+
     public partial class ExcelSheet {
         internal const int CellValuePlainStringPromotionSharedStringCount = 4096;
         private const int CellValueSharedStringIndexCacheLimit = 256;
         private const int PendingDirectCellValueMinimumCellCount = 128;
         private static readonly bool EnablePendingDirectCellValueBuffer = true;
-        private static readonly bool MirrorPendingDirectCellValueBufferToWorksheet = true;
+        private static readonly bool MirrorPendingDirectCellValueBufferToWorksheet = false;
         private static readonly DateTime CellValueExcelMinimumSupportedDate = DateTime.FromOADate(2d);
         private Dictionary<uint, uint>? _cellValueDateStyleIndexes;
         private Dictionary<uint, uint>? _cellValueDurationStyleIndexes;
@@ -193,6 +203,29 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private bool TrySetPendingDirectCellFormula(int row, int column, string formula) {
+            if (!EnablePendingDirectCellValueBuffer
+                || _materializingPendingCellValueDirectSaveBuffer
+                || _excelDocument.HasDeferredDirectDataSetImport
+                || (_pendingCellValueDirectSaveBuffer == null && _hasCellValueDomWrites)
+                || (_pendingCellValueDirectSaveBuffer == null && !CanRegisterDirectTabularSaveCandidate(1, 1, Math.Max(1, column)))) {
+                return false;
+            }
+
+            var directValue = new DirectFormulaCellValue(Utilities.ExcelSanitizer.SanitizeFormula(formula));
+            if (_isBatchOperation || Locking.IsNoLock) {
+                return TrySetPendingDirectCellValueCore(row, column, directValue);
+            }
+
+            var lck = _excelDocument.EnsureLock();
+            lck.EnterWriteLock();
+            try {
+                return TrySetPendingDirectCellValueCore(row, column, directValue);
+            } finally {
+                lck.ExitWriteLock();
+            }
+        }
+
         private bool TrySetPendingDirectCellValueCore(int row, int column, object? value) {
             if (!_excelDocument.TryReservePendingDirectCellValueSheet(this)) {
                 return false;
@@ -213,8 +246,8 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (MirrorPendingDirectCellValueBufferToWorksheet) {
-                CellValueCoreNoMaterialize(row, column, value);
+            if (MirrorPendingDirectCellValueBufferToWorksheet || buffer.CellCount < PendingDirectCellValueMinimumCellCount) {
+                ApplyPendingDirectCellValueToDom(row, column, value);
             }
 
             if (!_excelDocument.IsPackageDirty) {
@@ -222,6 +255,15 @@ namespace OfficeIMO.Excel {
             }
 
             return true;
+        }
+
+        private void ApplyPendingDirectCellValueToDom(int row, int column, object? value) {
+            if (value is DirectFormulaCellValue formula) {
+                CellFormulaCore(row, column, formula.Formula);
+                return;
+            }
+
+            CellValueCoreNoMaterialize(row, column, value);
         }
 
         private bool TryPreparePendingDirectCellValue(object? value, out object? directValue) {
@@ -308,14 +350,15 @@ namespace OfficeIMO.Excel {
 
             _pendingCellValueDirectSaveBuffer = null;
             _excelDocument.ClearPendingDirectCellValueSheet(this);
-            if (MirrorPendingDirectCellValueBufferToWorksheet) {
+            if (MirrorPendingDirectCellValueBufferToWorksheet
+                || buffer.CellCount < PendingDirectCellValueMinimumCellCount) {
                 return;
             }
 
             _materializingPendingCellValueDirectSaveBuffer = true;
             try {
                 foreach (var cell in buffer.EnumerateWrittenCells()) {
-                    CellValueCoreNoMaterialize(cell.Row, cell.Column, cell.Value);
+                    ApplyPendingDirectCellValueToDom(cell.Row, cell.Column, cell.Value);
                 }
             } finally {
                 _materializingPendingCellValueDirectSaveBuffer = false;
@@ -1064,6 +1107,10 @@ namespace OfficeIMO.Excel {
         /// <param name="column">The 1-based column index.</param>
         /// <param name="formula">The formula expression.</param>
         public void CellFormula(int row, int column, string formula) {
+            if (TrySetPendingDirectCellFormula(row, column, formula)) {
+                return;
+            }
+
             if (_isBatchOperation || Locking.IsNoLock) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellFormulaCore(row, column, formula);

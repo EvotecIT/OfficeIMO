@@ -289,6 +289,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string? FindFirst(string text) {
             if (string.IsNullOrEmpty(text)) return null;
+            MaterializeDeferredDataSetImportIfNeeded();
             // Text-mutating paths must clear this cache before rendered cell text changes.
             bool canUseCache = !_hasWorksheetMutations;
             if (canUseCache && TryGetFindFirstCache(text, out string? cachedAddress)) {
@@ -343,6 +344,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrEmpty(oldText)) return 0;
             int count = 0;
             WriteLock(() => {
+                MaterializeDeferredDataSetImportIfNeeded();
                 var ws = WorksheetRoot;
                 var sd = ws.GetFirstChild<SheetData>();
                 if (sd == null) return;

@@ -218,19 +218,33 @@ namespace OfficeIMO.Excel {
             var rows = CreateDirectDataReaderRowBuffer();
             bool canCancel = ct.CanBeCanceled;
             bool useBulkRead = CanUseBulkDataReaderValues(reader);
-            while (reader.Read()) {
-                if (canCancel) {
-                    ct.ThrowIfCancellationRequested();
+            int headerRowOffset = includeHeaders ? 1 : 0;
+            int maxDataRows = A1.MaxRows - startRow - headerRowOffset + 1;
+            if (!canCancel && !useBulkRead && columnCount == 8) {
+                while (reader.Read()) {
+                    if (rows.Count >= maxDataRows) {
+                        throw new InvalidOperationException("Data reader import exceeds the maximum worksheet row count.");
+                    }
+
+                    var values = new object?[8];
+                    FillEightDataReaderValues(reader, values);
+                    rows.Add(values);
                 }
+            } else {
+                while (reader.Read()) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
 
-                if (startRow + rows.Count + (includeHeaders ? 1 : 0) > A1.MaxRows) {
-                    throw new InvalidOperationException("Data reader import exceeds the maximum worksheet row count.");
+                    if (rows.Count >= maxDataRows) {
+                        throw new InvalidOperationException("Data reader import exceeds the maximum worksheet row count.");
+                    }
+
+                    var values = new object?[columnCount];
+                    FillDataReaderValues(reader, values, columnCount, ref useBulkRead);
+
+                    rows.Add(values);
                 }
-
-                var values = new object?[columnCount];
-                FillDataReaderValues(reader, values, columnCount, ref useBulkRead);
-
-                rows.Add(values);
             }
 
             int occupiedRows = rows.Count + (includeHeaders ? 1 : 0);
@@ -662,10 +676,35 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            if (copied == 0 && columnCount == 8) {
+                FillEightDataReaderValues(reader, values);
+                return;
+            }
+
             for (int i = copied; i < columnCount; i++) {
                 object rawValue = reader.GetValue(i);
                 values[i] = rawValue == DBNull.Value ? null : rawValue;
             }
+        }
+
+        private static void FillEightDataReaderValues(IDataReader reader, object?[] values) {
+            object value0 = reader.GetValue(0);
+            object value1 = reader.GetValue(1);
+            object value2 = reader.GetValue(2);
+            object value3 = reader.GetValue(3);
+            object value4 = reader.GetValue(4);
+            object value5 = reader.GetValue(5);
+            object value6 = reader.GetValue(6);
+            object value7 = reader.GetValue(7);
+
+            values[0] = value0 == DBNull.Value ? null : value0;
+            values[1] = value1 == DBNull.Value ? null : value1;
+            values[2] = value2 == DBNull.Value ? null : value2;
+            values[3] = value3 == DBNull.Value ? null : value3;
+            values[4] = value4 == DBNull.Value ? null : value4;
+            values[5] = value5 == DBNull.Value ? null : value5;
+            values[6] = value6 == DBNull.Value ? null : value6;
+            values[7] = value7 == DBNull.Value ? null : value7;
         }
 
         private static Type[] BuildReaderFieldTypes(IDataReader reader) {
