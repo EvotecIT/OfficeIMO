@@ -486,6 +486,8 @@ namespace OfficeIMO.Excel {
                 bool canCancel = ct.CanBeCanceled;
                 int rowIndex = startRowIndex;
                 if (styleAttributes == null) {
+                    object?[] values = cellValueRows.Values;
+                    int rowOffset = 0;
                     for (int sourceRowIndex = 0; sourceRowIndex < rowCount; sourceRowIndex++) {
                         if (canCancel) {
                             ct.ThrowIfCancellationRequested();
@@ -499,16 +501,19 @@ namespace OfficeIMO.Excel {
                             writer.Write(cellReferencePrefixes[c]);
                             writer.Write(rowReference);
                             writer.Write('"');
-                            WriteCellValue(writer, cellValueRows.GetValue(sourceRowIndex, c), cellValueKinds[c], dateTimeOffsetWriteStrategy, sharedStrings);
+                            WriteCellValue(writer, values[rowOffset + c], cellValueKinds[c], dateTimeOffsetWriteStrategy, sharedStrings);
                         }
 
                         writer.Write("</row>");
                         rowIndex++;
+                        rowOffset += columnCount;
                     }
 
                     return;
                 }
 
+                object?[] styledValues = cellValueRows.Values;
+                int styledRowOffset = 0;
                 for (int sourceRowIndex = 0; sourceRowIndex < rowCount; sourceRowIndex++) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -527,11 +532,12 @@ namespace OfficeIMO.Excel {
                             writer.Write(styleAttribute);
                         }
 
-                        WriteCellValue(writer, cellValueRows.GetValue(sourceRowIndex, c), cellValueKinds[c], dateTimeOffsetWriteStrategy, sharedStrings);
+                        WriteCellValue(writer, styledValues[styledRowOffset + c], cellValueKinds[c], dateTimeOffsetWriteStrategy, sharedStrings);
                     }
 
                     writer.Write("</row>");
                     rowIndex++;
+                    styledRowOffset += columnCount;
                 }
             }
 
@@ -975,9 +981,11 @@ namespace OfficeIMO.Excel {
                     bool canCancel = ct.CanBeCanceled;
                     for (int sheetIndex = 0; sheetIndex < model.Sheets.Count; sheetIndex++) {
                         var sheet = model.Sheets[sheetIndex];
-                        // Dictionary-backed exports already pay keyed lookup cost while writing; for these
-                        // workloads the shared-string prepass tends to add CPU/allocation and larger packages.
-                        if (sheet.Table.TryGetExactDictionaryRows(out _)
+                        // Direct cell-value and dictionary-backed exports already use compact internal buffers
+                        // or pay keyed lookup cost while writing; for these workloads the shared-string prepass
+                        // tends to add CPU/allocation without enough package-size benefit.
+                        if (sheet.Table.TryGetCellValueRows(out _)
+                            || sheet.Table.TryGetExactDictionaryRows(out _)
                             || sheet.Table.TryGetDictionaryRows(out _)
                             || sheet.Table.TryGetLegacyDictionaryRows(out _)) {
                             return null;
