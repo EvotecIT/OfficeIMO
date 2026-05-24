@@ -169,6 +169,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(sheet.TryGetCellText(2, 1, out string visibleText));
                 Assert.Equal("Name 2", visibleText);
+                Assert.True(sheet.TryGetCellText(70, 2, out string pendingText));
+                Assert.Equal("70", pendingText);
 
                 document.Save();
             }
@@ -216,6 +218,48 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(cells["D70"].CellFormula);
                 Assert.Equal("SUM(A70:C70)", cells["D70"].CellFormula!.Text);
                 Assert.Null(cells["D70"].CellValue);
+            }
+        }
+
+        [Fact]
+        public void Test_FindFirst_MaterializesPendingDirectCellValues() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesPendingDirectFindFirst.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                for (int row = 1; row <= 70; row++) {
+                    sheet.CellValue(row, 1, "Name " + row.ToString(CultureInfo.InvariantCulture));
+                    sheet.CellValue(row, 2, row == 70 ? "Needle Pending" : "Value " + row.ToString(CultureInfo.InvariantCulture));
+                }
+
+                Assert.Equal("B70", sheet.FindFirst("needle"));
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ReplaceAll_MaterializesPendingDirectCellValues() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesPendingDirectReplaceAll.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                for (int row = 1; row <= 70; row++) {
+                    sheet.CellValue(row, 1, "Name " + row.ToString(CultureInfo.InvariantCulture));
+                    sheet.CellValue(row, 2, "Status New " + row.ToString(CultureInfo.InvariantCulture));
+                }
+
+                Assert.Equal(70, sheet.ReplaceAll("new", "Processed"));
+                Assert.True(sheet.TryGetCellText(70, 2, out string text));
+                Assert.Equal("Status Processed 70", text);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
             }
         }
 
