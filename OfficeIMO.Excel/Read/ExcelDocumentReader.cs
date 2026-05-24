@@ -14,14 +14,14 @@ namespace OfficeIMO.Excel {
         private readonly bool _owns;
         private readonly ExcelReadOptions _opt;
         private readonly SharedStringCache _sst;
-        private readonly StylesCache _styles;
+        private readonly StylesCacheProvider _styles;
 
         private ExcelDocumentReader(SpreadsheetDocument doc, ExcelReadOptions opt, bool owns) {
             _doc = doc;
             _owns = owns;
             _opt = opt ?? new ExcelReadOptions();
             _sst = SharedStringCache.Build(doc);
-            _styles = StylesCache.Build(doc);
+            _styles = new StylesCacheProvider(doc);
         }
 
         /// <summary>
@@ -82,7 +82,12 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IReadOnlyList<string> GetSheetNames() {
             var wb = WorkbookRoot;
-            return wb.Sheets!.Elements<Sheet>().Select(s => s.Name!.Value!).ToList();
+            var names = new List<string>();
+            foreach (var sheet in wb.Sheets!.Elements<Sheet>()) {
+                names.Add(sheet.Name!.Value!);
+            }
+
+            return names;
         }
 
         /// <summary>
@@ -90,7 +95,14 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelSheetReader GetSheet(string name) {
             var wb = WorkbookRoot;
-            var sheet = wb.Sheets!.Elements<Sheet>().FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
+            Sheet? sheet = null;
+            foreach (var candidate in wb.Sheets!.Elements<Sheet>()) {
+                if (string.Equals(candidate.Name?.Value, name, StringComparison.OrdinalIgnoreCase)) {
+                    sheet = candidate;
+                    break;
+                }
+            }
+
             if (sheet is null) throw new KeyNotFoundException($"Sheet '{name}' not found.");
             var wsPart = (WorksheetPart)WorkbookPartRoot.GetPartById(sheet.Id!);
             return new ExcelSheetReader(sheet.Name!, wsPart, _sst, _styles, _opt, _owns);

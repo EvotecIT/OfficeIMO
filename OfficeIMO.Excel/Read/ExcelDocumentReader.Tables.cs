@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Threading;
 
 namespace OfficeIMO.Excel {
@@ -15,14 +14,18 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IReadOnlyList<ExcelTableInfo> GetTables() {
             var workbook = WorkbookRoot;
-            var sheets = workbook.Sheets?.OfType<Sheet>().ToList() ?? new List<Sheet>();
             var sheetLookup = new Dictionary<string, (string Name, int Index)>(StringComparer.OrdinalIgnoreCase);
-            for (int i = 0; i < sheets.Count; i++) {
-                var sheet = sheets[i];
-                string? id = sheet.Id?.Value;
-                string? name = sheet.Name?.Value;
-                if (!string.IsNullOrWhiteSpace(id) && !string.IsNullOrWhiteSpace(name)) {
-                    sheetLookup[id!] = (name!, i);
+            int sheetIndex = 0;
+            var sheets = workbook.Sheets;
+            if (sheets != null) {
+                foreach (var sheet in sheets.Elements<Sheet>()) {
+                    string? id = sheet.Id?.Value;
+                    string? name = sheet.Name?.Value;
+                    if (!string.IsNullOrWhiteSpace(id) && !string.IsNullOrWhiteSpace(name)) {
+                        sheetLookup[id!] = (name!, sheetIndex);
+                    }
+
+                    sheetIndex++;
                 }
             }
 
@@ -31,7 +34,7 @@ namespace OfficeIMO.Excel {
                 string relId = WorkbookPartRoot.GetIdOfPart(worksheetPart);
                 sheetLookup.TryGetValue(relId, out var sheetInfo);
                 string sheetName = sheetInfo.Name ?? string.Empty;
-                int sheetIndex = string.IsNullOrEmpty(sheetInfo.Name) ? -1 : sheetInfo.Index;
+                int tableSheetIndex = string.IsNullOrEmpty(sheetInfo.Name) ? -1 : sheetInfo.Index;
 
                 foreach (var tablePart in worksheetPart.TableDefinitionParts) {
                     var table = tablePart.Table;
@@ -42,19 +45,30 @@ namespace OfficeIMO.Excel {
                     string name = table.Name?.Value ?? table.DisplayName?.Value ?? string.Empty;
                     string displayName = table.DisplayName?.Value ?? name;
                     string range = table.Reference?.Value ?? string.Empty;
-                    var columns = table.TableColumns?.Elements<TableColumn>()
-                        .Select((column, index) => new ExcelTableColumnInfo(
-                            index + 1,
-                            column.Name?.Value ?? string.Empty,
-                            GetOpenXmlAttributeValue(column, "totalsRowFunction")))
-                        .ToList() ?? new List<ExcelTableColumnInfo>();
+                    List<ExcelTableColumnInfo>? columns = null;
+                    var tableColumns = table.TableColumns;
+                    if (tableColumns != null) {
+                        int columnIndex = 1;
+                        int columnCapacity = tableColumns.Count?.Value is uint declaredCount && declaredCount <= int.MaxValue
+                            ? (int)declaredCount
+                            : 0;
+                        columns = columnCapacity > 0
+                            ? new List<ExcelTableColumnInfo>(columnCapacity)
+                            : new List<ExcelTableColumnInfo>();
+                        foreach (var column in tableColumns.Elements<TableColumn>()) {
+                            columns.Add(new ExcelTableColumnInfo(
+                                columnIndex++,
+                                column.Name?.Value ?? string.Empty,
+                                GetOpenXmlAttributeValue(column, "totalsRowFunction")));
+                        }
+                    }
 
                     tables.Add(new ExcelTableInfo(
                         name,
                         displayName,
                         range,
                         sheetName,
-                        sheetIndex,
+                        tableSheetIndex,
                         table.TableStyleInfo?.Name?.Value,
                         (table.HeaderRowCount?.Value ?? 1U) > 0U,
                         (table.TotalsRowCount?.Value ?? 0U) > 0U,
@@ -72,15 +86,14 @@ namespace OfficeIMO.Excel {
         public ExcelTableInfo GetTable(string tableName) {
             if (string.IsNullOrWhiteSpace(tableName)) throw new ArgumentNullException(nameof(tableName));
 
-            var table = GetTables()
-                .FirstOrDefault(item =>
-                    string.Equals(item.Name, tableName, StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(item.DisplayName, tableName, StringComparison.OrdinalIgnoreCase));
-            if (table == null) {
-                throw new KeyNotFoundException($"Table '{tableName}' was not found.");
+            foreach (var table in GetTables()) {
+                if (string.Equals(table.Name, tableName, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(table.DisplayName, tableName, StringComparison.OrdinalIgnoreCase)) {
+                    return table;
+                }
             }
 
-            return table;
+            throw new KeyNotFoundException($"Table '{tableName}' was not found.");
         }
 
         /// <summary>
@@ -141,8 +154,13 @@ namespace OfficeIMO.Excel {
             if (element == null) throw new ArgumentNullException(nameof(element));
             if (string.IsNullOrWhiteSpace(localName)) throw new ArgumentException("Attribute name is required.", nameof(localName));
 
-            var attribute = element.GetAttributes().FirstOrDefault(a => string.Equals(a.LocalName, localName, StringComparison.OrdinalIgnoreCase));
-            return string.IsNullOrWhiteSpace(attribute.Value) ? null : attribute.Value;
+            foreach (var attribute in element.GetAttributes()) {
+                if (string.Equals(attribute.LocalName, localName, StringComparison.OrdinalIgnoreCase)) {
+                    return string.IsNullOrWhiteSpace(attribute.Value) ? null : attribute.Value;
+                }
+            }
+
+            return null;
         }
     }
 }

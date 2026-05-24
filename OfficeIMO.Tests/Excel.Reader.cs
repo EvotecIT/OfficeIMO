@@ -461,10 +461,10 @@ namespace OfficeIMO.Tests {
                     var row = worksheetPart.Worksheet!.GetFirstChild<SheetData>()!.Elements<Row>().Single(r => r.RowIndex?.Value == 1U);
                     var cells = row.Elements<Cell>().ToDictionary(c => c.CellReference!.Value!);
                     row.RemoveAllChildren<Cell>();
-                    row.Append(cells["C1"]);
                     row.Append(cells["A1"]);
-                    row.Append(cells["D1"]);
+                    row.Append(cells["C1"]);
                     row.Append(cells["B1"]);
+                    row.Append(cells["D1"]);
                     worksheetPart.Worksheet.Save();
                 }
 

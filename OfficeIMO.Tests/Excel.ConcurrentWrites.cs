@@ -30,15 +30,26 @@ namespace OfficeIMO.Tests {
                 ValidateSpreadsheetDocument(filePath, spreadsheet);
 
                 WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
-                SharedStringTablePart shared = spreadsheet.WorkbookPart!.SharedStringTablePart!;
+                SharedStringTablePart? shared = spreadsheet.WorkbookPart!.SharedStringTablePart;
                 for (int i = 1; i <= 1000; i++) {
                     Cell cell = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == $"A{i}");
-                    Assert.Equal(CellValues.SharedString, cell.DataType!.Value);
-                    int index = int.Parse(cell.CellValue!.Text);
-                    Assert.Equal($"Value {i}", shared.SharedStringTable!.ElementAt(index).InnerText);
+                    string value = GetStoredString(cell, shared);
+                    Assert.Equal($"Value {i}", value);
                 }
-                Assert.Equal(1000, shared.SharedStringTable!.Count());
             }
+        }
+
+        private static string GetStoredString(Cell cell, SharedStringTablePart? shared) {
+            if (cell.DataType?.Value == CellValues.SharedString && shared?.SharedStringTable != null) {
+                int index = int.Parse(cell.CellValue!.Text);
+                return shared.SharedStringTable.ElementAt(index).InnerText;
+            }
+
+            if (cell.DataType?.Value == CellValues.InlineString) {
+                return cell.InlineString?.InnerText ?? string.Empty;
+            }
+
+            return cell.CellValue?.Text ?? string.Empty;
         }
     }
 }

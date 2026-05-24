@@ -123,6 +123,15 @@ namespace OfficeIMO.Excel {
             int phoneticRunDepth = -1;
 
             bool hasNode = reader.Read();
+            if (hasNode && reader.NodeType == XmlNodeType.Element && reader.LocalName == "t") {
+                first = reader.ReadElementContentAsString();
+                if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth && reader.LocalName == "si") {
+                    return first;
+                }
+
+                hasNode = true;
+            }
+
             while (hasNode) {
                 if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth && reader.LocalName == "si") {
                     break;
@@ -192,6 +201,10 @@ namespace OfficeIMO.Excel {
             var items = GetLoadedItems();
             if ((uint)index < (uint)items.Count) return items[index];
             return null;
+        }
+
+        internal void EnsureLoaded() {
+            _ = GetLoadedItems();
         }
 
         internal HashSet<int>? FindIndexesContaining(string text, StringComparison comparison) {

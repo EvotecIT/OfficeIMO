@@ -270,6 +270,7 @@ namespace OfficeIMO.Excel {
 
             int replacements = 0;
             WriteLock(() => {
+                MaterializeDeferredDataSetImportIfNeeded();
                 replacements = ApplyTemplateCellsCore(bindings, options, rowFilter: null);
                 WorksheetRoot.Save();
             });
@@ -684,6 +685,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal IReadOnlyList<ExcelTemplateMarkerInfo> GetTemplateMarkers(IReadOnlyDictionary<string, object?>? bindings = null) {
+            MaterializeDeferredDataSetImportIfNeeded();
             return Locking.ExecuteRead(_excelDocument.EnsureLock(), () => {
                 var markers = new List<ExcelTemplateMarkerInfo>();
                 foreach (var cell in WorksheetRoot.Descendants<Cell>()) {

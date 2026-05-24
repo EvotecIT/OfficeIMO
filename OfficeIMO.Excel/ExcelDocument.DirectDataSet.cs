@@ -240,6 +240,63 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        internal bool RegisterDeferredDirectCellValuesSaveCandidate(
+            ExcelSheet sheet,
+            string tableNameForModel,
+            IReadOnlyList<string> columnNames,
+            IReadOnlyList<Type> columnTypes,
+            object?[] values,
+            int columnCount,
+            int rowCount,
+            bool includeHeaders,
+            string range,
+            string? tableName = null,
+            bool createTable = false,
+            TableStyle tableStyle = TableStyle.TableStyleMedium2,
+            bool includeAutoFilter = false,
+            bool autoFit = false,
+            bool useCellValueNumberFormats = false,
+            bool replacingPendingDirectCellValues = false) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
+            if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
+            if (values == null) throw new ArgumentNullException(nameof(values));
+            if (!ReferenceEquals(sheet.Document, this)) {
+                return false;
+            }
+
+            if (!TryBeginDeferredDirectSaveCandidateRegistration(replacingPendingDirectCellValues)) {
+                return false;
+            }
+
+            try {
+                string requestedName = string.IsNullOrWhiteSpace(tableNameForModel) ? sheet.Name : tableNameForModel;
+                var tableModel = DirectDataSetTableModel.FromCellValues(columnNames, columnTypes, values, columnCount, rowCount);
+                var model = DirectDataSetWorkbookModel.CreateSingle(
+                    sheet.Name,
+                    requestedName,
+                    createTable ? tableName : null,
+                    range,
+                    tableModel,
+                    createTable,
+                    tableStyle,
+                    includeHeaders,
+                    includeAutoFilter,
+                    autoFit,
+                    _dateTimeOffsetWriteStrategy,
+                    CancellationToken.None,
+                    useCellValueNumberFormats);
+                _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
+                _packageDirty = true;
+                _unchangedPackageBytes = null;
+                _requiresSavePreflight = false;
+                return true;
+            } catch {
+                ClearDirectDataSetSaveCandidate();
+                return false;
+            }
+        }
+
         internal void RegisterDirectTabularSaveCandidate(
             ExcelSheet sheet,
             string tableNameForModel,
@@ -266,6 +323,53 @@ namespace OfficeIMO.Excel {
             try {
                 string requestedName = string.IsNullOrWhiteSpace(tableNameForModel) ? sheet.Name : tableNameForModel;
                 var tableModel = DirectDataSetTableModel.FromRows(columnNames, columnTypes, rows);
+                var model = DirectDataSetWorkbookModel.CreateSingle(
+                    sheet.Name,
+                    requestedName,
+                    createTable ? tableName : null,
+                    range,
+                    tableModel,
+                    createTable,
+                    tableStyle,
+                    includeHeaders,
+                    includeAutoFilter,
+                    autoFit,
+                    _dateTimeOffsetWriteStrategy,
+                    CancellationToken.None);
+                _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, ClearDirectDataSetSaveCandidate, isDeferred: false, subscribeToSourceChanges: false);
+            } catch {
+                ClearDirectDataSetSaveCandidate();
+            }
+        }
+
+        internal void RegisterDirectCellValuesSaveCandidate(
+            ExcelSheet sheet,
+            string tableNameForModel,
+            IReadOnlyList<string> columnNames,
+            IReadOnlyList<Type> columnTypes,
+            object?[] values,
+            int columnCount,
+            int rowCount,
+            bool includeHeaders,
+            string range,
+            string? tableName = null,
+            bool createTable = false,
+            TableStyle tableStyle = TableStyle.TableStyleMedium2,
+            bool includeAutoFilter = false,
+            bool autoFit = false) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
+            if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
+            if (values == null) throw new ArgumentNullException(nameof(values));
+            if (!ReferenceEquals(sheet.Document, this)) {
+                return;
+            }
+
+            ClearDirectDataSetSaveCandidate();
+
+            try {
+                string requestedName = string.IsNullOrWhiteSpace(tableNameForModel) ? sheet.Name : tableNameForModel;
+                var tableModel = DirectDataSetTableModel.FromCellValues(columnNames, columnTypes, values, columnCount, rowCount);
                 var model = DirectDataSetWorkbookModel.CreateSingle(
                     sheet.Name,
                     requestedName,
@@ -822,9 +926,17 @@ namespace OfficeIMO.Excel {
         }
 
         private ExcelSheet? TryGetExistingSheet(string sheetName) {
-            var sheetElement = WorkbookRoot.Sheets?
-                .OfType<Sheet>()
-                .FirstOrDefault(sheet => string.Equals(sheet.Name?.Value, sheetName, StringComparison.Ordinal));
+            Sheet? sheetElement = null;
+            var sheets = WorkbookRoot.Sheets;
+            if (sheets != null) {
+                foreach (var candidate in sheets.Elements<Sheet>()) {
+                    if (string.Equals(candidate.Name?.Value, sheetName, StringComparison.Ordinal)) {
+                        sheetElement = candidate;
+                        break;
+                    }
+                }
+            }
+
             if (sheetElement?.Id == null) {
                 return null;
             }
@@ -1386,6 +1498,27 @@ namespace OfficeIMO.Excel {
                 : _listRows![index];
         }
 
+        private readonly struct DirectCellValueRows {
+            private readonly object?[] _values;
+            private readonly int _columnCount;
+
+            internal DirectCellValueRows(
+                object?[] values,
+                int columnCount,
+                int rowCount) {
+                _values = values;
+                _columnCount = columnCount;
+                Count = rowCount;
+            }
+
+            internal int Count { get; }
+
+            internal object? GetValue(int rowIndex, int columnIndex) {
+                int index = (rowIndex * _columnCount) + columnIndex;
+                return _values[index];
+            }
+        }
+
         private sealed class DirectDataSetTableModel {
             private const int MaxAutoFitStringWidthCacheEntriesPerColumn = 1024;
 
@@ -1418,6 +1551,8 @@ namespace OfficeIMO.Excel {
             private readonly int[]? _stringCandidateColumnIndexes;
             private readonly object?[][]? _arrayRows;
             private readonly List<object?[]>? _listRows;
+            private readonly DirectCellValueRows _cellValueRows;
+            private readonly bool _hasCellValueRows;
             private readonly IReadOnlyList<Dictionary<string, object?>>? _exactDictionaryRows;
             private readonly IReadOnlyList<IReadOnlyDictionary<string, object?>>? _dictionaryRows;
             private readonly IReadOnlyList<System.Collections.IDictionary>? _legacyDictionaryRows;
@@ -1453,6 +1588,13 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            private DirectDataSetTableModel(DirectDataSetColumnModel[] columns, DirectCellValueRows cellValueRows) {
+                _columns = columns;
+                _stringCandidateColumnIndexes = CreateStringCandidateColumnIndexes(columns);
+                _cellValueRows = cellValueRows;
+                _hasCellValueRows = true;
+            }
+
             private DirectDataSetTableModel(DirectDataSetColumnModel[] columns, IReadOnlyList<IReadOnlyDictionary<string, object?>> dictionaryRows) {
                 _columns = columns;
                 _stringCandidateColumnIndexes = CreateStringCandidateColumnIndexes(columns);
@@ -1485,6 +1627,28 @@ namespace OfficeIMO.Excel {
                 }
 
                 return new DirectDataSetTableModel(columns, rows);
+            }
+
+            internal static DirectDataSetTableModel FromCellValues(
+                IReadOnlyList<string> columnNames,
+                IReadOnlyList<Type> columnTypes,
+                object?[] values,
+                int columnCount,
+                int rowCount) {
+                if (columnNames.Count != columnTypes.Count) {
+                    throw new ArgumentException("Column name and type counts must match.", nameof(columnTypes));
+                }
+
+                if (columnNames.Count != columnCount) {
+                    throw new ArgumentException("Column count must match the column metadata.", nameof(columnCount));
+                }
+
+                var columns = new DirectDataSetColumnModel[columnNames.Count];
+                for (int i = 0; i < columns.Length; i++) {
+                    columns[i] = new DirectDataSetColumnModel(columnNames[i], columnTypes[i]);
+                }
+
+                return new DirectDataSetTableModel(columns, new DirectCellValueRows(values, columnCount, rowCount));
             }
 
             internal static DirectDataSetTableModel FromLegacyDictionaries(IReadOnlyList<string> columnNames, IReadOnlyList<Type> columnTypes, IReadOnlyList<System.Collections.IDictionary> rows) {
@@ -1548,11 +1712,18 @@ namespace OfficeIMO.Excel {
                     return new DirectDataSetTableModel(columns, _legacyDictionaryRows, _legacyDictionaryExactKeyLookup);
                 }
 
+                if (_hasCellValueRows) {
+                    return new DirectDataSetTableModel(columns, _cellValueRows);
+                }
+
                 return new DirectDataSetTableModel(columns, GetBufferedRowsForReuse());
             }
 
             internal static DirectDataSetTableModel Snapshot(DataTable table, CancellationToken ct) {
                 var columns = CreateColumns(table);
+                if (columns.Length == 8) {
+                    return new DirectDataSetTableModel(columns, SnapshotEightColumnRows(table, ct));
+                }
 
                 var rows = new object?[table.Rows.Count][];
                 bool canCancel = ct.CanBeCanceled;
@@ -1574,6 +1745,38 @@ namespace OfficeIMO.Excel {
                 return new DirectDataSetTableModel(columns, rows);
             }
 
+            private static object?[][] SnapshotEightColumnRows(DataTable table, CancellationToken ct) {
+                var rows = new object?[table.Rows.Count][];
+                bool canCancel = ct.CanBeCanceled;
+                for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    DataRow row = table.Rows[rowIndex];
+                    object? value0 = row[0];
+                    object? value1 = row[1];
+                    object? value2 = row[2];
+                    object? value3 = row[3];
+                    object? value4 = row[4];
+                    object? value5 = row[5];
+                    object? value6 = row[6];
+                    object? value7 = row[7];
+                    rows[rowIndex] = new object?[] {
+                        value0 == DBNull.Value ? null : value0,
+                        value1 == DBNull.Value ? null : value1,
+                        value2 == DBNull.Value ? null : value2,
+                        value3 == DBNull.Value ? null : value3,
+                        value4 == DBNull.Value ? null : value4,
+                        value5 == DBNull.Value ? null : value5,
+                        value6 == DBNull.Value ? null : value6,
+                        value7 == DBNull.Value ? null : value7
+                    };
+                }
+
+                return rows;
+            }
+
             private static DirectDataSetColumnModel[] CreateColumns(DataTable table) {
                 var columns = new DirectDataSetColumnModel[table.Columns.Count];
                 for (int i = 0; i < columns.Length; i++) {
@@ -1585,7 +1788,7 @@ namespace OfficeIMO.Excel {
 
             internal int ColumnCount => _columns!.Length;
 
-            internal int RowCount => _sourceTable?.Rows.Count ?? _arrayRows?.Length ?? _listRows?.Count ?? _exactDictionaryRows?.Count ?? _dictionaryRows?.Count ?? _legacyDictionaryRows!.Count;
+            internal int RowCount => _sourceTable?.Rows.Count ?? _arrayRows?.Length ?? _listRows?.Count ?? (_hasCellValueRows ? _cellValueRows.Count : (int?)null) ?? _exactDictionaryRows?.Count ?? _dictionaryRows?.Count ?? _legacyDictionaryRows!.Count;
 
             internal string GetColumnName(int index) => _columns![index].Name;
 
@@ -1692,6 +1895,16 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            internal bool TryGetCellValueRows(out DirectCellValueRows rows) {
+                if (_hasCellValueRows) {
+                    rows = _cellValueRows;
+                    return true;
+                }
+
+                rows = default;
+                return false;
+            }
+
             internal object?[]? GetBufferedRow(int rowIndex) {
                 if (_arrayRows != null) {
                     return _arrayRows[rowIndex];
@@ -1714,6 +1927,8 @@ namespace OfficeIMO.Excel {
                         : null;
                 } else if (_legacyDictionaryRows != null) {
                     value = GetLegacyDictionaryValue(_legacyDictionaryRows[rowIndex], GetColumnName(columnIndex), _legacyDictionaryExactKeyLookup);
+                } else if (_hasCellValueRows) {
+                    value = _cellValueRows.GetValue(rowIndex, columnIndex);
                 } else {
                     value = GetBufferedRow(rowIndex)![columnIndex];
                 }

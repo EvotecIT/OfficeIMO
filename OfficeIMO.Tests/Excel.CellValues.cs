@@ -126,6 +126,144 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CellValues_HeaderlessDeferredSaveSnapshotsInputValues() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesHeaderlessDeferredSnapshot.xlsx");
+            var cells = new (int Row, int Column, object Value)[] {
+                (1, 1, 1.25d),
+                (1, 2, true),
+                (1, 3, "Original"),
+                (2, 1, 2.5d),
+                (2, 2, false),
+                (2, 3, "Second")
+            };
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValues(cells);
+                cells[2] = (1, 3, "Changed");
+                cells[5] = (2, 3, "Changed");
+                document.Save();
+            }
+
+            using (var reader = ExcelDocumentReader.Open(filePath)) {
+                object?[,] values = reader.GetSheet("Data").ReadRange("A1:C2");
+                Assert.Equal(1.25d, values[0, 0]);
+                Assert.Equal(true, values[0, 1]);
+                Assert.Equal("Original", values[0, 2]);
+                Assert.Equal(2.5d, values[1, 0]);
+                Assert.Equal(false, values[1, 1]);
+                Assert.Equal("Second", values[1, 2]);
+            }
+        }
+
+        [Fact]
+        public void Test_CellValue_PendingDirectWrites_ReadAndSaveCorrectly() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuePendingDirectWrites.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                for (int row = 1; row <= 70; row++) {
+                    sheet.CellValue(row, 1, "Name " + row.ToString(CultureInfo.InvariantCulture));
+                    sheet.CellValue(row, 2, row);
+                }
+
+                Assert.True(sheet.TryGetCellText(2, 1, out string visibleText));
+                Assert.Equal("Name 2", visibleText);
+                Assert.True(sheet.TryGetCellText(70, 2, out string pendingText));
+                Assert.Equal("70", pendingText);
+
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                ValidateSpreadsheetDocument(filePath, spreadsheet);
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cells = wsPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+
+                Cell cellA1 = cells["A1"];
+                string textA1 = cellA1.CellValue!.Text;
+                if (cellA1.DataType?.Value == CellValues.SharedString) {
+                    textA1 = spreadsheet.WorkbookPart!.SharedStringTablePart!.SharedStringTable!
+                        .ElementAt(int.Parse(textA1, CultureInfo.InvariantCulture))
+                        .InnerText;
+                }
+
+                Assert.Equal("Name 1", textA1);
+                Assert.Equal("70", cells["B70"].CellValue!.Text);
+            }
+        }
+
+        [Fact]
+        public void Test_CellFormula_PendingDirectWrites_SaveCorrectly() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellFormulaPendingDirectWrites.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Formulas");
+                for (int row = 1; row <= 70; row++) {
+                    sheet.CellValue(row, 1, (double)row);
+                    sheet.CellValue(row, 2, (double)(row % 17));
+                    sheet.CellValue(row, 3, (double)(row % 29));
+                    sheet.CellFormula(row, 4, $"=SUM(A{row}:C{row})");
+                }
+
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                ValidateSpreadsheetDocument(filePath, spreadsheet);
+                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cells = wsPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+
+                Assert.Equal("70", cells["A70"].CellValue!.Text);
+                Assert.NotNull(cells["D70"].CellFormula);
+                Assert.Equal("SUM(A70:C70)", cells["D70"].CellFormula!.Text);
+                Assert.Null(cells["D70"].CellValue);
+            }
+        }
+
+        [Fact]
+        public void Test_FindFirst_MaterializesPendingDirectCellValues() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesPendingDirectFindFirst.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                for (int row = 1; row <= 70; row++) {
+                    sheet.CellValue(row, 1, "Name " + row.ToString(CultureInfo.InvariantCulture));
+                    sheet.CellValue(row, 2, row == 70 ? "Needle Pending" : "Value " + row.ToString(CultureInfo.InvariantCulture));
+                }
+
+                Assert.Equal("B70", sheet.FindFirst("needle"));
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_ReplaceAll_MaterializesPendingDirectCellValues() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesPendingDirectReplaceAll.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                for (int row = 1; row <= 70; row++) {
+                    sheet.CellValue(row, 1, "Name " + row.ToString(CultureInfo.InvariantCulture));
+                    sheet.CellValue(row, 2, "Status New " + row.ToString(CultureInfo.InvariantCulture));
+                }
+
+                Assert.Equal(70, sheet.ReplaceAll("new", "Processed"));
+                Assert.True(sheet.TryGetCellText(70, 2, out string text));
+                Assert.Equal("Status Processed 70", text);
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void Test_TryGetCellText_MissingCell_DoesNotCreateCell() {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesMissingLookupNoMutation.xlsx");
 

@@ -22,24 +22,35 @@ namespace OfficeIMO.Excel {
                     && TryReadColumnAdaptiveBufferedXmlFast(r1, c1, r2, height, ct, out var adaptiveValues)) {
                     if (adaptiveValues.TryGetSparseValues(out var sparseOffsets, out var sparseValues)) {
                         int sparseIndex = 0;
-                        for (int i = 0; i < adaptiveValues.Count; i++) {
-                            if (canCancel) {
+                        if (canCancel) {
+                            for (int i = 0; i < adaptiveValues.Count; i++) {
                                 ct.ThrowIfCancellationRequested();
-                            }
 
-                            if (sparseIndex < sparseOffsets.Length && sparseOffsets[sparseIndex] == i) {
-                                yield return sparseValues[sparseIndex];
-                                sparseIndex++;
-                            } else {
-                                yield return null;
+                                if (sparseIndex < sparseOffsets.Length && sparseOffsets[sparseIndex] == i) {
+                                    yield return sparseValues[sparseIndex];
+                                    sparseIndex++;
+                                } else {
+                                    yield return null;
+                                }
                             }
+                        } else {
+                            for (int i = 0; i < adaptiveValues.Count; i++) {
+                                if (sparseIndex < sparseOffsets.Length && sparseOffsets[sparseIndex] == i) {
+                                    yield return sparseValues[sparseIndex];
+                                    sparseIndex++;
+                                } else {
+                                    yield return null;
+                                }
+                            }
+                        }
+                    } else if (canCancel) {
+                        for (int i = 0; i < adaptiveValues.Count; i++) {
+                            ct.ThrowIfCancellationRequested();
+
+                            yield return adaptiveValues.GetDenseValue(i);
                         }
                     } else {
                         for (int i = 0; i < adaptiveValues.Count; i++) {
-                            if (canCancel) {
-                                ct.ThrowIfCancellationRequested();
-                            }
-
                             yield return adaptiveValues.GetDenseValue(i);
                         }
                     }
@@ -48,12 +59,16 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (TryReadColumnXmlFast(r1, c1, r2, height, ct, out var xmlValues)) {
-                    for (int i = 0; i < height; i++) {
-                        if (canCancel) {
+                    if (canCancel) {
+                        for (int i = 0; i < height; i++) {
                             ct.ThrowIfCancellationRequested();
-                        }
 
-                        yield return xmlValues[i];
+                            yield return xmlValues[i];
+                        }
+                    } else {
+                        for (int i = 0; i < height; i++) {
+                            yield return xmlValues[i];
+                        }
                     }
 
                     yield break;
@@ -136,8 +151,9 @@ namespace OfficeIMO.Excel {
 
         private bool TryReadColumnAdaptiveBufferedXmlFast(int r1, int columnIndex, int r2, int height, CancellationToken ct, out OrderedColumnBuffer values) {
             values = default;
-            var sparseOffsets = new List<int>(Math.Min(height, 1024));
-            var sparseValues = new List<object?>(Math.Min(height, 1024));
+            int sparseCapacity = Math.Min(height, SparseReadInitialBufferCapacity);
+            var sparseOffsets = new List<int>(sparseCapacity);
+            var sparseValues = new List<object?>(sparseCapacity);
             object?[]? denseValues = null;
             int populatedRows = 0;
             int previousSparseOffset = -1;
@@ -378,8 +394,9 @@ namespace OfficeIMO.Excel {
             int depth = rowReader.Depth;
             bool canCancel = ct.CanBeCanceled;
             int nextColumnIndex = 1;
+            int visitedNodes = 0;
             while (rowReader.Read()) {
-                if (canCancel) {
+                if (canCancel && (++visitedNodes & 1023) == 0) {
                     ct.ThrowIfCancellationRequested();
                 }
 

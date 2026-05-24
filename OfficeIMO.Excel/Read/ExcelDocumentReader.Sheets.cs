@@ -11,11 +11,18 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelSheetReader GetSheet(int index) {
             if (index < 1) throw new ArgumentOutOfRangeException(nameof(index));
-            var list = GetSheetNames();
-            if (index > list.Count) throw new ArgumentOutOfRangeException(nameof(index));
-
             var wb = WorkbookRoot;
-            var sheet = wb.Sheets!.Elements<Sheet>().ElementAt(index - 1);
+            Sheet? sheet = null;
+            int currentIndex = 0;
+            foreach (var candidate in wb.Sheets!.Elements<Sheet>()) {
+                currentIndex++;
+                if (currentIndex == index) {
+                    sheet = candidate;
+                    break;
+                }
+            }
+
+            if (sheet is null) throw new ArgumentOutOfRangeException(nameof(index));
             var wsPart = (WorksheetPart)WorkbookPartRoot.GetPartById(sheet.Id!);
             return new ExcelSheetReader(sheet.Name!, wsPart, _sst, _styles, _opt, _owns);
         }
@@ -23,7 +30,16 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// The number of worksheets in the workbook.
         /// </summary>
-        public int SheetCount => WorkbookRoot.Sheets!.Elements<Sheet>().Count();
+        public int SheetCount {
+            get {
+                int count = 0;
+                foreach (var _ in WorkbookRoot.Sheets!.Elements<Sheet>()) {
+                    count++;
+                }
+
+                return count;
+            }
+        }
     }
 }
 
