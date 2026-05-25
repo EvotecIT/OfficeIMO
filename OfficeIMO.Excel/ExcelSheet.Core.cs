@@ -36,6 +36,7 @@ namespace OfficeIMO.Excel {
                 return _worksheetPart;
             }
         }
+        internal WorksheetPart DeferredMetadataWorksheetPart => _worksheetPart;
         private readonly SpreadsheetDocument _spreadSheetDocument;
         private readonly ExcelDocument _excelDocument;
         private bool _isBatchOperation = false;
@@ -691,6 +692,21 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        private void WriteLockWorksheetPreparationOnly(Action action) {
+            Locking.ExecuteWrite(_excelDocument.EnsureLock(), () => {
+                action();
+                MarkRequiresWorksheetPreparation();
+            });
+        }
+
+        private void WriteLockWorksheetPreparationOnly(Func<bool> action) {
+            Locking.ExecuteWrite(_excelDocument.EnsureLock(), () => {
+                if (action()) {
+                    MarkRequiresWorksheetPreparation();
+                }
+            });
+        }
+
         private void WriteLockConditional(Action action) {
             // If we're already in a batch operation or in a NoLock scope,
             // just execute the action directly
@@ -803,6 +819,15 @@ namespace OfficeIMO.Excel {
 
             _requiresSavePreparation = true;
             _excelDocument.MarkRequiresSavePreflight();
+        }
+
+        internal void MarkRequiresWorksheetPreparation() {
+            if (_requiresSavePreparation) {
+                return;
+            }
+
+            _requiresSavePreparation = true;
+            _excelDocument.MarkPackageDirty();
         }
 
         internal void DeferTableDefinitionPartSave(TableDefinitionPart tableDefinitionPart) {

@@ -1,6 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
-using System.Collections.Concurrent;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -9,16 +8,19 @@ namespace OfficeIMO.Excel {
     /// NumberingFormats and CellFormats once in the apply stage.
     /// </summary>
     internal sealed class StylePlanner {
-        private readonly ConcurrentDictionary<string, byte> _formats = new(StringComparer.Ordinal);
+        private readonly HashSet<string> _formats = new(StringComparer.Ordinal);
+        private readonly object _formatsLock = new();
         private Dictionary<string, uint>? _cellFormatIndexByFormat;
 
         public void NoteNumberFormat(string? format) {
             if (string.IsNullOrWhiteSpace(format)) return;
-            _formats.TryAdd(format!, 0);
+            lock (_formatsLock) {
+                _formats.Add(format!);
+            }
         }
 
         public void ApplyTo(ExcelDocument doc) {
-            if (_formats.IsEmpty) {
+            if (_formats.Count == 0) {
                 _cellFormatIndexByFormat = new Dictionary<string, uint>(0, StringComparer.Ordinal);
                 return;
             }
@@ -54,28 +56,32 @@ namespace OfficeIMO.Excel {
             // Build or reuse NumberingFormats
             var numberFormats = stylesheet.NumberingFormats.Elements<NumberingFormat>().ToList();
             uint nextId = numberFormats.Any() ? numberFormats.Max(n => n.NumberFormatId!.Value) + 1U : 164U;
+            uint numberFormatCount = stylesheet.NumberingFormats.Count?.Value ?? (uint)numberFormats.Count;
             var numFmtIdByFormat = new Dictionary<string, uint>(StringComparer.Ordinal);
+            var existingNumberFormatIdByFormat = new Dictionary<string, uint>(numberFormats.Count, StringComparer.Ordinal);
+            foreach (var numberFormat in numberFormats) {
+                if (numberFormat.FormatCode?.Value is string code && numberFormat.NumberFormatId?.Value is uint id) {
+                    existingNumberFormatIdByFormat[code] = id;
+                }
+            }
 
-            foreach (var fmt in _formats.Keys) {
-                var existing = stylesheet.NumberingFormats.Elements<NumberingFormat>()
-                    .FirstOrDefault(n => n.FormatCode != null && string.Equals(n.FormatCode.Value, fmt, StringComparison.Ordinal));
-                uint id;
-                if (existing != null) {
-                    id = existing.NumberFormatId!.Value;
-                } else {
+            foreach (var fmt in _formats) {
+                if (!existingNumberFormatIdByFormat.TryGetValue(fmt, out uint id)) {
                     id = nextId++;
                     var numberingFormat = new NumberingFormat {
                         NumberFormatId = id,
                         FormatCode = fmt
                     };
                     stylesheet.NumberingFormats.Append(numberingFormat);
-                    stylesheet.NumberingFormats.Count = (uint)stylesheet.NumberingFormats.Count();
+                    stylesheet.NumberingFormats.Count = ++numberFormatCount;
                 }
+
                 numFmtIdByFormat[fmt] = id;
             }
 
             // Create (or reuse) CellFormats that apply the numbering format
             var cellFormats = stylesheet.CellFormats.Elements<CellFormat>().ToList();
+            uint cellFormatCount = stylesheet.CellFormats.Count?.Value ?? (uint)cellFormats.Count;
             var cellFormatIndexByFormat = new Dictionary<string, uint>(StringComparer.Ordinal);
             foreach (var kvp in numFmtIdByFormat) {
                 string fmt = kvp.Key;
@@ -92,7 +98,7 @@ namespace OfficeIMO.Excel {
                         ApplyNumberFormat = true
                     };
                     stylesheet.CellFormats.Append(cf);
-                    stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Count();
+                    stylesheet.CellFormats.Count = ++cellFormatCount;
                     idx = cellFormats.Count;
                     cellFormats.Add(cf);
                 }

@@ -502,7 +502,9 @@ namespace OfficeIMO.Excel {
                     : reusableValues ??= new object?[columnCount];
                 FillDataReaderValues(reader, values, columnCount, ref useBulkRead);
 
-                appendedRows.Add(CreateDataReaderValueRow(rowIndex++, columnReferencePrefixes, values, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct));
+                appendedRows.Add(canCancel
+                    ? CreateDataReaderValueRow(rowIndex++, columnReferencePrefixes, values, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct)
+                    : CreateDataReaderValueRow(rowIndex++, columnReferencePrefixes, values, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes));
                 dataRows++;
 
                 if (directRows != null) {
@@ -549,7 +551,7 @@ namespace OfficeIMO.Excel {
                 row.Append(new Cell {
                     CellReference = columnReferencePrefixes[offset] + rowReference,
                     CellValue = cellValue,
-                    DataType = new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType)
+                    DataType = GetCachedDataTableCellType(cellType)
                 });
             }
 
@@ -568,6 +570,7 @@ namespace OfficeIMO.Excel {
             bool canCancel,
             CancellationToken ct) {
             string rowReference = InvariantNumberText.Get(rowIndex);
+            bool hasObjectValueStyles = objectDateTimeStyleIndex.HasValue || objectTimeSpanStyleIndex.HasValue;
             var row = new Row { RowIndex = (uint)rowIndex };
             for (int offset = 0; offset < values.Count; offset++) {
                 if (canCancel) {
@@ -579,12 +582,45 @@ namespace OfficeIMO.Excel {
                 var cell = new Cell {
                     CellReference = columnReferencePrefixes[offset] + rowReference,
                     CellValue = cellValue,
-                    DataType = new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType)
+                    DataType = GetCachedDataTableCellType(cellType)
                 };
 
                 if (offset < styleIndexes.Count && styleIndexes[offset] is uint styleIndex) {
                     cell.StyleIndex = styleIndex;
-                } else if (TryGetObjectDataTableValueStyleIndex(value, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, out uint objectValueStyleIndex)) {
+                } else if (hasObjectValueStyles && TryGetObjectDataTableValueStyleIndex(value, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, out uint objectValueStyleIndex)) {
+                    cell.StyleIndex = objectValueStyleIndex;
+                }
+
+                row.Append(cell);
+            }
+
+            return row;
+        }
+
+        private Row CreateDataReaderValueRow(
+            int rowIndex,
+            string[] columnReferencePrefixes,
+            IReadOnlyList<object?> values,
+            IReadOnlyList<uint?> styleIndexes,
+            uint? objectDateTimeStyleIndex,
+            uint? objectTimeSpanStyleIndex,
+            bool useDirectStringCells,
+            ref Dictionary<string, int>? sharedStringIndexes) {
+            string rowReference = InvariantNumberText.Get(rowIndex);
+            bool hasObjectValueStyles = objectDateTimeStyleIndex.HasValue || objectTimeSpanStyleIndex.HasValue;
+            var row = new Row { RowIndex = (uint)rowIndex };
+            for (int offset = 0; offset < values.Count; offset++) {
+                object? value = values[offset];
+                var (cellValue, cellType) = CoerceDataTableAppendValue(value, useDirectStringCells, ref sharedStringIndexes);
+                var cell = new Cell {
+                    CellReference = columnReferencePrefixes[offset] + rowReference,
+                    CellValue = cellValue,
+                    DataType = GetCachedDataTableCellType(cellType)
+                };
+
+                if (offset < styleIndexes.Count && styleIndexes[offset] is uint styleIndex) {
+                    cell.StyleIndex = styleIndex;
+                } else if (hasObjectValueStyles && TryGetObjectDataTableValueStyleIndex(value, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, out uint objectValueStyleIndex)) {
                     cell.StyleIndex = objectValueStyleIndex;
                 }
 

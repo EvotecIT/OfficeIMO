@@ -201,10 +201,11 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("@", fieldNumberFormat.FormatCode!.Value);
 
                 var regionItems = regionField.Items!.Elements<Item>().ToList();
-                Assert.Equal(3, regionItems.Count);
+                Assert.Equal(4, regionItems.Count);
                 Assert.False(regionItems[0].Hidden?.Value ?? false);
                 Assert.True(regionItems[1].Hidden!.Value);
                 Assert.False(regionItems[2].Hidden?.Value ?? false);
+                Assert.Equal(ItemValues.Default, regionItems[3].ItemType!.Value);
                 Assert.False(regionField.ShowAll!.Value);
 
                 var pageField = pivotDefinition.PageFields!.Elements<PageField>().Single();
@@ -439,10 +440,11 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Region subtotal", regionField.SubtotalCaption!.Value);
 
                 var regionItems = regionField.Items!.Elements<Item>().ToList();
-                Assert.Equal(3, regionItems.Count);
+                Assert.Equal(4, regionItems.Count);
                 Assert.False(regionItems[0].Hidden?.Value ?? false);
                 Assert.True(regionItems[1].Hidden!.Value);
                 Assert.False(regionItems[2].Hidden?.Value ?? false);
+                Assert.Equal(ItemValues.Default, regionItems[3].ItemType!.Value);
 
                 var pageField = pivotDefinition.PageFields!.Elements<PageField>().Single();
                 Assert.Equal(1, pageField.Field!.Value);

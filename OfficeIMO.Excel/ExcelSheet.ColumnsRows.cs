@@ -748,6 +748,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (!columns.Elements<Column>().Any()) {
+                bool appendedColumn = false;
                 for (int i = 0; i < columnIndexes.Count; i++) {
                     double width = NormalizeColumnWidth(widths[i]);
                     if (width <= 0) {
@@ -761,9 +762,10 @@ namespace OfficeIMO.Excel {
                         CustomWidth = true,
                         BestFit = true
                     });
+                    appendedColumn = true;
                 }
 
-                if (columns.Elements<Column>().Any()) {
+                if (appendedColumn) {
                     ReorderColumns(columns);
                 } else {
                     columns.Remove();
@@ -781,6 +783,21 @@ namespace OfficeIMO.Excel {
             } else {
                 columns.Remove();
             }
+        }
+
+        internal void ApplyAutoFitColumnWidthsForDeferredMaterialization(double[] widths) {
+            if (widths == null || widths.Length == 0) {
+                return;
+            }
+
+            int[] columnIndexes = new int[widths.Length];
+            for (int i = 0; i < columnIndexes.Length; i++) {
+                columnIndexes[i] = i + 1;
+            }
+
+            SetColumnWidthsCore(columnIndexes, widths);
+            MarkRequiresSavePreparation();
+            _hasWorksheetMutations = false;
         }
 
         private static void SetColumnWidthCore(Columns columns, int columnIndex, double width) {
@@ -1443,20 +1460,21 @@ namespace OfficeIMO.Excel {
         /// <param name="topRows">Number of rows at the top to freeze.</param>
         /// <param name="leftCols">Number of columns on the left to freeze.</param>
         public void Freeze(int topRows = 0, int leftCols = 0) {
-            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
-                _excelDocument.MaterializeDeferredDataSetImport();
+            if (_excelDocument.TryApplyDirectWorksheetFreezeMetadata(this, topRows, leftCols)) {
+                return;
             }
 
-            WriteLock(() => {
+            using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
+            WriteLockWorksheetPreparationOnly(() => {
                 Worksheet worksheet = WorksheetRoot;
                 SheetViews? sheetViews = worksheet.GetFirstChild<SheetViews>();
 
                 if (topRows == 0 && leftCols == 0) {
                     if (sheetViews != null) {
                         worksheet.RemoveChild(sheetViews);
+                        return true;
                     }
-                    worksheet.Save();
-                    return;
+                    return false;
                 }
 
                 if (sheetViews == null) {
@@ -1537,7 +1555,7 @@ namespace OfficeIMO.Excel {
                     SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
                 });
 
-                worksheet.Save();
+                return true;
             });
         }
 

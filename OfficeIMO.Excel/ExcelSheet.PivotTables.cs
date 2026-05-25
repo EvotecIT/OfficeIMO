@@ -36,6 +36,9 @@ namespace OfficeIMO.Excel {
             [49U] = "@"
         };
 
+        private static readonly IReadOnlyDictionary<int, IReadOnlyList<int>> EmptyGeneratedPivotGroupingFieldMap =
+            new Dictionary<int, IReadOnlyList<int>>(0);
+
         /// <summary>
         /// Returns pivot tables defined on this worksheet.
         /// </summary>
@@ -260,8 +263,12 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException($"Invalid destination cell '{destinationCell}'.", nameof(destinationCell));
             }
 
-            WriteLock(() => {
-                var headers = BuildPivotHeaders(r1, c1, c2);
+            _excelDocument.TryGetDeferredDirectTabularPivotSource(this, r1, c1, r2, c2, out var deferredPivotSource);
+
+            WriteLockWorksheetPreparationOnly(() => {
+                var headers = deferredPivotSource != null
+                    ? BuildPivotHeaders(deferredPivotSource, c1, c2)
+                    : BuildPivotHeaders(r1, c1, c2);
                 if (headers.Count == 0) {
                     throw new InvalidOperationException("Pivot source range must include at least one header column.");
                 }
@@ -271,17 +278,31 @@ namespace OfficeIMO.Excel {
                 var groupingMap = BuildPivotGroupingMap(groupings, sourceHeaderIndex, headers.Count);
                 var generatedGroupingFields = BuildGeneratedPivotGroupingFields(headers, groupingMap, calculatedFieldList);
 
-                var allFields = new List<string>(headers);
-                allFields.AddRange(generatedGroupingFields.Select(field => field.FieldName));
-                allFields.AddRange(calculatedFieldList.Select(field => field.Name));
+                IReadOnlyList<string> allFields = headers;
+                var headerIndex = sourceHeaderIndex;
+                if (generatedGroupingFields.Count != 0 || calculatedFieldList.Count != 0) {
+                    var allFieldList = new List<string>(headers.Count + generatedGroupingFields.Count + calculatedFieldList.Count);
+                    for (int i = 0; i < headers.Count; i++) {
+                        allFieldList.Add(headers[i]);
+                    }
 
-                var headerIndex = BuildFieldIndex(allFields);
+                    for (int i = 0; i < generatedGroupingFields.Count; i++) {
+                        allFieldList.Add(generatedGroupingFields[i].FieldName);
+                    }
 
-                var dataFieldList = (dataFields ?? Array.Empty<ExcelPivotDataField>()).Where(df => df != null).ToList();
+                    for (int i = 0; i < calculatedFieldList.Count; i++) {
+                        allFieldList.Add(calculatedFieldList[i].Name);
+                    }
+
+                    allFields = allFieldList;
+                    headerIndex = BuildFieldIndex(allFieldList);
+                }
+
+                var dataFieldList = ToNonNullList(dataFields);
                 if (dataFieldList.Count == 0) {
                     dataFieldList.Add(new ExcelPivotDataField(headers[headers.Count - 1], DataConsolidateFunctionValues.Sum));
                 }
-                var pivotFilterList = (pivotFilters ?? Array.Empty<ExcelPivotFilter>()).Where(filter => filter != null).ToList();
+                var pivotFilterList = ToNonNullList(pivotFilters);
                 var generatedFieldsBySource = BuildGeneratedPivotGroupingFieldMap(generatedGroupingFields);
 
                 var rowFieldIndices = ResolveFieldIndices(rowFields, headerIndex, nameof(rowFields));
@@ -301,11 +322,13 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                (rowFieldIndices, columnFieldIndices, pageFieldIndices) = ExpandGeneratedGroupingFieldIndices(
-                    rowFieldIndices,
-                    columnFieldIndices,
-                    pageFieldIndices,
-                    generatedFieldsBySource);
+                if (generatedFieldsBySource.Count != 0) {
+                    (rowFieldIndices, columnFieldIndices, pageFieldIndices) = ExpandGeneratedGroupingFieldIndices(
+                        rowFieldIndices,
+                        columnFieldIndices,
+                        pageFieldIndices,
+                        generatedFieldsBySource);
+                }
 
                 var dataFieldIndices = new HashSet<int>();
                 foreach (var df in dataFieldList) {
@@ -313,22 +336,35 @@ namespace OfficeIMO.Excel {
                     dataFieldIndices.Add(idx);
                 }
 
+                var fieldOptionMap = BuildPivotFieldOptionMap(fieldOptions, headerIndex);
+                bool[] sourceSharedItemRequirements = BuildPivotSharedItemRequirements(
+                    headers.Count,
+                    rowFieldIndices,
+                    columnFieldIndices,
+                    pageFieldIndices,
+                    groupingMap,
+                    pivotFilterList,
+                    headerIndex,
+                    fieldOptionMap);
+
                 var workbookPart = WorkbookPartRoot;
                 var workbook = workbookPart.Workbook ??= new Workbook();
-                var fieldValueMap = BuildPivotFieldValueMap(headers.Count, r1 + 1, r2, c1, groupingMap);
+                bool canUseDeferredPivotValues = deferredPivotSource != null
+                    && groupingMap.Count == 0
+                    && generatedGroupingFields.Count == 0;
+                var fieldValueMap = canUseDeferredPivotValues
+                    ? BuildPivotFieldValueMap(deferredPivotSource!, headers.Count, r1 + 1, r2, c1)
+                    : BuildPivotFieldValueMap(headers.Count, r1 + 1, r2, c1, groupingMap);
                 var generatedFieldValueMap = BuildGeneratedPivotFieldValueMap(generatedGroupingFields, r1 + 1, r2, c1);
-                var allFieldValueMap = fieldValueMap
-                    .Select(values => values.TextValues)
-                    .Cast<IReadOnlyList<string>>()
-                    .ToList();
-                allFieldValueMap.AddRange(generatedFieldValueMap.Select(values => values.TextValues).Cast<IReadOnlyList<string>>());
-                for (int i = 0; i < calculatedFieldList.Count; i++) {
-                    allFieldValueMap.Add(Array.Empty<string>());
+                if (deferredPivotSource != null) {
+                    _excelDocument.MaterializeDeferredDataSetImport();
                 }
-                var fieldOptionMap = BuildPivotFieldOptionMap(fieldOptions, headerIndex);
+
+                var allFieldValueMap = BuildPivotTextValueMap(fieldValueMap, generatedFieldValueMap, calculatedFieldList.Count, allFields.Count);
                 ExpandGeneratedGroupingFieldOptions(fieldOptionMap, generatedFieldsBySource, allFields, allFieldValueMap);
                 uint cacheId = NextPivotCacheId(workbookPart);
 
+                int sourceRecordCount = Math.Max(0, r2 - r1);
                 var cacheDefPart = workbookPart.AddNewPart<PivotTableCacheDefinitionPart>();
                 var cacheDef = new PivotCacheDefinition {
                     CacheSource = new CacheSource {
@@ -339,16 +375,15 @@ namespace OfficeIMO.Excel {
                         }
                     },
                     CacheFields = new CacheFields { Count = (uint)allFields.Count },
-                    RecordCount = 0,
-                    RefreshOnLoad = true,
-                    SaveData = false
+                    RecordCount = (uint)sourceRecordCount,
+                    SaveData = true
                 };
 
                 for (int i = 0; i < headers.Count; i++) {
                     string header = headers[i];
                     var cacheField = new CacheField { Name = header };
                     groupingMap.TryGetValue(i, out var grouping);
-                    cacheField.SharedItems = BuildSharedItems(fieldValueMap[i], grouping);
+                    cacheField.SharedItems = BuildSharedItems(fieldValueMap[i], grouping, sourceSharedItemRequirements[i]);
                     if (grouping != null) {
                         cacheField.FieldGroup = CreatePivotFieldGroup(grouping, fieldValueMap[i]);
                     }
@@ -384,9 +419,30 @@ namespace OfficeIMO.Excel {
 
                 cacheDefPart.PivotCacheDefinition = cacheDef;
                 cacheDefPart.PivotCacheDefinition.Save();
-
                 var cacheRecordsPart = cacheDefPart.AddNewPart<PivotTableCacheRecordsPart>();
-                cacheRecordsPart.PivotCacheRecords = new PivotCacheRecords { Count = 0U };
+                cacheRecordsPart.PivotCacheRecords = canUseDeferredPivotValues
+                    ? BuildPivotCacheRecords(
+                        deferredPivotSource!,
+                        headers.Count,
+                        r1 + 1,
+                        r2,
+                        c1,
+                        fieldValueMap,
+                        sourceSharedItemRequirements,
+                        generatedGroupingFields,
+                        generatedFieldValueMap,
+                        calculatedFieldList.Count)
+                    : BuildPivotCacheRecords(
+                        headers.Count,
+                        r1 + 1,
+                        r2,
+                        c1,
+                        groupingMap,
+                        fieldValueMap,
+                        sourceSharedItemRequirements,
+                        generatedGroupingFields,
+                        generatedFieldValueMap,
+                        calculatedFieldList.Count);
                 cacheRecordsPart.PivotCacheRecords.Save();
 
                 var pivotCaches = workbook.PivotCaches ?? workbook.AppendChild(new PivotCaches());
@@ -396,25 +452,25 @@ namespace OfficeIMO.Excel {
                 });
                 // Count attribute is optional; OpenXml SDK does not expose a setter for PivotCaches.Count in all targets.
 
-                var existingNames = _worksheetPart.PivotTableParts
-                    .Select(p => p.PivotTableDefinition?.Name?.Value)
-                    .Where(n => !string.IsNullOrWhiteSpace(n))
-                    .Select(n => n!)
-                    .ToList();
-                string pivotName = EnsureUniquePivotTableName(name, existingNames);
+                string pivotName = EnsureUniquePivotTableName(name, _worksheetPart.PivotTableParts);
 
                 var pivotPart = _worksheetPart.AddNewPart<PivotTablePart>();
                 pivotPart.AddPart(cacheDefPart);
 
                 var pivotFields = new PivotFields { Count = (uint)allFields.Count };
                 for (int i = 0; i < allFields.Count; i++) {
-                    fieldOptionMap.TryGetValue(i, out var options);
+                    ExcelPivotFieldOptions? options = null;
+                    if (fieldOptionMap != null) {
+                        fieldOptionMap.TryGetValue(i, out options);
+                    }
+
                     var pivotField = new PivotField { ShowAll = options?.ShowAll ?? true };
                     if (pageFieldIndices.Contains(i)) pivotField.Axis = PivotTableAxisValues.AxisPage;
                     if (rowFieldIndices.Contains(i)) pivotField.Axis = PivotTableAxisValues.AxisRow;
                     if (columnFieldIndices.Contains(i)) pivotField.Axis = PivotTableAxisValues.AxisColumn;
                     if (dataFieldIndices.Contains(i)) pivotField.DataField = true;
-                    ApplyPivotFieldOptions(pivotField, options, workbookPart, allFieldValueMap[i]);
+                    IReadOnlyList<string> values = options != null ? allFieldValueMap[i] : Array.Empty<string>();
+                    ApplyPivotFieldOptions(pivotField, options, workbookPart, values);
                     pivotFields.Append(pivotField);
                 }
 
@@ -431,8 +487,13 @@ namespace OfficeIMO.Excel {
                 var pageFieldsElement = pageFieldIndices.Count > 0 ? new PageFields { Count = (uint)pageFieldIndices.Count } : null;
                 if (pageFieldsElement != null) {
                     foreach (int idx in pageFieldIndices) {
-                        fieldOptionMap.TryGetValue(idx, out var options);
-                        pageFieldsElement.Append(CreatePageField(idx, options, allFieldValueMap[idx]));
+                        ExcelPivotFieldOptions? options = null;
+                        if (fieldOptionMap != null) {
+                            fieldOptionMap.TryGetValue(idx, out options);
+                        }
+
+                        IReadOnlyList<string> values = options?.SelectedItem != null ? allFieldValueMap[idx] : Array.Empty<string>();
+                        pageFieldsElement.Append(CreatePageField(idx, options, values));
                     }
                 }
 
@@ -545,6 +606,23 @@ namespace OfficeIMO.Excel {
             return headers;
         }
 
+        private static List<string> BuildPivotHeaders(IExcelSheetTabularRowSource source, int startColumn, int endColumn) {
+            var headers = new List<string>();
+            var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (int col = startColumn; col <= endColumn; col++) {
+                string header = source.GetColumnName(col - 1).Trim();
+                if (string.IsNullOrWhiteSpace(header)) {
+                    header = $"Column{col}";
+                }
+
+                header = EnsureUniqueName(header, used);
+                used.Add(header);
+                headers.Add(header);
+            }
+
+            return headers;
+        }
+
         private static string EnsureUniqueName(string name, HashSet<string> used) {
             string baseName = string.IsNullOrWhiteSpace(name) ? "Column" : name.Trim();
             if (!used.Contains(baseName)) return baseName;
@@ -557,10 +635,51 @@ namespace OfficeIMO.Excel {
             return candidate;
         }
 
+        private static List<T> ToNonNullList<T>(IEnumerable<T>? items) where T : class {
+            if (items == null) {
+                return new List<T>(0);
+            }
+
+            int capacity = items is IReadOnlyCollection<T> readOnlyCollection
+                ? readOnlyCollection.Count
+                : items is ICollection<T> collection ? collection.Count : 0;
+            var list = capacity > 0 ? new List<T>(capacity) : new List<T>();
+            foreach (var item in items) {
+                if (item != null) {
+                    list.Add(item);
+                }
+            }
+
+            return list;
+        }
+
         private static string EnsureUniquePivotTableName(string? name, IEnumerable<string> existingNames) {
             string baseName = string.IsNullOrWhiteSpace(name) ? "PivotTable" : name!.Trim();
             var existing = new HashSet<string>(existingNames, StringComparer.OrdinalIgnoreCase);
             if (!existing.Contains(baseName)) return baseName;
+            int i = 2;
+            string candidate;
+            do {
+                candidate = $"{baseName}{i}";
+                i++;
+            } while (existing.Contains(candidate));
+            return candidate;
+        }
+
+        private static string EnsureUniquePivotTableName(string? name, IEnumerable<PivotTablePart> pivotTableParts) {
+            string baseName = string.IsNullOrWhiteSpace(name) ? "PivotTable" : name!.Trim();
+            HashSet<string>? existing = null;
+            foreach (var pivotPart in pivotTableParts) {
+                string? existingName = pivotPart.PivotTableDefinition?.Name?.Value;
+                if (string.IsNullOrWhiteSpace(existingName)) {
+                    continue;
+                }
+
+                existing ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                existing.Add(existingName!);
+            }
+
+            if (existing == null || !existing.Contains(baseName)) return baseName;
             int i = 2;
             string candidate;
             do {
@@ -595,6 +714,10 @@ namespace OfficeIMO.Excel {
             IReadOnlyDictionary<int, ExcelPivotGrouping> groupingMap,
             IReadOnlyList<ExcelPivotCalculatedField> calculatedFields) {
             var fields = new List<GeneratedPivotGroupingField>();
+            if (groupingMap.Count == 0) {
+                return fields;
+            }
+
             var used = new HashSet<string>(headers, StringComparer.OrdinalIgnoreCase);
             foreach (var calculatedField in calculatedFields) {
                 used.Add(calculatedField.Name);
@@ -618,7 +741,11 @@ namespace OfficeIMO.Excel {
             return fields;
         }
 
-        private static Dictionary<int, IReadOnlyList<int>> BuildGeneratedPivotGroupingFieldMap(IReadOnlyList<GeneratedPivotGroupingField> generatedFields) {
+        private static IReadOnlyDictionary<int, IReadOnlyList<int>> BuildGeneratedPivotGroupingFieldMap(IReadOnlyList<GeneratedPivotGroupingField> generatedFields) {
+            if (generatedFields.Count == 0) {
+                return EmptyGeneratedPivotGroupingFieldMap;
+            }
+
             var map = new Dictionary<int, IReadOnlyList<int>>();
             foreach (var group in generatedFields.GroupBy(field => field.SourceIndex)) {
                 map[group.Key] = group.Select(field => field.FieldIndex).ToArray();
@@ -657,25 +784,77 @@ namespace OfficeIMO.Excel {
                 ExpandGeneratedGroupingFieldIndices(pageFieldIndices, generatedFieldsBySource));
         }
 
-        private static Dictionary<int, ExcelPivotFieldOptions> BuildPivotFieldOptionMap(IEnumerable<ExcelPivotFieldOptions>? fieldOptions,
+        private static Dictionary<int, ExcelPivotFieldOptions>? BuildPivotFieldOptionMap(IEnumerable<ExcelPivotFieldOptions>? fieldOptions,
             IDictionary<string, int> headerIndex) {
-            var map = new Dictionary<int, ExcelPivotFieldOptions>();
-            if (fieldOptions == null) return map;
+            if (fieldOptions == null) return null;
 
+            Dictionary<int, ExcelPivotFieldOptions>? map = null;
             foreach (var options in fieldOptions) {
                 if (options == null || string.IsNullOrWhiteSpace(options.FieldName)) continue;
                 int idx = ResolveFieldIndex(options.FieldName, headerIndex, nameof(fieldOptions));
+                map ??= new Dictionary<int, ExcelPivotFieldOptions>();
                 map[idx] = options;
             }
 
             return map;
         }
 
+        private static bool[] BuildPivotSharedItemRequirements(
+            int sourceFieldCount,
+            IReadOnlyList<int> rowFieldIndices,
+            IReadOnlyList<int> columnFieldIndices,
+            IReadOnlyList<int> pageFieldIndices,
+            IReadOnlyDictionary<int, ExcelPivotGrouping> groupingMap,
+            IReadOnlyList<ExcelPivotFilter> pivotFilters,
+            IDictionary<string, int> headerIndex,
+            IReadOnlyDictionary<int, ExcelPivotFieldOptions>? fieldOptionMap) {
+            var requirements = new bool[sourceFieldCount];
+            MarkPivotSharedItemRequirements(requirements, rowFieldIndices);
+            MarkPivotSharedItemRequirements(requirements, columnFieldIndices);
+            MarkPivotSharedItemRequirements(requirements, pageFieldIndices);
+
+            foreach (int fieldIndex in groupingMap.Keys) {
+                MarkPivotSharedItemRequirement(requirements, fieldIndex);
+            }
+
+            foreach (var filter in pivotFilters) {
+                if (filter == null || string.IsNullOrWhiteSpace(filter.FieldName)) {
+                    continue;
+                }
+
+                MarkPivotSharedItemRequirement(requirements, ResolveFieldIndex(filter.FieldName, headerIndex, nameof(pivotFilters)));
+            }
+
+            if (fieldOptionMap != null) {
+                foreach (int fieldIndex in fieldOptionMap.Keys) {
+                    MarkPivotSharedItemRequirement(requirements, fieldIndex);
+                }
+            }
+
+            return requirements;
+        }
+
+        private static void MarkPivotSharedItemRequirements(bool[] requirements, IReadOnlyList<int> fieldIndices) {
+            for (int i = 0; i < fieldIndices.Count; i++) {
+                MarkPivotSharedItemRequirement(requirements, fieldIndices[i]);
+            }
+        }
+
+        private static void MarkPivotSharedItemRequirement(bool[] requirements, int fieldIndex) {
+            if ((uint)fieldIndex < (uint)requirements.Length) {
+                requirements[fieldIndex] = true;
+            }
+        }
+
         private static void ExpandGeneratedGroupingFieldOptions(
-            IDictionary<int, ExcelPivotFieldOptions> fieldOptionMap,
+            IDictionary<int, ExcelPivotFieldOptions>? fieldOptionMap,
             IReadOnlyDictionary<int, IReadOnlyList<int>> generatedFieldsBySource,
             IReadOnlyList<string> allFields,
             IReadOnlyList<IReadOnlyList<string>> allFieldValueMap) {
+            if (fieldOptionMap == null || generatedFieldsBySource.Count == 0) {
+                return;
+            }
+
             foreach (var pair in generatedFieldsBySource) {
                 if (!fieldOptionMap.TryGetValue(pair.Key, out var sourceOptions)) continue;
 
@@ -688,6 +867,28 @@ namespace OfficeIMO.Excel {
                         allFieldValueMap[generatedIndex]);
                 }
             }
+        }
+
+        private static IReadOnlyList<string>[] BuildPivotTextValueMap(
+            IReadOnlyList<PivotFieldValues> fieldValueMap,
+            IReadOnlyList<PivotFieldValues> generatedFieldValueMap,
+            int calculatedFieldCount,
+            int allFieldCount) {
+            var textValueMap = new IReadOnlyList<string>[allFieldCount];
+            int index = 0;
+            for (int i = 0; i < fieldValueMap.Count; i++) {
+                textValueMap[index++] = fieldValueMap[i].TextValues;
+            }
+
+            for (int i = 0; i < generatedFieldValueMap.Count; i++) {
+                textValueMap[index++] = generatedFieldValueMap[i].TextValues;
+            }
+
+            for (int i = 0; i < calculatedFieldCount; i++) {
+                textValueMap[index++] = Array.Empty<string>();
+            }
+
+            return textValueMap;
         }
 
         private static ExcelPivotFieldOptions ClonePivotFieldOptionsForGeneratedField(
@@ -743,6 +944,7 @@ namespace OfficeIMO.Excel {
                 if (idx >= sourceFieldCount) {
                     throw new ArgumentException($"Pivot grouping field '{grouping.FieldName}' must be a source field, not a calculated field.", nameof(groupings));
                 }
+
                 map[idx] = grouping;
             }
 
@@ -768,26 +970,86 @@ namespace OfficeIMO.Excel {
         }
 
         private List<PivotFieldValues> BuildPivotFieldValueMap(int fieldCount, int firstDataRow, int lastDataRow, int firstColumn,
-            IReadOnlyDictionary<int, ExcelPivotGrouping> groupingMap) {
-            var maps = new List<PivotFieldValues>(fieldCount);
+            IReadOnlyDictionary<int, ExcelPivotGrouping> groupingMap, IReadOnlyList<bool>? collectFieldValues = null) {
+            var fieldValues = new List<PivotFieldValue>[fieldCount];
+            var seenValues = new HashSet<string>[fieldCount];
+            var fieldGroupings = new ExcelPivotGrouping?[fieldCount];
+            var fieldsToCollect = new List<int>(fieldCount);
             for (int field = 0; field < fieldCount; field++) {
-                var values = new List<PivotFieldValue>();
-                var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                int column = firstColumn + field;
-                groupingMap.TryGetValue(field, out var grouping);
+                fieldValues[field] = new List<PivotFieldValue>();
+                groupingMap.TryGetValue(field, out fieldGroupings[field]);
+                bool collectValues = ShouldCollectPivotSharedItems(field, collectFieldValues);
+                if (collectValues) {
+                    seenValues[field] = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    fieldsToCollect.Add(field);
+                }
+            }
+
+            if (fieldsToCollect.Count > 0) {
                 for (int row = firstDataRow; row <= lastDataRow; row++) {
-                    var value = GetPivotFieldValue(row, column, grouping);
-                    string text = value.Text;
-                    if (seen.Add(text)) {
-                        values.Add(value);
+                    for (int i = 0; i < fieldsToCollect.Count; i++) {
+                        int field = fieldsToCollect[i];
+                        int column = firstColumn + field;
+                        var grouping = fieldGroupings[field];
+                        var value = GetPivotFieldValue(row, column, grouping);
+                        string text = value.Text;
+                        if (seenValues[field]!.Add(text)) {
+                            fieldValues[field].Add(value);
+                        }
                     }
                 }
+            }
 
-                maps.Add(new PivotFieldValues(values));
+            var maps = new List<PivotFieldValues>(fieldCount);
+            for (int field = 0; field < fieldCount; field++) {
+                maps.Add(new PivotFieldValues(fieldValues[field]));
             }
 
             return maps;
         }
+
+        private List<PivotFieldValues> BuildPivotFieldValueMap(IExcelSheetTabularRowSource source, int fieldCount, int firstDataRow, int lastDataRow, int firstColumn,
+            IReadOnlyList<bool>? collectFieldValues = null) {
+            var fieldValues = new List<PivotFieldValue>[fieldCount];
+            var seenValues = new HashSet<string>[fieldCount];
+            var stringFields = new bool[fieldCount];
+            var fieldsToCollect = new List<int>(fieldCount);
+            for (int field = 0; field < fieldCount; field++) {
+                fieldValues[field] = new List<PivotFieldValue>();
+                if (ShouldCollectPivotSharedItems(field, collectFieldValues)) {
+                    seenValues[field] = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    stringFields[field] = source.GetColumnType(firstColumn - 1 + field) == typeof(string);
+                    fieldsToCollect.Add(field);
+                }
+            }
+
+            int firstSourceRow = firstDataRow - 2;
+            int lastSourceRow = lastDataRow - 2;
+            if (fieldsToCollect.Count > 0) {
+                for (int row = firstSourceRow; row <= lastSourceRow; row++) {
+                    for (int i = 0; i < fieldsToCollect.Count; i++) {
+                        int field = fieldsToCollect[i];
+                        object? rawValue = source.GetValue(row, firstColumn - 1 + field);
+                        string text = stringFields[field] && rawValue is string stringValue
+                            ? TrimPivotFieldText(stringValue)
+                            : GetPivotFieldText(rawValue);
+                        if (seenValues[field]!.Add(text)) {
+                            fieldValues[field].Add(CreatePivotFieldTextValue(text));
+                        }
+                    }
+                }
+            }
+
+            var maps = new List<PivotFieldValues>(fieldCount);
+            for (int field = 0; field < fieldCount; field++) {
+                maps.Add(new PivotFieldValues(fieldValues[field]));
+            }
+
+            return maps;
+        }
+
+        private static bool ShouldCollectPivotSharedItems(int fieldIndex, IReadOnlyList<bool>? collectFieldValues)
+            => collectFieldValues == null || fieldIndex < 0 || fieldIndex >= collectFieldValues.Count || collectFieldValues[fieldIndex];
 
         private List<PivotFieldValues> BuildGeneratedPivotFieldValueMap(
             IReadOnlyList<GeneratedPivotGroupingField> generatedFields,
@@ -812,6 +1074,131 @@ namespace OfficeIMO.Excel {
             return maps;
         }
 
+        private PivotCacheRecords BuildPivotCacheRecords(
+            int fieldCount,
+            int firstDataRow,
+            int lastDataRow,
+            int firstColumn,
+            IReadOnlyDictionary<int, ExcelPivotGrouping> groupingMap,
+            IReadOnlyList<PivotFieldValues> fieldValueMap,
+            IReadOnlyList<bool> sharedItemFields,
+            IReadOnlyList<GeneratedPivotGroupingField> generatedFields,
+            IReadOnlyList<PivotFieldValues> generatedFieldValueMap,
+            int calculatedFieldCount) {
+            int recordCount = Math.Max(0, lastDataRow - firstDataRow + 1);
+            var records = new PivotCacheRecords { Count = (uint)recordCount };
+            var lookups = BuildPivotRecordSharedItemLookups(fieldValueMap, sharedItemFields);
+            var generatedLookups = BuildPivotRecordSharedItemLookups(generatedFieldValueMap, null);
+
+            for (int row = firstDataRow; row <= lastDataRow; row++) {
+                var record = new PivotCacheRecord();
+                for (int field = 0; field < fieldCount; field++) {
+                    groupingMap.TryGetValue(field, out var grouping);
+                    record.Append(CreatePivotCacheRecordItem(GetPivotFieldValue(row, firstColumn + field, grouping), lookups[field]));
+                }
+
+                AppendGeneratedPivotCacheRecordItems(record, generatedFields, generatedLookups, row, firstColumn);
+                AppendCalculatedPivotCacheRecordItems(record, calculatedFieldCount);
+                records.Append(record);
+            }
+
+            return records;
+        }
+
+        private PivotCacheRecords BuildPivotCacheRecords(
+            IExcelSheetTabularRowSource source,
+            int fieldCount,
+            int firstDataRow,
+            int lastDataRow,
+            int firstColumn,
+            IReadOnlyList<PivotFieldValues> fieldValueMap,
+            IReadOnlyList<bool> sharedItemFields,
+            IReadOnlyList<GeneratedPivotGroupingField> generatedFields,
+            IReadOnlyList<PivotFieldValues> generatedFieldValueMap,
+            int calculatedFieldCount) {
+            int recordCount = Math.Max(0, lastDataRow - firstDataRow + 1);
+            var records = new PivotCacheRecords { Count = (uint)recordCount };
+            var lookups = BuildPivotRecordSharedItemLookups(fieldValueMap, sharedItemFields);
+            var generatedLookups = BuildPivotRecordSharedItemLookups(generatedFieldValueMap, null);
+            int firstSourceRow = firstDataRow - 2;
+            int lastSourceRow = lastDataRow - 2;
+            int sourceColumnOffset = firstColumn - 1;
+
+            for (int row = firstSourceRow; row <= lastSourceRow; row++) {
+                var record = new PivotCacheRecord();
+                for (int field = 0; field < fieldCount; field++) {
+                    record.Append(CreatePivotCacheRecordItem(
+                        GetPivotFieldValue(source.GetValue(row, sourceColumnOffset + field)),
+                        lookups[field]));
+                }
+
+                AppendGeneratedPivotCacheRecordItems(record, generatedFields, generatedLookups, row + 2, firstColumn);
+                AppendCalculatedPivotCacheRecordItems(record, calculatedFieldCount);
+                records.Append(record);
+            }
+
+            return records;
+        }
+
+        private static Dictionary<string, uint>?[] BuildPivotRecordSharedItemLookups(
+            IReadOnlyList<PivotFieldValues> fieldValueMap,
+            IReadOnlyList<bool>? sharedItemFields) {
+            var lookups = new Dictionary<string, uint>?[fieldValueMap.Count];
+            for (int field = 0; field < fieldValueMap.Count; field++) {
+                if (sharedItemFields != null
+                    && (field < 0 || field >= sharedItemFields.Count || !sharedItemFields[field])) {
+                    continue;
+                }
+
+                var items = fieldValueMap[field].Items;
+                if (items.Count == 0) {
+                    continue;
+                }
+
+                var lookup = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
+                for (int itemIndex = 0; itemIndex < items.Count; itemIndex++) {
+                    lookup[items[itemIndex].Text] = (uint)itemIndex;
+                }
+
+                lookups[field] = lookup;
+            }
+
+            return lookups;
+        }
+
+        private void AppendGeneratedPivotCacheRecordItems(
+            PivotCacheRecord record,
+            IReadOnlyList<GeneratedPivotGroupingField> generatedFields,
+            IReadOnlyList<Dictionary<string, uint>?> generatedLookups,
+            int row,
+            int firstColumn) {
+            for (int i = 0; i < generatedFields.Count; i++) {
+                var generatedField = generatedFields[i];
+                var value = GetGeneratedPivotDateFieldValue(row, firstColumn + generatedField.SourceIndex, generatedField.GroupBy);
+                record.Append(CreatePivotCacheRecordItem(value, generatedLookups[i]));
+            }
+        }
+
+        private static void AppendCalculatedPivotCacheRecordItems(PivotCacheRecord record, int calculatedFieldCount) {
+            for (int i = 0; i < calculatedFieldCount; i++) {
+                record.Append(new MissingItem());
+            }
+        }
+
+        private static OpenXmlElement CreatePivotCacheRecordItem(PivotFieldValue value, IReadOnlyDictionary<string, uint>? sharedItems) {
+            if (sharedItems != null && sharedItems.TryGetValue(value.Text, out uint index)) {
+                return new FieldItem { Val = index };
+            }
+
+            return value.Kind switch {
+                PivotFieldValueKind.Blank => new MissingItem(),
+                PivotFieldValueKind.Boolean => new BooleanItem { Val = value.Boolean!.Value },
+                PivotFieldValueKind.Number => new NumberItem { Val = value.Number!.Value },
+                PivotFieldValueKind.Date => new DateTimeItem { Val = value.Date!.Value },
+                _ => new StringItem { Val = value.Text }
+            };
+        }
+
         private PivotFieldValue GetPivotFieldValue(int row, int column, ExcelPivotGrouping? grouping) {
             string text = TryGetCellText(row, column, out string cellText) ? cellText.Trim() : string.Empty;
             if (string.IsNullOrEmpty(text)) {
@@ -824,18 +1211,100 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            if (grouping?.GroupBy == GroupByValues.Range) {
-                var snapshot = GetCellValueSnapshot(row, column);
-                if (snapshot.Value is double number) {
-                    return PivotFieldValue.FromNumber(number);
-                }
+            var snapshot = GetCellValueSnapshot(row, column);
+            if (snapshot.Kind == ExcelCellDataKind.Boolean && snapshot.Value is bool boolean) {
+                return PivotFieldValue.FromBoolean(boolean);
+            }
 
-                if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out number)) {
-                    return PivotFieldValue.FromNumber(number);
-                }
+            if (snapshot.Value is double number) {
+                return PivotFieldValue.FromNumber(number);
+            }
+
+            if (grouping?.GroupBy == GroupByValues.Range
+                && double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out number)) {
+                return PivotFieldValue.FromNumber(number);
             }
 
             return PivotFieldValue.FromText(text);
+        }
+
+        private PivotFieldValue GetPivotFieldValue(object? value) {
+            if (value == null || value == DBNull.Value) {
+                return PivotFieldValue.Blank();
+            }
+
+            return value switch {
+                bool boolean => PivotFieldValue.FromBoolean(boolean),
+                byte number => PivotFieldValue.FromNumber(number),
+                sbyte number => PivotFieldValue.FromNumber(number),
+                short number => PivotFieldValue.FromNumber(number),
+                ushort number => PivotFieldValue.FromNumber(number),
+                int number => PivotFieldValue.FromNumber(number),
+                uint number => PivotFieldValue.FromNumber(number),
+                long number => PivotFieldValue.FromNumber(number),
+                ulong number when number <= long.MaxValue => PivotFieldValue.FromNumber(number),
+                float number => PivotFieldValue.FromNumber(number),
+                double number => PivotFieldValue.FromNumber(number),
+                decimal number => PivotFieldValue.FromNumber((double)number),
+                DateTime dateTime => PivotFieldValue.FromDate(dateTime),
+                DateTimeOffset dateTimeOffset => PivotFieldValue.FromDate(_excelDocument.DateTimeOffsetWriteStrategy(dateTimeOffset)),
+#if NET6_0_OR_GREATER
+                DateOnly dateOnly => PivotFieldValue.FromDate(dateOnly.ToDateTime(TimeOnly.MinValue)),
+#endif
+                string text => CreatePivotFieldTextValue(TrimPivotFieldText(text)),
+                _ => PivotFieldValue.FromText(FormatPivotFieldText(value, _excelDocument.DateTimeOffsetWriteStrategy))
+            };
+        }
+
+        private string GetPivotFieldText(object? value) {
+            if (value == null || value == DBNull.Value) {
+                return string.Empty;
+            }
+
+            return FormatPivotFieldText(value, _excelDocument.DateTimeOffsetWriteStrategy);
+        }
+
+        private static PivotFieldValue CreatePivotFieldTextValue(string text)
+            => text.Length == 0 ? PivotFieldValue.Blank() : PivotFieldValue.FromText(text);
+
+        private static string FormatPivotFieldText(object value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy) {
+            return value switch {
+                string text => TrimPivotFieldText(text),
+                bool boolean => boolean ? "1" : "0",
+                DateTime dateTime => dateTime.ToOADate().ToString(CultureInfo.InvariantCulture),
+                DateTimeOffset dateTimeOffset => dateTimeOffsetWriteStrategy(dateTimeOffset).ToOADate().ToString(CultureInfo.InvariantCulture),
+#if NET6_0_OR_GREATER
+                DateOnly dateOnly => dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate().ToString(CultureInfo.InvariantCulture),
+#endif
+                double number => FormatPivotDoubleText(number),
+                float number => FormatPivotDoubleText(number),
+                decimal number => number.ToString(CultureInfo.InvariantCulture),
+                IFormattable formattable => TrimPivotFieldText(formattable.ToString(null, CultureInfo.InvariantCulture)),
+                _ => TrimPivotFieldText(value.ToString())
+            };
+        }
+
+        private static string TrimPivotFieldText(string? text) {
+            if (string.IsNullOrEmpty(text)) {
+                return string.Empty;
+            }
+
+            string normalized = text!;
+            int last = normalized.Length - 1;
+            return char.IsWhiteSpace(normalized[0]) || char.IsWhiteSpace(normalized[last])
+                ? normalized.Trim()
+                : normalized;
+        }
+
+        private static string FormatPivotDoubleText(double value) {
+            if (value >= int.MinValue && value <= int.MaxValue) {
+                int integer = (int)value;
+                if (value == integer) {
+                    return InvariantNumberText.Get(integer);
+                }
+            }
+
+            return value.ToString(CultureInfo.InvariantCulture);
         }
 
         private PivotFieldValue GetGeneratedPivotDateFieldValue(int row, int column, GroupByValues groupBy) {
@@ -891,43 +1360,99 @@ namespace OfficeIMO.Excel {
             return groupBy.ToString();
         }
 
-        private static SharedItems BuildSharedItems(PivotFieldValues values, ExcelPivotGrouping? grouping) {
-            bool hasBlank = values.Items.Any(value => value.Kind == PivotFieldValueKind.Blank);
-            bool hasDate = values.Items.Any(value => value.Kind == PivotFieldValueKind.Date);
-            bool hasNumber = values.Items.Any(value => value.Kind == PivotFieldValueKind.Number);
-            bool hasString = values.Items.Any(value => value.Kind == PivotFieldValueKind.Text);
+        private static SharedItems BuildSharedItems(PivotFieldValues values, ExcelPivotGrouping? grouping, bool appendItems = true) {
+            bool hasBlank = false;
+            bool hasDate = false;
+            bool hasNumber = false;
+            bool hasString = false;
+            bool containsInteger = true;
+            double minNumber = 0D;
+            double maxNumber = 0D;
+            DateTime minDate = default;
+            DateTime maxDate = default;
+            int numberCount = 0;
+            int dateCount = 0;
+
+            foreach (var value in values.Items) {
+                switch (value.Kind) {
+                    case PivotFieldValueKind.Blank:
+                        hasBlank = true;
+                        break;
+                    case PivotFieldValueKind.Boolean:
+                        hasString = true;
+                        break;
+                    case PivotFieldValueKind.Number:
+                        hasNumber = true;
+                        if (value.Number.HasValue) {
+                            double number = value.Number.Value;
+                            if (numberCount == 0) {
+                                minNumber = number;
+                                maxNumber = number;
+                            } else {
+                                if (number < minNumber) minNumber = number;
+                                if (number > maxNumber) maxNumber = number;
+                            }
+
+                            if (Math.Abs(number - Math.Round(number)) >= 0.0000001d) {
+                                containsInteger = false;
+                            }
+
+                            numberCount++;
+                        }
+                        break;
+                    case PivotFieldValueKind.Date:
+                        hasDate = true;
+                        if (value.Date.HasValue) {
+                            DateTime date = value.Date.Value;
+                            if (dateCount == 0) {
+                                minDate = date;
+                                maxDate = date;
+                            } else {
+                                if (date < minDate) minDate = date;
+                                if (date > maxDate) maxDate = date;
+                            }
+
+                            dateCount++;
+                        }
+                        break;
+                    default:
+                        hasString = true;
+                        break;
+                }
+            }
+
             var sharedItems = new SharedItems {
-                Count = (uint)values.Items.Count,
                 ContainsString = hasString,
                 ContainsBlank = hasBlank,
                 ContainsDate = hasDate,
                 ContainsNumber = hasNumber
             };
 
-            if (hasNumber) {
-                var numericValues = values.Items.Where(value => value.Number.HasValue).Select(value => value.Number!.Value).ToList();
-                if (numericValues.Count > 0) {
-                    sharedItems.MinValue = numericValues.Min();
-                    sharedItems.MaxValue = numericValues.Max();
-                    sharedItems.ContainsInteger = numericValues.All(value => Math.Abs(value - Math.Round(value)) < 0.0000001d);
-                }
+            if (appendItems) {
+                sharedItems.Count = (uint)values.Items.Count;
             }
 
-            if (hasDate) {
-                var dateValues = values.Items.Where(value => value.Date.HasValue).Select(value => value.Date!.Value).ToList();
-                if (dateValues.Count > 0) {
-                    sharedItems.MinDate = dateValues.Min();
-                    sharedItems.MaxDate = dateValues.Max();
-                }
+            if (numberCount > 0) {
+                sharedItems.MinValue = minNumber;
+                sharedItems.MaxValue = maxNumber;
+                sharedItems.ContainsInteger = containsInteger;
             }
 
-            foreach (var value in values.Items) {
-                sharedItems.Append(value.Kind switch {
-                    PivotFieldValueKind.Blank => new MissingItem(),
-                    PivotFieldValueKind.Number => new NumberItem { Val = value.Number!.Value },
-                    PivotFieldValueKind.Date => new DateTimeItem { Val = value.Date!.Value },
-                    _ => new StringItem { Val = value.Text }
-                });
+            if (dateCount > 0) {
+                sharedItems.MinDate = minDate;
+                sharedItems.MaxDate = maxDate;
+            }
+
+            if (appendItems) {
+                foreach (var value in values.Items) {
+                    sharedItems.Append(value.Kind switch {
+                        PivotFieldValueKind.Blank => new MissingItem(),
+                        PivotFieldValueKind.Boolean => new BooleanItem { Val = value.Boolean!.Value },
+                        PivotFieldValueKind.Number => new NumberItem { Val = value.Number!.Value },
+                        PivotFieldValueKind.Date => new DateTimeItem { Val = value.Date!.Value },
+                        _ => new StringItem { Val = value.Text }
+                    });
+                }
             }
 
             return sharedItems;
@@ -961,6 +1486,7 @@ namespace OfficeIMO.Excel {
             foreach (var value in values.Items) {
                 groupItems.Append(value.Kind switch {
                     PivotFieldValueKind.Blank => new MissingItem(),
+                    PivotFieldValueKind.Boolean => new BooleanItem { Val = value.Boolean!.Value },
                     PivotFieldValueKind.Number => new NumberItem { Val = value.Number!.Value },
                     PivotFieldValueKind.Date => new DateTimeItem { Val = value.Date!.Value },
                     _ => new StringItem { Val = value.Text }
@@ -973,14 +1499,16 @@ namespace OfficeIMO.Excel {
         private enum PivotFieldValueKind {
             Blank,
             Text,
+            Boolean,
             Number,
             Date
         }
 
         private sealed class PivotFieldValue {
-            private PivotFieldValue(PivotFieldValueKind kind, string text, double? number = null, DateTime? date = null) {
+            private PivotFieldValue(PivotFieldValueKind kind, string text, bool? boolean = null, double? number = null, DateTime? date = null) {
                 Kind = kind;
                 Text = text;
+                Boolean = boolean;
                 Number = number;
                 Date = date;
             }
@@ -988,6 +1516,8 @@ namespace OfficeIMO.Excel {
             public PivotFieldValueKind Kind { get; }
 
             public string Text { get; }
+
+            public bool? Boolean { get; }
 
             public double? Number { get; }
 
@@ -997,7 +1527,9 @@ namespace OfficeIMO.Excel {
 
             public static PivotFieldValue FromText(string text) => new(PivotFieldValueKind.Text, text);
 
-            public static PivotFieldValue FromNumber(double number) => new(PivotFieldValueKind.Number, number.ToString("G17", CultureInfo.InvariantCulture), number);
+            public static PivotFieldValue FromBoolean(bool boolean) => new(PivotFieldValueKind.Boolean, boolean ? "1" : "0", boolean: boolean);
+
+            public static PivotFieldValue FromNumber(double number) => new(PivotFieldValueKind.Number, number.ToString("G17", CultureInfo.InvariantCulture), number: number);
 
             public static PivotFieldValue FromDate(DateTime date) => new(PivotFieldValueKind.Date, date.ToString("O", CultureInfo.InvariantCulture), date: date);
         }
@@ -1005,12 +1537,25 @@ namespace OfficeIMO.Excel {
         private sealed class PivotFieldValues {
             public PivotFieldValues(IReadOnlyList<PivotFieldValue> items) {
                 Items = items;
-                TextValues = items.Select(item => item.Text).ToArray();
+                TextValues = CreateTextValues(items);
             }
 
             public IReadOnlyList<PivotFieldValue> Items { get; }
 
             public IReadOnlyList<string> TextValues { get; }
+
+            private static IReadOnlyList<string> CreateTextValues(IReadOnlyList<PivotFieldValue> items) {
+                if (items.Count == 0) {
+                    return Array.Empty<string>();
+                }
+
+                var textValues = new string[items.Count];
+                for (int i = 0; i < items.Count; i++) {
+                    textValues[i] = items[i].Text;
+                }
+
+                return textValues;
+            }
         }
 
         private sealed class GeneratedPivotGroupingField {
@@ -1091,12 +1636,13 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            var items = new Items { Count = (uint)values.Count };
+            var items = new Items { Count = (uint)(values.Count + 1) };
             for (int i = 0; i < values.Count; i++) {
                 var item = new Item { Index = (uint)i };
                 if (hidden.Contains(i)) item.Hidden = true;
                 items.Append(item);
             }
+            items.Append(new Item { ItemType = ItemValues.Default });
 
             pivotField.Items = items;
             if (options.ShowAll == null) {

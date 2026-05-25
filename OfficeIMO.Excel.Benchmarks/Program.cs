@@ -365,6 +365,14 @@ static string[] FilterPackageProfileScenarios(IReadOnlyCollection<string> scenar
         "write-fluent-rowsfrom-direct",
         "append-plain-rows",
         "autofit-existing",
+        "realworld-report-all-in-one",
+        "realworld-report-core",
+        "realworld-freeze-panes",
+        "realworld-autofilter",
+        "realworld-conditional-formatting",
+        "realworld-data-validation",
+        "realworld-charts",
+        "realworld-pivot-table",
         "large-shared-strings"
     };
 

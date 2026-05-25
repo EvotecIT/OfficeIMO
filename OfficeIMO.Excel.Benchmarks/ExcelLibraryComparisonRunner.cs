@@ -17,7 +17,7 @@ using SylvanExcelDataWriter = Sylvan.Data.Excel.ExcelDataWriter;
 
 namespace OfficeIMO.Excel.Benchmarks;
 
-internal static class ExcelLibraryComparisonRunner {
+internal static partial class ExcelLibraryComparisonRunner {
     internal const int DefaultWarmupIterations = 1;
     internal const int DefaultMeasuredIterations = 3;
 
@@ -553,6 +553,8 @@ internal static class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("EPPlus", "Load existing workbook, autofit columns, save.", () => EpPlusAutoFitExisting(epPlusWorkbookBytes.Value))
         ]);
 
+        AddRealWorldScenarioGroups(scenarios, scenarioFilter, rows, warmupIterations, measuredIterations);
+
         AddScenarioGroup(scenarios, scenarioFilter, "large-shared-strings", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Write repeated and distinct text-heavy cells.", () => OfficeImoWriteSharedStrings(rowCount)),
             new LibraryComparisonCase("ClosedXML", "Write repeated and distinct text-heavy cells.", () => ClosedXmlWriteSharedStrings(rowCount)),
@@ -888,6 +890,8 @@ internal static class ExcelLibraryComparisonRunner {
             new PackageProfileCase("ClosedXML", "Load existing workbook, autofit columns, save.", () => ClosedXmlAutoFitExistingBytes(closedXmlWorkbookBytes.Value)),
             new PackageProfileCase("EPPlus", "Load existing workbook, autofit columns, save.", () => EpPlusAutoFitExistingBytes(epPlusWorkbookBytes.Value))
         ]);
+
+        AddRealWorldPackageProfileGroups(scenarios, scenarioFilter, rows, warmupIterations, measuredIterations);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "large-shared-strings", warmupIterations, measuredIterations, [
             new PackageProfileCase("OfficeIMO.Excel", "Write repeated and distinct text-heavy cells.", () => OfficeImoWriteSharedStringsBytes(rowCount)),

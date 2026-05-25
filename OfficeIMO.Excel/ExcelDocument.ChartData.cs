@@ -18,11 +18,16 @@ namespace OfficeIMO.Excel {
         }
 
         internal int ReserveChartDataStartRow(int rowsNeeded, int spacingRows = 2) {
+            ExcelSheet sheet = GetOrCreateChartDataSheet();
+            return ReserveChartDataStartRow(sheet, rowsNeeded, spacingRows);
+        }
+
+        internal int ReserveChartDataStartRow(ExcelSheet sheet, int rowsNeeded, int spacingRows = 2) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (rowsNeeded <= 0) rowsNeeded = 1;
             if (spacingRows < 0) spacingRows = 0;
 
             lock (_chartDataLock) {
-                ExcelSheet sheet = GetOrCreateChartDataSheet();
                 if (_chartDataNextRow <= 0) {
                     _chartDataNextRow = CalculateInitialChartDataRow(sheet);
                 }
@@ -47,10 +52,11 @@ namespace OfficeIMO.Excel {
 
             var created = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, ChartDataSheetName);
             using (created.BeginNoLock()) {
-                created.SetHidden(true);
+                created.SetHiddenWithoutSavingWorkbook(true);
             }
             MarkSheetCacheDirty();
             _chartDataSheet = created;
+            _chartDataNextRow = 1;
             return created;
         }
 

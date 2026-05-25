@@ -3,6 +3,8 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        private int _nextConditionalFormattingPriority;
+
         private static readonly List<string> EmptyReferenceList = new List<string>(0);
 
         /// <summary>
@@ -147,14 +149,15 @@ namespace OfficeIMO.Excel {
 
         private void AddConditionalRuleCore(string range, ConditionalFormatValues type, Action<ConditionalFormattingRule>? configure, IReadOnlyList<string> formulas, bool stopIfTrue) {
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
-            WriteLock(() => {
-                int priority = WorksheetRoot.Descendants<ConditionalFormattingRule>().Select(r => r.Priority?.Value ?? 0).DefaultIfEmpty(0).Max() + 1;
+            using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
+            WriteLockWorksheetPreparationOnly(() => {
+                Worksheet worksheet = WorksheetRoot;
                 var conditional = new ConditionalFormatting {
                     SequenceOfReferences = new ListValue<StringValue> { InnerText = range }
                 };
                 var rule = new ConditionalFormattingRule {
                     Type = type,
-                    Priority = priority,
+                    Priority = GetNextConditionalFormattingPriority(),
                     StopIfTrue = stopIfTrue
                 };
                 configure?.Invoke(rule);
@@ -163,7 +166,6 @@ namespace OfficeIMO.Excel {
                 }
                 conditional.Append(rule);
                 InsertConditionalFormatting(conditional);
-                WorksheetRoot.Save();
             });
         }
 
@@ -194,6 +196,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (changed) {
+                _nextConditionalFormattingPriority = 0;
                 WorksheetRoot.Save();
             }
         }
@@ -235,13 +238,13 @@ namespace OfficeIMO.Excel {
 
         private void InsertConditionalFormatting(ConditionalFormatting conditionalFormatting) {
             var worksheet = WorksheetRoot;
-            var tableParts = worksheet.Elements<TableParts>().FirstOrDefault();
+            var tableParts = worksheet.GetFirstChild<TableParts>();
             if (tableParts != null) {
                 worksheet.InsertBefore(conditionalFormatting, tableParts);
                 return;
             }
 
-            var autoFilter = worksheet.Elements<AutoFilter>().FirstOrDefault();
+            var autoFilter = worksheet.GetFirstChild<AutoFilter>();
             if (autoFilter != null) {
                 worksheet.InsertAfter(conditionalFormatting, autoFilter);
                 return;
@@ -253,6 +256,30 @@ namespace OfficeIMO.Excel {
             } else {
                 worksheet.Append(conditionalFormatting);
             }
+        }
+
+        private int GetNextConditionalFormattingPriority() {
+            if (_nextConditionalFormattingPriority > 0) {
+                return _nextConditionalFormattingPriority++;
+            }
+
+            int priority = GetNextConditionalFormattingPriority(WorksheetRoot);
+            _nextConditionalFormattingPriority = priority + 1;
+            return priority;
+        }
+
+        private static int GetNextConditionalFormattingPriority(Worksheet worksheet) {
+            int priority = 1;
+            foreach (var conditional in worksheet.Elements<ConditionalFormatting>()) {
+                foreach (var rule in conditional.Elements<ConditionalFormattingRule>()) {
+                    int value = (int)(rule.Priority?.Value ?? 0);
+                    if (value >= priority) {
+                        priority = value + 1;
+                    }
+                }
+            }
+
+            return priority;
         }
 
         private static ReferenceListEnumerable SplitReferenceList(string referenceList) {

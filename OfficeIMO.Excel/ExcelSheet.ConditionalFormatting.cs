@@ -16,14 +16,9 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(range));
             }
 
-            WriteLock(() => {
+            using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
+            WriteLockWorksheetPreparationOnly(() => {
                 Worksheet worksheet = WorksheetRoot;
-
-                int priority = 1;
-                var existingRules = worksheet.Descendants<ConditionalFormattingRule>();
-                if (existingRules.Any()) {
-                    priority = existingRules.Max(r => r.Priority?.Value ?? 0) + 1;
-                }
 
                 ConditionalFormatting conditionalFormatting = new ConditionalFormatting {
                     SequenceOfReferences = new ListValue<StringValue> { InnerText = range }
@@ -32,7 +27,7 @@ namespace OfficeIMO.Excel {
                 ConditionalFormattingRule rule = new ConditionalFormattingRule {
                     Type = ConditionalFormatValues.CellIs,
                     Operator = @operator,
-                    Priority = priority
+                    Priority = GetNextConditionalFormattingPriority()
                 };
 
                 rule.Append(new Formula(formula1));
@@ -41,25 +36,8 @@ namespace OfficeIMO.Excel {
                 }
 
                 conditionalFormatting.Append(rule);
+                InsertConditionalFormatting(conditionalFormatting);
 
-                // Insert ConditionalFormatting after AutoFilter but before TableParts
-                var autoFilter = worksheet.Elements<AutoFilter>().FirstOrDefault();
-                var tableParts = worksheet.Elements<TableParts>().FirstOrDefault();
-
-                if (tableParts != null) {
-                    worksheet.InsertBefore(conditionalFormatting, tableParts);
-                } else if (autoFilter != null) {
-                    worksheet.InsertAfter(conditionalFormatting, autoFilter);
-                } else {
-                    var sheetData = worksheet.GetFirstChild<SheetData>();
-                    if (sheetData != null) {
-                        worksheet.InsertAfter(conditionalFormatting, sheetData);
-                    } else {
-                        worksheet.Append(conditionalFormatting);
-                    }
-                }
-
-                worksheet.Save();
             });
         }
 
@@ -88,14 +66,9 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(range));
             }
 
-            WriteLock(() => {
+            using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
+            WriteLockWorksheetPreparationOnly(() => {
                 Worksheet worksheet = WorksheetRoot;
-
-                int priority = 1;
-                var existingRules = worksheet.Descendants<ConditionalFormattingRule>();
-                if (existingRules.Any()) {
-                    priority = existingRules.Max(r => r.Priority?.Value ?? 0) + 1;
-                }
 
                 ConditionalFormatting conditionalFormatting = new ConditionalFormatting {
                     SequenceOfReferences = new ListValue<StringValue> { InnerText = range }
@@ -103,7 +76,7 @@ namespace OfficeIMO.Excel {
 
                 ConditionalFormattingRule rule = new ConditionalFormattingRule {
                     Type = ConditionalFormatValues.ColorScale,
-                    Priority = priority
+                    Priority = GetNextConditionalFormattingPriority()
                 };
 
                 ColorScale colorScale = new ColorScale();
@@ -114,25 +87,8 @@ namespace OfficeIMO.Excel {
                 rule.Append(colorScale);
 
                 conditionalFormatting.Append(rule);
+                InsertConditionalFormatting(conditionalFormatting);
 
-                // Insert ConditionalFormatting after AutoFilter but before TableParts
-                var autoFilter = worksheet.Elements<AutoFilter>().FirstOrDefault();
-                var tableParts = worksheet.Elements<TableParts>().FirstOrDefault();
-
-                if (tableParts != null) {
-                    worksheet.InsertBefore(conditionalFormatting, tableParts);
-                } else if (autoFilter != null) {
-                    worksheet.InsertAfter(conditionalFormatting, autoFilter);
-                } else {
-                    var sheetData = worksheet.GetFirstChild<SheetData>();
-                    if (sheetData != null) {
-                        worksheet.InsertAfter(conditionalFormatting, sheetData);
-                    } else {
-                        worksheet.Append(conditionalFormatting);
-                    }
-                }
-
-                worksheet.Save();
             });
         }
 
@@ -155,14 +111,9 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(range));
             }
 
-            WriteLock(() => {
+            using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
+            WriteLockWorksheetPreparationOnly(() => {
                 Worksheet worksheet = WorksheetRoot;
-
-                int priority = 1;
-                var existingRules = worksheet.Descendants<ConditionalFormattingRule>();
-                if (existingRules.Any()) {
-                    priority = existingRules.Max(r => r.Priority?.Value ?? 0) + 1;
-                }
 
                 ConditionalFormatting conditionalFormatting = new ConditionalFormatting {
                     SequenceOfReferences = new ListValue<StringValue> { InnerText = range }
@@ -170,7 +121,7 @@ namespace OfficeIMO.Excel {
 
                 ConditionalFormattingRule rule = new ConditionalFormattingRule {
                     Type = ConditionalFormatValues.DataBar,
-                    Priority = priority
+                    Priority = GetNextConditionalFormattingPriority()
                 };
 
                 DataBar dataBar = new DataBar { ShowValue = true };
@@ -180,25 +131,8 @@ namespace OfficeIMO.Excel {
                 rule.Append(dataBar);
 
                 conditionalFormatting.Append(rule);
+                InsertConditionalFormatting(conditionalFormatting);
 
-                // Insert ConditionalFormatting after AutoFilter but before TableParts
-                var autoFilter = worksheet.Elements<AutoFilter>().FirstOrDefault();
-                var tableParts = worksheet.Elements<TableParts>().FirstOrDefault();
-
-                if (tableParts != null) {
-                    worksheet.InsertBefore(conditionalFormatting, tableParts);
-                } else if (autoFilter != null) {
-                    worksheet.InsertAfter(conditionalFormatting, autoFilter);
-                } else {
-                    var sheetData = worksheet.GetFirstChild<SheetData>();
-                    if (sheetData != null) {
-                        worksheet.InsertAfter(conditionalFormatting, sheetData);
-                    } else {
-                        worksheet.Append(conditionalFormatting);
-                    }
-                }
-
-                worksheet.Save();
             });
         }
 
@@ -221,14 +155,9 @@ namespace OfficeIMO.Excel {
         public void AddConditionalIconSet(string range, IconSetValues iconSet, bool showValue, bool reverseIconOrder, double[]? percentThresholds, double[]? numberThresholds) {
             if (string.IsNullOrEmpty(range)) throw new ArgumentNullException(nameof(range));
 
-            WriteLock(() => {
+            using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
+            WriteLockWorksheetPreparationOnly(() => {
                 Worksheet worksheet = WorksheetRoot;
-
-                int priority = 1;
-                var existingRules = worksheet.Descendants<ConditionalFormattingRule>();
-                if (existingRules.Any()) {
-                    priority = existingRules.Max(r => r.Priority?.Value ?? 0) + 1;
-                }
 
                 ConditionalFormatting conditionalFormatting = new ConditionalFormatting {
                     SequenceOfReferences = new ListValue<StringValue> { InnerText = range }
@@ -236,7 +165,7 @@ namespace OfficeIMO.Excel {
 
                 ConditionalFormattingRule rule = new ConditionalFormattingRule {
                     Type = ConditionalFormatValues.IconSet,
-                    Priority = priority
+                    Priority = GetNextConditionalFormattingPriority()
                 };
 
                 var icon = new IconSet { IconSetValue = iconSet, ShowValue = showValue, Reverse = reverseIconOrder };
@@ -270,25 +199,8 @@ namespace OfficeIMO.Excel {
                 }
                 rule.Append(icon);
                 conditionalFormatting.Append(rule);
+                InsertConditionalFormatting(conditionalFormatting);
 
-                // Insert ConditionalFormatting after AutoFilter but before TableParts
-                var autoFilter = worksheet.Elements<AutoFilter>().FirstOrDefault();
-                var tableParts = worksheet.Elements<TableParts>().FirstOrDefault();
-
-                if (tableParts != null) {
-                    worksheet.InsertBefore(conditionalFormatting, tableParts);
-                } else if (autoFilter != null) {
-                    worksheet.InsertAfter(conditionalFormatting, autoFilter);
-                } else {
-                    var sheetData = worksheet.GetFirstChild<SheetData>();
-                    if (sheetData != null) {
-                        worksheet.InsertAfter(conditionalFormatting, sheetData);
-                    } else {
-                        worksheet.Append(conditionalFormatting);
-                    }
-                }
-
-                worksheet.Save();
             });
         }
 

@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
             private const string TimeStyleAttribute = " s=\"2\"";
             private const string CellValueDateStyleAttribute = " s=\"3\"";
             private const string CellValueTimeStyleAttribute = " s=\"4\"";
-            private const int CachedRawIntegerCellLimit = 4096;
+            private const int CachedRawIntegerCellLimit = 65536;
             private const int CachedSharedStringCellLimit = 1024;
             private const int CachedCellReferencePrefixColumnLimit = 64;
             private static readonly UTF8Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
@@ -206,9 +206,22 @@ namespace OfficeIMO.Excel {
 
                 writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
                 writer.Write("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">");
+                var metadata = sheet.Metadata;
+                if (!string.IsNullOrEmpty(metadata?.SheetPropertiesXml)) {
+                    writer.Write(metadata!.SheetPropertiesXml);
+                }
+
                 writer.Write("<dimension ref=\"");
                 WriteEscaped(writer, sheet.Range.Length == 0 ? "A1" : sheet.Range);
                 writer.Write("\"/>");
+                if (!string.IsNullOrEmpty(metadata?.SheetViewsXml)) {
+                    writer.Write(metadata!.SheetViewsXml);
+                }
+
+                if (!string.IsNullOrEmpty(metadata?.SheetFormatPropertiesXml)) {
+                    writer.Write(metadata!.SheetFormatPropertiesXml);
+                }
+
                 WriteColumns(writer, sheet.ColumnWidths);
                 writer.Write("<sheetData>");
                 int columnCount = sheet.Table.ColumnCount;
@@ -464,6 +477,26 @@ namespace OfficeIMO.Excel {
                 }
 
                 writer.Write("</sheetData>");
+                if (!string.IsNullOrEmpty(metadata?.AutoFilterXml)) {
+                    writer.Write(metadata!.AutoFilterXml);
+                }
+
+                if (metadata != null) {
+                    for (int i = 0; i < metadata.ConditionalFormattingXml.Count; i++) {
+                        writer.Write(metadata.ConditionalFormattingXml[i]);
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(metadata?.DataValidationsXml)) {
+                    writer.Write(metadata!.DataValidationsXml);
+                }
+
+                if (metadata != null) {
+                    for (int i = 0; i < metadata.PostDataValidationXml.Count; i++) {
+                        writer.Write(metadata.PostDataValidationXml[i]);
+                    }
+                }
+
                 if (sheet.HasTable) {
                     writer.Write("<tableParts count=\"1\"><tablePart r:id=\"rId1\"/></tableParts>");
                 }
