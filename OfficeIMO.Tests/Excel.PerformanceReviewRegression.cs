@@ -4255,6 +4255,88 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_InsertObjects_PivotTableDeferredSharedItemsPreserveNativeTypes() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("Gamma", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddPivotTable(
+                    sourceRange: "A1:C4",
+                    destinationCell: "E2",
+                    name: "ScorePivot",
+                    rowFields: new[] { "Score" },
+                    dataFields: new[] { new ExcelPivotDataField("Name", DataConsolidateFunctionValues.Count, "Name Count") });
+
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var pivotPart = Assert.Single(spreadsheet.WorkbookPart!.WorksheetParts.First().PivotTableParts);
+            var cacheFields = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!.CacheFields!.Elements<CacheField>().ToList();
+            var scoreSharedItems = cacheFields[1].SharedItems!;
+            Assert.True(scoreSharedItems.ContainsNumber!.Value);
+            Assert.Equal(new[] { 10D, 20D, 30D }, scoreSharedItems.Elements<NumberItem>().Select(item => item.Val!.Value).ToArray());
+            Assert.Empty(scoreSharedItems.Elements<StringItem>());
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_PivotTableDeferredDateHierarchyMaterializesBeforeGrouping() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("Gamma", 30, new DateTime(2026, 6, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddPivotTable(
+                    sourceRange: "A1:C4",
+                    destinationCell: "E2",
+                    name: "CreatedPivot",
+                    rowFields: new[] { "Created" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") },
+                    groupings: new[] { ExcelPivotGrouping.DateHierarchy("Created", GroupByValues.Years, GroupByValues.Months) });
+
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("30", cells["B4"].CellValue!.Text);
+
+            var pivotPart = Assert.Single(worksheetPart.PivotTableParts);
+            var cacheFields = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!.CacheFields!.Elements<CacheField>().ToList();
+            Assert.Equal("Created Years", cacheFields[3].Name!.Value);
+            Assert.Equal("Created Months", cacheFields[4].Name!.Value);
+            Assert.Contains(cacheFields[3].FieldGroup!.GetFirstChild<GroupItems>()!.Elements<StringItem>(), item => item.Val!.Value == "2026");
+            Assert.Contains(cacheFields[4].FieldGroup!.GetFirstChild<GroupItems>()!.Elements<StringItem>(), item => item.Val!.Value == "May");
+            Assert.Contains(cacheFields[4].FieldGroup!.GetFirstChild<GroupItems>()!.Elements<StringItem>(), item => item.Val!.Value == "June");
+            Assert.Contains(cacheFields[3].SharedItems!.Elements<StringItem>(), item => item.Val!.Value == "2026");
+            Assert.Contains(cacheFields[4].SharedItems!.Elements<StringItem>(), item => item.Val!.Value == "May");
+            Assert.Contains(cacheFields[4].SharedItems!.Elements<StringItem>(), item => item.Val!.Value == "June");
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
         public void PerformanceReview_InsertObjects_PivotTableSkipsUnusedSharedItems() {
             using var memory = new MemoryStream();
             var rows = Enumerable.Range(1, 50)

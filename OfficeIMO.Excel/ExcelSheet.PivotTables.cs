@@ -352,11 +352,15 @@ namespace OfficeIMO.Excel {
                 bool canUseDeferredPivotValues = deferredPivotSource != null
                     && groupingMap.Count == 0
                     && generatedGroupingFields.Count == 0;
+                if (deferredPivotSource != null && !canUseDeferredPivotValues) {
+                    _excelDocument.MaterializeDeferredDataSetImport();
+                }
+
                 var fieldValueMap = canUseDeferredPivotValues
                     ? BuildPivotFieldValueMap(deferredPivotSource!, headers.Count, r1 + 1, r2, c1)
                     : BuildPivotFieldValueMap(headers.Count, r1 + 1, r2, c1, groupingMap);
                 var generatedFieldValueMap = BuildGeneratedPivotFieldValueMap(generatedGroupingFields, r1 + 1, r2, c1);
-                if (deferredPivotSource != null) {
+                if (deferredPivotSource != null && canUseDeferredPivotValues) {
                     _excelDocument.MaterializeDeferredDataSetImport();
                 }
 
@@ -1012,13 +1016,11 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<bool>? collectFieldValues = null) {
             var fieldValues = new List<PivotFieldValue>[fieldCount];
             var seenValues = new HashSet<string>[fieldCount];
-            var stringFields = new bool[fieldCount];
             var fieldsToCollect = new List<int>(fieldCount);
             for (int field = 0; field < fieldCount; field++) {
                 fieldValues[field] = new List<PivotFieldValue>();
                 if (ShouldCollectPivotSharedItems(field, collectFieldValues)) {
                     seenValues[field] = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                    stringFields[field] = source.GetColumnType(firstColumn - 1 + field) == typeof(string);
                     fieldsToCollect.Add(field);
                 }
             }
@@ -1030,11 +1032,9 @@ namespace OfficeIMO.Excel {
                     for (int i = 0; i < fieldsToCollect.Count; i++) {
                         int field = fieldsToCollect[i];
                         object? rawValue = source.GetValue(row, firstColumn - 1 + field);
-                        string text = stringFields[field] && rawValue is string stringValue
-                            ? TrimPivotFieldText(stringValue)
-                            : GetPivotFieldText(rawValue);
-                        if (seenValues[field]!.Add(text)) {
-                            fieldValues[field].Add(CreatePivotFieldTextValue(text));
+                        var value = GetPivotFieldValue(rawValue);
+                        if (seenValues[field]!.Add(value.Text)) {
+                            fieldValues[field].Add(value);
                         }
                     }
                 }
