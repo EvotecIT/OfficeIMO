@@ -4112,6 +4112,107 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_InsertObjects_TableAutoFilterFastPathUpdatesDeferredModel() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddTable("A1:C3", hasHeader: true, name: "FilteredReport", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: false);
+                sheet.AddAutoFilter("A1:C3");
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var tablePart = Assert.Single(worksheetPart.TableDefinitionParts);
+            var tableFilter = Assert.Single(tablePart.Table!.Elements<AutoFilter>());
+            Assert.Equal("A1:C3", tableFilter.Reference!.Value);
+            Assert.Empty(tableFilter.ChildElements);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_MaterializationRestoresCapturedSheetFormatProperties() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                var worksheet = sheet.WorksheetPart.Worksheet;
+                worksheet.InsertBefore(new SheetFormatProperties {
+                    DefaultRowHeight = 21D,
+                    DefaultColumnWidth = 14D,
+                    CustomHeight = true
+                }, worksheet.GetFirstChild<SheetData>());
+
+                sheet.CellValue(5, 1, "forces materialization");
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var sheetFormat = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.GetFirstChild<SheetFormatProperties>()!;
+            Assert.Equal(21D, sheetFormat.DefaultRowHeight!.Value);
+            Assert.Equal(14D, sheetFormat.DefaultColumnWidth!.Value);
+            Assert.True(sheetFormat.CustomHeight!.Value);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_MaterializationRestoresCapturedPrintLayoutMetadata() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.SetMargins(0.25D, 0.25D, 0.5D, 0.5D, 0.3D, 0.3D);
+                sheet.SetOrientation(ExcelPageOrientation.Landscape);
+                sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
+
+                sheet.CellValue(5, 1, "forces materialization");
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet;
+            var margins = worksheet.GetFirstChild<PageMargins>()!;
+            var setup = worksheet.GetFirstChild<PageSetup>()!;
+            Assert.Equal(0.25D, margins.Left!.Value);
+            Assert.Equal(0.5D, margins.Top!.Value);
+            Assert.Equal(OrientationValues.Landscape, setup.Orientation!.Value);
+            Assert.Equal(1U, setup.FitToWidth!.Value);
+            Assert.Equal(0U, setup.FitToHeight!.Value);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
         public void PerformanceReview_InsertObjects_PivotTableAfterDeferredImportPersistsSourceAndCacheItems() {
             using var memory = new MemoryStream();
             var rows = new[] {

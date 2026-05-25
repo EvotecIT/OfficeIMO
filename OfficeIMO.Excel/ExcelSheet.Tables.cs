@@ -275,6 +275,7 @@ namespace OfficeIMO.Excel {
                             && tableAutoFilter != null
                             && tableAutoFilter.Reference?.Value == range
                             && !tableAutoFilter.HasChildren) {
+                            _excelDocument.TryEnableDirectTableAutoFilterMetadata(this, range);
                             return false;
                         }
 
@@ -295,6 +296,7 @@ namespace OfficeIMO.Excel {
                         }
 
                         table.Save();
+                        _excelDocument.TryEnableDirectTableAutoFilterMetadata(this, range);
                         return true;
                     }
                 }

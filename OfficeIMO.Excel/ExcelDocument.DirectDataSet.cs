@@ -489,6 +489,45 @@ namespace OfficeIMO.Excel {
                 metadata => (metadata ?? DirectWorksheetMetadata.Empty).WithAutoFilterXml("<autoFilter xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" ref=\"" + EscapeXmlAttribute(range) + "\"/>"));
         }
 
+        internal bool TryEnableDirectTableAutoFilterMetadata(ExcelSheet sheet, string range) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (string.IsNullOrEmpty(range)) throw new ArgumentNullException(nameof(range));
+            if (!ReferenceEquals(sheet.Document, this)) {
+                return false;
+            }
+
+            var candidate = _directDataSetSaveCandidate;
+            if (candidate == null || !candidate.IsValid || !candidate.IsDeferred || candidate.Model.Sheets.Count != 1) {
+                return false;
+            }
+
+            var sheetModel = candidate.Model.Sheets[0];
+            if (!sheetModel.HasTable
+                || !sheetModel.IncludeHeaders
+                || !string.Equals(sheetModel.SheetName, sheet.Name, StringComparison.Ordinal)
+                || !string.Equals(sheetModel.Range, range, StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            if (sheetModel.IncludeAutoFilter) {
+                return true;
+            }
+
+            var model = candidate.Model.WithTableAutoFilter(sheet.Name, includeAutoFilter: true);
+            _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(
+                candidate.Owner,
+                model,
+                candidate.InvalidateCallback,
+                candidate.IsDeferred,
+                subscribeToSourceChanges: false);
+            _directDataSetMetadataSourceSheet = sheet;
+            candidate.Dispose();
+            _packageDirty = true;
+            _unchangedPackageBytes = null;
+            _requiresSavePreflight = false;
+            return _directDataSetSaveCandidate != null && _directDataSetSaveCandidate.IsValid;
+        }
+
         internal bool TryApplyDirectWorksheetFreezeMetadata(ExcelSheet sheet, int topRows, int leftCols) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (topRows < 0) throw new ArgumentOutOfRangeException(nameof(topRows));
@@ -1158,6 +1197,10 @@ namespace OfficeIMO.Excel {
                 InsertWorksheetMetadataElement(worksheet, new SheetViews(metadata.SheetViewsXml!), typeof(SheetFormatProperties), typeof(Columns), typeof(SheetData));
             }
 
+            if (!string.IsNullOrEmpty(metadata.SheetFormatPropertiesXml)) {
+                InsertWorksheetMetadataElement(worksheet, CreateElementWithAttributes<SheetFormatProperties>(metadata.SheetFormatPropertiesXml!), typeof(Columns), typeof(SheetData));
+            }
+
             if (!string.IsNullOrEmpty(metadata.AutoFilterXml)) {
                 InsertWorksheetMetadataElement(worksheet, new AutoFilter(metadata.AutoFilterXml!), typeof(DocumentFormat.OpenXml.Spreadsheet.ConditionalFormatting), typeof(DataValidations), typeof(TableParts));
             }
@@ -1204,12 +1247,71 @@ namespace OfficeIMO.Excel {
         }
 
         private static DocumentFormat.OpenXml.OpenXmlElement? CreatePostDataValidationElement(string xml) {
-            if (xml.StartsWith("<headerFooter", StringComparison.Ordinal)) return new HeaderFooter(xml);
-            if (xml.StartsWith("<rowBreaks", StringComparison.Ordinal)) return new RowBreaks(xml);
-            if (xml.StartsWith("<colBreaks", StringComparison.Ordinal)) return new ColumnBreaks(xml);
-            if (xml.StartsWith("<cellWatches", StringComparison.Ordinal)) return new CellWatches(xml);
-            if (xml.StartsWith("<ignoredErrors", StringComparison.Ordinal)) return new DocumentFormat.OpenXml.Spreadsheet.IgnoredErrors(xml);
-            return null;
+            return GetXmlRootLocalName(xml) switch {
+                "printOptions" => CreateElementWithAttributes<PrintOptions>(xml),
+                "pageMargins" => CreateElementWithAttributes<PageMargins>(xml),
+                "pageSetup" => CreateElementWithAttributes<PageSetup>(xml),
+                "headerFooter" => new HeaderFooter(xml),
+                "rowBreaks" => new RowBreaks(xml),
+                "colBreaks" => new ColumnBreaks(xml),
+                "cellWatches" => new CellWatches(xml),
+                "ignoredErrors" => new DocumentFormat.OpenXml.Spreadsheet.IgnoredErrors(xml),
+                _ => null
+            };
+        }
+
+        private static T CreateElementWithAttributes<T>(string xml) where T : DocumentFormat.OpenXml.OpenXmlElement, new() {
+            var element = new T();
+            using var reader = System.Xml.XmlReader.Create(new StringReader(xml), new System.Xml.XmlReaderSettings {
+                DtdProcessing = System.Xml.DtdProcessing.Prohibit,
+                IgnoreComments = true,
+                IgnoreProcessingInstructions = true,
+                IgnoreWhitespace = true
+            });
+
+            if (!reader.Read() || reader.NodeType != System.Xml.XmlNodeType.Element) {
+                return element;
+            }
+
+            if (reader.HasAttributes) {
+                while (reader.MoveToNextAttribute()) {
+                    if (reader.Prefix == "xmlns" || string.Equals(reader.Name, "xmlns", StringComparison.Ordinal)) {
+                        continue;
+                    }
+
+                    element.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute(
+                        reader.Prefix,
+                        reader.LocalName,
+                        reader.NamespaceURI,
+                        reader.Value));
+                }
+            }
+
+            return element;
+        }
+
+        private static string GetXmlRootLocalName(string xml) {
+            if (string.IsNullOrWhiteSpace(xml)) {
+                return string.Empty;
+            }
+
+            int start = 0;
+            while (start < xml.Length && char.IsWhiteSpace(xml[start])) start++;
+            if (start >= xml.Length || xml[start] != '<') {
+                return string.Empty;
+            }
+
+            start++;
+            if (start < xml.Length && xml[start] == '/') start++;
+            int end = start;
+            while (end < xml.Length && !char.IsWhiteSpace(xml[end]) && xml[end] != '>' && xml[end] != '/') end++;
+            if (end <= start) {
+                return string.Empty;
+            }
+
+            string qualifiedName = xml.Substring(start, end - start);
+            int separator = qualifiedName.IndexOf(':');
+            return separator >= 0 ? qualifiedName.Substring(separator + 1) : qualifiedName;
         }
 
         private ExcelSheet? TryGetExistingSheet(string sheetName) {
@@ -1627,6 +1729,35 @@ namespace OfficeIMO.Excel {
                 }
 
                 return new DirectDataSetWorkbookModel(sheets, Results, dateTimeOffsetWriteStrategy ?? DateTimeOffsetWriteStrategy);
+            }
+
+            internal DirectDataSetWorkbookModel WithTableAutoFilter(string sheetName, bool includeAutoFilter) {
+                var sheets = new DirectDataSetSheetModel[Sheets.Count];
+                for (int i = 0; i < Sheets.Count; i++) {
+                    var sheet = Sheets[i];
+                    if (!string.Equals(sheet.SheetName, sheetName, StringComparison.Ordinal)) {
+                        sheets[i] = sheet;
+                        continue;
+                    }
+
+                    sheets[i] = new DirectDataSetSheetModel(
+                        sheet.Index,
+                        sheet.SheetName,
+                        sheet.TableName,
+                        sheet.Range,
+                        sheet.Table,
+                        sheet.TableStyle,
+                        sheet.IncludeHeaders,
+                        includeAutoFilter,
+                        sheet.HasTable,
+                        sheet.AutoFitColumns,
+                        sheet.OmitBlankCells,
+                        sheet.ColumnWidths,
+                        sheet.UseCellValueNumberFormats,
+                        sheet.Metadata);
+                }
+
+                return new DirectDataSetWorkbookModel(sheets, Results, DateTimeOffsetWriteStrategy);
             }
 
             internal DirectDataSetWorkbookModel WithAutoFitColumns(
