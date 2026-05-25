@@ -39,6 +39,8 @@ namespace OfficeIMO.Excel {
         private static readonly IReadOnlyDictionary<int, IReadOnlyList<int>> EmptyGeneratedPivotGroupingFieldMap =
             new Dictionary<int, IReadOnlyList<int>>(0);
 
+        private StylesCache? _pivotStylesCache;
+
         /// <summary>
         /// Returns pivot tables defined on this worksheet.
         /// </summary>
@@ -349,6 +351,7 @@ namespace OfficeIMO.Excel {
 
                 var workbookPart = WorkbookPartRoot;
                 var workbook = workbookPart.Workbook ??= new Workbook();
+                _pivotStylesCache = null;
                 bool canUseDeferredPivotValues = deferredPivotSource != null
                     && groupingMap.Count == 0
                     && generatedGroupingFields.Count == 0;
@@ -1217,6 +1220,10 @@ namespace OfficeIMO.Excel {
             }
 
             if (snapshot.Value is double number) {
+                if (TryGetPivotDateValueFromStyle(row, column, number, out var styledDate)) {
+                    return PivotFieldValue.FromDate(styledDate);
+                }
+
                 return PivotFieldValue.FromNumber(number);
             }
 
@@ -1226,6 +1233,27 @@ namespace OfficeIMO.Excel {
             }
 
             return PivotFieldValue.FromText(text);
+        }
+
+        private bool TryGetPivotDateValueFromStyle(int row, int column, double serial, out DateTime date) {
+            date = default;
+            var cell = TryGetExistingCell(row, column);
+            if (cell?.StyleIndex?.Value is not uint styleIndex) {
+                return false;
+            }
+
+            var styles = _pivotStylesCache ??= StylesCache.Build(_spreadSheetDocument);
+            if (!styles.HasDateStyles || !styles.IsDateLike(styleIndex)) {
+                return false;
+            }
+
+            try {
+                date = DateTime.FromOADate(serial);
+                return true;
+            } catch (ArgumentException) {
+                date = default;
+                return false;
+            }
         }
 
         private PivotFieldValue GetPivotFieldValue(object? value) {

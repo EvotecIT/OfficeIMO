@@ -3,6 +3,7 @@ using System.Globalization;
 using System.ComponentModel;
 using System.Text;
 using System.Threading;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
@@ -536,14 +537,17 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            string? sheetViewsXml = topRows == 0 && leftCols == 0
-                ? null
-                : CreateFrozenSheetViewsXml(topRows, leftCols);
-
             return TryUpdateDeferredDirectWorksheetMetadata(
                 sheet,
                 requireWorksheetTable: null,
-                metadata => (metadata ?? DirectWorksheetMetadata.Empty).WithSheetViewsXml(sheetViewsXml));
+                metadata => {
+                    var baseMetadata = metadata ?? DirectWorksheetMetadata.Empty;
+                    string? sheetViewsXml = topRows == 0 && leftCols == 0
+                        ? null
+                        : CreateFrozenSheetViewsXml(topRows, leftCols, baseMetadata.SheetViewsXml);
+                    return baseMetadata.WithSheetViewsXml(sheetViewsXml);
+                },
+                mergeCapturedMetadata: true);
         }
 
         internal bool ShouldMaterializeDeferredDirectTabularSaveCandidateForTable(ExcelSheet sheet, string range, bool includeHeaders) {
@@ -571,7 +575,8 @@ namespace OfficeIMO.Excel {
         private bool TryUpdateDeferredDirectWorksheetMetadata(
             ExcelSheet sheet,
             bool? requireWorksheetTable,
-            Func<DirectWorksheetMetadata?, DirectWorksheetMetadata?> updateMetadata) {
+            Func<DirectWorksheetMetadata?, DirectWorksheetMetadata?> updateMetadata,
+            bool mergeCapturedMetadata = false) {
             var candidate = _directDataSetSaveCandidate;
             if (candidate == null || !candidate.IsValid || !candidate.IsDeferred || candidate.Model.Sheets.Count != 1) {
                 return false;
@@ -586,7 +591,16 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            DirectWorksheetMetadata? updatedMetadata = updateMetadata(sheetModel.Metadata);
+            DirectWorksheetMetadata? baseMetadata = sheetModel.Metadata;
+            if (mergeCapturedMetadata) {
+                if (!TryCaptureDirectWorksheetMetadata(sheetModel, out DirectWorksheetMetadata? capturedMetadata, out _)) {
+                    return false;
+                }
+
+                baseMetadata = MergeDirectWorksheetMetadata(baseMetadata, capturedMetadata);
+            }
+
+            DirectWorksheetMetadata? updatedMetadata = updateMetadata(baseMetadata);
             if (ReferenceEquals(updatedMetadata, sheetModel.Metadata)) {
                 return true;
             }
@@ -606,6 +620,25 @@ namespace OfficeIMO.Excel {
             _unchangedPackageBytes = null;
             _requiresSavePreflight = false;
             return _directDataSetSaveCandidate != null && _directDataSetSaveCandidate.IsValid;
+        }
+
+        private static string CreateFrozenSheetViewsXml(int topRows, int leftCols, string? existingSheetViewsXml) {
+            if (string.IsNullOrEmpty(existingSheetViewsXml)) {
+                return CreateFrozenSheetViewsXml(topRows, leftCols);
+            }
+
+            string existingXml = existingSheetViewsXml!;
+            var sheetViews = new SheetViews(existingXml);
+            SheetView? sheetView = sheetViews.GetFirstChild<SheetView>();
+            if (sheetView == null) {
+                sheetView = new SheetView { WorkbookViewId = 0U };
+                sheetViews.Append(sheetView);
+            } else if (sheetView.WorkbookViewId == null) {
+                sheetView.WorkbookViewId = 0U;
+            }
+
+            ApplyFrozenPaneToSheetView(sheetView, topRows, leftCols);
+            return sheetViews.OuterXml;
         }
 
         private static string CreateFrozenSheetViewsXml(int topRows, int leftCols) {
@@ -648,6 +681,53 @@ namespace OfficeIMO.Excel {
 
             builder.Append("<selection activeCell=\"A1\" sqref=\"A1\"/></sheetView></sheetViews>");
             return builder.ToString();
+        }
+
+        private static void ApplyFrozenPaneToSheetView(SheetView sheetView, int topRows, int leftCols) {
+            sheetView.RemoveAllChildren<Pane>();
+            sheetView.RemoveAllChildren<Selection>();
+
+            string topLeftCell = A1.CellReference(topRows + 1, leftCols + 1);
+            var pane = new Pane {
+                State = PaneStateValues.Frozen,
+                TopLeftCell = topLeftCell
+            };
+            if (leftCols > 0) {
+                pane.HorizontalSplit = leftCols;
+            }
+
+            if (topRows > 0) {
+                pane.VerticalSplit = topRows;
+            }
+
+            if (topRows > 0 && leftCols > 0) {
+                pane.ActivePane = PaneValues.BottomRight;
+                sheetView.Append(pane);
+                AppendFrozenSelection(sheetView, PaneValues.TopRight, topLeftCell);
+                AppendFrozenSelection(sheetView, PaneValues.BottomLeft, topLeftCell);
+                AppendFrozenSelection(sheetView, PaneValues.BottomRight, topLeftCell);
+            } else if (topRows > 0) {
+                pane.ActivePane = PaneValues.BottomLeft;
+                sheetView.Append(pane);
+                AppendFrozenSelection(sheetView, PaneValues.BottomLeft, topLeftCell);
+            } else {
+                pane.ActivePane = PaneValues.TopRight;
+                sheetView.Append(pane);
+                AppendFrozenSelection(sheetView, PaneValues.TopRight, topLeftCell);
+            }
+
+            sheetView.Append(new Selection {
+                ActiveCell = "A1",
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
+            });
+        }
+
+        private static void AppendFrozenSelection(SheetView sheetView, PaneValues pane, string topLeftCell) {
+            sheetView.Append(new Selection {
+                Pane = pane,
+                ActiveCell = topLeftCell,
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = topLeftCell }
+            });
         }
 
         private static void AppendFrozenSelectionXml(StringBuilder builder, string pane, string escapedTopLeftCell) {

@@ -3948,6 +3948,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_InsertObjects_DeferredFreezePreservesExistingSheetViewAttributes() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.SetGridlinesVisible(false);
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.Freeze(topRows: 1, leftCols: 1);
+
+                document.Save(memory);
+
+                Assert.True(
+                    document.LastSaveDiagnostics.Writer == ExcelSavePackageWriter.DirectDataSetPackage
+                    || document.LastSaveDiagnostics.Writer == ExcelSavePackageWriter.SimplePackage,
+                    document.LastSaveDiagnostics.FastPackageSkipReason ?? "Expected a fast package writer.");
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var sheetView = worksheetPart.Worksheet.GetFirstChild<SheetViews>()!.GetFirstChild<SheetView>()!;
+            Assert.False(sheetView.ShowGridLines!.Value);
+            Assert.Equal(PaneValues.BottomRight, sheetView.GetFirstChild<Pane>()!.ActivePane!.Value);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
         public void PerformanceReview_InsertObjects_ChartWorkbookPreservesChartAfterDeferredMaterialization() {
             using var memory = new MemoryStream();
             var rows = new[] {
@@ -4333,6 +4368,40 @@ namespace OfficeIMO.Tests {
             Assert.Contains(cacheFields[3].SharedItems!.Elements<StringItem>(), item => item.Val!.Value == "2026");
             Assert.Contains(cacheFields[4].SharedItems!.Elements<StringItem>(), item => item.Val!.Value == "May");
             Assert.Contains(cacheFields[4].SharedItems!.Elements<StringItem>(), item => item.Val!.Value == "June");
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_WorksheetRangePivotTableDateSharedItemsPreserveDateType() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Created");
+                sheet.CellValue(1, 2, "Score");
+                sheet.CellValue(2, 1, new DateTime(2026, 5, 19));
+                sheet.CellValue(2, 2, 10);
+                sheet.CellValue(3, 1, new DateTime(2026, 5, 20));
+                sheet.CellValue(3, 2, 20);
+
+                sheet.AddPivotTable(
+                    sourceRange: "A1:B3",
+                    destinationCell: "D2",
+                    name: "CreatedPivot",
+                    rowFields: new[] { "Created" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var pivotPart = Assert.Single(spreadsheet.WorkbookPart!.WorksheetParts.First().PivotTableParts);
+            var cacheFields = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!.CacheFields!.Elements<CacheField>().ToList();
+            var createdSharedItems = cacheFields[0].SharedItems!;
+            Assert.True(createdSharedItems.ContainsDate!.Value);
+            Assert.Equal(new[] { new DateTime(2026, 5, 19), new DateTime(2026, 5, 20) }, createdSharedItems.Elements<DateTimeItem>().Select(item => item.Val!.Value).ToArray());
+            Assert.Empty(createdSharedItems.Elements<NumberItem>());
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
