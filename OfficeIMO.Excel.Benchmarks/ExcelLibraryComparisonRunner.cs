@@ -33,6 +33,7 @@ internal static class ExcelLibraryComparisonRunner {
     private static readonly string[] HelloWorldColumnNames = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
     private static readonly string[] BlogStringColumnNames = Enumerable.Range(1, BlogStringColumnCount).Select(static index => "C" + index.ToString(CultureInfo.InvariantCulture)).ToArray();
     private static readonly string[] PowerShellMixedColumnNames = ["Id", "Name", "Department", "Region", "IsEnabled", "Created", "Score", "Owner", "TicketCount", "Notes"];
+    private static readonly string[] PowerShellWideColumnNames;
     private static readonly string[] PowerShellMixedRegions = ["EU", "US", "APAC", "LATAM"];
 #if DEBUG
     private const string BuildConfiguration = "Debug";
@@ -42,6 +43,9 @@ internal static class ExcelLibraryComparisonRunner {
 
     static ExcelLibraryComparisonRunner() {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        PowerShellWideColumnNames = new[] { "Id", "Name", "Created", "Enabled" }
+            .Concat(Enumerable.Range(1, 36).Select(static index => "Metric" + index.ToString(CultureInfo.InvariantCulture)))
+            .ToArray();
     }
 
     internal static string WriteComparison(
@@ -92,7 +96,11 @@ internal static class ExcelLibraryComparisonRunner {
         var dictionaryRows = CreateDictionaryRows(rows);
         var blogStringRows = CreateBlogStringRows(rowCount);
         var powerShellMixedRows = CreatePowerShellMixedRows(rowCount);
+        var powerShellObjectMixedRows = CreatePowerShellObjectMixedRows(powerShellMixedRows);
         var powerShellMixedDataTable = CreatePowerShellMixedDataTable(powerShellMixedRows, "PowerShellMixed");
+        var powerShellWideRows = CreatePowerShellWideRows(rowCount);
+        var powerShellObjectWideRows = CreatePowerShellObjectMixedRows(powerShellWideRows);
+        var powerShellWideDataTable = CreatePowerShellWideDataTable(powerShellWideRows, "PowerShellWide");
         var salesDataSet = CreateSalesDataSet(firstTableRows, secondTableRows);
         var sparseDataSet = CreateSparseDataSet(rowCount);
         var officeImoWorkbookBytes = new Lazy<byte[]>(() => ExcelBenchmarkScenarioFactory.CreateWorkbookBytes(rows));
@@ -346,6 +354,22 @@ internal static class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("EPPlus", "Import the same mixed typed data and save.", () => EpPlusWriteDataTable(powerShellMixedDataTable)),
             new LibraryComparisonCase("MiniExcel", "Streaming mixed dictionary object export and save.", () => MiniExcelWriteDictionaryObjects(powerShellMixedRows)),
             new LibraryComparisonCase("LargeXlsx", "Streaming mixed dictionary rows and save.", () => LargeXlsxWritePowerShellMixedRows(powerShellMixedRows))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-powershell-psobject-mixed-direct", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Insert PSObject-like mixed rows through the normal worksheet API and save.", () => OfficeImoWriteInsertPowerShellObjectMixedObjects(powerShellObjectMixedRows)),
+            new LibraryComparisonCase("ClosedXML", "Import the same mixed typed data and save.", () => ClosedXmlWriteDataTable(powerShellMixedDataTable)),
+            new LibraryComparisonCase("EPPlus", "Import the same mixed typed data and save.", () => EpPlusWriteDataTable(powerShellMixedDataTable)),
+            new LibraryComparisonCase("MiniExcel", "Streaming mixed dictionary object export and save.", () => MiniExcelWriteDictionaryObjects(powerShellMixedRows)),
+            new LibraryComparisonCase("LargeXlsx", "Streaming mixed dictionary rows and save.", () => LargeXlsxWritePowerShellMixedRows(powerShellMixedRows))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "write-powershell-psobject-wide-direct", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Insert PSObject-like wide telemetry rows through the normal worksheet API and save.", () => OfficeImoWriteInsertPowerShellObjectWideObjects(powerShellObjectWideRows)),
+            new LibraryComparisonCase("ClosedXML", "Import the same wide typed data and save.", () => ClosedXmlWriteDataTable(powerShellWideDataTable)),
+            new LibraryComparisonCase("EPPlus", "Import the same wide typed data and save.", () => EpPlusWriteDataTable(powerShellWideDataTable)),
+            new LibraryComparisonCase("MiniExcel", "Streaming wide dictionary object export and save.", () => MiniExcelWriteDictionaryObjects(powerShellWideRows)),
+            new LibraryComparisonCase("LargeXlsx", "Streaming wide dictionary rows and save.", () => LargeXlsxWritePowerShellWideRows(powerShellWideRows))
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-fluent-rowsfrom-direct", warmupIterations, measuredIterations, [
@@ -603,7 +627,11 @@ internal static class ExcelLibraryComparisonRunner {
         var legacyDictionaryRows = CreateLegacyDictionaryRows(rows);
         var blogStringRows = CreateBlogStringRows(rowCount);
         var powerShellMixedRows = CreatePowerShellMixedRows(rowCount);
+        var powerShellObjectMixedRows = CreatePowerShellObjectMixedRows(powerShellMixedRows);
         var powerShellMixedDataTable = CreatePowerShellMixedDataTable(powerShellMixedRows, "PowerShellMixed");
+        var powerShellWideRows = CreatePowerShellWideRows(rowCount);
+        var powerShellObjectWideRows = CreatePowerShellObjectMixedRows(powerShellWideRows);
+        var powerShellWideDataTable = CreatePowerShellWideDataTable(powerShellWideRows, "PowerShellWide");
         var salesDataSet = CreateSalesDataSet(firstTableRows, secondTableRows);
         var sparseDataSet = CreateSparseDataSet(rowCount);
         var officeImoWorkbookBytes = new Lazy<byte[]>(() => ExcelBenchmarkScenarioFactory.CreateWorkbookBytes(rows));
@@ -821,6 +849,22 @@ internal static class ExcelLibraryComparisonRunner {
             new PackageProfileCase("EPPlus", "Import the same mixed typed data and save.", () => EpPlusWriteDataTableBytes(powerShellMixedDataTable)),
             new PackageProfileCase("MiniExcel", "Streaming mixed dictionary object export and save.", () => MiniExcelWriteDictionaryObjectsBytes(powerShellMixedRows)),
             new PackageProfileCase("LargeXlsx", "Streaming mixed dictionary rows and save.", () => LargeXlsxWritePowerShellMixedRowsBytes(powerShellMixedRows))
+        ]);
+
+        AddPackageProfileGroup(scenarios, scenarioFilter, "write-powershell-psobject-mixed-direct", warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Insert PSObject-like mixed rows through the normal worksheet API and save.", () => OfficeImoWriteInsertPowerShellObjectMixedObjectsBytes(powerShellObjectMixedRows)),
+            new PackageProfileCase("ClosedXML", "Import the same mixed typed data and save.", () => ClosedXmlWriteDataTableBytes(powerShellMixedDataTable)),
+            new PackageProfileCase("EPPlus", "Import the same mixed typed data and save.", () => EpPlusWriteDataTableBytes(powerShellMixedDataTable)),
+            new PackageProfileCase("MiniExcel", "Streaming mixed dictionary object export and save.", () => MiniExcelWriteDictionaryObjectsBytes(powerShellMixedRows)),
+            new PackageProfileCase("LargeXlsx", "Streaming mixed dictionary rows and save.", () => LargeXlsxWritePowerShellMixedRowsBytes(powerShellMixedRows))
+        ]);
+
+        AddPackageProfileGroup(scenarios, scenarioFilter, "write-powershell-psobject-wide-direct", warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Insert PSObject-like wide telemetry rows through the normal worksheet API and save.", () => OfficeImoWriteInsertPowerShellObjectWideObjectsBytes(powerShellObjectWideRows)),
+            new PackageProfileCase("ClosedXML", "Import the same wide typed data and save.", () => ClosedXmlWriteDataTableBytes(powerShellWideDataTable)),
+            new PackageProfileCase("EPPlus", "Import the same wide typed data and save.", () => EpPlusWriteDataTableBytes(powerShellWideDataTable)),
+            new PackageProfileCase("MiniExcel", "Streaming wide dictionary object export and save.", () => MiniExcelWriteDictionaryObjectsBytes(powerShellWideRows)),
+            new PackageProfileCase("LargeXlsx", "Streaming wide dictionary rows and save.", () => LargeXlsxWritePowerShellWideRowsBytes(powerShellWideRows))
         ]);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-fluent-rowsfrom-direct", warmupIterations, measuredIterations, [
@@ -1634,6 +1678,36 @@ internal static class ExcelLibraryComparisonRunner {
         return stream.ToArray();
     }
 
+    private static int OfficeImoWriteInsertPowerShellObjectMixedObjects(IReadOnlyList<System.Management.Automation.PSObject> rows)
+        => ByteCount(OfficeImoWriteInsertPowerShellObjectMixedObjectsBytes(rows));
+
+    private static byte[] OfficeImoWriteInsertPowerShellObjectMixedObjectsBytes(IReadOnlyList<System.Management.Automation.PSObject> rows) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            var sheet = document.AddWorkSheet("Data");
+            sheet.InsertObjects(rows);
+            document.Save(stream);
+            AssertOfficeImoDirectPackageWriter(document, "InsertObjects PSObject mixed comparison");
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int OfficeImoWriteInsertPowerShellObjectWideObjects(IReadOnlyList<System.Management.Automation.PSObject> rows)
+        => ByteCount(OfficeImoWriteInsertPowerShellObjectWideObjectsBytes(rows));
+
+    private static byte[] OfficeImoWriteInsertPowerShellObjectWideObjectsBytes(IReadOnlyList<System.Management.Automation.PSObject> rows) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            var sheet = document.AddWorkSheet("Data");
+            sheet.InsertObjects(rows);
+            document.Save(stream);
+            AssertOfficeImoDirectPackageWriter(document, "InsertObjects PSObject wide comparison");
+        }
+
+        return stream.ToArray();
+    }
+
     private static int OfficeImoWriteFluentRowsFrom(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows)
         => ByteCount(OfficeImoWriteFluentRowsFromBytes(rows));
 
@@ -1973,6 +2047,18 @@ internal static class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var writer = new XlsxWriter(stream)) {
             WriteLargeXlsxPowerShellMixedRows(writer, rows);
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int LargeXlsxWritePowerShellWideRows(IReadOnlyList<Dictionary<string, object?>> rows)
+        => ByteCount(LargeXlsxWritePowerShellWideRowsBytes(rows));
+
+    private static byte[] LargeXlsxWritePowerShellWideRowsBytes(IReadOnlyList<Dictionary<string, object?>> rows) {
+        using var stream = new MemoryStream();
+        using (var writer = new XlsxWriter(stream)) {
+            WriteLargeXlsxPowerShellWideRows(writer, rows);
         }
 
         return stream.ToArray();
@@ -4631,6 +4717,23 @@ internal static class ExcelLibraryComparisonRunner {
         }
     }
 
+    private static void WriteLargeXlsxPowerShellWideRows(XlsxWriter writer, IReadOnlyList<Dictionary<string, object?>> rows) {
+        writer.BeginWorksheet("Data");
+        writer.BeginRow();
+        for (int i = 0; i < PowerShellWideColumnNames.Length; i++) {
+            writer.Write(PowerShellWideColumnNames[i]);
+        }
+
+        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+            Dictionary<string, object?> row = rows[rowIndex];
+            writer.BeginRow();
+            for (int columnIndex = 0; columnIndex < PowerShellWideColumnNames.Length; columnIndex++) {
+                row.TryGetValue(PowerShellWideColumnNames[columnIndex], out object? value);
+                WriteLargeXlsxValue(writer, value);
+            }
+        }
+    }
+
     private static void WriteLargeXlsxBlogStringRows(XlsxWriter writer, IReadOnlyList<BlogStringRow> rows) {
         writer.BeginWorksheet("Data");
         writer.BeginRow();
@@ -4873,6 +4976,43 @@ internal static class ExcelLibraryComparisonRunner {
         return result;
     }
 
+    private static IReadOnlyList<Dictionary<string, object?>> CreatePowerShellWideRows(int count) {
+        var result = new List<Dictionary<string, object?>>(count);
+        var start = new DateTime(2024, 1, 1, 8, 0, 0, DateTimeKind.Unspecified);
+        for (int i = 0; i < count; i++) {
+            int id = i + 1;
+            var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) {
+                ["Id"] = id,
+                ["Name"] = "Server-" + id.ToString("D6", CultureInfo.InvariantCulture),
+                ["Created"] = start.AddDays(i % 365).AddMinutes(i % 240),
+                ["Enabled"] = id % 4 != 0
+            };
+
+            for (int metric = 1; metric <= 36; metric++) {
+                row["Metric" + metric.ToString(CultureInfo.InvariantCulture)] = Math.Round(((id * (metric + 7)) % 10000) / 10D, 3);
+            }
+
+            result.Add(row);
+        }
+
+        return result;
+    }
+
+    private static IReadOnlyList<System.Management.Automation.PSObject> CreatePowerShellObjectMixedRows(IEnumerable<Dictionary<string, object?>> rows) {
+        var result = new List<System.Management.Automation.PSObject>();
+        foreach (var row in rows) {
+            var properties = new System.Management.Automation.PSPropertyInfo[row.Count];
+            int index = 0;
+            foreach (var entry in row) {
+                properties[index++] = new System.Management.Automation.PSPropertyInfo(entry.Key, entry.Value);
+            }
+
+            result.Add(new System.Management.Automation.PSObject(properties));
+        }
+
+        return result;
+    }
+
     private static IReadOnlyList<BlogStringRow> CreateBlogStringRows(int count) {
         var result = new List<BlogStringRow>(count);
         for (int i = 0; i < count; i++) {
@@ -4899,6 +5039,30 @@ internal static class ExcelLibraryComparisonRunner {
             object?[] values = new object?[PowerShellMixedColumnNames.Length];
             for (int i = 0; i < values.Length; i++) {
                 values[i] = sourceRow.TryGetValue(PowerShellMixedColumnNames[i], out object? value)
+                    ? value
+                    : DBNull.Value;
+            }
+
+            table.Rows.Add(values);
+        }
+
+        return table;
+    }
+
+    private static DataTable CreatePowerShellWideDataTable(IEnumerable<IReadOnlyDictionary<string, object?>> rows, string tableName) {
+        var table = new DataTable(tableName) { Locale = CultureInfo.InvariantCulture };
+        table.Columns.Add("Id", typeof(int));
+        table.Columns.Add("Name", typeof(string));
+        table.Columns.Add("Created", typeof(DateTime));
+        table.Columns.Add("Enabled", typeof(bool));
+        for (int metric = 1; metric <= 36; metric++) {
+            table.Columns.Add("Metric" + metric.ToString(CultureInfo.InvariantCulture), typeof(double));
+        }
+
+        foreach (IReadOnlyDictionary<string, object?> sourceRow in rows) {
+            object?[] values = new object?[PowerShellWideColumnNames.Length];
+            for (int i = 0; i < values.Length; i++) {
+                values[i] = sourceRow.TryGetValue(PowerShellWideColumnNames[i], out object? value)
                     ? value
                     : DBNull.Value;
             }

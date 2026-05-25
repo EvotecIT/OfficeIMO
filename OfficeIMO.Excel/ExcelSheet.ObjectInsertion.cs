@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        private const int BufferedPowerShellObjectExportInitialColumnCapacity = 16;
+        private const int BufferedPowerShellObjectExportColumnLimit = 64;
         private static readonly ConcurrentDictionary<Type, SimpleObjectExportPlan> SimpleObjectExportPlans = new();
         private static readonly ConcurrentDictionary<Type, PowerShellObjectExportPlan> PowerShellObjectExportPlans = new();
 
@@ -595,6 +597,14 @@ namespace OfficeIMO.Excel {
             }
 
             Type valueType = value.GetType();
+            UpdateObjectExportColumnType(inferredColumnTypes, columnIndex, valueType);
+        }
+
+        private static void UpdateObjectExportColumnType(Type?[] inferredColumnTypes, int columnIndex, Type? valueType) {
+            if (valueType == null || inferredColumnTypes[columnIndex] == typeof(object)) {
+                return;
+            }
+
             Type? inferred = inferredColumnTypes[columnIndex];
             inferredColumnTypes[columnIndex] = inferred == null || inferred == valueType
                 ? valueType
@@ -634,6 +644,10 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            if (TryInsertPowerShellObjectRowsAsCellValues(rows, includeHeaders, startRow)) {
+                return true;
+            }
+
             var headers = new List<string>();
             var headerIndexes = new Dictionary<string, int>(StringComparer.Ordinal);
             var directRows = new object?[rows.Count][];
@@ -670,6 +684,324 @@ namespace OfficeIMO.Excel {
                 startRow,
                 includeHeaders,
                 range);
+        }
+
+        private bool TryInsertPowerShellObjectRowsAsCellValues<T>(
+            IReadOnlyList<T> rows,
+            bool includeHeaders,
+            int startRow) {
+            if (rows.Count == 0 || rows[0] == null) {
+                return false;
+            }
+
+            object first = rows[0]!;
+            Type rowType = first.GetType();
+            if (!IsPowerShellObjectExportType(rowType)) {
+                return false;
+            }
+
+            PowerShellObjectExportPlan plan = PowerShellObjectExportPlans.GetOrAdd(rowType, CreatePowerShellObjectExportPlan);
+            if (!plan.CanProject) {
+                return false;
+            }
+
+            var propertyPlanCache = new PowerShellPropertyExportPlanCache();
+            var headers = new List<string>();
+            var state = new FlatDictionaryProjectionState {
+                InferredColumnTypes = new Type?[BufferedPowerShellObjectExportInitialColumnCapacity]
+            };
+            object?[] firstRow = new object?[BufferedPowerShellObjectExportInitialColumnCapacity];
+            if (!TryProjectPowerShellObjectFirstRow(first, plan, ref propertyPlanCache, headers, state, ref firstRow)) {
+                return false;
+            }
+
+            state.NormalizeColumnTypeWidth(headers.Count);
+            if (headers.Count == 0
+                || headers.Count > BufferedPowerShellObjectExportColumnLimit
+                || includeHeaders && state.HasBlankDisplayHeader
+                || HasDuplicateObjectExportHeaders(headers)
+                || !CanRegisterDirectTabularSaveCandidate(startRow, 1, headers.Count)) {
+                return false;
+            }
+
+            int columnCount = headers.Count;
+            string[] headerArray = headers.ToArray();
+            bool rowTypeIsSealed = rowType.IsSealed;
+            var values = new object?[checked(rows.Count * columnCount)];
+            for (int c = 0; c < columnCount; c++) {
+                values[c] = c < firstRow.Length ? firstRow[c] : null;
+            }
+
+            for (int r = 1; r < rows.Count; r++) {
+                object? row = rows[r];
+                if (row == null || (!rowTypeIsSealed && row.GetType() != rowType)) {
+                    return false;
+                }
+
+                int rowOffset = r * columnCount;
+                if (!TryProjectPowerShellObjectExistingRow(
+                    row,
+                    plan,
+                    ref propertyPlanCache,
+                    headerArray,
+                    state.InferredColumnTypes,
+                    values,
+                    rowOffset,
+                    columnCount)) {
+                    return false;
+                }
+            }
+
+            string range = BuildObjectExportRange(startRow, columnCount, rows.Count, includeHeaders);
+            return TryInsertCellValuesAsDeferredDirectSave(
+                Name,
+                headers,
+                CompleteObjectExportColumnTypes(state.InferredColumnTypes),
+                values,
+                columnCount,
+                rows.Count,
+                startRow,
+                includeHeaders,
+                range);
+
+        }
+
+        private static bool TryProjectPowerShellObjectFirstRow(
+            object item,
+            PowerShellObjectExportPlan plan,
+            ref PowerShellPropertyExportPlanCache propertyPlanCache,
+            List<string> headers,
+            FlatDictionaryProjectionState state,
+            ref object?[] firstRow) {
+            if (!TryGetPowerShellObjectProperties(item, plan, out object? propertiesValue)) {
+                return false;
+            }
+
+            bool added = false;
+            if (propertiesValue is object?[] propertyArray) {
+                for (int i = 0; i < propertyArray.Length; i++) {
+                    if (!TryProjectPowerShellObjectFirstProperty(propertyArray[i], plan, ref propertyPlanCache, headers, state, ref firstRow, ref added)) {
+                        return false;
+                    }
+                }
+
+                return added;
+            }
+
+            if (propertiesValue is System.Collections.IList propertyList) {
+                for (int i = 0; i < propertyList.Count; i++) {
+                    if (!TryProjectPowerShellObjectFirstProperty(propertyList[i], plan, ref propertyPlanCache, headers, state, ref firstRow, ref added)) {
+                        return false;
+                    }
+                }
+
+                return added;
+            }
+
+            if (propertiesValue is not IEnumerable properties) {
+                return false;
+            }
+
+            foreach (object? property in properties) {
+                if (!TryProjectPowerShellObjectFirstProperty(property, plan, ref propertyPlanCache, headers, state, ref firstRow, ref added)) {
+                    return false;
+                }
+            }
+
+            return added;
+        }
+
+        private static bool TryProjectPowerShellObjectExistingRow(
+            object item,
+            PowerShellObjectExportPlan plan,
+            ref PowerShellPropertyExportPlanCache propertyPlanCache,
+            string[] headers,
+            Type?[] inferredColumnTypes,
+            object?[] values,
+            int rowOffset,
+            int columnCount) {
+            if (!TryGetPowerShellObjectProperties(item, plan, out object? propertiesValue)) {
+                return false;
+            }
+
+            int propertyIndex = 0;
+            if (propertiesValue is object?[] propertyArray) {
+                for (int i = 0; i < propertyArray.Length; i++) {
+                    if (!TryProjectPowerShellObjectExistingProperty(propertyArray[i], plan, ref propertyPlanCache, headers, inferredColumnTypes, values, rowOffset, columnCount, ref propertyIndex)) {
+                        return false;
+                    }
+                }
+
+                return propertyIndex > 0;
+            }
+
+            if (propertiesValue is System.Collections.IList propertyList) {
+                for (int i = 0; i < propertyList.Count; i++) {
+                    if (!TryProjectPowerShellObjectExistingProperty(propertyList[i], plan, ref propertyPlanCache, headers, inferredColumnTypes, values, rowOffset, columnCount, ref propertyIndex)) {
+                        return false;
+                    }
+                }
+
+                return propertyIndex > 0;
+            }
+
+            if (propertiesValue is not IEnumerable properties) {
+                return false;
+            }
+
+            foreach (object? property in properties) {
+                if (!TryProjectPowerShellObjectExistingProperty(property, plan, ref propertyPlanCache, headers, inferredColumnTypes, values, rowOffset, columnCount, ref propertyIndex)) {
+                    return false;
+                }
+            }
+
+            return propertyIndex > 0;
+        }
+
+        private static bool TryGetPowerShellObjectProperties(
+            object item,
+            PowerShellObjectExportPlan plan,
+            out object? propertiesValue) {
+            if (!plan.CanProject) {
+                propertiesValue = null;
+                return false;
+            }
+
+            try {
+                propertiesValue = plan.PropertiesGetter(item);
+                return true;
+            } catch {
+                propertiesValue = null;
+                return false;
+            }
+        }
+
+        private static bool TryProjectPowerShellObjectFirstProperty(
+            object? property,
+            PowerShellObjectExportPlan plan,
+            ref PowerShellPropertyExportPlanCache propertyPlanCache,
+            List<string> headers,
+            FlatDictionaryProjectionState state,
+            ref object?[] firstRow,
+            ref bool added) {
+            if (property == null) {
+                return true;
+            }
+
+            Type propertyType = property.GetType();
+            PowerShellPropertyExportPlan propertyPlan = propertyPlanCache.Get(plan, propertyType);
+            if (!propertyPlan.CanProject) {
+                return true;
+            }
+
+            try {
+                if (propertyPlan.IsGettableGetter != null && !propertyPlan.IsGettableGetter(property)) {
+                    return true;
+                }
+
+                string? name = propertyPlan.NameGetter(property);
+                object? value = propertyPlan.ValueGetter(property);
+                if (!TryGetFlatObjectExportValueType(value, out Type? valueType)) {
+                    return false;
+                }
+
+                string columnName = name ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(columnName)) {
+                    state.HasBlankDisplayHeader = true;
+                }
+
+                int columnIndex = headers.IndexOf(columnName);
+                if (columnIndex < 0) {
+                    if (headers.Count >= BufferedPowerShellObjectExportColumnLimit) {
+                        return false;
+                    }
+
+                    columnIndex = headers.Count;
+                    EnsurePowerShellObjectFirstRowCapacity(ref firstRow, state, columnIndex + 1);
+                    headers.Add(columnName);
+                }
+
+                firstRow[columnIndex] = value;
+                UpdateObjectExportColumnType(state.InferredColumnTypes, columnIndex, valueType);
+                added = true;
+                return true;
+            } catch {
+                return true;
+            }
+        }
+
+        private static void EnsurePowerShellObjectFirstRowCapacity(
+            ref object?[] firstRow,
+            FlatDictionaryProjectionState state,
+            int requiredLength) {
+            if (firstRow.Length >= requiredLength) {
+                return;
+            }
+
+            int newLength = firstRow.Length * 2;
+            if (newLength < requiredLength) {
+                newLength = requiredLength;
+            }
+
+            if (newLength > BufferedPowerShellObjectExportColumnLimit) {
+                newLength = BufferedPowerShellObjectExportColumnLimit;
+            }
+
+            Array.Resize(ref firstRow, newLength);
+            state.EnsureColumnTypeCapacity(newLength);
+        }
+
+        private static bool TryProjectPowerShellObjectExistingProperty(
+            object? property,
+            PowerShellObjectExportPlan plan,
+            ref PowerShellPropertyExportPlanCache propertyPlanCache,
+            string[] headers,
+            Type?[] inferredColumnTypes,
+            object?[] values,
+            int rowOffset,
+            int columnCount,
+            ref int propertyIndex) {
+            if (property == null) {
+                return true;
+            }
+
+            Type propertyType = property.GetType();
+            PowerShellPropertyExportPlan propertyPlan = propertyPlanCache.Get(plan, propertyType);
+            if (!propertyPlan.CanProject) {
+                return true;
+            }
+
+            try {
+                if (propertyPlan.IsGettableGetter != null && !propertyPlan.IsGettableGetter(property)) {
+                    return true;
+                }
+
+                string? name = propertyPlan.NameGetter(property);
+                object? value = propertyPlan.ValueGetter(property);
+                if (!TryGetFlatObjectExportValueType(value, out Type? valueType)) {
+                    return false;
+                }
+
+                string columnName = name ?? string.Empty;
+                int columnIndex;
+                if ((uint)propertyIndex < (uint)columnCount
+                    && string.Equals(columnName, headers[propertyIndex], StringComparison.Ordinal)) {
+                    columnIndex = propertyIndex;
+                } else {
+                    columnIndex = Array.IndexOf(headers, columnName);
+                }
+
+                if (columnIndex < 0) {
+                    return false;
+                }
+
+                values[rowOffset + columnIndex] = value;
+                UpdateObjectExportColumnType(inferredColumnTypes, columnIndex, valueType);
+                propertyIndex++;
+                return true;
+            } catch {
+                return true;
+            }
         }
 
         private bool TryInsertExactDictionaryRowsAsDeferredDirectSave<T>(
@@ -1015,7 +1347,67 @@ namespace OfficeIMO.Excel {
                 || IsObjectExportScalarType(value.GetType());
         }
 
+        private static bool TryGetFlatObjectExportValueType(object? value, out Type? valueType) {
+            switch (value) {
+                case null:
+                case DBNull _:
+                    valueType = null;
+                    return true;
+                case string _:
+                    valueType = typeof(string);
+                    return true;
+                case int _:
+                    valueType = typeof(int);
+                    return true;
+                case bool _:
+                    valueType = typeof(bool);
+                    return true;
+                case DateTime _:
+                    valueType = typeof(DateTime);
+                    return true;
+                case double _:
+                    valueType = typeof(double);
+                    return true;
+                case long _:
+                    valueType = typeof(long);
+                    return true;
+                case decimal _:
+                    valueType = typeof(decimal);
+                    return true;
+                case float _:
+                    valueType = typeof(float);
+                    return true;
+                case DateTimeOffset _:
+                    valueType = typeof(DateTimeOffset);
+                    return true;
+                case TimeSpan _:
+                    valueType = typeof(TimeSpan);
+                    return true;
+                case Guid _:
+                    valueType = typeof(Guid);
+                    return true;
+#if NET6_0_OR_GREATER
+                case DateOnly _:
+                    valueType = typeof(DateOnly);
+                    return true;
+                case TimeOnly _:
+                    valueType = typeof(TimeOnly);
+                    return true;
+#endif
+            }
+
+            Type type = value.GetType();
+            if (IsObjectExportScalarType(type)) {
+                valueType = type;
+                return true;
+            }
+
+            valueType = null;
+            return false;
+        }
+
         private delegate bool TryAddObjectExportValue(string? name, object? value);
+        private delegate bool TryAddIndexedObjectExportValue(int propertyIndex, string? name, object? value);
 
         private static bool TryProjectPowerShellObjectRow(object item, TryAddObjectExportValue tryAddValue) {
             Type itemType = item.GetType();
@@ -1024,6 +1416,27 @@ namespace OfficeIMO.Excel {
             }
 
             PowerShellObjectExportPlan plan = PowerShellObjectExportPlans.GetOrAdd(itemType, CreatePowerShellObjectExportPlan);
+            var propertyPlanCache = new PowerShellPropertyExportPlanCache();
+            return TryProjectPowerShellObjectRow(item, plan, ref propertyPlanCache, tryAddValue);
+        }
+
+        private static bool TryProjectPowerShellObjectRow(
+            object item,
+            PowerShellObjectExportPlan plan,
+            ref PowerShellPropertyExportPlanCache propertyPlanCache,
+            TryAddObjectExportValue tryAddValue) {
+            return TryProjectPowerShellObjectRow(
+                item,
+                plan,
+                ref propertyPlanCache,
+                (propertyIndex, name, value) => tryAddValue(name, value));
+        }
+
+        private static bool TryProjectPowerShellObjectRow(
+            object item,
+            PowerShellObjectExportPlan plan,
+            ref PowerShellPropertyExportPlanCache propertyPlanCache,
+            TryAddIndexedObjectExportValue tryAddValue) {
             if (!plan.CanProject) {
                 return false;
             }
@@ -1035,42 +1448,90 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (propertiesValue is not IEnumerable properties) {
-                return false;
-            }
+            var localPropertyPlanCache = propertyPlanCache;
+            try {
+                bool added = false;
+                int propertyIndex = 0;
 
-            bool added = false;
-            foreach (object? property in properties) {
-                if (property == null) {
-                    continue;
-                }
-
-                Type propertyType = property.GetType();
-                PowerShellPropertyExportPlan propertyPlan = plan.GetPropertyPlan(propertyType);
-                if (!propertyPlan.CanProject) {
-                    continue;
-                }
-
-                try {
-                    if (propertyPlan.IsGettableGetter != null
-                        && propertyPlan.IsGettableGetter(property) is bool isGettable
-                        && !isGettable) {
-                        continue;
+                if (propertiesValue is object?[] propertyArray) {
+                    for (int i = 0; i < propertyArray.Length; i++) {
+                        if (!TryProjectProperty(propertyArray[i])) {
+                            return false;
+                        }
                     }
 
-                    string? name = propertyPlan.NameGetter(property)?.ToString();
-                    object? value = propertyPlan.ValueGetter(property);
-                    if (!tryAddValue(name, value)) {
+                    return added;
+                }
+
+                if (propertiesValue is System.Collections.IList propertyList) {
+                    for (int i = 0; i < propertyList.Count; i++) {
+                        if (!TryProjectProperty(propertyList[i])) {
+                            return false;
+                        }
+                    }
+
+                    return added;
+                }
+
+                if (propertiesValue is not IEnumerable properties) {
+                    return false;
+                }
+
+                foreach (object? property in properties) {
+                    if (!TryProjectProperty(property)) {
                         return false;
                     }
-
-                    added = true;
-                } catch {
-                    continue;
                 }
-            }
 
-            return added;
+                return added;
+
+                bool TryProjectProperty(object? property) {
+                    if (property == null) {
+                        return true;
+                    }
+
+                    Type propertyType = property.GetType();
+                    PowerShellPropertyExportPlan propertyPlan = localPropertyPlanCache.Get(plan, propertyType);
+                    if (!propertyPlan.CanProject) {
+                        return true;
+                    }
+
+                    try {
+                        if (propertyPlan.IsGettableGetter != null && !propertyPlan.IsGettableGetter(property)) {
+                            return true;
+                        }
+
+                        string? name = propertyPlan.NameGetter(property);
+                        object? value = propertyPlan.ValueGetter(property);
+                        if (!tryAddValue(propertyIndex, name, value)) {
+                            return false;
+                        }
+
+                        added = true;
+                        propertyIndex++;
+                    } catch {
+                    }
+
+                    return true;
+                }
+            } finally {
+                propertyPlanCache = localPropertyPlanCache;
+            }
+        }
+
+        private struct PowerShellPropertyExportPlanCache {
+            private Type? _lastPropertyType;
+            private PowerShellPropertyExportPlan? _lastPropertyPlan;
+
+            internal PowerShellPropertyExportPlan Get(PowerShellObjectExportPlan plan, Type propertyType) {
+                if (_lastPropertyType == propertyType && _lastPropertyPlan != null) {
+                    return _lastPropertyPlan;
+                }
+
+                _lastPropertyType = propertyType;
+                _lastPropertyPlan = plan.GetPropertyPlan(propertyType);
+                return _lastPropertyPlan;
+            }
         }
 
         private static bool IsPowerShellObjectExportType(Type type)
@@ -1095,9 +1556,9 @@ namespace OfficeIMO.Excel {
             }
 
             return new PowerShellPropertyExportPlan(
-                CreatePowerShellValueGetter(name),
+                CreatePowerShellStringGetter(name),
                 CreatePowerShellValueGetter(value),
-                isGettable == null ? null : CreatePowerShellValueGetter(isGettable));
+                isGettable == null ? null : CreatePowerShellBooleanGetter(isGettable));
         }
 
         private static Func<object, object?> CreatePowerShellValueGetter(PropertyInfo property) {
@@ -1120,6 +1581,52 @@ namespace OfficeIMO.Excel {
 
         private static Func<object, object?> CreatePowerShellValueGetterCore<TTarget, TValue>(MethodInfo getMethod) {
             var getter = (Func<TTarget, TValue>)Delegate.CreateDelegate(typeof(Func<TTarget, TValue>), getMethod);
+            return row => getter((TTarget)row!);
+        }
+
+        private static Func<object, string?> CreatePowerShellStringGetter(PropertyInfo property) {
+            MethodInfo? getMethod = property.GetMethod;
+            if (getMethod == null || property.DeclaringType == null || property.PropertyType != typeof(string)) {
+                return row => property.GetValue(row, null)?.ToString();
+            }
+
+            try {
+                return (Func<object, string?>)CreatePowerShellStringGetterMethod
+                    .MakeGenericMethod(property.DeclaringType)
+                    .Invoke(null, new object[] { getMethod })!;
+            } catch {
+                return row => property.GetValue(row, null)?.ToString();
+            }
+        }
+
+        private static readonly MethodInfo CreatePowerShellStringGetterMethod =
+            typeof(ExcelSheet).GetMethod(nameof(CreatePowerShellStringGetterCore), BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        private static Func<object, string?> CreatePowerShellStringGetterCore<TTarget>(MethodInfo getMethod) {
+            var getter = (Func<TTarget, string?>)Delegate.CreateDelegate(typeof(Func<TTarget, string?>), getMethod);
+            return row => getter((TTarget)row!);
+        }
+
+        private static Func<object, bool> CreatePowerShellBooleanGetter(PropertyInfo property) {
+            MethodInfo? getMethod = property.GetMethod;
+            if (getMethod == null || property.DeclaringType == null || property.PropertyType != typeof(bool)) {
+                return row => property.GetValue(row, null) is bool value && value;
+            }
+
+            try {
+                return (Func<object, bool>)CreatePowerShellBooleanGetterMethod
+                    .MakeGenericMethod(property.DeclaringType)
+                    .Invoke(null, new object[] { getMethod })!;
+            } catch {
+                return row => property.GetValue(row, null) is bool value && value;
+            }
+        }
+
+        private static readonly MethodInfo CreatePowerShellBooleanGetterMethod =
+            typeof(ExcelSheet).GetMethod(nameof(CreatePowerShellBooleanGetterCore), BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        private static Func<object, bool> CreatePowerShellBooleanGetterCore<TTarget>(MethodInfo getMethod) {
+            var getter = (Func<TTarget, bool>)Delegate.CreateDelegate(typeof(Func<TTarget, bool>), getMethod);
             return row => getter((TTarget)row!);
         }
 
@@ -1156,9 +1663,9 @@ namespace OfficeIMO.Excel {
             }
 
             internal PowerShellPropertyExportPlan(
-                Func<object, object?> nameGetter,
+                Func<object, string?> nameGetter,
                 Func<object, object?> valueGetter,
-                Func<object, object?>? isGettableGetter) {
+                Func<object, bool>? isGettableGetter) {
                 NameGetter = nameGetter;
                 ValueGetter = valueGetter;
                 IsGettableGetter = isGettableGetter;
@@ -1167,11 +1674,11 @@ namespace OfficeIMO.Excel {
 
             internal bool CanProject { get; }
 
-            internal Func<object, object?> NameGetter { get; }
+            internal Func<object, string?> NameGetter { get; }
 
             internal Func<object, object?> ValueGetter { get; }
 
-            internal Func<object, object?>? IsGettableGetter { get; }
+            internal Func<object, bool>? IsGettableGetter { get; }
         }
 
         private static void FlattenObject(object? value, string? prefix, IDictionary<string, object?> result) {
