@@ -43,9 +43,7 @@ public static class PdfPageImporter {
             return PdfMerger.MergeWithPrimarySource(1, inserted, targetPdf);
         }
 
-        byte[] before = PdfPageExtractor.ExtractPageRange(targetPdf, 1, insertBeforePageNumber - 1);
-        byte[] after = PdfPageExtractor.ExtractPageRange(targetPdf, insertBeforePageNumber, targetPageCount);
-        return PdfMerger.Merge(before, inserted, after);
+        return PdfMerger.MergePrimaryWithInsertedPages(targetPdf, inserted, insertBeforePageNumber);
     }
 
     /// <summary>
@@ -87,7 +85,7 @@ public static class PdfPageImporter {
         Guard.NotNull(sourcePageRanges, nameof(sourcePageRanges));
 
         byte[] importedPages = PdfPageExtractor.ExtractPageRanges(sourcePdf, sourcePageRanges);
-        return PdfMerger.Merge(importedPages, targetPdf);
+        return PdfMerger.MergeWithPrimarySource(1, importedPages, targetPdf);
     }
 
     /// <summary>
@@ -111,9 +109,7 @@ public static class PdfPageImporter {
             return PdfMerger.MergeWithPrimarySource(1, inserted, targetPdf);
         }
 
-        byte[] before = PdfPageExtractor.ExtractPageRange(targetPdf, 1, insertBeforePageNumber - 1);
-        byte[] after = PdfPageExtractor.ExtractPageRange(targetPdf, insertBeforePageNumber, targetPageCount);
-        return PdfMerger.Merge(before, inserted, after);
+        return PdfMerger.MergePrimaryWithInsertedPages(targetPdf, inserted, insertBeforePageNumber);
     }
 
     /// <summary>
@@ -571,7 +567,7 @@ public static class PdfPageImporter {
         byte[] importedPages = PdfPageExtractor.ExtractPages(sourcePdf, selectedPages);
         return append
             ? PdfMerger.Merge(targetPdf, importedPages)
-            : PdfMerger.Merge(importedPages, targetPdf);
+            : PdfMerger.MergeWithPrimarySource(1, importedPages, targetPdf);
     }
 
     private static int[] NormalizeSourcePageNumbers(byte[] sourcePdf, int[] sourcePageNumbers) {

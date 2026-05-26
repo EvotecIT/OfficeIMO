@@ -114,6 +114,27 @@ public class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FlattenFields_FlattensReferencedContentArraysBeforeAppendingAppearanceStream() {
+        byte[] filled = PdfFormFiller.FillFields(BuildTextWidgetFormPdfWithReferencedContentArray(), new Dictionary<string, string> {
+            ["Name"] = "Flattened value"
+        });
+
+        byte[] flattened = PdfFormFiller.FlattenFields(filled);
+
+        var (objects, _) = PdfSyntax.ParseObjects(flattened);
+        var page = Assert.IsType<PdfDictionary>(objects.Values.First(indirect =>
+            indirect.Value is PdfDictionary dictionary &&
+            dictionary.Get<PdfName>("Type")?.Name == "Page").Value);
+        var contents = Assert.IsType<PdfArray>(page.Items["Contents"]);
+
+        Assert.True(contents.Items.Count >= 2);
+        foreach (var item in contents.Items) {
+            var reference = Assert.IsType<PdfReference>(item);
+            Assert.IsType<PdfStream>(objects[reference.ObjectNumber].Value);
+        }
+    }
+
+    [Fact]
     public void FillAndFlattenFields_UpdatesValueAndFlattensInOneCall() {
         byte[] flattened = PdfFormFiller.FillAndFlattenFields(BuildTextWidgetFormPdf(), new Dictionary<string, string> {
             ["Name"] = "Single pass"
@@ -491,6 +512,45 @@ public class PdfFormFillerTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildTextWidgetFormPdfWithReferencedContentArray() {
+        string existing = "BT /F1 12 Tf 20 150 Td (Existing) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 10 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> /Annots [8 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            $"<< /Length {existing.Length} >>",
+            "stream",
+            existing,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [7 0 R] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /FT /Tx /T (Name) /V (OfficeIMO) /Kids [8 0 R] >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 100 180 120] /F 4 >>",
+            "endobj",
+            "10 0 obj",
+            "[4 0 R]",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 11 >>",
             "%%EOF"
         });
 

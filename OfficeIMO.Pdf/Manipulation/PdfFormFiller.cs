@@ -384,7 +384,7 @@ public static class PdfFormFiller {
             string content = BuildFlattenContent(objects, page, pageWidgets);
             int contentObjectNumber = nextObjectNumber++;
             objects[contentObjectNumber] = new PdfIndirectObject(contentObjectNumber, 0, CreateContentStream(content));
-            AppendPageContent(page, contentObjectNumber);
+            AppendPageContent(objects, page, contentObjectNumber);
         }
 
         return flattenedWidgetCount;
@@ -445,7 +445,7 @@ public static class PdfFormFiller {
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
 
-    private static void AppendPageContent(PdfDictionary page, int contentObjectNumber) {
+    private static void AppendPageContent(Dictionary<int, PdfIndirectObject> objects, PdfDictionary page, int contentObjectNumber) {
         var newReference = new PdfReference(contentObjectNumber, 0);
         if (!page.Items.TryGetValue("Contents", out var contents)) {
             page.Items["Contents"] = newReference;
@@ -458,9 +458,31 @@ public static class PdfFormFiller {
         }
 
         var array = new PdfArray();
-        array.Items.Add(contents);
+        AppendContentEntries(objects, array, contents);
         array.Items.Add(newReference);
         page.Items["Contents"] = array;
+    }
+
+    private static void AppendContentEntries(Dictionary<int, PdfIndirectObject> objects, PdfArray target, PdfObject contents) {
+        if (contents is PdfArray directArray) {
+            foreach (var item in directArray.Items) {
+                target.Items.Add(item);
+            }
+
+            return;
+        }
+
+        if (contents is PdfReference reference &&
+            objects.TryGetValue(reference.ObjectNumber, out var indirect) &&
+            indirect.Value is PdfArray referencedArray) {
+            foreach (var item in referencedArray.Items) {
+                target.Items.Add(item);
+            }
+
+            return;
+        }
+
+        target.Items.Add(contents);
     }
 
     private static void FillField(

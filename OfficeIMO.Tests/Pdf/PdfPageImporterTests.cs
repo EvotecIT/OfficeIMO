@@ -47,7 +47,7 @@ public class PdfPageImporterTests {
 
         PdfDocumentInfo info = PdfInspector.Inspect(imported);
         Assert.Equal(4, info.PageCount);
-        Assert.Equal("Source", info.Metadata.Title);
+        Assert.Equal("Target", info.Metadata.Title);
 
         string text = NormalizeExtractedText(PdfReadDocument.Load(imported).ExtractText());
         AssertContainsInOrder(text, "Sourcefirst", "Sourcesecond", "Targetfirst", "Targetsecond");
@@ -71,6 +71,20 @@ public class PdfPageImporterTests {
         string text = Encoding.ASCII.GetString(imported);
         Assert.Contains("/PageLabels ", text, StringComparison.Ordinal);
         Assert.Contains("/Nums [ 1 << /S /D /St 1 >> ]", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InsertPages_RebasesTargetPageLabelsAroundInsertedMiddlePages() {
+        byte[] target = BuildTwoPageLabelPdf();
+        byte[] source = BuildPdf("Inserted", "Inserted page");
+
+        byte[] imported = PdfPageImporter.InsertPages(target, source, 2);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(imported);
+        Assert.Equal(3, info.PageCount);
+
+        string text = Encoding.ASCII.GetString(imported);
+        Assert.Contains("/Nums [ 0 << /S /D /St 1 >> 2 << /S /D /St 2 >> ]", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -179,7 +193,7 @@ public class PdfPageImporterTests {
 
         PdfDocumentInfo info = PdfInspector.Inspect(imported);
         Assert.Equal(5, info.PageCount);
-        Assert.Equal("Source", info.Metadata.Title);
+        Assert.Equal("Target", info.Metadata.Title);
 
         string text = NormalizeExtractedText(PdfReadDocument.Load(imported).ExtractText());
         AssertContainsInOrder(text, "Sourcethird", "Sourcefirst", "Sourcesecond", "Targetfirst", "Targetsecond");

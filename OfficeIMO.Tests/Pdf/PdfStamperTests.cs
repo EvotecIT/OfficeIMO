@@ -64,6 +64,27 @@ public class PdfStamperTests {
     }
 
     [Fact]
+    public void StampText_FlattensReferencedContentArraysBeforeAddingStampStream() {
+        byte[] stamped = PdfStamper.StampText(BuildIndirectContentsArrayPdf(), "STAMP", new PdfTextStampOptions {
+            X = 20,
+            Y = 20,
+            FontSize = 10
+        });
+
+        var document = PdfReadDocument.Load(stamped);
+        var (objects, _) = PdfSyntax.ParseObjects(stamped);
+        int pageObjectNumber = document.Pages[0].ObjectNumber;
+        var page = Assert.IsType<PdfDictionary>(objects[pageObjectNumber].Value);
+        var contents = Assert.IsType<PdfArray>(page.Items["Contents"]);
+
+        Assert.Equal(3, contents.Items.Count);
+        foreach (var item in contents.Items) {
+            var reference = Assert.IsType<PdfReference>(item);
+            Assert.IsType<PdfStream>(objects[reference.ObjectNumber].Value);
+        }
+    }
+
+    [Fact]
     public void WatermarkText_AddsDefaultWatermarkToEveryPage() {
         byte[] source = BuildTwoPagePdf();
 
@@ -934,6 +955,43 @@ public class PdfStamperTests {
         });
 
         return doc.ToBytes();
+    }
+
+    private static byte[] BuildIndirectContentsArrayPdf() {
+        string first = "BT /F1 12 Tf 20 80 Td (First) Tj ET";
+        string second = "BT /F1 12 Tf 20 60 Td (Second) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 8 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >>",
+            "endobj",
+            "4 0 obj",
+            $"<< /Length {first.Length} >>",
+            "stream",
+            first,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            $"<< /Length {second.Length} >>",
+            "stream",
+            second,
+            "endstream",
+            "endobj",
+            "8 0 obj",
+            "[4 0 R 5 0 R]",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
     }
 
     private static string Normalize(string text) {

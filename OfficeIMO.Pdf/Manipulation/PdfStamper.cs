@@ -614,7 +614,7 @@ public static class PdfStamper {
             throw new InvalidOperationException("PDF page object " + pageObjectNumber.ToString(CultureInfo.InvariantCulture) + " was not found.");
         }
 
-        var contents = BuildContentsArray(pageDictionary.Items.TryGetValue("Contents", out var contentsObj) ? contentsObj : null, stampPseudoObjectNumber, behindContent);
+        var contents = BuildContentsArray(objects, pageDictionary.Items.TryGetValue("Contents", out var contentsObj) ? contentsObj : null, stampPseudoObjectNumber, behindContent);
         var resources = BuildResourcesDictionary(objects, GetInheritedPageValue(objects, pageDictionary, "Resources"), fontResourceName);
 
         return new Dictionary<string, PdfObject>(StringComparer.Ordinal) {
@@ -633,7 +633,7 @@ public static class PdfStamper {
             throw new InvalidOperationException("PDF page object " + pageObjectNumber.ToString(CultureInfo.InvariantCulture) + " was not found.");
         }
 
-        var contents = BuildContentsArray(pageDictionary.Items.TryGetValue("Contents", out var contentsObj) ? contentsObj : null, stampPseudoObjectNumber, behindContent);
+        var contents = BuildContentsArray(objects, pageDictionary.Items.TryGetValue("Contents", out var contentsObj) ? contentsObj : null, stampPseudoObjectNumber, behindContent);
         var resources = BuildImageResourcesDictionary(objects, GetInheritedPageValue(objects, pageDictionary, "Resources"), imageResourceName);
 
         return new Dictionary<string, PdfObject>(StringComparer.Ordinal) {
@@ -642,7 +642,7 @@ public static class PdfStamper {
         };
     }
 
-    private static PdfArray BuildContentsArray(PdfObject? existingContents, int stampPseudoObjectNumber, bool behindContent) {
+    private static PdfArray BuildContentsArray(Dictionary<int, PdfIndirectObject> objects, PdfObject? existingContents, int stampPseudoObjectNumber, bool behindContent) {
         var result = new PdfArray();
         var stampReference = new PdfReference(stampPseudoObjectNumber, 0);
 
@@ -650,19 +650,39 @@ public static class PdfStamper {
             result.Items.Add(stampReference);
         }
 
-        if (existingContents is PdfArray existingArray) {
-            foreach (var item in existingArray.Items) {
-                result.Items.Add(item);
-            }
-        } else if (existingContents is not null) {
-            result.Items.Add(existingContents);
-        }
+        AppendContentEntries(objects, result, existingContents);
 
         if (!behindContent) {
             result.Items.Add(stampReference);
         }
 
         return result;
+    }
+
+    private static void AppendContentEntries(Dictionary<int, PdfIndirectObject> objects, PdfArray target, PdfObject? contents) {
+        if (contents is null) {
+            return;
+        }
+
+        if (contents is PdfArray directArray) {
+            foreach (var item in directArray.Items) {
+                target.Items.Add(item);
+            }
+
+            return;
+        }
+
+        if (contents is PdfReference reference &&
+            objects.TryGetValue(reference.ObjectNumber, out var indirect) &&
+            indirect.Value is PdfArray referencedArray) {
+            foreach (var item in referencedArray.Items) {
+                target.Items.Add(item);
+            }
+
+            return;
+        }
+
+        target.Items.Add(contents);
     }
 
     private static PdfDictionary BuildResourcesDictionary(

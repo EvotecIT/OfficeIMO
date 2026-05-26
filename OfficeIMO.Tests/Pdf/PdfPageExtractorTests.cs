@@ -700,6 +700,41 @@ public class PdfPageExtractorTests {
     }
 
     [Fact]
+    public void ExtractPages_ClonesAnnotationsForDuplicatePageSelections() {
+        byte[] source = PdfDoc.Create()
+            .Paragraph(p => p.Text("Cover page"))
+            .PageBreak()
+            .Paragraph(p => p.Link("OfficeIMO link", "https://evotec.xyz"))
+            .ToBytes();
+
+        byte[] extracted = PdfPageExtractor.ExtractPages(source, 2, 2);
+
+        var document = PdfReadDocument.Load(extracted);
+        var (objects, _) = PdfSyntax.ParseObjects(extracted);
+        var annotationObjectNumbers = new HashSet<int>();
+
+        for (int i = 0; i < document.Pages.Count; i++) {
+            int pageObjectNumber = document.Pages[i].ObjectNumber;
+            var page = Assert.IsType<PdfDictionary>(objects[pageObjectNumber].Value);
+            var annotations = Assert.IsType<PdfArray>(page.Items["Annots"]);
+            Assert.NotEmpty(annotations.Items);
+
+            foreach (var annotationObject in annotations.Items) {
+                var annotationReference = Assert.IsType<PdfReference>(annotationObject);
+                annotationObjectNumbers.Add(annotationReference.ObjectNumber);
+
+                var annotation = Assert.IsType<PdfDictionary>(objects[annotationReference.ObjectNumber].Value);
+                if (annotation.Items.TryGetValue("P", out var annotationPage)) {
+                    var pageReference = Assert.IsType<PdfReference>(annotationPage);
+                    Assert.Equal(pageObjectNumber, pageReference.ObjectNumber);
+                }
+            }
+        }
+
+        Assert.Equal(4, annotationObjectNumbers.Count);
+    }
+
+    [Fact]
     public void ExtractPages_DropsBookmarkLinksWhenDestinationPageIsNotCopied() {
         byte[] source = PdfDoc.Create()
             .Paragraph(p => p.LinkToBookmark("Jump to details", "Details"))

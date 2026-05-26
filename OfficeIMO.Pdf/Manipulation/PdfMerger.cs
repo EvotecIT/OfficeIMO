@@ -31,6 +31,53 @@ public static class PdfMerger {
         return MergeCore(pdfs, primarySourceIndex);
     }
 
+    internal static byte[] MergePrimaryWithInsertedPages(byte[] primaryPdf, byte[] insertedPdf, int insertBeforePageNumber) {
+        Guard.NotNull(primaryPdf, nameof(primaryPdf));
+        Guard.NotNull(insertedPdf, nameof(insertedPdf));
+
+        PdfSyntax.ThrowIfUnsafeForRewrite(primaryPdf);
+        PdfSyntax.ThrowIfUnsafeForRewrite(insertedPdf);
+
+        var primaryDocument = PdfReadDocument.Load(primaryPdf);
+        if (primaryDocument.Pages.Count == 0) {
+            throw new ArgumentException("Primary PDF does not contain any pages.", nameof(primaryPdf));
+        }
+
+        if (insertBeforePageNumber < 1 || insertBeforePageNumber > primaryDocument.Pages.Count + 1) {
+            throw new ArgumentOutOfRangeException(nameof(insertBeforePageNumber), "Insert-before page must be in the primary document page range.");
+        }
+
+        var insertedDocument = PdfReadDocument.Load(insertedPdf);
+        if (insertedDocument.Pages.Count == 0) {
+            throw new ArgumentException("Inserted PDF does not contain any pages.", nameof(insertedPdf));
+        }
+
+        int[] primaryPageObjectNumbers = primaryDocument.Pages.Select(page => page.ObjectNumber).ToArray();
+        int[] insertedPageObjectNumbers = insertedDocument.Pages.Select(page => page.ObjectNumber).ToArray();
+        var outputOrder = new List<OutputPageReference>(primaryPageObjectNumbers.Length + insertedPageObjectNumbers.Length);
+        var primaryPageIndexMap = new Dictionary<int, int>();
+
+        for (int i = 0; i < insertBeforePageNumber - 1; i++) {
+            primaryPageIndexMap[primaryPageObjectNumbers[i]] = outputOrder.Count;
+            outputOrder.Add(new OutputPageReference(0, primaryPageObjectNumbers[i]));
+        }
+
+        for (int i = 0; i < insertedPageObjectNumbers.Length; i++) {
+            outputOrder.Add(new OutputPageReference(1, insertedPageObjectNumbers[i]));
+        }
+
+        for (int i = insertBeforePageNumber - 1; i < primaryPageObjectNumbers.Length; i++) {
+            primaryPageIndexMap[primaryPageObjectNumbers[i]] = outputOrder.Count;
+            outputOrder.Add(new OutputPageReference(0, primaryPageObjectNumbers[i]));
+        }
+
+        var importedSources = new[] {
+            ImportSource(primaryPdf, 0, primaryPageObjectNumbers, 0, primaryPageIndexMap),
+            ImportSource(insertedPdf, 1, insertedPageObjectNumbers, insertBeforePageNumber - 1, null)
+        };
+        return WriteMerged(importedSources, primarySourceIndex: 0, outputOrder);
+    }
+
     private static byte[] MergeCore(IEnumerable<byte[]> pdfs, int primarySourceIndex) {
         Guard.NotNull(pdfs, nameof(pdfs));
 
@@ -51,37 +98,8 @@ public static class PdfMerger {
                 throw new ArgumentException("PDF input " + i.ToString(CultureInfo.InvariantCulture) + " cannot be null.", nameof(pdfs));
             }
 
-            PdfSyntax.ThrowIfUnsafeForRewrite(source);
-
-            var (objects, _) = PdfSyntax.ParseObjects(source);
-            var document = PdfReadDocument.Load(source);
-            if (document.Pages.Count == 0) {
-                throw new ArgumentException("PDF input " + i.ToString(CultureInfo.InvariantCulture) + " does not contain any pages.", nameof(pdfs));
-            }
-
-            var collector = new PdfPageExtractor.ObjectCollector(objects);
-            var pageObjectNumbers = document.Pages.Select(page => page.ObjectNumber).ToArray();
-            foreach (int pageObjectNumber in pageObjectNumbers) {
-                collector.CollectPage(pageObjectNumber);
-            }
-
-            var catalogState = PdfPageExtractor.PruneCatalogStateForPages(
-                objects,
-                PdfPageExtractor.ExtractCatalogRewriteState(objects),
-                collector.PageObjectIds,
-                pageObjectNumbers,
-                mergedPageOffset);
-            collector.CollectObjectGraph(catalogState.Outlines);
-            collector.CollectObjectGraph(catalogState.PageLabels);
-            collector.CollectObjectGraph(catalogState.NamedDestinationNameTree);
-            collector.CollectObjectGraph(catalogState.XmpMetadata);
-            collector.CollectObjectGraph(catalogState.CatalogUri);
-            collector.CollectObjectGraph(catalogState.OutputIntents);
-            collector.CollectObjectGraph(catalogState.EmbeddedFiles);
-            collector.CollectObjectGraph(catalogState.AssociatedFiles);
-            collector.CollectObjectGraph(catalogState.OptionalContent);
-            importedSources.Add(new ImportedSource(objects, document.Metadata, pageObjectNumbers, collector, catalogState));
-            mergedPageOffset += document.Pages.Count;
+            importedSources.Add(ImportSource(source, i, null, mergedPageOffset, null));
+            mergedPageOffset += importedSources[importedSources.Count - 1].PageObjectNumbers.Length;
         }
 
         return WriteMerged(importedSources, primarySourceIndex);
@@ -244,7 +262,49 @@ public static class PdfMerger {
         return fullPath;
     }
 
-    private static byte[] WriteMerged(IReadOnlyList<ImportedSource> sources, int primarySourceIndex) {
+    private static ImportedSource ImportSource(
+        byte[] source,
+        int sourceIndex,
+        int[]? knownPageObjectNumbers,
+        int mergedPageOffset,
+        IReadOnlyDictionary<int, int>? outputPageIndexByPageObjectNumber) {
+        PdfSyntax.ThrowIfUnsafeForRewrite(source);
+
+        var (objects, _) = PdfSyntax.ParseObjects(source);
+        var document = PdfReadDocument.Load(source);
+        if (document.Pages.Count == 0) {
+            throw new ArgumentException("PDF input " + sourceIndex.ToString(CultureInfo.InvariantCulture) + " does not contain any pages.", nameof(source));
+        }
+
+        var collector = new PdfPageExtractor.ObjectCollector(objects);
+        int[] pageObjectNumbers = knownPageObjectNumbers ?? document.Pages.Select(page => page.ObjectNumber).ToArray();
+        foreach (int pageObjectNumber in pageObjectNumbers) {
+            collector.CollectPage(pageObjectNumber);
+        }
+
+        var catalogState = PdfPageExtractor.PruneCatalogStateForPages(
+            objects,
+            PdfPageExtractor.ExtractCatalogRewriteState(objects),
+            collector.PageObjectIds,
+            pageObjectNumbers,
+            mergedPageOffset,
+            outputPageIndexByPageObjectNumber);
+        collector.CollectObjectGraph(catalogState.Outlines);
+        collector.CollectObjectGraph(catalogState.PageLabels);
+        collector.CollectObjectGraph(catalogState.NamedDestinationNameTree);
+        collector.CollectObjectGraph(catalogState.XmpMetadata);
+        collector.CollectObjectGraph(catalogState.CatalogUri);
+        collector.CollectObjectGraph(catalogState.OutputIntents);
+        collector.CollectObjectGraph(catalogState.EmbeddedFiles);
+        collector.CollectObjectGraph(catalogState.AssociatedFiles);
+        collector.CollectObjectGraph(catalogState.OptionalContent);
+        return new ImportedSource(objects, document.Metadata, pageObjectNumbers, collector, catalogState);
+    }
+
+    private static byte[] WriteMerged(
+        IReadOnlyList<ImportedSource> sources,
+        int primarySourceIndex,
+        IReadOnlyList<OutputPageReference>? outputOrder = null) {
         var objects = new List<byte[]>();
         var allPageObjectIds = new List<int>();
         var plans = new List<SourceWritePlan>(sources.Count);
@@ -256,11 +316,19 @@ public static class PdfMerger {
                 numberMap[sourceId] = nextObjectId++;
             }
 
-            foreach (int pageObjectNumber in source.PageObjectNumbers) {
-                allPageObjectIds.Add(numberMap[pageObjectNumber]);
-            }
-
             plans.Add(new SourceWritePlan(source, numberMap));
+        }
+
+        if (outputOrder is null) {
+            foreach (var plan in plans) {
+                foreach (int pageObjectNumber in plan.Source.PageObjectNumbers) {
+                    allPageObjectIds.Add(plan.NumberMap[pageObjectNumber]);
+                }
+            }
+        } else {
+            foreach (var page in outputOrder) {
+                allPageObjectIds.Add(plans[page.SourceIndex].NumberMap[page.PageObjectNumber]);
+            }
         }
 
         int pagesId = nextObjectId++;
@@ -337,5 +405,16 @@ public static class PdfMerger {
         public ImportedSource Source { get; }
 
         public Dictionary<int, int> NumberMap { get; }
+    }
+
+    private readonly struct OutputPageReference {
+        public OutputPageReference(int sourceIndex, int pageObjectNumber) {
+            SourceIndex = sourceIndex;
+            PageObjectNumber = pageObjectNumber;
+        }
+
+        public int SourceIndex { get; }
+
+        public int PageObjectNumber { get; }
     }
 }

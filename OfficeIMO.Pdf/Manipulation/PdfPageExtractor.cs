@@ -615,7 +615,8 @@ public static class PdfPageExtractor {
 
             int clonedPageObjectId = nextObjectId++;
             outputPageObjectIds[i] = clonedPageObjectId;
-            clonedPages.Add(new ClonedPageObject(pageObjectNumber, clonedPageObjectId));
+            var clonedAnnotationState = BuildClonedAnnotationState(sourceObjects, pageObjectNumber, ref nextObjectId);
+            clonedPages.Add(new ClonedPageObject(pageObjectNumber, clonedPageObjectId, clonedAnnotationState.PageOverrides, clonedAnnotationState.AnnotationObjectMap));
         }
 
         int pagesId = nextObjectId++;
@@ -647,8 +648,29 @@ public static class PdfPageExtractor {
                 throw new InvalidOperationException("PDF page object " + clonedPage.SourcePageObjectNumber.ToString(CultureInfo.InvariantCulture) + " was referenced but not found.");
             }
 
-            byte[] body = SerializePageDictionary(dictionary, clonedPage.SourcePageObjectNumber, context);
+            var clonedNumberMap = new Dictionary<int, int>(numberMap) {
+                [clonedPage.SourcePageObjectNumber] = clonedPage.OutputPageObjectNumber
+            };
+            foreach (var annotation in clonedPage.AnnotationObjectMap) {
+                clonedNumberMap[annotation.Key] = annotation.Value;
+            }
+
+            var clonedPageOverrides = clonedPage.PageOverrides is null
+                ? null
+                : new Dictionary<int, Dictionary<string, PdfObject>> {
+                    [clonedPage.SourcePageObjectNumber] = clonedPage.PageOverrides
+                };
+            var clonedContext = new SerializationContext(clonedNumberMap, pagesId, collector.MaterializedPageValues, clonedPageOverrides);
+            byte[] body = SerializePageDictionary(dictionary, clonedPage.SourcePageObjectNumber, clonedContext);
             objects.Add(WrapObject(clonedPage.OutputPageObjectNumber, body));
+
+            foreach (var annotation in clonedPage.AnnotationObjectMap) {
+                if (!sourceObjects.TryGetValue(annotation.Key, out var annotationObject)) {
+                    throw new InvalidOperationException("PDF annotation object " + annotation.Key.ToString(CultureInfo.InvariantCulture) + " was referenced but not found.");
+                }
+
+                objects.Add(WrapObject(annotation.Value, SerializeObject(annotationObject.Value, clonedContext)));
+            }
         }
 
         objects.Add(WrapObject(pagesId, PdfEncoding.Latin1GetBytes(PdfPageTreeBuilder.BuildPagesDictionary(outputPageObjectIds))));
@@ -691,12 +713,13 @@ public static class PdfPageExtractor {
         CatalogRewriteState catalogState,
         HashSet<int> copiedPageObjectIds,
         IReadOnlyList<int>? orderedPageObjectNumbers = null,
-        int outputPageIndexOffset = 0) {
+        int outputPageIndexOffset = 0,
+        IReadOnlyDictionary<int, int>? outputPageIndexByPageObjectNumber = null) {
         var namedDestinations = BuildNamedDestinationsForPages(sourceObjects, catalogState.NamedDestinations, copiedPageObjectIds);
         var namedDestinationNameTree = BuildNamedDestinationNameTreeForPages(sourceObjects, catalogState.NamedDestinationNameTree, copiedPageObjectIds);
         var openAction = BuildOpenActionForPages(sourceObjects, catalogState.OpenAction, copiedPageObjectIds);
         var outlines = BuildOutlinesForPages(sourceObjects, catalogState.Outlines, copiedPageObjectIds);
-        var pageLabels = BuildPageLabelsForPages(sourceObjects, catalogState.PageLabels, orderedPageObjectNumbers, outputPageIndexOffset);
+        var pageLabels = BuildPageLabelsForPages(sourceObjects, catalogState.PageLabels, orderedPageObjectNumbers, outputPageIndexOffset, outputPageIndexByPageObjectNumber);
         string? pageMode = outlines is null && string.Equals(catalogState.PageMode, "UseOutlines", StringComparison.Ordinal)
             ? null
             : catalogState.PageMode;
@@ -1049,7 +1072,8 @@ public static class PdfPageExtractor {
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject? pageLabels,
         IReadOnlyList<int>? orderedPageObjectNumbers,
-        int outputPageIndexOffset) {
+        int outputPageIndexOffset,
+        IReadOnlyDictionary<int, int>? outputPageIndexByPageObjectNumber) {
         if (pageLabels is null || orderedPageObjectNumbers is null || orderedPageObjectNumbers.Count == 0) {
             return pageLabels;
         }
@@ -1094,6 +1118,7 @@ public static class PdfPageExtractor {
         var rewrittenNums = new PdfArray();
         PageLabelEntry? previousEntry = null;
         int previousSourcePageIndex = -1;
+        int previousOutputPageIndex = -1;
 
         for (int outputIndex = 0; outputIndex < orderedPageObjectNumbers.Count; outputIndex++) {
             if (!sourcePageIndexes.TryGetValue(orderedPageObjectNumbers[outputIndex], out int sourcePageIndex)) {
@@ -1105,17 +1130,24 @@ public static class PdfPageExtractor {
                 continue;
             }
 
+            int rewrittenOutputIndex = outputPageIndexByPageObjectNumber is not null &&
+                outputPageIndexByPageObjectNumber.TryGetValue(orderedPageObjectNumbers[outputIndex], out int mappedOutputIndex)
+                ? mappedOutputIndex
+                : outputPageIndexOffset + outputIndex;
+
             bool continuesPreviousRun = previousEntry is not null &&
                 ReferenceEquals(previousEntry.LabelDictionary, entry.LabelDictionary) &&
-                sourcePageIndex == previousSourcePageIndex + 1;
+                sourcePageIndex == previousSourcePageIndex + 1 &&
+                rewrittenOutputIndex == previousOutputPageIndex + 1;
 
             if (!continuesPreviousRun) {
-                rewrittenNums.Items.Add(new PdfNumber(outputPageIndexOffset + outputIndex));
+                rewrittenNums.Items.Add(new PdfNumber(rewrittenOutputIndex));
                 rewrittenNums.Items.Add(ClonePageLabelDictionary(entry.LabelDictionary, sourcePageIndex - entry.StartPageIndex));
             }
 
             previousEntry = entry;
             previousSourcePageIndex = sourcePageIndex;
+            previousOutputPageIndex = rewrittenOutputIndex;
         }
 
         if (rewrittenNums.Items.Count == 0) {
@@ -1756,6 +1788,48 @@ public static class PdfPageExtractor {
         return ResolveObject(sourceObjects, value) as PdfDictionary;
     }
 
+    private static ClonedAnnotationState BuildClonedAnnotationState(
+        Dictionary<int, PdfIndirectObject> sourceObjects,
+        int pageObjectNumber,
+        ref int nextObjectId) {
+        if (!sourceObjects.TryGetValue(pageObjectNumber, out var pageObject) ||
+            pageObject.Value is not PdfDictionary pageDictionary ||
+            !pageDictionary.Items.TryGetValue("Annots", out var annotationsObject) ||
+            ResolveObject(sourceObjects, annotationsObject) is not PdfArray annotations) {
+            return ClonedAnnotationState.Empty;
+        }
+
+        var annotationObjectMap = new Dictionary<int, int>();
+        var clonedAnnotations = new PdfArray();
+        bool hasClonedIndirectAnnotation = false;
+
+        foreach (var annotation in annotations.Items) {
+            if (annotation is PdfReference annotationReference &&
+                sourceObjects.ContainsKey(annotationReference.ObjectNumber)) {
+                if (!annotationObjectMap.TryGetValue(annotationReference.ObjectNumber, out int clonedAnnotationObjectNumber)) {
+                    clonedAnnotationObjectNumber = nextObjectId++;
+                    annotationObjectMap[annotationReference.ObjectNumber] = clonedAnnotationObjectNumber;
+                }
+
+                clonedAnnotations.Items.Add(new PdfReference(clonedAnnotationObjectNumber, annotationReference.Generation));
+                hasClonedIndirectAnnotation = true;
+                continue;
+            }
+
+            clonedAnnotations.Items.Add(annotation);
+        }
+
+        if (!hasClonedIndirectAnnotation) {
+            return ClonedAnnotationState.Empty;
+        }
+
+        return new ClonedAnnotationState(
+            new Dictionary<string, PdfObject>(StringComparer.Ordinal) {
+                ["Annots"] = clonedAnnotations
+            },
+            annotationObjectMap);
+    }
+
     private static void ValidatePageNumbers(int[] pageNumbers, int pageCount, string paramName) {
         for (int i = 0; i < pageNumbers.Length; i++) {
             int pageNumber = pageNumbers[i];
@@ -2146,14 +2220,37 @@ public static class PdfPageExtractor {
     }
 
     private sealed class ClonedPageObject {
-        public ClonedPageObject(int sourcePageObjectNumber, int outputPageObjectNumber) {
+        public ClonedPageObject(
+            int sourcePageObjectNumber,
+            int outputPageObjectNumber,
+            Dictionary<string, PdfObject>? pageOverrides,
+            Dictionary<int, int> annotationObjectMap) {
             SourcePageObjectNumber = sourcePageObjectNumber;
             OutputPageObjectNumber = outputPageObjectNumber;
+            PageOverrides = pageOverrides;
+            AnnotationObjectMap = annotationObjectMap;
         }
 
         public int SourcePageObjectNumber { get; }
 
         public int OutputPageObjectNumber { get; }
+
+        public Dictionary<string, PdfObject>? PageOverrides { get; }
+
+        public Dictionary<int, int> AnnotationObjectMap { get; }
+    }
+
+    private sealed class ClonedAnnotationState {
+        public static readonly ClonedAnnotationState Empty = new ClonedAnnotationState(null, new Dictionary<int, int>());
+
+        public ClonedAnnotationState(Dictionary<string, PdfObject>? pageOverrides, Dictionary<int, int> annotationObjectMap) {
+            PageOverrides = pageOverrides;
+            AnnotationObjectMap = annotationObjectMap;
+        }
+
+        public Dictionary<string, PdfObject>? PageOverrides { get; }
+
+        public Dictionary<int, int> AnnotationObjectMap { get; }
     }
 
     private sealed class PageLabelEntry {
