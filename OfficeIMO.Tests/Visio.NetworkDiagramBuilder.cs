@@ -161,6 +161,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NetworkDiagramBuilderCanAutoPlaceSemanticCalloutsBesideNodes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .NetworkDiagram("Auto Annotated Network", network => network
+                    .Title()
+                    .Zone("edge", "Edge", 0, 0, 3, 1)
+                    .Internet("internet", "Internet", 0, 0)
+                    .Firewall("firewall", "Firewall", 1, 0)
+                    .Switch("core", "Core", 2, 0)
+                    .Ethernet("internet", "firewall", "WAN")
+                    .Trunk("firewall", "core", "uplink")
+                    .Callout("firewall", "firewall-note", "Inspect and log inbound traffic", VisioSide.Top, 0.4, options => {
+                        options.Width = 2.55;
+                        options.Height = 0.72;
+                    })
+                    .Callout("core", "Redundant uplink target", VisioSide.Right, 0.3));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape firewall = Assert.Single(page.Shapes, shape => shape.Id == "firewall");
+            VisioShape core = Assert.Single(page.Shapes, shape => shape.Id == "core");
+            VisioShape explicitCallout = Assert.Single(page.Callouts(), shape => shape.Id == "firewall-note");
+            VisioShape generatedCallout = Assert.Single(page.Callouts(), shape => shape.Id == "core-callout");
+
+            Assert.True(explicitCallout.PinY > firewall.PinY);
+            Assert.Equal(firewall.PinX, explicitCallout.PinX, 6);
+            Assert.Equal(firewall.Id, explicitCallout.CalloutTargetId);
+            Assert.Equal(2.55, explicitCallout.Width);
+            Assert.True(generatedCallout.PinX > core.PinX);
+            Assert.Equal(core.Id, generatedCallout.CalloutTargetId);
+
+            VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, explicitCallout));
+            Assert.Same(firewall, leader.To);
+            Assert.Equal(EndArrow.None, leader.EndArrow);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void NetworkDiagramBuilderGeneratesUniqueCalloutIds() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
                 .NetworkDiagram("Generated", network => network
@@ -205,6 +245,23 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Unknown network node id", unknownTarget.Message);
             Assert.Contains("already exists", nodeCollision.Message);
             Assert.Contains("already exists", zoneCollision.Message);
+        }
+
+        [Fact]
+        public void NetworkDiagramBuilderRejectsAutoCalloutPlacementIssues() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentOutOfRangeException autoPlacement = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.NetworkDiagram("Invalid", network => network
+                    .Switch("core", "Core", 0, 0)
+                    .Callout("core", "Invalid", VisioSide.Auto)));
+            ArgumentOutOfRangeException badGap = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.NetworkDiagram("Invalid", network => network
+                    .Switch("core", "Core", 0, 0)
+                    .Callout("core", "Invalid", VisioSide.Right, double.NaN)));
+
+            Assert.Contains("Placement must be", autoPlacement.Message);
+            Assert.Contains("finite non-negative", badGap.Message);
         }
     }
 }
