@@ -698,7 +698,7 @@ public static class PdfPageExtractor {
             dictionary.Items.TryGetValue("Names", out var names);
             dictionary.Items.TryGetValue("AF", out var associatedFiles);
             dictionary.Items.TryGetValue("OCProperties", out var optionalContent);
-            return new CatalogRewriteState(pageMode, pageLayout, BuildCatalogVersion(sourceObjects, catalogVersion), BuildCatalogLanguage(sourceObjects, catalogLanguage), BuildOutlines(sourceObjects, outlines), pageLabels, namedDestinations, BuildNamedDestinationNameTree(sourceObjects, names), openAction, BuildViewerPreferences(sourceObjects, viewerPreferences), BuildXmpMetadata(sourceObjects, xmpMetadata), BuildCatalogUri(sourceObjects, catalogUri), BuildOutputIntents(sourceObjects, outputIntents), BuildEmbeddedFiles(sourceObjects, names), BuildAssociatedFiles(sourceObjects, associatedFiles), BuildOptionalContent(sourceObjects, optionalContent));
+            return new CatalogRewriteState(pageMode, pageLayout, BuildCatalogVersion(sourceObjects, catalogVersion), BuildCatalogLanguage(sourceObjects, catalogLanguage), BuildOutlines(sourceObjects, outlines), pageLabels, namedDestinations, BuildNamedDestinationNameTree(sourceObjects, names), openAction, BuildViewerPreferences(sourceObjects, viewerPreferences), BuildXmpMetadata(sourceObjects, xmpMetadata), BuildCatalogUri(sourceObjects, catalogUri), BuildOutputIntents(sourceObjects, outputIntents), BuildEmbeddedFiles(sourceObjects, names), BuildAssociatedFiles(sourceObjects, associatedFiles), BuildOptionalContent(sourceObjects, optionalContent), GetPageObjectNumbersInDocumentOrder(sourceObjects, dictionary));
         }
 
         return CatalogRewriteState.Empty;
@@ -715,7 +715,7 @@ public static class PdfPageExtractor {
         var namedDestinationNameTree = BuildNamedDestinationNameTreeForPages(sourceObjects, catalogState.NamedDestinationNameTree, copiedPageObjectIds);
         var openAction = BuildOpenActionForPages(sourceObjects, catalogState.OpenAction, copiedPageObjectIds);
         var outlines = BuildOutlinesForPages(sourceObjects, catalogState.Outlines, copiedPageObjectIds);
-        var pageLabels = BuildPageLabelsForPages(sourceObjects, catalogState.PageLabels, orderedPageObjectNumbers, outputPageIndexOffset, outputPageIndexByPageObjectNumber);
+        var pageLabels = BuildPageLabelsForPages(sourceObjects, catalogState.PageLabels, orderedPageObjectNumbers, outputPageIndexOffset, outputPageIndexByPageObjectNumber, catalogState.SourcePageObjectNumbers);
         string? pageMode = outlines is null && string.Equals(catalogState.PageMode, "UseOutlines", StringComparison.Ordinal)
             ? null
             : catalogState.PageMode;
@@ -1069,7 +1069,8 @@ public static class PdfPageExtractor {
         PdfObject? pageLabels,
         IReadOnlyList<int>? orderedPageObjectNumbers,
         int outputPageIndexOffset,
-        IReadOnlyDictionary<int, int>? outputPageIndexByPageObjectNumber) {
+        IReadOnlyDictionary<int, int>? outputPageIndexByPageObjectNumber,
+        IReadOnlyList<int>? sourcePageOrder = null) {
         if (pageLabels is null || orderedPageObjectNumbers is null || orderedPageObjectNumbers.Count == 0) {
             return pageLabels;
         }
@@ -1083,7 +1084,7 @@ public static class PdfPageExtractor {
             return pageLabels;
         }
 
-        var sourcePageOrder = GetPageObjectNumbersInDocumentOrder(sourceObjects);
+        sourcePageOrder ??= GetPageObjectNumbersInDocumentOrder(sourceObjects);
         if (sourcePageOrder.Count == 0) {
             return pageLabels;
         }
@@ -1155,17 +1156,22 @@ public static class PdfPageExtractor {
         return rewrittenTree;
     }
 
-    private static List<int> GetPageObjectNumbersInDocumentOrder(Dictionary<int, PdfIndirectObject> sourceObjects) {
+    private static List<int> GetPageObjectNumbersInDocumentOrder(Dictionary<int, PdfIndirectObject> sourceObjects, PdfDictionary? catalog = null) {
         var pages = new List<int>();
-        foreach (var entry in sourceObjects) {
-            if (entry.Value.Value is not PdfDictionary catalog ||
-                catalog.Get<PdfName>("Type")?.Name != "Catalog" ||
-                !catalog.Items.TryGetValue("Pages", out var pagesRoot)) {
-                continue;
-            }
-
+        if (catalog is not null &&
+            catalog.Get<PdfName>("Type")?.Name == "Catalog" &&
+            catalog.Items.TryGetValue("Pages", out var pagesRoot)) {
             CollectPageObjectNumbers(sourceObjects, pagesRoot, pages, new HashSet<int>());
-            break;
+            return pages;
+        }
+
+        foreach (var entry in sourceObjects) {
+            if (entry.Value.Value is PdfDictionary scannedCatalog &&
+                scannedCatalog.Get<PdfName>("Type")?.Name == "Catalog" &&
+                scannedCatalog.Items.TryGetValue("Pages", out pagesRoot)) {
+                CollectPageObjectNumbers(sourceObjects, pagesRoot, pages, new HashSet<int>());
+                break;
+            }
         }
 
         return pages;
@@ -2277,9 +2283,9 @@ public static class PdfPageExtractor {
     }
 
     internal sealed class CatalogRewriteState {
-        public static readonly CatalogRewriteState Empty = new CatalogRewriteState(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        public static readonly CatalogRewriteState Empty = new CatalogRewriteState(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
 
-        public CatalogRewriteState(string? pageMode, string? pageLayout, PdfObject? catalogVersion, PdfObject? catalogLanguage, PdfObject? outlines, PdfObject? pageLabels, PdfObject? namedDestinations, PdfObject? namedDestinationNameTree, PdfObject? openAction, PdfObject? viewerPreferences, PdfObject? xmpMetadata, PdfObject? catalogUri, PdfObject? outputIntents, PdfObject? embeddedFiles, PdfObject? associatedFiles, PdfObject? optionalContent) {
+        public CatalogRewriteState(string? pageMode, string? pageLayout, PdfObject? catalogVersion, PdfObject? catalogLanguage, PdfObject? outlines, PdfObject? pageLabels, PdfObject? namedDestinations, PdfObject? namedDestinationNameTree, PdfObject? openAction, PdfObject? viewerPreferences, PdfObject? xmpMetadata, PdfObject? catalogUri, PdfObject? outputIntents, PdfObject? embeddedFiles, PdfObject? associatedFiles, PdfObject? optionalContent, IReadOnlyList<int>? sourcePageObjectNumbers = null) {
             PageMode = string.IsNullOrEmpty(pageMode) ? null : pageMode;
             PageLayout = string.IsNullOrEmpty(pageLayout) ? null : pageLayout;
             CatalogVersion = catalogVersion;
@@ -2296,6 +2302,7 @@ public static class PdfPageExtractor {
             EmbeddedFiles = embeddedFiles;
             AssociatedFiles = associatedFiles;
             OptionalContent = optionalContent;
+            SourcePageObjectNumbers = sourcePageObjectNumbers;
         }
 
         public string? PageMode { get; }
@@ -2329,5 +2336,7 @@ public static class PdfPageExtractor {
         public PdfObject? AssociatedFiles { get; }
 
         public PdfObject? OptionalContent { get; }
+
+        public IReadOnlyList<int>? SourcePageObjectNumbers { get; }
     }
 }

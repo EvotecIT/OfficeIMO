@@ -584,9 +584,9 @@ public static class PdfTextExtractor {
             // Keep the legacy stream scan as a fallback for malformed-but-readable PDFs.
         }
 
-        var (parsedObjects, _) = PdfSyntax.ParseObjects(pdf);
+        var (parsedObjects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         var map = BuildObjectMap(pdf, out _);
-        var pages = CollectPages(parsedObjects);
+        var pages = CollectPages(parsedObjects, trailerRaw);
         var sb = new StringBuilder();
 
         if (pages.Count > 0) {
@@ -1684,19 +1684,10 @@ public static class PdfTextExtractor {
         }
     }
 
-    private static List<PdfDictionary> CollectPages(Dictionary<int, PdfIndirectObject> objects) {
+    private static List<PdfDictionary> CollectPages(Dictionary<int, PdfIndirectObject> objects, string? trailerRaw) {
         var result = new List<PdfDictionary>();
-        int? catalogId = null;
-        foreach (var kv in objects) {
-            if (kv.Value.Value is PdfDictionary dict && dict.Get<PdfName>("Type")?.Name == "Catalog") {
-                catalogId = kv.Key;
-                break;
-            }
-        }
-
-        if (catalogId is int cat &&
-            objects.TryGetValue(cat, out var catalogObject) &&
-            catalogObject.Value is PdfDictionary catalog &&
+        PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw);
+        if (catalog is not null &&
             ResolveDict(catalog.Items.TryGetValue("Pages", out var pagesObj) ? pagesObj : null, objects) is PdfDictionary pagesRoot) {
             TraversePagesNode(pagesRoot, objects, result, new HashSet<int>());
         }
