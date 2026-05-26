@@ -33,9 +33,12 @@ internal static class PdfSyntax {
                 int dictEnd = FindDictEnd(text, dictStart, end);
                 if (dictEnd > dictStart) {
                     string dictText = SafeSlice(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000); // cap to 1 MB
-                    PdfDictionary dict;
+                    PdfDictionary? dict;
                     try { dict = ParseDictionary(dictText); }
-                    catch (Exception ex) when (ex is not OutOfMemoryException) { dict = new PdfDictionary(); }
+                    catch (Exception ex) when (ex is not OutOfMemoryException) { dict = null; }
+                    if (dict is null) {
+                        continue;
+                    }
 
                     // Check for stream section; prefer dictionary /Length when available
                     int streamKw = IndexOfKeyword(text, "stream", dictEnd, end);
