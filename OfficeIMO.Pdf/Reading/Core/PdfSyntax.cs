@@ -1092,6 +1092,7 @@ internal static class PdfSyntax {
     private static void ExpandObjectStreams(Dictionary<int, PdfIndirectObject> map, byte[] pdf) {
         // Snapshot keys to avoid modifying during enumeration
         var keys = new List<int>(map.Keys);
+        var explicitObjectIds = new HashSet<int>(keys);
         foreach (var id in keys) {
             if (!map.TryGetValue(id, out var ind)) continue;
             if (ind.Value is not PdfStream s) continue;
@@ -1112,7 +1113,7 @@ internal static class PdfSyntax {
             for (int i = 0; i < n; i++) {
                 int objNum = pairs[i].Obj;
                 int off = pairs[i].Off;
-                if (map.ContainsKey(objNum)) {
+                if (explicitObjectIds.Contains(objNum)) {
                     continue;
                 }
 
