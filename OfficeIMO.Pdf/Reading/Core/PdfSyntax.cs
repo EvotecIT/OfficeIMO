@@ -88,6 +88,7 @@ internal static class PdfSyntax {
         ThrowIfEncrypted(trailerRaw);
 
         ResolveIndirectStreamLengths(map, pdf, streamLocations);
+        ApplyXrefStreamEntries(map, pdf, parsedOffsets);
         // Expand object streams (/Type /ObjStm) to populate embedded objects (pages and resources often live there)
         ExpandObjectStreams(map, pdf, parsedOffsets);
         ThrowIfEncryptedXrefStream(map);
@@ -1174,6 +1175,228 @@ internal static class PdfSyntax {
         }
     }
 
+    private static void ApplyXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, Dictionary<int, int> parsedOffsets) {
+        var xrefStreams = new List<(int ObjectNumber, int Offset, PdfStream Stream)>();
+        foreach (var entry in map.Values) {
+            if (entry.Value is PdfStream stream &&
+                stream.Dictionary.Get<PdfName>("Type")?.Name == "XRef") {
+                int offset = parsedOffsets.TryGetValue(entry.ObjectNumber, out int parsedOffset) ? parsedOffset : int.MaxValue;
+                xrefStreams.Add((entry.ObjectNumber, offset, stream));
+            }
+        }
+
+        if (xrefStreams.Count == 0) {
+            return;
+        }
+
+        string text = PdfEncoding.Latin1GetString(pdf);
+        if (!TryGetLatestStartXrefOffset(text, out int activeXrefOffset)) {
+            return;
+        }
+
+        xrefStreams.Sort(static (left, right) => left.Offset.CompareTo(right.Offset));
+        if (!xrefStreams.Any(item => item.Offset == activeXrefOffset)) {
+            return;
+        }
+
+        foreach (var xrefStream in xrefStreams) {
+            if (xrefStream.Offset != activeXrefOffset) {
+                continue;
+            }
+
+            byte[] data = Filters.StreamDecoder.Decode(xrefStream.Stream.Dictionary, xrefStream.Stream.Data, map);
+            foreach (var entry in ReadXrefStreamEntries(xrefStream.Stream.Dictionary, data)) {
+                if (entry.Type != 1 ||
+                    entry.Field1 < 0 ||
+                    entry.Field1 > int.MaxValue) {
+                    continue;
+                }
+
+                int offset = (int)entry.Field1;
+                if (TryParseIndirectObjectAt(pdf, text, offset, map, out var parsed) &&
+                    parsed.ObjectNumber == entry.ObjectNumber) {
+                    map[entry.ObjectNumber] = parsed;
+                    parsedOffsets[entry.ObjectNumber] = offset;
+                }
+            }
+        }
+    }
+
+    private static bool TryGetLatestStartXrefOffset(string text, out int offset) {
+        offset = 0;
+        int startXrefIndex = text.LastIndexOf("startxref", StringComparison.Ordinal);
+        if (startXrefIndex < 0) {
+            return false;
+        }
+
+        int index = startXrefIndex + "startxref".Length;
+        while (index < text.Length && char.IsWhiteSpace(text[index])) {
+            index++;
+        }
+
+        long value = 0;
+        int firstDigit = index;
+        while (index < text.Length && char.IsDigit(text[index])) {
+            value = (value * 10) + (text[index] - '0');
+            if (value > int.MaxValue) {
+                return false;
+            }
+
+            index++;
+        }
+
+        if (index == firstDigit) {
+            return false;
+        }
+
+        offset = (int)value;
+        return true;
+    }
+
+    private static IEnumerable<XrefStreamEntry> ReadXrefStreamEntries(PdfDictionary dictionary, byte[] data) {
+        if (data.Length == 0 ||
+            dictionary.Get<PdfArray>("W") is not PdfArray widthsArray ||
+            widthsArray.Items.Count < 3) {
+            yield break;
+        }
+
+        int w0 = GetNonNegativeInt(widthsArray.Items[0]);
+        int w1 = GetNonNegativeInt(widthsArray.Items[1]);
+        int w2 = GetNonNegativeInt(widthsArray.Items[2]);
+        int entryWidth = w0 + w1 + w2;
+        if (entryWidth <= 0) {
+            yield break;
+        }
+
+        var ranges = GetXrefIndexRanges(dictionary);
+        int dataOffset = 0;
+        foreach (var range in ranges) {
+            for (int i = 0; i < range.Count; i++) {
+                if (dataOffset + entryWidth > data.Length) {
+                    yield break;
+                }
+
+                long type = w0 == 0 ? 1 : ReadBigEndian(data, dataOffset, w0);
+                dataOffset += w0;
+                long field1 = ReadBigEndian(data, dataOffset, w1);
+                dataOffset += w1;
+                long field2 = ReadBigEndian(data, dataOffset, w2);
+                dataOffset += w2;
+
+                yield return new XrefStreamEntry(range.FirstObjectNumber + i, type, field1, field2);
+            }
+        }
+    }
+
+    private static List<(int FirstObjectNumber, int Count)> GetXrefIndexRanges(PdfDictionary dictionary) {
+        var ranges = new List<(int, int)>();
+        if (dictionary.Get<PdfArray>("Index") is PdfArray indexArray && indexArray.Items.Count >= 2) {
+            for (int i = 0; i + 1 < indexArray.Items.Count; i += 2) {
+                int first = GetNonNegativeInt(indexArray.Items[i]);
+                int count = GetNonNegativeInt(indexArray.Items[i + 1]);
+                if (count > 0) {
+                    ranges.Add((first, count));
+                }
+            }
+        }
+
+        if (ranges.Count == 0) {
+            int size = GetNonNegativeInt(dictionary.Get<PdfNumber>("Size"));
+            if (size > 0) {
+                ranges.Add((0, size));
+            }
+        }
+
+        return ranges;
+    }
+
+    private static int GetNonNegativeInt(PdfObject? value) {
+        if (value is not PdfNumber number || number.Value <= 0) {
+            return 0;
+        }
+
+        return (int)Math.Min(int.MaxValue, Math.Floor(number.Value));
+    }
+
+    private static long ReadBigEndian(byte[] data, int offset, int length) {
+        long value = 0;
+        for (int i = 0; i < length; i++) {
+            value = (value << 8) | data[offset + i];
+        }
+
+        return value;
+    }
+
+    private static bool TryParseIndirectObjectAt(byte[] pdf, string text, int offset, Dictionary<int, PdfIndirectObject> map, out PdfIndirectObject parsed) {
+        parsed = null!;
+        if (offset < 0 || offset >= text.Length) {
+            return false;
+        }
+
+        Match match = ObjRegex.Match(text, offset);
+        if (!match.Success || match.Index != offset) {
+            return false;
+        }
+
+        int id = int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+        int gen = int.Parse(match.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture);
+        int start = match.Index;
+        int bodyStart = match.Index + match.Length;
+        int end = FindObjectEnd(text, start);
+        if (end < 0) {
+            return false;
+        }
+
+        int dictStart = text.IndexOf("<<", start, end - start, System.StringComparison.Ordinal);
+        if (dictStart >= 0) {
+            int dictEnd = FindDictEnd(text, dictStart, end);
+            if (dictEnd > dictStart) {
+                string dictText = SafeSlice(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000);
+                PdfDictionary? dict;
+                try { dict = ParseDictionary(dictText); }
+                catch (Exception ex) when (ex is not OutOfMemoryException) { dict = null; }
+                if (dict is null) {
+                    return false;
+                }
+
+                int streamKw = IndexOfKeyword(text, "stream", dictEnd, end);
+                if (streamKw >= 0) {
+                    int dataStart = SkipEOL(text, streamKw + 6, end);
+                    int byteLen = -1;
+                    TryGetResolvedLength(dict, map, out byteLen);
+                    if (byteLen < 0) {
+                        int endStream = IndexOfKeyword(text, "endstream", dataStart, end);
+                        if (endStream > dataStart) byteLen = endStream - dataStart;
+                    }
+
+                    if (byteLen >= 0 && dataStart >= 0 && dataStart + byteLen <= pdf.Length) {
+                        var data = new byte[byteLen];
+                        Buffer.BlockCopy(pdf, dataStart, data, 0, byteLen);
+                        parsed = new PdfIndirectObject(id, gen, new PdfStream(dict, data));
+                        return true;
+                    }
+                }
+
+                parsed = new PdfIndirectObject(id, gen, dict);
+                return true;
+            }
+        }
+
+        int bodyEnd = end;
+        if (bodyEnd - 6 >= bodyStart && string.Equals(text.Substring(bodyEnd - 6, 6), "endobj", StringComparison.Ordinal)) {
+            bodyEnd -= 6;
+        }
+
+        string body = SafeSlice(text, bodyStart, bodyEnd - bodyStart, 1_000_000).Trim();
+        var topLevelObject = ParseTopLevelObject(body);
+        if (topLevelObject is null) {
+            return false;
+        }
+
+        parsed = new PdfIndirectObject(id, gen, topLevelObject);
+        return true;
+    }
+
     private static void ExpandObjectStreams(Dictionary<int, PdfIndirectObject> map, byte[] pdf, Dictionary<int, int> parsedOffsets) {
         // Snapshot keys to avoid modifying during enumeration
         var keys = new List<int>(map.Keys);
@@ -1243,6 +1466,20 @@ internal static class PdfSyntax {
             while (i < header.Length && char.IsDigit(header[i])) { v = v * 10 + (header[i] - '0'); i++; any = true; if (i - start > 10) break; }
             val = any ? (int)(v * sign) : 0; return any;
         }
+    }
+
+    private readonly struct XrefStreamEntry {
+        public XrefStreamEntry(int objectNumber, long type, long field1, long field2) {
+            ObjectNumber = objectNumber;
+            Type = type;
+            Field1 = field1;
+            Field2 = field2;
+        }
+
+        public int ObjectNumber { get; }
+        public long Type { get; }
+        public long Field1 { get; }
+        public long Field2 { get; }
     }
 
     private static PdfObject? ParseTopLevelObject(string body) {

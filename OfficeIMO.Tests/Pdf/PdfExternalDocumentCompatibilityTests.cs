@@ -83,6 +83,16 @@ public class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void ExtractText_UsesXrefStreamOffsetsInsteadOfTrailingStaleDuplicateObjects() {
+        byte[] pdf = BuildXrefStreamPdfWithTrailingStaleDuplicatePage();
+
+        string text = Normalize(PdfTextExtractor.ExtractAllText(pdf));
+
+        Assert.Contains("Active xref stream page", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Stale trailing page", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ReadExternalObjectStream_DoesNotOverwriteExplicitIndirectObjects() {
         byte[] pdf = BuildExternalObjectStreamWithExplicitReplacementPdf();
 
@@ -238,6 +248,83 @@ public class PdfExternalDocumentCompatibilityTests {
         };
 
         return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildXrefStreamPdfWithTrailingStaleDuplicatePage() {
+        using var stream = new MemoryStream();
+        var offsets = new Dictionary<int, int>();
+
+        WriteAscii(stream, "%PDF-1.5\n");
+        WriteObject(stream, offsets, 1, "<< /Type /Catalog /Pages 2 0 R >>");
+        WriteObject(stream, offsets, 2, "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 7 0 R >> >> >>");
+        WriteObject(stream, offsets, 3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>");
+        WriteStreamObject(stream, offsets, 4, Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Active xref stream page) Tj\nET\n"));
+        WriteObject(stream, offsets, 7, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+
+        int xrefObjectNumber = 8;
+        offsets[xrefObjectNumber] = (int)stream.Position;
+        byte[] xrefEntries = BuildXrefStreamEntries(offsets, xrefObjectNumber);
+        WriteAscii(stream, xrefObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " 0 obj\n<< /Type /XRef /Size 9 /Root 1 0 R /W [1 4 2] /Index [0 9] /Length " +
+            xrefEntries.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " >>\nstream\n");
+        stream.Write(xrefEntries, 0, xrefEntries.Length);
+        WriteAscii(stream, "\nendstream\nendobj\n");
+
+        WriteAscii(stream, "startxref\n" + offsets[xrefObjectNumber].ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n%%EOF\n");
+
+        WriteObject(stream, offsets, 3, "<< /Type /Page /Parent 2 0 R /Contents 6 0 R >>");
+        WriteStreamObject(stream, offsets, 6, Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Stale trailing page) Tj\nET\n"));
+
+        return stream.ToArray();
+    }
+
+    private static byte[] BuildXrefStreamEntries(Dictionary<int, int> offsets, int xrefObjectNumber) {
+        using var stream = new MemoryStream();
+        WriteXrefEntry(stream, 0, 0, 65535);
+        for (int objectNumber = 1; objectNumber <= 8; objectNumber++) {
+            if (objectNumber == xrefObjectNumber) {
+                WriteXrefEntry(stream, 1, offsets[xrefObjectNumber], 0);
+            } else if (offsets.TryGetValue(objectNumber, out int offset)) {
+                WriteXrefEntry(stream, 1, offset, 0);
+            } else {
+                WriteXrefEntry(stream, 0, 0, 65535);
+            }
+        }
+
+        return stream.ToArray();
+    }
+
+    private static void WriteXrefEntry(Stream stream, int type, int field1, int field2) {
+        stream.WriteByte((byte)type);
+        WriteBigEndian(stream, field1, 4);
+        WriteBigEndian(stream, field2, 2);
+    }
+
+    private static void WriteBigEndian(Stream stream, int value, int byteCount) {
+        for (int shift = (byteCount - 1) * 8; shift >= 0; shift -= 8) {
+            stream.WriteByte((byte)((value >> shift) & 0xFF));
+        }
+    }
+
+    private static void WriteObject(Stream stream, Dictionary<int, int> offsets, int objectNumber, string body) {
+        offsets[objectNumber] = (int)stream.Position;
+        WriteAscii(stream, objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 obj\n" + body + "\nendobj\n");
+    }
+
+    private static void WriteStreamObject(Stream stream, Dictionary<int, int> offsets, int objectNumber, byte[] streamBytes) {
+        offsets[objectNumber] = (int)stream.Position;
+        WriteAscii(stream, objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " 0 obj\n<< /Length " +
+            streamBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " >>\nstream\n");
+        stream.Write(streamBytes, 0, streamBytes.Length);
+        WriteAscii(stream, "\nendstream\nendobj\n");
+    }
+
+    private static void WriteAscii(Stream stream, string value) {
+        byte[] bytes = Encoding.ASCII.GetBytes(value);
+        stream.Write(bytes, 0, bytes.Length);
     }
 
     private static byte[] BuildExternalObjectStreamWithExplicitReplacementPdf() {
