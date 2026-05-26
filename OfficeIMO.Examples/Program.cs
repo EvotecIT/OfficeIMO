@@ -109,6 +109,28 @@ namespace OfficeIMO.Examples {
 
             // Visio - Core Examples
             // Visio.BasicVisioDocument.Example_BasicVisio(folderPath, false);
+            // Visio.FlowchartBuilder.Example_FlowchartBuilder(folderPath, false);
+            // Visio.BlockDiagramBuilder.Example_BlockDiagramBuilder(folderPath, false);
+            // Visio.DependencyDiagramBuilder.Example_DependencyDiagramBuilder(folderPath, false);
+            // Visio.ArchitectureDiagramBuilder.Example_ArchitectureDiagramBuilder(folderPath, false);
+            // Visio.NetworkDiagramBuilder.Example_NetworkDiagramBuilder(folderPath, false);
+            // Visio.NetworkTopologyDiagramBuilder.Example_NetworkTopologyDiagramBuilder(folderPath, false);
+            // Visio.SwimlaneDiagramBuilder.Example_SwimlaneDiagramBuilder(folderPath, false);
+            // Visio.OrgChartDiagramBuilder.Example_OrgChartDiagramBuilder(folderPath, false);
+            // Visio.TimelineDiagramBuilder.Example_TimelineDiagramBuilder(folderPath, false);
+            // Visio.StencilCatalog.Example_StencilCatalog(folderPath, false);
+            // Visio.QueryAndSelection.Example_QueryAndSelection(folderPath, false);
+            // Visio.LayoutEditing.Example_LayoutEditing(folderPath, false);
+            // Visio.LayerEditing.Example_LayerEditing(folderPath, false);
+            // Visio.BackgroundPages.Example_BackgroundPages(folderPath, false);
+            // Visio.PageSettings.Example_PageSettings(folderPath, false);
+            // Visio.HyperlinkEditing.Example_HyperlinkEditing(folderPath, false);
+            // Visio.ContainerEditing.Example_ContainerEditing(folderPath, false);
+            // Visio.ShapeDataEditing.Example_ShapeDataEditing(folderPath, false);
+            // Visio.ProtectionEditing.Example_ProtectionEditing(folderPath, false);
+            // Visio.StyleThemes.Example_StyleThemes(folderPath, false);
+            // Visio.ConnectorRouting.Example_ConnectorRouting(folderPath, false);
+            // Visio.VisualQualityGallery.Example_VisualQualityGallery(folderPath, false);
             // Visio.ConnectRectangles.Example_ConnectRectangles(folderPath, false);
             // Visio.ConnectionPoints.Example_ConnectionPoints(folderPath, false);
             // Visio.ComprehensiveColoredShapes.Example_ComprehensiveColoredShapes(folderPath, false);

@@ -155,19 +155,11 @@ namespace OfficeIMO.Visio {
         public static IReadOnlyList<VisioAssets.MasterInfo> ListMastersIn(string vsdxPath) => VisioAssets.ListMasters(vsdxPath);
 
         /// <summary>
-        /// Imports master names from a VSDX file and registers only the library-supported
-        /// generated equivalents so shapes can reference them by NameU. If <paramref name="names"/>
-        /// is null or empty, all discoverable supported masters are registered.
+        /// Learns master names from a VSDX file and registers only the library-supported
+        /// generated equivalents so shapes can reference them by NameU. This does not ingest,
+        /// clone, or depend on the source VSDX as a runtime template.
         /// </summary>
-        public void ImportMasters(string vsdxPath, IEnumerable<string>? names = null) {
-            ImportMastersAndGet(vsdxPath, names);
-        }
-
-        /// <summary>
-        /// Imports master names from a VSDX file and returns the registered generated masters
-        /// that are natively implemented by the library.
-        /// </summary>
-        public IReadOnlyList<VisioMaster> ImportMastersAndGet(string vsdxPath, IEnumerable<string>? names = null) {
+        public IReadOnlyList<VisioMaster> LearnMastersFromVsdx(string vsdxPath, IEnumerable<string>? names = null) {
             HashSet<string>? filter = names != null ? new HashSet<string>(names, StringComparer.OrdinalIgnoreCase) : null;
             IReadOnlyList<VisioAssets.MasterInfo> discovered = VisioAssets.ListMasters(vsdxPath);
             List<VisioMaster> imported = new();
@@ -182,6 +174,23 @@ namespace OfficeIMO.Visio {
             }
 
             return imported.AsReadOnly();
+        }
+
+        /// <summary>
+        /// Imports master names from a VSDX file and registers only the library-supported
+        /// generated equivalents so shapes can reference them by NameU. If <paramref name="names"/>
+        /// is null or empty, all discoverable supported masters are registered.
+        /// </summary>
+        public void ImportMasters(string vsdxPath, IEnumerable<string>? names = null) {
+            LearnMastersFromVsdx(vsdxPath, names);
+        }
+
+        /// <summary>
+        /// Imports master names from a VSDX file and returns the registered generated masters
+        /// that are natively implemented by the library.
+        /// </summary>
+        public IReadOnlyList<VisioMaster> ImportMastersAndGet(string vsdxPath, IEnumerable<string>? names = null) {
+            return LearnMastersFromVsdx(vsdxPath, names);
         }
 
         /// <summary>
@@ -204,6 +213,20 @@ namespace OfficeIMO.Visio {
             page.DefaultUnit = unit; // remember authoring unit for this page
             page.ScaleMeasurementUnit = unit;
             _pages.Add(page);
+            return page;
+        }
+
+        /// <summary>
+        /// Adds a Visio background page that can be reused by foreground pages.
+        /// </summary>
+        /// <param name="name">Name of the background page.</param>
+        /// <param name="width">Page width.</param>
+        /// <param name="height">Page height.</param>
+        /// <param name="unit">Measurement unit for width and height.</param>
+        /// <param name="id">Optional page identifier.</param>
+        public VisioPage AddBackgroundPage(string name, double width = 8.26771653543307, double height = 11.69291338582677, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches, int? id = null) {
+            VisioPage page = AddPage(name, width, height, unit, id);
+            page.IsBackground = true;
             return page;
         }
 
@@ -249,12 +272,12 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
-        /// Learns the available master names from a template VSDX and registers generated
-        /// library equivalents for those names.
+        /// Backward-compatible alias for <see cref="LearnMastersFromVsdx"/>. This learns
+        /// supported master names from a VSDX file but does not use it as a runtime template.
         /// </summary>
         /// <param name="vsdxPath">Path to a VSDX file that contains canonical masters.</param>
         public void UseMastersFromTemplate(string vsdxPath) {
-            ImportMasters(vsdxPath);
+            LearnMastersFromVsdx(vsdxPath);
         }
 
         /// <summary>
@@ -262,6 +285,13 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public static IReadOnlyCollection<string> SupportedBuiltinMasters =>
             BuiltinMasterDefinitions.Keys.ToList().AsReadOnly();
+
+        /// <summary>
+        /// Returns whether the library can generate a built-in master with the provided universal name.
+        /// </summary>
+        public static bool IsBuiltinMasterSupported(string? nameU) {
+            return TryGetBuiltinMasterDefinition(nameU, out _);
+        }
 
         /// <summary>
         /// Registers a master on the document so it can be reused by name.

@@ -91,6 +91,73 @@ namespace OfficeIMO.Visio {
         /// Optional label displayed alongside the connector.
         /// </summary>
         public string? Label { get; set; }
+
+        /// <summary>
+        /// Optional placement information for connector text.
+        /// </summary>
+        public VisioConnectorLabelPlacement? LabelPlacement { get; set; }
+
+        /// <summary>
+        /// Gets or sets whole-label text formatting for this connector.
+        /// </summary>
+        public VisioTextStyle? TextStyle { get; set; }
+
+        /// <summary>
+        /// Explicit page-coordinate waypoints between the start and end of the connector.
+        /// </summary>
+        public IList<VisioConnectorWaypoint> Waypoints { get; } = new List<VisioConnectorWaypoint>();
+
+        /// <summary>
+        /// Page layer names this connector belongs to.
+        /// </summary>
+        public ISet<string> LayerNames { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Hyperlinks attached to this connector.
+        /// </summary>
+        public IList<VisioHyperlink> Hyperlinks { get; } = new List<VisioHyperlink>();
+
+        /// <summary>
+        /// Visio ShapeSheet protection cells controlling interactive connector editing in Visio.
+        /// </summary>
+        public VisioProtection Protection { get; } = new VisioProtection();
+
+        /// <summary>
+        /// Gets or sets the connector-level Visio routing style. When null, Visio uses the page default.
+        /// </summary>
+        public VisioPageRouteStyle? RouteStyle { get; set; }
+
+        /// <summary>
+        /// Gets or sets the connector-level appearance for routed connectors.
+        /// </summary>
+        public VisioLineRouteExtension? RouteAppearance { get; set; }
+
+        /// <summary>
+        /// Gets or sets the connector-level line jump style.
+        /// </summary>
+        public VisioLineJumpStyle? LineJumpStyle { get; set; }
+
+        /// <summary>
+        /// Gets or sets when this connector receives line jumps.
+        /// </summary>
+        public VisioConnectorLineJumpCode? LineJumpCode { get; set; }
+
+        /// <summary>
+        /// Gets or sets the jump direction for horizontal segments of this connector.
+        /// </summary>
+        public VisioHorizontalLineJumpDirection? HorizontalJumpDirection { get; set; }
+
+        /// <summary>
+        /// Gets or sets the jump direction for vertical segments of this connector.
+        /// </summary>
+        public VisioVerticalLineJumpDirection? VerticalJumpDirection { get; set; }
+
+        /// <summary>
+        /// Gets or sets when Visio may reroute this connector.
+        /// </summary>
+        public VisioConnectorRerouteBehavior? RerouteBehavior { get; set; }
+
+        internal IList<int> LayerIndexes { get; } = new List<int>();
         
         /// <summary>
         /// Line color of the connector.
@@ -134,7 +201,86 @@ namespace OfficeIMO.Visio {
 
         internal string? PreservedTextValue { get; set; }
 
+        internal bool HasModeledCharSection { get; set; }
+
+        internal bool HasModeledParaSection { get; set; }
+
         internal bool HasAutomaticId { get; }
+
+        /// <summary>
+        /// Adds a hyperlink to this connector.
+        /// </summary>
+        /// <param name="address">External hyperlink address.</param>
+        /// <param name="description">Optional display description.</param>
+        /// <param name="subAddress">Optional internal sub-address.</param>
+        /// <returns>The created hyperlink row.</returns>
+        public VisioHyperlink AddHyperlink(string address, string? description = null, string? subAddress = null) {
+            if (string.IsNullOrWhiteSpace(address)) {
+                throw new ArgumentException("Hyperlink address cannot be empty.", nameof(address));
+            }
+
+            VisioHyperlink hyperlink = new(address, description, subAddress);
+            Hyperlinks.Add(hyperlink);
+            return hyperlink;
+        }
+
+        /// <summary>
+        /// Adds a hyperlink to this connector.
+        /// </summary>
+        /// <param name="address">External hyperlink address.</param>
+        /// <param name="description">Optional display description.</param>
+        /// <param name="subAddress">Optional internal sub-address.</param>
+        /// <returns>The created hyperlink row.</returns>
+        public VisioHyperlink AddHyperlink(Uri address, string? description = null, string? subAddress = null) {
+            if (address == null) {
+                throw new ArgumentNullException(nameof(address));
+            }
+
+            return AddHyperlink(address.ToString(), description, subAddress);
+        }
+
+        /// <summary>
+        /// Configures ShapeSheet protection cells for this connector.
+        /// </summary>
+        /// <param name="configure">Protection configuration delegate.</param>
+        public VisioConnector Protect(Action<VisioProtection> configure) {
+            if (configure == null) {
+                throw new ArgumentNullException(nameof(configure));
+            }
+
+            configure(Protection);
+            return this;
+        }
+
+        /// <summary>
+        /// Locks or unlocks connector endpoints.
+        /// </summary>
+        public VisioConnector LockEndpoints(bool locked = true) {
+            Protection.Endpoints(locked);
+            return this;
+        }
+
+        /// <summary>
+        /// Clears explicit ShapeSheet protection cells from this connector.
+        /// </summary>
+        public VisioConnector ClearProtection() {
+            Protection.Clear();
+            return this;
+        }
+
+        /// <summary>
+        /// Clears explicit Shape Layout routing override cells from this connector.
+        /// </summary>
+        public VisioConnector ClearRoutingPolicy() {
+            RouteStyle = null;
+            RouteAppearance = null;
+            LineJumpStyle = null;
+            LineJumpCode = null;
+            HorizontalJumpDirection = null;
+            VerticalJumpDirection = null;
+            RerouteBehavior = null;
+            return this;
+        }
 
         private static string GetNextId(VisioShape from, VisioShape to) {
             int fromId = int.TryParse(from.Id, out int fi) ? fi : 0;

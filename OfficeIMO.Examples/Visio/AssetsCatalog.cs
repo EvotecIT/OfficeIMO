@@ -4,7 +4,7 @@ using OfficeIMO.Visio;
 
 namespace OfficeIMO.Examples.Visio {
     /// <summary>
-    /// Demonstrates listing masters in a VSDX and selectively importing/extracting them.
+    /// Demonstrates listing masters in a VSDX and selectively learning/extracting them.
     /// </summary>
     internal static class AssetsCatalog {
         internal static void Example_ListAndExtractMasters(string folderPath, bool openVisio) {
@@ -20,11 +20,12 @@ namespace OfficeIMO.Examples.Visio {
             string outDir = Path.Combine(folderPath, "ExtractedMasters");
             VisioAssets.ExtractMasters(sample, outDir, new[] { "Ellipse", "Diamond", "Triangle" });
 
-            // Import a subset into a new document, then use them by NameU
+            // Learn a supported subset into a new document, then use them by NameU.
+            // The sample VSDX is an inspection fixture, not a runtime template.
             string filePath = Path.Combine(folderPath, "MasterCatalog Demo.vsdx");
             var doc = VisioDocument.Create(filePath);
             doc.UseMastersByDefault = true;
-            doc.ImportMasters(sample, new[] { "Ellipse", "Diamond", "Triangle", "Rectangle" });
+            doc.LearnMastersFromVsdx(sample, new[] { "Ellipse", "Diamond", "Triangle", "Rectangle" });
             var page = doc.AddPage("Assets Demo", 29.7, 21.0, VisioMeasurementUnit.Centimeters);
             page.Shapes.Add(new VisioShape("1") { NameU = "Ellipse", PinX = 6, PinY = 12, Width = 4, Height = 3, Text = "Ellipse" });
             page.Shapes.Add(new VisioShape("2") { NameU = "Diamond", PinX = 13, PinY = 12, Width = 3.5, Height = 3, Text = "Diamond" });

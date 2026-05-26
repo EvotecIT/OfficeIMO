@@ -19,14 +19,14 @@ namespace OfficeIMO.Examples.Visio {
             doc.WriteMasterDeltasOnly = false;
             doc.RequestRecalcOnOpen();
 
-            // Prefer canonical masters from the provided asset to match real Visio output
+            // Learn supported master names from sample VSDX files; generated output still comes from OfficeIMO code.
             try {
                 string baseDir = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "VisioTemplates"));
                 string[] candidates = {
                     Path.Combine(baseDir, "DrawingWithShapes.vsdx"),
                     Path.Combine(baseDir, "DrawingWithLotsOfShapresAndArrows.vsdx")
                 };
-                foreach (var c in candidates) if (File.Exists(c)) doc.UseMastersFromTemplate(c);
+                foreach (var c in candidates) if (File.Exists(c)) doc.LearnMastersFromVsdx(c);
             } catch { /* optional */ }
 
             var page = doc.AddPage("All Shapes (Typed)", 29.7, 21.0, VisioMeasurementUnit.Centimeters);

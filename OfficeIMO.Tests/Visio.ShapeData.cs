@@ -1,26 +1,102 @@
 using System;
 using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Xml.Linq;
 using OfficeIMO.Visio;
 using Xunit;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Tests {
-    public class VisioShapeData {
+    public class VisioShapeDataTests {
         [Fact]
-        public void RoundTripsShapeData() {
+        public void TypedShapeDataSavesLoadsPreservesMetadataAndKeepsDictionaryCompatibility() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Page-1");
-            VisioShape shape = new("1", 2, 3, 4, 5, string.Empty);
-            shape.Data["Key"] = "Value";
-            page.Shapes.Add(shape);
+            VisioPage page = document.AddPage("Shape Data", 8.5, 6);
+            VisioShape server = page.AddRectangle(2.5, 4, 2.2, 1, "Server");
+            server.SetShapeData("Owner", "Operations", "Owner", VisioShapeDataType.String, "Owning support team");
+            VisioShapeDataRow cost = server.SetShapeData("MonthlyCost", "1250", "Monthly cost", VisioShapeDataType.Currency, "Estimated monthly cost", "$#,##0");
+            cost.SortKey = "020";
+            cost.Verify = true;
+
+            page.AddRectangle(6, 4, 2.2, 1, "Database")
+                .SetShapeData("Owner", "Data", "Owner", VisioShapeDataType.String, "Owning support team");
+
+            page.SelectWithShapeData("Owner", "Operations")
+                .Fill(Color.LightBlue)
+                .ShapeData("Reviewed", "Yes", "Reviewed", VisioShapeDataType.Boolean, "Architecture review complete");
+
+            Assert.Single(page.ShapesWithShapeData("Owner", "Operations"));
+            Assert.Single(page.ShapesWithData("Reviewed", "Yes"));
+
             document.Save();
 
-            VisioDocument roundTrip = VisioDocument.Load(filePath);
-            VisioShape loaded = roundTrip.Pages[0].Shapes[0];
-            Assert.True(loaded.Data.TryGetValue("Key", out string? value));
-            Assert.Equal("Value", value);
+            Assert.Empty(VisioValidator.Validate(filePath));
+            AssertShapeDataXml(filePath, "Operations", "Yes");
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioShape loadedServer = loaded.Pages[0].Shapes.Single(shape => shape.Text == "Server");
+            Assert.Equal("Operations", loadedServer.GetShapeDataValue("Owner"));
+            Assert.Equal("Owner", loadedServer.FindShapeData("Owner")!.Label);
+            Assert.Equal("Owning support team", loadedServer.FindShapeData("Owner")!.Prompt);
+            Assert.Equal(VisioShapeDataType.Currency, loadedServer.FindShapeData("MonthlyCost")!.Type);
+            Assert.Equal("$#,##0", loadedServer.FindShapeData("MonthlyCost")!.Format);
+            Assert.True(loadedServer.FindShapeData("MonthlyCost")!.Verify);
+
+            loadedServer.Data["Owner"] = "Platform";
+            Assert.Equal("Platform", loadedServer.GetShapeDataValue("Owner"));
+            loaded.Save(updatedPath);
+
+            Assert.Empty(VisioValidator.Validate(updatedPath));
+            AssertShapeDataXml(updatedPath, "Platform", "Yes");
         }
 
+        private static void AssertShapeDataXml(string filePath, string ownerValue, string reviewedValue) {
+            using ZipArchive archive = ZipFile.OpenRead(filePath);
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XDocument page = ReadXml(archive, "visio/pages/page1.xml");
+            XElement server = page.Descendants(ns + "Shape")
+                .Single(shape => shape.Element(ns + "Text")?.Value == "Server");
+            XElement propSection = server.Elements(ns + "Section")
+                .Single(section => (string?)section.Attribute("N") == "Prop");
+
+            XElement owner = Row(propSection, ns, "Owner");
+            Assert.Equal(ownerValue, CellValue(owner, ns, "Value"));
+            Assert.Equal("Owner", CellValue(owner, ns, "Label"));
+            Assert.Equal("Owning support team", CellValue(owner, ns, "Prompt"));
+            Assert.Equal(((int)VisioShapeDataType.String).ToString(), CellValue(owner, ns, "Type"));
+
+            XElement cost = Row(propSection, ns, "MonthlyCost");
+            Assert.Equal("1250", CellValue(cost, ns, "Value"));
+            Assert.Equal(((int)VisioShapeDataType.Currency).ToString(), CellValue(cost, ns, "Type"));
+            Assert.Equal("$#,##0", CellValue(cost, ns, "Format"));
+            Assert.Equal("1", CellValue(cost, ns, "Verify"));
+
+            XElement reviewed = Row(propSection, ns, "Reviewed");
+            Assert.Equal(reviewedValue, CellValue(reviewed, ns, "Value"));
+            Assert.Equal("Reviewed", CellValue(reviewed, ns, "Label"));
+            Assert.Equal(((int)VisioShapeDataType.Boolean).ToString(), CellValue(reviewed, ns, "Type"));
+        }
+
+        private static XElement Row(XElement section, XNamespace ns, string name) {
+            return section.Elements(ns + "Row")
+                .Single(row => (string?)row.Attribute("N") == name);
+        }
+
+        private static string CellValue(XElement row, XNamespace ns, string cellName) {
+            return row.Elements(ns + "Cell")
+                .Single(cell => (string?)cell.Attribute("N") == cellName)
+                .Attribute("V")!
+                .Value;
+        }
+
+        private static XDocument ReadXml(ZipArchive archive, string entryName) {
+            ZipArchiveEntry entry = archive.GetEntry(entryName) ?? throw new InvalidOperationException("Missing " + entryName);
+            using Stream stream = entry.Open();
+            return XDocument.Load(stream);
+        }
     }
 }

@@ -106,6 +106,39 @@ namespace OfficeIMO.Tests {
                 issue.IndexOf("Missing Override", StringComparison.OrdinalIgnoreCase) >= 0);
             Assert.DoesNotContain(issues, issue => issue.Contains("Page ID 0 (Page-1)"));
         }
+
+        [Fact]
+        public void ValidatorAcceptsVisioStyleRelativeRootDocumentRelationshipTarget() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Page-1");
+            page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Start"));
+            document.Save();
+
+            using (FileStream stream = new(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            using (ZipArchive archive = new(stream, ZipArchiveMode.Update)) {
+                ZipArchiveEntry? entry = archive.GetEntry("_rels/.rels");
+                Assert.NotNull(entry);
+                XDocument relationships;
+                using (Stream entryStream = entry!.Open()) {
+                    relationships = XDocument.Load(entryStream);
+                }
+
+                XNamespace packageRelationships = "http://schemas.openxmlformats.org/package/2006/relationships";
+                XElement documentRelationship = relationships.Root!
+                    .Elements(packageRelationships + "Relationship")
+                    .Single(element => (string?)element.Attribute("Type") == "http://schemas.microsoft.com/visio/2010/relationships/document");
+                documentRelationship.SetAttributeValue("Target", "visio/document.xml");
+
+                entry.Delete();
+                ZipArchiveEntry newEntry = archive.CreateEntry("_rels/.rels");
+                using Stream newEntryStream = newEntry.Open();
+                relationships.Save(newEntryStream);
+            }
+
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
     }
 }
 

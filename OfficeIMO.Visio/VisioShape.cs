@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Xml.Linq;
 using Color = OfficeIMO.Drawing.OfficeColor;
@@ -162,6 +163,11 @@ namespace OfficeIMO.Visio {
         /// Gets or sets the text contained in the shape.
         /// </summary>
         public string? Text { get; set; }
+
+        /// <summary>
+        /// Gets or sets whole-shape text formatting.
+        /// </summary>
+        public VisioTextStyle? TextStyle { get; set; }
         
         /// <summary>
         /// Line (border) color of the shape.
@@ -199,6 +205,110 @@ namespace OfficeIMO.Visio {
         public IList<VisioConnectionPoint> ConnectionPoints { get; } = new List<VisioConnectionPoint>();
 
         /// <summary>
+        /// Page layer names this shape belongs to.
+        /// </summary>
+        public ISet<string> LayerNames { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Hyperlinks attached to this shape.
+        /// </summary>
+        public IList<VisioHyperlink> Hyperlinks { get; } = new List<VisioHyperlink>();
+
+        /// <summary>
+        /// User-defined ShapeSheet cells attached to this shape.
+        /// </summary>
+        public IList<VisioUserCell> UserCells { get; } = new List<VisioUserCell>();
+
+        /// <summary>
+        /// Visio Shape Data rows attached to this shape.
+        /// </summary>
+        public IList<VisioShapeDataRow> ShapeData { get; } = new List<VisioShapeDataRow>();
+
+        /// <summary>
+        /// Visio ShapeSheet protection cells controlling interactive editing in Visio.
+        /// </summary>
+        public VisioShapeProtection Protection { get; } = new VisioShapeProtection();
+
+        /// <summary>
+        /// Gets or sets the shape-level placement style Visio uses during page layout.
+        /// </summary>
+        public VisioPlacementStyle? PlacementStyle { get; set; }
+
+        /// <summary>
+        /// Gets or sets how Visio may flip or rotate this shape during page layout.
+        /// </summary>
+        public VisioPlacementFlip? PlacementFlip { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether this shape moves away when another placeable shape is dropped nearby.
+        /// </summary>
+        public VisioShapePlowCode? PlowCode { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether other placeable shapes may be placed on top of this shape during layout.
+        /// </summary>
+        public bool? AllowPlacementOnTop { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether connectors may route horizontally through this shape.
+        /// </summary>
+        public bool? AllowHorizontalConnectorRoutingThrough { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether connectors may route vertically through this shape.
+        /// </summary>
+        public bool? AllowVerticalConnectorRoutingThrough { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether this shape may split other splittable shapes.
+        /// </summary>
+        public bool? CanSplitShapes { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether this shape can be split by another shape.
+        /// </summary>
+        public bool? CanBeSplit { get; set; }
+
+        /// <summary>
+        /// Shape identifiers this shape contains when it is used as a container.
+        /// </summary>
+        public IList<string> ContainerMemberIds { get; } = new List<string>();
+
+        /// <summary>
+        /// Container shape identifiers this shape belongs to.
+        /// </summary>
+        public IList<string> ContainerOwnerIds { get; } = new List<string>();
+
+        /// <summary>
+        /// Gets whether this shape is marked as a Visio container.
+        /// </summary>
+        public bool IsContainer =>
+            string.Equals(GetUserCellValue("msvStructureType"), "Container", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Gets whether this shape is marked as an OfficeIMO callout or annotation.
+        /// </summary>
+        public bool IsCallout =>
+            string.Equals(GetUserCellValue(VisioSemanticUserCells.Kind), VisioSemanticUserCells.CalloutKind, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Gets whether this shape is marked as a background surface such as a region, zone, lane, or band.
+        /// </summary>
+        public bool IsBackgroundSurface =>
+            string.Equals(GetUserCellValue(VisioSemanticUserCells.Kind), VisioSemanticUserCells.BackgroundSurfaceKind, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Gets the target shape identifier for an OfficeIMO callout, if available.
+        /// </summary>
+        public string? CalloutTargetId => GetUserCellValue(VisioSemanticUserCells.CalloutTargetId);
+
+        internal IList<int> LayerIndexes { get; } = new List<int>();
+
+        internal string? RelationshipsValue { get; set; }
+
+        internal string? RelationshipsFormula { get; set; }
+
+        /// <summary>
         /// Geometry sections captured from a loaded package so custom shape outlines can be preserved on save.
         /// </summary>
         internal IList<XElement> PreservedGeometrySections { get; } = new List<XElement>();
@@ -213,12 +323,217 @@ namespace OfficeIMO.Visio {
 
         internal string? PreservedTextValue { get; set; }
 
+        internal bool HasModeledCharSection { get; set; }
+
+        internal bool HasModeledParaSection { get; set; }
+
         internal IList<XElement> PreservedDataRows { get; } = new List<XElement>();
 
         /// <summary>
         /// Arbitrary data associated with the shape.
         /// </summary>
         public Dictionary<string, string> Data { get; } = new();
+
+        /// <summary>
+        /// Adds a hyperlink to this shape.
+        /// </summary>
+        /// <param name="address">External hyperlink address.</param>
+        /// <param name="description">Optional display description.</param>
+        /// <param name="subAddress">Optional internal sub-address.</param>
+        /// <returns>The created hyperlink row.</returns>
+        public VisioHyperlink AddHyperlink(string address, string? description = null, string? subAddress = null) {
+            if (string.IsNullOrWhiteSpace(address)) {
+                throw new ArgumentException("Hyperlink address cannot be empty.", nameof(address));
+            }
+
+            VisioHyperlink hyperlink = new(address, description, subAddress);
+            Hyperlinks.Add(hyperlink);
+            return hyperlink;
+        }
+
+        /// <summary>
+        /// Adds a hyperlink to this shape.
+        /// </summary>
+        /// <param name="address">External hyperlink address.</param>
+        /// <param name="description">Optional display description.</param>
+        /// <param name="subAddress">Optional internal sub-address.</param>
+        /// <returns>The created hyperlink row.</returns>
+        public VisioHyperlink AddHyperlink(Uri address, string? description = null, string? subAddress = null) {
+            if (address == null) {
+                throw new ArgumentNullException(nameof(address));
+            }
+
+            return AddHyperlink(address.ToString(), description, subAddress);
+        }
+
+        /// <summary>
+        /// Finds a user-defined ShapeSheet cell by row name.
+        /// </summary>
+        /// <param name="name">User cell row name.</param>
+        public VisioUserCell? FindUserCell(string name) {
+            if (string.IsNullOrWhiteSpace(name)) {
+                throw new ArgumentException("User cell name cannot be empty.", nameof(name));
+            }
+
+            foreach (VisioUserCell cell in UserCells) {
+                if (string.Equals(cell.Name, name, StringComparison.OrdinalIgnoreCase)) {
+                    return cell;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets a user-defined ShapeSheet cell value by row name.
+        /// </summary>
+        /// <param name="name">User cell row name.</param>
+        public string? GetUserCellValue(string name) {
+            return FindUserCell(name)?.Value;
+        }
+
+        /// <summary>
+        /// Sets or creates a user-defined ShapeSheet cell.
+        /// </summary>
+        /// <param name="name">User cell row name.</param>
+        /// <param name="value">Value cell contents.</param>
+        /// <param name="unit">Optional unit.</param>
+        /// <param name="formula">Optional ShapeSheet formula.</param>
+        /// <param name="prompt">Optional prompt.</param>
+        public VisioUserCell SetUserCell(string name, string? value, string? unit = null, string? formula = null, string? prompt = null) {
+            VisioUserCell? cell = FindUserCell(name);
+            if (cell == null) {
+                cell = new VisioUserCell(name);
+                UserCells.Add(cell);
+            }
+
+            cell.Value = value;
+            cell.Unit = unit;
+            cell.Formula = formula;
+            cell.Prompt = prompt;
+            return cell;
+        }
+
+        /// <summary>
+        /// Finds a Shape Data row by row name.
+        /// </summary>
+        /// <param name="name">Shape Data row name.</param>
+        public VisioShapeDataRow? FindShapeData(string name) {
+            if (string.IsNullOrWhiteSpace(name)) {
+                throw new ArgumentException("Shape data name cannot be empty.", nameof(name));
+            }
+
+            foreach (VisioShapeDataRow row in ShapeData) {
+                if (string.Equals(row.Name, name, StringComparison.OrdinalIgnoreCase)) {
+                    return row;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets a Shape Data value by row name.
+        /// </summary>
+        /// <param name="name">Shape Data row name.</param>
+        public string? GetShapeDataValue(string name) {
+            VisioShapeDataRow? row = FindShapeData(name);
+            if (row != null) {
+                if (Data.TryGetValue(name, out string? current) &&
+                    row.LoadedValue != null &&
+                    string.Equals(row.Value, row.LoadedValue, StringComparison.Ordinal) &&
+                    !string.Equals(current, row.Value, StringComparison.Ordinal)) {
+                    return current;
+                }
+
+                return row.Value;
+            }
+
+            return Data.TryGetValue(name, out string? value) ? value : null;
+        }
+
+        /// <summary>
+        /// Sets or creates a Shape Data row.
+        /// </summary>
+        /// <param name="name">Shape Data row name.</param>
+        /// <param name="value">Shape Data value.</param>
+        /// <param name="label">Optional label shown in Visio's Shape Data window.</param>
+        /// <param name="type">Optional Shape Data type.</param>
+        /// <param name="prompt">Optional help prompt.</param>
+        /// <param name="format">Optional format picture or list values.</param>
+        public VisioShapeDataRow SetShapeData(string name, string? value, string? label = null, VisioShapeDataType? type = null, string? prompt = null, string? format = null) {
+            VisioShapeDataRow? row = FindShapeData(name);
+            if (row == null) {
+                row = new VisioShapeDataRow(name);
+                ShapeData.Add(row);
+            }
+
+            row.Value = value;
+            if (label != null) row.Label = label;
+            if (type.HasValue) row.Type = type.Value;
+            if (prompt != null) row.Prompt = prompt;
+            if (format != null) row.Format = format;
+
+            if (value != null) {
+                Data[name] = value;
+            } else {
+                Data.Remove(name);
+            }
+
+            return row;
+        }
+
+        /// <summary>
+        /// Configures ShapeSheet protection cells for this shape.
+        /// </summary>
+        /// <param name="configure">Protection configuration delegate.</param>
+        public VisioShape Protect(Action<VisioShapeProtection> configure) {
+            if (configure == null) {
+                throw new ArgumentNullException(nameof(configure));
+            }
+
+            configure(Protection);
+            return this;
+        }
+
+        /// <summary>
+        /// Locks or unlocks this shape's size.
+        /// </summary>
+        public VisioShape LockSize(bool locked = true) {
+            Protection.Size(locked);
+            return this;
+        }
+
+        /// <summary>
+        /// Locks or unlocks this shape's position.
+        /// </summary>
+        public VisioShape LockPosition(bool locked = true) {
+            Protection.Position(locked);
+            return this;
+        }
+
+        /// <summary>
+        /// Clears explicit ShapeSheet protection cells from this shape.
+        /// </summary>
+        public VisioShape ClearProtection() {
+            Protection.Clear();
+            return this;
+        }
+
+        /// <summary>
+        /// Clears explicit Shape Layout override cells from this shape.
+        /// </summary>
+        public VisioShape ClearLayoutPolicy() {
+            PlacementStyle = null;
+            PlacementFlip = null;
+            PlowCode = null;
+            AllowPlacementOnTop = null;
+            AllowHorizontalConnectorRoutingThrough = null;
+            AllowVerticalConnectorRoutingThrough = null;
+            CanSplitShapes = null;
+            CanBeSplit = null;
+            return this;
+        }
 
         /// <summary>
         /// Recursively searches the shape hierarchy for a shape with the provided identifier.
