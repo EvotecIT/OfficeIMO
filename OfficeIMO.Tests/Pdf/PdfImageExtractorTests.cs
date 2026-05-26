@@ -231,6 +231,39 @@ public class PdfImageExtractorTests {
     }
 
     [Fact]
+    public void ExtractImagesByPageRanges_WritesRepeatedSourcePageImageFilesWithoutCollisions() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-pdf-image-range-repeat-files-" + Guid.NewGuid().ToString("N"));
+        string inputPath = Path.Combine(directory, "source.pdf");
+        string outputDirectory = Path.Combine(directory, "images");
+
+        try {
+            Directory.CreateDirectory(directory);
+            byte[] stamped = PdfStamper.StampImage(BuildThreePagePdf(), CreateMinimalRgbPng(), new PdfImageStampOptions {
+                PageNumbers = new[] { 1, 3 },
+                Width = 24,
+                Height = 24
+            });
+            File.WriteAllBytes(inputPath, stamped);
+
+            IReadOnlyList<string> paths = PdfImageExtractor.ExtractImagesByPageRanges(inputPath, outputDirectory, PdfPageRange.ParseMany("3,1,3"));
+
+            Assert.Equal(3, paths.Count);
+            Assert.Equal(Path.Combine(outputDirectory, "source-page-0003-image-0001.png"), paths[0]);
+            Assert.Equal(Path.Combine(outputDirectory, "source-page-0001-image-0002.png"), paths[1]);
+            Assert.Equal(Path.Combine(outputDirectory, "source-page-0003-image-0003.png"), paths[2]);
+            Assert.Equal(3, new HashSet<string>(paths, StringComparer.OrdinalIgnoreCase).Count);
+            foreach (string path in paths) {
+                Assert.True(File.Exists(path));
+                AssertPngSignature(File.ReadAllBytes(path));
+            }
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void ExtractImages_RejectsNullInputs() {
         Assert.Throws<ArgumentNullException>(() => PdfImageExtractor.ExtractImages((byte[])null!));
         Assert.Throws<ArgumentNullException>(() => PdfImageExtractor.ExtractImages((string)null!));
