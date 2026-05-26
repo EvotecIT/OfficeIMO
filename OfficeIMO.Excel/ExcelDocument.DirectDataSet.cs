@@ -1015,6 +1015,86 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        internal bool TrySetDirectTabularSaveCandidateColumnNumberFormat(ExcelSheet sheet, int columnIndex, string numberFormat) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (string.IsNullOrWhiteSpace(numberFormat)) {
+                return false;
+            }
+
+            var candidate = _directDataSetSaveCandidate;
+            if (candidate == null || !candidate.IsValid || candidate.Model.Sheets.Count != 1) {
+                return false;
+            }
+
+            var sheetModel = candidate.Model.Sheets[0];
+            if (!ReferenceEquals(sheet.Document, this)
+                || !string.Equals(sheetModel.SheetName, sheet.Name, StringComparison.Ordinal)
+                || columnIndex <= 0
+                || columnIndex > sheetModel.Table.ColumnCount) {
+                return false;
+            }
+
+            try {
+                var model = candidate.Model.WithColumnNumberFormat(sheet.Name, columnIndex, numberFormat);
+                _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(
+                    candidate.Owner,
+                    model,
+                    candidate.InvalidateCallback,
+                    candidate.IsDeferred,
+                    subscribeToSourceChanges: false);
+                _directDataSetMetadataSourceSheet = sheet;
+                candidate.Dispose();
+                _packageDirty = true;
+                _unchangedPackageBytes = null;
+                _requiresSavePreflight = false;
+                return true;
+            } catch {
+                ClearDirectDataSetSaveCandidate();
+                return false;
+            }
+        }
+
+        internal bool TryGetDirectTabularSaveCandidateColumnByHeader(
+            ExcelSheet sheet,
+            string header,
+            bool includeHeader,
+            out int columnIndex,
+            out int startRow,
+            out int endRow) {
+            columnIndex = 0;
+            startRow = 0;
+            endRow = -1;
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (string.IsNullOrWhiteSpace(header) || !ReferenceEquals(sheet.Document, this)) {
+                return false;
+            }
+
+            var candidate = _directDataSetSaveCandidate;
+            if (candidate == null || !candidate.IsValid || candidate.Model.Sheets.Count != 1) {
+                return false;
+            }
+
+            var sheetModel = candidate.Model.Sheets[0];
+            if (!string.Equals(sheetModel.SheetName, sheet.Name, StringComparison.Ordinal)
+                || !sheetModel.IncludeHeaders) {
+                return false;
+            }
+
+            for (int i = 0; i < sheetModel.Table.ColumnCount; i++) {
+                if (!string.Equals(sheetModel.Table.GetColumnName(i), header, StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+
+                columnIndex = i + 1;
+                startRow = includeHeader ? 1 : 2;
+                endRow = sheetModel.Table.RowCount + 1;
+                return startRow <= endRow;
+            }
+
+            return false;
+        }
+
+
         internal bool TryGetDirectTabularSaveCandidateColumnCount(ExcelSheet sheet, out int columnCount) {
             columnCount = 0;
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
@@ -1050,11 +1130,28 @@ namespace OfficeIMO.Excel {
             }
 
             var candidate = _directDataSetSaveCandidate;
-            if (candidate == null || !candidate.IsValid || !candidate.IsDeferred) {
-                return false;
+            if (candidate != null
+                && candidate.IsValid
+                && candidate.IsDeferred
+                && TryGetDirectTabularPivotSource(candidate.Model, sheet, startRow, startColumn, endRow, endColumn, out source)) {
+                return true;
             }
 
-            foreach (var sheetModel in candidate.Model.Sheets) {
+            var materializedModel = _materializedDirectDataSetFastSaveModel;
+            return materializedModel != null
+                   && TryGetDirectTabularPivotSource(materializedModel, sheet, startRow, startColumn, endRow, endColumn, out source);
+        }
+
+        private static bool TryGetDirectTabularPivotSource(
+            DirectDataSetWorkbookModel model,
+            ExcelSheet sheet,
+            int startRow,
+            int startColumn,
+            int endRow,
+            int endColumn,
+            out IExcelSheetTabularRowSource? source) {
+            source = null;
+            foreach (var sheetModel in model.Sheets) {
                 if (!string.Equals(sheetModel.SheetName, sheet.Name, StringComparison.Ordinal)) {
                     continue;
                 }
@@ -1223,7 +1320,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 DirectWorksheetMetadata? preservedMetadata = null;
-                if (TryCaptureDirectWorksheetMetadata(sheetModel, out DirectWorksheetMetadata? sheetMetadata, out _)) {
+                if (TryCaptureDirectWorksheetMetadata(sheetModel, out DirectWorksheetMetadata? sheetMetadata, out _, allowDrawings: true)) {
                     preservedMetadata = MergeDirectWorksheetMetadata(sheetModel.Metadata, sheetMetadata);
                 }
 
@@ -1300,7 +1397,63 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            worksheet.Save();
+            if (!string.IsNullOrEmpty(metadata.DrawingXml)) {
+                InsertWorksheetMetadataElement(worksheet, CreateElementWithAttributes<DocumentFormat.OpenXml.Spreadsheet.Drawing>(metadata.DrawingXml!), typeof(TableParts));
+            }
+        }
+
+        internal void MaterializeDeferredDataSetImportPreservingFastSaveModel() {
+            if (_materializingDeferredDataSetImport) {
+                return;
+            }
+
+            MaterializePendingDirectCellValueSheetIfNeeded();
+
+            var candidate = _directDataSetSaveCandidate;
+            if (candidate == null || !candidate.IsDeferred) {
+                return;
+            }
+
+            DirectDataSetWorkbookModel? fastSaveModel = null;
+            if (TryCreateDirectPackageModel(candidate.Model, out DirectDataSetWorkbookModel? packageModel, out _, allowDrawings: true)) {
+                fastSaveModel = packageModel;
+            }
+
+            _directDataSetSaveCandidate = null;
+            candidate.Dispose();
+
+            _materializingDeferredDataSetImport = true;
+            try {
+                MaterializeDirectDataSetModel(candidate.Model);
+                if (fastSaveModel != null) {
+                    _materializedDirectDataSetFastSaveModel = fastSaveModel;
+                    _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark = true;
+                }
+            } finally {
+                _materializingDeferredDataSetImport = false;
+            }
+        }
+
+        internal void PreserveDeferredDataSetFastSaveModelAndClearCandidate() {
+            if (_materializingDeferredDataSetImport) {
+                return;
+            }
+
+            MaterializePendingDirectCellValueSheetIfNeeded();
+
+            var candidate = _directDataSetSaveCandidate;
+            if (candidate == null || !candidate.IsDeferred) {
+                ClearDirectDataSetSaveCandidate();
+                return;
+            }
+
+            if (CanCreateDirectPackageModel(candidate.Model, out _, allowDrawings: true)) {
+                _materializedDirectDataSetFastSaveModel = candidate.Model;
+                _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark = true;
+            }
+
+            _directDataSetSaveCandidate = null;
+            candidate.Dispose();
         }
 
         private static void InsertWorksheetMetadataElement(Worksheet worksheet, DocumentFormat.OpenXml.OpenXmlElement element, params Type[] beforeTypes) {
@@ -1514,11 +1667,11 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private bool TryCreateDirectPackageModel(DirectDataSetWorkbookModel sourceModel, out DirectDataSetWorkbookModel model, out string? skipReason) {
+        private bool TryCreateDirectPackageModel(DirectDataSetWorkbookModel sourceModel, out DirectDataSetWorkbookModel model, out string? skipReason, bool allowDrawings = false) {
             DirectWorksheetMetadata?[]? metadata = null;
             for (int i = 0; i < sourceModel.Sheets.Count; i++) {
                 var sheetModel = sourceModel.Sheets[i];
-                if (!TryCaptureDirectWorksheetMetadata(sheetModel, out DirectWorksheetMetadata? sheetMetadata, out skipReason)) {
+                if (!TryCaptureDirectWorksheetMetadata(sheetModel, out DirectWorksheetMetadata? sheetMetadata, out skipReason, allowDrawings)) {
                     model = sourceModel;
                     return false;
                 }
@@ -1532,6 +1685,32 @@ namespace OfficeIMO.Excel {
 
             model = metadata != null ? sourceModel.WithWorksheetMetadata(metadata) : sourceModel;
             skipReason = null;
+            return true;
+        }
+
+        private bool CanCreateDirectPackageModel(DirectDataSetWorkbookModel sourceModel, out string? skipReason, bool allowDrawings = false) {
+            for (int i = 0; i < sourceModel.Sheets.Count; i++) {
+                if (!CanCaptureDirectWorksheetMetadata(sourceModel.Sheets[i], out skipReason, allowDrawings)) {
+                    return false;
+                }
+            }
+
+            skipReason = null;
+            return true;
+        }
+
+        private bool TryRefreshMaterializedDirectDataSetFastSaveModel(out string? skipReason) {
+            skipReason = null;
+            var model = _materializedDirectDataSetFastSaveModel;
+            if (model == null) {
+                return true;
+            }
+
+            if (!TryCreateDirectPackageModel(model, out DirectDataSetWorkbookModel refreshedModel, out skipReason, allowDrawings: true)) {
+                return false;
+            }
+
+            _materializedDirectDataSetFastSaveModel = refreshedModel;
             return true;
         }
 
@@ -1551,7 +1730,9 @@ namespace OfficeIMO.Excel {
                 existing.AutoFilterXml ?? captured.AutoFilterXml,
                 CombineMetadataXmlLists(existing.ConditionalFormattingXml, captured.ConditionalFormattingXml),
                 existing.DataValidationsXml ?? captured.DataValidationsXml,
-                CombineMetadataXmlLists(existing.PostDataValidationXml, captured.PostDataValidationXml));
+                existing.DrawingXml ?? captured.DrawingXml,
+                CombineMetadataXmlLists(existing.PostDataValidationXml, captured.PostDataValidationXml),
+                CombineOverlayCells(existing.OverlayCells, captured.OverlayCells));
         }
 
         private static IReadOnlyList<string> CombineMetadataXmlLists(IReadOnlyList<string> first, IReadOnlyList<string> second) {
@@ -1575,7 +1756,23 @@ namespace OfficeIMO.Excel {
             return combined;
         }
 
-        private bool TryCaptureDirectWorksheetMetadata(DirectDataSetSheetModel sheetModel, out DirectWorksheetMetadata? metadata, out string? skipReason) {
+        private static IReadOnlyList<DirectOverlayCell> CombineOverlayCells(IReadOnlyList<DirectOverlayCell> first, IReadOnlyList<DirectOverlayCell> second) {
+            if (first.Count == 0) return second;
+            if (second.Count == 0) return first;
+
+            var combined = new Dictionary<(int Row, int Column), DirectOverlayCell>();
+            for (int i = 0; i < first.Count; i++) {
+                combined[(first[i].Row, first[i].Column)] = first[i];
+            }
+
+            for (int i = 0; i < second.Count; i++) {
+                combined[(second[i].Row, second[i].Column)] = second[i];
+            }
+
+            return combined.Values.OrderBy(cell => cell.Row).ThenBy(cell => cell.Column).ToArray();
+        }
+
+        private bool TryCaptureDirectWorksheetMetadata(DirectDataSetSheetModel sheetModel, out DirectWorksheetMetadata? metadata, out string? skipReason, bool allowDrawings = false) {
             metadata = null;
             skipReason = null;
 
@@ -1593,7 +1790,7 @@ namespace OfficeIMO.Excel {
             }
 
             var worksheetPart = sheet.DeferredMetadataWorksheetPart;
-            if (worksheetPart.DrawingsPart != null) {
+            if (worksheetPart.DrawingsPart != null && !allowDrawings) {
                 skipReason = "Worksheet contains drawings.";
                 return false;
             }
@@ -1636,6 +1833,8 @@ namespace OfficeIMO.Excel {
             string? sheetFormatPropertiesXml = null;
             string? autoFilterXml = null;
             string? dataValidationsXml = null;
+            string? drawingXml = null;
+            IReadOnlyList<DirectOverlayCell> overlayCells = Array.Empty<DirectOverlayCell>();
             List<string>? conditionalFormattingXml = null;
             List<string>? postDataValidationXml = null;
             foreach (var child in worksheet.ChildElements) {
@@ -1644,7 +1843,9 @@ namespace OfficeIMO.Excel {
                         sheetPropertiesXml = sheetProperties.OuterXml;
                         break;
                     case SheetDimension:
-                    case SheetData:
+                        break;
+                    case SheetData sheetData:
+                        overlayCells = CaptureDirectWorksheetOverlayCells(sheet, sheetModel, sheetData);
                         break;
                     case SheetViews sheetViews when sheetViewsXml == null:
                         sheetViewsXml = sheetViews.OuterXml;
@@ -1678,6 +1879,9 @@ namespace OfficeIMO.Excel {
                         postDataValidationXml ??= new List<string>();
                         postDataValidationXml.Add(child.OuterXml);
                         break;
+                    case DocumentFormat.OpenXml.Spreadsheet.Drawing drawing when allowDrawings && drawingXml == null:
+                        drawingXml = drawing.OuterXml;
+                        break;
                     case TableParts when sheetModel.HasTable:
                         break;
                     default:
@@ -1691,6 +1895,8 @@ namespace OfficeIMO.Excel {
                 && sheetFormatPropertiesXml == null
                 && autoFilterXml == null
                 && dataValidationsXml == null
+                && drawingXml == null
+                && overlayCells.Count == 0
                 && (conditionalFormattingXml == null || conditionalFormattingXml.Count == 0)
                 && (postDataValidationXml == null || postDataValidationXml.Count == 0)) {
                 return true;
@@ -1703,8 +1909,170 @@ namespace OfficeIMO.Excel {
                 autoFilterXml,
                 conditionalFormattingXml?.ToArray() ?? Array.Empty<string>(),
                 dataValidationsXml,
-                postDataValidationXml?.ToArray() ?? Array.Empty<string>());
+                drawingXml,
+                postDataValidationXml?.ToArray() ?? Array.Empty<string>(),
+                overlayCells);
             return true;
+        }
+
+        private bool CanCaptureDirectWorksheetMetadata(DirectDataSetSheetModel sheetModel, out string? skipReason, bool allowDrawings = false) {
+            skipReason = null;
+
+            ExcelSheet? sheet = null;
+            var metadataSourceSheet = _directDataSetMetadataSourceSheet;
+            if (metadataSourceSheet != null
+                && ReferenceEquals(metadataSourceSheet.Document, this)
+                && string.Equals(metadataSourceSheet.Name, sheetModel.SheetName, StringComparison.Ordinal)) {
+                sheet = metadataSourceSheet;
+            }
+
+            sheet ??= TryGetExistingSheet(sheetModel.SheetName);
+            if (sheet == null) {
+                return true;
+            }
+
+            var worksheetPart = sheet.DeferredMetadataWorksheetPart;
+            if (worksheetPart.DrawingsPart != null && !allowDrawings) {
+                skipReason = "Worksheet contains drawings.";
+                return false;
+            }
+
+            if (worksheetPart.WorksheetCommentsPart != null) {
+                skipReason = "Worksheet contains comments.";
+                return false;
+            }
+
+            if (worksheetPart.ExternalRelationships.Any()) {
+                skipReason = "Worksheet contains external relationships.";
+                return false;
+            }
+
+            if (worksheetPart.HyperlinkRelationships.Any()) {
+                skipReason = "Worksheet contains hyperlink relationships.";
+                return false;
+            }
+
+            foreach (var tableDefinitionPart in worksheetPart.TableDefinitionParts) {
+                if (!sheetModel.HasTable) {
+                    skipReason = "Worksheet contains table metadata outside the direct table model.";
+                    return false;
+                }
+
+                var tableAutoFilter = tableDefinitionPart.Table?.Elements<AutoFilter>().FirstOrDefault();
+                if (tableAutoFilter != null && tableAutoFilter.HasChildren) {
+                    skipReason = "Worksheet contains table AutoFilter criteria outside the direct table model.";
+                    return false;
+                }
+            }
+
+            var worksheet = worksheetPart.Worksheet;
+            if (worksheet == null) {
+                return true;
+            }
+
+            foreach (var child in worksheet.ChildElements) {
+                switch (child) {
+                    case SheetProperties:
+                    case SheetDimension:
+                    case SheetData:
+                    case SheetViews:
+                    case SheetFormatProperties:
+                    case AutoFilter:
+                    case DocumentFormat.OpenXml.Spreadsheet.ConditionalFormatting:
+                    case DataValidations:
+                    case PrintOptions:
+                    case PageMargins:
+                    case PageSetup:
+                    case HeaderFooter:
+                    case RowBreaks:
+                    case ColumnBreaks:
+                    case CellWatches:
+                    case DocumentFormat.OpenXml.Spreadsheet.IgnoredErrors:
+                        break;
+                    case Columns when sheetModel.ColumnWidths is { Length: > 0 }:
+                        break;
+                    case Columns:
+                        skipReason = "Worksheet contains column metadata outside the direct DataSet column width model.";
+                        return false;
+                    case DocumentFormat.OpenXml.Spreadsheet.Drawing when allowDrawings:
+                        break;
+                    case TableParts when sheetModel.HasTable:
+                        break;
+                    default:
+                        skipReason = "Worksheet contains unsupported element '" + child.LocalName + "' for the direct DataSet package writer.";
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static IReadOnlyList<DirectOverlayCell> CaptureDirectWorksheetOverlayCells(ExcelSheet sheet, DirectDataSetSheetModel sheetModel, SheetData sheetData) {
+            int directLastRow = sheetModel.Table.RowCount + (sheetModel.IncludeHeaders ? 1 : 0);
+            List<DirectOverlayCell>? cells = null;
+            foreach (var row in sheetData.Elements<Row>()) {
+                int rowIndex = row.RowIndex?.Value is uint explicitRow ? checked((int)explicitRow) : 0;
+                foreach (var cell in row.Elements<Cell>()) {
+                    if (!TryGetCellCoordinates(cell, rowIndex, out int cellRow, out int cellColumn)) {
+                        continue;
+                    }
+
+                    if (cellRow <= directLastRow || cellColumn <= 0) {
+                        continue;
+                    }
+
+                    object? value = ReadDirectOverlayCellValue(sheet, cell);
+                    if (value == null || value == DBNull.Value) {
+                        continue;
+                    }
+
+                    cells ??= new List<DirectOverlayCell>();
+                    cells.Add(new DirectOverlayCell(cellRow, cellColumn, value));
+                }
+            }
+
+            return cells ?? (IReadOnlyList<DirectOverlayCell>)Array.Empty<DirectOverlayCell>();
+        }
+
+        private static bool TryGetCellCoordinates(Cell cell, int fallbackRow, out int row, out int column) {
+            row = 0;
+            column = 0;
+            string? reference = cell.CellReference?.Value;
+            if (!string.IsNullOrWhiteSpace(reference)) {
+                try {
+                    (row, column) = A1.ParseCellRef(reference!);
+                    return row > 0 && column > 0;
+                } catch {
+                    return false;
+                }
+            }
+
+            row = fallbackRow;
+            return row > 0;
+        }
+
+        private static object? ReadDirectOverlayCellValue(ExcelSheet sheet, Cell cell) {
+            if (cell.CellFormula != null) {
+                return new DirectFormulaCellValue(cell.CellFormula.Text ?? string.Empty);
+            }
+
+            string? text = cell.CellValue?.Text;
+            var dataType = cell.DataType?.Value;
+            if (dataType == CellValues.Boolean) {
+                return string.Equals(text, "1", StringComparison.Ordinal)
+                       || string.Equals(text, "true", StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (dataType == null || dataType == CellValues.Number) {
+                if (!string.IsNullOrWhiteSpace(text)
+                    && double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+                    return number;
+                }
+
+                return text;
+            }
+
+            return sheet.GetCellText(cell);
         }
 
         private bool TrySaveDirectDataSetPackageToFile(string targetPath, ExcelSaveOptions? options, CancellationToken ct, out string? skipReason) {
@@ -1947,6 +2315,19 @@ namespace OfficeIMO.Excel {
                 return new DirectDataSetWorkbookModel(sheets, results, dateTimeOffsetWriteStrategy ?? DateTimeOffsetWriteStrategy);
             }
 
+            internal DirectDataSetWorkbookModel WithColumnNumberFormat(string sheetName, int columnIndex, string numberFormat) {
+                var sheets = new DirectDataSetSheetModel[Sheets.Count];
+                for (int i = 0; i < Sheets.Count; i++) {
+                    var sheet = Sheets[i];
+                    sheets[i] = string.Equals(sheet.SheetName, sheetName, StringComparison.Ordinal)
+                        ? sheet.WithColumnNumberFormat(columnIndex, numberFormat)
+                        : sheet;
+                }
+
+                return new DirectDataSetWorkbookModel(sheets, Results, DateTimeOffsetWriteStrategy);
+            }
+
+
             internal static DirectDataSetWorkbookModel Create(
                 DataSet dataSet,
                 bool createTables,
@@ -2147,7 +2528,8 @@ namespace OfficeIMO.Excel {
                 bool omitBlankCells,
                 double[]? columnWidths,
                 bool useCellValueNumberFormats = false,
-                DirectWorksheetMetadata? metadata = null) {
+                DirectWorksheetMetadata? metadata = null,
+                IReadOnlyList<string?>? columnNumberFormats = null) {
                 Index = index;
                 SheetName = sheetName;
                 TableName = tableName;
@@ -2162,6 +2544,7 @@ namespace OfficeIMO.Excel {
                 ColumnWidths = columnWidths;
                 UseCellValueNumberFormats = useCellValueNumberFormats;
                 Metadata = metadata;
+                ColumnNumberFormats = columnNumberFormats;
             }
 
             internal DirectDataSetSheetModel WithMetadata(DirectWorksheetMetadata? metadata) {
@@ -2183,7 +2566,42 @@ namespace OfficeIMO.Excel {
                     OmitBlankCells,
                     ColumnWidths,
                     UseCellValueNumberFormats,
-                    metadata);
+                    metadata,
+                    ColumnNumberFormats);
+            }
+
+            internal DirectDataSetSheetModel WithColumnNumberFormat(int columnIndex, string numberFormat) {
+                if (columnIndex <= 0 || columnIndex > Table.ColumnCount) {
+                    throw new ArgumentOutOfRangeException(nameof(columnIndex));
+                }
+
+                string?[] formats;
+                if (ColumnNumberFormats == null || ColumnNumberFormats.Count != Table.ColumnCount) {
+                    formats = new string?[Table.ColumnCount];
+                } else {
+                    formats = new string?[ColumnNumberFormats.Count];
+                    for (int i = 0; i < formats.Length; i++) {
+                        formats[i] = ColumnNumberFormats[i];
+                    }
+                }
+
+                formats[columnIndex - 1] = numberFormat;
+                return new DirectDataSetSheetModel(
+                    Index,
+                    SheetName,
+                    TableName,
+                    Range,
+                    Table,
+                    TableStyle,
+                    IncludeHeaders,
+                    IncludeAutoFilter,
+                    HasTable,
+                    AutoFitColumns,
+                    OmitBlankCells,
+                    ColumnWidths,
+                    UseCellValueNumberFormats,
+                    Metadata,
+                    formats);
             }
 
             internal int Index { get; }
@@ -2213,6 +2631,8 @@ namespace OfficeIMO.Excel {
             internal bool UseCellValueNumberFormats { get; }
 
             internal DirectWorksheetMetadata? Metadata { get; }
+
+            internal IReadOnlyList<string?>? ColumnNumberFormats { get; }
         }
 
         private sealed class DirectWorksheetMetadata {
@@ -2223,7 +2643,9 @@ namespace OfficeIMO.Excel {
                 null,
                 Array.Empty<string>(),
                 null,
-                Array.Empty<string>());
+                null,
+                Array.Empty<string>(),
+                Array.Empty<DirectOverlayCell>());
 
             internal DirectWorksheetMetadata(
                 string? sheetPropertiesXml,
@@ -2232,14 +2654,18 @@ namespace OfficeIMO.Excel {
                 string? autoFilterXml,
                 IReadOnlyList<string> conditionalFormattingXml,
                 string? dataValidationsXml,
-                IReadOnlyList<string> postDataValidationXml) {
+                string? drawingXml,
+                IReadOnlyList<string> postDataValidationXml,
+                IReadOnlyList<DirectOverlayCell> overlayCells) {
                 SheetPropertiesXml = sheetPropertiesXml;
                 SheetViewsXml = sheetViewsXml;
                 SheetFormatPropertiesXml = sheetFormatPropertiesXml;
                 AutoFilterXml = autoFilterXml;
                 ConditionalFormattingXml = conditionalFormattingXml ?? Array.Empty<string>();
                 DataValidationsXml = dataValidationsXml;
+                DrawingXml = drawingXml;
                 PostDataValidationXml = postDataValidationXml ?? Array.Empty<string>();
+                OverlayCells = overlayCells ?? Array.Empty<DirectOverlayCell>();
             }
 
             internal DirectWorksheetMetadata WithSheetViewsXml(string? sheetViewsXml) {
@@ -2254,7 +2680,9 @@ namespace OfficeIMO.Excel {
                     AutoFilterXml,
                     ConditionalFormattingXml,
                     DataValidationsXml,
-                    PostDataValidationXml);
+                    DrawingXml,
+                    PostDataValidationXml,
+                    OverlayCells);
             }
 
             internal DirectWorksheetMetadata WithAutoFilterXml(string? autoFilterXml) {
@@ -2269,7 +2697,9 @@ namespace OfficeIMO.Excel {
                     autoFilterXml,
                     ConditionalFormattingXml,
                     DataValidationsXml,
-                    PostDataValidationXml);
+                    DrawingXml,
+                    PostDataValidationXml,
+                    OverlayCells);
             }
 
             internal string? SheetPropertiesXml { get; }
@@ -2284,17 +2714,25 @@ namespace OfficeIMO.Excel {
 
             internal string? DataValidationsXml { get; }
 
+            internal string? DrawingXml { get; }
+
             internal IReadOnlyList<string> PostDataValidationXml { get; }
+
+            internal IReadOnlyList<DirectOverlayCell> OverlayCells { get; }
 
             internal bool IsEmpty
                 => SheetPropertiesXml == null
                    && SheetViewsXml == null
                    && SheetFormatPropertiesXml == null
-                   && AutoFilterXml == null
-                   && ConditionalFormattingXml.Count == 0
-                   && DataValidationsXml == null
-                   && PostDataValidationXml.Count == 0;
+                && AutoFilterXml == null
+                && ConditionalFormattingXml.Count == 0
+                && DataValidationsXml == null
+                && DrawingXml == null
+                && PostDataValidationXml.Count == 0
+                && OverlayCells.Count == 0;
         }
+
+        private readonly record struct DirectOverlayCell(int Row, int Column, object? Value);
 
         private readonly struct DirectBufferedRows {
             private readonly object?[][]? _arrayRows;
@@ -2340,6 +2778,7 @@ namespace OfficeIMO.Excel {
 
         private sealed class DirectDataSetTableModel : IExcelSheetTabularRowSource {
             private const int MaxAutoFitStringWidthCacheEntriesPerColumn = 1024;
+            private const long BufferedDictionaryCellLimit = 500_000;
 
             private enum AutoFitWidthKind {
                 Object,
@@ -2493,6 +2932,10 @@ namespace OfficeIMO.Excel {
                     columns[i] = new DirectDataSetColumnModel(columnNames[i], columnTypes[i]);
                 }
 
+                if (ShouldBufferDictionaryRows(rows.Count, columns.Length)) {
+                    return new DirectDataSetTableModel(columns, SnapshotExactDictionaryRows(columnNames, rows));
+                }
+
                 return new DirectDataSetTableModel(columns, rows);
             }
 
@@ -2506,7 +2949,54 @@ namespace OfficeIMO.Excel {
                     columns[i] = new DirectDataSetColumnModel(columnNames[i], columnTypes[i]);
                 }
 
+                if (ShouldBufferDictionaryRows(rows.Count, columns.Length)) {
+                    return new DirectDataSetTableModel(columns, SnapshotDictionaryRows(columnNames, rows));
+                }
+
                 return new DirectDataSetTableModel(columns, rows);
+            }
+
+            private static bool ShouldBufferDictionaryRows(int rowCount, int columnCount)
+                => rowCount > 0
+                    && columnCount > 0
+                    && (long)rowCount * columnCount <= BufferedDictionaryCellLimit;
+
+            private static object?[][] SnapshotExactDictionaryRows(
+                IReadOnlyList<string> columnNames,
+                IReadOnlyList<Dictionary<string, object?>> rows) {
+                var bufferedRows = new object?[rows.Count][];
+                for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+                    Dictionary<string, object?> source = rows[rowIndex];
+                    var values = new object?[columnNames.Count];
+                    for (int columnIndex = 0; columnIndex < columnNames.Count; columnIndex++) {
+                        values[columnIndex] = source.TryGetValue(columnNames[columnIndex], out object? value)
+                            ? value
+                            : null;
+                    }
+
+                    bufferedRows[rowIndex] = values;
+                }
+
+                return bufferedRows;
+            }
+
+            private static object?[][] SnapshotDictionaryRows(
+                IReadOnlyList<string> columnNames,
+                IReadOnlyList<IReadOnlyDictionary<string, object?>> rows) {
+                var bufferedRows = new object?[rows.Count][];
+                for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+                    IReadOnlyDictionary<string, object?> source = rows[rowIndex];
+                    var values = new object?[columnNames.Count];
+                    for (int columnIndex = 0; columnIndex < columnNames.Count; columnIndex++) {
+                        values[columnIndex] = source.TryGetValue(columnNames[columnIndex], out object? value)
+                            ? value
+                            : null;
+                    }
+
+                    bufferedRows[rowIndex] = values;
+                }
+
+                return bufferedRows;
             }
 
             internal DirectDataSetTableModel WithGeneratedColumnNames() {

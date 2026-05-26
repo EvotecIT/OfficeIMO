@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using DocumentFormat.OpenXml;
@@ -95,11 +96,21 @@ namespace OfficeIMO.Excel {
             if (data == null) throw new ArgumentNullException(nameof(data));
             if (row <= 0 || column <= 0) throw new ArgumentOutOfRangeException(nameof(row));
 
+            using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateDuringDirtyMarks();
+            Stopwatch? stageWatch = EffectiveExecution.OnTiming == null ? null : Stopwatch.StartNew();
             var dataSheet = _excelDocument.GetOrCreateChartDataSheet();
+            ReportChartTiming(stageWatch, "AddChart.GetOrCreateChartDataSheet");
+
+            stageWatch?.Restart();
             int startRow = _excelDocument.ReserveChartDataStartRow(dataSheet, data.Categories.Count + 1);
+            ReportChartTiming(stageWatch, "AddChart.ReserveChartData");
+
+            stageWatch?.Restart();
             bool numericCategories = type == ExcelChartType.Scatter || HasScatterSeries(data.Series);
             ExcelChartDataRange range = dataSheet.WriteChartData(data, startRow, 1, numericCategories: numericCategories);
-            return AddChart(range, row, column, widthPixels, heightPixels, type, data, title);
+            ReportChartTiming(stageWatch, "AddChart.WriteChartData");
+
+            return AddChartInternal(range, row, column, widthPixels, heightPixels, type, data, title, preserveDeferredDataSetCandidate: true);
         }
 
         private static bool HasScatterSeries(IReadOnlyList<ExcelChartSeries> series) {
@@ -202,7 +213,6 @@ namespace OfficeIMO.Excel {
             if (seriesRanges == null) throw new ArgumentNullException(nameof(seriesRanges));
             if (row <= 0 || column <= 0) throw new ArgumentOutOfRangeException(nameof(row));
             if (widthPixels <= 0 || heightPixels <= 0) throw new ArgumentOutOfRangeException(nameof(widthPixels));
-            MaterializeDeferredDataSetImportIfNeeded();
 
             var ranges = seriesRanges as IReadOnlyList<ExcelChartSeriesRange> ?? seriesRanges.ToList();
             if (ranges.Count == 0) {
@@ -215,6 +225,7 @@ namespace OfficeIMO.Excel {
             Xdr.GraphicFrame? frame = null;
             DrawingsPart? drawingPart = null;
 
+            using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
             WriteLockWorksheetPreparationOnly(() => {
                 var drawing = WorksheetRoot.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
                 if (drawing == null) {
@@ -286,12 +297,19 @@ namespace OfficeIMO.Excel {
         }
 
         private ExcelChart AddChartInternal(ExcelChartDataRange range, int row, int column, int widthPixels, int heightPixels,
-            ExcelChartType type, ExcelChartData? data, string? title) {
-            MaterializeDeferredDataSetImportIfNeeded();
+            ExcelChartType type, ExcelChartData? data, string? title, bool preserveDeferredDataSetCandidate = false) {
+            if (data != null && !preserveDeferredDataSetCandidate) {
+                MaterializeDeferredDataSetImportIfNeeded();
+            }
+
             Xdr.GraphicFrame? frame = null;
             DrawingsPart? drawingPart = null;
 
+            using var preserveDirectDataSet = data == null || preserveDeferredDataSetCandidate
+                ? _excelDocument.PreserveDirectDataSetFastSaveStateDuringDirtyMarks()
+                : null;
             WriteLockWorksheetPreparationOnly(() => {
+                Stopwatch? stageWatch = EffectiveExecution.OnTiming == null ? null : Stopwatch.StartNew();
                 var drawing = WorksheetRoot.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
                 if (drawing == null) {
                     drawingPart = _worksheetPart.AddNewPart<DrawingsPart>();
@@ -302,14 +320,27 @@ namespace OfficeIMO.Excel {
                     drawingPart = (DrawingsPart)_worksheetPart.GetPartById(drawing.Id!);
                     drawingPart.WorksheetDrawing ??= new Xdr.WorksheetDrawing();
                 }
+                ReportChartTiming(stageWatch, "AddChartInternal.PrepareDrawingPart");
 
+                stageWatch?.Restart();
                 _excelDocument.EnsureWorkbookThemeAndStyles();
+                ReportChartTiming(stageWatch, "AddChartInternal.EnsureThemeAndStyles");
 
+                stageWatch?.Restart();
                 ChartPart chartPart = drawingPart!.AddNewPart<ChartPart>();
+                ReportChartTiming(stageWatch, "AddChartInternal.AddChartPart");
+
+                stageWatch?.Restart();
                 ExcelChartUtils.PopulateChart(chartPart, type, range, data, title);
+                ReportChartTiming(stageWatch, "AddChartInternal.PopulateChart");
+
                 if (_excelDocument.DefaultChartStylePreset != null) {
+                    stageWatch?.Restart();
                     ExcelChartUtils.ApplyChartStyle(chartPart, _excelDocument.DefaultChartStylePreset);
+                    ReportChartTiming(stageWatch, "AddChartInternal.ApplyChartStyle");
                 }
+
+                stageWatch?.Restart();
                 string chartRelId = drawingPart.GetIdOfPart(chartPart);
 
                 long cx = PxToEmu(widthPixels);
@@ -345,10 +376,24 @@ namespace OfficeIMO.Excel {
                 );
 
                 drawingPart.WorksheetDrawing.Append(anchor);
+                ReportChartTiming(stageWatch, "AddChartInternal.BuildAnchor");
+
+                stageWatch?.Restart();
                 drawingPart.WorksheetDrawing.Save();
+                ReportChartTiming(stageWatch, "AddChartInternal.SaveDrawing");
             });
 
+            if (preserveDeferredDataSetCandidate) {
+                _excelDocument.PreserveDeferredDataSetFastSaveModelAndClearCandidate();
+            }
+
             return new ExcelChart(frame!, drawingPart!, this, range);
+        }
+
+        private void ReportChartTiming(Stopwatch? stopwatch, string operation) {
+            if (stopwatch != null) {
+                EffectiveExecution.ReportTiming(operation, stopwatch.Elapsed);
+            }
         }
     }
 }

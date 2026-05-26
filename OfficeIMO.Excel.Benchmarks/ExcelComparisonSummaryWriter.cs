@@ -234,6 +234,23 @@ internal static class ExcelComparisonSummaryWriter {
             return "Formatted report write";
         }
 
+        if (scenario.StartsWith("report-workbook", StringComparison.OrdinalIgnoreCase)) {
+            return "Report workbook";
+        }
+
+        if (scenario.StartsWith("realworld-report-", StringComparison.OrdinalIgnoreCase)) {
+            if (scenario.Equals("realworld-report-all-in-one", StringComparison.OrdinalIgnoreCase)
+                || scenario.Equals("realworld-report-core", StringComparison.OrdinalIgnoreCase)) {
+                return "Real-world report";
+            }
+
+            return "Anti-cheat report variants";
+        }
+
+        if (scenario.StartsWith("realworld-", StringComparison.OrdinalIgnoreCase)) {
+            return "Real-world feature mix";
+        }
+
         if (scenario.Contains("dataset", StringComparison.OrdinalIgnoreCase)) {
             return scenario.Contains("direct-export", StringComparison.OrdinalIgnoreCase)
                 ? "Plain streaming export"

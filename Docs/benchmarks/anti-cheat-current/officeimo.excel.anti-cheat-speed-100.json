@@ -1,0 +1,444 @@
+{
+  "GeneratedAtUtc": "2026-05-26T18:04:08.9893158Z",
+  "Framework": ".NET 8.0.27",
+  "MachineName": "EVOMAGIC",
+  "BuildConfiguration": "Release",
+  "RowCount": 100,
+  "WarmupIterations": 3,
+  "MeasuredIterations": 5,
+  "Notes": "Local opt-in comparison. Not intended for CI gating.",
+  "Scenarios": [
+    {
+      "Scenario": "realworld-report-all-in-one",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Create a sales workbook with table, AutoFit, freeze panes, filters, conditional formatting, pivot table, chart, and save.",
+      "OutputMetric": 20223,
+      "AverageMilliseconds": 4.52598,
+      "MedianMilliseconds": 4.5078,
+      "StandardDeviationMilliseconds": 0.21283173400599825,
+      "StandardErrorMilliseconds": 0.09518124500131314,
+      "SamplesMilliseconds": [
+        4.5171,
+        4.3914,
+        4.5078,
+        4.8803,
+        4.3333
+      ],
+      "AverageAllocatedBytes": 1533491.2,
+      "MedianAllocatedBytes": 1533488,
+      "SamplesAllocatedBytes": [
+        1533544,
+        1533520,
+        1533488,
+        1533456,
+        1533448
+      ]
+    },
+    {
+      "Scenario": "realworld-report-all-in-one",
+      "Library": "EPPlus",
+      "Notes": "Create a sales workbook with table, AutoFit, freeze panes, filters, conditional formatting, pivot table, chart, and save.",
+      "OutputMetric": 16967,
+      "AverageMilliseconds": 15.59188,
+      "MedianMilliseconds": 15.4956,
+      "StandardDeviationMilliseconds": 0.5632026562437353,
+      "StandardErrorMilliseconds": 0.2518718848938877,
+      "SamplesMilliseconds": [
+        16.4884,
+        15.2824,
+        15.0004,
+        15.4956,
+        15.6926
+      ],
+      "AverageAllocatedBytes": 13901937.6,
+      "MedianAllocatedBytes": 13901936,
+      "SamplesAllocatedBytes": [
+        13901936,
+        13901936,
+        13901936,
+        13901936,
+        13901944
+      ]
+    },
+    {
+      "Scenario": "realworld-report-no-autofit",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Create the real-world report workbook without AutoFit to check the fast path is not tied to width measurement.",
+      "OutputMetric": 20102,
+      "AverageMilliseconds": 4.822799999999999,
+      "MedianMilliseconds": 4.7705,
+      "StandardDeviationMilliseconds": 0.3022609220524546,
+      "StandardErrorMilliseconds": 0.13517519373021072,
+      "SamplesMilliseconds": [
+        4.9906,
+        4.5671,
+        5.253,
+        4.5328,
+        4.7705
+      ],
+      "AverageAllocatedBytes": 1526132.8,
+      "MedianAllocatedBytes": 1526128,
+      "SamplesAllocatedBytes": [
+        1526120,
+        1526152,
+        1526128,
+        1526152,
+        1526112
+      ]
+    },
+    {
+      "Scenario": "realworld-report-no-autofit",
+      "Library": "EPPlus",
+      "Notes": "Create the equivalent real-world report workbook without AutoFit.",
+      "OutputMetric": 16898,
+      "AverageMilliseconds": 14.602219999999999,
+      "MedianMilliseconds": 14.3252,
+      "StandardDeviationMilliseconds": 1.4420908386783404,
+      "StandardErrorMilliseconds": 0.6449226290028904,
+      "SamplesMilliseconds": [
+        17.0704,
+        13.8861,
+        13.3407,
+        14.3252,
+        14.3887
+      ],
+      "AverageAllocatedBytes": 12450740.8,
+      "MedianAllocatedBytes": 12450736,
+      "SamplesAllocatedBytes": [
+        12450760,
+        12450760,
+        12450728,
+        12450720,
+        12450736
+      ]
+    },
+    {
+      "Scenario": "realworld-report-chart-first",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Create the real-world report workbook with chart creation before pivot creation.",
+      "OutputMetric": 20225,
+      "AverageMilliseconds": 5.7308,
+      "MedianMilliseconds": 5.3881,
+      "StandardDeviationMilliseconds": 1.466356435182115,
+      "StandardErrorMilliseconds": 0.6557745336622947,
+      "SamplesMilliseconds": [
+        5.5198,
+        4.8553,
+        4.6218,
+        8.269,
+        5.3881
+      ],
+      "AverageAllocatedBytes": 1533654.4,
+      "MedianAllocatedBytes": 1533640,
+      "SamplesAllocatedBytes": [
+        1533656,
+        1533640,
+        1533640,
+        1533728,
+        1533608
+      ]
+    },
+    {
+      "Scenario": "realworld-report-chart-first",
+      "Library": "EPPlus",
+      "Notes": "Create the equivalent real-world report workbook with chart creation before pivot creation.",
+      "OutputMetric": 16964,
+      "AverageMilliseconds": 17.88316,
+      "MedianMilliseconds": 16.9473,
+      "StandardDeviationMilliseconds": 1.5693954976359537,
+      "StandardErrorMilliseconds": 0.7018550032592206,
+      "SamplesMilliseconds": [
+        16.8497,
+        20.0883,
+        16.5369,
+        16.9473,
+        18.9936
+      ],
+      "AverageAllocatedBytes": 13901057.6,
+      "MedianAllocatedBytes": 13901056,
+      "SamplesAllocatedBytes": [
+        13901056,
+        13901064,
+        13901056,
+        13901056,
+        13901056
+      ]
+    },
+    {
+      "Scenario": "realworld-report-shuffled-columns",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Create the real-world report workbook with the same fields in a different column order.",
+      "OutputMetric": 20119,
+      "AverageMilliseconds": 5.68194,
+      "MedianMilliseconds": 5.4501,
+      "StandardDeviationMilliseconds": 0.5175841989473788,
+      "StandardErrorMilliseconds": 0.23147069058522282,
+      "SamplesMilliseconds": [
+        5.3219,
+        6.5904,
+        5.6036,
+        5.4501,
+        5.4437
+      ],
+      "AverageAllocatedBytes": 1531771.2,
+      "MedianAllocatedBytes": 1531760,
+      "SamplesAllocatedBytes": [
+        1531760,
+        1531760,
+        1531784,
+        1531760,
+        1531792
+      ]
+    },
+    {
+      "Scenario": "realworld-report-shuffled-columns",
+      "Library": "EPPlus",
+      "Notes": "Create the equivalent real-world report workbook with the same fields in a different column order.",
+      "OutputMetric": 17027,
+      "AverageMilliseconds": 18.175959999999996,
+      "MedianMilliseconds": 16.3142,
+      "StandardDeviationMilliseconds": 3.0923184696922794,
+      "StandardErrorMilliseconds": 1.382926861262012,
+      "SamplesMilliseconds": [
+        16.0401,
+        19.4413,
+        16.3142,
+        16.0145,
+        23.0697
+      ],
+      "AverageAllocatedBytes": 13896344,
+      "MedianAllocatedBytes": 13896344,
+      "SamplesAllocatedBytes": [
+        13896352,
+        13896352,
+        13896328,
+        13896344,
+        13896344
+      ]
+    },
+    {
+      "Scenario": "realworld-report-extra-column",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Create the real-world report workbook with an extra derived column.",
+      "OutputMetric": 20727,
+      "AverageMilliseconds": 7.79306,
+      "MedianMilliseconds": 6.3206,
+      "StandardDeviationMilliseconds": 3.210987229498118,
+      "StandardErrorMilliseconds": 1.435997144008302,
+      "SamplesMilliseconds": [
+        6.3206,
+        5.6087,
+        5.551,
+        13.1794,
+        8.3056
+      ],
+      "AverageAllocatedBytes": 1576896,
+      "MedianAllocatedBytes": 1576872,
+      "SamplesAllocatedBytes": [
+        1576856,
+        1576928,
+        1576960,
+        1576872,
+        1576864
+      ]
+    },
+    {
+      "Scenario": "realworld-report-extra-column",
+      "Library": "EPPlus",
+      "Notes": "Create the equivalent real-world report workbook with an extra derived column.",
+      "OutputMetric": 17434,
+      "AverageMilliseconds": 18.37644,
+      "MedianMilliseconds": 17.8272,
+      "StandardDeviationMilliseconds": 1.5513884113915506,
+      "StandardErrorMilliseconds": 0.6938019894753832,
+      "SamplesMilliseconds": [
+        20.8206,
+        16.6775,
+        17.8272,
+        18.7507,
+        17.8062
+      ],
+      "AverageAllocatedBytes": 14198617.6,
+      "MedianAllocatedBytes": 14198608,
+      "SamplesAllocatedBytes": [
+        14198632,
+        14198608,
+        14198608,
+        14198608,
+        14198632
+      ]
+    },
+    {
+      "Scenario": "realworld-report-post-mutation",
+      "Library": "OfficeIMO.Excel",
+      "Notes": "Create the real-world report workbook and then make a normal cell edit after report features are added.",
+      "OutputMetric": 20301,
+      "AverageMilliseconds": 6.911880000000001,
+      "MedianMilliseconds": 7.0201,
+      "StandardDeviationMilliseconds": 0.18291773287464502,
+      "StandardErrorMilliseconds": 0.08180329699957085,
+      "SamplesMilliseconds": [
+        6.7243,
+        7.0516,
+        6.7006,
+        7.0201,
+        7.0628
+      ],
+      "AverageAllocatedBytes": 1543004.8,
+      "MedianAllocatedBytes": 1542992,
+      "SamplesAllocatedBytes": [
+        1542968,
+        1542992,
+        1542992,
+        1543008,
+        1543064
+      ]
+    },
+    {
+      "Scenario": "realworld-report-post-mutation",
+      "Library": "EPPlus",
+      "Notes": "Create the equivalent real-world report workbook and then make a normal cell edit after report features are added.",
+      "OutputMetric": 17004,
+      "AverageMilliseconds": 17.24388,
+      "MedianMilliseconds": 17.1573,
+      "StandardDeviationMilliseconds": 1.3980526821261061,
+      "StandardErrorMilliseconds": 0.6252281666719757,
+      "SamplesMilliseconds": [
+        16.5197,
+        17.8626,
+        17.1573,
+        15.4845,
+        19.1953
+      ],
+      "AverageAllocatedBytes": 13901891.2,
+      "MedianAllocatedBytes": 13901896,
+      "SamplesAllocatedBytes": [
+        13901896,
+        13901904,
+        13901880,
+        13901880,
+        13901896
+      ]
+    },
+    {
+      "Scenario": "realworld-report-all-in-one",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x create a sales workbook with table, AutoFit, freeze panes, filters, conditional formatting, data validation, pivot table, chart, and save.",
+      "OutputMetric": 14791,
+      "AverageMilliseconds": 8.56096,
+      "MedianMilliseconds": 8.3591,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        9.3663,
+        8.7434,
+        8.1664,
+        8.3591,
+        8.1696
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "realworld-report-no-autofit",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x create the real-world report workbook without AutoFit.",
+      "OutputMetric": 14629,
+      "AverageMilliseconds": 5.90258,
+      "MedianMilliseconds": 5.8583,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        6.171,
+        6.0345,
+        5.8117,
+        5.8583,
+        5.6374
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "realworld-report-chart-first",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x create the real-world report workbook with chart creation before pivot creation.",
+      "OutputMetric": 14792,
+      "AverageMilliseconds": 9.24346,
+      "MedianMilliseconds": 9.1611,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        8.852,
+        9.8771,
+        9.2328,
+        9.0943,
+        9.1611
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "realworld-report-shuffled-columns",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x create the real-world report workbook with the same fields in a different column order.",
+      "OutputMetric": 14853,
+      "AverageMilliseconds": 8.895259999999999,
+      "MedianMilliseconds": 8.8281,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        8.1496,
+        9.6008,
+        8.0942,
+        8.8281,
+        9.8036
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "realworld-report-extra-column",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x create the real-world report workbook with an extra derived column.",
+      "OutputMetric": 15273,
+      "AverageMilliseconds": 9.17162,
+      "MedianMilliseconds": 9.2268,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        10.1578,
+        8.3799,
+        8.7905,
+        9.2268,
+        9.3031
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    },
+    {
+      "Scenario": "realworld-report-post-mutation",
+      "Library": "EPPlus 4.5.3.3",
+      "Notes": "EPPlus 4.x create the real-world report workbook and then make a normal cell edit after report features are added.",
+      "OutputMetric": 14832,
+      "AverageMilliseconds": 8.19602,
+      "MedianMilliseconds": 8.0373,
+      "StandardDeviationMilliseconds": 0,
+      "StandardErrorMilliseconds": 0,
+      "SamplesMilliseconds": [
+        8.9738,
+        8.0373,
+        8.2971,
+        7.857,
+        7.8149
+      ],
+      "AverageAllocatedBytes": 0,
+      "MedianAllocatedBytes": 0,
+      "SamplesAllocatedBytes": []
+    }
+  ]
+}

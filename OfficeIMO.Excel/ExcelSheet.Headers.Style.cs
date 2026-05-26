@@ -13,6 +13,11 @@ namespace OfficeIMO.Excel {
         /// <param name="includeHeader">True to include the header row when styling; false to begin styling from the first data row.</param>
         /// <param name="options">Read options that control header normalization and other resolution behavior.</param>
         public ColumnStyleByHeaderBuilder ColumnStyleByHeader(string header, bool includeHeader = false, ExcelReadOptions? options = null) {
+            if (options == null
+                && _excelDocument.TryGetDirectTabularSaveCandidateColumnByHeader(this, header, includeHeader, out int directColumnIndex, out int directStartRow, out int directEndRow)) {
+                return new ColumnStyleByHeaderBuilder(this, directColumnIndex, directStartRow, directEndRow);
+            }
+
             var a1 = GetUsedRangeA1();
             var (r1, _, r2, _) = A1.ParseRange(a1);
             int startRow = includeHeader ? r1 : r1 + 1;

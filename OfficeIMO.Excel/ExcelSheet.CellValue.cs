@@ -708,6 +708,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
             if (_isBatchOperation || Locking.IsNoLock) {
                 MaterializeDeferredDataSetImportIfNeeded();
                 CellStringValueCore(row, column, value);

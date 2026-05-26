@@ -17,6 +17,7 @@ namespace OfficeIMO.Excel {
         /// True when the save used a fast package path instead of full package finalization.
         /// </summary>
         public bool UsedFastPackageWriter => Writer == ExcelSavePackageWriter.SimplePackage
+            || Writer == ExcelSavePackageWriter.ExtendedPackage
             || Writer == ExcelSavePackageWriter.UnchangedPackage
             || Writer == ExcelSavePackageWriter.DirectDataSetPackage;
 
@@ -30,6 +31,9 @@ namespace OfficeIMO.Excel {
 
         internal static ExcelSaveDiagnostics SimplePackage() =>
             new ExcelSaveDiagnostics(ExcelSavePackageWriter.SimplePackage, fastPackageSkipReason: null);
+
+        internal static ExcelSaveDiagnostics ExtendedPackage() =>
+            new ExcelSaveDiagnostics(ExcelSavePackageWriter.ExtendedPackage, fastPackageSkipReason: null);
 
         internal static ExcelSaveDiagnostics DirectDataSetPackage() =>
             new ExcelSaveDiagnostics(ExcelSavePackageWriter.DirectDataSetPackage, fastPackageSkipReason: null);
@@ -56,6 +60,11 @@ namespace OfficeIMO.Excel {
         /// A simple workbook package was written directly without full package finalization.
         /// </summary>
         SimplePackage,
+
+        /// <summary>
+        /// A workbook package with additional supported parts was written directly without full package finalization.
+        /// </summary>
+        ExtendedPackage,
 
         /// <summary>
         /// A DataSet import package was written directly from the retained DataSet export model.

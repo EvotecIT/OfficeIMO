@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using System;
+using System.Diagnostics;
 using System.IO;
 
 namespace OfficeIMO.Excel {
@@ -319,12 +320,15 @@ namespace OfficeIMO.Excel {
         private bool _packagePropertiesDirty;
         private bool _preserveDirectDataSetSaveCandidateForNextDirtyMark;
         private int _directDataSetSaveCandidatePreservationDepth;
+        private int _materializedDirectDataSetFastSaveModelPreservationDepth;
         private byte[]? _unchangedPackageBytes;
         private bool _simplePackageContentKnown;
         private DirectDataSetSaveCandidate? _directDataSetSaveCandidate;
+        private DirectDataSetWorkbookModel? _materializedDirectDataSetFastSaveModel;
         private ExcelSheet? _directDataSetMetadataSourceSheet;
         private ExcelSheet? _pendingDirectCellValueSheet;
         private bool _materializingDeferredDataSetImport;
+        private bool _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark;
 
         /// <summary>
         /// Diagnostics for the most recent save operation.
@@ -339,7 +343,14 @@ namespace OfficeIMO.Excel {
         }
 
         internal void MarkPackageDirty() {
+            bool preserveMaterializedDirectModel = _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark
+                || _materializedDirectDataSetFastSaveModelPreservationDepth > 0;
+            if (!preserveMaterializedDirectModel && !_materializingDeferredDataSetImport) {
+                _materializedDirectDataSetFastSaveModel = null;
+            }
+
             if (IsPackageDirtyWithoutPendingSaveCandidate) {
+                _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark = false;
                 return;
             }
 
@@ -357,6 +368,7 @@ namespace OfficeIMO.Excel {
                 }
             } finally {
                 _preserveDirectDataSetSaveCandidateForNextDirtyMark = false;
+                _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark = false;
             }
         }
 
@@ -387,6 +399,35 @@ namespace OfficeIMO.Excel {
             return new DirectDataSetSaveCandidatePreservationScope(this);
         }
 
+        internal IDisposable PreserveDirectDataSetFastSaveStateDuringDirtyMarks() {
+            _directDataSetSaveCandidatePreservationDepth++;
+            _materializedDirectDataSetFastSaveModelPreservationDepth++;
+            return new DirectDataSetFastSaveStatePreservationScope(this);
+        }
+
+        internal IDisposable? PreserveDirectDataSetFastSaveStateForExternalCellMutation(ExcelSheet sheet, int row, int column) {
+            var model = _materializedDirectDataSetFastSaveModel;
+            if (model == null || sheet == null || !ReferenceEquals(sheet.Document, this) || row <= 0 || column <= 0) {
+                return null;
+            }
+
+            for (int i = 0; i < model.Sheets.Count; i++) {
+                var sheetModel = model.Sheets[i];
+                if (!string.Equals(sheetModel.SheetName, sheet.Name, StringComparison.Ordinal)) {
+                    continue;
+                }
+
+                int lastDirectRow = sheetModel.Table.RowCount + (sheetModel.IncludeHeaders ? 1 : 0);
+                if (row > lastDirectRow || column > sheetModel.Table.ColumnCount) {
+                    return PreserveDirectDataSetFastSaveStateDuringDirtyMarks();
+                }
+
+                return null;
+            }
+
+            return null;
+        }
+
         private sealed class DirectDataSetSaveCandidatePreservationScope : IDisposable {
             private ExcelDocument? _document;
 
@@ -403,6 +444,30 @@ namespace OfficeIMO.Excel {
                 _document = null;
                 if (document._directDataSetSaveCandidatePreservationDepth > 0) {
                     document._directDataSetSaveCandidatePreservationDepth--;
+                }
+            }
+        }
+
+        private sealed class DirectDataSetFastSaveStatePreservationScope : IDisposable {
+            private ExcelDocument? _document;
+
+            internal DirectDataSetFastSaveStatePreservationScope(ExcelDocument document) {
+                _document = document;
+            }
+
+            public void Dispose() {
+                var document = _document;
+                if (document == null) {
+                    return;
+                }
+
+                _document = null;
+                if (document._directDataSetSaveCandidatePreservationDepth > 0) {
+                    document._directDataSetSaveCandidatePreservationDepth--;
+                }
+
+                if (document._materializedDirectDataSetFastSaveModelPreservationDepth > 0) {
+                    document._materializedDirectDataSetFastSaveModelPreservationDepth--;
                 }
             }
         }
@@ -1871,9 +1936,31 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            PrepareWorkbookForSave(options);
+            bool preferExtendedPackageWriter = _materializedDirectDataSetFastSaveModel != null;
+            Stopwatch? saveStageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
+            PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter);
+            ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbook");
+
+            string? extendedPackageSkipReason = null;
+            if (preferExtendedPackageWriter
+                && TryWriteExtendedWorkbookPackage(destination, options, updateDocumentState: true, out extendedPackageSkipReason)) {
+                LastSaveDiagnostics = ExcelSaveDiagnostics.ExtendedPackage();
+                return;
+            }
+
+            if (preferExtendedPackageWriter) {
+                PrepareWorkbookForSave(options);
+                ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbookFallback");
+            }
+
             if (TryWriteSimpleWorkbookPackage(destination, options, updateDocumentState: true, out string? fastPackageSkipReason)) {
                 LastSaveDiagnostics = ExcelSaveDiagnostics.SimplePackage();
+                return;
+            }
+
+            if (!preferExtendedPackageWriter
+                && TryWriteExtendedWorkbookPackage(destination, options, updateDocumentState: true, out extendedPackageSkipReason)) {
+                LastSaveDiagnostics = ExcelSaveDiagnostics.ExtendedPackage();
                 return;
             }
 
@@ -1885,7 +1972,7 @@ namespace OfficeIMO.Excel {
                 destination.Write(finalizedBytes, 0, finalizedBytes.Length);
                 try { destination.Flush(); } catch (NotSupportedException) { }
                 MarkPackageClean(finalizedBytes);
-                LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(fastPackageSkipReason);
+                LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(extendedPackageSkipReason ?? fastPackageSkipReason);
             } catch {
                 TryRestoreDocumentState(payload);
                 throw;
@@ -1950,10 +2037,32 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            PrepareWorkbookForSave(options);
+            bool preferExtendedPackageWriter = _materializedDirectDataSetFastSaveModel != null;
+            Stopwatch? saveStageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
+            PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter);
+            ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbook");
             cancellationToken.ThrowIfCancellationRequested();
+
+            string? extendedPackageSkipReason = null;
+            if (preferExtendedPackageWriter
+                && TryWriteExtendedWorkbookPackage(destination, options, updateDocumentState: true, out extendedPackageSkipReason, cancellationToken)) {
+                LastSaveDiagnostics = ExcelSaveDiagnostics.ExtendedPackage();
+                return;
+            }
+
+            if (preferExtendedPackageWriter) {
+                PrepareWorkbookForSave(options);
+                ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbookFallback");
+            }
+
             if (TryWriteSimpleWorkbookPackage(destination, options, updateDocumentState: true, out string? fastPackageSkipReason, cancellationToken)) {
                 LastSaveDiagnostics = ExcelSaveDiagnostics.SimplePackage();
+                return;
+            }
+
+            if (!preferExtendedPackageWriter
+                && TryWriteExtendedWorkbookPackage(destination, options, updateDocumentState: true, out extendedPackageSkipReason, cancellationToken)) {
+                LastSaveDiagnostics = ExcelSaveDiagnostics.ExtendedPackage();
                 return;
             }
 
@@ -1965,7 +2074,7 @@ namespace OfficeIMO.Excel {
                 await destination.WriteAsync(finalizedBytes, 0, finalizedBytes.Length, cancellationToken).ConfigureAwait(false);
                 try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
                 MarkPackageClean(finalizedBytes);
-                LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(fastPackageSkipReason);
+                LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(extendedPackageSkipReason ?? fastPackageSkipReason);
             } catch {
                 TryRestoreDocumentState(payload);
                 throw;
@@ -1990,28 +2099,48 @@ namespace OfficeIMO.Excel {
             return SaveAsync("", openExcel, cancellationToken);
         }
 
-        private void PrepareWorkbookForSave(ExcelSaveOptions? options) {
+        private void PrepareWorkbookForSave(ExcelSaveOptions? options, bool skipDirectFastSaveSheetPreparation = false) {
+            Stopwatch? stageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
             MaterializeDeferredDataSetImport();
+            ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.MaterializeDeferredDataSet");
+            using var preserveFastSaveState = _materializedDirectDataSetFastSaveModel != null
+                ? PreserveDirectDataSetFastSaveStateDuringDirtyMarks()
+                : null;
 
             // Ensure all worksheets have up-to-date dimensions and proper element ordering before saving
             ApplyCalculationPolicyBeforeSave(options);
+            ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.ApplyCalculationPolicy");
 
             var sheets = Sheets;
+            ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.GetSheets");
             foreach (var sheet in sheets) {
                 if (!sheet.RequiresSavePreparation) {
                     continue;
                 }
 
+                if (skipDirectFastSaveSheetPreparation && IsMaterializedDirectDataSetFastSaveSheet(sheet)) {
+                    ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.SkipDirectFastSaveSheet");
+                    continue;
+                }
+
                 sheet.UpdateSheetDimension();
+                ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.UpdateSheetDimension");
                 sheet.EnsureWorksheetElementOrder();
+                ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.EnsureWorksheetElementOrder");
                 sheet.Commit();
+                ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.CommitSheet");
             }
 
             // Run the heavier repair sweep only when workbook-level operations requested it.
             if (_requiresSavePreflight || options?.SafePreflight == true) {
-                try { PreflightWorkbook(sheets); } catch { }
-                _requiresSavePreflight = false;
+                if (!skipDirectFastSaveSheetPreparation || options?.SafePreflight == true) {
+                    try { PreflightWorkbook(sheets); } catch { }
+                    _requiresSavePreflight = false;
+                } else {
+                    ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.SkipAutomaticPreflight");
+                }
             }
+            ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.Preflight");
             if (options?.SafePreflight == true) {
                 // Already performed above; branch kept for semantic clarity
             }
@@ -2019,14 +2148,42 @@ namespace OfficeIMO.Excel {
             if (options?.SafeRepairDefinedNames == true) {
                 try { RepairDefinedNames(save: true); } catch { }
             }
+            ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.RepairDefinedNames");
 
             if (_sharedStringTableDirty) {
                 _sharedStringTablePart?.SharedStringTable?.Save();
                 _sharedStringTableDirty = false;
             }
+            ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.SaveSharedStrings");
 
             WorkbookRoot.Save();
+            ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.SaveWorkbookRoot");
             try { _spreadSheetDocument.PackageProperties.Modified = DateTime.UtcNow; } catch { }
+            ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.UpdatePackageProperties");
+        }
+
+        private bool IsMaterializedDirectDataSetFastSaveSheet(ExcelSheet sheet) {
+            var model = _materializedDirectDataSetFastSaveModel;
+            if (model == null) {
+                return false;
+            }
+
+            for (int i = 0; i < model.Sheets.Count; i++) {
+                if (string.Equals(model.Sheets[i].SheetName, sheet.Name, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void ReportSaveTiming(Stopwatch? stopwatch, string operation) {
+            if (stopwatch == null) {
+                return;
+            }
+
+            Execution.ReportTiming(operation, stopwatch.Elapsed);
+            stopwatch.Restart();
         }
 
         private SavePayload PreparePackageForSave(ExcelSaveOptions? options, bool closeDocument = true) {

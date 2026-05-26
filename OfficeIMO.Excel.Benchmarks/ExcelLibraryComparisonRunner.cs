@@ -18,8 +18,8 @@ using SylvanExcelDataWriter = Sylvan.Data.Excel.ExcelDataWriter;
 namespace OfficeIMO.Excel.Benchmarks;
 
 internal static partial class ExcelLibraryComparisonRunner {
-    internal const int DefaultWarmupIterations = 1;
-    internal const int DefaultMeasuredIterations = 3;
+    internal const int DefaultWarmupIterations = 3;
+    internal const int DefaultMeasuredIterations = 5;
 
     private const int DefaultRowCount = 2500;
     private const int SparseLastRow = 100_001;
@@ -34,7 +34,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static readonly string[] BlogStringColumnNames = Enumerable.Range(1, BlogStringColumnCount).Select(static index => "C" + index.ToString(CultureInfo.InvariantCulture)).ToArray();
     private static readonly string[] PowerShellMixedColumnNames = ["Id", "Name", "Department", "Region", "IsEnabled", "Created", "Score", "Owner", "TicketCount", "Notes"];
     private static readonly string[] PowerShellWideColumnNames;
-    private static readonly string[] PowerShellMixedRegions = ["EU", "US", "APAC", "LATAM"];
+    private static readonly string[] PowerShellMixedRegions = ["NA", "EU", "APAC", "LATAM"];
 #if DEBUG
     private const string BuildConfiguration = "Debug";
 #else
@@ -553,6 +553,7 @@ internal static partial class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("EPPlus", "Load existing workbook, autofit columns, save.", () => EpPlusAutoFitExisting(epPlusWorkbookBytes.Value))
         ]);
 
+        AddReportWorkbookScenarioGroups(scenarios, scenarioFilter, powerShellMixedRows, powerShellMixedDataTable, warmupIterations, measuredIterations);
         AddRealWorldScenarioGroups(scenarios, scenarioFilter, rows, warmupIterations, measuredIterations);
 
         AddScenarioGroup(scenarios, scenarioFilter, "large-shared-strings", warmupIterations, measuredIterations, [
@@ -891,6 +892,7 @@ internal static partial class ExcelLibraryComparisonRunner {
             new PackageProfileCase("EPPlus", "Load existing workbook, autofit columns, save.", () => EpPlusAutoFitExistingBytes(epPlusWorkbookBytes.Value))
         ]);
 
+        AddReportWorkbookPackageProfileGroups(scenarios, scenarioFilter, powerShellMixedRows, powerShellMixedDataTable, warmupIterations, measuredIterations);
         AddRealWorldPackageProfileGroups(scenarios, scenarioFilter, rows, warmupIterations, measuredIterations);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "large-shared-strings", warmupIterations, measuredIterations, [

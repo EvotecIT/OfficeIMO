@@ -75,6 +75,12 @@ function Get-ScenarioCategory([string] $Scenario, [string] $ArtifactKind) {
     if ($Scenario -like "*shared-strings*" -or $Scenario -like "*cellvalue-strings*") { return "Shared string write" }
     if ($Scenario -like "*formula*") { return "Formula write/read" }
     if ($Scenario -eq "write-bulk-report") { return "Formatted report write" }
+    if ($Scenario -like "report-workbook*") { return "Report workbook" }
+    if ($Scenario -like "realworld-report-*") {
+        if ($Scenario -eq "realworld-report-all-in-one" -or $Scenario -eq "realworld-report-core") { return "Real-world report" }
+        return "Anti-cheat report variants"
+    }
+    if ($Scenario -like "realworld-*") { return "Real-world feature mix" }
     if ($Scenario -like "*dataset*") {
         if ($Scenario -like "*direct-export*") { return "Plain streaming export" }
         return "DataSet table export"
