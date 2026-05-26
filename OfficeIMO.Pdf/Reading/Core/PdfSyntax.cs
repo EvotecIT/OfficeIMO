@@ -691,6 +691,8 @@ internal static class PdfSyntax {
     }
 
     private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> map, PdfObject destination) {
+        destination = ResolveObject(map, destination) ?? destination;
+
         if (destination is PdfArray array) {
             return IsDestinationForKnownPage(map, array);
         }
@@ -950,27 +952,57 @@ internal static class PdfSyntax {
     private static bool IsSupportedNamedDestinationNameTree(
         Dictionary<int, PdfIndirectObject> map,
         PdfObject namedDestinations) {
-        PdfDictionary? tree = ResolveObject(map, namedDestinations) as PdfDictionary;
-        if (tree is null ||
-            tree.Items.ContainsKey("Kids") ||
-            !tree.Items.TryGetValue("Names", out var namesObject) ||
-            ResolveObject(map, namesObject) is not PdfArray names ||
-            names.Items.Count % 2 != 0) {
+        return TryCollectNamedDestinationNameTreeEntries(map, namedDestinations, new HashSet<int>());
+    }
+
+    private static bool TryCollectNamedDestinationNameTreeEntries(
+        Dictionary<int, PdfIndirectObject> map,
+        PdfObject value,
+        HashSet<int> visitedReferences) {
+        if (value is PdfReference reference) {
+            if (!visitedReferences.Add(reference.ObjectNumber) ||
+                !map.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                return false;
+            }
+
+            return TryCollectNamedDestinationNameTreeEntries(map, indirect.Value, visitedReferences);
+        }
+
+        if (value is not PdfDictionary tree) {
             return false;
         }
 
-        for (int i = 0; i < names.Items.Count; i += 2) {
-            if (names.Items[i] is not PdfStringObj) {
+        if (tree.Items.TryGetValue("Names", out var namesObject)) {
+            if (ResolveObject(map, namesObject) is not PdfArray names ||
+                names.Items.Count % 2 != 0) {
                 return false;
             }
 
-            PdfObject? destination = ResolveObject(map, names.Items[i + 1]);
-            if (destination is null || !IsDestinationForKnownPage(map, destination)) {
-                return false;
+            for (int i = 0; i < names.Items.Count; i += 2) {
+                if (names.Items[i] is not PdfStringObj) {
+                    return false;
+                }
+
+                PdfObject? destination = ResolveObject(map, names.Items[i + 1]);
+                if (destination is null || !IsDestinationForKnownPage(map, destination)) {
+                    return false;
+                }
             }
         }
 
-        return true;
+        if (tree.Items.TryGetValue("Kids", out var kidsObject)) {
+            if (ResolveObject(map, kidsObject) is not PdfArray kids) {
+                return false;
+            }
+
+            foreach (var kid in kids.Items) {
+                if (!TryCollectNamedDestinationNameTreeEntries(map, kid, visitedReferences)) {
+                    return false;
+                }
+            }
+        }
+
+        return tree.Items.ContainsKey("Names") || tree.Items.ContainsKey("Kids");
     }
 
     private static bool ContainsPdfName(string text, string name) {

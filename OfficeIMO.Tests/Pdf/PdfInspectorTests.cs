@@ -621,7 +621,25 @@ public class PdfInspectorTests {
     }
 
     [Fact]
-    public void Preflight_AllowsComplexNamedDestinationNameTreeReadButBlocksRewrite() {
+    public void Preflight_AllowsNamedDestinationNameTreeKidsReadAndRewrite() {
+        PdfDocumentPreflight report = PdfInspector.Preflight(BuildNamedDestinationNameTreeWithKidsPdf());
+
+        Assert.True(report.CanRead);
+        Assert.True(report.CanRewrite);
+        Assert.True(report.Probe.HasNamedDestinations);
+        Assert.True(report.Probe.HasCatalogNameTrees);
+        Assert.NotNull(report.DocumentInfo);
+        Assert.True(report.DocumentInfo!.HasNamedDestinations);
+        Assert.True(report.DocumentInfo.HasCatalogNameTrees);
+        AssertNamedDestination(report.DocumentInfo, "Chapter1", 1, 200);
+        Assert.Empty(report.ReadBlockers);
+        Assert.Empty(report.Diagnostics);
+        Assert.Empty(report.RewriteBlockers);
+        Assert.False(report.HasRewriteBlocker(PdfRewriteBlockerKind.NamedDestinations));
+    }
+
+    [Fact]
+    public void Preflight_AllowsUnsupportedNamedDestinationNameTreeReadButBlocksRewrite() {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildComplexNamedDestinationNameTreePdf());
 
         Assert.True(report.CanRead);
@@ -1568,7 +1586,7 @@ public class PdfInspectorTests {
         return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 
-    private static byte[] BuildComplexNamedDestinationNameTreePdf() {
+    private static byte[] BuildNamedDestinationNameTreeWithKidsPdf() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",
             "1 0 obj",
@@ -1591,6 +1609,38 @@ public class PdfInspectorTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildComplexNamedDestinationNameTreePdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Names << /Dests << /Kids [5 0 R] >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Names [(Chapter1) [6 0 R /XYZ 0 200 0]] >>",
+            "endobj",
+            "6 0 obj",
+            "<< /NotAPage true >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
             "%%EOF"
         });
 
