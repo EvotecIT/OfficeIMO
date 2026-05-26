@@ -218,6 +218,7 @@ public class PdfReadStreamTests {
         PdfDocumentInfo inputInfo = PdfInspector.Inspect(pdf);
         Assert.Equal("SinglePage", inputInfo.CatalogPageLayout);
         Assert.False(inputInfo.HasReadablePageLabels);
+        Assert.False(PdfInspector.Preflight(pdf).HasRewriteBlocker(PdfRewriteBlockerKind.PageLabels));
 
         byte[] output = PdfPageExtractor.ExtractPages(pdf, 1);
 
