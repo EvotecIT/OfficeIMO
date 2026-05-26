@@ -673,7 +673,7 @@ public static class PdfStamper {
         }
 
         if (contents is PdfReference reference &&
-            objects.TryGetValue(reference.ObjectNumber, out var indirect) &&
+            PdfObjectLookup.TryGet(objects, reference, out var indirect) &&
             indirect.Value is PdfArray referencedArray) {
             foreach (var item in referencedArray.Items) {
                 target.Items.Add(item);
@@ -726,7 +726,7 @@ public static class PdfStamper {
         }
 
         if (obj is PdfReference reference &&
-            objects.TryGetValue(reference.ObjectNumber, out var indirect) &&
+            PdfObjectLookup.TryGet(objects, reference, out var indirect) &&
             indirect.Value is PdfDictionary referencedDictionary) {
             return referencedDictionary;
         }
@@ -802,7 +802,7 @@ public static class PdfStamper {
 
             if (!current.Items.TryGetValue("Parent", out var parentObj) ||
                 parentObj is not PdfReference parentReference ||
-                !objects.TryGetValue(parentReference.ObjectNumber, out var parentIndirect) ||
+                !PdfObjectLookup.TryGet(objects, parentReference, out var parentIndirect) ||
                 parentIndirect.Value is not PdfDictionary parentDictionary) {
                 return null;
             }

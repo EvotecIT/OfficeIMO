@@ -16,7 +16,7 @@ internal static class ResourceResolver {
             bool hasToUnicode = fontVal.Items.ContainsKey("ToUnicode");
             ToUnicodeCMap? cmap = null;
             if (hasToUnicode) {
-                if (fontVal.Items.TryGetValue("ToUnicode", out var tu) && tu is PdfReference r && objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfStream s) {
+                if (fontVal.Items.TryGetValue("ToUnicode", out var tu) && tu is PdfReference r && PdfObjectLookup.TryGet(objects, r, out var ind) && ind.Value is PdfStream s) {
                     var data = Filters.StreamDecoder.Decode(s.Dictionary, s.Data, objects);
                     if (!ToUnicodeCMap.TryParse(data, out cmap)) cmap = null;
                 }
@@ -154,7 +154,7 @@ internal static class ResourceResolver {
             bool hasToUnicode = fontVal.Items.ContainsKey("ToUnicode");
             ToUnicodeCMap? cmap = null;
             if (hasToUnicode) {
-                if (fontVal.Items.TryGetValue("ToUnicode", out var tu) && tu is PdfReference r && objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfStream s) {
+                if (fontVal.Items.TryGetValue("ToUnicode", out var tu) && tu is PdfReference r && PdfObjectLookup.TryGet(objects, r, out var ind) && ind.Value is PdfStream s) {
                     var data = Filters.StreamDecoder.Decode(s.Dictionary, s.Data, objects);
                     if (!ToUnicodeCMap.TryParse(data, out cmap)) cmap = null;
                 }
@@ -174,7 +174,7 @@ internal static class ResourceResolver {
         var xo = ResolveDict(xoObj, objects);
         if (xo is null) return result;
         foreach (var kv in xo.Items) {
-            if (kv.Value is PdfReference r && objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfStream s) {
+            if (kv.Value is PdfReference r && PdfObjectLookup.TryGet(objects, r, out var ind) && ind.Value is PdfStream s) {
                 var subtype = s.Dictionary.Get<PdfName>("Subtype")?.Name;
                 if (string.Equals(subtype, "Form", System.StringComparison.Ordinal)) {
                     var data = Filters.StreamDecoder.Decode(s.Dictionary, s.Data, objects);
@@ -197,7 +197,7 @@ internal static class ResourceResolver {
             int objectNumber = 0;
             PdfStream? stream = null;
             if (kv.Value is PdfReference reference &&
-                objects.TryGetValue(reference.ObjectNumber, out var indirect) &&
+                PdfObjectLookup.TryGet(objects, reference, out var indirect) &&
                 indirect.Value is PdfStream referencedStream) {
                 objectNumber = reference.ObjectNumber;
                 stream = referencedStream;
@@ -234,7 +234,7 @@ internal static class ResourceResolver {
                 var dict = ResolveDict(v, objects);
                 if (dict is not null) return dict;
             }
-            if (!current.Items.TryGetValue("Parent", out var p) || p is not PdfReference pr || !objects.TryGetValue(pr.ObjectNumber, out var indr) || indr.Value is not PdfDictionary parent) break;
+            if (!current.Items.TryGetValue("Parent", out var p) || p is not PdfReference pr || !PdfObjectLookup.TryGet(objects, pr, out var indr) || indr.Value is not PdfDictionary parent) break;
             current = parent;
         }
         return null;
@@ -242,14 +242,14 @@ internal static class ResourceResolver {
 
     private static PdfDictionary? ResolveDict(PdfObject obj, Dictionary<int, PdfIndirectObject> objects) {
         if (obj is PdfDictionary d) return d;
-        if (obj is PdfReference r && objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfDictionary dd) return dd;
+        if (obj is PdfReference r && PdfObjectLookup.TryGet(objects, r, out var ind) && ind.Value is PdfDictionary dd) return dd;
         return null;
     }
 
     private static PdfArray? ResolveArray(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
         if (obj is null) return null;
         if (obj is PdfArray a) return a;
-        if (obj is PdfReference r && objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfArray aa) return aa;
+        if (obj is PdfReference r && PdfObjectLookup.TryGet(objects, r, out var ind) && ind.Value is PdfArray aa) return aa;
         return null;
     }
 
@@ -335,11 +335,7 @@ internal static class ResourceResolver {
     }
 
     private static PdfObject? ResolveObject(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
-        if (obj is PdfReference reference && objects.TryGetValue(reference.ObjectNumber, out var indirect)) {
-            return indirect.Value;
-        }
-
-        return obj;
+        return PdfObjectLookup.Resolve(objects, obj);
     }
 
     private static bool TryBuildPngFile(

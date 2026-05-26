@@ -1184,7 +1184,7 @@ public static class PdfPageExtractor {
         HashSet<int> visitedObjects) {
         if (pageNode is PdfReference reference) {
             if (!visitedObjects.Add(reference.ObjectNumber) ||
-                !sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                !PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect)) {
                 return;
             }
 
@@ -1350,7 +1350,7 @@ public static class PdfPageExtractor {
         HashSet<int> visitedReferences) {
         if (value is PdfReference reference) {
             if (!visitedReferences.Add(reference.ObjectNumber) ||
-                !sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                !PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect)) {
                 return false;
             }
 
@@ -1448,7 +1448,7 @@ public static class PdfPageExtractor {
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject? xmpMetadata) {
         if (xmpMetadata is not PdfReference reference ||
-            !sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect) ||
+            !PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect) ||
             indirect.Value is not PdfStream stream ||
             !IsXmpMetadataStream(stream)) {
             return null;
@@ -1519,7 +1519,7 @@ public static class PdfPageExtractor {
                     return true;
                 }
 
-                if (!sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                if (!PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect)) {
                     return false;
                 }
 
@@ -1578,7 +1578,7 @@ public static class PdfPageExtractor {
                     return true;
                 }
 
-                if (!sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                if (!PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect)) {
                     return false;
                 }
 
@@ -1639,7 +1639,7 @@ public static class PdfPageExtractor {
             case PdfNull:
                 return true;
             case PdfReference reference:
-                if (!sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                if (!PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect)) {
                     return false;
                 }
 
@@ -1807,7 +1807,7 @@ public static class PdfPageExtractor {
         while (true) {
             if (destination is PdfReference reference) {
                 if (!visitedReferences.Add(reference.ObjectNumber) ||
-                    !sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                    !PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect)) {
                     return false;
                 }
 
@@ -1824,7 +1824,7 @@ public static class PdfPageExtractor {
             return destination is PdfArray array &&
                 array.Items.Count > 0 &&
                 array.Items[0] is PdfReference pageReference &&
-                sourceObjects.TryGetValue(pageReference.ObjectNumber, out var pageObject) &&
+                PdfObjectLookup.TryGet(sourceObjects, pageReference, out var pageObject) &&
                 IsPageDictionary(pageObject.Value);
         }
     }
@@ -1855,12 +1855,7 @@ public static class PdfPageExtractor {
     }
 
     private static PdfObject? ResolveObject(Dictionary<int, PdfIndirectObject> sourceObjects, PdfObject? value) {
-        if (value is PdfReference reference &&
-            sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect)) {
-            return indirect.Value;
-        }
-
-        return value;
+        return PdfObjectLookup.Resolve(sourceObjects, value);
     }
 
     private static PdfDictionary? ResolveDictionary(Dictionary<int, PdfIndirectObject> sourceObjects, PdfObject? value) {
@@ -2254,7 +2249,7 @@ public static class PdfPageExtractor {
 
                 if (!current.Items.TryGetValue("Parent", out var parentObj) ||
                     parentObj is not PdfReference parentReference ||
-                    !_sourceObjects.TryGetValue(parentReference.ObjectNumber, out var parentIndirect) ||
+                    !PdfObjectLookup.TryGet(_sourceObjects, parentReference, out var parentIndirect) ||
                     parentIndirect.Value is not PdfDictionary parentDictionary) {
                     return null;
                 }

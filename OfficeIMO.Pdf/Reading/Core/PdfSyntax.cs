@@ -11,7 +11,7 @@ internal static class PdfSyntax {
     private static readonly Regex ObjRegex = new Regex(@"(\d+)\s+(\d+)\s+obj", RegexOptions.Compiled, RegexTimeout);
     private static readonly Regex StreamRegex = new Regex(@"<<(.*?)>>\s*stream\r?\n([\s\S]*?)\r?\nendstream", RegexOptions.Compiled | RegexOptions.Singleline, RegexTimeout);
 #endif
-    private static readonly Regex TrailerRootRegex = new Regex(@"/Root\s+(\d+)\s+\d+\s+R", RegexOptions.Compiled, RegexTimeout);
+    private static readonly Regex TrailerRootRegex = new Regex(@"/Root\s+(\d+)\s+(\d+)\s+R", RegexOptions.Compiled, RegexTimeout);
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(byte[] pdf) {
         string text = PdfEncoding.Latin1GetString(pdf);
@@ -834,15 +834,15 @@ internal static class PdfSyntax {
     }
 
     internal static PdfDictionary? FindCatalog(Dictionary<int, PdfIndirectObject> map, string? trailerRaw = null) {
-        if (TryGetTrailerRootObjectNumber(trailerRaw, out int rootObjectNumber) &&
-            map.TryGetValue(rootObjectNumber, out var rootObject) &&
+        if (TryGetTrailerRootReference(trailerRaw, out PdfReference rootReference) &&
+            PdfObjectLookup.TryGet(map, rootReference, out var rootObject) &&
             rootObject.Value is PdfDictionary rootDictionary &&
             rootDictionary.Get<PdfName>("Type")?.Name == "Catalog") {
             return rootDictionary;
         }
 
-        if (TryGetXrefStreamRootObjectNumber(map, out rootObjectNumber) &&
-            map.TryGetValue(rootObjectNumber, out rootObject) &&
+        if (TryGetXrefStreamRootReference(map, out rootReference) &&
+            PdfObjectLookup.TryGet(map, rootReference, out rootObject) &&
             rootObject.Value is PdfDictionary xrefRootDictionary &&
             xrefRootDictionary.Get<PdfName>("Type")?.Name == "Catalog") {
             return xrefRootDictionary;
@@ -862,19 +862,25 @@ internal static class PdfSyntax {
         return null;
     }
 
-    private static bool TryGetTrailerRootObjectNumber(string? trailerRaw, out int objectNumber) {
-        objectNumber = 0;
+    private static bool TryGetTrailerRootReference(string? trailerRaw, out PdfReference reference) {
+        reference = null!;
         if (string.IsNullOrWhiteSpace(trailerRaw)) {
             return false;
         }
 
         Match match = TrailerRootRegex.Match(trailerRaw);
-        return match.Success &&
-            int.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out objectNumber);
+        if (!match.Success ||
+            !int.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int objectNumber) ||
+            !int.TryParse(match.Groups[2].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int generation)) {
+            return false;
+        }
+
+        reference = new PdfReference(objectNumber, generation);
+        return true;
     }
 
-    private static bool TryGetXrefStreamRootObjectNumber(Dictionary<int, PdfIndirectObject> map, out int objectNumber) {
-        objectNumber = 0;
+    private static bool TryGetXrefStreamRootReference(Dictionary<int, PdfIndirectObject> map, out PdfReference reference) {
+        reference = null!;
         foreach (var entry in map.Values.OrderByDescending(static item => item.ObjectNumber)) {
             PdfDictionary? dictionary = entry.Value switch {
                 PdfStream stream => stream.Dictionary,
@@ -883,10 +889,12 @@ internal static class PdfSyntax {
             };
 
             if (dictionary?.Get<PdfName>("Type")?.Name == "XRef" &&
-                ResolveObject(map, dictionary.Items.TryGetValue("Root", out var root) ? root : null) is PdfDictionary rootDictionary &&
+                dictionary.Items.TryGetValue("Root", out var root) &&
+                root is PdfReference rootReference &&
+                ResolveObject(map, rootReference) is PdfDictionary rootDictionary &&
                 rootDictionary.Get<PdfName>("Type")?.Name == "Catalog" &&
-                dictionary.Items["Root"] is PdfReference rootReference) {
-                objectNumber = rootReference.ObjectNumber;
+                rootReference.Generation >= 0) {
+                reference = rootReference;
                 return true;
             }
         }
@@ -895,28 +903,23 @@ internal static class PdfSyntax {
     }
 
     private static PdfObject? ResolveObject(Dictionary<int, PdfIndirectObject> map, PdfObject? value) {
-        if (value is PdfReference reference &&
-            map.TryGetValue(reference.ObjectNumber, out var indirect)) {
-            return indirect.Value;
-        }
-
-        return value;
+        return PdfObjectLookup.Resolve(map, value);
     }
 
     private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> map, PdfArray destination) {
         return destination.Items.Count > 0 &&
             destination.Items[0] is PdfReference pageReference &&
-            map.TryGetValue(pageReference.ObjectNumber, out var pageObject) &&
+            PdfObjectLookup.TryGet(map, pageReference, out var pageObject) &&
             pageObject.Value is PdfDictionary pageDictionary &&
             pageDictionary.Get<PdfName>("Type")?.Name == "Page";
     }
 
     private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> map, PdfObject destination) {
-        var visitedReferences = new HashSet<int>();
+        var visitedReferences = new HashSet<(int ObjectNumber, int Generation)>();
         while (true) {
             if (destination is PdfReference reference) {
-                if (!visitedReferences.Add(reference.ObjectNumber) ||
-                    !map.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                if (!visitedReferences.Add((reference.ObjectNumber, reference.Generation)) ||
+                    !PdfObjectLookup.TryGet(map, reference, out var indirect)) {
                     return false;
                 }
 
@@ -979,7 +982,7 @@ internal static class PdfSyntax {
 
     private static bool IsSupportedCatalogXmpMetadataStream(Dictionary<int, PdfIndirectObject> map, PdfObject value) {
         if (value is not PdfReference reference ||
-            !map.TryGetValue(reference.ObjectNumber, out var indirect) ||
+            !PdfObjectLookup.TryGet(map, reference, out var indirect) ||
             indirect.Value is not PdfStream stream ||
             stream.Dictionary.Get<PdfName>("Type")?.Name != "Metadata" ||
             stream.Dictionary.Get<PdfName>("Subtype")?.Name != "XML") {
@@ -1015,7 +1018,7 @@ internal static class PdfSyntax {
                     return true;
                 }
 
-                if (!map.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                if (!PdfObjectLookup.TryGet(map, reference, out var indirect)) {
                     return false;
                 }
 
@@ -1074,7 +1077,7 @@ internal static class PdfSyntax {
                     return true;
                 }
 
-                if (!map.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                if (!PdfObjectLookup.TryGet(map, reference, out var indirect)) {
                     return false;
                 }
 
@@ -1190,7 +1193,7 @@ internal static class PdfSyntax {
         HashSet<int> visitedReferences) {
         if (value is PdfReference reference) {
             if (!visitedReferences.Add(reference.ObjectNumber) ||
-                !map.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                !PdfObjectLookup.TryGet(map, reference, out var indirect)) {
                 return false;
             }
 

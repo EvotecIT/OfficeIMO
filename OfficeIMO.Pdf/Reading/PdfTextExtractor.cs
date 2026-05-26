@@ -1330,7 +1330,7 @@ public static class PdfTextExtractor {
         }
 
         if (formObj is PdfReference formRef &&
-            parsedObjects.TryGetValue(formRef.ObjectNumber, out var indirectForm) &&
+            PdfObjectLookup.TryGet(parsedObjects, formRef, out var indirectForm) &&
             indirectForm.Value is PdfStream referencedStream &&
             string.Equals(referencedStream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) {
             formStream = referencedStream;
@@ -1779,17 +1779,18 @@ public static class PdfTextExtractor {
         }
 
         if (contents is PdfReference reference) {
-            if (objects.TryGetValue(reference.ObjectNumber, out var indirect) &&
-                indirect.Value is PdfArray referencedArray) {
-                AppendContentIds(referencedArray, ids);
-            } else {
-                ids.Add(reference.ObjectNumber);
+            if (PdfObjectLookup.TryGet(objects, reference, out var indirect)) {
+                if (indirect.Value is PdfArray referencedArray) {
+                    AppendContentIds(referencedArray, ids, objects);
+                } else if (indirect.Value is PdfStream) {
+                    ids.Add(reference.ObjectNumber);
+                }
             }
             return ids;
         }
 
         if (contents is PdfArray arr) {
-            AppendContentIds(arr, ids);
+            AppendContentIds(arr, ids, objects);
         }
 
         return ids;
@@ -1819,7 +1820,7 @@ public static class PdfTextExtractor {
         }
 
         if (obj is PdfReference reference &&
-            objects.TryGetValue(reference.ObjectNumber, out var indirect) &&
+            PdfObjectLookup.TryGet(objects, reference, out var indirect) &&
             indirect.Value is PdfDictionary referencedDict) {
             return referencedDict;
         }
@@ -1833,7 +1834,7 @@ public static class PdfTextExtractor {
         }
 
         if (obj is PdfReference reference &&
-            objects.TryGetValue(reference.ObjectNumber, out var indirect) &&
+            PdfObjectLookup.TryGet(objects, reference, out var indirect) &&
             indirect.Value is PdfArray referencedArray) {
             return referencedArray;
         }
@@ -1841,9 +1842,11 @@ public static class PdfTextExtractor {
         return null;
     }
 
-    private static void AppendContentIds(PdfArray contentArray, List<int> ids) {
+    private static void AppendContentIds(PdfArray contentArray, List<int> ids, Dictionary<int, PdfIndirectObject> objects) {
         foreach (var item in contentArray.Items) {
-            if (item is PdfReference itemReference) {
+            if (item is PdfReference itemReference &&
+                PdfObjectLookup.TryGet(objects, itemReference, out var indirect) &&
+                indirect.Value is PdfStream) {
                 ids.Add(itemReference.ObjectNumber);
             }
         }

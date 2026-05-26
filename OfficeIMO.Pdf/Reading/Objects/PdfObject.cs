@@ -76,3 +76,29 @@ internal sealed class PdfIndirectObject : PdfObject {
     public PdfObject Value { get; }
     public PdfIndirectObject(int number, int generation, PdfObject value) { ObjectNumber = number; Generation = generation; Value = value; }
 }
+
+internal static class PdfObjectLookup {
+    public static bool TryGet(
+        System.Collections.Generic.Dictionary<int, PdfIndirectObject> objects,
+        PdfReference reference,
+        out PdfIndirectObject indirect) {
+        if (objects.TryGetValue(reference.ObjectNumber, out indirect!) &&
+            indirect.Generation == reference.Generation) {
+            return true;
+        }
+
+        indirect = null!;
+        return false;
+    }
+
+    public static PdfObject? Resolve(
+        System.Collections.Generic.Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value) {
+        if (value is PdfReference reference &&
+            TryGet(objects, reference, out var indirect)) {
+            return indirect.Value;
+        }
+
+        return value;
+    }
+}

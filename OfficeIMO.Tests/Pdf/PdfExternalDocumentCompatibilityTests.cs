@@ -143,6 +143,16 @@ public class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void ExtractTextByPage_DoesNotResolveContentReferenceWithWrongGeneration() {
+        byte[] pdf = BuildClassicXrefPdfWithWrongGenerationContentReference();
+
+        IReadOnlyList<string> pages = PdfTextExtractor.ExtractTextByPage(pdf);
+
+        string pageText = Normalize(Assert.Single(pages));
+        Assert.DoesNotContain("Wrong generation referenced content", pageText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ExtractText_FollowsXrefStreamPrevChainForInheritedObjects() {
         byte[] pdf = BuildIncrementalXrefStreamPdfWithTrailingStaleDuplicatePage();
 
@@ -612,6 +622,27 @@ public class PdfExternalDocumentCompatibilityTests {
         stream.Write(xrefEntries, 0, xrefEntries.Length);
         WriteAscii(stream, "\nendstream\nendobj\n");
         WriteAscii(stream, "startxref\n" + offsets[activeXrefObjectNumber].ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n%%EOF\n");
+
+        return stream.ToArray();
+    }
+
+    private static byte[] BuildClassicXrefPdfWithWrongGenerationContentReference() {
+        using var stream = new MemoryStream();
+        var offsets = new Dictionary<int, int>();
+
+        WriteAscii(stream, "%PDF-1.4\n");
+        WriteObject(stream, offsets, 1, "<< /Type /Catalog /Pages 2 0 R >>");
+        WriteObject(stream, offsets, 2, "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 7 0 R >> >> >>");
+        WriteObject(stream, offsets, 3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>");
+        WriteStreamObjectGeneration(stream, offsets, 4, 1, Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Wrong generation referenced content) Tj\nET\n"));
+        WriteObject(stream, offsets, 7, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+
+        int xrefOffset = (int)stream.Position;
+        var entries = new Dictionary<int, int>(offsets) {
+            [0] = 0
+        };
+        WriteClassicXrefTable(stream, entries, size: 8, rootObjectNumber: 1, previousXrefOffset: null);
+        WriteAscii(stream, "startxref\n" + xrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n%%EOF\n");
 
         return stream.ToArray();
     }
@@ -1198,6 +1229,15 @@ public class PdfExternalDocumentCompatibilityTests {
         WriteAscii(stream, objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
             " " + generation.ToString(System.Globalization.CultureInfo.InvariantCulture) +
             " obj\n" + body + "\nendobj\n");
+    }
+
+    private static void WriteStreamObjectGeneration(Stream stream, Dictionary<int, int> offsets, int objectNumber, int generation, byte[] streamBytes) {
+        offsets[objectNumber] = (int)stream.Position;
+        WriteAscii(stream, objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " " + generation.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " obj\n<< /Length " + streamBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
+        stream.Write(streamBytes, 0, streamBytes.Length);
+        WriteAscii(stream, "\nendstream\nendobj\n");
     }
 
     private static void WriteStreamObject(Stream stream, Dictionary<int, int> offsets, int objectNumber, byte[] streamBytes) {
