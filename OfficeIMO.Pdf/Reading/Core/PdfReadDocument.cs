@@ -13,9 +13,9 @@ public sealed class PdfReadDocument {
         _objects = objects; _trailerRaw = trailerRaw; _options = options ?? new PdfReadOptions();
         Pages = CollectPages();
         Metadata = ExtractMetadata();
-        Outlines = ExtractOutlines();
         PageLabels = ExtractPageLabels();
         NamedDestinations = ExtractNamedDestinations();
+        Outlines = ExtractOutlines();
         OpenAction = ExtractOpenAction();
         ViewerPreferences = ExtractViewerPreferences();
         FormFields = ExtractFormFields();
@@ -179,7 +179,7 @@ public sealed class PdfReadDocument {
 
     private (int? PageNumber, double? DestinationTop) GetOutlineDestination(PdfDictionary item) {
         if (item.Items.TryGetValue("Dest", out var destObj) &&
-            TryReadDestination(destObj, out int? pageNumber, out double? destinationTop)) {
+            TryReadDestinationOrNamedDestination(destObj, out int? pageNumber, out double? destinationTop)) {
             return (pageNumber, destinationTop);
         }
 
@@ -187,7 +187,7 @@ public sealed class PdfReadDocument {
             ResolveObject(actionObject) is PdfDictionary action &&
             action.Get<PdfName>("S")?.Name == "GoTo" &&
             action.Items.TryGetValue("D", out var actionDestination) &&
-            TryReadDestination(actionDestination, out pageNumber, out destinationTop)) {
+            TryReadDestinationOrNamedDestination(actionDestination, out pageNumber, out destinationTop)) {
             return (pageNumber, destinationTop);
         }
 
@@ -430,6 +430,26 @@ public sealed class PdfReadDocument {
 
         destination = new PdfNamedDestination(name, pageNumber, destinationTop);
         return true;
+    }
+
+    private bool TryReadDestinationOrNamedDestination(PdfObject destinationObject, out int? pageNumber, out double? destinationTop) {
+        if (TryReadDestination(destinationObject, out pageNumber, out destinationTop)) {
+            return true;
+        }
+
+        if (TryReadDestinationName(destinationObject, out string? name)) {
+            foreach (var destination in NamedDestinations) {
+                if (string.Equals(destination.Name, name, StringComparison.Ordinal)) {
+                    pageNumber = destination.PageNumber;
+                    destinationTop = destination.DestinationTop;
+                    return true;
+                }
+            }
+        }
+
+        pageNumber = null;
+        destinationTop = null;
+        return false;
     }
 
     private bool TryReadDestination(PdfObject destinationObject, out int? pageNumber, out double? destinationTop) {
