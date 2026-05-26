@@ -341,7 +341,7 @@ Text quality is the heart of PDF generation.
 - Add Unicode text support with ToUnicode maps.
 - Add glyph measurement and shaping boundaries.
 - Add fallback font selection.
-- Add text extraction support for simple encoded fonts and ToUnicode maps. Initial readback already includes layout-option overloads on the `PdfTextExtractor` facade, structured-by-page and table-by-page facade readback, a generated two-column regression gate for column-aware reading order, and a generated simple-table regression gate for structured table rows.
+- Add text extraction support for simple encoded fonts and ToUnicode maps. Initial readback already includes layout-option overloads on the `PdfTextExtractor` facade, structured-by-page and table-by-page facade readback, common text-showing operators, `TD` text-positioning line advances, a generated two-column regression gate for column-aware reading order, and a generated simple-table regression gate for structured table rows.
 - Add diagnostics when text cannot be represented in the selected font. Initial generated/stamped standard-font text now rejects unsupported WinAnsi characters with the exact Unicode code point and explains that embedded Unicode fonts are required; raw control characters are rejected with layout-oriented diagnostics instead of being written as invisible PDF text bytes.
 
 Exit criteria:
