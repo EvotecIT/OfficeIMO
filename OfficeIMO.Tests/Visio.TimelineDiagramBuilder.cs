@@ -82,6 +82,64 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void TimelineDiagramBuilderCanAddSemanticCalloutsToMilestonesAndSpans() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .TimelineDiagram("Annotated Roadmap", timeline => timeline
+                    .Title()
+                    .Range(new DateTime(2026, 1, 1), new DateTime(2026, 6, 30))
+                    .Span("build", new DateTime(2026, 2, 1), new DateTime(2026, 5, 15), "Build", 0)
+                    .Risk("risk", new DateTime(2026, 3, 18), "Security review", VisioTimelinePlacement.Above)
+                    .Release("preview", new DateTime(2026, 5, 20), "Public preview", VisioTimelinePlacement.Below)
+                    .Callout(" risk ", "risk-note", "Resolve before preview", 6.7, 6.4, options => {
+                        options.Width = 2.45;
+                        options.Height = 0.72;
+                        options.RouteOffset = 0.11;
+                    })
+                    .Callout("build", "build-note", "Implementation runway", 5.2, 5.7));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape[] callouts = page.Callouts().ToArray();
+            Assert.Equal(2, callouts.Length);
+
+            VisioShape riskCallout = Assert.Single(callouts, shape => shape.Id == "risk-note");
+            VisioShape buildCallout = Assert.Single(callouts, shape => shape.Id == "build-note");
+            VisioShape risk = Assert.Single(page.Shapes, shape => shape.Id == "risk");
+            VisioShape build = Assert.Single(page.Shapes, shape => shape.Id == "build");
+
+            Assert.Equal("Resolve before preview", riskCallout.Text);
+            Assert.Equal(risk.Id, riskCallout.CalloutTargetId);
+            Assert.Equal(build.Id, buildCallout.CalloutTargetId);
+            Assert.Contains("Annotations", riskCallout.LayerNames);
+            Assert.Equal(2.45, riskCallout.Width);
+            Assert.Equal(0.72, riskCallout.Height);
+
+            VisioConnector riskLeader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, riskCallout));
+            VisioConnector buildLeader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, buildCallout));
+            Assert.Same(risk, riskLeader.To);
+            Assert.Same(build, buildLeader.To);
+            Assert.Equal(EndArrow.None, riskLeader.EndArrow);
+            Assert.Contains("Annotations", buildLeader.LayerNames);
+            Assert.Equal(riskLeader.Id, riskCallout.GetUserCellValue("OfficeIMO.CalloutLeaderId"));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void TimelineDiagramBuilderGeneratesUniqueCalloutIds() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .TimelineDiagram("Generated", timeline => timeline
+                    .Span("build", new DateTime(2026, 2, 1), new DateTime(2026, 3, 15), "Build")
+                    .Callout("build", "First note", 5.3, 5.8)
+                    .Callout("build", "Second note", 5.3, 4.9));
+
+            VisioPage page = Assert.Single(document.Pages);
+            Assert.Equal(new[] { "build-callout", "build-callout-2" }, page.Callouts().Select(shape => shape.Id).ToArray());
+        }
+
+        [Fact]
         public void TimelineDiagramBuilderRejectsItemsOutsideConfiguredRange() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -114,6 +172,28 @@ namespace OfficeIMO.Tests {
             Assert.Contains("already exists", titleFirst.Message);
             Assert.Contains("already exists", itemFirst.Message);
             Assert.Contains("already exists", axisCollision.Message);
+            Assert.Contains("already exists", generatedLabelCollision.Message);
+        }
+
+        [Fact]
+        public void TimelineDiagramBuilderRejectsCalloutIdCollisionsAndUnknownTargets() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException unknownTarget = Assert.Throws<ArgumentException>(() =>
+                document.TimelineDiagram("Invalid", timeline => timeline
+                    .Milestone("kickoff", new DateTime(2026, 1, 1), "Kickoff")
+                    .Callout("missing", "note", "No target", 4, 4)));
+            ArgumentException milestoneCollision = Assert.Throws<ArgumentException>(() =>
+                document.TimelineDiagram("Invalid", timeline => timeline
+                    .Milestone("kickoff", new DateTime(2026, 1, 1), "Kickoff")
+                    .Callout("kickoff", "kickoff", "Duplicate id", 4, 4)));
+            ArgumentException generatedLabelCollision = Assert.Throws<ArgumentException>(() =>
+                document.TimelineDiagram("Invalid", timeline => timeline
+                    .Milestone("kickoff", new DateTime(2026, 1, 1), "Kickoff")
+                    .Callout("kickoff", "kickoff-label", "Duplicate id", 4, 4)));
+
+            Assert.Contains("Unknown timeline item id", unknownTarget.Message);
+            Assert.Contains("already exists", milestoneCollision.Message);
             Assert.Contains("already exists", generatedLabelCollision.Message);
         }
     }

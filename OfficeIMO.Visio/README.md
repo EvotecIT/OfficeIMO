@@ -427,9 +427,13 @@ VisioDocument.Create("roadmap.vsdx")
         .Span("discovery", new DateTime(2026, 1, 8), new DateTime(2026, 2, 20), "Discovery")
         .Span("build", new DateTime(2026, 2, 21), new DateTime(2026, 5, 15), "Build", lane: 1)
         .Release("preview", new DateTime(2026, 5, 20), "Public preview", VisioTimelinePlacement.Below)
-        .Milestone("ga", new DateTime(2026, 6, 25), "GA"))
+        .Milestone("ga", new DateTime(2026, 6, 25), "GA")
+        .Callout("build", "build-note", "Implementation runway", 5.2, 5.7))
     .Save();
 ```
+
+Timeline callouts can target either milestone IDs or span IDs, so roadmap
+notes stay attached to the dated item they explain.
 
 ## Visual quality checks and gallery output
 

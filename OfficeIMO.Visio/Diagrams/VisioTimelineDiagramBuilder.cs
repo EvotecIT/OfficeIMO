@@ -52,6 +52,31 @@ namespace OfficeIMO.Visio.Diagrams {
             public int Lane { get; }
 
             public VisioTimelinePlacement Placement { get; }
+
+            public VisioShape? Shape { get; set; }
+        }
+
+        private sealed class CalloutItem {
+            public CalloutItem(string targetId, string id, string text, double pinX, double pinY, VisioCalloutOptions options) {
+                TargetId = targetId;
+                Id = id;
+                Text = text;
+                PinX = pinX;
+                PinY = pinY;
+                Options = options;
+            }
+
+            public string TargetId { get; }
+
+            public string Id { get; }
+
+            public string Text { get; }
+
+            public double PinX { get; }
+
+            public double PinY { get; }
+
+            public VisioCalloutOptions Options { get; }
         }
 
         private readonly VisioDocument _document;
@@ -60,6 +85,7 @@ namespace OfficeIMO.Visio.Diagrams {
         private readonly Dictionary<string, MilestoneItem> _milestonesById = new(StringComparer.Ordinal);
         private readonly List<SpanItem> _spans = new();
         private readonly Dictionary<string, SpanItem> _spansById = new(StringComparer.Ordinal);
+        private readonly List<CalloutItem> _callouts = new();
         private VisioStyleTheme _theme = VisioStyleTheme.Modern();
         private VisioMeasurementUnit _unit = VisioMeasurementUnit.Inches;
         private DateTime? _startDate;
@@ -234,6 +260,32 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
+        /// <summary>Adds a semantic callout connected to a known timeline milestone or span using a generated callout id.</summary>
+        public VisioTimelineDiagramBuilder Callout(string targetId, string text, double pinX, double pinY, Action<VisioCalloutOptions>? configure = null) {
+            string normalizedTargetId = RequireId(targetId, nameof(targetId), "Callout target id");
+            EnsureKnownTimelineItem(normalizedTargetId, nameof(targetId));
+            return Callout(normalizedTargetId, CreateCalloutId(normalizedTargetId), text, pinX, pinY, configure);
+        }
+
+        /// <summary>Adds a semantic callout connected to a known timeline milestone or span.</summary>
+        public VisioTimelineDiagramBuilder Callout(string targetId, string id, string text, double pinX, double pinY, Action<VisioCalloutOptions>? configure = null) {
+            string normalizedTargetId = RequireId(targetId, nameof(targetId), "Callout target id");
+            string normalizedId = RequireId(id, nameof(id), "Callout id");
+            EnsureKnownTimelineItem(normalizedTargetId, nameof(targetId));
+            if (IsShapeIdInUse(normalizedId)) {
+                throw new ArgumentException($"A timeline item with shape id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            ValidateFinite(pinX, nameof(pinX));
+            ValidateFinite(pinY, nameof(pinY));
+            VisioCalloutOptions options = CreateCalloutOptions();
+            configure?.Invoke(options);
+            ValidatePositive(options.Width, nameof(options.Width));
+            ValidatePositive(options.Height, nameof(options.Height));
+            _callouts.Add(new CalloutItem(normalizedTargetId, normalizedId, text ?? string.Empty, pinX, pinY, options));
+            return this;
+        }
+
         internal VisioPage Build() {
             if (_built) {
                 throw new InvalidOperationException("This timeline builder has already produced a page.");
@@ -252,6 +304,7 @@ namespace OfficeIMO.Visio.Diagrams {
             AddAxis(page, start, end);
             AddSpans(page, start, end);
             AddMilestones(page, start, end);
+            AddCallouts(page);
             AddTitle(page);
             _document.RequestRecalcOnOpen();
             return page;
@@ -371,6 +424,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 };
                 _theme.Primary.ApplyTo(shape);
                 page.Shapes.Add(shape);
+                span.Shape = shape;
             }
         }
 
@@ -408,6 +462,40 @@ namespace OfficeIMO.Visio.Diagrams {
                 GetMilestoneLabelStyle(milestone.Kind).ApplyTo(label);
                 page.Shapes.Add(label);
             }
+        }
+
+        private void AddCallouts(VisioPage page) {
+            foreach (CalloutItem callout in _callouts) {
+                VisioShape? target = GetTimelineItemShape(callout.TargetId);
+                if (target == null) {
+                    throw new InvalidOperationException("Timeline items must be placed before callouts are created.");
+                }
+
+                page.AddCallout(target, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
+            }
+        }
+
+        private VisioCalloutOptions CreateCalloutOptions() {
+            return new VisioCalloutOptions {
+                ShapeStyle = _theme.Container.Clone(),
+                LeaderStyle = new VisioConnectorStyle(_theme.Connector.LineColor, Math.Max(0.012D, _theme.Connector.LineWeight), 2, EndArrow.None) {
+                    Kind = ConnectorKind.RightAngle,
+                    TextStyle = _theme.Connector.TextStyle?.Clone()
+                },
+                RouteOffset = 0.08D
+            };
+        }
+
+        private VisioShape? GetTimelineItemShape(string id) {
+            if (_milestonesById.TryGetValue(id, out MilestoneItem? milestone)) {
+                return milestone.MarkerShape;
+            }
+
+            if (_spansById.TryGetValue(id, out SpanItem? span)) {
+                return span.Shape;
+            }
+
+            return null;
         }
 
         private int ResolveLabelLevel(List<double> levelRights, double x) {
@@ -526,7 +614,33 @@ namespace OfficeIMO.Visio.Diagrams {
                 }
             }
 
+            foreach (CalloutItem callout in _callouts) {
+                if (string.Equals(callout.Id, id, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
             return false;
+        }
+
+        private void EnsureKnownTimelineItem(string id, string parameterName) {
+            if (!_milestonesById.ContainsKey(id) && !_spansById.ContainsKey(id)) {
+                throw new ArgumentException($"Unknown timeline item id '{id}'.", parameterName);
+            }
+        }
+
+        private string CreateCalloutId(string targetId) {
+            string id = targetId + "-callout";
+            if (!IsShapeIdInUse(id)) {
+                return id;
+            }
+
+            int index = 2;
+            while (IsShapeIdInUse(id + "-" + index)) {
+                index++;
+            }
+
+            return id + "-" + index;
         }
 
         private static string GetMilestoneLabelId(string milestoneId) {
@@ -557,6 +671,12 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             return id.Trim();
+        }
+
+        private static void ValidateFinite(double value, string parameterName) {
+            if (double.IsNaN(value) || double.IsInfinity(value)) {
+                throw new ArgumentOutOfRangeException(parameterName, "Value must be a finite number.");
+            }
         }
 
         private static void ValidatePositive(double value, string parameterName) {
