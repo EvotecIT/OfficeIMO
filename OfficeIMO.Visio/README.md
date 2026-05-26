@@ -268,6 +268,7 @@ using OfficeIMO.Visio.Diagrams;
 
 VisioDocument.Create("org-chart.vsdx")
     .OrgChartDiagram("Leadership", org => org
+        .Title()
         .Theme(VisioStyleTheme.Modern())
         .Root("ceo", "Marta Nowak", "Chief Executive Officer")
         .Assistant("ea", "Eli Green", "Executive Assistant", "ceo")

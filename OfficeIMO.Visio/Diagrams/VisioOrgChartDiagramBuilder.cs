@@ -76,6 +76,10 @@ namespace OfficeIMO.Visio.Diagrams {
         private double _levelGap = 0.82;
         private double _assistantGap = 0.35;
         private double _bandPadding = 0.28;
+        private string? _titleText;
+        private string _titleId = "title";
+        private double _titleHeight = 0.45;
+        private double _titleGap = 0.35;
         private bool _built;
 
         internal VisioOrgChartDiagramBuilder(VisioDocument document, string pageName) {
@@ -139,6 +143,22 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
+        /// <summary>Adds a centered editable title above the generated organization chart.</summary>
+        public VisioOrgChartDiagramBuilder Title(string? text = null, string id = "title", double height = 0.45, double gap = 0.35) {
+            string normalizedId = RequireId(id, nameof(id), "Title id");
+            if (IsShapeIdInUse(normalizedId)) {
+                throw new ArgumentException($"An org chart item with shape id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            ValidatePositive(height, nameof(height));
+            ValidateNonNegative(gap, nameof(gap));
+            _titleText = string.IsNullOrWhiteSpace(text) ? _pageName : text;
+            _titleId = normalizedId;
+            _titleHeight = height;
+            _titleGap = gap;
+            return this;
+        }
+
         /// <summary>Adds the root executive node.</summary>
         public VisioOrgChartDiagramBuilder Root(string id, string name, string title = "") =>
             AddNode(id, name, title, managerId: null, bandId: null, VisioOrgChartNodeKind.Executive);
@@ -166,12 +186,18 @@ namespace OfficeIMO.Visio.Diagrams {
         /// <summary>Adds a background band around positions tagged with the band id.</summary>
         public VisioOrgChartDiagramBuilder TeamBand(string id, string text, string managerId) {
             string normalizedId = RequireId(id, nameof(id), "Team band id");
-            EnsureKnownNode(managerId, nameof(managerId));
+            string normalizedManagerId = RequireId(managerId, nameof(managerId), "Manager node id");
+            EnsureKnownNode(normalizedManagerId, nameof(managerId));
             if (_bandsById.ContainsKey(normalizedId)) {
                 throw new ArgumentException($"An org chart team band with id '{normalizedId}' already exists.", nameof(id));
             }
 
-            TeamBandItem band = new(normalizedId, text ?? string.Empty, managerId);
+            string shapeId = GetBandShapeId(normalizedId);
+            if (IsShapeIdInUse(shapeId)) {
+                throw new ArgumentException($"An org chart item with shape id '{shapeId}' already exists.", nameof(id));
+            }
+
+            TeamBandItem band = new(normalizedId, text ?? string.Empty, normalizedManagerId);
             _bands.Add(band);
             _bandsById.Add(normalizedId, band);
             return this;
@@ -192,14 +218,15 @@ namespace OfficeIMO.Visio.Diagrams {
             AddTeamBands(page);
             AddNodes(page);
             AddReportingLines(page);
+            AddTitle(page);
             _document.RequestRecalcOnOpen();
             return page;
         }
 
         private VisioOrgChartDiagramBuilder AddNode(string id, string name, string title, string? managerId, string? bandId, VisioOrgChartNodeKind kind) {
             string normalizedId = RequireId(id, nameof(id), "Org chart node id");
-            if (_nodesById.ContainsKey(normalizedId)) {
-                throw new ArgumentException($"An org chart node with id '{normalizedId}' already exists.", nameof(id));
+            if (IsShapeIdInUse(normalizedId)) {
+                throw new ArgumentException($"An org chart item with shape id '{normalizedId}' already exists.", nameof(id));
             }
 
             if (!Enum.IsDefined(typeof(VisioOrgChartNodeKind), kind)) {
@@ -210,17 +237,21 @@ namespace OfficeIMO.Visio.Diagrams {
                 throw new InvalidOperationException("An org chart can only have one root executive node.");
             }
 
+            string? normalizedManagerId = null;
             if (kind != VisioOrgChartNodeKind.Executive) {
-                EnsureKnownNode(managerId, nameof(managerId));
+                normalizedManagerId = RequireId(managerId!, nameof(managerId), "Manager node id");
+                EnsureKnownNode(normalizedManagerId, nameof(managerId));
             } else if (!string.IsNullOrWhiteSpace(managerId)) {
                 throw new ArgumentException("The root executive node cannot have a manager.", nameof(managerId));
             }
 
+            string? normalizedBandId = null;
             if (!string.IsNullOrWhiteSpace(bandId)) {
-                EnsureKnownBand(bandId!, nameof(bandId));
+                normalizedBandId = RequireId(bandId!, nameof(bandId), "Team band id");
+                EnsureKnownBand(normalizedBandId, nameof(bandId));
             }
 
-            OrgNode node = new(normalizedId, name ?? string.Empty, title ?? string.Empty, managerId, bandId, kind);
+            OrgNode node = new(normalizedId, name ?? string.Empty, title ?? string.Empty, normalizedManagerId, normalizedBandId, kind);
             _nodes.Add(node);
             _nodesById.Add(normalizedId, node);
             return this;
@@ -268,7 +299,7 @@ namespace OfficeIMO.Visio.Diagrams {
             int leafCount = Math.Max(1, GetLeafCount(root, new HashSet<string>(StringComparer.Ordinal)));
             double treeWidth = (leafCount * _nodeWidth) + ((leafCount - 1) * _columnGap);
             _pageWidth = Math.Max(_pageWidth, _leftMargin + treeWidth + _rightMargin);
-            _pageHeight = Math.Max(_pageHeight, _topMargin + ((maxDepth + 1) * _nodeHeight) + (maxDepth * _levelGap) + _bottomMargin);
+            _pageHeight = Math.Max(_pageHeight, _topMargin + HeaderHeight + ((maxDepth + 1) * _nodeHeight) + (maxDepth * _levelGap) + _bottomMargin);
 
             double nextLeafX = _leftMargin + (_nodeWidth / 2D);
             AssignTreePositions(root, 0, ref nextLeafX, new HashSet<string>(StringComparer.Ordinal));
@@ -384,7 +415,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 double height = (top - bottom) + (_bandPadding * 2D);
                 double x = (left + right) / 2D;
                 double y = (bottom + top) / 2D;
-                VisioShape shape = new("org-band-" + band.Id, x, y, width, height, band.Text) {
+                VisioShape shape = new(GetBandShapeId(band.Id), x, y, width, height, band.Text) {
                     NameU = "Rectangle",
                     Master = _document.EnsureBuiltinMaster("Rectangle")
                 };
@@ -392,6 +423,26 @@ namespace OfficeIMO.Visio.Diagrams {
                 shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR", prompt: "OfficeIMO semantic kind");
                 page.Shapes.Add(shape);
             }
+        }
+
+        private void AddTitle(VisioPage page) {
+            if (string.IsNullOrWhiteSpace(_titleText)) {
+                return;
+            }
+
+            double y = _pageHeight - _topMargin - (_titleHeight / 2D);
+            VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
+            title.TextStyle = CreateTitleTextStyle();
+        }
+
+        private VisioTextStyle CreateTitleTextStyle() {
+            VisioTextStyle style = _theme.Emphasis.TextStyle?.Clone() ?? new VisioTextStyle();
+            style.FontFamily = string.IsNullOrWhiteSpace(style.FontFamily) ? "Aptos Display" : style.FontFamily;
+            style.Size = Math.Max(style.Size ?? 0D, 20D);
+            style.Bold = true;
+            style.HorizontalAlignment = VisioTextHorizontalAlignment.Center;
+            style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
+            return style;
         }
 
         private void AddNodes(VisioPage page) {
@@ -461,8 +512,10 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private double LevelCenterY(int depth) {
-            return _pageHeight - _topMargin - (_nodeHeight / 2D) - (depth * (_nodeHeight + _levelGap));
+            return _pageHeight - _topMargin - HeaderHeight - (_nodeHeight / 2D) - (depth * (_nodeHeight + _levelGap));
         }
+
+        private double HeaderHeight => string.IsNullOrWhiteSpace(_titleText) ? 0D : _titleHeight + _titleGap;
 
         private void GetNodeShape(VisioOrgChartNodeKind kind, out string masterNameU, out double width, out double height) {
             width = _nodeWidth;
@@ -532,8 +585,9 @@ namespace OfficeIMO.Visio.Diagrams {
                 throw new ArgumentException("Org chart node id cannot be null or whitespace.", parameterName);
             }
 
-            if (!_nodesById.ContainsKey(id!)) {
-                throw new ArgumentException($"Unknown org chart node id '{id}'.", parameterName);
+            string normalizedId = id!.Trim();
+            if (!_nodesById.ContainsKey(normalizedId)) {
+                throw new ArgumentException($"Unknown org chart node id '{normalizedId}'.", parameterName);
             }
         }
 
@@ -542,9 +596,32 @@ namespace OfficeIMO.Visio.Diagrams {
                 throw new ArgumentException("Team band id cannot be null or whitespace.", parameterName);
             }
 
-            if (!_bandsById.ContainsKey(id)) {
-                throw new ArgumentException($"Unknown org chart team band id '{id}'.", parameterName);
+            string normalizedId = id.Trim();
+            if (!_bandsById.ContainsKey(normalizedId)) {
+                throw new ArgumentException($"Unknown org chart team band id '{normalizedId}'.", parameterName);
             }
+        }
+
+        private bool IsShapeIdInUse(string id) {
+            if (!string.IsNullOrWhiteSpace(_titleText) && string.Equals(_titleId, id, StringComparison.Ordinal)) {
+                return true;
+            }
+
+            if (_nodesById.ContainsKey(id)) {
+                return true;
+            }
+
+            foreach (TeamBandItem band in _bands) {
+                if (string.Equals(GetBandShapeId(band.Id), id, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static string GetBandShapeId(string bandId) {
+            return "org-band-" + bandId;
         }
 
         private static string RequireId(string id, string parameterName, string label) {
@@ -552,7 +629,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 throw new ArgumentException(label + " cannot be null or whitespace.", parameterName);
             }
 
-            return id;
+            return id.Trim();
         }
 
         private static void ValidatePositive(double value, string parameterName) {
