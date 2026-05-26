@@ -157,6 +157,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BlockDiagramBuilderCanAutoPlaceSemanticCalloutsBesideBlocks() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .BlockDiagram("Auto Annotated Blocks", diagram => diagram
+                    .Title()
+                    .Region("compute", "Compute", 0, 0, 2, 1)
+                    .Block("input", "Input", 0, 0)
+                    .EmphasisBlock("processor", "Processor", 1, 0)
+                    .DataFlow("input", "processor")
+                    .Callout("processor", "processor-note", "High throughput path", VisioSide.Right, 0.4, options => {
+                        options.Width = 2.4;
+                        options.Height = 0.7;
+                    })
+                    .Callout("input", "Validate source", VisioSide.Left, 0.25));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape processor = Assert.Single(page.Shapes, shape => shape.Id == "processor");
+            VisioShape explicitCallout = Assert.Single(page.Callouts(), shape => shape.Id == "processor-note");
+            VisioShape generatedCallout = Assert.Single(page.Callouts(), shape => shape.Id == "input-callout");
+
+            Assert.True(explicitCallout.PinX > processor.PinX);
+            Assert.Equal(processor.PinY, explicitCallout.PinY, 6);
+            Assert.Equal(processor.Id, explicitCallout.CalloutTargetId);
+            Assert.Equal(2.4, explicitCallout.Width);
+            Assert.True(generatedCallout.PinX < page.FindShapeById("input")!.PinX);
+
+            VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, explicitCallout));
+            Assert.Same(processor, leader.To);
+            Assert.Equal(EndArrow.None, leader.EndArrow);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void BlockDiagramBuilderGeneratesUniqueCalloutIds() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
                 .BlockDiagram("Generated", diagram => diagram
@@ -211,6 +247,23 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Unknown block id", unknownTarget.Message);
             Assert.Contains("already exists", blockCollision.Message);
             Assert.Contains("already exists", regionCollision.Message);
+        }
+
+        [Fact]
+        public void BlockDiagramBuilderRejectsAutoCalloutPlacementIssues() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentOutOfRangeException autoPlacement = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.BlockDiagram("Invalid", diagram => diagram
+                    .Block("processor", "Processor", 0, 0)
+                    .Callout("processor", "Invalid", VisioSide.Auto)));
+            ArgumentOutOfRangeException badGap = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.BlockDiagram("Invalid", diagram => diagram
+                    .Block("processor", "Processor", 0, 0)
+                    .Callout("processor", "Invalid", VisioSide.Right, double.NaN)));
+
+            Assert.Contains("Placement must be", autoPlacement.Message);
+            Assert.Contains("finite non-negative", badGap.Message);
         }
     }
 }
