@@ -260,14 +260,16 @@ VisioDocument.Create("swimlane.vsdx")
         .Exception("approved", "revise", "no")
         .Handoff("approved", "pick", "yes")
         .Flow("pick", "invoice")
-        .Flow("invoice", "ship"))
+        .Flow("invoice", "ship")
+        .Callout("approved", "approval-note", "Escalate exceptions before fulfillment", 7.8, 5.9))
     .Save();
 ```
 
 The swimlane builder creates editable role lanes, phase headers, semantic
 activities, labeled flows, dashed exception paths, deterministic routing, and
 automatic stacking when more than one activity lands in the same lane/phase
-cell. It does not require Visio templates at runtime.
+cell. It supports semantic callouts for risk and exception notes, and does not
+require Visio templates at runtime.
 
 ## Quick sample (org chart builder)
 

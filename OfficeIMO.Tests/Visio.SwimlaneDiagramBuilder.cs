@@ -111,6 +111,63 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SwimlaneDiagramBuilderCanAddSemanticCallouts() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .SwimlaneDiagram("Annotated Fulfillment", swim => swim
+                    .Title()
+                    .Lane("customer", "Customer")
+                    .Lane("sales", "Sales")
+                    .Lane("ops", "Operations")
+                    .Phase("request", "Request")
+                    .Phase("approval", "Approval")
+                    .Start("start", "Submit order", "customer", "request")
+                    .Decision("approved", "Approved?", "sales", "approval")
+                    .Step("pick", "Pick items", "ops", "approval")
+                    .Flow("start", "approved")
+                    .Handoff("approved", "pick", "yes")
+                    .Callout("approved", "approval-note", "Escalate exceptions before fulfillment", 7.8, 5.9, options => {
+                        options.Width = 2.8;
+                        options.Height = 0.72;
+                        options.RouteOffset = 0.12;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape callout = Assert.Single(page.Callouts());
+            VisioShape target = Assert.Single(page.Shapes, shape => shape.Id == "approved");
+            Assert.Equal("approval-note", callout.Id);
+            Assert.Equal("Escalate exceptions before fulfillment", callout.Text);
+            Assert.Equal(target.Id, callout.CalloutTargetId);
+            Assert.Contains("Annotations", callout.LayerNames);
+            Assert.Equal(2.8, callout.Width);
+            Assert.Equal(0.72, callout.Height);
+
+            VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, callout));
+            Assert.Same(target, leader.To);
+            Assert.Equal(EndArrow.None, leader.EndArrow);
+            Assert.Contains("Annotations", leader.LayerNames);
+            Assert.Equal(leader.Id, callout.GetUserCellValue("OfficeIMO.CalloutLeaderId"));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void SwimlaneDiagramBuilderGeneratesUniqueCalloutIds() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .SwimlaneDiagram("Generated", swim => swim
+                    .Lane("ops", "Operations")
+                    .Phase("work", "Work")
+                    .Step("review", "Review", "ops", "work")
+                    .Callout("review", "First note", 5.3, 5.8)
+                    .Callout("review", "Second note", 5.3, 4.9));
+
+            VisioPage page = Assert.Single(document.Pages);
+            Assert.Equal(new[] { "review-callout", "review-callout-2" }, page.Callouts().Select(shape => shape.Id).ToArray());
+        }
+
+        [Fact]
         public void SwimlaneDiagramBuilderRejectsUnknownFlowEndpoints() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -136,6 +193,34 @@ namespace OfficeIMO.Tests {
                     .Title()));
 
             Assert.Contains("already exists", exception.Message);
+        }
+
+        [Fact]
+        public void SwimlaneDiagramBuilderRejectsCalloutIdCollisionsAndUnknownTargets() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException unknownTarget = Assert.Throws<ArgumentException>(() =>
+                document.SwimlaneDiagram("Invalid", swim => swim
+                    .Lane("sales", "Sales")
+                    .Phase("review", "Review")
+                    .Step("qualify", "Qualify", "sales", "review")
+                    .Callout("missing", "note", "No target", 4, 4)));
+            ArgumentException activityCollision = Assert.Throws<ArgumentException>(() =>
+                document.SwimlaneDiagram("Invalid", swim => swim
+                    .Lane("sales", "Sales")
+                    .Phase("review", "Review")
+                    .Step("qualify", "Qualify", "sales", "review")
+                    .Callout("qualify", "qualify", "Duplicate id", 4, 4)));
+            ArgumentException laneCollision = Assert.Throws<ArgumentException>(() =>
+                document.SwimlaneDiagram("Invalid", swim => swim
+                    .Lane("sales", "Sales")
+                    .Phase("review", "Review")
+                    .Step("qualify", "Qualify", "sales", "review")
+                    .Callout("qualify", "lane-sales", "Duplicate id", 4, 4)));
+
+            Assert.Contains("Unknown swimlane activity id", unknownTarget.Message);
+            Assert.Contains("already exists", activityCollision.Message);
+            Assert.Contains("already exists", laneCollision.Message);
         }
     }
 }
