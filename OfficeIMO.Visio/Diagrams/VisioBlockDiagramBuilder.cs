@@ -86,6 +86,9 @@ namespace OfficeIMO.Visio.Diagrams {
         private double _leftMargin = 0.8;
         private double _topMargin = 0.8;
         private string? _titleText;
+        private string _titleId = "title";
+        private double _titleHeight = 0.45;
+        private double _titleGap = 0.35;
         private bool _showLegend;
         private string _dataFlowLegendLabel = "Data Flow";
         private string _controlFlowLegendLabel = "Control Flow";
@@ -131,8 +134,18 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         /// <summary>Adds a centered title above the generated grid.</summary>
-        public VisioBlockDiagramBuilder Title(string? text = null) {
+        public VisioBlockDiagramBuilder Title(string? text = null, string id = "title", double height = 0.45, double gap = 0.35) {
+            string normalizedId = RequireId(id, nameof(id), "Title id");
+            if (IsIdInUse(normalizedId)) {
+                throw new ArgumentException($"A diagram item with id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            ValidatePositive(height, nameof(height));
+            ValidateNonNegative(gap, nameof(gap));
             _titleText = string.IsNullOrWhiteSpace(text) ? _pageName : text;
+            _titleId = normalizedId;
+            _titleHeight = height;
+            _titleGap = gap;
             return this;
         }
 
@@ -212,9 +225,11 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private VisioBlockDiagramBuilder AddLink(string fromId, string toId, VisioBlockConnectorKind kind, string? label) {
-            EnsureKnownBlock(fromId, nameof(fromId));
-            EnsureKnownBlock(toId, nameof(toId));
-            _links.Add(new Link(fromId, toId, kind, label));
+            string normalizedFromId = RequireId(fromId, nameof(fromId), "From block id");
+            string normalizedToId = RequireId(toId, nameof(toId), "To block id");
+            EnsureKnownBlock(normalizedFromId, nameof(fromId));
+            EnsureKnownBlock(normalizedToId, nameof(toId));
+            _links.Add(new Link(normalizedFromId, normalizedToId, kind, label));
             return this;
         }
 
@@ -316,14 +331,15 @@ namespace OfficeIMO.Visio.Diagrams {
 
         private void AddAdornments(VisioPage page) {
             if (!string.IsNullOrWhiteSpace(_titleText)) {
-                VisioShape title = page.AddTextBox(_pageWidth / 2D, _pageHeight - 0.42D, Math.Max(1D, _pageWidth - 1.6D), 0.45D, _titleText);
+                double y = _pageHeight - _topMargin - (_titleHeight / 2D);
+                VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - 1.6D), _titleHeight, _titleText, _unit);
                 if (_theme.TitleTextStyle != null) {
                     title.TextStyle = _theme.TitleTextStyle.Clone();
                 }
             }
 
             if (_showLegend) {
-                double y = _pageHeight - (!string.IsNullOrWhiteSpace(_titleText) ? 0.95D : 0.45D);
+                double y = _pageHeight - _topMargin - TitleHeaderHeight - (LegendHeaderHeight / 2D);
                 AddLegendItem(page, Math.Max(0.8D, _leftMargin), y, _dataFlowLegendLabel, _theme.DataFlowColor, 1);
                 AddLegendItem(page, Math.Max(0.8D, _pageWidth - 3.1D), y, _controlFlowLegendLabel, _theme.ControlFlowColor, 2);
             }
@@ -358,26 +374,22 @@ namespace OfficeIMO.Visio.Diagrams {
 
         private double HeaderHeight {
             get {
-                double height = 0D;
-                if (!string.IsNullOrWhiteSpace(_titleText)) {
-                    height += 0.65D;
-                }
-
-                if (_showLegend) {
-                    height += 0.45D;
-                }
-
-                return height;
+                return TitleHeaderHeight + (_showLegend ? LegendHeaderHeight : 0D);
             }
         }
+
+        private double TitleHeaderHeight => string.IsNullOrWhiteSpace(_titleText) ? 0D : _titleHeight + _titleGap;
+
+        private const double LegendHeaderHeight = 0.45D;
 
         private void EnsureKnownBlock(string id, string parameterName) {
             if (string.IsNullOrWhiteSpace(id)) {
                 throw new ArgumentException("Block id cannot be null or whitespace.", parameterName);
             }
 
-            if (!_blocksById.ContainsKey(id)) {
-                throw new ArgumentException($"Unknown block id '{id}'.", parameterName);
+            string normalizedId = id.Trim();
+            if (!_blocksById.ContainsKey(normalizedId)) {
+                throw new ArgumentException($"Unknown block id '{normalizedId}'.", parameterName);
             }
         }
 
@@ -386,10 +398,14 @@ namespace OfficeIMO.Visio.Diagrams {
                 throw new ArgumentException(label + " cannot be null or whitespace.", parameterName);
             }
 
-            return id;
+            return id.Trim();
         }
 
         private bool IsIdInUse(string id) {
+            if (!string.IsNullOrWhiteSpace(_titleText) && string.Equals(_titleId, id, StringComparison.Ordinal)) {
+                return true;
+            }
+
             if (_blocksById.ContainsKey(id)) {
                 return true;
             }

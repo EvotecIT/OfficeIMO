@@ -85,7 +85,13 @@ namespace OfficeIMO.Tests {
                     .ControlFlow("memory", "output", "Control"));
 
             VisioPage page = Assert.Single(document.Pages);
-            Assert.Contains(page.Shapes, shape => shape.Text == "Block Diagram" && shape.NameU == "Text Box");
+            VisioShape title = Assert.Single(page.Shapes, shape => shape.Id == "title");
+            double highestGridTop = page.Shapes
+                .Where(shape => shape.Id != "title" && !string.Equals(shape.Text, "Data Flow", StringComparison.Ordinal) && !string.Equals(shape.Text, "Control Flow", StringComparison.Ordinal))
+                .Max(shape => shape.PinY + shape.Height / 2D);
+            Assert.Equal("Text Box", title.NameU);
+            Assert.Equal("Block Diagram", title.Text);
+            Assert.True(title.PinY - title.Height / 2D > highestGridTop);
             Assert.Contains(page.Shapes, shape => shape.Text == "Data Flow");
             Assert.Contains(page.Shapes, shape => shape.Text == "Control Flow");
             Assert.True(page.Shapes.Single(shape => shape.Id == "input").PinY < page.Height - 1.2D);
@@ -96,6 +102,43 @@ namespace OfficeIMO.Tests {
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void BlockDiagramBuilderNormalizesFlowEndpointIds() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .BlockDiagram("Trimmed", diagram => diagram
+                    .Block("input", "Input", 0, 0)
+                    .Block("output", "Output", 1, 0)
+                    .DataFlow(" input ", " output ", "data"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioConnector connector = Assert.Single(page.Connectors);
+            Assert.Equal("input", connector.From.Id);
+            Assert.Equal("output", connector.To.Id);
+            Assert.Equal("data", connector.Label);
+        }
+
+        [Fact]
+        public void BlockDiagramBuilderRejectsTitleIdCollisions() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException blockFirst = Assert.Throws<ArgumentException>(() =>
+                document.BlockDiagram("Invalid", diagram => diagram
+                    .Block("title", "Input", 0, 0)
+                    .Title()));
+            ArgumentException titleFirst = Assert.Throws<ArgumentException>(() =>
+                document.BlockDiagram("Invalid", diagram => diagram
+                    .Title()
+                    .Block("title", "Input", 0, 0)));
+            ArgumentException regionCollision = Assert.Throws<ArgumentException>(() =>
+                document.BlockDiagram("Invalid", diagram => diagram
+                    .Region("title", "Region", 0, 0, 1, 1)
+                    .Title()));
+
+            Assert.Contains("already exists", blockFirst.Message);
+            Assert.Contains("already exists", titleFirst.Message);
+            Assert.Contains("already exists", regionCollision.Message);
         }
     }
 }
