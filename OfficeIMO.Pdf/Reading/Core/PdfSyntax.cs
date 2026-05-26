@@ -1122,7 +1122,9 @@ internal static class PdfSyntax {
             for (int i = 0; i < n; i++) {
                 int objNum = pairs[i].Obj;
                 int off = pairs[i].Off;
-                if (effectiveOffsets.TryGetValue(objNum, out int currentOffset) && currentOffset > objectStreamOffset) {
+                if (map.ContainsKey(objNum) &&
+                    effectiveOffsets.TryGetValue(objNum, out int currentOffset) &&
+                    currentOffset > objectStreamOffset) {
                     continue;
                 }
 
