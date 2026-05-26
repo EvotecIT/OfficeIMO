@@ -113,6 +113,16 @@ public class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void ExtractText_IgnoresTrailingStaleObjectStreamsOutsideActiveClassicXref() {
+        byte[] pdf = BuildClassicXrefPdfWithTrailingStaleObjectStreamPage();
+
+        string text = Normalize(PdfTextExtractor.ExtractAllText(pdf));
+
+        Assert.Contains("Active classic xref page", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Stale classic object stream page", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ExtractText_FollowsXrefStreamPrevChainForInheritedObjects() {
         byte[] pdf = BuildIncrementalXrefStreamPdfWithTrailingStaleDuplicatePage();
 
@@ -464,6 +474,33 @@ public class PdfExternalDocumentCompatibilityTests {
         WriteAscii(stream, "startxref\n" + offsets[xrefObjectNumber].ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n%%EOF\n");
 
         WriteStreamObject(stream, offsets, 6, Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Stale trailing object stream page) Tj\nET\n"));
+        var stalePackedObjects = new List<(int ObjectNumber, string Body)> {
+            (3, "<< /Type /Page /Parent 2 0 R /Contents 6 0 R >>")
+        };
+        WriteRawObject(stream, offsets, 20, BuildObjectStreamObject(20, stalePackedObjects));
+
+        return stream.ToArray();
+    }
+
+    private static byte[] BuildClassicXrefPdfWithTrailingStaleObjectStreamPage() {
+        using var stream = new MemoryStream();
+        var offsets = new Dictionary<int, int>();
+
+        WriteAscii(stream, "%PDF-1.4\n");
+        WriteObject(stream, offsets, 1, "<< /Type /Catalog /Pages 2 0 R >>");
+        WriteObject(stream, offsets, 2, "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 7 0 R >> >> >>");
+        WriteObject(stream, offsets, 3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>");
+        WriteStreamObject(stream, offsets, 4, Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Active classic xref page) Tj\nET\n"));
+        WriteObject(stream, offsets, 7, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+
+        int classicXrefOffset = (int)stream.Position;
+        var classicEntries = new Dictionary<int, int>(offsets) {
+            [0] = 0
+        };
+        WriteClassicXrefTable(stream, classicEntries, size: 21, rootObjectNumber: 1, previousXrefOffset: null);
+        WriteAscii(stream, "startxref\n" + classicXrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n%%EOF\n");
+
+        WriteStreamObject(stream, offsets, 6, Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Stale classic object stream page) Tj\nET\n"));
         var stalePackedObjects = new List<(int ObjectNumber, string Body)> {
             (3, "<< /Type /Page /Parent 2 0 R /Contents 6 0 R >>")
         };

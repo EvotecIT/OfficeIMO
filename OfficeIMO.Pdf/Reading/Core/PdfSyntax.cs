@@ -87,11 +87,12 @@ internal static class PdfSyntax {
         ThrowIfEncrypted(trailerRaw);
 
         ResolveIndirectStreamLengths(map, pdf, streamLocations);
-        bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, parsedOffsets);
+        var activeClassicObjectNumbers = new HashSet<int>();
+        bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, parsedOffsets, activeClassicObjectNumbers, out bool appliedClassicEntries);
         appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, parsedOffsets) || appliedXrefStreamEntries;
         if (!appliedXrefStreamEntries) {
             // Compatibility fallback for simple parser-supported files whose compressed objects are only discoverable by scanning.
-            ExpandObjectStreams(map, pdf, parsedOffsets);
+            ExpandObjectStreams(map, pdf, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null);
         }
 
         ThrowIfEncryptedXrefStream(map);
@@ -1359,7 +1360,13 @@ internal static class PdfSyntax {
         }
     }
 
-    private static bool ApplyClassicXrefEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, Dictionary<int, int> parsedOffsets) {
+    private static bool ApplyClassicXrefEntries(
+        Dictionary<int, PdfIndirectObject> map,
+        byte[] pdf,
+        Dictionary<int, int> parsedOffsets,
+        HashSet<int> activeObjectNumbers,
+        out bool appliedClassicEntries) {
+        appliedClassicEntries = false;
         string text = PdfEncoding.Latin1GetString(pdf);
         if (!TryGetLatestStartXrefOffset(text, out int activeXrefOffset)) {
             return false;
@@ -1370,9 +1377,10 @@ internal static class PdfSyntax {
             return false;
         }
 
+        appliedClassicEntries = true;
         bool appliedXrefStream = false;
         foreach (var table in tables) {
-            ApplyClassicXrefTableEntries(map, pdf, parsedOffsets, text, table.Entries);
+            ApplyClassicXrefTableEntries(map, pdf, parsedOffsets, text, table.Entries, activeObjectNumbers);
             if (table.XrefStreamOffset.HasValue) {
                 appliedXrefStream = ApplyXrefStreamAtOffset(map, pdf, parsedOffsets, text, table.XrefStreamOffset.Value) || appliedXrefStream;
             }
@@ -1386,16 +1394,20 @@ internal static class PdfSyntax {
         byte[] pdf,
         Dictionary<int, int> parsedOffsets,
         string text,
-        List<(int ObjectNumber, int Offset, bool InUse)> entries) {
+        List<(int ObjectNumber, int Offset, bool InUse)> entries,
+        HashSet<int>? activeObjectNumbers = null) {
         foreach (var entry in entries) {
             if (!entry.InUse) {
                 if (entry.ObjectNumber != 0) {
                     map.Remove(entry.ObjectNumber);
                     parsedOffsets.Remove(entry.ObjectNumber);
+                    activeObjectNumbers?.Remove(entry.ObjectNumber);
                 }
 
                 continue;
             }
+
+            activeObjectNumbers?.Add(entry.ObjectNumber);
 
             if (entry.Offset <= 0 ||
                 entry.Offset >= pdf.Length) {
@@ -1915,12 +1927,17 @@ internal static class PdfSyntax {
         return true;
     }
 
-    private static void ExpandObjectStreams(Dictionary<int, PdfIndirectObject> map, byte[] pdf, Dictionary<int, int> parsedOffsets) {
+    private static void ExpandObjectStreams(Dictionary<int, PdfIndirectObject> map, byte[] pdf, Dictionary<int, int> parsedOffsets, HashSet<int>? allowedObjectStreamNumbers) {
         // Snapshot keys to avoid modifying during enumeration
         var keys = new List<int>(map.Keys);
         keys.Sort((left, right) => GetSourceOffset(left).CompareTo(GetSourceOffset(right)));
         var effectiveOffsets = new Dictionary<int, int>(parsedOffsets);
         foreach (var id in keys) {
+            if (allowedObjectStreamNumbers is not null &&
+                !allowedObjectStreamNumbers.Contains(id)) {
+                continue;
+            }
+
             if (!map.TryGetValue(id, out var ind)) continue;
             if (ind.Value is not PdfStream s) continue;
             var type = s.Dictionary.Get<PdfName>("Type")?.Name;
