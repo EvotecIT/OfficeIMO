@@ -1885,7 +1885,7 @@ public static class PdfPageExtractor {
                     annotationObjectMap[annotationReference.ObjectNumber] = clonedAnnotationObjectNumber;
                 }
 
-                clonedAnnotations.Items.Add(new PdfReference(clonedAnnotationObjectNumber, annotationReference.Generation));
+                clonedAnnotations.Items.Add(new PdfReference(clonedAnnotationObjectNumber, 0));
                 hasClonedIndirectAnnotation = true;
                 continue;
             }
@@ -2046,7 +2046,7 @@ public static class PdfPageExtractor {
                     throw new InvalidOperationException("PDF object " + reference.ObjectNumber.ToString(CultureInfo.InvariantCulture) + " was referenced but not copied.");
                 }
 
-                sb.Append(PdfSyntaxEscaper.IndirectReference(newObjectNumber, reference.Generation));
+                sb.Append(PdfSyntaxEscaper.IndirectReference(newObjectNumber));
                 break;
             case PdfArray array:
                 sb.Append("[ ");
