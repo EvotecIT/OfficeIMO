@@ -54,6 +54,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void TimelineDiagramBuilderCanAddTitleWithoutOverlappingRoadmap() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .TimelineDiagram("Product Roadmap", timeline => timeline
+                    .Title()
+                    .PageSize(6, 3)
+                    .Range(new DateTime(2026, 1, 1), new DateTime(2026, 3, 31))
+                    .Span("build", new DateTime(2026, 1, 15), new DateTime(2026, 3, 10), "Build")
+                    .Milestone("kickoff", new DateTime(2026, 1, 20), "Kickoff", VisioTimelinePlacement.Above)
+                    .Release("preview", new DateTime(2026, 3, 15), "Preview", VisioTimelinePlacement.Below));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape title = Assert.Single(page.Shapes, shape => shape.Id == "title");
+            double highestRoadmapTop = page.Shapes
+                .Where(shape => shape.Id != "title")
+                .Max(shape => shape.PinY + shape.Height / 2D);
+            Assert.Equal("Text Box", title.NameU);
+            Assert.Equal("Product Roadmap", title.Text);
+            Assert.True(title.PinY - title.Height / 2D > highestRoadmapTop);
+            Assert.Contains(page.Shapes, shape => shape.Id == "kickoff-label");
+            Assert.Empty(page.AnalyzeVisualQuality().Select(issue => issue.ToString()));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void TimelineDiagramBuilderRejectsItemsOutsideConfiguredRange() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -61,6 +89,32 @@ namespace OfficeIMO.Tests {
                 document.TimelineDiagram("Invalid", timeline => timeline
                     .Range(new DateTime(2026, 1, 1), new DateTime(2026, 1, 31))
                     .Milestone("late", new DateTime(2026, 2, 1), "Late")));
+        }
+
+        [Fact]
+        public void TimelineDiagramBuilderRejectsGeneratedShapeIdCollisions() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException titleFirst = Assert.Throws<ArgumentException>(() =>
+                document.TimelineDiagram("Invalid", timeline => timeline
+                    .Title()
+                    .Milestone("title", new DateTime(2026, 1, 1), "Kickoff")));
+            ArgumentException itemFirst = Assert.Throws<ArgumentException>(() =>
+                document.TimelineDiagram("Invalid", timeline => timeline
+                    .Milestone("kickoff", new DateTime(2026, 1, 1), "Kickoff")
+                    .Title(id: "kickoff-label")));
+            ArgumentException axisCollision = Assert.Throws<ArgumentException>(() =>
+                document.TimelineDiagram("Invalid", timeline => timeline
+                    .Milestone("timeline-axis", new DateTime(2026, 1, 1), "Kickoff")));
+            ArgumentException generatedLabelCollision = Assert.Throws<ArgumentException>(() =>
+                document.TimelineDiagram("Invalid", timeline => timeline
+                    .Milestone("kickoff", new DateTime(2026, 1, 1), "Kickoff")
+                    .Span("kickoff-label", new DateTime(2026, 1, 2), new DateTime(2026, 1, 3), "Blocked")));
+
+            Assert.Contains("already exists", titleFirst.Message);
+            Assert.Contains("already exists", itemFirst.Message);
+            Assert.Contains("already exists", axisCollision.Message);
+            Assert.Contains("already exists", generatedLabelCollision.Message);
         }
     }
 }

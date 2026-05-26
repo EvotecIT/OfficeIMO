@@ -78,6 +78,10 @@ namespace OfficeIMO.Visio.Diagrams {
         private double _labelGap = 0.18;
         private double _spanHeight = 0.28;
         private double _spanLaneGap = 0.16;
+        private string? _titleText;
+        private string _titleId = "title";
+        private double _titleHeight = 0.45;
+        private double _titleGap = 0.35;
         private bool _built;
 
         internal VisioTimelineDiagramBuilder(VisioDocument document, string pageName) {
@@ -152,6 +156,22 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
+        /// <summary>Adds a centered editable title above the generated timeline.</summary>
+        public VisioTimelineDiagramBuilder Title(string? text = null, string id = "title", double height = 0.45, double gap = 0.35) {
+            string normalizedId = RequireId(id, nameof(id), "Title id");
+            if (IsShapeIdInUse(normalizedId)) {
+                throw new ArgumentException($"A timeline item with shape id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            ValidatePositive(height, nameof(height));
+            ValidateNonNegative(gap, nameof(gap));
+            _titleText = string.IsNullOrWhiteSpace(text) ? _pageName : text;
+            _titleId = normalizedId;
+            _titleHeight = height;
+            _titleGap = gap;
+            return this;
+        }
+
         /// <summary>Adds a standard milestone.</summary>
         public VisioTimelineDiagramBuilder Milestone(string id, DateTime date, string text, VisioTimelinePlacement placement = VisioTimelinePlacement.Auto) =>
             AddMilestone(id, date, text, VisioTimelineMilestoneKind.Milestone, placement);
@@ -171,8 +191,8 @@ namespace OfficeIMO.Visio.Diagrams {
         /// <summary>Adds a milestone with an explicit semantic kind.</summary>
         public VisioTimelineDiagramBuilder AddMilestone(string id, DateTime date, string text, VisioTimelineMilestoneKind kind, VisioTimelinePlacement placement = VisioTimelinePlacement.Auto) {
             string normalizedId = RequireId(id, nameof(id), "Milestone id");
-            if (_milestonesById.ContainsKey(normalizedId) || _spansById.ContainsKey(normalizedId)) {
-                throw new ArgumentException($"A timeline item with id '{normalizedId}' already exists.", nameof(id));
+            if (IsTimelineItemIdInUse(normalizedId) || IsShapeIdInUse(normalizedId) || IsShapeIdInUse(GetMilestoneLabelId(normalizedId))) {
+                throw new ArgumentException($"A timeline item with shape id '{normalizedId}' already exists.", nameof(id));
             }
 
             if (!Enum.IsDefined(typeof(VisioTimelineMilestoneKind), kind)) {
@@ -192,8 +212,8 @@ namespace OfficeIMO.Visio.Diagrams {
         /// <summary>Adds a span bar between two dates.</summary>
         public VisioTimelineDiagramBuilder Span(string id, DateTime start, DateTime end, string text, int lane = 0, VisioTimelinePlacement placement = VisioTimelinePlacement.Above) {
             string normalizedId = RequireId(id, nameof(id), "Span id");
-            if (_milestonesById.ContainsKey(normalizedId) || _spansById.ContainsKey(normalizedId)) {
-                throw new ArgumentException($"A timeline item with id '{normalizedId}' already exists.", nameof(id));
+            if (IsTimelineItemIdInUse(normalizedId) || IsShapeIdInUse(normalizedId)) {
+                throw new ArgumentException($"A timeline item with shape id '{normalizedId}' already exists.", nameof(id));
             }
 
             if (end <= start) {
@@ -232,6 +252,7 @@ namespace OfficeIMO.Visio.Diagrams {
             AddAxis(page, start, end);
             AddSpans(page, start, end);
             AddMilestones(page, start, end);
+            AddTitle(page);
             _document.RequestRecalcOnOpen();
             return page;
         }
@@ -273,10 +294,12 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private void EnsurePageCanFit() {
-            _axisY = Math.Min(Math.Max(_axisY, _bottomMargin + 1.2D), _pageHeight - _topMargin - 1.2D);
+            double minimumAxisY = _bottomMargin + 1.2D;
+            double maximumAxisY = Math.Max(minimumAxisY, _pageHeight - _topMargin - HeaderHeight - 1.2D);
+            _axisY = Math.Min(Math.Max(_axisY, minimumAxisY), maximumAxisY);
             int aboveSpanLanes = GetMaxSpanLane(VisioTimelinePlacement.Above) + 1;
             int belowSpanLanes = GetMaxSpanLane(VisioTimelinePlacement.Below) + 1;
-            double aboveNeeded = _topMargin + RequiredDistanceFromAxis(Math.Max(0, aboveSpanLanes)) + 0.25D;
+            double aboveNeeded = _topMargin + HeaderHeight + RequiredDistanceFromAxis(Math.Max(0, aboveSpanLanes)) + 0.25D;
             double belowNeeded = _bottomMargin + RequiredDistanceFromAxis(Math.Max(0, belowSpanLanes)) + 0.25D;
             if (_pageHeight - _axisY < aboveNeeded) {
                 _pageHeight = _axisY + aboveNeeded;
@@ -287,6 +310,26 @@ namespace OfficeIMO.Visio.Diagrams {
                 _pageHeight += delta;
                 _axisY += delta;
             }
+        }
+
+        private void AddTitle(VisioPage page) {
+            if (string.IsNullOrWhiteSpace(_titleText)) {
+                return;
+            }
+
+            double y = _pageHeight - _topMargin - (_titleHeight / 2D);
+            VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
+            title.TextStyle = CreateTitleTextStyle();
+        }
+
+        private VisioTextStyle CreateTitleTextStyle() {
+            VisioTextStyle style = _theme.Emphasis.TextStyle?.Clone() ?? new VisioTextStyle();
+            style.FontFamily = string.IsNullOrWhiteSpace(style.FontFamily) ? "Aptos Display" : style.FontFamily;
+            style.Size = Math.Max(style.Size ?? 0D, 20D);
+            style.Bold = true;
+            style.HorizontalAlignment = VisioTextHorizontalAlignment.Center;
+            style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
+            return style;
         }
 
         private void AddAxis(VisioPage page, DateTime start, DateTime end) {
@@ -358,7 +401,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 page.Shapes.Add(marker);
                 milestone.MarkerShape = marker;
 
-                VisioShape label = new(milestone.Id + "-label", x, labelY, _labelWidth, _labelHeight, GetMilestoneText(milestone)) {
+                VisioShape label = new(GetMilestoneLabelId(milestone.Id), x, labelY, _labelWidth, _labelHeight, GetMilestoneText(milestone)) {
                     NameU = "Rectangle",
                     Master = _document.EnsureBuiltinMaster("Rectangle")
                 };
@@ -407,6 +450,8 @@ namespace OfficeIMO.Visio.Diagrams {
             return _milestoneSize + (_labelGap * 2D) + _labelHeight + (_spanHeight / 2D) + 0.1D;
         }
 
+        private double HeaderHeight => string.IsNullOrWhiteSpace(_titleText) ? 0D : _titleHeight + _titleGap;
+
         private double DateX(DateTime date, DateTime start, DateTime end) {
             double totalDays = Math.Max(1D, (end - start).TotalDays);
             double position = (date - start).TotalDays / totalDays;
@@ -453,6 +498,41 @@ namespace OfficeIMO.Visio.Diagrams {
             return milestone.Text + Environment.NewLine + FormatShortDate(milestone.Date);
         }
 
+        private bool IsTimelineItemIdInUse(string id) {
+            return _milestonesById.ContainsKey(id) || _spansById.ContainsKey(id);
+        }
+
+        private bool IsShapeIdInUse(string id) {
+            if (!string.IsNullOrWhiteSpace(_titleText) && string.Equals(_titleId, id, StringComparison.Ordinal)) {
+                return true;
+            }
+
+            if (string.Equals(id, "timeline-axis", StringComparison.Ordinal) ||
+                string.Equals(id, "timeline-start-label", StringComparison.Ordinal) ||
+                string.Equals(id, "timeline-end-label", StringComparison.Ordinal)) {
+                return true;
+            }
+
+            foreach (MilestoneItem milestone in _milestones) {
+                if (string.Equals(milestone.Id, id, StringComparison.Ordinal) ||
+                    string.Equals(GetMilestoneLabelId(milestone.Id), id, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
+            foreach (SpanItem span in _spans) {
+                if (string.Equals(span.Id, id, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static string GetMilestoneLabelId(string milestoneId) {
+            return milestoneId + "-label";
+        }
+
         private static string FormatShortDate(DateTime date) {
             return date.ToString("MMM d", CultureInfo.InvariantCulture);
         }
@@ -476,7 +556,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 throw new ArgumentException(label + " cannot be null or whitespace.", parameterName);
             }
 
-            return id;
+            return id.Trim();
         }
 
         private static void ValidatePositive(double value, string parameterName) {

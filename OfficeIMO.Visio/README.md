@@ -409,6 +409,7 @@ using OfficeIMO.Visio.Diagrams;
 
 VisioDocument.Create("roadmap.vsdx")
     .TimelineDiagram("Product Roadmap", timeline => timeline
+        .Title()
         .Theme(VisioStyleTheme.Modern())
         .Range(new DateTime(2026, 1, 1), new DateTime(2026, 6, 30))
         .Span("discovery", new DateTime(2026, 1, 8), new DateTime(2026, 2, 20), "Discovery")
