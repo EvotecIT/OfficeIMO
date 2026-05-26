@@ -21,9 +21,8 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(shape));
             }
 
-            double halfWidth = shape.Width / 2D;
-            double halfHeight = shape.Height / 2D;
-            return new VisioShapeBounds(shape.PinX - halfWidth, shape.PinY - halfHeight, shape.PinX + halfWidth, shape.PinY + halfHeight);
+            (double left, double bottom, double right, double top) = shape.GetBounds();
+            return new VisioShapeBounds(left, bottom, right, top);
         }
 
         /// <summary>

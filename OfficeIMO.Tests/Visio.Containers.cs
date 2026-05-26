@@ -54,6 +54,30 @@ namespace OfficeIMO.Tests {
             AssertContainerXml(roundTripPath);
         }
 
+        [Fact]
+        public void ContainersConvertPageUnitOptionsToInches() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Metric Containers", 20, 15, VisioMeasurementUnit.Centimeters);
+            VisioShape api = page.AddRectangle(5, 5, 2.54, 2.54, "API");
+            VisioShape worker = page.AddRectangle(10, 5, 2.54, 2.54, "Worker");
+            OfficeIMO.Visio.VisioShapeBounds memberBounds = new[] { api, worker }.GetShapeBounds();
+
+            VisioShape container = page.AddContainer("metric-tier", "Metric tier", new[] { api, worker }, new VisioContainerOptions {
+                Margin = 1.27,
+                HeadingHeight = 2.54
+            });
+
+            Assert.Equal("0.5", container.GetUserCellValue("msvSDContainerMargin"));
+            Assert.Equal(memberBounds.Width + 1.0, container.Width, 6);
+            Assert.Equal(memberBounds.Height + 2.0, container.Height, 6);
+
+            document.Save();
+
+            Assert.Empty(VisioValidator.Validate(filePath));
+            AssertContainerMarginXml(filePath, "Metric tier", "0.5");
+        }
+
         private static void AssertContainerXml(string filePath) {
             using ZipArchive archive = ZipFile.OpenRead(filePath);
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
@@ -85,6 +109,18 @@ namespace OfficeIMO.Tests {
                     .Single(cell => (string?)cell.Attribute("N") == "Relationships");
                 Assert.Contains($"DEPENDSON(4,Sheet.{containerId}!SheetRef())", memberRelationship.Attribute("F")!.Value);
             }
+        }
+
+        private static void AssertContainerMarginXml(string filePath, string text, string expectedMargin) {
+            using ZipArchive archive = ZipFile.OpenRead(filePath);
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XDocument page = ReadXml(archive, "visio/pages/page1.xml");
+
+            XElement container = page.Descendants(ns + "Shape")
+                .Single(shape => shape.Element(ns + "Text")?.Value == text);
+            XElement userSection = container.Elements(ns + "Section")
+                .Single(section => (string?)section.Attribute("N") == "User");
+            Assert.Equal(expectedMargin, UserCellValue(userSection, ns, "msvSDContainerMargin"));
         }
 
         private static string UserCellValue(XElement userSection, XNamespace ns, string rowName) {

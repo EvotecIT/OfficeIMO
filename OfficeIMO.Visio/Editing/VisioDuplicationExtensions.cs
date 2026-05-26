@@ -89,6 +89,11 @@ namespace OfficeIMO.Visio {
 
             if (sourcePage.IsBackground) {
                 clone.IsBackground = true;
+                if (backgroundPageOverride != null) {
+                    clone.SetBackgroundPage(backgroundPageOverride);
+                } else if (sourcePage.BackgroundPage != null) {
+                    clone.SetBackgroundPage(sourcePage.BackgroundPage);
+                }
             } else if (backgroundPageOverride != null) {
                 clone.SetBackgroundPage(backgroundPageOverride);
             } else if (sourcePage.BackgroundPage != null) {
@@ -531,20 +536,20 @@ namespace OfficeIMO.Visio {
             }
 
             if (source.HasConnectorSpacing) {
-                target.SetConnectorSpacing(
-                    (source.LineToLineX ?? 0D).FromInches(source.ConnectorSpacingUnit),
-                    (source.LineToLineY ?? 0D).FromInches(source.ConnectorSpacingUnit),
-                    (source.LineToNodeX ?? 0D).FromInches(source.ConnectorSpacingUnit),
-                    (source.LineToNodeY ?? 0D).FromInches(source.ConnectorSpacingUnit),
+                target.SetLoadedConnectorSpacingInches(
+                    source.LineToLineX,
+                    source.LineToLineY,
+                    source.LineToNodeX,
+                    source.LineToNodeY,
                     source.ConnectorSpacingUnit);
             }
 
             if (source.HasLayoutGridSizing) {
-                target.SetLayoutGridSizing(
-                    (source.LayoutBlockSizeX ?? 0D).FromInches(source.LayoutGridUnit),
-                    (source.LayoutBlockSizeY ?? 0D).FromInches(source.LayoutGridUnit),
-                    (source.LayoutAvenueSizeX ?? 0D).FromInches(source.LayoutGridUnit),
-                    (source.LayoutAvenueSizeY ?? 0D).FromInches(source.LayoutGridUnit),
+                target.SetLoadedLayoutGridSizingInches(
+                    source.LayoutBlockSizeX,
+                    source.LayoutBlockSizeY,
+                    source.LayoutAvenueSizeX,
+                    source.LayoutAvenueSizeY,
                     source.LayoutGridUnit);
             }
         }

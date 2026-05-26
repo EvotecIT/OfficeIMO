@@ -23,8 +23,8 @@ namespace OfficeIMO.Tests {
             OfficeIMO.Visio.VisioShapeBounds before = page.GetContentBounds();
 
             Assert.Equal(3, before.Left);
-            Assert.Equal(1, before.Bottom);
-            Assert.Equal(9.5, before.Right);
+            Assert.Equal(1.5, before.Bottom);
+            Assert.Equal(9, before.Right);
             Assert.Equal(5.5, before.Top);
 
             page.FitToContent(horizontalMargin: 0.5, verticalMargin: 0.25);
@@ -32,13 +32,30 @@ namespace OfficeIMO.Tests {
             OfficeIMO.Visio.VisioShapeBounds after = page.GetContentBounds();
             Assert.Equal(0.5, after.Left, 6);
             Assert.Equal(0.25, after.Bottom, 6);
-            Assert.Equal(7.0, after.Right, 6);
-            Assert.Equal(4.75, after.Top, 6);
-            Assert.Equal(7.5, page.Width, 6);
-            Assert.Equal(5.0, page.Height, 6);
+            Assert.Equal(6.5, after.Right, 6);
+            Assert.Equal(4.25, after.Top, 6);
+            Assert.Equal(7.0, page.Width, 6);
+            Assert.Equal(4.5, page.Height, 6);
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void ShapeBoundsUseLocPinAndRotation() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Transformed", 10, 10);
+            VisioShape shape = page.AddRectangle(4, 4, 2, 1, "Rotated");
+            shape.LocPinX = 0;
+            shape.LocPinY = 0;
+            shape.Angle = Math.PI / 2D;
+
+            OfficeIMO.Visio.VisioShapeBounds bounds = shape.GetShapeBounds();
+
+            Assert.Equal(3, bounds.Left, 6);
+            Assert.Equal(4, bounds.Bottom, 6);
+            Assert.Equal(4, bounds.Right, 6);
+            Assert.Equal(6, bounds.Top, 6);
         }
 
         [Fact]

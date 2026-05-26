@@ -1,6 +1,8 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Xml.Linq;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Stencils;
 using Xunit;
@@ -286,6 +288,122 @@ namespace OfficeIMO.Tests {
             Assert.Same(loadedBackgroundCopy, loadedDuplicate.BackgroundPage);
             Assert.NotSame(loadedOriginal.BackgroundPage, loadedDuplicate.BackgroundPage);
             Assert.Equal(2, loadedDuplicate.Connectors.Single().Waypoints.Count);
+        }
+
+        [Fact]
+        public void DuplicatePagePreservesBackgroundPageChainsWhenCopyingBackground() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage watermark = document.AddBackgroundPage("Watermark", 11, 8.5);
+            watermark.AddRectangle(5.5, 4.25, 4, 0.2, "Base watermark");
+            VisioPage brand = document.AddBackgroundPage("Brand", 11, 8.5);
+            brand.SetBackgroundPage(watermark);
+            brand.AddRectangle(5.5, 8, 9, 0.35, "Brand header");
+            VisioPage page = document.AddPage("Architecture", 11, 8.5);
+            page.SetBackgroundPage(brand);
+
+            VisioPage duplicate = page.Duplicate(new VisioPageDuplicationOptions {
+                Name = "Architecture copy",
+                DuplicateBackgroundPage = true,
+                BackgroundPageName = "Brand copy"
+            });
+
+            Assert.Same(duplicate.BackgroundPage, document.Pages.Single(current => current.Name == "Brand copy"));
+            Assert.Same(watermark, duplicate.BackgroundPage!.BackgroundPage);
+
+            document.Save();
+
+            Assert.Empty(VisioValidator.Validate(filePath));
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioPage loadedWatermark = loaded.Pages.Single(current => current.Name == "Watermark");
+            VisioPage loadedBrandCopy = loaded.Pages.Single(current => current.Name == "Brand copy");
+            VisioPage loadedDuplicate = loaded.Pages.Single(current => current.Name == "Architecture copy");
+            Assert.Same(loadedBrandCopy, loadedDuplicate.BackgroundPage);
+            Assert.Same(loadedWatermark, loadedBrandCopy.BackgroundPage);
+        }
+
+        [Fact]
+        public void DuplicatePageKeepsSparseConnectorSpacingAndLayoutGridSizingUnset() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            string duplicatePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Sparse Settings", 11, 8.5);
+            page.SetConnectorSpacing(0.2, 0.25, 0.3, 0.35);
+            page.SetLayoutGridSizing(1.1, 1.2, 0.4, 0.45);
+            document.Save();
+
+            RewritePageSheetCells(filePath, "Sparse Settings", (pageSheet, ns) => {
+                RemovePageSheetCells(pageSheet, ns, "LineToLineY", "LineToNodeX", "LineToNodeY", "BlockSizeY", "AvenueSizeX", "AvenueSizeY");
+            });
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioPage loadedPage = loaded.Pages.Single(current => current.Name == "Sparse Settings");
+            Assert.Equal(0.2, loadedPage.LineToLineX.GetValueOrDefault(), 6);
+            Assert.Null(loadedPage.LineToLineY);
+            Assert.Equal(1.1, loadedPage.LayoutBlockSizeX.GetValueOrDefault(), 6);
+            Assert.Null(loadedPage.LayoutBlockSizeY);
+
+            loadedPage.Duplicate("Sparse Settings Copy");
+            loaded.Save(duplicatePath);
+
+            AssertPageSheetCellState(duplicatePath, "Sparse Settings Copy", "LineToLineX", "0.2");
+            AssertPageSheetCellState(duplicatePath, "Sparse Settings Copy", "LineToLineY", null);
+            AssertPageSheetCellState(duplicatePath, "Sparse Settings Copy", "LineToNodeX", null);
+            AssertPageSheetCellState(duplicatePath, "Sparse Settings Copy", "LineToNodeY", null);
+            AssertPageSheetCellState(duplicatePath, "Sparse Settings Copy", "BlockSizeX", "1.1");
+            AssertPageSheetCellState(duplicatePath, "Sparse Settings Copy", "BlockSizeY", null);
+            AssertPageSheetCellState(duplicatePath, "Sparse Settings Copy", "AvenueSizeX", null);
+            AssertPageSheetCellState(duplicatePath, "Sparse Settings Copy", "AvenueSizeY", null);
+        }
+
+        private static void RewritePageSheetCells(string filePath, string pageName, Action<XElement, XNamespace> mutatePageSheet) {
+            using ZipArchive archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
+            ZipArchiveEntry pagesEntry = archive.GetEntry("visio/pages/pages.xml") ?? throw new InvalidOperationException("Missing pages.xml");
+            XDocument pages;
+            using (Stream stream = pagesEntry.Open()) {
+                pages = XDocument.Load(stream);
+            }
+
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XElement page = pages.Root!.Elements(ns + "Page")
+                .Single(element => (string?)element.Attribute("Name") == pageName);
+            mutatePageSheet(page.Element(ns + "PageSheet")!, ns);
+
+            pagesEntry.Delete();
+            ZipArchiveEntry replacement = archive.CreateEntry("visio/pages/pages.xml");
+            using Stream replacementStream = replacement.Open();
+            pages.Save(replacementStream);
+        }
+
+        private static void RemovePageSheetCells(XElement pageSheet, XNamespace ns, params string[] names) {
+            foreach (string name in names) {
+                pageSheet.Elements(ns + "Cell")
+                    .Where(current => (string?)current.Attribute("N") == name)
+                    .Remove();
+            }
+        }
+
+        private static void AssertPageSheetCellState(string filePath, string pageName, string cellName, string? expectedValue) {
+            using ZipArchive archive = ZipFile.OpenRead(filePath);
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XDocument pages = ReadXml(archive, "visio/pages/pages.xml");
+            XElement pageSheet = pages.Root!.Elements(ns + "Page")
+                .Single(element => (string?)element.Attribute("Name") == pageName)
+                .Element(ns + "PageSheet")!;
+            XElement? cell = pageSheet.Elements(ns + "Cell")
+                .SingleOrDefault(current => (string?)current.Attribute("N") == cellName);
+            if (expectedValue == null) {
+                Assert.Null(cell);
+            } else {
+                Assert.NotNull(cell);
+                Assert.Equal(expectedValue, cell!.Attribute("V")!.Value);
+            }
+        }
+
+        private static XDocument ReadXml(ZipArchive archive, string entryName) {
+            ZipArchiveEntry entry = archive.GetEntry(entryName) ?? throw new InvalidOperationException("Missing " + entryName);
+            using Stream stream = entry.Open();
+            return XDocument.Load(stream);
         }
     }
 }
