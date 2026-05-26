@@ -113,6 +113,15 @@ public class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void ReadExternalObjectStream_IgnoresMalformedLaterDictionaryObjects() {
+        byte[] pdf = BuildExternalObjectStreamWithMalformedTrailingPageDictionaryPdf();
+
+        string text = Normalize(PdfTextExtractor.ExtractAllText(pdf));
+
+        Assert.Contains("Object stream page", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RewritePreflight_DetectsCompressedObjectStreamFormMarkers() {
         byte[] pdf = BuildExternalObjectStreamPdf(includeAcroForm: true);
         string rawPdf = Encoding.ASCII.GetString(pdf);
@@ -263,6 +272,15 @@ public class PdfExternalDocumentCompatibilityTests {
     private static byte[] BuildExternalObjectStreamWithMalformedTrailingPageObjectPdf() {
         byte[] pdf = BuildExternalObjectStreamPdf(includeAcroForm: false);
         byte[] suffix = Encoding.ASCII.GetBytes("\n3 0 obj\nendobj\n");
+        var result = new byte[pdf.Length + suffix.Length];
+        Buffer.BlockCopy(pdf, 0, result, 0, pdf.Length);
+        Buffer.BlockCopy(suffix, 0, result, pdf.Length, suffix.Length);
+        return result;
+    }
+
+    private static byte[] BuildExternalObjectStreamWithMalformedTrailingPageDictionaryPdf() {
+        byte[] pdf = BuildExternalObjectStreamPdf(includeAcroForm: false);
+        byte[] suffix = Encoding.ASCII.GetBytes("\n3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 99 0 R /Broken (\nendobj\n");
         var result = new byte[pdf.Length + suffix.Length];
         Buffer.BlockCopy(pdf, 0, result, 0, pdf.Length);
         Buffer.BlockCopy(suffix, 0, result, pdf.Length, suffix.Length);

@@ -1175,10 +1175,10 @@ internal static class PdfSyntax {
                 int dictEnd = FindDictEnd(body, dictStart, body.Length);
                 if (dictEnd > dictStart) {
                     string dictText = SafeSlice(body, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000);
-                    try { return ParseDictionary(dictText); } catch { return new PdfDictionary(); }
+                    try { return ParseDictionary(dictText); } catch { return null; }
                 }
             }
-            return new PdfDictionary();
+            return null;
         }
         if (s.Length > 0 && s[0] == '[') {
             var toks = Tokenize(s);
