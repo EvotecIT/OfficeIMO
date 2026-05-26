@@ -1386,13 +1386,17 @@ public static class PdfPageExtractor {
             }
 
             foreach (var kid in kids.Items) {
+                if (kid is not PdfReference) {
+                    return false;
+                }
+
                 if (!TryCollectNamedDestinationNameTreeEntries(sourceObjects, kid, entries, visitedReferences)) {
                     return false;
                 }
             }
         }
 
-        return hasNames || hasKids;
+        return hasNames != hasKids;
     }
 
     private static PdfObject? BuildEmbeddedFiles(
@@ -1799,7 +1803,18 @@ public static class PdfPageExtractor {
     }
 
     private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> sourceObjects, PdfObject destination) {
-        destination = ResolveObject(sourceObjects, destination) ?? destination;
+        return IsDestinationForKnownPage(sourceObjects, destination, new HashSet<int>());
+    }
+
+    private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> sourceObjects, PdfObject destination, HashSet<int> visitedReferences) {
+        if (destination is PdfReference reference) {
+            if (!visitedReferences.Add(reference.ObjectNumber) ||
+                !sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                return false;
+            }
+
+            destination = indirect.Value;
+        }
 
         if (destination is PdfArray array) {
             return array.Items.Count > 0 &&
@@ -1810,7 +1825,7 @@ public static class PdfPageExtractor {
 
         if (destination is PdfDictionary dictionary &&
             dictionary.Items.TryGetValue("D", out var explicitDestination)) {
-            return IsDestinationForKnownPage(sourceObjects, explicitDestination);
+            return IsDestinationForKnownPage(sourceObjects, explicitDestination, visitedReferences);
         }
 
         return false;
