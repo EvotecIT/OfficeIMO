@@ -34,7 +34,7 @@ namespace OfficeIMO.Visio.Stencils {
             VisioStencilCatalogBuilder builder = new(catalogName);
             HashSet<string> usedIds = new(StringComparer.OrdinalIgnoreCase);
             foreach (VisioAssets.MasterInfo master in VisioAssets.ListMasters(packagePath)) {
-                if (filter != null && !filter.Contains(master.NameU)) {
+                if (!VisioMasterIdentity.MatchesAny(master, filter)) {
                     continue;
                 }
 
@@ -44,7 +44,7 @@ namespace OfficeIMO.Visio.Stencils {
                 }
 
                 string displayName = string.IsNullOrWhiteSpace(master.Name) ? master.NameU : master.Name!;
-                string localId = Slug(master.NameU);
+                string localId = VisioMasterIdentity.ToSlug(master.NameU, "package");
                 string id = UniqueId(idPrefix + "." + localId, master.Id, usedIds);
                 string[] keywords = new[] { master.NameU, displayName, extension }
                     .Where(value => !string.IsNullOrWhiteSpace(value))
@@ -81,7 +81,7 @@ namespace OfficeIMO.Visio.Stencils {
                 return id;
             }
 
-            string suffix = Slug(fallback);
+            string suffix = VisioMasterIdentity.ToSlug(fallback);
             id = string.IsNullOrWhiteSpace(suffix) ? baseId + "-2" : baseId + "-" + suffix;
             int counter = 2;
             while (!usedIds.Add(id)) {
@@ -92,21 +92,6 @@ namespace OfficeIMO.Visio.Stencils {
             return id;
         }
 
-        private static string Slug(string value) {
-            StringBuilder builder = new(value.Length);
-            bool previousDash = false;
-            foreach (char character in value.Trim()) {
-                if (char.IsLetterOrDigit(character)) {
-                    builder.Append(char.ToLowerInvariant(character));
-                    previousDash = false;
-                } else if (!previousDash) {
-                    builder.Append('-');
-                    previousDash = true;
-                }
-            }
-
-            string slug = builder.ToString().Trim('-');
-            return string.IsNullOrWhiteSpace(slug) ? "package" : slug;
-        }
+        private static string Slug(string value) => VisioMasterIdentity.ToSlug(value, "package");
     }
 }

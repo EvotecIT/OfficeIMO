@@ -263,6 +263,49 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageStencilCatalogFiltersByVisibleAndPackageMasterIdentities() {
+            string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            CreatePackageWithMasterMetadata(
+                packagePath,
+                ("Rectangle", "Basic Box"),
+                ("Decision", "Branch Point"),
+                ("Manual operation", "Manual Step"));
+
+            VisioStencilCatalog catalog = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                IdPrefix = "learned",
+                MasterNames = new[] { "Basic Box", "2", "rId3", "manual-operation" }
+            });
+
+            Assert.Equal(new[] { "Decision", "Manual operation", "Rectangle" }, catalog.Shapes.Select(shape => shape.MasterNameU).OrderBy(name => name).ToArray());
+            Assert.Equal("Rectangle", catalog.Get("basic-box").MasterNameU);
+            Assert.Equal("Decision", catalog.Get("2").MasterNameU);
+            Assert.Equal("Manual operation", catalog.Get("rId3").MasterNameU);
+            Assert.Equal("Manual operation", catalog.Get("manual-operation").MasterNameU);
+        }
+
+        [Fact]
+        public void PackageStencilCatalogPlacesUnsupportedMastersAsGeneratedPlaceholders() {
+            string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vstx");
+            CreatePackageWithMasters(packagePath, "FancyCloud");
+            VisioStencilCatalog catalog = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                IncludeUnsupportedMasters = true,
+                Category = "Template Masters"
+            });
+
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Generic Placeholder");
+            VisioShape cloud = page.AddStencilShape(catalog, "fancycloud", "cloud", 2, 4, "Cloud");
+            document.Save();
+
+            Assert.Equal("FancyCloud", cloud.MasterNameU);
+            Assert.Empty(VisioValidator.Validate(filePath));
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            Assert.Equal("FancyCloud", loaded.Pages[0].Shapes[0].MasterNameU);
+        }
+
+        [Fact]
         public void CatalogThrowsForUnknownStencilShape() {
             KeyNotFoundException exception = Assert.Throws<KeyNotFoundException>(() => VisioStencils.BasicShapes.Get("not-here"));
 
@@ -270,6 +313,10 @@ namespace OfficeIMO.Tests {
         }
 
         private static void CreatePackageWithMasters(string path, params string[] masterNames) {
+            CreatePackageWithMasterMetadata(path, masterNames.Select(name => (name, (string?)null)).ToArray());
+        }
+
+        private static void CreatePackageWithMasterMetadata(string path, params (string NameU, string? Name)[] masters) {
             const string visioNamespace = "http://schemas.microsoft.com/office/visio/2012/main";
             const string relationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
@@ -281,11 +328,11 @@ namespace OfficeIMO.Tests {
             XNamespace ns = visioNamespace;
             XNamespace rel = relationshipNamespace;
             XElement root = new(ns + "Masters",
-                masterNames.Select((name, index) =>
+                masters.Select((master, index) =>
                     new XElement(ns + "Master",
                         new XAttribute("ID", index + 1),
-                        new XAttribute("Name", name),
-                        new XAttribute("NameU", name),
+                        new XAttribute("Name", master.Name ?? master.NameU),
+                        new XAttribute("NameU", master.NameU),
                         new XElement(ns + "Rel", new XAttribute(rel + "id", $"rId{index + 1}")))));
 
             XDocument document = new(root);

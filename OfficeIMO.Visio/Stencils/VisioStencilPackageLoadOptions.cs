@@ -21,7 +21,8 @@ namespace OfficeIMO.Visio.Stencils {
         public string? IdPrefix { get; set; }
 
         /// <summary>
-        /// Gets or sets optional master NameU filters.
+        /// Gets or sets optional master filters. Values may match the master NameU,
+        /// display name, relationship id, numeric id, or normalized slug.
         /// </summary>
         public IEnumerable<string>? MasterNames { get; set; }
 

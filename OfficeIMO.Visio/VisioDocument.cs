@@ -159,12 +159,14 @@ namespace OfficeIMO.Visio {
         /// generated equivalents so shapes can reference them by NameU. This does not ingest,
         /// clone, or depend on the source VSDX as a runtime template.
         /// </summary>
+        /// <param name="vsdxPath">Path to a Visio package that contains master metadata.</param>
+        /// <param name="names">Optional filters matching master NameU, display name, relationship id, numeric id, or normalized slug.</param>
         public IReadOnlyList<VisioMaster> LearnMastersFromVsdx(string vsdxPath, IEnumerable<string>? names = null) {
             HashSet<string>? filter = names != null ? new HashSet<string>(names, StringComparer.OrdinalIgnoreCase) : null;
             IReadOnlyList<VisioAssets.MasterInfo> discovered = VisioAssets.ListMasters(vsdxPath);
             List<VisioMaster> imported = new();
             foreach (VisioAssets.MasterInfo masterInfo in discovered) {
-                if (filter != null && !filter.Contains(masterInfo.NameU)) {
+                if (!VisioMasterIdentity.MatchesAny(masterInfo, filter)) {
                     continue;
                 }
 
