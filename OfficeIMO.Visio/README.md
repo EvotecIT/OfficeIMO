@@ -114,7 +114,8 @@ VisioDocument.Create("dependencies.vsdx")
         .DependsOn("users", "web", "HTTPS")
         .DependsOn("web", "api")
         .ControlDependency("api", "policy", "Authorize")
-        .DataDependency("api", "database", "SQL"))
+        .DataDependency("api", "database", "SQL")
+        .Callout("policy", "policy-note", "Authorization gates access to data", 7.4, 5.3))
     .EnsureVisualQuality(new VisioDiagramQualityOptions {
         CheckConnectorShapeIntersections = false,
         CheckConnectorLabelShapeOverlaps = false
@@ -124,7 +125,8 @@ VisioDocument.Create("dependencies.vsdx")
 
 The dependency diagram builder creates deterministic layered DAG layouts from
 nodes and directed relationships. It automatically grows the page, places
-component/data/external/decision nodes, routes dependencies, and rejects cycles.
+component/data/external/decision nodes, routes dependencies, supports semantic
+callouts, and rejects cycles.
 
 ## Quick sample (architecture diagram builder)
 

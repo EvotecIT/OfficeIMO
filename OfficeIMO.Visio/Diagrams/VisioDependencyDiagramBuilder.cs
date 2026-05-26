@@ -44,11 +44,35 @@ namespace OfficeIMO.Visio.Diagrams {
             public string? Label { get; }
         }
 
+        private sealed class CalloutItem {
+            public CalloutItem(string targetId, string id, string text, double pinX, double pinY, VisioCalloutOptions options) {
+                TargetId = targetId;
+                Id = id;
+                Text = text;
+                PinX = pinX;
+                PinY = pinY;
+                Options = options;
+            }
+
+            public string TargetId { get; }
+
+            public string Id { get; }
+
+            public string Text { get; }
+
+            public double PinX { get; }
+
+            public double PinY { get; }
+
+            public VisioCalloutOptions Options { get; }
+        }
+
         private readonly VisioDocument _document;
         private readonly string _pageName;
         private readonly List<NodeItem> _nodes = new();
         private readonly Dictionary<string, NodeItem> _nodesById = new(StringComparer.Ordinal);
         private readonly List<DependencyItem> _dependencies = new();
+        private readonly List<CalloutItem> _callouts = new();
         private VisioStyleTheme _theme = VisioStyleTheme.Technical();
         private VisioMeasurementUnit _unit = VisioMeasurementUnit.Inches;
         private double _pageWidth = 11;
@@ -197,6 +221,32 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
+        /// <summary>Adds a semantic callout connected to a known dependency node using a generated callout id.</summary>
+        public VisioDependencyDiagramBuilder Callout(string targetId, string text, double pinX, double pinY, Action<VisioCalloutOptions>? configure = null) {
+            string normalizedTargetId = RequireId(targetId, nameof(targetId), "Callout target id");
+            EnsureKnownNode(normalizedTargetId, nameof(targetId));
+            return Callout(normalizedTargetId, CreateCalloutId(normalizedTargetId), text, pinX, pinY, configure);
+        }
+
+        /// <summary>Adds a semantic callout connected to a known dependency node.</summary>
+        public VisioDependencyDiagramBuilder Callout(string targetId, string id, string text, double pinX, double pinY, Action<VisioCalloutOptions>? configure = null) {
+            string normalizedTargetId = RequireId(targetId, nameof(targetId), "Callout target id");
+            string normalizedId = RequireId(id, nameof(id), "Callout id");
+            EnsureKnownNode(normalizedTargetId, nameof(targetId));
+            if (IsIdInUse(normalizedId)) {
+                throw new ArgumentException($"A dependency diagram item with id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            ValidateFinite(pinX, nameof(pinX));
+            ValidateFinite(pinY, nameof(pinY));
+            VisioCalloutOptions options = CreateCalloutOptions();
+            configure?.Invoke(options);
+            ValidatePositive(options.Width, nameof(options.Width));
+            ValidatePositive(options.Height, nameof(options.Height));
+            _callouts.Add(new CalloutItem(normalizedTargetId, normalizedId, text ?? string.Empty, pinX, pinY, options));
+            return this;
+        }
+
         internal VisioPage Build() {
             if (_built) {
                 throw new InvalidOperationException("This dependency diagram builder has already produced a page.");
@@ -214,6 +264,7 @@ namespace OfficeIMO.Visio.Diagrams {
             page.Grid(visible: false, snap: true);
             AddNodes(page);
             AddDependencies(page);
+            AddCallouts(page);
             AddTitle(page);
             _document.RequestRecalcOnOpen();
             return page;
@@ -324,6 +375,28 @@ namespace OfficeIMO.Visio.Diagrams {
             }
         }
 
+        private void AddCallouts(VisioPage page) {
+            foreach (CalloutItem callout in _callouts) {
+                NodeItem target = _nodesById[callout.TargetId];
+                if (target.Shape == null) {
+                    throw new InvalidOperationException("Nodes must be placed before callouts are created.");
+                }
+
+                page.AddCallout(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
+            }
+        }
+
+        private VisioCalloutOptions CreateCalloutOptions() {
+            return new VisioCalloutOptions {
+                ShapeStyle = _theme.Container.Clone(),
+                LeaderStyle = new VisioConnectorStyle(_theme.Connector.LineColor, Math.Max(0.012D, _theme.Connector.LineWeight), 2, EndArrow.None) {
+                    Kind = ConnectorKind.RightAngle,
+                    TextStyle = _theme.Connector.TextStyle?.Clone()
+                },
+                RouteOffset = 0.08D
+            };
+        }
+
         private double XForLayer(int layer) {
             return _leftMargin + (_nodeWidth / 2D) + layer * (_nodeWidth + _columnGap);
         }
@@ -410,7 +483,31 @@ namespace OfficeIMO.Visio.Diagrams {
                 return true;
             }
 
-            return _nodesById.ContainsKey(id);
+            if (_nodesById.ContainsKey(id)) {
+                return true;
+            }
+
+            foreach (CalloutItem callout in _callouts) {
+                if (string.Equals(callout.Id, id, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private string CreateCalloutId(string targetId) {
+            string id = targetId + "-callout";
+            if (!IsIdInUse(id)) {
+                return id;
+            }
+
+            int index = 2;
+            while (IsIdInUse(id + "-" + index)) {
+                index++;
+            }
+
+            return id + "-" + index;
         }
 
         private static string RequireId(string id, string parameterName, string label) {
@@ -419,6 +516,12 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             return id.Trim();
+        }
+
+        private static void ValidateFinite(double value, string parameterName) {
+            if (double.IsNaN(value) || double.IsInfinity(value)) {
+                throw new ArgumentOutOfRangeException(parameterName, "Value must be finite.");
+            }
         }
 
         private static void ValidatePositive(double value, string parameterName) {
