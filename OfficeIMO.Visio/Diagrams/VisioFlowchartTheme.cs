@@ -71,6 +71,16 @@ namespace OfficeIMO.Visio.Diagrams {
         /// <summary>Default connector label text style.</summary>
         public VisioTextStyle? ConnectorTextStyle { get; set; }
 
+        /// <summary>Default title text style.</summary>
+        public VisioTextStyle? TitleTextStyle { get; set; } = new VisioTextStyle {
+            FontFamily = "Aptos Display",
+            Color = Color.FromRgb(0, 0, 0),
+            Size = 20,
+            Bold = true,
+            HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+            VerticalAlignment = VisioTextVerticalAlignment.Middle
+        };
+
         /// <summary>Creates a detached copy of the theme.</summary>
         public VisioFlowchartTheme Clone() => new VisioFlowchartTheme {
             ProcessFill = ProcessFill,
@@ -94,7 +104,8 @@ namespace OfficeIMO.Visio.Diagrams {
             DecisionTextStyle = DecisionTextStyle?.Clone(),
             TerminatorTextStyle = TerminatorTextStyle?.Clone(),
             MarkerTextStyle = MarkerTextStyle?.Clone(),
-            ConnectorTextStyle = ConnectorTextStyle?.Clone()
+            ConnectorTextStyle = ConnectorTextStyle?.Clone(),
+            TitleTextStyle = TitleTextStyle?.Clone()
         };
 
         /// <summary>Default blue/green OfficeIMO flowchart theme.</summary>

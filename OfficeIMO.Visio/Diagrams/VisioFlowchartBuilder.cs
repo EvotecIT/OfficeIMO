@@ -56,6 +56,10 @@ namespace OfficeIMO.Visio.Diagrams {
         private double _verticalGap = 0.55;
         private bool _routeBranches = true;
         private double _branchLaneSpacing = 0.45;
+        private string? _titleText;
+        private string _titleId = "title";
+        private double _titleHeight = 0.45;
+        private double _titleGap = 0.35;
         private bool _built;
 
         internal VisioFlowchartBuilder(VisioDocument document, string pageName) {
@@ -102,6 +106,25 @@ namespace OfficeIMO.Visio.Diagrams {
         public VisioFlowchartBuilder Spacing(double verticalGap) {
             ValidateNonNegative(verticalGap, nameof(verticalGap));
             _verticalGap = verticalGap;
+            return this;
+        }
+
+        /// <summary>Adds a centered editable title above the generated flowchart.</summary>
+        public VisioFlowchartBuilder Title(string? text = null, string id = "title", double height = 0.45, double gap = 0.35) {
+            if (string.IsNullOrWhiteSpace(id)) {
+                throw new ArgumentException("Title id cannot be null or whitespace.", nameof(id));
+            }
+
+            if (_nodesById.ContainsKey(id)) {
+                throw new ArgumentException($"A flowchart node with id '{id}' already exists.", nameof(id));
+            }
+
+            ValidatePositive(height, nameof(height));
+            ValidateNonNegative(gap, nameof(gap));
+            _titleText = string.IsNullOrWhiteSpace(text) ? _pageName : text;
+            _titleId = id;
+            _titleHeight = height;
+            _titleGap = gap;
             return this;
         }
 
@@ -166,6 +189,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 page.Grid(visible: false, snap: true);
                 PlaceNodes(page);
                 ConnectNodes(page);
+                AddTitle(page);
                 _document.RequestRecalcOnOpen();
                 return page;
             } finally {
@@ -180,6 +204,10 @@ namespace OfficeIMO.Visio.Diagrams {
 
             if (_nodesById.ContainsKey(id)) {
                 throw new ArgumentException($"A flowchart node with id '{id}' already exists.", nameof(id));
+            }
+
+            if (!string.IsNullOrWhiteSpace(_titleText) && string.Equals(id, _titleId, StringComparison.Ordinal)) {
+                throw new ArgumentException($"A flowchart title with id '{id}' already exists.", nameof(id));
             }
 
             Node node = new Node(id, text ?? string.Empty, kind);
@@ -215,7 +243,7 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private void PlaceColumn(VisioPage page, int startIndex, int endIndex, double x) {
-            double y = _pageHeight - _topMargin;
+            double y = _pageHeight - _topMargin - HeaderHeight;
             for (int i = startIndex; i < endIndex; i++) {
                 Node node = _nodes[i];
                 GetNodeSize(node.Kind, out double width, out double height);
@@ -226,6 +254,21 @@ namespace OfficeIMO.Visio.Diagrams {
 
             if (y < _bottomMargin) {
                 page.Height = (_pageHeight + (_bottomMargin - y)).ToInches(_unit);
+            }
+        }
+
+        private double HeaderHeight => string.IsNullOrWhiteSpace(_titleText) ? 0D : _titleHeight + _titleGap;
+
+        private void AddTitle(VisioPage page) {
+            if (string.IsNullOrWhiteSpace(_titleText)) {
+                return;
+            }
+
+            double y = _pageHeight - _topMargin - (_titleHeight / 2D);
+            double width = Math.Max(1D, _pageWidth - 1.2D);
+            VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, width, _titleHeight, _titleText, _unit);
+            if (_theme.TitleTextStyle != null) {
+                title.TextStyle = _theme.TitleTextStyle.Clone();
             }
         }
 

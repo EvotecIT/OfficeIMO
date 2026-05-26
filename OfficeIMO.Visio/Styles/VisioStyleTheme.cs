@@ -68,7 +68,8 @@ namespace OfficeIMO.Visio {
                 DecisionTextStyle = Decision.TextStyle?.Clone(),
                 TerminatorTextStyle = Success.TextStyle?.Clone(),
                 MarkerTextStyle = Marker.TextStyle?.Clone(),
-                ConnectorTextStyle = Connector.TextStyle?.Clone()
+                ConnectorTextStyle = Connector.TextStyle?.Clone(),
+                TitleTextStyle = Emphasis.TextStyle?.Clone()
             };
         }
 

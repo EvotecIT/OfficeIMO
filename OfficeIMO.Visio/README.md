@@ -44,6 +44,7 @@ using OfficeIMO.Visio.Diagrams;
 
 VisioDocument.Create("flowchart.vsdx")
     .Flowchart("Property buying Flowchart", flow => flow
+        .Title()
         .Layout(VisioFlowchartLayout.TwoColumnContinuation)
         .RouteBranches(laneSpacing: 0.5)
         .Start("start", "Start with an agent\nyou trust")

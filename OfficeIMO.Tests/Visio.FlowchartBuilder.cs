@@ -90,6 +90,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FlowchartBuilderCanAddTitleWithoutOverlappingNodes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .Flowchart("Property buying Flowchart", flow => flow
+                    .Title()
+                    .Start("start", "Start")
+                    .Step("consult", "Consult")
+                    .Decision("agreement", "Agreement?")
+                    .End("close", "Close"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape title = Assert.Single(page.Shapes, shape => shape.Id == "title");
+            VisioShape start = Assert.Single(page.Shapes, shape => shape.Id == "start");
+            Assert.Equal("Text Box", title.NameU);
+            Assert.Equal("Property buying Flowchart", title.Text);
+            Assert.True(title.PinY > start.PinY);
+            Assert.Empty(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckConnectorShapeIntersections = false,
+                CheckConnectorLabels = false
+            }).Select(issue => issue.ToString()));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void FlowchartBuilderRejectsDuplicateNodeIds() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -99,6 +126,18 @@ namespace OfficeIMO.Tests {
                     .Step("same", "Step")));
 
             Assert.Contains("already exists", exception.Message);
+        }
+
+        [Fact]
+        public void FlowchartBuilderRejectsTitleNodeIdCollisions() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+                document.Flowchart("Invalid", flow => flow
+                    .Title(id: "start")
+                    .Start("start", "Start")));
+
+            Assert.Contains("title with id", exception.Message);
         }
     }
 }
