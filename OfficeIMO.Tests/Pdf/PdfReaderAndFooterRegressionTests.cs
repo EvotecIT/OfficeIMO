@@ -328,6 +328,16 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfTextExtractor_ExtractAllText_ReadsTDTextPositioningAsLineAdvance() {
+        byte[] bytes = BuildPdfWithTDTextPositioning();
+
+        string text = PdfTextExtractor.ExtractAllText(bytes);
+
+        Assert.Matches("First\\s+Second", text);
+        Assert.DoesNotContain("FirstSecond", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfTextExtractor_GetMetadata_ReadsHexUtf16InfoStrings() {
         byte[] bytes = BuildPdfWithHexMetadata("Hello metadata", "OfficeIMO");
 
@@ -1335,6 +1345,11 @@ public class PdfReaderAndFooterRegressionTests {
 
     private static byte[] BuildPdfWithDoubleQuoteOperator() {
         const string streamContent = "BT\n/F1 12 Tf\n72 720 Td\n(Hello) Tj\n0 0 ( world) \"\nET\n";
+        return BuildSingleStreamPdf(streamContent);
+    }
+
+    private static byte[] BuildPdfWithTDTextPositioning() {
+        const string streamContent = "BT\n/F1 12 Tf\n72 720 Td\n(First) Tj\n0 -14 TD\n(Second) Tj\nET\n";
         return BuildSingleStreamPdf(streamContent);
     }
 

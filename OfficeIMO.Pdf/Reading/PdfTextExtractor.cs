@@ -1043,10 +1043,13 @@ public static class PdfTextExtractor {
                     args.Clear();
                     break;
                 case "Td":
+                case "TD":
                     if (inText && args.Count >= 2) {
                         double advanceX = ToDouble(args[args.Count - 2]);
                         double advanceY = ToDouble(args[args.Count - 1]);
-                        if (advanceY == 0 && advanceX > 0.1) {
+                        if (Math.Abs(advanceY) > 0.1) {
+                            AppendLineBreak();
+                        } else if (advanceX > 0.1) {
                             pendingSpace = true;
                         }
                     }
@@ -1109,6 +1112,13 @@ public static class PdfTextExtractor {
 
         void RequestSpace() {
             pendingSpace = true;
+        }
+
+        void AppendLineBreak() {
+            if (sb.Length > 0 && sb[sb.Length - 1] != '\n' && sb[sb.Length - 1] != '\r') {
+                sb.AppendLine();
+            }
+            pendingSpace = false;
         }
 
         void AppendTextArray(object arrayObject) {
