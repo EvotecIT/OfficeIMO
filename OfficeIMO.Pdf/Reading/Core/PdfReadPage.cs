@@ -129,15 +129,52 @@ public sealed class PdfReadPage {
 
     internal List<string> GetUnsupportedContentStreamFilters() {
         var unsupported = new List<string>();
+        var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
+        var activeForms = new HashSet<PdfStream>();
         foreach (var stream in GetContentStreamObjects()) {
-            foreach (string filterName in Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects)) {
-                if (!ContainsFilter(unsupported, filterName)) {
-                    unsupported.Add(filterName);
-                }
+            AddUnsupportedFilters(stream, unsupported);
+            if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects).Count == 0) {
+                CollectUnsupportedFormFilters(PdfEncoding.Latin1GetString(DecodeIfNeeded(stream)), pageResources, unsupported, activeForms);
             }
         }
 
         return unsupported;
+    }
+
+    private void CollectUnsupportedFormFilters(
+        string content,
+        PdfDictionary? resources,
+        List<string> unsupported,
+        HashSet<PdfStream> activeForms) {
+        foreach (var invocation in TextContentParser.ExtractFormInvocations(content)) {
+            if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
+                continue;
+            }
+
+            if (!activeForms.Add(formStream)) {
+                continue;
+            }
+
+            try {
+                AddUnsupportedFilters(formStream, unsupported);
+                if (Filters.StreamDecoder.GetUnsupportedFilters(formStream.Dictionary, _objects).Count != 0) {
+                    continue;
+                }
+
+                var formResources = ResolveDictionary(formStream.Dictionary.Items.TryGetValue("Resources", out var resObj) ? resObj : null) ?? resources;
+                CollectUnsupportedFormFilters(PdfEncoding.Latin1GetString(DecodeIfNeeded(formStream)), formResources, unsupported, activeForms);
+            } finally {
+                activeForms.Remove(formStream);
+            }
+        }
+    }
+
+    private void AddUnsupportedFilters(PdfStream stream, List<string> unsupported) {
+        foreach (string filterName in Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects)) {
+            if (!ContainsFilter(unsupported, filterName)) {
+                unsupported.Add(filterName);
+            }
+        }
     }
 
     private void CollectTextAndForms(
