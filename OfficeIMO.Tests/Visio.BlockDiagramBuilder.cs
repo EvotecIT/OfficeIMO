@@ -120,6 +120,55 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BlockDiagramBuilderCanAddSemanticCallouts() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .BlockDiagram("Annotated Blocks", diagram => diagram
+                    .Title()
+                    .Region("compute", "Compute", 0, 0, 2, 1)
+                    .Block("input", "Input", 0, 0)
+                    .EmphasisBlock("processor", "Processor", 1, 0)
+                    .DataFlow("input", "processor")
+                    .Callout(" processor ", "processor-note", "High throughput path", 5.8, 5.9, options => {
+                        options.Width = 2.4;
+                        options.Height = 0.7;
+                        options.RouteOffset = 0.1;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape callout = Assert.Single(page.Callouts());
+            VisioShape target = Assert.Single(page.Shapes, shape => shape.Id == "processor");
+            Assert.Equal("processor-note", callout.Id);
+            Assert.Equal("High throughput path", callout.Text);
+            Assert.Equal(target.Id, callout.CalloutTargetId);
+            Assert.Contains("Annotations", callout.LayerNames);
+            Assert.Equal(2.4, callout.Width);
+            Assert.Equal(0.7, callout.Height);
+
+            VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, callout));
+            Assert.Same(target, leader.To);
+            Assert.Equal(EndArrow.None, leader.EndArrow);
+            Assert.Contains("Annotations", leader.LayerNames);
+            Assert.Equal(leader.Id, callout.GetUserCellValue("OfficeIMO.CalloutLeaderId"));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void BlockDiagramBuilderGeneratesUniqueCalloutIds() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .BlockDiagram("Generated", diagram => diagram
+                    .Block("processor", "Processor", 0, 0)
+                    .Callout("processor", "First note", 3.5, 4.5)
+                    .Callout("processor", "Second note", 3.5, 3.6));
+
+            VisioPage page = Assert.Single(document.Pages);
+            Assert.Equal(new[] { "processor-callout", "processor-callout-2" }, page.Callouts().Select(shape => shape.Id).ToArray());
+        }
+
+        [Fact]
         public void BlockDiagramBuilderRejectsTitleIdCollisions() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -138,6 +187,29 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("already exists", blockFirst.Message);
             Assert.Contains("already exists", titleFirst.Message);
+            Assert.Contains("already exists", regionCollision.Message);
+        }
+
+        [Fact]
+        public void BlockDiagramBuilderRejectsCalloutIdCollisionsAndUnknownTargets() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException unknownTarget = Assert.Throws<ArgumentException>(() =>
+                document.BlockDiagram("Invalid", diagram => diagram
+                    .Block("processor", "Processor", 0, 0)
+                    .Callout("missing", "note", "No target", 4, 4)));
+            ArgumentException blockCollision = Assert.Throws<ArgumentException>(() =>
+                document.BlockDiagram("Invalid", diagram => diagram
+                    .Block("processor", "Processor", 0, 0)
+                    .Callout("processor", "processor", "Duplicate id", 4, 4)));
+            ArgumentException regionCollision = Assert.Throws<ArgumentException>(() =>
+                document.BlockDiagram("Invalid", diagram => diagram
+                    .Region("compute", "Compute", 0, 0, 1, 1)
+                    .Block("processor", "Processor", 0, 0)
+                    .Callout("processor", "compute", "Duplicate id", 4, 4)));
+
+            Assert.Contains("Unknown block id", unknownTarget.Message);
+            Assert.Contains("already exists", blockCollision.Message);
             Assert.Contains("already exists", regionCollision.Message);
         }
     }

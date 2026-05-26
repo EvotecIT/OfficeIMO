@@ -86,13 +86,15 @@ VisioDocument.Create("block-diagram.vsdx")
         .Block("output", "Output Device", 3, 2)
         .DataFlow("input", "memory")
         .DataFlow("memory", "output")
-        .ControlFlow("control", "output", "Control Flow"))
+        .ControlFlow("control", "output", "Control Flow")
+        .Callout("memory", "memory-note", "Central shared state", 5.4, 5.9))
     .Save();
 ```
 
 The block diagram builder creates grid-positioned blocks, light background
 regions, solid data-flow connectors, dashed control-flow connectors, labels,
-optional presentation titles/legends, and master-backed Visio shapes.
+optional presentation titles/legends, semantic callouts, and master-backed
+Visio shapes.
 
 ## Quick sample (dependency diagram builder)
 
