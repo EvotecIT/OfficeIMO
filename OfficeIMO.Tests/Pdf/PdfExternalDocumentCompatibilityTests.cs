@@ -154,6 +154,18 @@ public class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void Inspect_UsesHybridClassicXrefStmTrailerRootBeforeStaleXrefStreamRoot() {
+        byte[] pdf = BuildHybridClassicXrefPdfWithXRefStmTrailerRootAndStaleXrefStreamRoot();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf);
+
+        PdfPageInfo page = Assert.Single(info.Pages);
+        Assert.Equal("SinglePage", info.CatalogPageLayout);
+        Assert.Equal(200d, page.Width);
+        Assert.Equal(200d, page.Height);
+    }
+
+    [Fact]
     public void Inspect_FollowsClassicTrailerPrevChainForInheritedRoot() {
         byte[] pdf = BuildIncrementalClassicXrefPdfWithInheritedTrailerRoot();
 
@@ -659,6 +671,55 @@ public class PdfExternalDocumentCompatibilityTests {
         return stream.ToArray();
     }
 
+    private static byte[] BuildHybridClassicXrefPdfWithXRefStmTrailerRootAndStaleXrefStreamRoot() {
+        using var stream = new MemoryStream();
+        var offsets = new Dictionary<int, int>();
+
+        WriteAscii(stream, "%PDF-1.5\n");
+        WriteObject(stream, offsets, 1, "<< /Type /Catalog /Pages 2 0 R /PageLayout /TwoColumnLeft >>");
+        WriteObject(stream, offsets, 2, "<< /Type /Pages /Count 1 /Kids [3 0 R] >>");
+        WriteObject(stream, offsets, 3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 11 0 R >>");
+        WriteObject(stream, offsets, 5, "<< /Type /Catalog /Pages 6 0 R /PageLayout /SinglePage >>");
+        WriteObject(stream, offsets, 6, "<< /Type /Pages /Count 1 /Kids [7 0 R] >>");
+        WriteObject(stream, offsets, 7, "<< /Type /Page /Parent 6 0 R /MediaBox [0 0 200 200] /Contents 11 0 R >>");
+        WriteStreamObject(stream, offsets, 11, Array.Empty<byte>());
+
+        int xrefStreamObjectNumber = 12;
+        offsets[xrefStreamObjectNumber] = (int)stream.Position;
+        var xrefStreamEntries = new Dictionary<int, (int Type, int Field1, int Field2)> {
+            [12] = (1, offsets[xrefStreamObjectNumber], 0)
+        };
+        byte[] xrefEntries = BuildXrefStreamEntries(new[] { 12 }, xrefStreamEntries);
+        WriteAscii(stream, xrefStreamObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " 0 obj\n<< /Type /XRef /Size 13 /Root 5 0 R /W [1 4 2] /Index [12 1] /Length " +
+            xrefEntries.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " >>\nstream\n");
+        stream.Write(xrefEntries, 0, xrefEntries.Length);
+        WriteAscii(stream, "\nendstream\nendobj\n");
+
+        int classicXrefOffset = (int)stream.Position;
+        var classicEntries = new Dictionary<int, int>(offsets) {
+            [0] = 0
+        };
+        WriteClassicXrefTableWithXRefStmWithoutRoot(stream, classicEntries, size: 13, xrefStreamOffset: offsets[xrefStreamObjectNumber]);
+        WriteAscii(stream, "startxref\n" + classicXrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n%%EOF\n");
+
+        int staleXrefObjectNumber = 50;
+        offsets[staleXrefObjectNumber] = (int)stream.Position;
+        var staleEntries = new Dictionary<int, (int Type, int Field1, int Field2)> {
+            [50] = (1, offsets[staleXrefObjectNumber], 0)
+        };
+        byte[] staleXrefEntries = BuildXrefStreamEntries(new[] { 50 }, staleEntries);
+        WriteAscii(stream, staleXrefObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " 0 obj\n<< /Type /XRef /Size 51 /Root 1 0 R /W [1 4 2] /Index [50 1] /Length " +
+            staleXrefEntries.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " >>\nstream\n");
+        stream.Write(staleXrefEntries, 0, staleXrefEntries.Length);
+        WriteAscii(stream, "\nendstream\nendobj\n");
+
+        return stream.ToArray();
+    }
+
     private static byte[] BuildIncrementalXrefStreamPdfWithInheritedTrailerRootAndStaleHighObjectXref() {
         using var stream = new MemoryStream();
         var offsets = new Dictionary<int, int>();
@@ -897,6 +958,35 @@ public class PdfExternalDocumentCompatibilityTests {
         WriteAscii(stream, "trailer\n<< /Size " + size.ToString(System.Globalization.CultureInfo.InvariantCulture) +
             " /Root " + rootObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
             " 0 R /XRefStm " + xrefStreamOffset.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " >>\n");
+    }
+
+    private static void WriteClassicXrefTableWithXRefStmWithoutRoot(Stream stream, IReadOnlyDictionary<int, int> entries, int size, int xrefStreamOffset) {
+        WriteAscii(stream, "xref\n");
+        var objectNumbers = entries.Keys.OrderBy(static objectNumber => objectNumber).ToList();
+        int index = 0;
+        while (index < objectNumbers.Count) {
+            int first = objectNumbers[index];
+            int end = index + 1;
+            while (end < objectNumbers.Count && objectNumbers[end] == objectNumbers[end - 1] + 1) {
+                end++;
+            }
+
+            WriteAscii(stream, first.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " + (end - index).ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n");
+            for (int i = index; i < end; i++) {
+                int objectNumber = objectNumbers[i];
+                if (objectNumber == 0) {
+                    WriteAscii(stream, "0000000000 65535 f \n");
+                } else {
+                    WriteAscii(stream, entries[objectNumber].ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " 00000 n \n");
+                }
+            }
+
+            index = end;
+        }
+
+        WriteAscii(stream, "trailer\n<< /Size " + size.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " /XRefStm " + xrefStreamOffset.ToString(System.Globalization.CultureInfo.InvariantCulture) +
             " >>\n");
     }
 

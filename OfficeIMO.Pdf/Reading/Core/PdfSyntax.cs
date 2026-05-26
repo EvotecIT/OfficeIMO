@@ -97,7 +97,7 @@ internal static class PdfSyntax {
 
     private static string GetActiveTrailerRaw(string text, Dictionary<int, PdfIndirectObject> map, Dictionary<int, int> parsedOffsets) {
         if (TryGetLatestStartXrefOffset(text, out int activeXrefOffset)) {
-            if (TryGetClassicTrailerChainRaw(text, activeXrefOffset, out string trailerRaw)) {
+            if (TryGetClassicTrailerChainRaw(text, map, parsedOffsets, activeXrefOffset, out string trailerRaw)) {
                 return trailerRaw;
             }
 
@@ -146,7 +146,7 @@ internal static class PdfSyntax {
         }
 
         if (trailers.Count > 0 &&
-            TryGetClassicTrailerChainRaw(text, currentOffset, out string classicTrailerRaw)) {
+            TryGetClassicTrailerChainRaw(text, map, parsedOffsets, currentOffset, out string classicTrailerRaw)) {
             trailers.Add(classicTrailerRaw);
         }
 
@@ -218,16 +218,26 @@ internal static class PdfSyntax {
         }
     }
 
-    private static bool TryGetClassicTrailerChainRaw(string text, int activeXrefOffset, out string trailerRaw) {
+    private static bool TryGetClassicTrailerChainRaw(
+        string text,
+        Dictionary<int, PdfIndirectObject> map,
+        Dictionary<int, int> parsedOffsets,
+        int activeXrefOffset,
+        out string trailerRaw) {
         trailerRaw = string.Empty;
         var trailers = new List<string>();
         var visited = new HashSet<int>();
         int currentOffset = activeXrefOffset;
         while (visited.Add(currentOffset) &&
             trailers.Count < 64 &&
-            TryParseClassicXrefTable(text, currentOffset, out _, out int? previousOffset, out string currentTrailerRaw, out _)) {
+            TryParseClassicXrefTable(text, currentOffset, out _, out int? previousOffset, out string currentTrailerRaw, out int? xrefStreamOffset)) {
             if (!string.IsNullOrWhiteSpace(currentTrailerRaw)) {
                 trailers.Add(currentTrailerRaw);
+            }
+
+            if (xrefStreamOffset.HasValue &&
+                TryGetXrefStreamTrailerRawAtOffset(map, parsedOffsets, xrefStreamOffset.Value, out string xrefStreamTrailerRaw)) {
+                trailers.Add(xrefStreamTrailerRaw);
             }
 
             if (!previousOffset.HasValue) {
@@ -243,6 +253,27 @@ internal static class PdfSyntax {
 
         trailerRaw = string.Join("\n", trailers);
         return true;
+    }
+
+    private static bool TryGetXrefStreamTrailerRawAtOffset(
+        Dictionary<int, PdfIndirectObject> map,
+        Dictionary<int, int> parsedOffsets,
+        int xrefStreamOffset,
+        out string trailerRaw) {
+        trailerRaw = string.Empty;
+        foreach (var entry in map.Values) {
+            if (!parsedOffsets.TryGetValue(entry.ObjectNumber, out int offset) ||
+                offset != xrefStreamOffset ||
+                entry.Value is not PdfStream stream ||
+                stream.Dictionary.Get<PdfName>("Type")?.Name != "XRef") {
+                continue;
+            }
+
+            trailerRaw = BuildXrefStreamTrailerRaw(stream.Dictionary);
+            return true;
+        }
+
+        return false;
     }
 
     internal static void ThrowIfEncrypted(string trailerRaw) {
