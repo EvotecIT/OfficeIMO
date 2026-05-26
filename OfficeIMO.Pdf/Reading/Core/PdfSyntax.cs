@@ -165,34 +165,32 @@ internal static class PdfSyntax {
         Guard.NotNull(pdf, nameof(pdf));
 
         string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "ByteRange") ||
-            ContainsPdfName(text, "SigFlags") ||
-            ContainsPdfName(text, "Sig");
+        return ContainsAnyPdfName(text, "ByteRange", "SigFlags", "Sig") ||
+            ContainsAnyParsedPdfName(pdf, "ByteRange", "SigFlags", "Sig");
     }
 
     internal static bool HasFormMarkers(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
         string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "AcroForm") ||
-            ContainsPdfName(text, "Fields") ||
-            ContainsPdfName(text, "FT");
+        return ContainsAnyPdfName(text, "AcroForm", "Fields", "FT") ||
+            ContainsAnyParsedPdfName(pdf, "AcroForm", "Fields", "FT");
     }
 
     internal static bool HasAnnotationMarkers(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
         string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "Annots") ||
-            ContainsPdfName(text, "Annot");
+        return ContainsAnyPdfName(text, "Annots", "Annot") ||
+            ContainsAnyParsedPdfName(pdf, "Annots", "Annot");
     }
 
     internal static bool HasOutlineMarkers(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
         string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "Outlines") ||
-            ContainsPdfName(text, "UseOutlines");
+        return ContainsAnyPdfName(text, "Outlines", "UseOutlines") ||
+            ContainsAnyParsedPdfName(pdf, "Outlines", "UseOutlines");
     }
 
     internal static bool HasUnsupportedOutlineRewriteMarkers(byte[] pdf) {
@@ -218,15 +216,16 @@ internal static class PdfSyntax {
         Guard.NotNull(pdf, nameof(pdf));
 
         string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "PageMode") ||
-            ContainsPdfName(text, "PageLayout");
+        return ContainsAnyPdfName(text, "PageMode", "PageLayout") ||
+            ContainsAnyParsedPdfName(pdf, "PageMode", "PageLayout");
     }
 
     internal static bool HasPageLabelMarkers(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
         string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "PageLabels");
+        return ContainsPdfName(text, "PageLabels") ||
+            ContainsAnyParsedPdfName(pdf, "PageLabels");
     }
 
     internal static bool HasUnsupportedPageLabelRewriteMarkers(byte[] pdf) {
@@ -252,14 +251,16 @@ internal static class PdfSyntax {
         Guard.NotNull(pdf, nameof(pdf));
 
         string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "Dests");
+        return ContainsPdfName(text, "Dests") ||
+            ContainsAnyParsedPdfName(pdf, "Dests");
     }
 
     internal static bool HasCatalogNameTreeMarkers(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
         string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "Names");
+        return ContainsPdfName(text, "Names") ||
+            ContainsAnyParsedPdfName(pdf, "Names");
     }
 
     internal static bool HasUnsupportedCatalogNameTreeRewriteMarkers(byte[] pdf) {
@@ -328,7 +329,8 @@ internal static class PdfSyntax {
         Guard.NotNull(pdf, nameof(pdf));
 
         string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "OpenAction");
+        return ContainsPdfName(text, "OpenAction") ||
+            ContainsAnyParsedPdfName(pdf, "OpenAction");
     }
 
     internal static bool HasUnsupportedOpenActionRewriteMarkers(byte[] pdf) {
@@ -365,7 +367,8 @@ internal static class PdfSyntax {
         Guard.NotNull(pdf, nameof(pdf));
 
         string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "ViewerPreferences");
+        return ContainsPdfName(text, "ViewerPreferences") ||
+            ContainsAnyParsedPdfName(pdf, "ViewerPreferences");
     }
 
     internal static bool HasUnsupportedViewerPreferenceRewriteMarkers(byte[] pdf) {
@@ -397,17 +400,16 @@ internal static class PdfSyntax {
         Guard.NotNull(pdf, nameof(pdf));
 
         string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "MarkInfo") ||
-            ContainsPdfName(text, "StructTreeRoot") ||
-            ContainsPdfName(text, "ParentTree") ||
-            ContainsPdfName(text, "StructElem");
+        return ContainsAnyPdfName(text, "MarkInfo", "StructTreeRoot", "ParentTree", "StructElem") ||
+            ContainsAnyParsedPdfName(pdf, "MarkInfo", "StructTreeRoot", "ParentTree", "StructElem");
     }
 
     internal static bool HasXmpMetadataMarkers(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
         string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "Metadata");
+        return ContainsPdfName(text, "Metadata") ||
+            ContainsAnyParsedPdfName(pdf, "Metadata");
     }
 
     internal static bool HasUnsupportedXmpMetadataRewriteMarkers(byte[] pdf) {
@@ -510,10 +512,8 @@ internal static class PdfSyntax {
         Guard.NotNull(pdf, nameof(pdf));
 
         string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "EmbeddedFiles") ||
-            ContainsPdfName(text, "Filespec") ||
-            ContainsPdfName(text, "EmbeddedFile") ||
-            ContainsPdfName(text, "AF");
+        return ContainsAnyPdfName(text, "EmbeddedFiles", "Filespec", "EmbeddedFile", "AF") ||
+            ContainsAnyParsedPdfName(pdf, "EmbeddedFiles", "Filespec", "EmbeddedFile", "AF");
     }
 
     internal static bool HasUnsupportedEmbeddedFileRewriteMarkers(byte[] pdf) {
@@ -557,10 +557,8 @@ internal static class PdfSyntax {
         Guard.NotNull(pdf, nameof(pdf));
 
         string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "OCProperties") ||
-            ContainsPdfName(text, "OCGs") ||
-            ContainsPdfName(text, "OCG") ||
-            ContainsPdfName(text, "OCMD");
+        return ContainsAnyPdfName(text, "OCProperties", "OCGs", "OCG", "OCMD") ||
+            ContainsAnyParsedPdfName(pdf, "OCProperties", "OCGs", "OCG", "OCMD");
     }
 
     internal static bool HasUnsupportedOptionalContentRewriteMarkers(byte[] pdf) {
@@ -590,12 +588,8 @@ internal static class PdfSyntax {
         Guard.NotNull(pdf, nameof(pdf));
 
         string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "JavaScript") ||
-            ContainsPdfName(text, "JS") ||
-            ContainsPdfName(text, "AA") ||
-            ContainsPdfName(text, "Launch") ||
-            ContainsPdfName(text, "SubmitForm") ||
-            ContainsPdfName(text, "RichMedia");
+        return ContainsAnyPdfName(text, "JavaScript", "JS", "AA", "Launch", "SubmitForm", "RichMedia") ||
+            ContainsAnyParsedPdfName(pdf, "JavaScript", "JS", "AA", "Launch", "SubmitForm", "RichMedia");
     }
 
     internal static string? GetHeaderVersion(byte[] pdf) {
@@ -958,6 +952,59 @@ internal static class PdfSyntax {
         }
 
         return false;
+    }
+
+    private static bool ContainsAnyPdfName(string text, params string[] names) {
+        for (int i = 0; i < names.Length; i++) {
+            if (ContainsPdfName(text, names[i])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsAnyParsedPdfName(byte[] pdf, params string[] names) {
+        try {
+            var (map, _) = ParseObjects(pdf);
+            var nameSet = new HashSet<string>(names, StringComparer.Ordinal);
+            foreach (PdfIndirectObject indirectObject in map.Values) {
+                if (ContainsAnyParsedPdfName(indirectObject.Value, nameSet)) {
+                    return true;
+                }
+            }
+        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            return false;
+        }
+
+        return false;
+    }
+
+    private static bool ContainsAnyParsedPdfName(PdfObject value, HashSet<string> names) {
+        switch (value) {
+            case PdfName name:
+                return names.Contains(name.Name);
+            case PdfDictionary dictionary:
+                foreach (var item in dictionary.Items) {
+                    if (names.Contains(item.Key) || ContainsAnyParsedPdfName(item.Value, names)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            case PdfArray array:
+                foreach (PdfObject item in array.Items) {
+                    if (ContainsAnyParsedPdfName(item, names)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            case PdfStream stream:
+                return ContainsAnyParsedPdfName(stream.Dictionary, names);
+            default:
+                return false;
+        }
     }
 
     private static bool IsPdfDelimiter(char value) {

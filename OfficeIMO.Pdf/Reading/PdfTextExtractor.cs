@@ -554,11 +554,9 @@ public static class PdfTextExtractor {
     public static string ExtractAllText(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
+        string? readModelText = null;
         try {
-            string readModelText = PdfReadDocument.Load(pdf).ExtractText();
-            if (!string.IsNullOrWhiteSpace(readModelText)) {
-                return readModelText;
-            }
+            readModelText = PdfReadDocument.Load(pdf).ExtractText();
         } catch (Exception ex) when (ex is not NotSupportedException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             // Keep the legacy stream scan as a fallback for malformed-but-readable PDFs.
         }
@@ -582,7 +580,7 @@ public static class PdfTextExtractor {
             }
 
             if (sb.Length > 0) {
-                return sb.ToString();
+                return ChooseAllText(readModelText, sb.ToString());
             }
         }
 
@@ -604,7 +602,33 @@ public static class PdfTextExtractor {
             }
             sb.Append(pageText);
         }
-        return sb.ToString();
+        return ChooseAllText(readModelText, sb.ToString());
+    }
+
+    private static string ChooseAllText(string? readModelText, string legacyText) {
+        if (string.IsNullOrWhiteSpace(legacyText)) {
+            return readModelText ?? string.Empty;
+        }
+
+        if (string.IsNullOrWhiteSpace(readModelText)) {
+            return legacyText;
+        }
+
+        string readableText = readModelText!;
+        return CountTextSeparators(readableText) > CountTextSeparators(legacyText)
+            ? readableText
+            : legacyText;
+    }
+
+    private static int CountTextSeparators(string value) {
+        int count = 0;
+        for (int i = 0; i < value.Length; i++) {
+            if (char.IsWhiteSpace(value[i])) {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     /// <summary>Extracts plain text from all pages using layout options such as column detection and header/footer trimming.</summary>
