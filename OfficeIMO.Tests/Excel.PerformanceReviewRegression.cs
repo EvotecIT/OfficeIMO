@@ -4147,6 +4147,55 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_InsertObjects_ChartKeepsDeferredRowsWhenFastSaveModelUnavailable() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+
+                var relationship = sheet.WorksheetPart.AddHyperlinkRelationship(new Uri("https://example.org/deferred"), true);
+                var hyperlinks = sheet.WorksheetPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
+                if (hyperlinks == null) {
+                    hyperlinks = new Hyperlinks();
+                    var tableParts = sheet.WorksheetPart.Worksheet.Elements<TableParts>().FirstOrDefault();
+                    if (tableParts == null) {
+                        sheet.WorksheetPart.Worksheet.Append(hyperlinks);
+                    } else {
+                        sheet.WorksheetPart.Worksheet.InsertBefore(hyperlinks, tableParts);
+                    }
+                }
+
+                hyperlinks.Append(new Hyperlink { Reference = "D7", Id = relationship.Id });
+
+                var chartData = new ExcelChartData(
+                    rows.Select(row => row.Name),
+                    new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
+                sheet.AddChart(chartData, row: 2, column: 6, widthPixels: 480, heightPixels: 280, type: ExcelChartType.ColumnClustered, title: "Scores");
+
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.DrawingsPart != null);
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("North", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("East", GetSpreadsheetCellText(spreadsheet, cells["A4"]));
+            Assert.Single(worksheetPart.HyperlinkRelationships);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
         public void PerformanceReview_InsertObjects_PostFeatureSideColumnMutationKeepsExtendedFastPath() {
             using var memory = new MemoryStream();
             var rows = new[] {
@@ -4179,7 +4228,8 @@ namespace OfficeIMO.Tests {
                     "F20",
                     rowFields: new[] { "Name" },
                     dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
-                sheet.CellValue(2, 4, "Side note");
+                sheet.CellValue(2, 4, 123.45d);
+                sheet.CellAt(2, 4).SetNumberFormat("0.00");
 
                 document.Save(memory);
 
@@ -4192,7 +4242,72 @@ namespace OfficeIMO.Tests {
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.PivotTableParts.Any());
             var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             Assert.Equal("North", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
-            Assert.Equal("Side note", GetSpreadsheetCellText(spreadsheet, cells["D2"]));
+            Assert.Equal("123.45", GetSpreadsheetCellText(spreadsheet, cells["D2"]));
+            Assert.Equal("0.00", GetCellNumberFormatCode(spreadsheet, cells["D2"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_OverlaySharedFormulaMetadataIsPreserved() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+                sheet.AddPivotTable(
+                    "A1:C4",
+                    "F20",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+
+                var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+                var row2 = sheetData.Elements<Row>().FirstOrDefault(row => row.RowIndex?.Value == 2U)
+                           ?? sheetData.AppendChild(new Row { RowIndex = 2U });
+                row2.Append(new Cell {
+                    CellReference = "D2",
+                    CellFormula = new CellFormula("B2*2") {
+                        FormulaType = CellFormulaValues.Shared,
+                        SharedIndex = 0U,
+                        Reference = "D2:D3"
+                    },
+                    CellValue = new CellValue("20")
+                });
+                var row3 = sheetData.Elements<Row>().FirstOrDefault(row => row.RowIndex?.Value == 3U)
+                           ?? sheetData.AppendChild(new Row { RowIndex = 3U });
+                row3.Append(new Cell {
+                    CellReference = "D3",
+                    CellFormula = new CellFormula {
+                        FormulaType = CellFormulaValues.Shared,
+                        SharedIndex = 0U
+                    },
+                    CellValue = new CellValue("40")
+                });
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.PivotTableParts.Any());
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal(CellFormulaValues.Shared, cells["D2"].CellFormula!.FormulaType!.Value);
+            Assert.Equal(0U, cells["D2"].CellFormula!.SharedIndex!.Value);
+            Assert.Equal("D2:D3", cells["D2"].CellFormula!.Reference!.Value);
+            Assert.Equal("B2*2", cells["D2"].CellFormula!.Text);
+            Assert.Equal(CellFormulaValues.Shared, cells["D3"].CellFormula!.FormulaType!.Value);
+            Assert.Equal(0U, cells["D3"].CellFormula!.SharedIndex!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 

@@ -1413,6 +1413,7 @@ namespace OfficeIMO.Excel {
             foreach (var overlayCell in overlayCells.OrderBy(static cell => cell.Row).ThenBy(static cell => cell.Column)) {
                 Row row = GetOrCreateDirectOverlayRow(sheetData, overlayCell.Row);
                 Cell cell = GetOrCreateDirectOverlayCell(row, overlayCell.Row, overlayCell.Column);
+                cell.StyleIndex = overlayCell.StyleIndex.HasValue ? overlayCell.StyleIndex.Value : null;
                 ApplyCapturedDirectOverlayCellValue(cell, overlayCell.Value);
             }
         }
@@ -1494,7 +1495,9 @@ namespace OfficeIMO.Excel {
                     cell.DataType = CellValues.String;
                     break;
                 case DirectFormulaCellValue formula:
-                    cell.CellFormula = new CellFormula(formula.Formula);
+                    cell.CellFormula = !string.IsNullOrEmpty(formula.FormulaXml)
+                        ? CreateCellFormulaFromXml(formula.FormulaXml!)
+                        : new CellFormula(formula.Formula);
                     cell.CellValue = null;
                     cell.DataType = null;
                     break;
@@ -1611,11 +1614,12 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (CanCreateDirectPackageModel(candidate.Model, out _, allowDrawings: true)) {
-                _materializedDirectDataSetFastSaveModel = candidate.Model;
-                _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark = true;
+            if (!CanCreateDirectPackageModel(candidate.Model, out _, allowDrawings: true)) {
+                return;
             }
 
+            _materializedDirectDataSetFastSaveModel = candidate.Model;
+            _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark = true;
             _directDataSetSaveCandidate = null;
             candidate.Dispose();
         }
@@ -1685,6 +1689,39 @@ namespace OfficeIMO.Excel {
             }
 
             return element;
+        }
+
+        private static CellFormula CreateCellFormulaFromXml(string xml) {
+            var formula = new CellFormula();
+            using var reader = System.Xml.XmlReader.Create(new StringReader(xml), new System.Xml.XmlReaderSettings {
+                DtdProcessing = System.Xml.DtdProcessing.Prohibit,
+                IgnoreComments = true,
+                IgnoreProcessingInstructions = true,
+                IgnoreWhitespace = true
+            });
+
+            if (!reader.Read() || reader.NodeType != System.Xml.XmlNodeType.Element) {
+                return formula;
+            }
+
+            if (reader.HasAttributes) {
+                while (reader.MoveToNextAttribute()) {
+                    if (reader.Prefix == "xmlns" || string.Equals(reader.Name, "xmlns", StringComparison.Ordinal)) {
+                        continue;
+                    }
+
+                    formula.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute(
+                        reader.Prefix,
+                        reader.LocalName,
+                        reader.NamespaceURI,
+                        reader.Value));
+                }
+
+                reader.MoveToElement();
+            }
+
+            formula.Text = reader.IsEmptyElement ? string.Empty : reader.ReadElementContentAsString();
+            return formula;
         }
 
         private static string GetXmlRootLocalName(string xml) {
@@ -2200,7 +2237,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     cells ??= new List<DirectOverlayCell>();
-                    cells.Add(new DirectOverlayCell(cellRow, cellColumn, value));
+                    cells.Add(new DirectOverlayCell(cellRow, cellColumn, value, cell.StyleIndex?.Value));
                 }
             }
 
@@ -2227,7 +2264,7 @@ namespace OfficeIMO.Excel {
 
         private static object? ReadDirectOverlayCellValue(ExcelSheet sheet, Cell cell) {
             if (cell.CellFormula != null) {
-                return new DirectFormulaCellValue(cell.CellFormula.Text ?? string.Empty);
+                return new DirectFormulaCellValue(cell.CellFormula.Text ?? string.Empty, cell.CellFormula.OuterXml);
             }
 
             string? text = cell.CellValue?.Text;
@@ -2907,10 +2944,11 @@ namespace OfficeIMO.Excel {
         }
 
         private readonly struct DirectOverlayCell {
-            internal DirectOverlayCell(int row, int column, object? value) {
+            internal DirectOverlayCell(int row, int column, object? value, uint? styleIndex) {
                 Row = row;
                 Column = column;
                 Value = value;
+                StyleIndex = styleIndex;
             }
 
             internal int Row { get; }
@@ -2918,6 +2956,8 @@ namespace OfficeIMO.Excel {
             internal int Column { get; }
 
             internal object? Value { get; }
+
+            internal uint? StyleIndex { get; }
         }
 
         private readonly struct DirectBufferedRows {

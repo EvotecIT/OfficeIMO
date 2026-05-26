@@ -859,7 +859,7 @@ namespace OfficeIMO.Excel {
                         InvariantNumberText.Get(cell.Row),
                         "<c r=\"" + A1.ColumnIndexToLetters(cell.Column),
                         cell.Value,
-                        null,
+                        CreateOverlayStyleAttribute(cell),
                         dateTimeOffsetWriteStrategy,
                         sharedStrings);
                 }
@@ -913,12 +913,18 @@ namespace OfficeIMO.Excel {
                         rowReference,
                         "<c r=\"" + A1.ColumnIndexToLetters(cell.Column),
                         cell.Value,
-                        null,
+                        CreateOverlayStyleAttribute(cell),
                         dateTimeOffsetWriteStrategy,
                         sharedStrings);
                 }
 
                 return true;
+            }
+
+            private static string? CreateOverlayStyleAttribute(DirectOverlayCell cell) {
+                return cell.StyleIndex.HasValue
+                    ? " s=\"" + InvariantNumberText.Get(cell.StyleIndex.Value) + "\""
+                    : null;
             }
 
             private static string[] CreateCellReferencePrefixes(int columnCount) {
@@ -2264,7 +2270,7 @@ namespace OfficeIMO.Excel {
                 switch (cellValueKind) {
                     case DirectCellValueKind.Formula:
                         if (value is DirectFormulaCellValue formulaValue) {
-                            WriteFormulaCellValue(writer, formulaValue.Formula);
+                            WriteFormulaCellValue(writer, formulaValue);
                             return;
                         }
 
@@ -2409,7 +2415,7 @@ namespace OfficeIMO.Excel {
                         writer.Write(" t=\"str\"><v/></c>");
                         return;
                     case DirectFormulaCellValue formulaValue:
-                        WriteFormulaCellValue(writer, formulaValue.Formula);
+                        WriteFormulaCellValue(writer, formulaValue);
                         return;
                     case string stringValue:
                         WriteStringCellValue(writer, stringValue, sharedStrings);
@@ -2477,6 +2483,17 @@ namespace OfficeIMO.Excel {
                 writer.Write("><f>");
                 WriteEscaped(writer, formula);
                 writer.Write("</f></c>");
+            }
+
+            private static void WriteFormulaCellValue(TextWriter writer, DirectFormulaCellValue formula) {
+                if (!string.IsNullOrEmpty(formula.FormulaXml)) {
+                    writer.Write('>');
+                    writer.Write(formula.FormulaXml);
+                    writer.Write("</c>");
+                    return;
+                }
+
+                WriteFormulaCellValue(writer, formula.Formula);
             }
 
             private static void WriteStringCellValue(TextWriter writer, string value, DirectSharedStringTable? sharedStrings) {
