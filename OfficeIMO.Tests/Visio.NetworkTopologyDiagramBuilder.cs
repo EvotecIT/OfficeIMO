@@ -79,6 +79,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NetworkTopologyDiagramBuilderCanAddTitleWithoutOverlappingZones() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .NetworkTopologyDiagram("Branch Topology", topology => topology
+                    .Title()
+                    .Root("internet", "Internet", VisioNetworkNodeKind.Internet)
+                    .Firewall("firewall", "Firewall")
+                    .Switch("core", "Core Switch")
+                    .Subnet("edge", "Edge", "internet", "firewall", "core")
+                    .Ethernet("internet", "firewall", "WAN")
+                    .Trunk("firewall", "core", "uplink"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape title = Assert.Single(page.Shapes, shape => shape.Id == "title");
+            VisioShape zone = Assert.Single(page.Shapes, shape => shape.Id == "edge");
+            Assert.Equal("Text Box", title.NameU);
+            Assert.Equal("Branch Topology", title.Text);
+            Assert.True(title.PinY > zone.PinY);
+            Assert.Empty(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckConnectorShapeIntersections = false
+            }).Where(issue => issue.Severity >= VisioDiagramQualityIssueSeverity.Warning).Select(issue => issue.ToString()));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void NetworkTopologyDiagramBuilderRejectsUnknownLinkEndpoints() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -88,6 +116,18 @@ namespace OfficeIMO.Tests {
                     .Ethernet("core", "missing")));
 
             Assert.Contains("Unknown network node id", exception.Message);
+        }
+
+        [Fact]
+        public void NetworkTopologyDiagramBuilderRejectsTitleIdCollisions() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+                document.NetworkTopologyDiagram("Invalid", topology => topology
+                    .Switch("title", "Core")
+                    .Title()));
+
+            Assert.Contains("already exists", exception.Message);
         }
 
         [Fact]

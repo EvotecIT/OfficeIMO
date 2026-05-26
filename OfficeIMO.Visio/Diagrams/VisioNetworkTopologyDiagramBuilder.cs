@@ -79,6 +79,10 @@ namespace OfficeIMO.Visio.Diagrams {
         private double _nodeHeight = 0.85;
         private double _columnGap = 1.15;
         private double _rowGap = 0.85;
+        private string? _titleText;
+        private string _titleId = "title";
+        private double _titleHeight = 0.45;
+        private double _titleGap = 0.35;
         private int _maximumLayerRows = 1;
         private bool _fitPageToTopology = true;
         private bool _built;
@@ -138,6 +142,22 @@ namespace OfficeIMO.Visio.Diagrams {
             ValidateNonNegative(rowGap, nameof(rowGap));
             _columnGap = columnGap;
             _rowGap = rowGap;
+            return this;
+        }
+
+        /// <summary>Adds a centered editable title above the automatically placed topology.</summary>
+        public VisioNetworkTopologyDiagramBuilder Title(string? text = null, string id = "title", double height = 0.45, double gap = 0.35) {
+            string normalizedId = RequireId(id, nameof(id), "Title id");
+            if (IsIdInUse(normalizedId)) {
+                throw new ArgumentException($"A network topology item with id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            ValidatePositive(height, nameof(height));
+            ValidateNonNegative(gap, nameof(gap));
+            _titleText = string.IsNullOrWhiteSpace(text) ? _pageName : text;
+            _titleId = normalizedId;
+            _titleHeight = height;
+            _titleGap = gap;
             return this;
         }
 
@@ -270,6 +290,7 @@ namespace OfficeIMO.Visio.Diagrams {
             AddZones(page);
             AddNodes(page);
             AddLinks(page);
+            AddTitle(page);
             page.PolishDiagram(new VisioDiagramPolishOptions {
                 FitToContent = false,
                 ResizeShapesToText = false,
@@ -348,9 +369,29 @@ namespace OfficeIMO.Visio.Diagrams {
             int layerCount = _nodes.Max(node => node.Layer) + 1;
             int rowCount = _nodes.GroupBy(node => node.Layer).Max(group => group.Count());
             double requiredWidth = _leftMargin + _rightMargin + (layerCount * _nodeWidth) + Math.Max(0, layerCount - 1) * _columnGap;
-            double requiredHeight = _topMargin + _bottomMargin + (rowCount * _nodeHeight) + Math.Max(0, rowCount - 1) * _rowGap;
+            double requiredHeight = _topMargin + _bottomMargin + HeaderHeight + (rowCount * _nodeHeight) + Math.Max(0, rowCount - 1) * _rowGap;
             _pageWidth = Math.Max(_pageWidth, requiredWidth);
             _pageHeight = Math.Max(_pageHeight, requiredHeight);
+        }
+
+        private void AddTitle(VisioPage page) {
+            if (string.IsNullOrWhiteSpace(_titleText)) {
+                return;
+            }
+
+            double y = _pageHeight - _topMargin - (_titleHeight / 2D);
+            VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
+            title.TextStyle = CreateTitleTextStyle();
+        }
+
+        private VisioTextStyle CreateTitleTextStyle() {
+            VisioTextStyle style = _theme.Emphasis.TextStyle?.Clone() ?? new VisioTextStyle();
+            style.FontFamily = string.IsNullOrWhiteSpace(style.FontFamily) ? "Aptos Display" : style.FontFamily;
+            style.Size = Math.Max(style.Size ?? 0D, 20D);
+            style.Bold = true;
+            style.HorizontalAlignment = VisioTextHorizontalAlignment.Center;
+            style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
+            return style;
         }
 
         private void AddZones(VisioPage page) {
@@ -413,10 +454,13 @@ namespace OfficeIMO.Visio.Diagrams {
 
         private double YForRow(int layer, int row) {
             double contentHeight = _maximumLayerRows * _nodeHeight + Math.Max(0, _maximumLayerRows - 1) * _rowGap;
-            double top = _pageHeight - _topMargin;
-            double layerTop = top - Math.Max(0D, ((_pageHeight - _topMargin - _bottomMargin) - contentHeight) / 2D);
+            double top = _pageHeight - _topMargin - HeaderHeight;
+            double availableHeight = _pageHeight - _topMargin - _bottomMargin - HeaderHeight;
+            double layerTop = top - Math.Max(0D, (availableHeight - contentHeight) / 2D);
             return layerTop - (_nodeHeight / 2D) - row * (_nodeHeight + _rowGap);
         }
+
+        private double HeaderHeight => string.IsNullOrWhiteSpace(_titleText) ? 0D : _titleHeight + _titleGap;
 
         private void GetZoneBounds(ZoneItem zone, out double left, out double bottom, out double right, out double top) {
             const double horizontalPadding = 0.45D;
@@ -459,6 +503,10 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private bool IsIdInUse(string id) {
+            if (!string.IsNullOrWhiteSpace(_titleText) && string.Equals(_titleId, id, StringComparison.Ordinal)) {
+                return true;
+            }
+
             return _nodesById.ContainsKey(id) || _zoneIds.Contains(id);
         }
 

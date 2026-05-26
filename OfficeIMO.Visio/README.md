@@ -194,6 +194,7 @@ using OfficeIMO.Visio.Diagrams;
 
 VisioDocument.Create("network-topology.vsdx")
     .NetworkTopologyDiagram("Branch Topology", topology => topology
+        .Title()
         .Root("internet", "Internet", VisioNetworkNodeKind.Internet)
         .Firewall("firewall", "Firewall")
         .Switch("core", "Core Switch")
