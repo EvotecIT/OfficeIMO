@@ -143,8 +143,8 @@ internal static class TextContentParser {
                 if (dropSpace) {
                     // do not append, but keep advance
                 } else if (ch != '\0') {
-                    sbOut.Append(ch);
-                    prevChar = ch;
+                    sbOut.Append(t);
+                    prevChar = t[t.Length - 1];
                 }
                 advTotal += advGlyph;
                 idx += step;

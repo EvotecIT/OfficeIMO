@@ -27,7 +27,8 @@ internal sealed class ToUnicodeCMap {
         var bfrangeLine = new Regex(@"<(?<from>[0-9A-Fa-f]+)>\s+<(?<to>[0-9A-Fa-f]+)>\s+<(?<dst>[0-9A-Fa-f]+)>");
         foreach (Match section in Regex.Matches(s, @"beginbfrange([\s\S]*?)endbfrange", RegexOptions.IgnoreCase)) {
             string body = section.Groups[1].Value;
-            foreach (Match m in bfrangeLine.Matches(body)) {
+            string sequentialBody = Regex.Replace(body, @"<(?<from>[0-9A-Fa-f]+)>\s+<(?<to>[0-9A-Fa-f]+)>\s+\[(?<dsts>[\s\S]*?)\]", string.Empty, RegexOptions.IgnoreCase);
+            foreach (Match m in bfrangeLine.Matches(sequentialBody)) {
                 int from = Convert.ToInt32(m.Groups["from"].Value, 16);
                 int to = Convert.ToInt32(m.Groups["to"].Value, 16);
                 int dst = Convert.ToInt32(m.Groups["dst"].Value, 16);
@@ -38,16 +39,75 @@ internal sealed class ToUnicodeCMap {
                     AddMap(srcHex, dstHex);
                 }
             }
+
+            foreach (Match m in Regex.Matches(body, @"<(?<from>[0-9A-Fa-f]+)>\s+<(?<to>[0-9A-Fa-f]+)>\s+\[(?<dsts>[\s\S]*?)\]", RegexOptions.IgnoreCase)) {
+                int from = Convert.ToInt32(m.Groups["from"].Value, 16);
+                int to = Convert.ToInt32(m.Groups["to"].Value, 16);
+                int keyBytes = m.Groups["from"].Value.Length / 2;
+                int code = from;
+                foreach (string destination in ReadHexArrayEntries(m.Groups["dsts"].Value)) {
+                    if (code > to) {
+                        break;
+                    }
+
+                    string srcHex = code.ToString("X", System.Globalization.CultureInfo.InvariantCulture).PadLeft(keyBytes * 2, '0');
+                    AddMap(srcHex, destination);
+                    code++;
+                }
+            }
         }
     }
 
     private void AddMap(string srcHex, string dstHex) {
+        srcHex = RemoveHexWhitespace(srcHex);
+        dstHex = RemoveHexWhitespace(dstHex);
         if (srcHex.Length % 2 != 0) srcHex = "0" + srcHex;
         _maxKeyBytes = Math.Max(_maxKeyBytes, srcHex.Length / 2);
         string key = srcHex.ToUpperInvariant();
         // dst may be multi-codepoints; keep as UTF-16 string
         string s = HexToString(dstHex);
         _map[key] = s;
+    }
+
+    private static string RemoveHexWhitespace(string value) {
+        bool hasWhitespace = false;
+        for (int i = 0; i < value.Length; i++) {
+            if (char.IsWhiteSpace(value[i])) {
+                hasWhitespace = true;
+                break;
+            }
+        }
+
+        if (!hasWhitespace) {
+            return value;
+        }
+
+        var sb = new System.Text.StringBuilder(value.Length);
+        for (int i = 0; i < value.Length; i++) {
+            if (!char.IsWhiteSpace(value[i])) {
+                sb.Append(value[i]);
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    private static IEnumerable<string> ReadHexArrayEntries(string body) {
+        int index = 0;
+        while (index < body.Length) {
+            int start = body.IndexOf('<', index);
+            if (start < 0) {
+                yield break;
+            }
+
+            int end = body.IndexOf('>', start + 1);
+            if (end < 0) {
+                yield break;
+            }
+
+            yield return body.Substring(start + 1, end - start - 1);
+            index = end + 1;
+        }
     }
 
     private static string HexToString(string hex) {

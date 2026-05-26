@@ -28,6 +28,15 @@ public class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void ExtractTextByPage_UsesExternalToUnicodeBfRangeArrayCMap() {
+        byte[] pdf = BuildExternalToUnicodeBfRangeArrayPdf();
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+
+        Assert.Contains("Zfi!", Normalize(pageText), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SplitPages_ReadsExternalProducerPdfWithInheritedResourcesAndContentArrays() {
         byte[] pdf = BuildExternalTwoPagePdf();
 
@@ -132,6 +141,31 @@ public class PdfExternalDocumentCompatibilityTests {
             "<02> <0065>\n" +
             "<03> <0064>\n" +
             "endbfchar\n" +
+            "endcmap\n" +
+            "CMapName currentdict /CMap defineresource pop\n" +
+            "end\n" +
+            "end\n";
+
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /AAAAAA+Helvetica /Encoding /WinAnsiEncoding /ToUnicode 6 0 R >>\nendobj",
+            BuildStreamObject(5, content),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes(cmap))
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildExternalToUnicodeBfRangeArrayPdf() {
+        byte[] content = Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n<010203> Tj\nET\n");
+        const string cmap = "/CIDInit /ProcSet findresource begin\n" +
+            "12 dict begin\n" +
+            "begincmap\n" +
+            "1 beginbfrange\n" +
+            "<01> <03> [<005A> <0066 0069> <0021>]\n" +
+            "endbfrange\n" +
             "endcmap\n" +
             "CMapName currentdict /CMap defineresource pop\n" +
             "end\n" +
