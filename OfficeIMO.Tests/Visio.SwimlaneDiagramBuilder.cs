@@ -84,6 +84,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SwimlaneDiagramBuilderCanAddTitleWithoutOverlappingGrid() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .SwimlaneDiagram("Order Fulfillment", swim => swim
+                    .Title()
+                    .Lane("customer", "Customer")
+                    .Lane("sales", "Sales")
+                    .Phase("request", "Request")
+                    .Phase("review", "Review")
+                    .Start("start", "Submit order", "customer", "request")
+                    .Step("qualify", "Qualify order", "sales", "review")
+                    .Flow("start", "qualify", "handoff"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape title = Assert.Single(page.Shapes, shape => shape.Id == "title");
+            VisioShape phaseHeader = Assert.Single(page.Shapes, shape => shape.Id == "phase-request");
+            Assert.Equal("Text Box", title.NameU);
+            Assert.Equal("Order Fulfillment", title.Text);
+            Assert.True(title.PinY > phaseHeader.PinY);
+            Assert.Empty(page.AnalyzeVisualQuality().Select(issue => issue.ToString()));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void SwimlaneDiagramBuilderRejectsUnknownFlowEndpoints() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -95,6 +122,20 @@ namespace OfficeIMO.Tests {
                     .Flow("qualify", "missing")));
 
             Assert.Contains("Unknown swimlane activity id", exception.Message);
+        }
+
+        [Fact]
+        public void SwimlaneDiagramBuilderRejectsTitleIdCollisions() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+                document.SwimlaneDiagram("Invalid", swim => swim
+                    .Lane("sales", "Sales")
+                    .Phase("review", "Review")
+                    .Step("title", "Qualify", "sales", "review")
+                    .Title()));
+
+            Assert.Contains("already exists", exception.Message);
         }
     }
 }

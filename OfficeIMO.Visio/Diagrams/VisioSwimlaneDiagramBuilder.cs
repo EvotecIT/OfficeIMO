@@ -92,6 +92,10 @@ namespace OfficeIMO.Visio.Diagrams {
         private double _activityWidth = 1.6;
         private double _activityHeight = 0.72;
         private double _activityStackGap = 0.12;
+        private string? _titleText;
+        private string _titleId = "title";
+        private double _titleHeight = 0.45;
+        private double _titleGap = 0.35;
         private bool _built;
 
         internal VisioSwimlaneDiagramBuilder(VisioDocument document, string pageName) {
@@ -157,11 +161,31 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
+        /// <summary>Adds a centered editable title above the generated swimlane grid.</summary>
+        public VisioSwimlaneDiagramBuilder Title(string? text = null, string id = "title", double height = 0.45, double gap = 0.35) {
+            string normalizedId = RequireId(id, nameof(id), "Title id");
+            if (IsShapeIdInUse(normalizedId)) {
+                throw new ArgumentException($"A swimlane shape with id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            ValidatePositive(height, nameof(height));
+            ValidateNonNegative(gap, nameof(gap));
+            _titleText = string.IsNullOrWhiteSpace(text) ? _pageName : text;
+            _titleId = normalizedId;
+            _titleHeight = height;
+            _titleGap = gap;
+            return this;
+        }
+
         /// <summary>Adds a horizontal lane for a role, team, or system.</summary>
         public VisioSwimlaneDiagramBuilder Lane(string id, string text) {
             string normalizedId = RequireId(id, nameof(id), "Lane id");
             if (_lanesById.ContainsKey(normalizedId)) {
                 throw new ArgumentException($"A swimlane lane with id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            if (IsShapeIdInUse("lane-" + normalizedId) || IsShapeIdInUse("lane-header-" + normalizedId)) {
+                throw new ArgumentException($"A swimlane shape with id '{normalizedId}' already exists.", nameof(id));
             }
 
             _lanesById.Add(normalizedId, new LaneItem(normalizedId, text ?? string.Empty));
@@ -174,6 +198,10 @@ namespace OfficeIMO.Visio.Diagrams {
             string normalizedId = RequireId(id, nameof(id), "Phase id");
             if (_phasesById.ContainsKey(normalizedId)) {
                 throw new ArgumentException($"A swimlane phase with id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            if (IsShapeIdInUse("phase-" + normalizedId)) {
+                throw new ArgumentException($"A swimlane shape with id '{normalizedId}' already exists.", nameof(id));
             }
 
             _phasesById.Add(normalizedId, new PhaseItem(normalizedId, text ?? string.Empty));
@@ -208,6 +236,10 @@ namespace OfficeIMO.Visio.Diagrams {
             EnsureKnownPhase(phaseId, nameof(phaseId));
             if (_activitiesById.ContainsKey(normalizedId)) {
                 throw new ArgumentException($"A swimlane activity with id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            if (IsShapeIdInUse(normalizedId)) {
+                throw new ArgumentException($"A swimlane shape with id '{normalizedId}' already exists.", nameof(id));
             }
 
             if (!Enum.IsDefined(typeof(VisioSwimlaneActivityKind), kind)) {
@@ -257,6 +289,7 @@ namespace OfficeIMO.Visio.Diagrams {
             AddLanesAndPhases(page);
             AddActivities(page);
             AddFlows(page);
+            AddTitle(page);
             _document.RequestRecalcOnOpen();
             return page;
         }
@@ -275,9 +308,29 @@ namespace OfficeIMO.Visio.Diagrams {
         private void EnsurePageCanFitLayout() {
             _laneHeight = Math.Max(_laneHeight, GetRequiredLaneHeight());
             double requiredWidth = _leftMargin + _laneHeaderWidth + (_phases.Count * _phaseWidth) + _rightMargin;
-            double requiredHeight = _topMargin + _phaseHeaderHeight + (_lanes.Count * _laneHeight) + _bottomMargin;
+            double requiredHeight = _topMargin + HeaderHeight + _phaseHeaderHeight + (_lanes.Count * _laneHeight) + _bottomMargin;
             _pageWidth = Math.Max(_pageWidth, requiredWidth);
             _pageHeight = Math.Max(_pageHeight, requiredHeight);
+        }
+
+        private void AddTitle(VisioPage page) {
+            if (string.IsNullOrWhiteSpace(_titleText)) {
+                return;
+            }
+
+            double y = _pageHeight - _topMargin - (_titleHeight / 2D);
+            VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
+            title.TextStyle = CreateTitleTextStyle();
+        }
+
+        private VisioTextStyle CreateTitleTextStyle() {
+            VisioTextStyle style = _theme.Emphasis.TextStyle?.Clone() ?? new VisioTextStyle();
+            style.FontFamily = string.IsNullOrWhiteSpace(style.FontFamily) ? "Aptos Display" : style.FontFamily;
+            style.Size = Math.Max(style.Size ?? 0D, 20D);
+            style.Bold = true;
+            style.HorizontalAlignment = VisioTextHorizontalAlignment.Center;
+            style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
+            return style;
         }
 
         private double GetRequiredLaneHeight() {
@@ -493,12 +546,14 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private double LaneCenterY(int laneIndex) {
-            return _pageHeight - _topMargin - _phaseHeaderHeight - (laneIndex * _laneHeight) - (_laneHeight / 2D);
+            return _pageHeight - _topMargin - HeaderHeight - _phaseHeaderHeight - (laneIndex * _laneHeight) - (_laneHeight / 2D);
         }
 
         private double PhaseHeaderCenterY() {
-            return _pageHeight - _topMargin - (_phaseHeaderHeight / 2D);
+            return _pageHeight - _topMargin - HeaderHeight - (_phaseHeaderHeight / 2D);
         }
+
+        private double HeaderHeight => string.IsNullOrWhiteSpace(_titleText) ? 0D : _titleHeight + _titleGap;
 
         private int IndexOfLane(string laneId) {
             for (int i = 0; i < _lanes.Count; i++) {
@@ -560,6 +615,27 @@ namespace OfficeIMO.Visio.Diagrams {
 
         private static string GetCellKey(string laneId, string phaseId) {
             return laneId + "\u001f" + phaseId;
+        }
+
+        private bool IsShapeIdInUse(string id) {
+            if (!string.IsNullOrWhiteSpace(_titleText) && string.Equals(_titleId, id, StringComparison.Ordinal)) {
+                return true;
+            }
+
+            foreach (LaneItem lane in _lanes) {
+                if (string.Equals("lane-" + lane.Id, id, StringComparison.Ordinal) ||
+                    string.Equals("lane-header-" + lane.Id, id, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
+            foreach (PhaseItem phase in _phases) {
+                if (string.Equals("phase-" + phase.Id, id, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
+            return _activitiesById.ContainsKey(id);
         }
 
         private static void ValidatePositive(double value, string parameterName) {

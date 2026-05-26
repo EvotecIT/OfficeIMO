@@ -227,6 +227,7 @@ using OfficeIMO.Visio.Diagrams;
 
 VisioDocument.Create("swimlane.vsdx")
     .SwimlaneDiagram("Order Fulfillment", swim => swim
+        .Title()
         .Theme(VisioStyleTheme.Modern())
         .Lane("customer", "Customer")
         .Lane("sales", "Sales")
