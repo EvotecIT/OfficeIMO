@@ -552,6 +552,17 @@ public static class PdfTextExtractor {
 
     /// <summary>Extracts plain text from all pages, concatenated with blank lines between pages.</summary>
     public static string ExtractAllText(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        try {
+            string readModelText = PdfReadDocument.Load(pdf).ExtractText();
+            if (!string.IsNullOrWhiteSpace(readModelText)) {
+                return readModelText;
+            }
+        } catch (Exception ex) when (ex is not NotSupportedException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            // Keep the legacy stream scan as a fallback for malformed-but-readable PDFs.
+        }
+
         var (parsedObjects, _) = PdfSyntax.ParseObjects(pdf);
         var map = BuildObjectMap(pdf, out _);
         var pages = CollectPages(parsedObjects);
