@@ -144,13 +144,14 @@ VisioDocument.Create("architecture.vsdx")
         .DataFlow("users", "public-ip", "HTTPS")
         .DataFlow("public-ip", "jenkins", "route")
         .ControlFlow("jenkins", "agent", "scale")
-        .Dependency("jenkins", "vault", "secrets"))
+        .Dependency("jenkins", "vault", "secrets")
+        .Callout("jenkins", "scale-note", "Scale agents on demand", 7.8, 6.3))
     .Save();
 ```
 
 The architecture builder creates dependency-free cloud/infrastructure diagrams
 with semantic components, background regions, routed data/control/dependency
-connectors, labels, and the reusable `Technical` theme.
+connectors, labels, callouts, and the reusable `Technical` theme.
 
 ## Quick sample (network diagram builder)
 

@@ -5,6 +5,7 @@ using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
 using OfficeIMO.Visio.Stencils;
 using Xunit;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public class VisioArchitectureDiagramBuilderTests {
@@ -127,6 +128,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ArchitectureDiagramBuilderCanAddSemanticCallouts() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .ArchitectureDiagram("Jenkins on Azure", diagram => diagram
+                    .Theme(VisioStyleTheme.Technical())
+                    .Service("jenkins", "Jenkins Server", 1, 1)
+                    .Compute("agent", "Build Agent", 2, 1)
+                    .ControlFlow("jenkins", "agent", "scale")
+                    .Callout("jenkins", "scale-note", "Scale agents on demand", 5.8, 6.6, options => {
+                        options.Width = 2.45;
+                        options.Height = 0.72;
+                        options.ShapeStyle = new VisioShapeStyle(Color.FromRgb(239, 246, 252), Color.FromRgb(0, 120, 212), 0.014);
+                        options.RouteOffset = 0.12;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape callout = Assert.Single(page.Callouts());
+            VisioShape target = Assert.Single(page.Shapes, shape => shape.Id == "jenkins");
+            Assert.Equal("scale-note", callout.Id);
+            Assert.Equal("Scale agents on demand", callout.Text);
+            Assert.Equal(target.Id, callout.CalloutTargetId);
+            Assert.Contains("Annotations", callout.LayerNames);
+            Assert.Equal(2.45, callout.Width);
+            Assert.Equal(0.72, callout.Height);
+
+            VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, callout));
+            Assert.Same(target, leader.To);
+            Assert.Equal(EndArrow.None, leader.EndArrow);
+            Assert.Contains("Annotations", leader.LayerNames);
+            Assert.Equal(leader.Id, callout.GetUserCellValue("OfficeIMO.CalloutLeaderId"));
+            Assert.Empty(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckConnectorShapeIntersections = false,
+                CheckConnectorLabels = false
+            }).Select(issue => issue.ToString()));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void ArchitectureDiagramBuilderRejectsUnknownLinkEndpoints() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -139,6 +181,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ArchitectureDiagramBuilderRejectsUnknownCalloutTargets() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+                document.ArchitectureDiagram("Invalid", diagram => diagram
+                    .Service("api", "API", 0, 0)
+                    .Callout("missing", "note", "No target", 3, 3)));
+
+            Assert.Contains("Unknown architecture component id", exception.Message);
+        }
+
+        [Fact]
         public void ArchitectureDiagramBuilderRejectsTitleIdCollisions() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -146,6 +200,18 @@ namespace OfficeIMO.Tests {
                 document.ArchitectureDiagram("Invalid", diagram => diagram
                     .Title(id: "api")
                     .Service("api", "API", 0, 0)));
+
+            Assert.Contains("already exists", exception.Message);
+        }
+
+        [Fact]
+        public void ArchitectureDiagramBuilderRejectsCalloutIdCollisions() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+                document.ArchitectureDiagram("Invalid", diagram => diagram
+                    .Service("api", "API", 0, 0)
+                    .Callout("api", "api", "Duplicate id", 3, 3)));
 
             Assert.Contains("already exists", exception.Message);
         }
