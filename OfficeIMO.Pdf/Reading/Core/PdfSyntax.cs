@@ -83,8 +83,7 @@ internal static class PdfSyntax {
                 }
             }
         }
-        int trailerIdx = text.LastIndexOf("trailer", StringComparison.OrdinalIgnoreCase);
-        string trailerRaw = trailerIdx >= 0 ? text.Substring(trailerIdx) : string.Empty;
+        string trailerRaw = GetActiveTrailerRaw(text);
         ThrowIfEncrypted(trailerRaw);
 
         ResolveIndirectStreamLengths(map, pdf, streamLocations);
@@ -94,6 +93,43 @@ internal static class PdfSyntax {
         ExpandObjectStreams(map, pdf, parsedOffsets);
         ThrowIfEncryptedXrefStream(map);
         return (map, trailerRaw);
+    }
+
+    private static string GetActiveTrailerRaw(string text) {
+        if (TryGetLatestStartXrefOffset(text, out int activeXrefOffset) &&
+            TryGetClassicTrailerChainRaw(text, activeXrefOffset, out string trailerRaw)) {
+            return trailerRaw;
+        }
+
+        int trailerIdx = text.LastIndexOf("trailer", StringComparison.OrdinalIgnoreCase);
+        return trailerIdx >= 0 ? text.Substring(trailerIdx) : string.Empty;
+    }
+
+    private static bool TryGetClassicTrailerChainRaw(string text, int activeXrefOffset, out string trailerRaw) {
+        trailerRaw = string.Empty;
+        var trailers = new List<string>();
+        var visited = new HashSet<int>();
+        int currentOffset = activeXrefOffset;
+        while (visited.Add(currentOffset) &&
+            trailers.Count < 64 &&
+            TryParseClassicXrefTable(text, currentOffset, out _, out int? previousOffset, out string currentTrailerRaw)) {
+            if (!string.IsNullOrWhiteSpace(currentTrailerRaw)) {
+                trailers.Add(currentTrailerRaw);
+            }
+
+            if (!previousOffset.HasValue) {
+                break;
+            }
+
+            currentOffset = previousOffset.Value;
+        }
+
+        if (trailers.Count == 0) {
+            return false;
+        }
+
+        trailerRaw = string.Join("\n", trailers);
+        return true;
     }
 
     internal static void ThrowIfEncrypted(string trailerRaw) {
@@ -1218,7 +1254,7 @@ internal static class PdfSyntax {
         int currentOffset = activeXrefOffset;
         while (visited.Add(currentOffset) &&
             newestToOldest.Count < 64 &&
-            TryParseClassicXrefTable(text, currentOffset, out var entries, out int? previousOffset)) {
+            TryParseClassicXrefTable(text, currentOffset, out var entries, out int? previousOffset, out _)) {
             newestToOldest.Add((currentOffset, entries));
             if (!previousOffset.HasValue) {
                 break;
@@ -1231,9 +1267,10 @@ internal static class PdfSyntax {
         return newestToOldest;
     }
 
-    private static bool TryParseClassicXrefTable(string text, int offset, out List<(int ObjectNumber, int Offset, bool InUse)> entries, out int? previousOffset) {
+    private static bool TryParseClassicXrefTable(string text, int offset, out List<(int ObjectNumber, int Offset, bool InUse)> entries, out int? previousOffset, out string trailerRaw) {
         entries = new List<(int ObjectNumber, int Offset, bool InUse)>();
         previousOffset = null;
+        trailerRaw = string.Empty;
         if (offset < 0 ||
             offset + 4 > text.Length ||
             !string.Equals(text.Substring(offset, 4), "xref", StringComparison.Ordinal) ||
@@ -1290,6 +1327,7 @@ internal static class PdfSyntax {
         if (dictStart >= 0) {
             int dictEnd = FindDictEnd(text, dictStart, text.Length);
             if (dictEnd > dictStart) {
+                trailerRaw = SafeSlice(text, trailerIndex, dictEnd - trailerIndex, 1_000_000);
                 string dictText = SafeSlice(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000);
                 try {
                     PdfDictionary trailer = ParseDictionary(dictText);
