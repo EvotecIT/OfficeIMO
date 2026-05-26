@@ -131,6 +131,80 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NetworkTopologyDiagramBuilderCanAddSemanticCallouts() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .NetworkTopologyDiagram("Annotated Topology", topology => topology
+                    .Title()
+                    .Root("internet", "Internet", VisioNetworkNodeKind.Internet)
+                    .Firewall("firewall", "Firewall")
+                    .Switch("core", "Core")
+                    .Subnet("edge", "Edge", "internet", "firewall", "core")
+                    .Ethernet("internet", "firewall", "WAN")
+                    .Trunk("firewall", "core", "uplink")
+                    .Callout(" firewall ", "firewall-note", "Inspect north-south traffic", 5.8, 5.7, options => {
+                        options.Width = 2.55;
+                        options.Height = 0.72;
+                        options.RouteOffset = 0.1;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape callout = Assert.Single(page.Callouts());
+            VisioShape target = Assert.Single(page.Shapes, shape => shape.Id == "firewall");
+            Assert.Equal("firewall-note", callout.Id);
+            Assert.Equal("Inspect north-south traffic", callout.Text);
+            Assert.Equal(target.Id, callout.CalloutTargetId);
+            Assert.Contains("Annotations", callout.LayerNames);
+            Assert.Equal(2.55, callout.Width);
+            Assert.Equal(0.72, callout.Height);
+
+            VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, callout));
+            Assert.Same(target, leader.To);
+            Assert.Equal(EndArrow.None, leader.EndArrow);
+            Assert.Contains("Annotations", leader.LayerNames);
+            Assert.Equal(leader.Id, callout.GetUserCellValue("OfficeIMO.CalloutLeaderId"));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void NetworkTopologyDiagramBuilderGeneratesUniqueCalloutIds() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .NetworkTopologyDiagram("Generated", topology => topology
+                    .Root("core", "Core", VisioNetworkNodeKind.Switch)
+                    .Callout("core", "First note", 3.5, 4.5)
+                    .Callout("core", "Second note", 3.5, 3.6));
+
+            VisioPage page = Assert.Single(document.Pages);
+            Assert.Equal(new[] { "core-callout", "core-callout-2" }, page.Callouts().Select(shape => shape.Id).ToArray());
+        }
+
+        [Fact]
+        public void NetworkTopologyDiagramBuilderRejectsCalloutIdCollisionsAndUnknownTargets() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException unknownTarget = Assert.Throws<ArgumentException>(() =>
+                document.NetworkTopologyDiagram("Invalid", topology => topology
+                    .Root("core", "Core", VisioNetworkNodeKind.Switch)
+                    .Callout("missing", "note", "No target", 4, 4)));
+            ArgumentException nodeCollision = Assert.Throws<ArgumentException>(() =>
+                document.NetworkTopologyDiagram("Invalid", topology => topology
+                    .Root("core", "Core", VisioNetworkNodeKind.Switch)
+                    .Callout("core", "core", "Duplicate id", 4, 4)));
+            ArgumentException zoneCollision = Assert.Throws<ArgumentException>(() =>
+                document.NetworkTopologyDiagram("Invalid", topology => topology
+                    .Root("core", "Core", VisioNetworkNodeKind.Switch)
+                    .Subnet("edge", "Edge", "core")
+                    .Callout("core", "edge", "Duplicate id", 4, 4)));
+
+            Assert.Contains("Unknown network node id", unknownTarget.Message);
+            Assert.Contains("already exists", nodeCollision.Message);
+            Assert.Contains("already exists", zoneCollision.Message);
+        }
+
+        [Fact]
         public void NetworkTopologyDiagramBuilderRejectsUnknownZoneNodes() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 

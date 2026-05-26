@@ -221,14 +221,15 @@ VisioDocument.Create("network-topology.vsdx")
         .Ethernet("app", "db")
         .Ethernet("core", "finance")
         .Ethernet("core", "support")
-        .Ethernet("support", "printer"))
+        .Ethernet("support", "printer")
+        .Callout("firewall", "edge-note", "North-south inspection point", 5.8, 5.7))
     .Save();
 ```
 
 The topology builder is the graph-first network API: users describe devices
 and links, then OfficeIMO derives deterministic layers, grows the page when
 needed, adds subnet/background zones around selected devices, routes links,
-and keeps mesh/cycle links valid.
+supports semantic callouts, and keeps mesh/cycle links valid.
 
 ## Quick sample (swimlane diagram builder)
 
