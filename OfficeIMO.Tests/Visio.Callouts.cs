@@ -83,6 +83,57 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CalloutsCanBePlacedAroundTargetWithoutManualCoordinates() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Placed", 11, 8.5);
+            VisioShape target = page.AddRectangle(4, 4, 2, 1, "Target");
+
+            VisioShape right = page.AddCallout(target, "right-note", "Right note", VisioSide.Right, 0.4D, new VisioCalloutOptions {
+                Width = 2.4D,
+                Height = 0.8D
+            });
+            VisioShape top = page.AddCallout(target, "Top note", VisioSide.Top, 0.2D, new VisioCalloutOptions {
+                Width = 1.6D,
+                Height = 0.6D
+            });
+
+            Assert.Equal(6.6D, right.PinX, 6);
+            Assert.Equal(target.PinY, right.PinY, 6);
+            Assert.Equal(target.PinX, top.PinX, 6);
+            Assert.Equal(5D, top.PinY, 6);
+            Assert.Equal(target.Id, right.CalloutTargetId);
+            Assert.Equal(target.Id, top.CalloutTargetId);
+            Assert.Contains("Annotations", right.LayerNames);
+            Assert.Equal(2, page.Callouts().Count());
+
+            VisioConnector rightLeader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, right));
+            VisioConnector topLeader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, top));
+            Assert.Same(target, rightLeader.To);
+            Assert.Same(target, topLeader.To);
+            Assert.Equal(2, rightLeader.Waypoints.Count);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void AutoPlacedCalloutsValidatePlacementInputsBeforeMutatingPage() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Invalid");
+            VisioShape target = page.AddRectangle(2, 2, 1.5, 0.8, "Target");
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                page.AddCallout(target, "bad-gap", "Invalid", VisioSide.Right, double.NaN));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                page.AddCallout(target, "bad-width", "Invalid", VisioSide.Right, options: new VisioCalloutOptions { Width = 0 }));
+
+            Assert.Single(page.Shapes);
+            Assert.Empty(page.Connectors);
+        }
+
+        [Fact]
         public void CalloutsRejectTargetsFromOtherPagesWithoutMutatingPage() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage sourcePage = document.AddPage("Source");

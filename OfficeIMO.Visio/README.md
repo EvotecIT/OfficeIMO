@@ -840,12 +840,18 @@ var note = page.AddCallout(api, "api-note", "Check retry policy", 7.5, 6,
         Height = 0.8,
         RouteOffset = 0.15
     });
+var autoNote = page.AddCallout(api, "sla-note", "Review SLA target",
+    VisioSide.Right, gap: 0.35);
 
 page.SelectCallouts()
     .LockPosition();
 
 doc.Save();
 ```
+
+Use the coordinate overload when you need exact placement, or the side-based
+overload when the callout should sit to the left, right, top, or bottom of the
+target shape without hand-calculating page coordinates.
 
 ## Text styling
 

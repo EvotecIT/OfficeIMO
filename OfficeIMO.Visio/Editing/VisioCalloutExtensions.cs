@@ -32,6 +32,29 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
+        /// Adds a callout on a target side using an automatically assigned shape identifier.
+        /// </summary>
+        /// <param name="page">Page that receives the callout.</param>
+        /// <param name="target">Shape being annotated.</param>
+        /// <param name="text">Callout text.</param>
+        /// <param name="placement">Side of the target where the callout should be placed.</param>
+        /// <param name="gap">Distance between the target edge and callout edge, in page units.</param>
+        /// <param name="options">Optional callout options.</param>
+        public static VisioShape AddCallout(this VisioPage page, VisioShape target, string text, VisioSide placement, double gap = 0.35D, VisioCalloutOptions? options = null) {
+            if (page == null) {
+                throw new ArgumentNullException(nameof(page));
+            }
+
+            if (target == null) {
+                throw new ArgumentNullException(nameof(target));
+            }
+
+            VisioCalloutOptions effectiveOptions = options ?? new VisioCalloutOptions();
+            CalculatePin(target, effectiveOptions, placement, gap, out double pinX, out double pinY);
+            return AddCallout(page, target, text, pinX, pinY, effectiveOptions);
+        }
+
+        /// <summary>
         /// Adds a callout near a target shape using an explicit shape identifier.
         /// </summary>
         /// <param name="page">Page that receives the callout.</param>
@@ -69,6 +92,30 @@ namespace OfficeIMO.Visio {
             return callout;
         }
 
+        /// <summary>
+        /// Adds a callout on a target side using an explicit shape identifier.
+        /// </summary>
+        /// <param name="page">Page that receives the callout.</param>
+        /// <param name="target">Shape being annotated.</param>
+        /// <param name="id">Callout shape identifier.</param>
+        /// <param name="text">Callout text.</param>
+        /// <param name="placement">Side of the target where the callout should be placed.</param>
+        /// <param name="gap">Distance between the target edge and callout edge, in page units.</param>
+        /// <param name="options">Optional callout options.</param>
+        public static VisioShape AddCallout(this VisioPage page, VisioShape target, string id, string text, VisioSide placement, double gap = 0.35D, VisioCalloutOptions? options = null) {
+            if (page == null) {
+                throw new ArgumentNullException(nameof(page));
+            }
+
+            if (target == null) {
+                throw new ArgumentNullException(nameof(target));
+            }
+
+            VisioCalloutOptions effectiveOptions = options ?? new VisioCalloutOptions();
+            CalculatePin(target, effectiveOptions, placement, gap, out double pinX, out double pinY);
+            return AddCallout(page, target, id, text, pinX, pinY, effectiveOptions);
+        }
+
         private static void ConfigureCallout(VisioPage page, VisioShape target, VisioShape callout, VisioCalloutOptions options) {
             EnsureTargetBelongsToPage(page, target);
 
@@ -92,6 +139,40 @@ namespace OfficeIMO.Visio {
             if (!string.IsNullOrWhiteSpace(options.LayerName)) {
                 page.AddToLayer(options.LayerName!, callout);
                 page.AddToLayer(options.LayerName!, leader);
+            }
+        }
+
+        private static void CalculatePin(VisioShape target, VisioCalloutOptions options, VisioSide placement, double gap, out double pinX, out double pinY) {
+            if (double.IsNaN(gap) || double.IsInfinity(gap) || gap < 0D) {
+                throw new ArgumentOutOfRangeException(nameof(gap), "Gap must be a finite non-negative number.");
+            }
+
+            if (double.IsNaN(options.Width) || double.IsInfinity(options.Width) || options.Width <= 0D) {
+                throw new ArgumentOutOfRangeException(nameof(options.Width), "Callout width must be a finite positive number.");
+            }
+
+            if (double.IsNaN(options.Height) || double.IsInfinity(options.Height) || options.Height <= 0D) {
+                throw new ArgumentOutOfRangeException(nameof(options.Height), "Callout height must be a finite positive number.");
+            }
+
+            VisioSide effectivePlacement = placement == VisioSide.Auto ? VisioSide.Right : placement;
+            pinX = target.PinX;
+            pinY = target.PinY;
+            switch (effectivePlacement) {
+                case VisioSide.Left:
+                    pinX = target.PinX - (target.Width / 2D) - gap - (options.Width / 2D);
+                    break;
+                case VisioSide.Right:
+                    pinX = target.PinX + (target.Width / 2D) + gap + (options.Width / 2D);
+                    break;
+                case VisioSide.Bottom:
+                    pinY = target.PinY - (target.Height / 2D) - gap - (options.Height / 2D);
+                    break;
+                case VisioSide.Top:
+                    pinY = target.PinY + (target.Height / 2D) + gap + (options.Height / 2D);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(placement));
             }
         }
 
