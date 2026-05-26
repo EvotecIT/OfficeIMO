@@ -401,6 +401,22 @@ public class PdfReadStreamTests {
     }
 
     [Fact]
+    public void RewriteApis_ReindexPageLabelsUsingTrailerRootPageTreeWhenStaleCatalogsExist() {
+        byte[] pdf = BuildStaleCatalogPageLabelsPdf();
+
+        byte[] output = PdfPageExtractor.ExtractPages(pdf, 2);
+
+        string text = System.Text.Encoding.ASCII.GetString(output);
+        Assert.Contains("/PageLabels ", text, StringComparison.Ordinal);
+        Assert.Contains("/Nums [ 0 << /S /D /St 10 >> ]", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("/S /r", text, StringComparison.Ordinal);
+        PdfPageLabel label = Assert.Single(PdfInspector.Inspect(output).PageLabels);
+        Assert.Equal(0, label.StartPageIndex);
+        Assert.Equal("D", label.Style);
+        Assert.Equal(10, label.StartNumber);
+    }
+
+    [Fact]
     public void RewriteApis_RejectComplexPageLabelsWithClearUnsupportedDiagnostic() {
         byte[] pageLabelPdf = BuildComplexPageLabelPdf();
 
@@ -1199,6 +1215,53 @@ public class PdfReadStreamTests {
             "endobj",
             "trailer",
             "<< /Root 5 0 R /Size 13 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildStaleCatalogPageLabelsPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /PageLabels 13 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 11 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 11 0 R >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Catalog /Pages 6 0 R /PageLabels 10 0 R >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /Pages /Count 2 /Kids [7 0 R 8 0 R] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /Type /Page /Parent 6 0 R /MediaBox [0 0 200 200] /Contents 11 0 R >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Page /Parent 6 0 R /MediaBox [0 0 200 200] /Contents 11 0 R >>",
+            "endobj",
+            "10 0 obj",
+            "<< /Nums [0 << /S /r /St 1 >> 1 << /S /D /St 10 >>] >>",
+            "endobj",
+            "11 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "13 0 obj",
+            "<< /Nums [0 << /S /A /St 1 >> 1 << /S /A /St 2 >>] >>",
+            "endobj",
+            "trailer",
+            "<< /Root 5 0 R /Size 14 >>",
             "%%EOF"
         });
 
