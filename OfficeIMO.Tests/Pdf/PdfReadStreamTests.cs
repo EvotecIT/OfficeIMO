@@ -222,6 +222,19 @@ public class PdfReadStreamTests {
     }
 
     [Fact]
+    public void RewriteApis_PreserveGoToActionOutlinePdfsWithIndirectAndDictionaryDestinations() {
+        AssertOutline(PdfPageExtractor.ExtractPages(BuildIndirectGoToActionOutlinePdf(), 1), "Indirect action", 144d);
+        AssertOutline(PdfPageExtractor.ExtractPages(BuildDictionaryGoToActionOutlinePdf(), 1), "Dictionary action", 132d);
+
+        static void AssertOutline(byte[] output, string title, double top) {
+            PdfOutlineItem item = Assert.Single(PdfInspector.Inspect(output).Outlines);
+            Assert.Equal(title, item.Title);
+            Assert.Equal(1, item.PageNumber);
+            Assert.Equal(top, item.DestinationTop);
+        }
+    }
+
+    [Fact]
     public void RewriteApis_RejectComplexOutlinePdfsWithClearUnsupportedDiagnostic() {
         byte[] outline = BuildUriActionOutlinePdf();
 
@@ -490,6 +503,37 @@ public class PdfReadStreamTests {
             } else {
                 Assert.DoesNotContain("(Chapter2)", text, StringComparison.Ordinal);
             }
+        }
+    }
+
+    [Fact]
+    public void RewriteApis_PreserveNamedDestinationNameTreeKidsForCopiedPages() {
+        byte[] namedDestinationPdf = BuildNamedDestinationNameTreeWithKidsPdf();
+        byte[] twoPageNamedDestinationPdf = BuildTwoPageNamedDestinationNameTreeWithKidsPdf();
+
+        AssertNamedDestinations(PdfPageExtractor.ExtractPages(namedDestinationPdf, 1));
+        AssertNamedDestinations(PdfPageEditor.DeletePages(twoPageNamedDestinationPdf, 2), containsSecondDestination: false);
+        AssertNamedDestinations(PdfPageEditor.ReorderPages(twoPageNamedDestinationPdf, 2, 1), containsSecondDestination: true, chapter1Page: 2, chapter2Page: 1);
+        AssertNamedDestinations(PdfMetadataEditor.UpdateMetadata(namedDestinationPdf, title: "Updated"));
+
+        static void AssertNamedDestinations(byte[] output, bool containsSecondDestination = false, int chapter1Page = 1, int chapter2Page = 2) {
+            string text = System.Text.Encoding.ASCII.GetString(output);
+            Assert.Contains("/Names << /Dests << /Names [", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("/Dests << /Kids", text, StringComparison.Ordinal);
+
+            PdfDocumentInfo info = PdfInspector.Inspect(output);
+            AssertDestination(info, "Chapter1", chapter1Page, 200);
+            if (containsSecondDestination) {
+                AssertDestination(info, "Chapter2", chapter2Page, null);
+            } else {
+                Assert.DoesNotContain(info.NamedDestinations, destination => destination.Name == "Chapter2");
+            }
+        }
+
+        static void AssertDestination(PdfDocumentInfo info, string name, int pageNumber, double? top) {
+            PdfNamedDestination destination = Assert.Single(info.NamedDestinations, item => item.Name == name);
+            Assert.Equal(pageNumber, destination.PageNumber);
+            Assert.Equal(top, destination.DestinationTop);
         }
     }
 
@@ -1063,6 +1107,73 @@ public class PdfReadStreamTests {
             "endobj",
             "6 0 obj",
             "<< /Title (Chapter 1) /Parent 5 0 R /A << /S /GoTo /D [3 0 R /XYZ 0 200 0] >> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildIndirectGoToActionOutlinePdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 5 0 R /PageMode /UseOutlines >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Outlines /First 6 0 R /Last 6 0 R /Count 1 >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Title (Indirect action) /Parent 5 0 R /A << /S /GoTo /D 7 0 R >> >>",
+            "endobj",
+            "7 0 obj",
+            "[3 0 R /XYZ 0 144 0]",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 8 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildDictionaryGoToActionOutlinePdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 5 0 R /PageMode /UseOutlines >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Outlines /First 6 0 R /Last 6 0 R /Count 1 >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Title (Dictionary action) /Parent 5 0 R /A << /S /GoTo /D << /D [3 0 R /XYZ 0 132 0] >> >> >>",
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 7 >>",
@@ -1796,7 +1907,7 @@ public class PdfReadStreamTests {
         return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 
-    private static byte[] BuildComplexNamedDestinationNameTreePdf() {
+    private static byte[] BuildNamedDestinationNameTreeWithKidsPdf() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",
             "1 0 obj",
@@ -1819,6 +1930,79 @@ public class PdfReadStreamTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildTwoPageNamedDestinationNameTreeWithKidsPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Names << /Dests << /Kids [7 0 R 8 0 R] >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 5 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 6 0 R >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            "<< /Names [(Chapter1) [3 0 R /XYZ 0 200 0]] >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Names [(Chapter2) [5 0 R /Fit]] >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildComplexNamedDestinationNameTreePdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Names << /Dests << /Kids [5 0 R] >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Names [(Chapter1) [6 0 R /XYZ 0 200 0]] >>",
+            "endobj",
+            "6 0 obj",
+            "<< /NotAPage true >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
             "%%EOF"
         });
 

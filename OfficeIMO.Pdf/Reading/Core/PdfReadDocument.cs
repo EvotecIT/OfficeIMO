@@ -212,9 +212,32 @@ public sealed class PdfReadDocument {
 
         if (catalog.Items.TryGetValue("Names", out var namesObject) &&
             ResolveDict(namesObject) is PdfDictionary namesDictionary &&
-            namesDictionary.Items.TryGetValue("Dests", out var namedDestinationTree) &&
-            ResolveDict(namedDestinationTree) is PdfDictionary tree &&
-            tree.Items.TryGetValue("Names", out var destinationNamesObject) &&
+            namesDictionary.Items.TryGetValue("Dests", out var namedDestinationTree)) {
+            AddNamedDestinationsFromNameTree(namedDestinationTree, result, new HashSet<int>());
+        }
+
+        return result.Count == 0 ? Array.Empty<PdfNamedDestination>() : result.AsReadOnly();
+    }
+
+    private void AddNamedDestinationsFromNameTree(
+        PdfObject treeObject,
+        List<PdfNamedDestination> result,
+        HashSet<int> visitedReferences) {
+        if (treeObject is PdfReference reference) {
+            if (!visitedReferences.Add(reference.ObjectNumber) ||
+                !_objects.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                return;
+            }
+
+            AddNamedDestinationsFromNameTree(indirect.Value, result, visitedReferences);
+            return;
+        }
+
+        if (treeObject is not PdfDictionary tree) {
+            return;
+        }
+
+        if (tree.Items.TryGetValue("Names", out var destinationNamesObject) &&
             ResolveArray(destinationNamesObject) is PdfArray destinationNames) {
             for (int i = 0; i + 1 < destinationNames.Items.Count; i += 2) {
                 if (TryReadDestinationName(destinationNames.Items[i], out string? name) &&
@@ -224,7 +247,12 @@ public sealed class PdfReadDocument {
             }
         }
 
-        return result.Count == 0 ? Array.Empty<PdfNamedDestination>() : result.AsReadOnly();
+        if (tree.Items.TryGetValue("Kids", out var kidsObject) &&
+            ResolveArray(kidsObject) is PdfArray kids) {
+            foreach (var kid in kids.Items) {
+                AddNamedDestinationsFromNameTree(kid, result, visitedReferences);
+            }
+        }
     }
 
     private PdfDocumentOpenAction? ExtractOpenAction() {

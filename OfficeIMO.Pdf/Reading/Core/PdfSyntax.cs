@@ -691,13 +691,26 @@ internal static class PdfSyntax {
     }
 
     private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> map, PdfObject destination) {
+        return IsDestinationForKnownPage(map, destination, new HashSet<int>());
+    }
+
+    private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> map, PdfObject destination, HashSet<int> visitedReferences) {
+        if (destination is PdfReference reference) {
+            if (!visitedReferences.Add(reference.ObjectNumber) ||
+                !map.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                return false;
+            }
+
+            destination = indirect.Value;
+        }
+
         if (destination is PdfArray array) {
             return IsDestinationForKnownPage(map, array);
         }
 
         if (destination is PdfDictionary dictionary &&
             dictionary.Items.TryGetValue("D", out var explicitDestination)) {
-            return IsDestinationForKnownPage(map, explicitDestination);
+            return IsDestinationForKnownPage(map, explicitDestination, visitedReferences);
         }
 
         return false;
@@ -950,27 +963,67 @@ internal static class PdfSyntax {
     private static bool IsSupportedNamedDestinationNameTree(
         Dictionary<int, PdfIndirectObject> map,
         PdfObject namedDestinations) {
-        PdfDictionary? tree = ResolveObject(map, namedDestinations) as PdfDictionary;
-        if (tree is null ||
-            tree.Items.ContainsKey("Kids") ||
-            !tree.Items.TryGetValue("Names", out var namesObject) ||
-            ResolveObject(map, namesObject) is not PdfArray names ||
-            names.Items.Count % 2 != 0) {
+        return TryCollectNamedDestinationNameTreeEntries(map, namedDestinations, new HashSet<int>());
+    }
+
+    private static bool TryCollectNamedDestinationNameTreeEntries(
+        Dictionary<int, PdfIndirectObject> map,
+        PdfObject value,
+        HashSet<int> visitedReferences) {
+        if (value is PdfReference reference) {
+            if (!visitedReferences.Add(reference.ObjectNumber) ||
+                !map.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                return false;
+            }
+
+            return TryCollectNamedDestinationNameTreeEntries(map, indirect.Value, visitedReferences);
+        }
+
+        if (value is not PdfDictionary tree) {
             return false;
         }
 
-        for (int i = 0; i < names.Items.Count; i += 2) {
-            if (names.Items[i] is not PdfStringObj) {
+        bool hasNames = tree.Items.TryGetValue("Names", out var namesObject);
+        bool hasKids = tree.Items.TryGetValue("Kids", out var kidsObject);
+        if (hasNames && hasKids) {
+            return false;
+        }
+
+        if (hasNames) {
+            if (ResolveObject(map, namesObject) is not PdfArray names ||
+                names.Items.Count % 2 != 0) {
                 return false;
             }
 
-            PdfObject? destination = ResolveObject(map, names.Items[i + 1]);
-            if (destination is null || !IsDestinationForKnownPage(map, destination)) {
-                return false;
+            for (int i = 0; i < names.Items.Count; i += 2) {
+                if (names.Items[i] is not PdfStringObj) {
+                    return false;
+                }
+
+                PdfObject? destination = ResolveObject(map, names.Items[i + 1]);
+                if (destination is null || !IsDestinationForKnownPage(map, destination)) {
+                    return false;
+                }
             }
         }
 
-        return true;
+        if (hasKids) {
+            if (ResolveObject(map, kidsObject) is not PdfArray kids) {
+                return false;
+            }
+
+            foreach (var kid in kids.Items) {
+                if (kid is not PdfReference) {
+                    return false;
+                }
+
+                if (!TryCollectNamedDestinationNameTreeEntries(map, kid, visitedReferences)) {
+                    return false;
+                }
+            }
+        }
+
+        return hasNames || hasKids;
     }
 
     private static bool ContainsPdfName(string text, string name) {
