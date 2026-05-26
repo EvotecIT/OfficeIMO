@@ -49,16 +49,10 @@ internal static class PdfSyntax {
                             if (endStream > dataStart) byteLen = endStream - dataStart;
                         }
                         if (byteLen >= 0) {
-                            bool isImage = (dict.Get<PdfName>("Subtype")?.Name == "Image") || (dict.Get<PdfName>("Type")?.Name == "XObject" && dict.Get<PdfName>("Subtype")?.Name == "Image");
-                            if (!isImage) {
-                                if (byteStart >= 0 && byteLen >= 0 && byteStart + byteLen <= pdf.Length) {
-                                    var data = new byte[byteLen];
-                                    Buffer.BlockCopy(pdf, byteStart, data, 0, byteLen);
-                                    map[id] = new PdfIndirectObject(id, gen, new PdfStream(dict, data));
-                                    continue;
-                                }
-                            } else {
-                                map[id] = new PdfIndirectObject(id, gen, new PdfStream(dict, Array.Empty<byte>()));
+                            if (byteStart >= 0 && byteLen >= 0 && byteStart + byteLen <= pdf.Length) {
+                                var data = new byte[byteLen];
+                                Buffer.BlockCopy(pdf, byteStart, data, 0, byteLen);
+                                map[id] = new PdfIndirectObject(id, gen, new PdfStream(dict, data));
                                 continue;
                             }
                         }
@@ -81,12 +75,907 @@ internal static class PdfSyntax {
                 }
             }
         }
+        int trailerIdx = text.LastIndexOf("trailer", StringComparison.OrdinalIgnoreCase);
+        string trailerRaw = trailerIdx >= 0 ? text.Substring(trailerIdx) : string.Empty;
+        ThrowIfEncrypted(trailerRaw);
+
         ResolveIndirectStreamLengths(map, pdf, streamLocations);
         // Expand object streams (/Type /ObjStm) to populate embedded objects (pages and resources often live there)
         ExpandObjectStreams(map, pdf);
-        int trailerIdx = text.LastIndexOf("trailer", StringComparison.OrdinalIgnoreCase);
-        string trailerRaw = trailerIdx >= 0 ? text.Substring(trailerIdx) : string.Empty;
+        ThrowIfEncryptedXrefStream(map);
         return (map, trailerRaw);
+    }
+
+    internal static void ThrowIfEncrypted(string trailerRaw) {
+        if (ContainsPdfName(trailerRaw, "Encrypt")) {
+            throw new NotSupportedException("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.");
+        }
+    }
+
+    internal static void ThrowIfUnsafeForRewrite(byte[] pdf) {
+        if (HasSignatureMarkers(pdf)) {
+            throw new NotSupportedException("Signed PDF files are not supported for rewriting by OfficeIMO.Pdf yet.");
+        }
+
+        if (HasFormMarkers(pdf)) {
+            throw new NotSupportedException("PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.");
+        }
+
+        if (HasUnsupportedOutlineRewriteMarkers(pdf)) {
+            throw new NotSupportedException("PDF outlines are not supported for rewriting by OfficeIMO.Pdf yet.");
+        }
+
+        if (HasUnsupportedPageLabelRewriteMarkers(pdf)) {
+            throw new NotSupportedException("PDF page labels are not supported for rewriting by OfficeIMO.Pdf yet.");
+        }
+
+        if (HasUnsupportedCatalogNameTreeRewriteMarkers(pdf)) {
+            throw new NotSupportedException("PDF catalog name trees are not supported for rewriting by OfficeIMO.Pdf yet.");
+        }
+
+        if (HasUnsupportedNamedDestinationRewriteMarkers(pdf)) {
+            throw new NotSupportedException("PDF named destinations are not supported for rewriting by OfficeIMO.Pdf yet.");
+        }
+
+        if (HasUnsupportedOpenActionRewriteMarkers(pdf)) {
+            throw new NotSupportedException("PDF open actions are not supported for rewriting by OfficeIMO.Pdf yet.");
+        }
+
+        if (HasUnsupportedViewerPreferenceRewriteMarkers(pdf)) {
+            throw new NotSupportedException("PDF viewer preferences are not supported for rewriting by OfficeIMO.Pdf yet.");
+        }
+
+        if (HasTaggedContentMarkers(pdf)) {
+            throw new NotSupportedException("PDF tagged content structure is not supported for rewriting by OfficeIMO.Pdf yet.");
+        }
+
+        if (HasUnsupportedXmpMetadataRewriteMarkers(pdf)) {
+            throw new NotSupportedException("PDF XMP metadata is not supported for rewriting by OfficeIMO.Pdf yet.");
+        }
+
+        if (HasUnsupportedCatalogUriRewriteMarkers(pdf)) {
+            throw new NotSupportedException("PDF catalog URI dictionaries are not supported for rewriting by OfficeIMO.Pdf yet.");
+        }
+
+        if (HasUnsupportedOutputIntentRewriteMarkers(pdf)) {
+            throw new NotSupportedException("PDF output intents are not supported for rewriting by OfficeIMO.Pdf yet.");
+        }
+
+        if (HasUnsupportedEmbeddedFileRewriteMarkers(pdf)) {
+            throw new NotSupportedException("PDF embedded files are not supported for rewriting by OfficeIMO.Pdf yet.");
+        }
+
+        if (HasUnsupportedOptionalContentRewriteMarkers(pdf)) {
+            throw new NotSupportedException("PDF optional content layers are not supported for rewriting by OfficeIMO.Pdf yet.");
+        }
+
+        if (HasActiveContentMarkers(pdf)) {
+            throw new NotSupportedException("PDF active content is not supported for rewriting by OfficeIMO.Pdf yet.");
+        }
+    }
+
+    internal static bool HasEncryptionMarkers(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        string text = PdfEncoding.Latin1GetString(pdf);
+        return ContainsPdfName(text, "Encrypt");
+    }
+
+    internal static bool HasSignatureMarkers(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        string text = PdfEncoding.Latin1GetString(pdf);
+        return ContainsPdfName(text, "ByteRange") ||
+            ContainsPdfName(text, "SigFlags") ||
+            ContainsPdfName(text, "Sig");
+    }
+
+    internal static bool HasFormMarkers(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        string text = PdfEncoding.Latin1GetString(pdf);
+        return ContainsPdfName(text, "AcroForm") ||
+            ContainsPdfName(text, "Fields") ||
+            ContainsPdfName(text, "FT");
+    }
+
+    internal static bool HasAnnotationMarkers(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        string text = PdfEncoding.Latin1GetString(pdf);
+        return ContainsPdfName(text, "Annots") ||
+            ContainsPdfName(text, "Annot");
+    }
+
+    internal static bool HasOutlineMarkers(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        string text = PdfEncoding.Latin1GetString(pdf);
+        return ContainsPdfName(text, "Outlines") ||
+            ContainsPdfName(text, "UseOutlines");
+    }
+
+    internal static bool HasUnsupportedOutlineRewriteMarkers(byte[] pdf) {
+        if (!HasOutlineMarkers(pdf)) {
+            return false;
+        }
+
+        try {
+            var (objects, _) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects);
+            if (catalog is null ||
+                !catalog.Items.TryGetValue("Outlines", out var outlines)) {
+                return false;
+            }
+
+            return !IsSupportedOutlineGraph(objects, outlines, new HashSet<int>());
+        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            return true;
+        }
+    }
+
+    internal static bool HasCatalogViewSettingMarkers(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        string text = PdfEncoding.Latin1GetString(pdf);
+        return ContainsPdfName(text, "PageMode") ||
+            ContainsPdfName(text, "PageLayout");
+    }
+
+    internal static bool HasPageLabelMarkers(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        string text = PdfEncoding.Latin1GetString(pdf);
+        return ContainsPdfName(text, "PageLabels");
+    }
+
+    internal static bool HasUnsupportedPageLabelRewriteMarkers(byte[] pdf) {
+        if (!HasPageLabelMarkers(pdf)) {
+            return false;
+        }
+
+        try {
+            var (objects, _) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects);
+            if (catalog is null ||
+                !catalog.Items.TryGetValue("PageLabels", out var pageLabels)) {
+                return true;
+            }
+
+            return !IsSupportedPageLabelTree(objects, pageLabels);
+        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            return true;
+        }
+    }
+
+    internal static bool HasNamedDestinationMarkers(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        string text = PdfEncoding.Latin1GetString(pdf);
+        return ContainsPdfName(text, "Dests");
+    }
+
+    internal static bool HasCatalogNameTreeMarkers(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        string text = PdfEncoding.Latin1GetString(pdf);
+        return ContainsPdfName(text, "Names");
+    }
+
+    internal static bool HasUnsupportedCatalogNameTreeRewriteMarkers(byte[] pdf) {
+        if (!HasCatalogNameTreeMarkers(pdf)) {
+            return false;
+        }
+
+        try {
+            var (objects, _) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects);
+            if (catalog is null ||
+                !catalog.Items.TryGetValue("Names", out var names)) {
+                return false;
+            }
+
+            PdfDictionary? namesDictionary = ResolveObject(objects, names) as PdfDictionary;
+            if (namesDictionary is null) {
+                return true;
+            }
+
+            foreach (var key in namesDictionary.Items.Keys) {
+                if (string.Equals(key, "Dests", StringComparison.Ordinal) ||
+                    string.Equals(key, "EmbeddedFiles", StringComparison.Ordinal) ||
+                    string.Equals(key, "JavaScript", StringComparison.Ordinal)) {
+                    continue;
+                }
+
+                return true;
+            }
+
+            return false;
+        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            return true;
+        }
+    }
+
+    internal static bool HasUnsupportedNamedDestinationRewriteMarkers(byte[] pdf) {
+        if (!HasNamedDestinationMarkers(pdf)) {
+            return false;
+        }
+
+        try {
+            var (objects, _) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects);
+            if (catalog is null) {
+                return true;
+            }
+
+            if (catalog.Items.ContainsKey("Dests")) {
+                return false;
+            }
+
+            if (catalog.Items.TryGetValue("Names", out var names) &&
+                TryGetNamedDestinationNameTree(objects, names, out var namedDestinationTree) &&
+                IsSupportedNamedDestinationNameTree(objects, namedDestinationTree)) {
+                return false;
+            }
+
+            return true;
+        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            return true;
+        }
+    }
+
+    internal static bool HasOpenActionMarkers(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        string text = PdfEncoding.Latin1GetString(pdf);
+        return ContainsPdfName(text, "OpenAction");
+    }
+
+    internal static bool HasUnsupportedOpenActionRewriteMarkers(byte[] pdf) {
+        if (!HasOpenActionMarkers(pdf)) {
+            return false;
+        }
+
+        try {
+            var (objects, _) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects);
+            if (catalog is null ||
+                !catalog.Items.TryGetValue("OpenAction", out var openAction)) {
+                return true;
+            }
+
+            PdfObject? resolved = ResolveObject(objects, openAction);
+            if (resolved is PdfArray array &&
+                IsDestinationForKnownPage(objects, array)) {
+                return false;
+            }
+
+            if (resolved is PdfDictionary dictionary &&
+                IsSupportedGoToOpenActionDictionary(objects, dictionary)) {
+                return false;
+            }
+
+            return true;
+        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            return true;
+        }
+    }
+
+    internal static bool HasViewerPreferenceMarkers(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        string text = PdfEncoding.Latin1GetString(pdf);
+        return ContainsPdfName(text, "ViewerPreferences");
+    }
+
+    internal static bool HasUnsupportedViewerPreferenceRewriteMarkers(byte[] pdf) {
+        if (!HasViewerPreferenceMarkers(pdf)) {
+            return false;
+        }
+
+        try {
+            var (objects, _) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects);
+            if (catalog is null ||
+                !catalog.Items.TryGetValue("ViewerPreferences", out var viewerPreferences)) {
+                return true;
+            }
+
+            PdfObject? resolved = ResolveObject(objects, viewerPreferences);
+            if (resolved is PdfDictionary dictionary &&
+                IsSimpleCatalogDictionary(dictionary)) {
+                return false;
+            }
+
+            return true;
+        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            return true;
+        }
+    }
+
+    internal static bool HasTaggedContentMarkers(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        string text = PdfEncoding.Latin1GetString(pdf);
+        return ContainsPdfName(text, "MarkInfo") ||
+            ContainsPdfName(text, "StructTreeRoot") ||
+            ContainsPdfName(text, "ParentTree") ||
+            ContainsPdfName(text, "StructElem");
+    }
+
+    internal static bool HasXmpMetadataMarkers(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        string text = PdfEncoding.Latin1GetString(pdf);
+        return ContainsPdfName(text, "Metadata");
+    }
+
+    internal static bool HasUnsupportedXmpMetadataRewriteMarkers(byte[] pdf) {
+        if (!HasXmpMetadataMarkers(pdf)) {
+            return false;
+        }
+
+        try {
+            var (objects, _) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects);
+            if (catalog is null ||
+                !catalog.Items.TryGetValue("Metadata", out var xmpMetadata)) {
+                return true;
+            }
+
+            if (IsSupportedCatalogXmpMetadataStream(objects, xmpMetadata)) {
+                return false;
+            }
+
+            return true;
+        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            return true;
+        }
+    }
+
+    internal static bool HasCatalogUriMarkers(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        string text = PdfEncoding.Latin1GetString(pdf);
+        if (!ContainsPdfName(text, "URI")) {
+            return false;
+        }
+
+        try {
+            var (objects, _) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects);
+            return catalog?.Items.ContainsKey("URI") == true;
+        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            return true;
+        }
+    }
+
+    internal static bool HasUnsupportedCatalogUriRewriteMarkers(byte[] pdf) {
+        if (!HasCatalogUriMarkers(pdf)) {
+            return false;
+        }
+
+        try {
+            var (objects, _) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects);
+            if (catalog is null ||
+                !catalog.Items.TryGetValue("URI", out var catalogUri)) {
+                return true;
+            }
+
+            PdfObject? resolved = ResolveObject(objects, catalogUri);
+            if (resolved is PdfDictionary dictionary &&
+                IsSimpleCatalogDictionary(dictionary)) {
+                return false;
+            }
+
+            return true;
+        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            return true;
+        }
+    }
+
+    internal static bool HasOutputIntentMarkers(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        string text = PdfEncoding.Latin1GetString(pdf);
+        return ContainsPdfName(text, "OutputIntents") ||
+            ContainsPdfName(text, "OutputIntent");
+    }
+
+    internal static bool HasUnsupportedOutputIntentRewriteMarkers(byte[] pdf) {
+        if (!HasOutputIntentMarkers(pdf)) {
+            return false;
+        }
+
+        try {
+            var (objects, _) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects);
+            if (catalog is null ||
+                !catalog.Items.TryGetValue("OutputIntents", out var outputIntents)) {
+                return true;
+            }
+
+            if (IsSupportedCatalogMetadataGraph(objects, outputIntents, new HashSet<int>())) {
+                return false;
+            }
+
+            return true;
+        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            return true;
+        }
+    }
+
+    internal static bool HasEmbeddedFileMarkers(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        string text = PdfEncoding.Latin1GetString(pdf);
+        return ContainsPdfName(text, "EmbeddedFiles") ||
+            ContainsPdfName(text, "Filespec") ||
+            ContainsPdfName(text, "EmbeddedFile") ||
+            ContainsPdfName(text, "AF");
+    }
+
+    internal static bool HasUnsupportedEmbeddedFileRewriteMarkers(byte[] pdf) {
+        if (!HasEmbeddedFileMarkers(pdf)) {
+            return false;
+        }
+
+        try {
+            var (objects, _) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects);
+            if (catalog is null) {
+                return true;
+            }
+
+            bool hasSupportedEmbeddedFiles = false;
+            if (catalog.Items.TryGetValue("Names", out var names) &&
+                TryGetEmbeddedFilesNameTree(objects, names, out var embeddedFiles)) {
+                if (!IsSupportedCatalogMetadataGraph(objects, embeddedFiles, new HashSet<int>())) {
+                    return true;
+                }
+
+                hasSupportedEmbeddedFiles = true;
+            }
+
+            bool hasSupportedAssociatedFiles = false;
+            if (catalog.Items.TryGetValue("AF", out var associatedFiles)) {
+                if (!IsSupportedCatalogMetadataGraph(objects, associatedFiles, new HashSet<int>())) {
+                    return true;
+                }
+
+                hasSupportedAssociatedFiles = true;
+            }
+
+            return !hasSupportedEmbeddedFiles && !hasSupportedAssociatedFiles;
+        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            return true;
+        }
+    }
+
+    internal static bool HasOptionalContentMarkers(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        string text = PdfEncoding.Latin1GetString(pdf);
+        return ContainsPdfName(text, "OCProperties") ||
+            ContainsPdfName(text, "OCGs") ||
+            ContainsPdfName(text, "OCG") ||
+            ContainsPdfName(text, "OCMD");
+    }
+
+    internal static bool HasUnsupportedOptionalContentRewriteMarkers(byte[] pdf) {
+        if (!HasOptionalContentMarkers(pdf)) {
+            return false;
+        }
+
+        try {
+            var (objects, _) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects);
+            if (catalog is null ||
+                !catalog.Items.TryGetValue("OCProperties", out var optionalContent)) {
+                return true;
+            }
+
+            if (IsSupportedCatalogMetadataGraph(objects, optionalContent, new HashSet<int>())) {
+                return false;
+            }
+
+            return true;
+        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            return true;
+        }
+    }
+
+    internal static bool HasActiveContentMarkers(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        string text = PdfEncoding.Latin1GetString(pdf);
+        return ContainsPdfName(text, "JavaScript") ||
+            ContainsPdfName(text, "JS") ||
+            ContainsPdfName(text, "AA") ||
+            ContainsPdfName(text, "Launch") ||
+            ContainsPdfName(text, "SubmitForm") ||
+            ContainsPdfName(text, "RichMedia");
+    }
+
+    internal static string? GetHeaderVersion(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        if (pdf.Length < 8 ||
+            pdf[0] != (byte)'%' ||
+            pdf[1] != (byte)'P' ||
+            pdf[2] != (byte)'D' ||
+            pdf[3] != (byte)'F' ||
+            pdf[4] != (byte)'-') {
+            return null;
+        }
+
+        int start = 5;
+        int end = start;
+        while (end < pdf.Length) {
+            byte value = pdf[end];
+            if (value == (byte)'\r' || value == (byte)'\n' || value == (byte)' ' || value == (byte)'\t') {
+                break;
+            }
+
+            end++;
+        }
+
+        return end > start ? PdfEncoding.Latin1GetString(pdf, start, end - start) : null;
+    }
+
+    private static void ThrowIfEncryptedXrefStream(Dictionary<int, PdfIndirectObject> map) {
+        foreach (var entry in map.Values) {
+            PdfDictionary? dictionary = entry.Value switch {
+                PdfDictionary directDictionary => directDictionary,
+                PdfStream stream => stream.Dictionary,
+                _ => null
+            };
+
+            if (dictionary is not null && dictionary.Items.ContainsKey("Encrypt")) {
+                throw new NotSupportedException("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.");
+            }
+        }
+    }
+
+    private static PdfDictionary? FindCatalog(Dictionary<int, PdfIndirectObject> map) {
+        foreach (var entry in map.Values) {
+            if (entry.Value is PdfDictionary dictionary &&
+                dictionary.Get<PdfName>("Type")?.Name == "Catalog") {
+                return dictionary;
+            }
+        }
+
+        return null;
+    }
+
+    private static PdfObject? ResolveObject(Dictionary<int, PdfIndirectObject> map, PdfObject? value) {
+        if (value is PdfReference reference &&
+            map.TryGetValue(reference.ObjectNumber, out var indirect)) {
+            return indirect.Value;
+        }
+
+        return value;
+    }
+
+    private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> map, PdfArray destination) {
+        return destination.Items.Count > 0 &&
+            destination.Items[0] is PdfReference pageReference &&
+            map.TryGetValue(pageReference.ObjectNumber, out var pageObject) &&
+            pageObject.Value is PdfDictionary pageDictionary &&
+            pageDictionary.Get<PdfName>("Type")?.Name == "Page";
+    }
+
+    private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> map, PdfObject destination) {
+        if (destination is PdfArray array) {
+            return IsDestinationForKnownPage(map, array);
+        }
+
+        if (destination is PdfDictionary dictionary &&
+            dictionary.Items.TryGetValue("D", out var explicitDestination)) {
+            return IsDestinationForKnownPage(map, explicitDestination);
+        }
+
+        return false;
+    }
+
+    private static bool IsSupportedGoToOpenActionDictionary(Dictionary<int, PdfIndirectObject> map, PdfDictionary dictionary) {
+        return dictionary.Items.Count == 2 &&
+            dictionary.Get<PdfName>("S")?.Name == "GoTo" &&
+            dictionary.Items.TryGetValue("D", out var destination) &&
+            IsDestinationForKnownPage(map, destination);
+    }
+
+    private static bool IsSimpleCatalogDictionary(PdfDictionary dictionary) {
+        foreach (var value in dictionary.Items.Values) {
+            if (!IsSimpleCatalogValue(value)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsSimpleCatalogValue(PdfObject value) {
+        switch (value) {
+            case PdfNumber:
+            case PdfBoolean:
+            case PdfName:
+            case PdfStringObj:
+            case PdfNull:
+                return true;
+            case PdfArray array:
+                foreach (var item in array.Items) {
+                    if (!IsSimpleCatalogValue(item)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static bool IsSupportedCatalogXmpMetadataStream(Dictionary<int, PdfIndirectObject> map, PdfObject value) {
+        if (value is not PdfReference reference ||
+            !map.TryGetValue(reference.ObjectNumber, out var indirect) ||
+            indirect.Value is not PdfStream stream ||
+            stream.Dictionary.Get<PdfName>("Type")?.Name != "Metadata" ||
+            stream.Dictionary.Get<PdfName>("Subtype")?.Name != "XML") {
+            return false;
+        }
+
+        foreach (var entry in stream.Dictionary.Items) {
+            if (string.Equals(entry.Key, "Length", StringComparison.Ordinal)) {
+                continue;
+            }
+
+            if (!IsSimpleCatalogValue(entry.Value)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsSupportedCatalogMetadataGraph(
+        Dictionary<int, PdfIndirectObject> map,
+        PdfObject value,
+        HashSet<int> visitedReferences) {
+        switch (value) {
+            case PdfNumber:
+            case PdfBoolean:
+            case PdfName:
+            case PdfStringObj:
+            case PdfNull:
+                return true;
+            case PdfReference reference:
+                if (!visitedReferences.Add(reference.ObjectNumber)) {
+                    return true;
+                }
+
+                if (!map.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                    return false;
+                }
+
+                return !IsPageDictionary(indirect.Value) &&
+                    IsSupportedCatalogMetadataGraph(map, indirect.Value, visitedReferences);
+            case PdfArray array:
+                foreach (var item in array.Items) {
+                    if (!IsSupportedCatalogMetadataGraph(map, item, visitedReferences)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            case PdfDictionary dictionary:
+                if (IsPageDictionary(dictionary)) {
+                    return false;
+                }
+
+                foreach (var item in dictionary.Items.Values) {
+                    if (!IsSupportedCatalogMetadataGraph(map, item, visitedReferences)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            case PdfStream stream:
+                if (IsPageDictionary(stream.Dictionary)) {
+                    return false;
+                }
+
+                foreach (var item in stream.Dictionary.Items.Values) {
+                    if (!IsSupportedCatalogMetadataGraph(map, item, visitedReferences)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static bool IsSupportedOutlineGraph(
+        Dictionary<int, PdfIndirectObject> map,
+        PdfObject value,
+        HashSet<int> visitedReferences) {
+        switch (value) {
+            case PdfNumber:
+            case PdfBoolean:
+            case PdfName:
+            case PdfStringObj:
+            case PdfNull:
+                return true;
+            case PdfReference reference:
+                if (!visitedReferences.Add(reference.ObjectNumber)) {
+                    return true;
+                }
+
+                if (!map.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                    return false;
+                }
+
+                return IsPageDictionary(indirect.Value) ||
+                    IsSupportedOutlineGraph(map, indirect.Value, visitedReferences);
+            case PdfArray array:
+                foreach (var item in array.Items) {
+                    if (!IsSupportedOutlineGraph(map, item, visitedReferences)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            case PdfDictionary dictionary:
+                if (IsPageDictionary(dictionary)) {
+                    return true;
+                }
+
+                if (dictionary.Items.ContainsKey("A") ||
+                    dictionary.Items.ContainsKey("AA")) {
+                    return false;
+                }
+
+                foreach (var item in dictionary.Items.Values) {
+                    if (!IsSupportedOutlineGraph(map, item, visitedReferences)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static bool IsPageDictionary(PdfObject value) {
+        return value is PdfDictionary dictionary &&
+            dictionary.Get<PdfName>("Type")?.Name == "Page";
+    }
+
+    private static bool TryGetEmbeddedFilesNameTree(
+        Dictionary<int, PdfIndirectObject> map,
+        PdfObject names,
+        out PdfObject embeddedFiles) {
+        embeddedFiles = PdfNull.Instance;
+        PdfDictionary? namesDictionary = ResolveObject(map, names) as PdfDictionary;
+        if (namesDictionary is null ||
+            !namesDictionary.Items.TryGetValue("EmbeddedFiles", out var embeddedFileTree)) {
+            return false;
+        }
+
+        embeddedFiles = embeddedFileTree;
+        return true;
+    }
+
+    private static bool TryGetNamedDestinationNameTree(
+        Dictionary<int, PdfIndirectObject> map,
+        PdfObject names,
+        out PdfObject namedDestinations) {
+        namedDestinations = PdfNull.Instance;
+        PdfDictionary? namesDictionary = ResolveObject(map, names) as PdfDictionary;
+        if (namesDictionary is null ||
+            !namesDictionary.Items.TryGetValue("Dests", out var namedDestinationTree)) {
+            return false;
+        }
+
+        namedDestinations = namedDestinationTree;
+        return true;
+    }
+
+    private static bool IsSupportedPageLabelTree(Dictionary<int, PdfIndirectObject> map, PdfObject pageLabels) {
+        PdfDictionary? tree = ResolveObject(map, pageLabels) as PdfDictionary;
+        if (tree is null ||
+            tree.Items.ContainsKey("Kids") ||
+            !tree.Items.TryGetValue("Nums", out var numsObject) ||
+            ResolveObject(map, numsObject) is not PdfArray nums ||
+            nums.Items.Count % 2 != 0) {
+            return false;
+        }
+
+        for (int i = 0; i < nums.Items.Count; i += 2) {
+            if (ResolveObject(map, nums.Items[i]) is not PdfNumber pageIndex ||
+                pageIndex.Value < 0 ||
+                pageIndex.Value > int.MaxValue ||
+                Math.Truncate(pageIndex.Value) != pageIndex.Value ||
+                ResolveObject(map, nums.Items[i + 1]) is not PdfDictionary labelDictionary) {
+                return false;
+            }
+
+            foreach (var value in labelDictionary.Items.Values) {
+                if (!IsSimpleCatalogValue(value)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsSupportedNamedDestinationNameTree(
+        Dictionary<int, PdfIndirectObject> map,
+        PdfObject namedDestinations) {
+        PdfDictionary? tree = ResolveObject(map, namedDestinations) as PdfDictionary;
+        if (tree is null ||
+            tree.Items.ContainsKey("Kids") ||
+            !tree.Items.TryGetValue("Names", out var namesObject) ||
+            ResolveObject(map, namesObject) is not PdfArray names ||
+            names.Items.Count % 2 != 0) {
+            return false;
+        }
+
+        for (int i = 0; i < names.Items.Count; i += 2) {
+            if (names.Items[i] is not PdfStringObj) {
+                return false;
+            }
+
+            PdfObject? destination = ResolveObject(map, names.Items[i + 1]);
+            if (destination is null || !IsDestinationForKnownPage(map, destination)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool ContainsPdfName(string text, string name) {
+        if (string.IsNullOrEmpty(text)) return false;
+
+        string token = "/" + name;
+        int index = 0;
+        while (index < text.Length) {
+            index = text.IndexOf(token, index, StringComparison.Ordinal);
+            if (index < 0) return false;
+
+            int after = index + token.Length;
+            if (after >= text.Length || IsPdfDelimiter(text[after]) || char.IsWhiteSpace(text[after])) {
+                return true;
+            }
+
+            index = after;
+        }
+
+        return false;
+    }
+
+    private static bool IsPdfDelimiter(char value) {
+        switch (value) {
+            case '(':
+            case ')':
+            case '<':
+            case '>':
+            case '[':
+            case ']':
+            case '{':
+            case '}':
+            case '/':
+            case '%':
+                return true;
+            default:
+                return false;
+        }
     }
 
     private static void ResolveIndirectStreamLengths(Dictionary<int, PdfIndirectObject> map, byte[] pdf, List<(int Id, int Generation, int DataStart)> streamLocations) {
@@ -96,11 +985,6 @@ internal static class PdfSyntax {
             }
 
             if (!TryGetResolvedLength(stream.Dictionary, map, out int byteLen)) {
-                continue;
-            }
-
-            bool isImage = (stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Image") || (stream.Dictionary.Get<PdfName>("Type")?.Name == "XObject" && stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Image");
-            if (isImage) {
                 continue;
             }
 
@@ -237,7 +1121,7 @@ internal static class PdfSyntax {
                 if (i + 1 < tokens.Count) {
                     var (obj, consumed) = ParseObject(tokens, i + 1);
                     d.Items[key] = obj;
-                    i += consumed;
+                    i += consumed + 1;
                 }
             }
         }
@@ -448,8 +1332,8 @@ internal static class PdfSyntax {
     private static int FindObjectEnd(string text, int start) {
         int searchFrom = start;
         while (searchFrom >= 0 && searchFrom < text.Length) {
-            int streamIdx = IndexOfKeyword(text, "stream", searchFrom, text.Length);
-            int endObjIdx = IndexOfKeyword(text, "endobj", searchFrom, text.Length);
+            int streamIdx = IndexOfKeywordOutsideLiteralString(text, "stream", searchFrom, text.Length);
+            int endObjIdx = IndexOfKeywordOutsideLiteralString(text, "endobj", searchFrom, text.Length);
 
             if (endObjIdx < 0) {
                 return -1;
@@ -466,6 +1350,53 @@ internal static class PdfSyntax {
             }
 
             searchFrom = endStreamIdx + 9;
+        }
+
+        return -1;
+    }
+
+    private static int IndexOfKeywordOutsideLiteralString(string text, string keyword, int start, int limit) {
+        if (start < 0) start = 0;
+        if (limit > text.Length) limit = text.Length;
+
+        int literalDepth = 0;
+        bool escaped = false;
+        for (int i = start; i < limit; i++) {
+            char c = text[i];
+            if (literalDepth > 0) {
+                if (escaped) {
+                    escaped = false;
+                    continue;
+                }
+
+                if (c == '\\') {
+                    escaped = true;
+                    continue;
+                }
+
+                if (c == '(') {
+                    literalDepth++;
+                    continue;
+                }
+
+                if (c == ')') {
+                    literalDepth--;
+                }
+
+                continue;
+            }
+
+            if (c == '(') {
+                literalDepth = 1;
+                continue;
+            }
+
+            if (i + keyword.Length <= limit &&
+                string.CompareOrdinal(text, i, keyword, 0, keyword.Length) == 0 &&
+                HasKeywordBoundary(text, i - 1, start, limit) &&
+                HasKeywordBoundary(text, i + keyword.Length, start, limit)) {
+                return i;
+            }
         }
 
         return -1;

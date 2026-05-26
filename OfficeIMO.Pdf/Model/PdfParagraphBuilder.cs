@@ -10,6 +10,7 @@ public sealed class PdfParagraphBuilder {
     private bool _currentItalic;
     private bool _currentUnderline;
     private bool _currentStrike;
+    private PdfTextBaseline _currentBaseline;
 
     /// <summary>Paragraph alignment.</summary>
     public PdfAlign Align { get; }
@@ -20,6 +21,7 @@ public sealed class PdfParagraphBuilder {
     /// <param name="align">Paragraph alignment.</param>
     /// <param name="defaultColor">Optional default text color.</param>
     public PdfParagraphBuilder(PdfAlign align, PdfColor? defaultColor) {
+        Guard.ParagraphAlign(align, nameof(align), "Paragraph");
         Align = align; DefaultColor = defaultColor; _currentColor = defaultColor;
     }
 
@@ -33,9 +35,17 @@ public sealed class PdfParagraphBuilder {
     public PdfParagraphBuilder Underline(bool enable = true) { _currentUnderline = enable; return this; }
     /// <summary>Enables or disables strikethrough for subsequent runs.</summary>
     public PdfParagraphBuilder Strike(bool enable = true) { _currentStrike = enable; return this; }
+    /// <summary>Enables or disables superscript baseline placement for subsequent runs.</summary>
+    public PdfParagraphBuilder Superscript(bool enable = true) { _currentBaseline = enable ? PdfTextBaseline.Superscript : PdfTextBaseline.Normal; return this; }
+    /// <summary>Enables or disables subscript baseline placement for subsequent runs.</summary>
+    public PdfParagraphBuilder Subscript(bool enable = true) { _currentBaseline = enable ? PdfTextBaseline.Subscript : PdfTextBaseline.Normal; return this; }
+    /// <summary>Sets the current baseline placement for subsequent runs.</summary>
+    public PdfParagraphBuilder Baseline(PdfTextBaseline baseline) { Guard.TextBaseline(baseline, nameof(baseline)); _currentBaseline = baseline; return this; }
 
     /// <summary>Adds a text run using the current style flags.</summary>
-    public PdfParagraphBuilder Text(string text) { _runs.Add(new TextRun(text, _currentBold, _currentUnderline, _currentColor, _currentItalic, _currentStrike)); return this; }
+    public PdfParagraphBuilder Text(string text) { _runs.Add(new TextRun(text, _currentBold, _currentUnderline, _currentColor, _currentItalic, _currentStrike, baseline: _currentBaseline)); return this; }
+    /// <summary>Adds an explicit line break inside the current paragraph.</summary>
+    public PdfParagraphBuilder LineBreak() { _runs.Add(TextRun.LineBreak()); return this; }
     /// <summary>Adds a bold text run.</summary>
     public PdfParagraphBuilder Bold(string text, PdfColor? color = null) { _runs.Add(new TextRun(text, bold: true, underline: false, color: color ?? _currentColor, italic: false)); return this; }
     /// <summary>Adds an italic text run.</summary>
@@ -44,12 +54,24 @@ public sealed class PdfParagraphBuilder {
     public PdfParagraphBuilder Underlined(string text, PdfColor? color = null) { _runs.Add(new TextRun(text, bold: false, underline: true, color: color ?? _currentColor, italic: false)); return this; }
     /// <summary>Adds a strikethrough text run.</summary>
     public PdfParagraphBuilder Strikethrough(string text, PdfColor? color = null) { _runs.Add(new TextRun(text, bold: false, underline: false, color: color ?? _currentColor, italic: false, strike: true)); return this; }
+    /// <summary>Adds a superscript text run.</summary>
+    public PdfParagraphBuilder Superscript(string text, PdfColor? color = null) { _runs.Add(new TextRun(text, bold: false, underline: false, color: color ?? _currentColor, italic: false, strike: false, baseline: PdfTextBaseline.Superscript)); return this; }
+    /// <summary>Adds a subscript text run.</summary>
+    public PdfParagraphBuilder Subscript(string text, PdfColor? color = null) { _runs.Add(new TextRun(text, bold: false, underline: false, color: color ?? _currentColor, italic: false, strike: false, baseline: PdfTextBaseline.Subscript)); return this; }
     /// <summary>Adds a hyperlink text run.</summary>
     /// <param name="text">Link text.</param>
     /// <param name="uri">Absolute URI to open.</param>
     /// <param name="color">Optional link color.</param>
     /// <param name="underline">Whether to underline the link text (default true).</param>
-    public PdfParagraphBuilder Link(string text, string uri, PdfColor? color = null, bool underline = true) { _runs.Add(new TextRun(text, bold: false, underline: underline, color: color ?? _currentColor, italic: false, strike: false, linkUri: uri)); return this; }
+    /// <param name="contents">Optional link annotation contents; defaults to the link text when omitted.</param>
+    public PdfParagraphBuilder Link(string text, string uri, PdfColor? color = null, bool underline = true, string? contents = null) { _runs.Add(TextRun.Link(text, uri, color ?? _currentColor, underline, contents, _currentBaseline)); return this; }
+    /// <summary>Adds a hyperlink text run that points to a document bookmark.</summary>
+    /// <param name="text">Link text.</param>
+    /// <param name="bookmarkName">Named destination created with <see cref="PdfDoc.Bookmark(string)"/>.</param>
+    /// <param name="color">Optional link color.</param>
+    /// <param name="underline">Whether to underline the link text (default true).</param>
+    /// <param name="contents">Optional link annotation contents; defaults to the link text when omitted.</param>
+    public PdfParagraphBuilder LinkToBookmark(string text, string bookmarkName, PdfColor? color = null, bool underline = true, string? contents = null) { _runs.Add(TextRun.LinkToBookmark(text, bookmarkName, color ?? _currentColor, underline, contents, _currentBaseline)); return this; }
 
-    internal RichParagraphBlock Build() => new RichParagraphBlock(_runs, Align, DefaultColor);
+    internal RichParagraphBlock Build(PdfParagraphStyle? style = null) => new RichParagraphBlock(_runs, Align, DefaultColor, style);
 }

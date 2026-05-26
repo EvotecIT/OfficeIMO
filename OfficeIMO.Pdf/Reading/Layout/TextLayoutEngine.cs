@@ -34,6 +34,8 @@ internal static class TextLayoutEngine {
         public double GapSpaceThresholdEm { get; set; } = 0.35;
         /// <summary>Threshold as a fraction of previous span's average glyph advance to insert a space. Default: 0.60.</summary>
         public double GapGlyphFactor { get; set; } = 0.60;
+        /// <summary>When true, same-baseline spans separated by a wide gutter are emitted as separate lines.</summary>
+        internal bool SplitWideSameBaselineRuns { get; set; }
     }
 
     public sealed class TextLine {
@@ -102,13 +104,13 @@ internal static class TextLayoutEngine {
                 current.Add(s);
                 currentFont = (currentFont * (current.Count - 1) + s.FontSize) / current.Count;
             } else {
-                lines.Add(BuildLine(current, options));
+                AddBuiltLines(lines, current, options);
                 current.Clear();
                 current.Add(s);
                 currentY = s.Y; currentFont = s.FontSize;
             }
         }
-        if (current.Count > 0) lines.Add(BuildLine(current, options));
+        if (current.Count > 0) AddBuiltLines(lines, current, options);
         // Drop obvious duplicate lines drawn twice at the same Y (e.g., shadow/overprint)
         lines = DeduplicateLines(lines);
         return lines;
@@ -196,6 +198,43 @@ internal static class TextLayoutEngine {
         // Collapse word-hyphen-newline-lowercase into wordlowercase
         // Also handle soft hyphen (U+00AD) cases just in case
         return System.Text.RegularExpressions.Regex.Replace(text, "(?<=[A-Za-z])(?:-|\u00AD)\n(?=[a-z])", "");
+    }
+
+    private static void AddBuiltLines(List<TextLine> lines, List<PdfTextSpan> spans, Options options) {
+        if (!options.SplitWideSameBaselineRuns || spans.Count <= 1) {
+            lines.Add(BuildLine(spans, options));
+            return;
+        }
+
+        foreach (var run in SplitWideSameBaselineRuns(spans, options)) {
+            lines.Add(BuildLine(run, options));
+        }
+    }
+
+    private static List<List<PdfTextSpan>> SplitWideSameBaselineRuns(List<PdfTextSpan> spans, Options options) {
+        var ordered = spans.OrderBy(s => s.X).ToList();
+        var runs = new List<List<PdfTextSpan>>();
+        var current = new List<PdfTextSpan> { ordered[0] };
+        double minimumRunGap = Math.Max(12, options.MinGutterWidth);
+
+        for (int i = 1; i < ordered.Count; i++) {
+            var previous = ordered[i - 1];
+            var span = ordered[i];
+            double previousEnd = previous.X + Math.Max(0, previous.Advance);
+            double gap = span.X - previousEnd;
+            if (gap >= minimumRunGap) {
+                runs.Add(current);
+                current = new List<PdfTextSpan>();
+            }
+
+            current.Add(span);
+        }
+
+        if (current.Count > 0) {
+            runs.Add(current);
+        }
+
+        return runs;
     }
 
     private static TextLine BuildLine(List<PdfTextSpan> spans, Options? options) {
@@ -379,7 +418,11 @@ public static class PdfReadPageExtensions {
     /// <returns>Plain text for this page in inferred reading order.</returns>
     public static string ExtractTextWithColumns(this PdfReadPage page, PdfTextLayoutOptions? options = null) {
         var spans = page.GetTextSpans();
-        var engineOpts = options?.ToEngineOptions();
+        var engineOpts = options?.ToEngineOptions() ?? new TextLayoutEngine.Options();
+        if (!engineOpts.ForceSingleColumn) {
+            engineOpts.SplitWideSameBaselineRuns = true;
+        }
+
         var lines = TextLayoutEngine.BuildLines(spans, engineOpts);
         var (w, _) = page.GetPageSize();
         // Optional header/footer filtering

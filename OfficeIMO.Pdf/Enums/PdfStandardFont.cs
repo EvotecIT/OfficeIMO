@@ -31,7 +31,10 @@ public enum PdfStandardFont {
 }
 
 internal static class PdfFontNames {
-    internal static string ToBaseFontName(this PdfStandardFont f) => f switch {
+    internal static string ToBaseFontName(this PdfStandardFont font) {
+        Guard.StandardFont(font, nameof(font), "PDF font must be one of the supported standard PDF fonts.");
+
+        return font switch {
         PdfStandardFont.Helvetica => "Helvetica",
         PdfStandardFont.HelveticaOblique => "Helvetica-Oblique",
         PdfStandardFont.HelveticaBold => "Helvetica-Bold",
@@ -44,6 +47,7 @@ internal static class PdfFontNames {
         PdfStandardFont.CourierOblique => "Courier-Oblique",
         PdfStandardFont.CourierBold => "Courier-Bold",
         PdfStandardFont.CourierBoldOblique => "Courier-BoldOblique",
-        _ => "Helvetica"
-    };
+            _ => throw new System.ArgumentOutOfRangeException(nameof(font), "PDF font must be one of the supported standard PDF fonts.")
+        };
+    }
 }

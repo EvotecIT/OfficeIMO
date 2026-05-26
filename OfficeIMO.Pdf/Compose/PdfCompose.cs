@@ -8,14 +8,13 @@ public class PdfCompose {
     internal PdfCompose(PdfDoc doc) { _doc = doc; }
     /// <summary>Configures a page (size, margins, content, footer).</summary>
     public PdfCompose Page(System.Action<PdfPageCompose> configure) {
-        Guard.NotNull(configure, nameof(configure));
-        var snapshot = _doc.Options.Clone();
-        var block = new PageBlock(snapshot);
-        using (_doc.PushBlockScope(block.Blocks)) {
-            var page = new PdfPageCompose(_doc, snapshot);
-            configure(page);
-        }
-        _doc.AddPageBlock(block);
+        _doc.AddComposedPage(configure);
+        return this;
+    }
+
+    /// <summary>Configures a section-scoped flow with its own page setup and content.</summary>
+    public PdfCompose Section(System.Action<PdfPageCompose> configure) {
+        _doc.AddComposedPage(configure);
         return this;
     }
 }

@@ -8,6 +8,12 @@ internal static class PdfEncoding {
         return new string(chars);
     }
 
+    public static string Latin1GetString(byte[] bytes, int index, int count) {
+        var chars = new char[count];
+        for (int i = 0; i < count; i++) chars[i] = (char)bytes[index + i];
+        return new string(chars);
+    }
+
     public static byte[] Latin1GetBytes(string s) {
         var bytes = new byte[s.Length];
         for (int i = 0; i < s.Length; i++) bytes[i] = (byte)(s[i] & 0xFF);

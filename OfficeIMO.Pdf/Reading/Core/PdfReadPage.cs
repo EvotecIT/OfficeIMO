@@ -37,6 +37,22 @@ public sealed class PdfReadPage {
         return (612, 792);
     }
 
+    /// <summary>Gets inherited page rotation in degrees normalized to 0, 90, 180, or 270.</summary>
+    public int GetRotationDegrees() {
+        var rotate = GetInheritedValue("Rotate");
+        if (rotate is PdfNumber number) {
+            int degrees = (int)Math.Round(number.Value);
+            degrees %= 360;
+            if (degrees < 0) {
+                degrees += 360;
+            }
+
+            return degrees;
+        }
+
+        return 0;
+    }
+
     /// <summary>Gets text spans (text with position and font info) from this page.</summary>
     public IReadOnlyList<PdfTextSpan> GetTextSpans() {
         var spans = new List<PdfTextSpan>();
@@ -56,6 +72,59 @@ public sealed class PdfReadPage {
         }
 
         return spans;
+    }
+
+    /// <summary>Reads simple URI and named-destination link annotations from this page.</summary>
+    public IReadOnlyList<PdfLinkAnnotation> GetLinkAnnotations() {
+        if (!_pageDict.Items.TryGetValue("Annots", out var annotsObject)) {
+            return Array.Empty<PdfLinkAnnotation>();
+        }
+
+        var annotations = ResolveArray(annotsObject);
+        if (annotations is null) {
+            return Array.Empty<PdfLinkAnnotation>();
+        }
+
+        var result = new List<PdfLinkAnnotation>();
+        foreach (var item in annotations.Items) {
+            var annotation = ResolveDictionary(item);
+            if (annotation is null ||
+                annotation.Get<PdfName>("Subtype")?.Name != "Link" ||
+                !TryReadRectangle(annotation.Items.TryGetValue("Rect", out var rectObject) ? rectObject : null, out var rect)) {
+                continue;
+            }
+
+            var action = ResolveDictionary(annotation.Items.TryGetValue("A", out var actionObject) ? actionObject : null);
+            TryGetString(annotation.Items.TryGetValue("Contents", out var contentsObject) ? contentsObject : null, out string? contents);
+
+            if (action != null &&
+                action.Get<PdfName>("S")?.Name == "URI" &&
+                TryGetString(action.Items.TryGetValue("URI", out var uriObject) ? uriObject : null, out string? uri) &&
+                Uri.TryCreate(uri, UriKind.Absolute, out _)) {
+                result.Add(new PdfLinkAnnotation(uri!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2));
+                continue;
+            }
+
+            if (action != null &&
+                action.Get<PdfName>("S")?.Name == "GoTo" &&
+                TryGetDestinationName(action.Items.TryGetValue("D", out var actionDestination) ? actionDestination : null, out string? actionDestinationName)) {
+                result.Add(new PdfLinkAnnotation(null, actionDestinationName, contents, rect.X1, rect.Y1, rect.X2, rect.Y2));
+                continue;
+            }
+
+            if (TryGetDestinationName(annotation.Items.TryGetValue("Dest", out var directDestination) ? directDestination : null, out string? directDestinationName)) {
+                result.Add(new PdfLinkAnnotation(null, directDestinationName, contents, rect.X1, rect.Y1, rect.X2, rect.Y2));
+            }
+        }
+
+        return result.AsReadOnly();
+    }
+
+    /// <summary>Extracts image XObjects referenced by this page.</summary>
+    public IReadOnlyList<PdfExtractedImage> GetImages() => GetImages(0);
+
+    internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber) {
+        return ResourceResolver.GetImageXObjectsForPage(_pageDict, _objects, pageNumber);
     }
 
     private void CollectTextAndForms(
@@ -215,6 +284,15 @@ public sealed class PdfReadPage {
         return null;
     }
 
+    private PdfObject? ResolveObject(PdfObject? obj) {
+        if (obj is PdfReference reference &&
+            _objects.TryGetValue(reference.ObjectNumber, out var indirect)) {
+            return indirect.Value;
+        }
+
+        return obj;
+    }
+
     private PdfArray? ResolveArray(PdfObject? obj) {
         if (obj is PdfArray array) {
             return array;
@@ -227,6 +305,61 @@ public sealed class PdfReadPage {
         }
 
         return null;
+    }
+
+    private bool TryGetString(PdfObject? obj, out string? value) {
+        if (ResolveObject(obj) is PdfStringObj text) {
+            value = text.Value;
+            return true;
+        }
+
+        value = null;
+        return false;
+    }
+
+    private bool TryGetDestinationName(PdfObject? obj, out string? value) {
+        switch (ResolveObject(obj)) {
+            case PdfStringObj text when !string.IsNullOrEmpty(text.Value):
+                value = text.Value;
+                return true;
+            case PdfName name when !string.IsNullOrEmpty(name.Name):
+                value = name.Name;
+                return true;
+            default:
+                value = null;
+                return false;
+        }
+    }
+
+    private bool TryReadRectangle(PdfObject? obj, out (double X1, double Y1, double X2, double Y2) rect) {
+        rect = default;
+        var array = ResolveArray(obj);
+        if (array is null || array.Items.Count < 4) {
+            return false;
+        }
+
+        if (ResolveObject(array.Items[0]) is not PdfNumber x1 ||
+            ResolveObject(array.Items[1]) is not PdfNumber y1 ||
+            ResolveObject(array.Items[2]) is not PdfNumber x2 ||
+            ResolveObject(array.Items[3]) is not PdfNumber y2) {
+            return false;
+        }
+
+        double left = Math.Min(x1.Value, x2.Value);
+        double right = Math.Max(x1.Value, x2.Value);
+        double bottom = Math.Min(y1.Value, y2.Value);
+        double top = Math.Max(y1.Value, y2.Value);
+        if (double.IsNaN(left) || double.IsInfinity(left) ||
+            double.IsNaN(right) || double.IsInfinity(right) ||
+            double.IsNaN(bottom) || double.IsInfinity(bottom) ||
+            double.IsNaN(top) || double.IsInfinity(top) ||
+            right <= left ||
+            top <= bottom) {
+            return false;
+        }
+
+        rect = (left, bottom, right, top);
+        return true;
     }
 
     private bool TryParseBox(PdfObject? box, out (double Width, double Height) size) {

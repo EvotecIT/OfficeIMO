@@ -84,6 +84,7 @@ Most packages are MIT licensed. `OfficeIMO.Visio` is a special case: the project
 
 - [OfficeIMO.Examples](OfficeIMO.Examples/README.md)
 - [OfficeIMO.Excel.Benchmarks](OfficeIMO.Excel.Benchmarks/README.md)
+- [Docs/officeimo.pdf.roadmap.md](Docs/officeimo.pdf.roadmap.md)
 - [Docs/officeimo.excel.release-checklist.md](Docs/officeimo.excel.release-checklist.md)
 - [Docs/officeimo.markdown.release-checklist.md](Docs/officeimo.markdown.release-checklist.md)
 - [CHANGELOG.MD](CHANGELOG.MD)
@@ -147,7 +148,7 @@ Most packages are MIT licensed. `OfficeIMO.Visio` is a special case: the project
 
 - `OfficeIMO.CSV`: typed CSV read/write and schema workflows
 - `OfficeIMO.Drawing`: first-party color and image metadata primitives
-- `OfficeIMO.Pdf`: dependency-free PDF builder using PDF standard fonts
+- `OfficeIMO.Pdf`: dependency-free PDF builder, reader, page inspector, page extractor, page editor, metadata editor, merger, and future first-party PDF engine
 - `OfficeIMO.PowerPoint`: programmatic PowerPoint slide generation
 - `OfficeIMO.Visio`: basic Visio diagram generation and validation
 - `OfficeIMO.Zip`: safe ZIP traversal primitives

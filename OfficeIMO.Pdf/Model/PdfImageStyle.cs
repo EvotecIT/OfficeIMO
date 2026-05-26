@@ -1,0 +1,77 @@
+using OfficeIMO.Drawing;
+
+namespace OfficeIMO.Pdf;
+
+/// <summary>
+/// Reusable image placement and rhythm style.
+/// </summary>
+public sealed class PdfImageStyle {
+    private PdfAlign _align = PdfAlign.Left;
+    private OfficeImageFit _fit = OfficeImageFit.Stretch;
+    private OfficeClipPath? _clipPath;
+    private double _spacingBefore;
+    private double _spacingAfter;
+
+    /// <summary>Image alignment within the current content frame.</summary>
+    public PdfAlign Align {
+        get => _align;
+        set {
+            Guard.LeftCenterRightAlign(value, nameof(Align), "Image");
+            _align = value;
+        }
+    }
+
+    /// <summary>How the image is fitted inside its target box.</summary>
+    public OfficeImageFit Fit {
+        get => _fit;
+        set {
+            PdfDoc.ValidateImageFit(value, nameof(Fit));
+            _fit = value;
+        }
+    }
+
+    /// <summary>Optional clipping path applied inside the image target box.</summary>
+    public OfficeClipPath? ClipPath {
+        get => _clipPath?.Clone();
+        set => _clipPath = value?.Clone();
+    }
+
+    /// <summary>Vertical space before the image in the surrounding document flow, in points.</summary>
+    public double SpacingBefore {
+        get => _spacingBefore;
+        set {
+            ValidateNonNegativeFiniteValue(value, nameof(SpacingBefore), "Image spacing before must be a non-negative finite value.");
+            _spacingBefore = value;
+        }
+    }
+
+    /// <summary>Vertical space after the image in the surrounding document flow, in points.</summary>
+    public double SpacingAfter {
+        get => _spacingAfter;
+        set {
+            ValidateNonNegativeFiniteValue(value, nameof(SpacingAfter), "Image spacing after must be a non-negative finite value.");
+            _spacingAfter = value;
+        }
+    }
+
+    /// <summary>Moves the image to the next page with the first visible part of the following block when they fit together.</summary>
+    public bool KeepWithNext { get; set; }
+
+    /// <summary>Creates a copy of this image style.</summary>
+    public PdfImageStyle Clone() {
+        return new PdfImageStyle {
+            Align = Align,
+            Fit = Fit,
+            ClipPath = _clipPath,
+            SpacingBefore = SpacingBefore,
+            SpacingAfter = SpacingAfter,
+            KeepWithNext = KeepWithNext
+        };
+    }
+
+    private static void ValidateNonNegativeFiniteValue(double value, string paramName, string message) {
+        if (value < 0 || double.IsNaN(value) || double.IsInfinity(value)) {
+            throw new System.ArgumentException(message, paramName);
+        }
+    }
+}
