@@ -1,6 +1,8 @@
 namespace OfficeIMO.Pdf;
 
 internal static class PdfWinAnsiEncoding {
+    private const string UnsupportedTextMessageSuffix = "cannot be encoded with PDF WinAnsiEncoding. OfficeIMO.Pdf currently writes standard PDF fonts for generated text; embedded Unicode fonts are required for this text.";
+
     // Windows-1252 mapping (aka WinAnsiEncoding in PDF). Index is byte value.
     private static readonly char[] Map = new char[256] {
         '\u0000','\u0001','\u0002','\u0003','\u0004','\u0005','\u0006','\u0007','\b','\t','\n','\u000B','\f','\r','\u000E','\u000F',
@@ -33,10 +35,62 @@ internal static class PdfWinAnsiEncoding {
         var bytes = new byte[s.Length];
         for (int i = 0; i < s.Length; i++) {
             var ch = s[i];
-            if (!ReverseMap.TryGetValue(ch, out var b)) b = (byte)'?';
+            if (!TryGetByte(ch, out var b)) {
+                throw CreateUnsupportedCharacterException(s, i);
+            }
+
             bytes[i] = b;
         }
         return bytes;
+    }
+
+    public static bool CanEncode(string s, out int unsupportedIndex) {
+        for (int i = 0; i < s.Length; i++) {
+            if (!TryGetByte(s[i], out _)) {
+                unsupportedIndex = i;
+                return false;
+            }
+        }
+
+        unsupportedIndex = -1;
+        return true;
+    }
+
+    private static bool TryGetByte(char ch, out byte value) {
+        if (IsUnsupportedControlCharacter(ch)) {
+            value = 0;
+            return false;
+        }
+
+        if (!ReverseMap.TryGetValue(ch, out value)) {
+            return false;
+        }
+
+        return value != 0x81 && value != 0x8D && value != 0x8F && value != 0x90 && value != 0x9D;
+    }
+
+    private static bool IsUnsupportedControlCharacter(char ch) =>
+        ch < ' ' || ch == '\u007F';
+
+    private static ArgumentException CreateUnsupportedCharacterException(string text, int index) {
+        string codePoint;
+        string display;
+        char ch = text[index];
+        if (char.IsHighSurrogate(ch) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1])) {
+            int value = char.ConvertToUtf32(ch, text[index + 1]);
+            codePoint = "U+" + value.ToString("X", System.Globalization.CultureInfo.InvariantCulture);
+            display = new string(new[] { ch, text[index + 1] });
+        } else {
+            codePoint = "U+" + ((int)ch).ToString("X4", System.Globalization.CultureInfo.InvariantCulture);
+            display = char.IsControl(ch) ? string.Empty : ch.ToString();
+        }
+
+        if (IsUnsupportedControlCharacter(ch)) {
+            return new ArgumentException("Text contains control character " + codePoint + " at index " + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + ". PDF text output cannot render control characters directly; use paragraphs, line breaks, tables, or spacing primitives for layout.", nameof(text));
+        }
+
+        string rendered = display.Length == 0 ? string.Empty : " '" + display + "'";
+        return new ArgumentException("Text contains character " + codePoint + rendered + " at index " + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + " that " + UnsupportedTextMessageSuffix, nameof(text));
     }
 
     private static System.Collections.Generic.Dictionary<char, byte> BuildReverse() {

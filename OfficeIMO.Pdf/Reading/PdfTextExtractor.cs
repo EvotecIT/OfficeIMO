@@ -10,6 +10,7 @@ namespace OfficeIMO.Pdf;
 public static class PdfTextExtractor {
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(2);
     private static readonly char[] SpaceSplitChars = new[] { ' ' };
+    private static readonly char[] CsvQuoteChars = new[] { ',', '"', '\r', '\n' };
 #if NET8_0_OR_GREATER
     private static readonly Regex ObjRegex = new Regex(@"(\d+)\s+0\s+obj", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
     private static readonly Regex InfoRefRegex = new Regex(@"/Info\s+(\d+)\s+0\s+R", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
@@ -38,12 +39,551 @@ public static class PdfTextExtractor {
 
     /// <summary>Extracts plain text from all pages, concatenated with blank lines between pages.</summary>
     public static string ExtractAllText(string path) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
         var bytes = File.ReadAllBytes(path);
         return ExtractAllText(bytes);
     }
 
+    /// <summary>Extracts plain text from all pages using layout options such as column detection and header/footer trimming.</summary>
+    public static string ExtractAllText(string path, PdfTextLayoutOptions? options) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        if (options is null) {
+            return ExtractAllText(path);
+        }
+
+        return PdfReadDocument.Load(path).ExtractTextWithColumns(options);
+    }
+
+    /// <summary>Extracts plain text from all pages and writes UTF-8 text to <paramref name="outputStream"/>.</summary>
+    public static void ExtractAllText(string inputPath, Stream outputStream) {
+        ExtractAllText(inputPath, outputStream, null);
+    }
+
+    /// <summary>Extracts plain text from all pages using layout options and writes UTF-8 text to <paramref name="outputStream"/>.</summary>
+    public static void ExtractAllText(string inputPath, Stream outputStream, PdfTextLayoutOptions? options) {
+        Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
+        ValidateWritableOutputStream(outputStream);
+
+        WriteTextOutput(outputStream, ExtractAllText(inputPath, options));
+    }
+
+    /// <summary>Extracts plain text from all pages and writes UTF-8 text to <paramref name="outputPath"/>.</summary>
+    public static void ExtractAllText(string inputPath, string outputPath) {
+        ExtractAllText(inputPath, outputPath, null);
+    }
+
+    /// <summary>Extracts plain text from all pages using layout options and writes UTF-8 text to <paramref name="outputPath"/>.</summary>
+    public static void ExtractAllText(string inputPath, string outputPath, PdfTextLayoutOptions? options) {
+        Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
+        string fullOutputPath = ValidateOutputPath(outputPath);
+
+        WriteTextOutput(fullOutputPath, ExtractAllText(inputPath, options));
+    }
+
+    /// <summary>Extracts plain text from each page in document order.</summary>
+    public static IReadOnlyList<string> ExtractTextByPage(string path) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        return ExtractTextByPage(PdfReadDocument.Load(path));
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges in caller order.</summary>
+    public static IReadOnlyList<string> ExtractTextByPageRanges(string path, params PdfPageRange[] pageRanges) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        return ExtractTextByPageRanges(PdfReadDocument.Load(path), pageRanges);
+    }
+
+    /// <summary>Extracts structured content for each page, including detected lines, lists, leader rows, and simple tables.</summary>
+    public static IReadOnlyList<StructuredPage> ExtractStructuredByPage(string path, PdfTextLayoutOptions? options = null) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        return PdfReadDocument.Load(path).ExtractStructuredPages(options);
+    }
+
+    /// <summary>Extracts structured content from the supplied inclusive one-based page ranges in caller order.</summary>
+    public static IReadOnlyList<StructuredPage> ExtractStructuredByPageRanges(string path, params PdfPageRange[] pageRanges) {
+        return ExtractStructuredByPageRanges(path, (PdfTextLayoutOptions?)null, pageRanges);
+    }
+
+    /// <summary>Extracts structured content from the supplied inclusive one-based page ranges in caller order.</summary>
+    public static IReadOnlyList<StructuredPage> ExtractStructuredByPageRanges(string path, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        return ExtractStructuredByPageRanges(PdfReadDocument.Load(path), options, pageRanges);
+    }
+
+    /// <summary>Extracts detected tables grouped by page while preserving table geometry.</summary>
+    public static IReadOnlyList<StructuredTablePage> ExtractTablesByPage(string path, PdfTextLayoutOptions? options = null) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        return PdfReadDocument.Load(path).ExtractTablesByPage(options);
+    }
+
+    /// <summary>Extracts detected tables from the supplied inclusive one-based page ranges in caller order.</summary>
+    public static IReadOnlyList<StructuredTablePage> ExtractTablesByPageRanges(string path, params PdfPageRange[] pageRanges) {
+        return ExtractTablesByPageRanges(path, (PdfTextLayoutOptions?)null, pageRanges);
+    }
+
+    /// <summary>Extracts detected tables from the supplied inclusive one-based page ranges in caller order.</summary>
+    public static IReadOnlyList<StructuredTablePage> ExtractTablesByPageRanges(string path, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        return ExtractTablesByPageRanges(PdfReadDocument.Load(path), options, pageRanges);
+    }
+
+    /// <summary>Extracts detected tables and writes one CSV file per detected table.</summary>
+    public static IReadOnlyList<string> ExtractTablesByPage(string inputPath, string outputDirectory, PdfTextLayoutOptions? options = null) {
+        Guard.NotNull(inputPath, nameof(inputPath));
+        Guard.NotNull(outputDirectory, nameof(outputDirectory));
+
+        string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
+        var tablePages = ExtractTablesByPage(inputPath, options);
+        return WriteTableCsvFiles(inputPath, fullOutputDirectory, tablePages);
+    }
+
+    /// <summary>Extracts detected tables from the supplied inclusive one-based page ranges and writes one CSV file per detected table.</summary>
+    public static IReadOnlyList<string> ExtractTablesByPageRanges(string inputPath, string outputDirectory, params PdfPageRange[] pageRanges) {
+        return ExtractTablesByPageRanges(inputPath, outputDirectory, (PdfTextLayoutOptions?)null, pageRanges);
+    }
+
+    /// <summary>Extracts detected tables from the supplied inclusive one-based page ranges and writes one CSV file per detected table.</summary>
+    public static IReadOnlyList<string> ExtractTablesByPageRanges(string inputPath, string outputDirectory, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(inputPath, nameof(inputPath));
+        Guard.NotNull(outputDirectory, nameof(outputDirectory));
+
+        string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
+        var tablePages = ExtractTablesByPageRanges(inputPath, options, pageRanges);
+        return WriteTableCsvFiles(inputPath, fullOutputDirectory, tablePages);
+    }
+
+    /// <summary>Extracts detected tables from the current stream position and writes one CSV file per detected table.</summary>
+    public static IReadOnlyList<string> ExtractTablesByPage(Stream stream, string outputDirectory, string baseName = "table", PdfTextLayoutOptions? options = null) {
+        Guard.NotNull(outputDirectory, nameof(outputDirectory));
+
+        string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
+        var tablePages = ExtractTablesByPage(stream, options);
+        return WriteTableCsvFiles(baseName, fullOutputDirectory, tablePages);
+    }
+
+    /// <summary>Extracts detected tables from the supplied inclusive one-based page ranges from the current stream position and writes one CSV file per detected table.</summary>
+    public static IReadOnlyList<string> ExtractTablesByPageRanges(Stream stream, string outputDirectory, string baseName = "table", params PdfPageRange[] pageRanges) {
+        return ExtractTablesByPageRanges(stream, outputDirectory, baseName, (PdfTextLayoutOptions?)null, pageRanges);
+    }
+
+    /// <summary>Extracts detected tables from the supplied inclusive one-based page ranges from the current stream position and writes one CSV file per detected table.</summary>
+    public static IReadOnlyList<string> ExtractTablesByPageRanges(Stream stream, string outputDirectory, string baseName, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(outputDirectory, nameof(outputDirectory));
+
+        string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
+        var tablePages = ExtractTablesByPageRanges(stream, options, pageRanges);
+        return WriteTableCsvFiles(baseName, fullOutputDirectory, tablePages);
+    }
+
+    /// <summary>Extracts detected tables from bytes and writes one CSV file per detected table.</summary>
+    public static IReadOnlyList<string> ExtractTablesByPage(byte[] pdf, string outputDirectory, string baseName = "table", PdfTextLayoutOptions? options = null) {
+        Guard.NotNull(pdf, nameof(pdf));
+        Guard.NotNull(outputDirectory, nameof(outputDirectory));
+
+        string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
+        var tablePages = ExtractTablesByPage(pdf, options);
+        return WriteTableCsvFiles(baseName, fullOutputDirectory, tablePages);
+    }
+
+    /// <summary>Extracts detected tables from the supplied inclusive one-based page ranges from bytes and writes one CSV file per detected table.</summary>
+    public static IReadOnlyList<string> ExtractTablesByPageRanges(byte[] pdf, string outputDirectory, string baseName = "table", params PdfPageRange[] pageRanges) {
+        return ExtractTablesByPageRanges(pdf, outputDirectory, baseName, (PdfTextLayoutOptions?)null, pageRanges);
+    }
+
+    /// <summary>Extracts detected tables from the supplied inclusive one-based page ranges from bytes and writes one CSV file per detected table.</summary>
+    public static IReadOnlyList<string> ExtractTablesByPageRanges(byte[] pdf, string outputDirectory, string baseName, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(pdf, nameof(pdf));
+        Guard.NotNull(outputDirectory, nameof(outputDirectory));
+
+        string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
+        var tablePages = ExtractTablesByPageRanges(pdf, options, pageRanges);
+        return WriteTableCsvFiles(baseName, fullOutputDirectory, tablePages);
+    }
+
+    /// <summary>Extracts plain text from each page using layout options such as column detection and header/footer trimming.</summary>
+    public static IReadOnlyList<string> ExtractTextByPage(string path, PdfTextLayoutOptions? options) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        if (options is null) {
+            return ExtractTextByPage(path);
+        }
+
+        return ExtractTextByPage(PdfReadDocument.Load(path), options);
+    }
+
+    /// <summary>Extracts plain text from each page and writes one UTF-8 text file per page.</summary>
+    public static IReadOnlyList<string> ExtractTextByPage(string inputPath, string outputDirectory) {
+        Guard.NotNull(inputPath, nameof(inputPath));
+        Guard.NotNull(outputDirectory, nameof(outputDirectory));
+
+        string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
+        var pages = ExtractTextByPage(inputPath);
+        return WriteTextPages(inputPath, fullOutputDirectory, pages);
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges and writes one UTF-8 text file per selected source page.</summary>
+    public static IReadOnlyList<string> ExtractTextByPageRanges(string inputPath, string outputDirectory, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(inputPath, nameof(inputPath));
+        Guard.NotNull(outputDirectory, nameof(outputDirectory));
+
+        string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
+        var pages = ExtractSelectedTextPages(PdfReadDocument.Load(inputPath), pageRanges);
+        return WriteTextPages(inputPath, fullOutputDirectory, pages);
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges with layout options and writes one UTF-8 text file per selected source page.</summary>
+    public static IReadOnlyList<string> ExtractTextByPageRanges(string inputPath, string outputDirectory, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(inputPath, nameof(inputPath));
+        Guard.NotNull(outputDirectory, nameof(outputDirectory));
+
+        string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
+        var pages = ExtractSelectedTextPages(PdfReadDocument.Load(inputPath), options, pageRanges);
+        return WriteTextPages(inputPath, fullOutputDirectory, pages);
+    }
+
+    /// <summary>Extracts plain text from each page with layout options and writes one UTF-8 text file per page.</summary>
+    public static IReadOnlyList<string> ExtractTextByPage(string inputPath, string outputDirectory, PdfTextLayoutOptions? options) {
+        Guard.NotNull(inputPath, nameof(inputPath));
+        Guard.NotNull(outputDirectory, nameof(outputDirectory));
+
+        string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
+        var pages = ExtractTextByPage(inputPath, options);
+        return WriteTextPages(inputPath, fullOutputDirectory, pages);
+    }
+
+    private static List<string> WriteTextPages(string baseName, string fullOutputDirectory, IReadOnlyList<string> pages) {
+        string safeBaseName = GetSafeBaseName(baseName, "page");
+
+        var paths = new List<string>(pages.Count);
+        for (int i = 0; i < pages.Count; i++) {
+            string outputPath = Path.Combine(fullOutputDirectory, safeBaseName + "-page-" + (i + 1).ToString("0000", System.Globalization.CultureInfo.InvariantCulture) + ".txt");
+            File.WriteAllText(outputPath, pages[i], Encoding.UTF8);
+            paths.Add(outputPath);
+        }
+
+        return paths;
+    }
+
+    private static List<string> WriteTextPages(string baseName, string fullOutputDirectory, IReadOnlyList<SelectedTextPage> pages) {
+        string safeBaseName = GetSafeBaseName(baseName, "page");
+
+        var paths = new List<string>(pages.Count);
+        var pageOccurrences = new Dictionary<int, int>();
+        for (int i = 0; i < pages.Count; i++) {
+            int occurrence = IncrementOccurrence(pageOccurrences, pages[i].PageNumber);
+            string outputPath = Path.Combine(
+                fullOutputDirectory,
+                safeBaseName +
+                "-page-" + pages[i].PageNumber.ToString("0000", System.Globalization.CultureInfo.InvariantCulture) +
+                BuildOccurrenceSuffix(occurrence) +
+                ".txt");
+            File.WriteAllText(outputPath, pages[i].Text, Encoding.UTF8);
+            paths.Add(outputPath);
+        }
+
+        return paths;
+    }
+
+    private static List<string> WriteTableCsvFiles(string baseName, string fullOutputDirectory, IReadOnlyList<StructuredTablePage> tablePages) {
+        string safeBaseName = GetSafeBaseName(baseName, "table");
+
+        var paths = new List<string>();
+        var pageOccurrences = new Dictionary<int, int>();
+        foreach (var page in tablePages) {
+            int occurrence = IncrementOccurrence(pageOccurrences, page.PageNumber);
+            for (int tableIndex = 0; tableIndex < page.Tables.Count; tableIndex++) {
+                string outputPath = Path.Combine(
+                    fullOutputDirectory,
+                    safeBaseName +
+                    "-page-" + page.PageNumber.ToString("0000", System.Globalization.CultureInfo.InvariantCulture) +
+                    BuildOccurrenceSuffix(occurrence) +
+                    "-table-" + (tableIndex + 1).ToString("0000", System.Globalization.CultureInfo.InvariantCulture) +
+                    ".csv");
+
+                File.WriteAllText(outputPath, BuildCsv(page.Tables[tableIndex]), Encoding.UTF8);
+                paths.Add(outputPath);
+            }
+        }
+
+        return paths;
+    }
+
+    private static int IncrementOccurrence(Dictionary<int, int> occurrences, int key) {
+        occurrences.TryGetValue(key, out int occurrence);
+        occurrence++;
+        occurrences[key] = occurrence;
+        return occurrence;
+    }
+
+    private static string BuildOccurrenceSuffix(int occurrence) {
+        return occurrence <= 1
+            ? string.Empty
+            : "-occurrence-" + occurrence.ToString("0000", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private static string GetSafeBaseName(string? baseName, string fallback) {
+        string safeBaseName = Path.GetFileNameWithoutExtension(baseName ?? string.Empty) ?? string.Empty;
+        return string.IsNullOrWhiteSpace(safeBaseName) ? fallback : safeBaseName;
+    }
+
+    private static string BuildCsv(StructuredTable table) {
+        var sb = new StringBuilder();
+        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+            var row = table.Rows[rowIndex];
+            for (int cellIndex = 0; cellIndex < row.Length; cellIndex++) {
+                if (cellIndex > 0) {
+                    sb.Append(',');
+                }
+
+                sb.Append(EscapeCsvCell(row[cellIndex]));
+            }
+
+            if (rowIndex + 1 < table.Rows.Count) {
+                sb.AppendLine();
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    private static string EscapeCsvCell(string? value) {
+        string cell = value ?? string.Empty;
+        if (cell.Length == 0) {
+            return string.Empty;
+        }
+
+        bool quote = cell.IndexOfAny(CsvQuoteChars) >= 0;
+        if (!quote) {
+            return cell;
+        }
+
+        return "\"" + cell.Replace("\"", "\"\"") + "\"";
+    }
+
+    private static string ValidateOutputDirectory(string outputDirectory) {
+        Guard.NotNull(outputDirectory, nameof(outputDirectory));
+        if (string.IsNullOrWhiteSpace(outputDirectory)) {
+            throw new ArgumentException("Output directory cannot be empty or whitespace.", nameof(outputDirectory));
+        }
+
+        string fullOutputDirectory;
+        try {
+            fullOutputDirectory = Path.GetFullPath(outputDirectory);
+        } catch (Exception ex) {
+            throw new ArgumentException("Output directory is invalid.", nameof(outputDirectory), ex);
+        }
+
+        if (File.Exists(fullOutputDirectory)) {
+            throw new ArgumentException("Output directory refers to a file; a directory path is required.", nameof(outputDirectory));
+        }
+
+        Directory.CreateDirectory(fullOutputDirectory);
+        return fullOutputDirectory;
+    }
+
+    private static void WriteTextOutput(Stream outputStream, string text) {
+        ValidateWritableOutputStream(outputStream);
+        byte[] bytes = new UTF8Encoding(false).GetBytes(text);
+        outputStream.Write(bytes, 0, bytes.Length);
+    }
+
+    private static void WriteTextOutput(string outputPath, string text) {
+        string fullPath = ValidateOutputPath(outputPath);
+        var directory = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrEmpty(directory)) {
+            Directory.CreateDirectory(directory);
+        }
+
+        File.WriteAllText(fullPath, text, new UTF8Encoding(false));
+    }
+
+    private static void ValidateWritableOutputStream(Stream outputStream) {
+        Guard.NotNull(outputStream, nameof(outputStream));
+        if (!outputStream.CanWrite) {
+            throw new ArgumentException("Stream must be writable.", nameof(outputStream));
+        }
+    }
+
+    private static string ValidateOutputPath(string outputPath) {
+        Guard.NotNull(outputPath, nameof(outputPath));
+        if (string.IsNullOrWhiteSpace(outputPath)) {
+            throw new ArgumentException("Output path cannot be empty or whitespace.", nameof(outputPath));
+        }
+
+        string fullPath;
+        try {
+            fullPath = Path.GetFullPath(outputPath);
+        } catch (Exception ex) {
+            throw new ArgumentException("Output path is invalid.", nameof(outputPath), ex);
+        }
+
+        if (Directory.Exists(fullPath) && (File.GetAttributes(fullPath) & FileAttributes.Directory) == FileAttributes.Directory) {
+            throw new ArgumentException("Output path refers to a directory; a file path is required.", nameof(outputPath));
+        }
+
+        var fileName = Path.GetFileName(fullPath);
+        if (string.IsNullOrEmpty(fileName)) {
+            throw new ArgumentException("Output path must include a file name.", nameof(outputPath));
+        }
+
+        if (fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) {
+            throw new ArgumentException("Output path contains invalid file name characters.", nameof(outputPath));
+        }
+
+        return fullPath;
+    }
+
+    /// <summary>Extracts plain text from all pages from the current position of a readable stream.</summary>
+    public static string ExtractAllText(Stream stream) {
+        return ExtractAllText(ReadAllBytes(stream));
+    }
+
+    /// <summary>Extracts plain text from all pages from the current stream position using layout options such as column detection and header/footer trimming.</summary>
+    public static string ExtractAllText(Stream stream, PdfTextLayoutOptions? options) {
+        if (options is null) {
+            return ExtractAllText(stream);
+        }
+
+        return PdfReadDocument.Load(stream).ExtractTextWithColumns(options);
+    }
+
+    /// <summary>Extracts plain text from all pages from the current position of a readable stream and writes UTF-8 text to <paramref name="outputStream"/>.</summary>
+    public static void ExtractAllText(Stream inputStream, Stream outputStream) {
+        ExtractAllText(inputStream, outputStream, null);
+    }
+
+    /// <summary>Extracts plain text from all pages from the current position of a readable stream using layout options and writes UTF-8 text to <paramref name="outputStream"/>.</summary>
+    public static void ExtractAllText(Stream inputStream, Stream outputStream, PdfTextLayoutOptions? options) {
+        ValidateWritableOutputStream(outputStream);
+        WriteTextOutput(outputStream, ExtractAllText(inputStream, options));
+    }
+
+    /// <summary>Extracts plain text from all pages from the current position of a readable stream and writes UTF-8 text to <paramref name="outputPath"/>.</summary>
+    public static void ExtractAllText(Stream inputStream, string outputPath) {
+        ExtractAllText(inputStream, outputPath, null);
+    }
+
+    /// <summary>Extracts plain text from all pages from the current position of a readable stream using layout options and writes UTF-8 text to <paramref name="outputPath"/>.</summary>
+    public static void ExtractAllText(Stream inputStream, string outputPath, PdfTextLayoutOptions? options) {
+        string fullOutputPath = ValidateOutputPath(outputPath);
+        WriteTextOutput(fullOutputPath, ExtractAllText(inputStream, options));
+    }
+
+    /// <summary>Extracts plain text from each page from the current position of a readable stream.</summary>
+    public static IReadOnlyList<string> ExtractTextByPage(Stream stream) {
+        return ExtractTextByPage(PdfReadDocument.Load(stream));
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges from the current position of a readable stream.</summary>
+    public static IReadOnlyList<string> ExtractTextByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
+        return ExtractTextByPageRanges(PdfReadDocument.Load(stream), pageRanges);
+    }
+
+    /// <summary>Extracts plain text from each page from the current stream position and writes one UTF-8 text file per page.</summary>
+    public static IReadOnlyList<string> ExtractTextByPage(Stream stream, string outputDirectory, string baseName = "page", PdfTextLayoutOptions? options = null) {
+        Guard.NotNull(outputDirectory, nameof(outputDirectory));
+
+        string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
+        var pages = ExtractTextByPage(stream, options);
+        return WriteTextPages(baseName, fullOutputDirectory, pages);
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges from the current stream position and writes one UTF-8 text file per selected source page.</summary>
+    public static IReadOnlyList<string> ExtractTextByPageRanges(Stream stream, string outputDirectory, string baseName = "page", params PdfPageRange[] pageRanges) {
+        Guard.NotNull(outputDirectory, nameof(outputDirectory));
+
+        string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
+        var pages = ExtractSelectedTextPages(PdfReadDocument.Load(stream), pageRanges);
+        return WriteTextPages(baseName, fullOutputDirectory, pages);
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges from the current stream position with layout options and writes one UTF-8 text file per selected source page.</summary>
+    public static IReadOnlyList<string> ExtractTextByPageRanges(Stream stream, string outputDirectory, string baseName, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(outputDirectory, nameof(outputDirectory));
+
+        string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
+        var pages = ExtractSelectedTextPages(PdfReadDocument.Load(stream), options, pageRanges);
+        return WriteTextPages(baseName, fullOutputDirectory, pages);
+    }
+
+    /// <summary>Extracts plain text from each page from bytes and writes one UTF-8 text file per page.</summary>
+    public static IReadOnlyList<string> ExtractTextByPage(byte[] pdf, string outputDirectory, string baseName = "page", PdfTextLayoutOptions? options = null) {
+        Guard.NotNull(pdf, nameof(pdf));
+        Guard.NotNull(outputDirectory, nameof(outputDirectory));
+
+        string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
+        var pages = ExtractTextByPage(pdf, options);
+        return WriteTextPages(baseName, fullOutputDirectory, pages);
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges from bytes and writes one UTF-8 text file per selected source page.</summary>
+    public static IReadOnlyList<string> ExtractTextByPageRanges(byte[] pdf, string outputDirectory, string baseName = "page", params PdfPageRange[] pageRanges) {
+        Guard.NotNull(pdf, nameof(pdf));
+        Guard.NotNull(outputDirectory, nameof(outputDirectory));
+
+        string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
+        var pages = ExtractSelectedTextPages(PdfReadDocument.Load(pdf), pageRanges);
+        return WriteTextPages(baseName, fullOutputDirectory, pages);
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges from bytes with layout options and writes one UTF-8 text file per selected source page.</summary>
+    public static IReadOnlyList<string> ExtractTextByPageRanges(byte[] pdf, string outputDirectory, string baseName, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(pdf, nameof(pdf));
+        Guard.NotNull(outputDirectory, nameof(outputDirectory));
+
+        string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
+        var pages = ExtractSelectedTextPages(PdfReadDocument.Load(pdf), options, pageRanges);
+        return WriteTextPages(baseName, fullOutputDirectory, pages);
+    }
+
+    /// <summary>Extracts structured content for each page from the current stream position.</summary>
+    public static IReadOnlyList<StructuredPage> ExtractStructuredByPage(Stream stream, PdfTextLayoutOptions? options = null) {
+        return PdfReadDocument.Load(stream).ExtractStructuredPages(options);
+    }
+
+    /// <summary>Extracts structured content from the supplied inclusive one-based page ranges from the current stream position.</summary>
+    public static IReadOnlyList<StructuredPage> ExtractStructuredByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
+        return ExtractStructuredByPageRanges(stream, (PdfTextLayoutOptions?)null, pageRanges);
+    }
+
+    /// <summary>Extracts structured content from the supplied inclusive one-based page ranges from the current stream position.</summary>
+    public static IReadOnlyList<StructuredPage> ExtractStructuredByPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        return ExtractStructuredByPageRanges(PdfReadDocument.Load(stream), options, pageRanges);
+    }
+
+    /// <summary>Extracts detected tables grouped by page from the current stream position.</summary>
+    public static IReadOnlyList<StructuredTablePage> ExtractTablesByPage(Stream stream, PdfTextLayoutOptions? options = null) {
+        return PdfReadDocument.Load(stream).ExtractTablesByPage(options);
+    }
+
+    /// <summary>Extracts detected tables from the supplied inclusive one-based page ranges from the current stream position.</summary>
+    public static IReadOnlyList<StructuredTablePage> ExtractTablesByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
+        return ExtractTablesByPageRanges(stream, (PdfTextLayoutOptions?)null, pageRanges);
+    }
+
+    /// <summary>Extracts detected tables from the supplied inclusive one-based page ranges from the current stream position.</summary>
+    public static IReadOnlyList<StructuredTablePage> ExtractTablesByPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        return ExtractTablesByPageRanges(PdfReadDocument.Load(stream), options, pageRanges);
+    }
+
+    /// <summary>Extracts plain text from each page from the current stream position using layout options such as column detection and header/footer trimming.</summary>
+    public static IReadOnlyList<string> ExtractTextByPage(Stream stream, PdfTextLayoutOptions? options) {
+        if (options is null) {
+            return ExtractTextByPage(stream);
+        }
+
+        return ExtractTextByPage(PdfReadDocument.Load(stream), options);
+    }
+
     /// <summary>Extracts plain text from all pages, concatenated with blank lines between pages.</summary>
     public static string ExtractAllText(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+
+        string? readModelText = null;
+        try {
+            readModelText = PdfReadDocument.Load(pdf).ExtractText();
+        } catch (Exception ex) when (ex is not NotSupportedException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            // Keep the legacy stream scan as a fallback for malformed-but-readable PDFs.
+        }
+
         var (parsedObjects, _) = PdfSyntax.ParseObjects(pdf);
         var map = BuildObjectMap(pdf, out _);
         var pages = CollectPages(parsedObjects);
@@ -63,7 +603,7 @@ public static class PdfTextExtractor {
             }
 
             if (sb.Length > 0) {
-                return sb.ToString();
+                return ChooseAllText(readModelText, sb.ToString());
             }
         }
 
@@ -85,7 +625,232 @@ public static class PdfTextExtractor {
             }
             sb.Append(pageText);
         }
-        return sb.ToString();
+        return ChooseAllText(readModelText, sb.ToString());
+    }
+
+    private static string ChooseAllText(string? readModelText, string legacyText) {
+        if (string.IsNullOrWhiteSpace(legacyText)) {
+            return readModelText ?? string.Empty;
+        }
+
+        if (string.IsNullOrWhiteSpace(readModelText)) {
+            return legacyText;
+        }
+
+        string readableText = readModelText!;
+        return CountTextSeparators(readableText) > CountTextSeparators(legacyText)
+            ? readableText
+            : legacyText;
+    }
+
+    private static int CountTextSeparators(string value) {
+        int count = 0;
+        for (int i = 0; i < value.Length; i++) {
+            if (char.IsWhiteSpace(value[i])) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>Extracts plain text from all pages using layout options such as column detection and header/footer trimming.</summary>
+    public static string ExtractAllText(byte[] pdf, PdfTextLayoutOptions? options) {
+        Guard.NotNull(pdf, nameof(pdf));
+        if (options is null) {
+            return ExtractAllText(pdf);
+        }
+
+        return PdfReadDocument.Load(pdf).ExtractTextWithColumns(options);
+    }
+
+    /// <summary>Extracts plain text from all pages and writes UTF-8 text to <paramref name="outputStream"/>.</summary>
+    public static void ExtractAllText(byte[] pdf, Stream outputStream) {
+        ExtractAllText(pdf, outputStream, null);
+    }
+
+    /// <summary>Extracts plain text from all pages using layout options and writes UTF-8 text to <paramref name="outputStream"/>.</summary>
+    public static void ExtractAllText(byte[] pdf, Stream outputStream, PdfTextLayoutOptions? options) {
+        Guard.NotNull(pdf, nameof(pdf));
+        ValidateWritableOutputStream(outputStream);
+
+        WriteTextOutput(outputStream, ExtractAllText(pdf, options));
+    }
+
+    /// <summary>Extracts plain text from all pages and writes UTF-8 text to <paramref name="outputPath"/>.</summary>
+    public static void ExtractAllText(byte[] pdf, string outputPath) {
+        ExtractAllText(pdf, outputPath, null);
+    }
+
+    /// <summary>Extracts plain text from all pages using layout options and writes UTF-8 text to <paramref name="outputPath"/>.</summary>
+    public static void ExtractAllText(byte[] pdf, string outputPath, PdfTextLayoutOptions? options) {
+        Guard.NotNull(pdf, nameof(pdf));
+        string fullOutputPath = ValidateOutputPath(outputPath);
+
+        WriteTextOutput(fullOutputPath, ExtractAllText(pdf, options));
+    }
+
+    /// <summary>Extracts plain text from each page in document order.</summary>
+    public static IReadOnlyList<string> ExtractTextByPage(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return ExtractTextByPage(PdfReadDocument.Load(pdf));
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges in caller order.</summary>
+    public static IReadOnlyList<string> ExtractTextByPageRanges(byte[] pdf, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return ExtractTextByPageRanges(PdfReadDocument.Load(pdf), pageRanges);
+    }
+
+    /// <summary>Extracts structured content for each page, including detected lines, lists, leader rows, and simple tables.</summary>
+    public static IReadOnlyList<StructuredPage> ExtractStructuredByPage(byte[] pdf, PdfTextLayoutOptions? options = null) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return PdfReadDocument.Load(pdf).ExtractStructuredPages(options);
+    }
+
+    /// <summary>Extracts structured content from the supplied inclusive one-based page ranges in caller order.</summary>
+    public static IReadOnlyList<StructuredPage> ExtractStructuredByPageRanges(byte[] pdf, params PdfPageRange[] pageRanges) {
+        return ExtractStructuredByPageRanges(pdf, (PdfTextLayoutOptions?)null, pageRanges);
+    }
+
+    /// <summary>Extracts structured content from the supplied inclusive one-based page ranges in caller order.</summary>
+    public static IReadOnlyList<StructuredPage> ExtractStructuredByPageRanges(byte[] pdf, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return ExtractStructuredByPageRanges(PdfReadDocument.Load(pdf), options, pageRanges);
+    }
+
+    /// <summary>Extracts detected tables grouped by page while preserving table geometry.</summary>
+    public static IReadOnlyList<StructuredTablePage> ExtractTablesByPage(byte[] pdf, PdfTextLayoutOptions? options = null) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return PdfReadDocument.Load(pdf).ExtractTablesByPage(options);
+    }
+
+    /// <summary>Extracts detected tables from the supplied inclusive one-based page ranges in caller order.</summary>
+    public static IReadOnlyList<StructuredTablePage> ExtractTablesByPageRanges(byte[] pdf, params PdfPageRange[] pageRanges) {
+        return ExtractTablesByPageRanges(pdf, (PdfTextLayoutOptions?)null, pageRanges);
+    }
+
+    /// <summary>Extracts detected tables from the supplied inclusive one-based page ranges in caller order.</summary>
+    public static IReadOnlyList<StructuredTablePage> ExtractTablesByPageRanges(byte[] pdf, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return ExtractTablesByPageRanges(PdfReadDocument.Load(pdf), options, pageRanges);
+    }
+
+    /// <summary>Extracts plain text from each page using layout options such as column detection and header/footer trimming.</summary>
+    public static IReadOnlyList<string> ExtractTextByPage(byte[] pdf, PdfTextLayoutOptions? options) {
+        Guard.NotNull(pdf, nameof(pdf));
+        if (options is null) {
+            return ExtractTextByPage(pdf);
+        }
+
+        return ExtractTextByPage(PdfReadDocument.Load(pdf), options);
+    }
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<string> ExtractTextByPage(PdfReadDocument document) {
+        var pages = new List<string>(document.Pages.Count);
+        for (int i = 0; i < document.Pages.Count; i++) {
+            pages.Add(document.Pages[i].ExtractText());
+        }
+
+        return pages.AsReadOnly();
+    }
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<string> ExtractTextByPageRanges(PdfReadDocument document, PdfPageRange[] pageRanges) {
+        var selected = ExtractSelectedTextPages(document, pageRanges);
+        var pages = new List<string>(selected.Count);
+        for (int i = 0; i < selected.Count; i++) {
+            pages.Add(selected[i].Text);
+        }
+
+        return pages.AsReadOnly();
+    }
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<SelectedTextPage> ExtractSelectedTextPages(PdfReadDocument document, PdfPageRange[] pageRanges) {
+        return ExtractSelectedTextPages(document, null, pageRanges);
+    }
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<SelectedTextPage> ExtractSelectedTextPages(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
+        Guard.NotNull(pageRanges, nameof(pageRanges));
+        int[] pageNumbers = ExpandPageRanges(pageRanges, document.Pages.Count, nameof(pageRanges));
+
+        var pages = new List<SelectedTextPage>(pageNumbers.Length);
+        for (int i = 0; i < pageNumbers.Length; i++) {
+            int pageNumber = pageNumbers[i];
+            string text = options is null
+                ? document.Pages[pageNumber - 1].ExtractText()
+                : document.Pages[pageNumber - 1].ExtractTextWithColumns(options);
+            pages.Add(new SelectedTextPage(pageNumber, text));
+        }
+
+        return pages.AsReadOnly();
+    }
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<StructuredPage> ExtractStructuredByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
+        Guard.NotNull(pageRanges, nameof(pageRanges));
+        int[] pageNumbers = ExpandPageRanges(pageRanges, document.Pages.Count, nameof(pageRanges));
+
+        var pages = new List<StructuredPage>(pageNumbers.Length);
+        for (int i = 0; i < pageNumbers.Length; i++) {
+            pages.Add(document.Pages[pageNumbers[i] - 1].ExtractStructured(options));
+        }
+
+        return pages.AsReadOnly();
+    }
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<StructuredTablePage> ExtractTablesByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
+        Guard.NotNull(pageRanges, nameof(pageRanges));
+        int[] pageNumbers = ExpandPageRanges(pageRanges, document.Pages.Count, nameof(pageRanges));
+
+        var pages = new List<StructuredTablePage>(pageNumbers.Length);
+        for (int i = 0; i < pageNumbers.Length; i++) {
+            int pageNumber = pageNumbers[i];
+            var structuredPage = document.Pages[pageNumber - 1].ExtractStructured(options);
+            pages.Add(new StructuredTablePage(pageNumber, structuredPage.TablesDetailed));
+        }
+
+        return pages.AsReadOnly();
+    }
+
+    private static int[] ExpandPageRanges(PdfPageRange[] pageRanges, int pageCount, string paramName) {
+        if (pageRanges.Length == 0) {
+            throw new ArgumentException("At least one page range must be specified.", paramName);
+        }
+
+        var pages = new List<int>();
+        for (int i = 0; i < pageRanges.Length; i++) {
+            if (pageRanges[i].FirstPage < 1 || pageRanges[i].LastPage < pageRanges[i].FirstPage) {
+                throw new ArgumentOutOfRangeException(paramName, "Page ranges must be inclusive one-based ranges.");
+            }
+
+            if (pageRanges[i].LastPage > pageCount) {
+                throw new ArgumentOutOfRangeException(paramName, "Page range cannot exceed the document page count.");
+            }
+
+            for (int pageNumber = pageRanges[i].FirstPage; pageNumber <= pageRanges[i].LastPage; pageNumber++) {
+                pages.Add(pageNumber);
+            }
+        }
+
+        return pages.ToArray();
+    }
+
+    private readonly struct SelectedTextPage {
+        internal SelectedTextPage(int pageNumber, string text) {
+            PageNumber = pageNumber;
+            Text = text;
+        }
+
+        internal int PageNumber { get; }
+        internal string Text { get; }
+    }
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<string> ExtractTextByPage(PdfReadDocument document, PdfTextLayoutOptions options) {
+        var pages = new List<string>(document.Pages.Count);
+        for (int i = 0; i < document.Pages.Count; i++) {
+            pages.Add(document.Pages[i].ExtractTextWithColumns(options));
+        }
+
+        return pages.AsReadOnly();
     }
 
     private static string ExtractTextFromPage(PdfDictionary page, Dictionary<int, PdfIndirectObject> parsedObjects, Dictionary<int, string> rawObjects) {
@@ -124,6 +889,17 @@ public static class PdfTextExtractor {
     }
 
     /// <summary>Gets document metadata (Title/Author/Subject/Keywords) if present; null when absent.</summary>
+    public static (string? Title, string? Author, string? Subject, string? Keywords) GetMetadata(string path) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        return GetMetadata(File.ReadAllBytes(path));
+    }
+
+    /// <summary>Gets document metadata (Title/Author/Subject/Keywords) from the current position of a readable stream.</summary>
+    public static (string? Title, string? Author, string? Subject, string? Keywords) GetMetadata(Stream stream) {
+        return GetMetadata(ReadAllBytes(stream));
+    }
+
+    /// <summary>Gets document metadata (Title/Author/Subject/Keywords) if present; null when absent.</summary>
     public static (string? Title, string? Author, string? Subject, string? Keywords) GetMetadata(byte[] pdf) {
         var map = BuildObjectMap(pdf, out var trailer);
         var m = InfoRefRegex.Match(trailer);
@@ -135,6 +911,15 @@ public static class PdfTextExtractor {
         string? subject = ExtractStringValue(obj, "/Subject");
         string? keywords = ExtractStringValue(obj, "/Keywords");
         return (title, author, subject, keywords);
+    }
+
+    private static byte[] ReadAllBytes(Stream stream) {
+        Guard.NotNull(stream, nameof(stream));
+        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+
+        using var buffer = new MemoryStream();
+        stream.CopyTo(buffer);
+        return buffer.ToArray();
     }
 
     private static Dictionary<int, string> BuildObjectMap(byte[] pdf, out string trailer) {
@@ -155,6 +940,7 @@ public static class PdfTextExtractor {
         }
         int trailerIdx = text.LastIndexOf("trailer", StringComparison.OrdinalIgnoreCase);
         trailer = trailerIdx >= 0 ? text.Substring(trailerIdx) : string.Empty;
+        PdfSyntax.ThrowIfEncrypted(trailer);
         return dict;
     }
 

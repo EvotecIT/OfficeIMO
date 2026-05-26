@@ -1,0 +1,132 @@
+using System;
+
+namespace OfficeIMO.Drawing;
+
+/// <summary>
+/// Dependency-free 2D affine transform in a local top-left coordinate space.
+/// </summary>
+public readonly struct OfficeTransform : IEquatable<OfficeTransform> {
+    /// <summary>Identity transform.</summary>
+    public static OfficeTransform Identity => new OfficeTransform(1, 0, 0, 1, 0, 0);
+
+    /// <summary>Horizontal scale/rotation component.</summary>
+    public double M11 { get; }
+
+    /// <summary>Vertical shear/rotation component.</summary>
+    public double M12 { get; }
+
+    /// <summary>Horizontal shear/rotation component.</summary>
+    public double M21 { get; }
+
+    /// <summary>Vertical scale/rotation component.</summary>
+    public double M22 { get; }
+
+    /// <summary>Horizontal translation component.</summary>
+    public double OffsetX { get; }
+
+    /// <summary>Vertical translation component.</summary>
+    public double OffsetY { get; }
+
+    /// <summary>Creates an affine transform.</summary>
+    public OfficeTransform(double m11, double m12, double m21, double m22, double offsetX, double offsetY) {
+        ValidateFinite(m11, nameof(m11));
+        ValidateFinite(m12, nameof(m12));
+        ValidateFinite(m21, nameof(m21));
+        ValidateFinite(m22, nameof(m22));
+        ValidateFinite(offsetX, nameof(offsetX));
+        ValidateFinite(offsetY, nameof(offsetY));
+
+        M11 = m11;
+        M12 = m12;
+        M21 = m21;
+        M22 = m22;
+        OffsetX = offsetX;
+        OffsetY = offsetY;
+    }
+
+    /// <summary>Creates a translation transform.</summary>
+    public static OfficeTransform Translate(double offsetX, double offsetY) => new OfficeTransform(1, 0, 0, 1, offsetX, offsetY);
+
+    /// <summary>Creates a scale transform around the local origin.</summary>
+    public static OfficeTransform Scale(double scaleX, double scaleY) => new OfficeTransform(scaleX, 0, 0, scaleY, 0, 0);
+
+    /// <summary>Creates a clockwise rotation transform around the local origin.</summary>
+    public static OfficeTransform RotateDegrees(double degrees) {
+        ValidateFinite(degrees, nameof(degrees));
+
+        double radians = degrees * Math.PI / 180D;
+        double cos = NormalizeZero(Math.Cos(radians));
+        double sin = NormalizeZero(Math.Sin(radians));
+        return new OfficeTransform(cos, sin, -sin, cos, 0, 0);
+    }
+
+    /// <summary>Creates a clockwise rotation transform around a local point.</summary>
+    public static OfficeTransform RotateDegrees(double degrees, double centerX, double centerY) {
+        ValidateFinite(centerX, nameof(centerX));
+        ValidateFinite(centerY, nameof(centerY));
+
+        return Translate(-centerX, -centerY)
+            .Then(RotateDegrees(degrees))
+            .Then(Translate(centerX, centerY));
+    }
+
+    /// <summary>
+    /// Returns a transform that applies this transform first, then the supplied transform.
+    /// </summary>
+    public OfficeTransform Then(OfficeTransform next) {
+        return new OfficeTransform(
+            next.M11 * M11 + next.M21 * M12,
+            next.M12 * M11 + next.M22 * M12,
+            next.M11 * M21 + next.M21 * M22,
+            next.M12 * M21 + next.M22 * M22,
+            next.M11 * OffsetX + next.M21 * OffsetY + next.OffsetX,
+            next.M12 * OffsetX + next.M22 * OffsetY + next.OffsetY);
+    }
+
+    /// <summary>Transforms a point in local top-left coordinates.</summary>
+    public OfficePoint TransformPoint(OfficePoint point) {
+        double x = M11 * point.X + M21 * point.Y + OffsetX;
+        double y = M12 * point.X + M22 * point.Y + OffsetY;
+        return new OfficePoint(x, y);
+    }
+
+    /// <inheritdoc />
+    public bool Equals(OfficeTransform other) {
+        return M11.Equals(other.M11) &&
+               M12.Equals(other.M12) &&
+               M21.Equals(other.M21) &&
+               M22.Equals(other.M22) &&
+               OffsetX.Equals(other.OffsetX) &&
+               OffsetY.Equals(other.OffsetY);
+    }
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is OfficeTransform other && Equals(other);
+
+    /// <inheritdoc />
+    public override int GetHashCode() {
+        unchecked {
+            int hash = M11.GetHashCode();
+            hash = (hash * 397) ^ M12.GetHashCode();
+            hash = (hash * 397) ^ M21.GetHashCode();
+            hash = (hash * 397) ^ M22.GetHashCode();
+            hash = (hash * 397) ^ OffsetX.GetHashCode();
+            hash = (hash * 397) ^ OffsetY.GetHashCode();
+            return hash;
+        }
+    }
+
+    /// <summary>Returns true when two transforms are equal.</summary>
+    public static bool operator ==(OfficeTransform left, OfficeTransform right) => left.Equals(right);
+
+    /// <summary>Returns true when two transforms are not equal.</summary>
+    public static bool operator !=(OfficeTransform left, OfficeTransform right) => !left.Equals(right);
+
+    private static double NormalizeZero(double value) => Math.Abs(value) < 0.000000000001D ? 0D : value;
+
+    private static void ValidateFinite(double value, string paramName) {
+        if (double.IsNaN(value) || double.IsInfinity(value)) {
+            throw new ArgumentOutOfRangeException(paramName, "Transform values must be finite numbers.");
+        }
+    }
+}

@@ -7,7 +7,7 @@ public class FooterTextBuilder {
     /// <summary>Adds a literal text segment to the footer.</summary>
     /// <param name="s">Text to render.</param>
     /// <returns>The same builder for chaining.</returns>
-    public FooterTextBuilder Text(string s) { _segments.Add(new FooterSegment(FooterSegmentKind.Text, s)); return this; }
+    public FooterTextBuilder Text(string s) { Guard.NotNull(s, nameof(s)); _segments.Add(new FooterSegment(FooterSegmentKind.Text, s)); return this; }
 
     /// <summary>Adds a token that renders the current page number.</summary>
     /// <returns>The same builder for chaining.</returns>

@@ -22,6 +22,35 @@ public static class PdfReadDocumentExtensions {
     }
 
     /// <summary>
+    /// Extracts structured content for each page while preserving page boundaries and detailed table geometry.
+    /// </summary>
+    /// <param name="doc">Source document.</param>
+    /// <param name="options">Optional layout options.</param>
+    public static IReadOnlyList<StructuredPage> ExtractStructuredPages(this PdfReadDocument doc, PdfTextLayoutOptions? options = null) {
+        var pages = new List<StructuredPage>(doc.Pages.Count);
+        for (int i = 0; i < doc.Pages.Count; i++) {
+            pages.Add(doc.Pages[i].ExtractStructured(options));
+        }
+
+        return pages.AsReadOnly();
+    }
+
+    /// <summary>
+    /// Extracts detected tables grouped by page while preserving table geometry.
+    /// </summary>
+    /// <param name="doc">Source document.</param>
+    /// <param name="options">Optional layout options.</param>
+    public static IReadOnlyList<StructuredTablePage> ExtractTablesByPage(this PdfReadDocument doc, PdfTextLayoutOptions? options = null) {
+        var pages = new List<StructuredTablePage>(doc.Pages.Count);
+        for (int i = 0; i < doc.Pages.Count; i++) {
+            var structuredPage = doc.Pages[i].ExtractStructured(options);
+            pages.Add(new StructuredTablePage(i + 1, structuredPage.TablesDetailed));
+        }
+
+        return pages.AsReadOnly();
+    }
+
+    /// <summary>
     /// Extracts simple structured content (lines, TOC rows, list items, leader rows) for the whole document.
     /// </summary>
     /// <param name="doc">Source document.</param>

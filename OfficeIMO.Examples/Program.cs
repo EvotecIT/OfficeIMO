@@ -15,6 +15,29 @@ namespace OfficeIMO.Examples {
             return Array.Exists(args, arg => string.Equals(arg, value, StringComparison.OrdinalIgnoreCase));
         }
 
+        private static void RunPdfExamples(string folderPath) {
+            Pdf.BasicPdf.Example_Pdf_HelloWorld(folderPath, false);
+            Pdf.WriterDefaults.Example_Pdf_DefaultStyles(folderPath, false);
+            Pdf.WriterStyledRuns.Example_Pdf_StyledRuns(folderPath, false);
+            Pdf.WriterListsTables.Example_Pdf_BulletsAndTable(folderPath, false);
+            Pdf.WriterHeadersFooters.Example_Pdf_PageNumbers(folderPath, false);
+            Pdf.LinksAndRules.Example_Pdf_LinksAndRules(folderPath, false);
+            Pdf.WriterStyleCheatsheet.Example_Pdf_StyleCheatsheet(folderPath, false);
+            Pdf.DrawingGalleryPdf.Example_Pdf_DrawingGallery(folderPath, false);
+            Pdf.RowColumnsPdf.Example_Pdf_RowColumns(folderPath, false);
+            Pdf.TableStyleGalleryPdf.Example_Pdf_TableStyleGallery(folderPath, false);
+            Pdf.ProfessionalReportPdf.Example_Pdf_ProfessionalReport(folderPath, false);
+            Pdf.ShowcaseStatementPdf.Example_Pdf_ShowcaseStatement(folderPath, false);
+            Pdf.ShowcaseDashboardPdf.Example_Pdf_ShowcaseDashboard(folderPath, false);
+            Pdf.ShowcaseManipulationPdf.Example_Pdf_ShowcaseManipulation(folderPath, false);
+        }
+
+        private static void RunPdfShowcaseExamples(string folderPath) {
+            Pdf.ShowcaseStatementPdf.Example_Pdf_ShowcaseStatement(folderPath, false);
+            Pdf.ShowcaseDashboardPdf.Example_Pdf_ShowcaseDashboard(folderPath, false);
+            Pdf.ShowcaseManipulationPdf.Example_Pdf_ShowcaseManipulation(folderPath, false);
+        }
+
         private static void RunPowerPointExamples(string folderPath) {
             DateTime startedUtc = DateTime.UtcNow.AddSeconds(-2);
 
@@ -104,6 +127,26 @@ namespace OfficeIMO.Examples {
 
             if (HasArgument(args, "--powerpoint")) {
                 RunPowerPointExamples(folderPath);
+                return;
+            }
+
+            if (HasArgument(args, "--pdf-professional")) {
+                Pdf.ProfessionalReportPdf.Example_Pdf_ProfessionalReport(folderPath, false);
+                return;
+            }
+
+            if (HasArgument(args, "--pdf-table-styles")) {
+                Pdf.TableStyleGalleryPdf.Example_Pdf_TableStyleGallery(folderPath, false);
+                return;
+            }
+
+            if (HasArgument(args, "--pdf-showcase")) {
+                RunPdfShowcaseExamples(folderPath);
+                return;
+            }
+
+            if (HasArgument(args, "--pdf")) {
+                RunPdfExamples(folderPath);
                 return;
             }
 

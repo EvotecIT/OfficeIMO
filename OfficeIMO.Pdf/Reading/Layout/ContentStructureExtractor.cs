@@ -75,6 +75,26 @@ public sealed class StructuredTableColumn {
     /// <summary>Right X coordinate (points).</summary>
     public double To { get; init; }
 }
+
+/// <summary>Detected tables for a single document page.</summary>
+public sealed class StructuredTablePage {
+    /// <summary>Creates a page table result.</summary>
+    public StructuredTablePage(int pageNumber, IEnumerable<StructuredTable> tables) {
+        if (pageNumber < 1) {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
+        }
+
+        PageNumber = pageNumber;
+        Tables.AddRange(tables ?? throw new ArgumentNullException(nameof(tables)));
+    }
+
+    /// <summary>1-based page number.</summary>
+    public int PageNumber { get; }
+
+    /// <summary>Detected tables on this page.</summary>
+    public List<StructuredTable> Tables { get; } = new();
+}
+
 /// <summary>Geometry detail for a single emitted line.</summary>
 public sealed class StructuredLine {
     /// <summary>Baseline Y coordinate for the line (points from bottom).</summary>

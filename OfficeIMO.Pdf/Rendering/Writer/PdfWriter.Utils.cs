@@ -11,18 +11,34 @@ internal static partial class PdfWriter {
     private static bool LooksNumeric(string s) {
         if (string.IsNullOrWhiteSpace(s)) return false;
         s = s.Trim();
-#if NET8_0_OR_GREATER
-        if (s.StartsWith('$') || s.EndsWith('%')) return true;
-#else
-        if (s.StartsWith("$", System.StringComparison.Ordinal) || s.EndsWith("%", System.StringComparison.Ordinal)) return true;
-#endif
+        if (s.Length >= 2 && s[0] == '(' && s[s.Length - 1] == ')') {
+            s = s.Substring(1, s.Length - 2).Trim();
+        }
+
         int digits = 0;
         foreach (char ch in s) {
             if (char.IsDigit(ch)) digits++;
-            else if (ch == ',' || ch == '.' || ch == ' ' || ch == '+' || ch == '-' || ch == '$') continue;
+            else if (ch == ',' ||
+                     ch == '.' ||
+                     ch == '\'' ||
+                     ch == ' ' ||
+                     ch == '\u00A0' ||
+                     ch == '\u202F' ||
+                     ch == '+' ||
+                     ch == '-' ||
+                     ch == '%' ||
+                     IsCurrencySymbol(ch)) continue;
             else return false;
         }
         return digits > 0;
     }
+
+    private static bool IsCurrencySymbol(char ch) =>
+        ch == '$' ||
+        ch == '€' ||
+        ch == '£' ||
+        ch == '¥' ||
+        ch == '¢' ||
+        ch == '¤';
 }
 

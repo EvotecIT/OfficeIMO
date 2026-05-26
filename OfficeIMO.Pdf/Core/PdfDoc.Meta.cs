@@ -7,7 +7,7 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfDoc {
     private readonly System.Collections.Generic.List<IPdfBlock> _blocks = new();
     private readonly PdfOptions _options;
-    private readonly System.Collections.Generic.Stack<System.Collections.Generic.List<IPdfBlock>> _blockScopes;
+    private readonly System.Collections.Generic.Stack<System.Action<IPdfBlock>> _blockScopes;
 
     // Metadata
     private string? _title;
@@ -16,9 +16,9 @@ public sealed partial class PdfDoc {
     private string? _keywords;
 
     private PdfDoc(PdfOptions? options = null) {
-        _options = options ?? new PdfOptions();
-        _blockScopes = new System.Collections.Generic.Stack<System.Collections.Generic.List<IPdfBlock>>();
-        _blockScopes.Push(_blocks);
+        _options = options?.Clone() ?? new PdfOptions();
+        _blockScopes = new System.Collections.Generic.Stack<System.Action<IPdfBlock>>();
+        _blockScopes.Push(_blocks.Add);
     }
 
     /// <summary>
@@ -60,15 +60,32 @@ public sealed partial class PdfDoc {
     internal System.Collections.Generic.IEnumerable<IPdfBlock> Blocks => _blocks;
     internal PdfOptions Options => _options;
 
-    private System.Collections.Generic.List<IPdfBlock> CurrentBlocks => _blockScopes.Peek();
+    private System.Action<IPdfBlock> CurrentBlockSink => _blockScopes.Peek();
 
-    private void AddBlock(IPdfBlock block) { CurrentBlocks.Add(block); }
+    private void AddBlock(IPdfBlock block) {
+        Guard.NotNull(block, nameof(block));
+        CurrentBlockSink(block);
+    }
 
     internal void AddPageBlock(PageBlock pageBlock) { Guard.NotNull(pageBlock, nameof(pageBlock)); AddBlock(pageBlock); }
 
-    internal System.IDisposable PushBlockScope(System.Collections.Generic.List<IPdfBlock> blocks) {
-        Guard.NotNull(blocks, nameof(blocks));
-        _blockScopes.Push(blocks);
+    internal void AddComposedPage(System.Action<PdfPageCompose> configure) {
+        Guard.NotNull(configure, nameof(configure));
+        var snapshot = _options.Clone();
+        if (_blocks.Count > 0) {
+            snapshot.ClearPageNumberStartOverride();
+        }
+        var block = new PageBlock(snapshot);
+        using (PushBlockScope(block.AddBlock)) {
+            var page = new PdfPageCompose(this, snapshot);
+            configure(page);
+        }
+        AddPageBlock(block);
+    }
+
+    internal System.IDisposable PushBlockScope(System.Action<IPdfBlock> addBlock) {
+        Guard.NotNull(addBlock, nameof(addBlock));
+        _blockScopes.Push(addBlock);
         return new Scope(this);
     }
 

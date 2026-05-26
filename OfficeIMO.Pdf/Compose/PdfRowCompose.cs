@@ -12,32 +12,39 @@ public class PdfRowCompose {
 
     internal PdfRowCompose(PdfDoc doc) { _doc = doc; }
 
+    /// <summary>Sets the horizontal gutter, in points, between columns in this row.</summary>
+    public PdfRowCompose Gap(double points) {
+        _row.SetGap(points);
+        return this;
+    }
+
+    /// <summary>Applies row/column layout rhythm for this row.</summary>
+    public PdfRowCompose Style(PdfRowStyle style) {
+        _row.SetStyle(style);
+        return this;
+    }
+
     /// <summary>Adds a column with the given width percentage.</summary>
     public PdfRowCompose Column(double widthPercent, System.Action<PdfRowColumnCompose> build) {
         Guard.NotNull(build, nameof(build));
 
-        ValidateWidth(widthPercent);
+        RowColumn.ValidateWidth(widthPercent, nameof(widthPercent));
         EnsureTotalWithinBounds(widthPercent);
 
         var col = new RowColumn(widthPercent);
         var cc = new PdfRowColumnCompose(col);
         build(cc);
-        _row.Columns.Add(col);
+        _row.AddColumn(col);
         _allocatedWidth += widthPercent;
         return this;
     }
 
     internal void Commit() {
+        if (_row.Columns.Count == 0)
+            throw new InvalidOperationException("Rows require at least one column.");
+
         NormalizeColumnWidthsIfNeeded();
         _doc.AddRow(_row);
-    }
-
-    private static void ValidateWidth(double widthPercent) {
-        if (widthPercent <= 0)
-            throw new ArgumentOutOfRangeException(nameof(widthPercent), widthPercent, "Column width must be greater than 0%.");
-
-        if (widthPercent > 100)
-            throw new ArgumentOutOfRangeException(nameof(widthPercent), widthPercent, "Column width cannot exceed 100%.");
     }
 
     private void EnsureTotalWithinBounds(double widthPercent) {
@@ -73,7 +80,7 @@ public class PdfRowCompose {
                 accumulated += newWidth;
             }
 
-            _row.Columns[i].WidthPercent = newWidth;
+            _row.Columns[i].SetWidthPercent(newWidth);
         }
 
         _allocatedWidth = _row.Columns.Sum(static c => c.WidthPercent);

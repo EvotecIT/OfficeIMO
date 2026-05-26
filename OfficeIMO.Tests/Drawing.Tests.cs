@@ -235,6 +235,307 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeTransformProvidesReusableAffineDrawingIntent() {
+        var rotated = OfficeTransform.RotateDegrees(90).TransformPoint(new OfficePoint(10, 0));
+
+        Assert.Equal(new OfficePoint(0, 10), rotated);
+
+        var composed = OfficeTransform.Translate(5, 10)
+            .Then(OfficeTransform.Scale(2, 3))
+            .TransformPoint(new OfficePoint(4, 5));
+
+        Assert.Equal(new OfficePoint(18, 45), composed);
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeTransform.Translate(double.NaN, 0));
+    }
+
+    [Fact]
+    public void OfficeShapeStoresReusableRectangleDrawingIntent() {
+        var shape = OfficeShape.Rectangle(160, 48);
+        shape.FillColor = OfficeColor.WhiteSmoke;
+        shape.FillGradient = OfficeLinearGradient.Horizontal(OfficeColor.SteelBlue, OfficeColor.WhiteSmoke);
+        shape.StrokeColor = OfficeColor.SteelBlue;
+        shape.StrokeWidth = 1.5;
+        shape.StrokeDashStyle = OfficeStrokeDashStyle.Dash;
+        shape.Shadow = new OfficeShadow(OfficeColor.Black, 0.18, 3, 4);
+        shape.FillOpacity = 0.45;
+        shape.StrokeOpacity = 0.8;
+        shape.Transform = OfficeTransform.Translate(4, 8);
+        shape.ClipPath = OfficeClipPath.Rectangle(80, 24);
+
+        var clone = shape.Clone();
+        shape.Width = 10;
+        shape.FillOpacity = 1;
+        shape.FillGradient = OfficeLinearGradient.Vertical(OfficeColor.Red, OfficeColor.Black);
+        shape.Shadow = new OfficeShadow(OfficeColor.Red, 0.9, 1, 1);
+        shape.Transform = OfficeTransform.Identity;
+        shape.ClipPath = OfficeClipPath.Rectangle(10, 10);
+
+        Assert.Equal(OfficeShapeKind.Rectangle, clone.Kind);
+        Assert.Equal(160, clone.Width);
+        Assert.Equal(48, clone.Height);
+        Assert.Equal(OfficeColor.WhiteSmoke, clone.FillColor);
+        Assert.NotNull(clone.FillGradient);
+        Assert.Equal(0, clone.FillGradient!.StartX);
+        Assert.Equal(0.5, clone.FillGradient.StartY);
+        Assert.Equal(1, clone.FillGradient.EndX);
+        Assert.Equal(0.5, clone.FillGradient.EndY);
+        Assert.Equal(OfficeColor.SteelBlue, clone.FillGradient.Stops[0].Color);
+        Assert.Equal(OfficeColor.WhiteSmoke, clone.FillGradient.Stops[1].Color);
+        Assert.NotNull(clone.Shadow);
+        Assert.Equal(OfficeColor.Black, clone.Shadow!.Color);
+        Assert.Equal(0.18, clone.Shadow.Opacity);
+        Assert.Equal(3, clone.Shadow.OffsetX);
+        Assert.Equal(4, clone.Shadow.OffsetY);
+        Assert.Equal(OfficeColor.SteelBlue, clone.StrokeColor);
+        Assert.Equal(1.5, clone.StrokeWidth);
+        Assert.Equal(OfficeStrokeDashStyle.Dash, clone.StrokeDashStyle);
+        Assert.Equal(0.45, clone.FillOpacity);
+        Assert.Equal(0.8, clone.StrokeOpacity);
+        Assert.Equal(OfficeTransform.Translate(4, 8), clone.Transform);
+        Assert.NotNull(clone.ClipPath);
+        Assert.Equal(OfficeClipPathKind.Rectangle, clone.ClipPath!.Kind);
+        Assert.Equal(80, clone.ClipPath.Width);
+        Assert.Equal(24, clone.ClipPath.Height);
+    }
+
+    [Fact]
+    public void OfficeClipPathStoresReusablePathIntent() {
+        var clipPath = OfficeClipPath.Path(
+            OfficePathCommand.MoveTo(10, 30),
+            OfficePathCommand.LineTo(50, 0),
+            OfficePathCommand.LineTo(90, 30),
+            OfficePathCommand.Close());
+
+        var clone = clipPath.Clone();
+
+        Assert.Equal(OfficeClipPathKind.Path, clone.Kind);
+        Assert.Equal(80, clone.Width);
+        Assert.Equal(30, clone.Height);
+        Assert.Equal(4, clone.Commands.Count);
+        Assert.Equal(OfficePathCommand.MoveTo(0, 30), clone.Commands[0]);
+        Assert.Equal(OfficePathCommand.LineTo(40, 0), clone.Commands[1]);
+        Assert.Equal(OfficePathCommand.LineTo(80, 30), clone.Commands[2]);
+        Assert.Equal(OfficePathCommand.Close(), clone.Commands[3]);
+        Assert.Throws<ArgumentException>(() => OfficeClipPath.Path(OfficePathCommand.LineTo(10, 10)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeClipPath.Rectangle(double.NaN, 10));
+    }
+
+    [Fact]
+    public void OfficeLinearGradientStoresReusableTwoStopFillIntent() {
+        var gradient = OfficeLinearGradient.DiagonalDown(OfficeColor.SteelBlue, OfficeColor.WhiteSmoke);
+
+        OfficeLinearGradient clone = gradient.Clone();
+
+        Assert.Equal(0, clone.StartX);
+        Assert.Equal(0, clone.StartY);
+        Assert.Equal(1, clone.EndX);
+        Assert.Equal(1, clone.EndY);
+        Assert.Equal(new OfficeGradientStop(0, OfficeColor.SteelBlue), clone.Stops[0]);
+        Assert.Equal(new OfficeGradientStop(1, OfficeColor.WhiteSmoke), clone.Stops[1]);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeGradientStop(double.NaN, OfficeColor.Black));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeLinearGradient(-0.1, 0, 1, 1, new OfficeGradientStop(0, OfficeColor.Black), new OfficeGradientStop(1, OfficeColor.White)));
+        Assert.Throws<ArgumentException>(() => new OfficeLinearGradient(0, 0, 0, 0, new OfficeGradientStop(0, OfficeColor.Black), new OfficeGradientStop(1, OfficeColor.White)));
+        Assert.Throws<ArgumentException>(() => new OfficeLinearGradient(0, 0, 1, 1, new OfficeGradientStop(0.25, OfficeColor.Black), new OfficeGradientStop(1, OfficeColor.White)));
+        Assert.Throws<ArgumentException>(() => new OfficeLinearGradient(0, 0, 1, 1, new OfficeGradientStop(0, OfficeColor.Black), new OfficeGradientStop(0.75, OfficeColor.White)));
+    }
+
+    [Fact]
+    public void OfficeShadowStoresReusableShapeEffectIntent() {
+        var shadow = new OfficeShadow(OfficeColor.FromRgb(10, 20, 30), 0.35, 4, 6);
+
+        OfficeShadow clone = shadow.Clone();
+
+        Assert.Equal(OfficeColor.FromRgb(10, 20, 30), clone.Color);
+        Assert.Equal(0.35, clone.Opacity);
+        Assert.Equal(4, clone.OffsetX);
+        Assert.Equal(6, clone.OffsetY);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeShadow(OfficeColor.Black, -0.1, 0, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeShadow(OfficeColor.Black, 1.1, 0, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeShadow(OfficeColor.Black, 0.5, double.NaN, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeShadow(OfficeColor.Black, 0.5, 0, double.PositiveInfinity));
+    }
+
+    [Fact]
+    public void OfficeShapeStoresReusableRoundedRectangleDrawingIntent() {
+        var shape = OfficeShape.RoundedRectangle(160, 48, 8);
+        shape.FillColor = OfficeColor.WhiteSmoke;
+        shape.StrokeColor = OfficeColor.SteelBlue;
+        shape.StrokeWidth = 1.5;
+        shape.StrokeDashStyle = OfficeStrokeDashStyle.Dash;
+
+        var clone = shape.Clone();
+        shape.CornerRadius = 2;
+
+        Assert.Equal(OfficeShapeKind.RoundedRectangle, clone.Kind);
+        Assert.Equal(160, clone.Width);
+        Assert.Equal(48, clone.Height);
+        Assert.Equal(8, clone.CornerRadius);
+        Assert.Equal(OfficeColor.WhiteSmoke, clone.FillColor);
+        Assert.Equal(OfficeColor.SteelBlue, clone.StrokeColor);
+        Assert.Equal(1.5, clone.StrokeWidth);
+        Assert.Equal(OfficeStrokeDashStyle.Dash, clone.StrokeDashStyle);
+    }
+
+    [Fact]
+    public void OfficeShapeRejectsInvalidRoundedRectangleRadius() {
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeShape.RoundedRectangle(100, 40, -1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeShape.RoundedRectangle(100, 40, 21));
+    }
+
+    [Fact]
+    public void OfficeShapeStoresReusableLineDrawingIntent() {
+        var shape = OfficeShape.Line(10, 20, 110, 20);
+        shape.StrokeColor = OfficeColor.SteelBlue;
+        shape.StrokeWidth = 2.5;
+        shape.StrokeDashStyle = OfficeStrokeDashStyle.DashDot;
+        shape.StrokeLineCap = OfficeStrokeLineCap.Round;
+        shape.StrokeLineJoin = OfficeStrokeLineJoin.Bevel;
+
+        var clone = shape.Clone();
+        shape.Width = 10;
+        shape.StrokeLineCap = OfficeStrokeLineCap.Square;
+
+        Assert.Equal(OfficeShapeKind.Line, clone.Kind);
+        Assert.Equal(100, clone.Width);
+        Assert.Equal(1, clone.Height);
+        Assert.Equal(new OfficePoint(0, 0), clone.Points[0]);
+        Assert.Equal(new OfficePoint(100, 0), clone.Points[1]);
+        Assert.Equal(OfficeColor.SteelBlue, clone.StrokeColor);
+        Assert.Equal(2.5, clone.StrokeWidth);
+        Assert.Equal(OfficeStrokeDashStyle.DashDot, clone.StrokeDashStyle);
+        Assert.Equal(OfficeStrokeLineCap.Round, clone.StrokeLineCap);
+        Assert.Equal(OfficeStrokeLineJoin.Bevel, clone.StrokeLineJoin);
+    }
+
+    [Fact]
+    public void OfficeShapeRejectsEmptyLineDrawingIntent() {
+        Assert.Throws<ArgumentException>(() => OfficeShape.Line(10, 20, 10, 20));
+    }
+
+    [Fact]
+    public void OfficeShapeStoresReusableEllipseDrawingIntent() {
+        var shape = OfficeShape.Ellipse(96, 40);
+        shape.FillColor = OfficeColor.WhiteSmoke;
+        shape.StrokeColor = OfficeColor.SteelBlue;
+        shape.StrokeWidth = 2;
+        shape.StrokeDashStyle = OfficeStrokeDashStyle.Dot;
+
+        var clone = shape.Clone();
+        shape.Height = 10;
+
+        Assert.Equal(OfficeShapeKind.Ellipse, clone.Kind);
+        Assert.Equal(96, clone.Width);
+        Assert.Equal(40, clone.Height);
+        Assert.Equal(OfficeColor.WhiteSmoke, clone.FillColor);
+        Assert.Equal(OfficeColor.SteelBlue, clone.StrokeColor);
+        Assert.Equal(2, clone.StrokeWidth);
+        Assert.Equal(OfficeStrokeDashStyle.Dot, clone.StrokeDashStyle);
+    }
+
+    [Fact]
+    public void OfficeShapeStoresReusablePolygonDrawingIntent() {
+        var shape = OfficeShape.Polygon(
+            new OfficePoint(10, 20),
+            new OfficePoint(50, 0),
+            new OfficePoint(90, 20));
+        shape.FillColor = OfficeColor.WhiteSmoke;
+        shape.StrokeColor = OfficeColor.SteelBlue;
+        shape.StrokeWidth = 1.25;
+        shape.StrokeDashStyle = OfficeStrokeDashStyle.DashDot;
+        shape.StrokeLineJoin = OfficeStrokeLineJoin.Round;
+
+        var clone = shape.Clone();
+        shape.Width = 10;
+
+        Assert.Equal(OfficeShapeKind.Polygon, clone.Kind);
+        Assert.Equal(80, clone.Width);
+        Assert.Equal(20, clone.Height);
+        Assert.Equal(new OfficePoint(0, 20), clone.Points[0]);
+        Assert.Equal(new OfficePoint(40, 0), clone.Points[1]);
+        Assert.Equal(new OfficePoint(80, 20), clone.Points[2]);
+        Assert.Equal(OfficeColor.WhiteSmoke, clone.FillColor);
+        Assert.Equal(OfficeColor.SteelBlue, clone.StrokeColor);
+        Assert.Equal(1.25, clone.StrokeWidth);
+        Assert.Equal(OfficeStrokeDashStyle.DashDot, clone.StrokeDashStyle);
+        Assert.Equal(OfficeStrokeLineJoin.Round, clone.StrokeLineJoin);
+    }
+
+    [Fact]
+    public void OfficeShapeStoresReusablePathDrawingIntent() {
+        var shape = OfficeShape.Path(
+            OfficePathCommand.MoveTo(10, 50),
+            OfficePathCommand.CubicBezierTo(30, 10, 70, 10, 90, 50),
+            OfficePathCommand.LineTo(10, 50),
+            OfficePathCommand.Close());
+        shape.FillColor = OfficeColor.WhiteSmoke;
+        shape.StrokeColor = OfficeColor.SteelBlue;
+        shape.StrokeWidth = 1.75;
+        shape.StrokeDashStyle = OfficeStrokeDashStyle.Dot;
+        shape.StrokeLineCap = OfficeStrokeLineCap.Round;
+        shape.StrokeLineJoin = OfficeStrokeLineJoin.Round;
+
+        var clone = shape.Clone();
+        shape.Width = 10;
+
+        Assert.Equal(OfficeShapeKind.Path, clone.Kind);
+        Assert.Equal(80, clone.Width);
+        Assert.Equal(40, clone.Height);
+        Assert.Equal(OfficePathCommand.MoveTo(0, 40), clone.PathCommands[0]);
+        Assert.Equal(OfficePathCommand.CubicBezierTo(20, 0, 60, 0, 80, 40), clone.PathCommands[1]);
+        Assert.Equal(OfficePathCommand.LineTo(0, 40), clone.PathCommands[2]);
+        Assert.Equal(OfficePathCommand.Close(), clone.PathCommands[3]);
+        Assert.Equal(OfficeColor.WhiteSmoke, clone.FillColor);
+        Assert.Equal(OfficeColor.SteelBlue, clone.StrokeColor);
+        Assert.Equal(1.75, clone.StrokeWidth);
+        Assert.Equal(OfficeStrokeDashStyle.Dot, clone.StrokeDashStyle);
+        Assert.Equal(OfficeStrokeLineCap.Round, clone.StrokeLineCap);
+        Assert.Equal(OfficeStrokeLineJoin.Round, clone.StrokeLineJoin);
+    }
+
+    [Fact]
+    public void OfficeDrawingStoresReusablePositionedShapesInPaintOrder() {
+        var background = OfficeShape.Rectangle(120, 60);
+        background.FillColor = OfficeColor.WhiteSmoke;
+
+        var marker = OfficeShape.Polygon(
+            new OfficePoint(0, 30),
+            new OfficePoint(40, 0),
+            new OfficePoint(80, 30));
+        marker.FillColor = OfficeColor.SteelBlue;
+        marker.StrokeColor = OfficeColor.Black;
+        marker.StrokeWidth = 1.25;
+
+        var drawing = new OfficeDrawing(120, 60)
+            .AddShape(background, 0, 0)
+            .AddShape(marker, 20, 15);
+
+        var clone = drawing.Clone();
+        background.Width = 10;
+
+        Assert.Equal(120, clone.Width);
+        Assert.Equal(60, clone.Height);
+        Assert.Equal(2, clone.Shapes.Count);
+        Assert.Equal(0, clone.Shapes[0].X);
+        Assert.Equal(0, clone.Shapes[0].Y);
+        Assert.Equal(OfficeShapeKind.Rectangle, clone.Shapes[0].Shape.Kind);
+        Assert.Equal(120, clone.Shapes[0].Shape.Width);
+        Assert.Equal(20, clone.Shapes[1].X);
+        Assert.Equal(15, clone.Shapes[1].Y);
+        Assert.Equal(OfficeShapeKind.Polygon, clone.Shapes[1].Shape.Kind);
+        Assert.Equal(OfficeColor.SteelBlue, clone.Shapes[1].Shape.FillColor);
+        Assert.Equal(OfficeColor.Black, clone.Shapes[1].Shape.StrokeColor);
+    }
+
+    [Fact]
+    public void OfficeDrawingRejectsShapesOutsideCanvas() {
+        var shape = OfficeShape.Rectangle(40, 20);
+        var drawing = new OfficeDrawing(60, 30);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => drawing.AddShape(shape, 25, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => drawing.AddShape(shape, 0, 15));
+    }
+
+    [Fact]
     public void OfficeTextMeasurerProvidesDeterministicReusableMetrics() {
         var measurer = OfficeTextMeasurer.Create(OfficeFontInfo.Default);
         var regular = measurer.CreateStyle(new OfficeFontInfo("Calibri", 11));

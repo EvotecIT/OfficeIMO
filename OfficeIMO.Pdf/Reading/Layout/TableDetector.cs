@@ -245,7 +245,7 @@ internal static class TableDetector {
             int b = (int)Math.Floor((x - minX) / binW);
             if (b < 0) b = 0; if (b >= bins) b = bins - 1; hist[b]++;
         }
-        int voteCut = Math.Max(2, (int)Math.Ceiling(eligibleLines * 0.35));
+        int voteCut = eligibleLines == 1 ? 1 : Math.Max(2, (int)Math.Ceiling(eligibleLines * 0.35));
         var peaks = new List<double>();
         for (int b = 0; b < bins; b++) if (hist[b] >= voteCut) peaks.Add(minX + b * binW + binW / 2.0);
         if (peaks.Count == 0) {

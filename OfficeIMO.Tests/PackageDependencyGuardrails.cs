@@ -36,9 +36,11 @@ public sealed class PackageDependencyGuardrailTests {
         Assert.Empty(offenders);
     }
 
-    [Fact]
-    public void OfficeImoDrawing_HasNoPackageReferences() {
-        var projectPath = GetRepositoryPath("OfficeIMO.Drawing/OfficeIMO.Drawing.csproj");
+    [Theory]
+    [InlineData("OfficeIMO.Drawing/OfficeIMO.Drawing.csproj")]
+    [InlineData("OfficeIMO.Pdf/OfficeIMO.Pdf.csproj")]
+    public void DependencyLightProjects_HaveNoPackageReferences(string relativeProjectPath) {
+        var projectPath = GetRepositoryPath(relativeProjectPath);
         Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
 
         var document = XDocument.Load(projectPath);
