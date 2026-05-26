@@ -316,7 +316,7 @@ Exit criteria:
 Turn the reader/writer internals into a dependable PDF object engine.
 
 - Parse classic xref tables.
-- Parse xref streams. Initial parser support now treats `/Type /XRef` stream dictionaries as trailer-like metadata for active `/Root` catalog resolution when no classic trailer is present; full xref-stream entry parsing remains roadmap work.
+- Parse xref streams. Initial parser support now reads active xref stream entries, follows active xref-stream `/Prev` chains, treats active-chain `/Type /XRef` stream dictionaries as trailer-like metadata for inherited `/Root` catalog resolution when no classic trailer is present, and ignores stale xref-stream dictionaries outside the active `startxref` chain for trailer selection; broader repair diagnostics remain roadmap work.
 - Parse trailers and incremental updates.
 - Preserve object identity.
 - Decode common stream filters. Initial stream decoding covers uncompressed, Flate, ASCIIHex, ASCII85, RunLength, and LZW content streams, including LZW `/EarlyChange` and predictor `DecodeParms` for parser-supported text extraction paths.

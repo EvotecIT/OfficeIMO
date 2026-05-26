@@ -146,6 +146,18 @@ public class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void Inspect_FollowsActiveXrefStreamTrailerPrevChainForInheritedRoot() {
+        byte[] pdf = BuildIncrementalXrefStreamPdfWithInheritedTrailerRootAndStaleHighObjectXref();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf);
+
+        PdfPageInfo page = Assert.Single(info.Pages);
+        Assert.Equal("SinglePage", info.CatalogPageLayout);
+        Assert.Equal(200d, page.Width);
+        Assert.Equal(200d, page.Height);
+    }
+
+    [Fact]
     public void ReadExternalObjectStream_DoesNotOverwriteExplicitIndirectObjects() {
         byte[] pdf = BuildExternalObjectStreamWithExplicitReplacementPdf();
 
@@ -529,6 +541,72 @@ public class PdfExternalDocumentCompatibilityTests {
         };
         WriteClassicXrefTableWithoutRoot(stream, activeEntries, size: 12, previousXrefOffset: previousXrefOffset);
         WriteAscii(stream, "startxref\n" + activeXrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n%%EOF\n");
+
+        return stream.ToArray();
+    }
+
+    private static byte[] BuildIncrementalXrefStreamPdfWithInheritedTrailerRootAndStaleHighObjectXref() {
+        using var stream = new MemoryStream();
+        var offsets = new Dictionary<int, int>();
+
+        WriteAscii(stream, "%PDF-1.5\n");
+        WriteObject(stream, offsets, 1, "<< /Type /Catalog /Pages 2 0 R /PageLayout /TwoColumnLeft >>");
+        WriteObject(stream, offsets, 2, "<< /Type /Pages /Count 1 /Kids [3 0 R] >>");
+        WriteObject(stream, offsets, 3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 11 0 R >>");
+        WriteObject(stream, offsets, 5, "<< /Type /Catalog /Pages 6 0 R /PageLayout /SinglePage >>");
+        WriteObject(stream, offsets, 6, "<< /Type /Pages /Count 1 /Kids [7 0 R] >>");
+        WriteObject(stream, offsets, 7, "<< /Type /Page /Parent 6 0 R /MediaBox [0 0 200 200] /Contents 11 0 R >>");
+        WriteStreamObject(stream, offsets, 11, Array.Empty<byte>());
+
+        int previousXrefObjectNumber = 12;
+        offsets[previousXrefObjectNumber] = (int)stream.Position;
+        var previousEntries = new Dictionary<int, (int Type, int Field1, int Field2)> {
+            [1] = (1, offsets[1], 0),
+            [2] = (1, offsets[2], 0),
+            [3] = (1, offsets[3], 0),
+            [5] = (1, offsets[5], 0),
+            [6] = (1, offsets[6], 0),
+            [7] = (1, offsets[7], 0),
+            [11] = (1, offsets[11], 0),
+            [12] = (1, offsets[previousXrefObjectNumber], 0)
+        };
+        byte[] previousXrefEntries = BuildXrefStreamEntries(previousEntries, size: 13);
+        WriteAscii(stream, previousXrefObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " 0 obj\n<< /Type /XRef /Size 13 /Root 5 0 R /W [1 4 2] /Index [0 13] /Length " +
+            previousXrefEntries.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " >>\nstream\n");
+        stream.Write(previousXrefEntries, 0, previousXrefEntries.Length);
+        WriteAscii(stream, "\nendstream\nendobj\n");
+        WriteAscii(stream, "startxref\n" + offsets[previousXrefObjectNumber].ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n%%EOF\n");
+
+        int activeXrefObjectNumber = 13;
+        offsets[activeXrefObjectNumber] = (int)stream.Position;
+        var activeEntries = new Dictionary<int, (int Type, int Field1, int Field2)> {
+            [13] = (1, offsets[activeXrefObjectNumber], 0)
+        };
+        byte[] activeXrefEntries = BuildXrefStreamEntries(new[] { 13 }, activeEntries);
+        WriteAscii(stream, activeXrefObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " 0 obj\n<< /Type /XRef /Size 14 /Prev " +
+            offsets[previousXrefObjectNumber].ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " /W [1 4 2] /Index [13 1] /Length " +
+            activeXrefEntries.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " >>\nstream\n");
+        stream.Write(activeXrefEntries, 0, activeXrefEntries.Length);
+        WriteAscii(stream, "\nendstream\nendobj\n");
+        WriteAscii(stream, "startxref\n" + offsets[activeXrefObjectNumber].ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n%%EOF\n");
+
+        int staleXrefObjectNumber = 50;
+        offsets[staleXrefObjectNumber] = (int)stream.Position;
+        var staleEntries = new Dictionary<int, (int Type, int Field1, int Field2)> {
+            [50] = (1, offsets[staleXrefObjectNumber], 0)
+        };
+        byte[] staleXrefEntries = BuildXrefStreamEntries(new[] { 50 }, staleEntries);
+        WriteAscii(stream, staleXrefObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " 0 obj\n<< /Type /XRef /Size 51 /Root 1 0 R /W [1 4 2] /Index [50 1] /Length " +
+            staleXrefEntries.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " >>\nstream\n");
+        stream.Write(staleXrefEntries, 0, staleXrefEntries.Length);
+        WriteAscii(stream, "\nendstream\nendobj\n");
 
         return stream.ToArray();
     }
