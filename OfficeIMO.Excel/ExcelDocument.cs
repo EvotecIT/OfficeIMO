@@ -390,6 +390,10 @@ namespace OfficeIMO.Excel {
 
         internal bool IsMaterializingDeferredDataSetImport => _materializingDeferredDataSetImport;
 
+        internal bool HasDirectDataSetFastSaveState
+            => _materializedDirectDataSetFastSaveModel != null
+               || _directDataSetSaveCandidate?.IsValid == true;
+
         internal void PreserveDirectDataSetSaveCandidateForNextDirtyMark() {
             _preserveDirectDataSetSaveCandidateForNextDirtyMark = true;
         }
@@ -407,8 +411,18 @@ namespace OfficeIMO.Excel {
 
         internal IDisposable? PreserveDirectDataSetFastSaveStateForExternalCellMutation(ExcelSheet sheet, int row, int column) {
             var model = _materializedDirectDataSetFastSaveModel;
-            if (model == null || sheet == null || !ReferenceEquals(sheet.Document, this) || row <= 0 || column <= 0) {
+            bool hasMaterializedModel = model != null;
+            if (sheet == null || !ReferenceEquals(sheet.Document, this) || row <= 0 || column <= 0) {
                 return null;
+            }
+
+            if (model == null) {
+                var candidate = _directDataSetSaveCandidate;
+                if (candidate == null || !candidate.IsValid) {
+                    return null;
+                }
+
+                model = candidate.Model;
             }
 
             for (int i = 0; i < model.Sheets.Count; i++) {
@@ -422,7 +436,12 @@ namespace OfficeIMO.Excel {
                     return PreserveDirectDataSetFastSaveStateDuringDirtyMarks();
                 }
 
-                _materializedDirectDataSetFastSaveModel = null;
+                if (hasMaterializedModel) {
+                    _materializedDirectDataSetFastSaveModel = null;
+                } else {
+                    ClearDirectDataSetSaveCandidate();
+                }
+
                 _materializingDeferredDataSetImport = true;
                 try {
                     MaterializeDirectDataSetModel(model);

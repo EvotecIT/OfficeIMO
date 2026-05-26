@@ -180,10 +180,12 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TrySetPendingDirectCellValue(int row, int column, object? value) {
+            using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
             if (!EnablePendingDirectCellValueBuffer
                 || _materializingPendingCellValueDirectSaveBuffer
                 || _disablePendingCellValueDirectSaveBuffer
                 || _excelDocument.HasDeferredDirectDataSetImport
+                || _excelDocument.HasDirectDataSetFastSaveState
                 || !TryPreparePendingDirectCellValue(value, out object? directValue)
                 || (_pendingCellValueDirectSaveBuffer == null && _hasCellValueDomWrites)
                 || (_pendingCellValueDirectSaveBuffer == null && !CanRegisterDirectTabularSaveCandidate(1, 1, Math.Max(1, column)))) {
@@ -204,9 +206,11 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TrySetPendingDirectCellFormula(int row, int column, string formula) {
+            using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
             if (!EnablePendingDirectCellValueBuffer
                 || _materializingPendingCellValueDirectSaveBuffer
                 || _excelDocument.HasDeferredDirectDataSetImport
+                || _excelDocument.HasDirectDataSetFastSaveState
                 || (_pendingCellValueDirectSaveBuffer == null && _hasCellValueDomWrites)
                 || (_pendingCellValueDirectSaveBuffer == null && !CanRegisterDirectTabularSaveCandidate(1, 1, Math.Max(1, column)))) {
                 return false;

@@ -124,6 +124,24 @@ namespace OfficeIMO.Excel {
             }
             ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.CreateModel");
 
+            if (ShouldMaterializeMixedDirectWorkbookGlobalParts(model)
+                && _materializedDirectDataSetFastSaveModel != null) {
+                _materializingDeferredDataSetImport = true;
+                try {
+                    MaterializeDirectDataSetModel(_materializedDirectDataSetFastSaveModel);
+                } finally {
+                    _materializingDeferredDataSetImport = false;
+                }
+
+                _materializedDirectDataSetFastSaveModel = null;
+                if (!ExtendedWorkbookPackageModel.TryCreate(_spreadSheetDocument, directDataSetModel: null, out model, out modelSkipReason)) {
+                    skipReason = modelSkipReason ?? "Workbook contains parts outside the extended package writer surface after materializing direct data.";
+                    return false;
+                }
+
+                ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.MaterializeMixedWorkbookDirectData");
+            }
+
             ct.ThrowIfCancellationRequested();
             PrepareDestinationStreamForWrite(destination);
             ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.PrepareDestination");
@@ -152,6 +170,25 @@ namespace OfficeIMO.Excel {
 
             Execution.ReportTiming(operation, stopwatch.Elapsed);
             stopwatch.Restart();
+        }
+
+        private static bool ShouldMaterializeMixedDirectWorkbookGlobalParts(ExtendedWorkbookPackageModel model) {
+            if (model.DirectDataSetModel == null || model.DirectWorksheetModels.Count == 0) {
+                return false;
+            }
+
+            int worksheetPartCount = 0;
+            bool hasWorkbookGlobalPart = false;
+            foreach (var part in model.Parts) {
+                if (part.Part is WorksheetPart) {
+                    worksheetPartCount++;
+                } else if (part.Part is WorkbookStylesPart || part.Part is SharedStringTablePart) {
+                    hasWorkbookGlobalPart = true;
+                }
+            }
+
+            return hasWorkbookGlobalPart
+                   && model.DirectWorksheetModels.Count < worksheetPartCount;
         }
 
         private static readonly System.Text.UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);

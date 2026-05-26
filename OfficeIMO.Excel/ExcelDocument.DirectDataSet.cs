@@ -436,7 +436,7 @@ namespace OfficeIMO.Excel {
                 promotedModel,
                 candidate.InvalidateCallback,
                 candidate.IsDeferred,
-                subscribeToSourceChanges: false);
+                candidate.SubscribesToSourceChanges);
             _directDataSetMetadataSourceSheet = sheet;
             candidate.Dispose();
 
@@ -520,7 +520,7 @@ namespace OfficeIMO.Excel {
                 model,
                 candidate.InvalidateCallback,
                 candidate.IsDeferred,
-                subscribeToSourceChanges: false);
+                candidate.SubscribesToSourceChanges);
             _directDataSetMetadataSourceSheet = sheet;
             candidate.Dispose();
             _packageDirty = true;
@@ -613,7 +613,7 @@ namespace OfficeIMO.Excel {
                 model,
                 candidate.InvalidateCallback,
                 candidate.IsDeferred,
-                subscribeToSourceChanges: false);
+                candidate.SubscribesToSourceChanges);
             _directDataSetMetadataSourceSheet = sheet;
             candidate.Dispose();
             _packageDirty = true;
@@ -788,7 +788,7 @@ namespace OfficeIMO.Excel {
                     model,
                     candidate.InvalidateCallback,
                     candidate.IsDeferred,
-                    subscribeToSourceChanges: false);
+                    candidate.SubscribesToSourceChanges);
                 _directDataSetMetadataSourceSheet = sheet;
                 candidate.Dispose();
                 _packageDirty = true;
@@ -1002,7 +1002,7 @@ namespace OfficeIMO.Excel {
                     model,
                     candidate.InvalidateCallback,
                     candidate.IsDeferred,
-                    subscribeToSourceChanges: false);
+                    candidate.SubscribesToSourceChanges);
                 _directDataSetMetadataSourceSheet = sheet;
                 candidate.Dispose();
                 _packageDirty = true;
@@ -1041,7 +1041,7 @@ namespace OfficeIMO.Excel {
                     model,
                     candidate.InvalidateCallback,
                     candidate.IsDeferred,
-                    subscribeToSourceChanges: false);
+                    candidate.SubscribesToSourceChanges);
                 _directDataSetMetadataSourceSheet = sheet;
                 candidate.Dispose();
                 _packageDirty = true;
@@ -1400,6 +1400,170 @@ namespace OfficeIMO.Excel {
             if (!string.IsNullOrEmpty(metadata.DrawingXml)) {
                 InsertWorksheetMetadataElement(worksheet, CreateElementWithAttributes<DocumentFormat.OpenXml.Spreadsheet.Drawing>(metadata.DrawingXml!), typeof(TableParts));
             }
+
+            ApplyCapturedDirectOverlayCells(worksheet, metadata.OverlayCells);
+        }
+
+        private static void ApplyCapturedDirectOverlayCells(Worksheet worksheet, IReadOnlyList<DirectOverlayCell> overlayCells) {
+            if (overlayCells.Count == 0) {
+                return;
+            }
+
+            SheetData sheetData = worksheet.GetFirstChild<SheetData>() ?? worksheet.AppendChild(new SheetData());
+            foreach (var overlayCell in overlayCells.OrderBy(static cell => cell.Row).ThenBy(static cell => cell.Column)) {
+                Row row = GetOrCreateDirectOverlayRow(sheetData, overlayCell.Row);
+                Cell cell = GetOrCreateDirectOverlayCell(row, overlayCell.Row, overlayCell.Column);
+                ApplyCapturedDirectOverlayCellValue(cell, overlayCell.Value);
+            }
+        }
+
+        private static Row GetOrCreateDirectOverlayRow(SheetData sheetData, int rowIndex) {
+            Row? insertAfter = null;
+            foreach (Row row in sheetData.Elements<Row>()) {
+                uint currentIndex = row.RowIndex?.Value ?? 0U;
+                if (currentIndex == (uint)rowIndex) {
+                    return row;
+                }
+
+                if (currentIndex > (uint)rowIndex) {
+                    break;
+                }
+
+                insertAfter = row;
+            }
+
+            var created = new Row { RowIndex = (uint)rowIndex };
+            if (insertAfter == null) {
+                var first = sheetData.Elements<Row>().FirstOrDefault();
+                if (first == null) {
+                    sheetData.Append(created);
+                } else {
+                    sheetData.InsertBefore(created, first);
+                }
+            } else if (insertAfter.NextSibling<Row>() == null) {
+                sheetData.Append(created);
+            } else {
+                sheetData.InsertAfter(created, insertAfter);
+            }
+
+            return created;
+        }
+
+        private static Cell GetOrCreateDirectOverlayCell(Row row, int rowIndex, int columnIndex) {
+            string reference = A1.CellReference(rowIndex, columnIndex);
+            Cell? insertAfter = null;
+            foreach (Cell cell in row.Elements<Cell>()) {
+                if (string.Equals(cell.CellReference?.Value, reference, StringComparison.Ordinal)) {
+                    return cell;
+                }
+
+                if (cell.CellReference?.Value is string currentReference
+                    && currentReference.Length > 0
+                    && GetDirectOverlayColumnIndex(currentReference) > columnIndex) {
+                    break;
+                }
+
+                insertAfter = cell;
+            }
+
+            var created = new Cell { CellReference = reference };
+            if (insertAfter == null) {
+                var first = row.Elements<Cell>().FirstOrDefault();
+                if (first == null) {
+                    row.Append(created);
+                } else {
+                    row.InsertBefore(created, first);
+                }
+            } else if (insertAfter.NextSibling<Cell>() == null) {
+                row.Append(created);
+            } else {
+                row.InsertAfter(created, insertAfter);
+            }
+
+            return created;
+        }
+
+        private static void ApplyCapturedDirectOverlayCellValue(Cell cell, object? value) {
+            cell.CellFormula = null;
+            cell.InlineString = null;
+
+            switch (value) {
+                case null:
+                case DBNull _:
+                    cell.CellValue = new CellValue(string.Empty);
+                    cell.DataType = CellValues.String;
+                    break;
+                case DirectFormulaCellValue formula:
+                    cell.CellFormula = new CellFormula(formula.Formula);
+                    cell.CellValue = null;
+                    cell.DataType = null;
+                    break;
+                case bool boolean:
+                    cell.CellValue = new CellValue(boolean ? "1" : "0");
+                    cell.DataType = CellValues.Boolean;
+                    break;
+                case byte number:
+                    ApplyCapturedDirectOverlayNumber(cell, number);
+                    break;
+                case sbyte number:
+                    ApplyCapturedDirectOverlayNumber(cell, number);
+                    break;
+                case short number:
+                    ApplyCapturedDirectOverlayNumber(cell, number);
+                    break;
+                case ushort number:
+                    ApplyCapturedDirectOverlayNumber(cell, number);
+                    break;
+                case int number:
+                    ApplyCapturedDirectOverlayNumber(cell, number);
+                    break;
+                case uint number:
+                    ApplyCapturedDirectOverlayNumber(cell, number);
+                    break;
+                case long number:
+                    ApplyCapturedDirectOverlayNumber(cell, number);
+                    break;
+                case ulong number:
+                    ApplyCapturedDirectOverlayNumber(cell, number);
+                    break;
+                case float number:
+                    ApplyCapturedDirectOverlayNumber(cell, number);
+                    break;
+                case double number:
+                    ApplyCapturedDirectOverlayNumber(cell, number);
+                    break;
+                case decimal number:
+                    ApplyCapturedDirectOverlayNumber(cell, number);
+                    break;
+                case DateTime dateTime:
+                    ApplyCapturedDirectOverlayNumber(cell, dateTime.ToOADate());
+                    break;
+                default:
+                    cell.CellValue = new CellValue(Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty);
+                    cell.DataType = CellValues.String;
+                    break;
+            }
+        }
+
+        private static void ApplyCapturedDirectOverlayNumber<T>(Cell cell, T value) where T : IFormattable {
+            cell.CellValue = new CellValue(value.ToString(null, CultureInfo.InvariantCulture));
+            cell.DataType = CellValues.Number;
+        }
+
+        private static int GetDirectOverlayColumnIndex(string cellReference) {
+            int column = 0;
+            for (int i = 0; i < cellReference.Length; i++) {
+                char ch = cellReference[i];
+                if (ch >= 'A' && ch <= 'Z') {
+                    column = checked((column * 26) + ch - 'A' + 1);
+                } else if (ch >= 'a' && ch <= 'z') {
+                    column = checked((column * 26) + ch - 'a' + 1);
+                } else {
+                    break;
+                }
+            }
+
+            return column;
         }
 
         internal void MaterializeDeferredDataSetImportPreservingFastSaveModel() {
@@ -1613,6 +1777,11 @@ namespace OfficeIMO.Excel {
 
             if (HasCalculationSaveWork(options)) {
                 skipReason = "Calculation save policy requires the standard package finalization path.";
+                return false;
+            }
+
+            if (_materializedDirectDataSetFastSaveModel != null) {
+                skipReason = "A materialized direct DataSet fast-save model requires the extended package writer.";
                 return false;
             }
 
@@ -2010,13 +2179,17 @@ namespace OfficeIMO.Excel {
         private static IReadOnlyList<DirectOverlayCell> CaptureDirectWorksheetOverlayCells(ExcelSheet sheet, DirectDataSetSheetModel sheetModel, SheetData sheetData) {
             int directLastRow = sheetModel.Table.RowCount + (sheetModel.IncludeHeaders ? 1 : 0);
             List<DirectOverlayCell>? cells = null;
+            int nextRowIndex = 1;
             foreach (var row in sheetData.Elements<Row>()) {
-                int rowIndex = row.RowIndex?.Value is uint explicitRow ? checked((int)explicitRow) : 0;
+                int rowIndex = row.RowIndex?.Value is uint explicitRow ? checked((int)explicitRow) : nextRowIndex;
+                nextRowIndex = checked(rowIndex + 1);
+                int nextColumnIndex = 1;
                 foreach (var cell in row.Elements<Cell>()) {
-                    if (!TryGetCellCoordinates(cell, rowIndex, out int cellRow, out int cellColumn)) {
+                    if (!TryGetCellCoordinates(cell, rowIndex, nextColumnIndex, out int cellRow, out int cellColumn)) {
                         continue;
                     }
 
+                    nextColumnIndex = checked(cellColumn + 1);
                     if (cellColumn <= 0 || (cellRow <= directLastRow && cellColumn <= sheetModel.Table.ColumnCount)) {
                         continue;
                     }
@@ -2034,7 +2207,7 @@ namespace OfficeIMO.Excel {
             return cells ?? (IReadOnlyList<DirectOverlayCell>)Array.Empty<DirectOverlayCell>();
         }
 
-        private static bool TryGetCellCoordinates(Cell cell, int fallbackRow, out int row, out int column) {
+        private static bool TryGetCellCoordinates(Cell cell, int fallbackRow, int fallbackColumn, out int row, out int column) {
             row = 0;
             column = 0;
             string? reference = cell.CellReference?.Value;
@@ -2048,7 +2221,8 @@ namespace OfficeIMO.Excel {
             }
 
             row = fallbackRow;
-            return row > 0;
+            column = fallbackColumn;
+            return row > 0 && column > 0;
         }
 
         private static object? ReadDirectOverlayCellValue(ExcelSheet sheet, Cell cell) {
@@ -3890,6 +4064,8 @@ namespace OfficeIMO.Excel {
             internal Action InvalidateCallback => _invalidate;
 
             internal bool IsDeferred { get; }
+
+            internal bool SubscribesToSourceChanges => _subscribed;
 
             internal bool IsValid { get; private set; } = true;
 
