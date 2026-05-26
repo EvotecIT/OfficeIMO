@@ -41,9 +41,33 @@ namespace OfficeIMO.Visio.Diagrams {
             public bool Automatic { get; }
         }
 
+        private sealed class CalloutItem {
+            public CalloutItem(string targetId, string id, string text, double pinX, double pinY, VisioCalloutOptions options) {
+                TargetId = targetId;
+                Id = id;
+                Text = text;
+                PinX = pinX;
+                PinY = pinY;
+                Options = options;
+            }
+
+            public string TargetId { get; }
+
+            public string Id { get; }
+
+            public string Text { get; }
+
+            public double PinX { get; }
+
+            public double PinY { get; }
+
+            public VisioCalloutOptions Options { get; }
+        }
+
         private readonly List<Node> _nodes = new List<Node>();
         private readonly Dictionary<string, Node> _nodesById = new Dictionary<string, Node>(StringComparer.Ordinal);
         private readonly List<Edge> _edges = new List<Edge>();
+        private readonly List<CalloutItem> _callouts = new List<CalloutItem>();
         private readonly VisioDocument _document;
         private readonly string _pageName;
         private VisioFlowchartTheme _theme = VisioFlowchartTheme.ModernBlueGreen();
@@ -111,18 +135,15 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Adds a centered editable title above the generated flowchart.</summary>
         public VisioFlowchartBuilder Title(string? text = null, string id = "title", double height = 0.45, double gap = 0.35) {
-            if (string.IsNullOrWhiteSpace(id)) {
-                throw new ArgumentException("Title id cannot be null or whitespace.", nameof(id));
-            }
-
-            if (_nodesById.ContainsKey(id)) {
-                throw new ArgumentException($"A flowchart node with id '{id}' already exists.", nameof(id));
+            string normalizedId = RequireId(id, nameof(id), "Title id");
+            if (IsIdInUse(normalizedId)) {
+                throw new ArgumentException($"A flowchart item with id '{normalizedId}' already exists.", nameof(id));
             }
 
             ValidatePositive(height, nameof(height));
             ValidateNonNegative(gap, nameof(gap));
             _titleText = string.IsNullOrWhiteSpace(text) ? _pageName : text;
-            _titleId = id;
+            _titleId = normalizedId;
             _titleHeight = height;
             _titleGap = gap;
             return this;
@@ -163,14 +184,42 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Adds an explicit connector between two nodes.</summary>
         public VisioFlowchartBuilder Connect(string fromId, string toId, string? label = null) {
-            EnsureKnownNode(fromId, nameof(fromId));
-            EnsureKnownNode(toId, nameof(toId));
-            _edges.Add(new Edge(fromId, toId, label, automatic: false));
+            string normalizedFromId = RequireId(fromId, nameof(fromId), "From node id");
+            string normalizedToId = RequireId(toId, nameof(toId), "To node id");
+            EnsureKnownNode(normalizedFromId, nameof(fromId));
+            EnsureKnownNode(normalizedToId, nameof(toId));
+            _edges.Add(new Edge(normalizedFromId, normalizedToId, label, automatic: false));
             return this;
         }
 
         /// <summary>Adds a labeled branch connector between two nodes.</summary>
         public VisioFlowchartBuilder Branch(string fromId, string label, string toId) => Connect(fromId, toId, label);
+
+        /// <summary>Adds a semantic callout connected to a known flowchart node using a generated callout id.</summary>
+        public VisioFlowchartBuilder Callout(string targetId, string text, double pinX, double pinY, Action<VisioCalloutOptions>? configure = null) {
+            string normalizedTargetId = RequireId(targetId, nameof(targetId), "Callout target id");
+            EnsureKnownNode(normalizedTargetId, nameof(targetId));
+            return Callout(normalizedTargetId, CreateCalloutId(normalizedTargetId), text, pinX, pinY, configure);
+        }
+
+        /// <summary>Adds a semantic callout connected to a known flowchart node.</summary>
+        public VisioFlowchartBuilder Callout(string targetId, string id, string text, double pinX, double pinY, Action<VisioCalloutOptions>? configure = null) {
+            string normalizedTargetId = RequireId(targetId, nameof(targetId), "Callout target id");
+            string normalizedId = RequireId(id, nameof(id), "Callout id");
+            EnsureKnownNode(normalizedTargetId, nameof(targetId));
+            if (IsIdInUse(normalizedId)) {
+                throw new ArgumentException($"A flowchart item with id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            ValidateFinite(pinX, nameof(pinX));
+            ValidateFinite(pinY, nameof(pinY));
+            VisioCalloutOptions options = CreateCalloutOptions();
+            configure?.Invoke(options);
+            ValidatePositive(options.Width, nameof(options.Width));
+            ValidatePositive(options.Height, nameof(options.Height));
+            _callouts.Add(new CalloutItem(normalizedTargetId, normalizedId, text ?? string.Empty, pinX, pinY, options));
+            return this;
+        }
 
         internal VisioPage Build() {
             if (_built) {
@@ -189,6 +238,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 page.Grid(visible: false, snap: true);
                 PlaceNodes(page);
                 ConnectNodes(page);
+                AddCallouts(page);
                 AddTitle(page);
                 _document.RequestRecalcOnOpen();
                 return page;
@@ -198,25 +248,18 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private VisioFlowchartBuilder AddNode(string id, string text, VisioFlowchartNodeKind kind, bool connectFromPrevious) {
-            if (string.IsNullOrWhiteSpace(id)) {
-                throw new ArgumentException("Flowchart node id cannot be null or whitespace.", nameof(id));
+            string normalizedId = RequireId(id, nameof(id), "Flowchart node id");
+            if (IsIdInUse(normalizedId)) {
+                throw new ArgumentException($"A flowchart item with id '{normalizedId}' already exists.", nameof(id));
             }
 
-            if (_nodesById.ContainsKey(id)) {
-                throw new ArgumentException($"A flowchart node with id '{id}' already exists.", nameof(id));
-            }
-
-            if (!string.IsNullOrWhiteSpace(_titleText) && string.Equals(id, _titleId, StringComparison.Ordinal)) {
-                throw new ArgumentException($"A flowchart title with id '{id}' already exists.", nameof(id));
-            }
-
-            Node node = new Node(id, text ?? string.Empty, kind);
+            Node node = new Node(normalizedId, text ?? string.Empty, kind);
             if (connectFromPrevious && _nodes.Count > 0) {
-                _edges.Add(new Edge(_nodes[_nodes.Count - 1].Id, id, null, automatic: true));
+                _edges.Add(new Edge(_nodes[_nodes.Count - 1].Id, normalizedId, null, automatic: true));
             }
 
             _nodes.Add(node);
-            _nodesById.Add(id, node);
+            _nodesById.Add(normalizedId, node);
             return this;
         }
 
@@ -380,6 +423,28 @@ namespace OfficeIMO.Visio.Diagrams {
             return connector;
         }
 
+        private void AddCallouts(VisioPage page) {
+            foreach (CalloutItem callout in _callouts) {
+                Node target = _nodesById[callout.TargetId];
+                if (target.Shape == null) {
+                    throw new InvalidOperationException("Flowchart nodes must be placed before callouts are created.");
+                }
+
+                page.AddCallout(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
+            }
+        }
+
+        private VisioCalloutOptions CreateCalloutOptions() {
+            return new VisioCalloutOptions {
+                ShapeStyle = new VisioShapeStyle(_theme.MarkerFill, _theme.MarkerStroke, Math.Max(0.012D, _theme.LineWeight)),
+                LeaderStyle = new VisioConnectorStyle(_theme.ConnectorColor, Math.Max(0.012D, _theme.LineWeight), 2, EndArrow.None) {
+                    Kind = ConnectorKind.RightAngle,
+                    TextStyle = _theme.ConnectorTextStyle?.Clone()
+                },
+                RouteOffset = 0.08D
+            };
+        }
+
         private bool ShouldRouteBranch(Edge edge, Node from, Node to) {
             if (!_routeBranches || edge.Automatic) {
                 return false;
@@ -507,12 +572,55 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private void EnsureKnownNode(string id, string parameterName) {
-            if (string.IsNullOrWhiteSpace(id)) {
-                throw new ArgumentException("Flowchart node id cannot be null or whitespace.", parameterName);
+            string normalizedId = RequireId(id, parameterName, "Flowchart node id");
+            if (!_nodesById.ContainsKey(normalizedId)) {
+                throw new ArgumentException($"Unknown flowchart node id '{normalizedId}'.", parameterName);
+            }
+        }
+
+        private bool IsIdInUse(string id) {
+            if (!string.IsNullOrWhiteSpace(_titleText) && string.Equals(id, _titleId, StringComparison.Ordinal)) {
+                return true;
             }
 
-            if (!_nodesById.ContainsKey(id)) {
-                throw new ArgumentException($"Unknown flowchart node id '{id}'.", parameterName);
+            if (_nodesById.ContainsKey(id)) {
+                return true;
+            }
+
+            foreach (CalloutItem callout in _callouts) {
+                if (string.Equals(callout.Id, id, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private string CreateCalloutId(string targetId) {
+            string id = targetId + "-callout";
+            if (!IsIdInUse(id)) {
+                return id;
+            }
+
+            int index = 2;
+            while (IsIdInUse(id + "-" + index)) {
+                index++;
+            }
+
+            return id + "-" + index;
+        }
+
+        private static string RequireId(string id, string parameterName, string label) {
+            if (string.IsNullOrWhiteSpace(id)) {
+                throw new ArgumentException(label + " cannot be null or whitespace.", parameterName);
+            }
+
+            return id.Trim();
+        }
+
+        private static void ValidateFinite(double value, string parameterName) {
+            if (double.IsNaN(value) || double.IsInfinity(value)) {
+                throw new ArgumentOutOfRangeException(parameterName, "Value must be a finite number.");
             }
         }
 

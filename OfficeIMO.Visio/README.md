@@ -56,14 +56,16 @@ VisioDocument.Create("flowchart.vsdx")
         .Decision("agreement", "Negotiate\n& Counteroffer:\nAgreement?")
         .Step("contract", "Accept the contract")
         .End("close", "Close on the\nproperty")
-        .Branch("agreement", "No", "market"))
+        .Branch("agreement", "No", "market")
+        .Callout("agreement", "retry-note", "Loop back if the offer is rejected", 5.9, 4.6))
     .Save();
 ```
 
 The diagram builder creates normal Visio pages, semantic flowchart shapes,
 masters, side-glued connectors, labels, deterministic layouts, and routed
-branch/loop connectors. It is the first high-level authoring layer above the
-lower-level page/shape APIs.
+branch/loop connectors. Flowcharts can also add semantic callouts with leader
+connectors for complex branches or reviewer notes. It is the first high-level
+authoring layer above the lower-level page/shape APIs.
 
 ## Quick sample (block diagram builder)
 

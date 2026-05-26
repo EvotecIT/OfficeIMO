@@ -117,6 +117,60 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FlowchartBuilderCanAddSemanticCallouts() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .Flowchart("Annotated", flow => flow
+                    .Start("start", "Start")
+                    .Step("review", "Review")
+                    .Decision("agreement", "Agreement?")
+                    .End("done", "Done")
+                    .Callout(" agreement ", "agreement-note", "Escalate if rejected", 6.2, 5.7, options => {
+                        options.Width = 2.35;
+                        options.Height = 0.7;
+                        options.RouteOffset = 0.1;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape callout = Assert.Single(page.Callouts());
+            VisioShape target = Assert.Single(page.Shapes, shape => shape.Id == "agreement");
+            Assert.Equal("agreement-note", callout.Id);
+            Assert.Equal("Escalate if rejected", callout.Text);
+            Assert.Equal(target.Id, callout.CalloutTargetId);
+            Assert.Contains("Annotations", callout.LayerNames);
+            Assert.Equal(2.35, callout.Width);
+            Assert.Equal(0.7, callout.Height);
+
+            VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, callout));
+            Assert.Same(target, leader.To);
+            Assert.Equal(EndArrow.None, leader.EndArrow);
+            Assert.Contains("Annotations", leader.LayerNames);
+            Assert.Equal(leader.Id, callout.GetUserCellValue("OfficeIMO.CalloutLeaderId"));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void FlowchartBuilderNormalizesNodeAndConnectorIds() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .Flowchart("Trimmed", flow => flow
+                    .Start(" start ", "Start")
+                    .Step(" review ", "Review")
+                    .End(" done ", "Done")
+                    .Branch(" review ", "retry", " start "));
+
+            VisioPage page = Assert.Single(document.Pages);
+            Assert.Contains(page.Shapes, shape => shape.Id == "start");
+            Assert.Contains(page.Shapes, shape => shape.Id == "review");
+            Assert.Contains(page.Shapes, shape => shape.Id == "done");
+            VisioConnector connector = Assert.Single(page.Connectors, item => item.Label == "retry");
+            Assert.Equal("review", connector.From.Id);
+            Assert.Equal("start", connector.To.Id);
+        }
+
+        [Fact]
         public void FlowchartBuilderRejectsDuplicateNodeIds() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -137,7 +191,25 @@ namespace OfficeIMO.Tests {
                     .Title(id: "start")
                     .Start("start", "Start")));
 
-            Assert.Contains("title with id", exception.Message);
+            Assert.Contains("already exists", exception.Message);
+        }
+
+        [Fact]
+        public void FlowchartBuilderRejectsCalloutIdCollisions() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException nodeCollision = Assert.Throws<ArgumentException>(() =>
+                document.Flowchart("Invalid", flow => flow
+                    .Start("start", "Start")
+                    .Callout("start", "start", "Duplicate id", 4, 4)));
+            ArgumentException titleCollision = Assert.Throws<ArgumentException>(() =>
+                document.Flowchart("Invalid", flow => flow
+                    .Title()
+                    .Start("start", "Start")
+                    .Callout("start", "title", "Duplicate id", 4, 4)));
+
+            Assert.Contains("already exists", nodeCollision.Message);
+            Assert.Contains("already exists", titleCollision.Message);
         }
     }
 }
