@@ -186,12 +186,14 @@ VisioDocument.Create("network.vsdx")
         .Trunk("core", "app", "10Gb")
         .Ethernet("app", "db")
         .Ethernet("core", "pc2")
-        .Ethernet("pc2", "printer"))
+        .Ethernet("pc2", "printer")
+        .Callout("firewall", "edge-note", "Inspect and log inbound traffic", 5.8, 6.2))
     .Save();
 ```
 
 The network builder creates dependency-free network maps with zones, typed
-devices, routed Ethernet/trunk/wireless/management links, and optional legends.
+devices, routed Ethernet/trunk/wireless/management links, semantic callouts,
+and optional legends.
 
 ## Quick sample (network topology diagram builder)
 

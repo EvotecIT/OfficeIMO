@@ -107,6 +107,72 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NetworkDiagramBuilderNormalizesLinkEndpointIds() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .NetworkDiagram("Trimmed", network => network
+                    .Switch("core", "Core", 0, 0)
+                    .Server("app", "App", 1, 0)
+                    .Ethernet(" core ", " app ", "LAN"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioConnector connector = Assert.Single(page.Connectors);
+            Assert.Equal("core", connector.From.Id);
+            Assert.Equal("app", connector.To.Id);
+            Assert.Equal("LAN", connector.Label);
+        }
+
+        [Fact]
+        public void NetworkDiagramBuilderCanAddSemanticCallouts() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .NetworkDiagram("Annotated Network", network => network
+                    .Title()
+                    .Zone("edge", "Edge", 0, 0, 3, 1)
+                    .Internet("internet", "Internet", 0, 0)
+                    .Firewall("firewall", "Firewall", 1, 0)
+                    .Switch("core", "Core", 2, 0)
+                    .Ethernet("internet", "firewall", "WAN")
+                    .Trunk("firewall", "core", "uplink")
+                    .Callout(" firewall ", "firewall-note", "Inbound traffic inspection", 5.6, 6.2, options => {
+                        options.Width = 2.55;
+                        options.Height = 0.72;
+                        options.RouteOffset = 0.1;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape callout = Assert.Single(page.Callouts());
+            VisioShape target = Assert.Single(page.Shapes, shape => shape.Id == "firewall");
+            Assert.Equal("firewall-note", callout.Id);
+            Assert.Equal("Inbound traffic inspection", callout.Text);
+            Assert.Equal(target.Id, callout.CalloutTargetId);
+            Assert.Contains("Annotations", callout.LayerNames);
+            Assert.Equal(2.55, callout.Width);
+            Assert.Equal(0.72, callout.Height);
+
+            VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, callout));
+            Assert.Same(target, leader.To);
+            Assert.Equal(EndArrow.None, leader.EndArrow);
+            Assert.Contains("Annotations", leader.LayerNames);
+            Assert.Equal(leader.Id, callout.GetUserCellValue("OfficeIMO.CalloutLeaderId"));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void NetworkDiagramBuilderGeneratesUniqueCalloutIds() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .NetworkDiagram("Generated", network => network
+                    .Switch("core", "Core", 0, 0)
+                    .Callout("core", "First note", 3.5, 4.5)
+                    .Callout("core", "Second note", 3.5, 3.6));
+
+            VisioPage page = Assert.Single(document.Pages);
+            Assert.Equal(new[] { "core-callout", "core-callout-2" }, page.Callouts().Select(shape => shape.Id).ToArray());
+        }
+
+        [Fact]
         public void NetworkDiagramBuilderRejectsTitleIdCollisions() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -116,6 +182,29 @@ namespace OfficeIMO.Tests {
                     .Title()));
 
             Assert.Contains("already exists", exception.Message);
+        }
+
+        [Fact]
+        public void NetworkDiagramBuilderRejectsCalloutIdCollisionsAndUnknownTargets() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException unknownTarget = Assert.Throws<ArgumentException>(() =>
+                document.NetworkDiagram("Invalid", network => network
+                    .Switch("core", "Core", 0, 0)
+                    .Callout("missing", "note", "No target", 4, 4)));
+            ArgumentException nodeCollision = Assert.Throws<ArgumentException>(() =>
+                document.NetworkDiagram("Invalid", network => network
+                    .Switch("core", "Core", 0, 0)
+                    .Callout("core", "core", "Duplicate id", 4, 4)));
+            ArgumentException zoneCollision = Assert.Throws<ArgumentException>(() =>
+                document.NetworkDiagram("Invalid", network => network
+                    .Zone("edge", "Edge", 0, 0, 1, 1)
+                    .Switch("core", "Core", 0, 0)
+                    .Callout("core", "edge", "Duplicate id", 4, 4)));
+
+            Assert.Contains("Unknown network node id", unknownTarget.Message);
+            Assert.Contains("already exists", nodeCollision.Message);
+            Assert.Contains("already exists", zoneCollision.Message);
         }
     }
 }
