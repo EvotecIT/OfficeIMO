@@ -648,6 +648,13 @@ internal static class PdfSyntax {
             return rootDictionary;
         }
 
+        if (TryGetXrefStreamRootObjectNumber(map, out rootObjectNumber) &&
+            map.TryGetValue(rootObjectNumber, out rootObject) &&
+            rootObject.Value is PdfDictionary xrefRootDictionary &&
+            xrefRootDictionary.Get<PdfName>("Type")?.Name == "Catalog") {
+            return xrefRootDictionary;
+        }
+
         return FindCatalogByScan(map);
     }
 
@@ -671,6 +678,27 @@ internal static class PdfSyntax {
         Match match = TrailerRootRegex.Match(trailerRaw);
         return match.Success &&
             int.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out objectNumber);
+    }
+
+    private static bool TryGetXrefStreamRootObjectNumber(Dictionary<int, PdfIndirectObject> map, out int objectNumber) {
+        objectNumber = 0;
+        foreach (var entry in map.Values.OrderByDescending(static item => item.ObjectNumber)) {
+            PdfDictionary? dictionary = entry.Value switch {
+                PdfStream stream => stream.Dictionary,
+                PdfDictionary directDictionary => directDictionary,
+                _ => null
+            };
+
+            if (dictionary?.Get<PdfName>("Type")?.Name == "XRef" &&
+                ResolveObject(map, dictionary.Items.TryGetValue("Root", out var root) ? root : null) is PdfDictionary rootDictionary &&
+                rootDictionary.Get<PdfName>("Type")?.Name == "Catalog" &&
+                dictionary.Items["Root"] is PdfReference rootReference) {
+                objectNumber = rootReference.ObjectNumber;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static PdfObject? ResolveObject(Dictionary<int, PdfIndirectObject> map, PdfObject? value) {

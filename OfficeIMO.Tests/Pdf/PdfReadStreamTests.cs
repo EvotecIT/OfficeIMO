@@ -269,6 +269,30 @@ public class PdfReadStreamTests {
     }
 
     [Fact]
+    public void ReadApis_UseXrefStreamRootCatalogWhenClassicTrailerIsAbsent() {
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildXrefStreamRootCatalogPdf());
+
+        PdfPageInfo page = Assert.Single(info.Pages);
+        Assert.Equal(200d, page.Width);
+        Assert.Equal(200d, page.Height);
+        PdfOutlineItem outline = Assert.Single(info.Outlines);
+        Assert.Equal("Current", outline.Title);
+        Assert.Equal(1, outline.PageNumber);
+        Assert.Equal("SinglePage", info.CatalogPageLayout);
+    }
+
+    [Fact]
+    public void RewriteApis_UseXrefStreamRootCatalogWhenClassicTrailerIsAbsent() {
+        byte[] output = PdfPageExtractor.ExtractPages(BuildXrefStreamRootCatalogPdf(), 1);
+
+        string text = System.Text.Encoding.ASCII.GetString(output);
+        Assert.Contains("/PageLayout /SinglePage", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("/PageLayout /TwoColumnLeft", text, StringComparison.Ordinal);
+        PdfOutlineItem outline = Assert.Single(PdfInspector.Inspect(output).Outlines);
+        Assert.Equal("Current", outline.Title);
+    }
+
+    [Fact]
     public void RewriteApis_PreserveCatalogViewSettings() {
         byte[] catalogViewSettingPdf = BuildCatalogViewSettingPdf();
         byte[] twoPageCatalogViewSettingPdf = BuildTwoPageCatalogViewSettingPdf();
@@ -1215,6 +1239,59 @@ public class PdfReadStreamTests {
             "endobj",
             "trailer",
             "<< /Root 5 0 R /Size 13 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildXrefStreamRootCatalogPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.5",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 4 0 R /PageLayout /TwoColumnLeft >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 11 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Outlines /First 12 0 R /Last 12 0 R /Count 1 >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Catalog /Pages 6 0 R /Outlines 8 0 R /PageLayout /SinglePage >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [7 0 R] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /Type /Page /Parent 6 0 R /MediaBox [0 0 200 200] /Contents 11 0 R >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Outlines /First 9 0 R /Last 9 0 R /Count 1 >>",
+            "endobj",
+            "9 0 obj",
+            "<< /Title (Current) /Parent 8 0 R /Dest [7 0 R /XYZ 0 144 0] >>",
+            "endobj",
+            "10 0 obj",
+            "<< /Type /XRef /Root 5 0 R /Size 13 /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "11 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "12 0 obj",
+            "<< /Title (Old) /Parent 4 0 R /Dest [3 0 R /XYZ 0 72 0] >>",
+            "endobj",
+            "startxref",
+            "0",
             "%%EOF"
         });
 
