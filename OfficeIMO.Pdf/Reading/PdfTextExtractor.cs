@@ -980,6 +980,7 @@ public static class PdfTextExtractor {
         var sb = new StringBuilder();
         bool inText = false;
         bool pendingSpace = false;
+        bool hasTextInCurrentTextObject = false;
         double currentFontSize = 12;
         double currentHorizontalScale = 1.0;
         var args = new List<object>(8);
@@ -1016,11 +1017,13 @@ public static class PdfTextExtractor {
                 case "BT":
                     inText = true;
                     pendingSpace = false;
+                    hasTextInCurrentTextObject = false;
                     args.Clear();
                     break;
                 case "ET":
                     inText = false;
                     pendingSpace = false;
+                    hasTextInCurrentTextObject = false;
                     args.Clear();
                     break;
                 case "T*":
@@ -1047,7 +1050,7 @@ public static class PdfTextExtractor {
                     if (inText && args.Count >= 2) {
                         double advanceX = ToDouble(args[args.Count - 2]);
                         double advanceY = ToDouble(args[args.Count - 1]);
-                        if (Math.Abs(advanceY) > 0.1) {
+                        if (Math.Abs(advanceY) > 0.1 && hasTextInCurrentTextObject) {
                             AppendLineBreak();
                         } else if (advanceX > 0.1) {
                             pendingSpace = true;
@@ -1107,6 +1110,9 @@ public static class PdfTextExtractor {
                 sb.Append(' ');
             }
             sb.Append(value);
+            if (inText) {
+                hasTextInCurrentTextObject = true;
+            }
             pendingSpace = false;
         }
 
@@ -1115,7 +1121,7 @@ public static class PdfTextExtractor {
         }
 
         void AppendLineBreak() {
-            if (sb.Length > 0 && sb[sb.Length - 1] != '\n' && sb[sb.Length - 1] != '\r') {
+            if (sb.Length > 0) {
                 sb.AppendLine();
             }
             pendingSpace = false;
