@@ -88,6 +88,7 @@ internal static class PdfSyntax {
         ThrowIfEncrypted(trailerRaw);
 
         ResolveIndirectStreamLengths(map, pdf, streamLocations);
+        ApplyClassicXrefEntries(map, pdf, parsedOffsets);
         ApplyXrefStreamEntries(map, pdf, parsedOffsets);
         // Expand object streams (/Type /ObjStm) to populate embedded objects (pages and resources often live there)
         ExpandObjectStreams(map, pdf, parsedOffsets);
@@ -1173,6 +1174,141 @@ internal static class PdfSyntax {
             Buffer.BlockCopy(pdf, byteStart, data, 0, byteLen);
             map[streamLocation.Id] = new PdfIndirectObject(streamLocation.Id, streamLocation.Generation, new PdfStream(stream.Dictionary, data, stream.DecodingFailed, stream.DecodingError));
         }
+    }
+
+    private static void ApplyClassicXrefEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, Dictionary<int, int> parsedOffsets) {
+        string text = PdfEncoding.Latin1GetString(pdf);
+        if (!TryGetLatestStartXrefOffset(text, out int activeXrefOffset)) {
+            return;
+        }
+
+        var tables = GetClassicXrefTableChain(text, activeXrefOffset);
+        if (tables.Count == 0) {
+            return;
+        }
+
+        foreach (var table in tables) {
+            foreach (var entry in table.Entries) {
+                if (!entry.InUse) {
+                    if (entry.ObjectNumber != 0) {
+                        map.Remove(entry.ObjectNumber);
+                        parsedOffsets.Remove(entry.ObjectNumber);
+                    }
+
+                    continue;
+                }
+
+                if (entry.Offset <= 0 ||
+                    entry.Offset >= pdf.Length) {
+                    continue;
+                }
+
+                if (TryParseIndirectObjectAt(pdf, text, entry.Offset, map, out var parsed) &&
+                    parsed.ObjectNumber == entry.ObjectNumber) {
+                    map[entry.ObjectNumber] = parsed;
+                    parsedOffsets[entry.ObjectNumber] = entry.Offset;
+                }
+            }
+        }
+    }
+
+    private static List<(int Offset, List<(int ObjectNumber, int Offset, bool InUse)> Entries)> GetClassicXrefTableChain(string text, int activeXrefOffset) {
+        var newestToOldest = new List<(int Offset, List<(int ObjectNumber, int Offset, bool InUse)> Entries)>();
+        var visited = new HashSet<int>();
+        int currentOffset = activeXrefOffset;
+        while (visited.Add(currentOffset) &&
+            newestToOldest.Count < 64 &&
+            TryParseClassicXrefTable(text, currentOffset, out var entries, out int? previousOffset)) {
+            newestToOldest.Add((currentOffset, entries));
+            if (!previousOffset.HasValue) {
+                break;
+            }
+
+            currentOffset = previousOffset.Value;
+        }
+
+        newestToOldest.Reverse();
+        return newestToOldest;
+    }
+
+    private static bool TryParseClassicXrefTable(string text, int offset, out List<(int ObjectNumber, int Offset, bool InUse)> entries, out int? previousOffset) {
+        entries = new List<(int ObjectNumber, int Offset, bool InUse)>();
+        previousOffset = null;
+        if (offset < 0 ||
+            offset + 4 > text.Length ||
+            !string.Equals(text.Substring(offset, 4), "xref", StringComparison.Ordinal) ||
+            !HasKeywordBoundary(text, offset - 1, 0, text.Length) ||
+            !HasKeywordBoundary(text, offset + 4, 0, text.Length)) {
+            return false;
+        }
+
+        int trailerIndex = IndexOfKeyword(text, "trailer", offset + 4, text.Length);
+        if (trailerIndex < 0) {
+            return false;
+        }
+
+        string section = SafeSlice(text, offset + 4, trailerIndex - (offset + 4), 2_000_000);
+        using (var reader = new StringReader(section)) {
+            string? line;
+            while ((line = reader.ReadLine()) is not null) {
+                string[] headerParts = SplitWhitespace(line);
+                if (headerParts.Length < 2 ||
+                    !int.TryParse(headerParts[0], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int firstObjectNumber) ||
+                    !int.TryParse(headerParts[1], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int count) ||
+                    firstObjectNumber < 0 ||
+                    count <= 0 ||
+                    count > 1_000_000) {
+                    continue;
+                }
+
+                for (int i = 0; i < count; i++) {
+                    string? entryLine = reader.ReadLine();
+                    if (entryLine is null) {
+                        return entries.Count > 0;
+                    }
+
+                    string[] entryParts = SplitWhitespace(entryLine);
+                    if (entryParts.Length < 3 ||
+                        !int.TryParse(entryParts[0], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int objectOffset)) {
+                        continue;
+                    }
+
+                    if (string.Equals(entryParts[2], "n", StringComparison.Ordinal)) {
+                        entries.Add((firstObjectNumber + i, objectOffset, true));
+                    } else if (string.Equals(entryParts[2], "f", StringComparison.Ordinal)) {
+                        entries.Add((firstObjectNumber + i, objectOffset, false));
+                    }
+                }
+            }
+        }
+
+        if (entries.Count == 0) {
+            return false;
+        }
+
+        int dictStart = text.IndexOf("<<", trailerIndex, StringComparison.Ordinal);
+        if (dictStart >= 0) {
+            int dictEnd = FindDictEnd(text, dictStart, text.Length);
+            if (dictEnd > dictStart) {
+                string dictText = SafeSlice(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000);
+                try {
+                    PdfDictionary trailer = ParseDictionary(dictText);
+                    if (trailer.Get<PdfNumber>("Prev") is PdfNumber previous &&
+                        previous.Value >= 0 &&
+                        previous.Value <= int.MaxValue) {
+                        previousOffset = (int)Math.Floor(previous.Value);
+                    }
+                } catch (Exception ex) when (ex is not OutOfMemoryException) {
+                    previousOffset = null;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private static string[] SplitWhitespace(string value) {
+        return value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
     }
 
     private static void ApplyXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, Dictionary<int, int> parsedOffsets) {
