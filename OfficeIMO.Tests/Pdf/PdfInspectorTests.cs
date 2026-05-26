@@ -1142,6 +1142,34 @@ public class PdfInspectorTests {
     }
 
     [Fact]
+    public void Preflight_ReportsUnsupportedContentStreamFiltersWithReadBlocker() {
+        PdfDocumentPreflight report = PdfInspector.Preflight(BuildUnsupportedContentStreamFilterPdf());
+
+        Assert.False(report.CanRead);
+        Assert.False(report.CanRewrite);
+        Assert.NotNull(report.DocumentInfo);
+        Assert.Equal(1, report.DocumentInfo!.PageCount);
+        AssertReadBlocker(
+            report,
+            PdfReadBlockerKind.UnsupportedContentStreamFilter,
+            "PDF page content streams use unsupported filter(s): DCTDecode.");
+    }
+
+    [Fact]
+    public void Preflight_ReportsUnsupportedFormXObjectStreamFiltersWithReadBlocker() {
+        PdfDocumentPreflight report = PdfInspector.Preflight(BuildUnsupportedFormXObjectStreamFilterPdf());
+
+        Assert.False(report.CanRead);
+        Assert.False(report.CanRewrite);
+        Assert.NotNull(report.DocumentInfo);
+        Assert.Equal(1, report.DocumentInfo!.PageCount);
+        AssertReadBlocker(
+            report,
+            PdfReadBlockerKind.UnsupportedContentStreamFilter,
+            "PDF page content streams use unsupported filter(s): DCTDecode.");
+    }
+
+    [Fact]
     public void Preflight_ReadsFromPathAndStream() {
         byte[] bytes = BuildTwoPagePdf();
         string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-preflight-" + Guid.NewGuid().ToString("N") + ".pdf");
@@ -1198,6 +1226,65 @@ public class PdfInspectorTests {
         });
 
         return doc.ToBytes();
+    }
+
+    private static byte[] BuildUnsupportedContentStreamFilterPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 4 /Filter /DCTDecode >>",
+            "stream",
+            "data",
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 5 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildUnsupportedFormXObjectStreamFilterPdf() {
+        const string pageContent = "q\n/Fm1 Do\nQ";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << /Fm1 5 0 R >> >> /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + pageContent.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            pageContent,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /XObject /Subtype /Form /BBox [0 0 200 200] /Length 4 /Filter /DCTDecode >>",
+            "stream",
+            "data",
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 
     private static void AssertNamedDestination(PdfDocumentInfo info, string name, int pageNumber, double destinationTop) {
