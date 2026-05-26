@@ -24,7 +24,7 @@ public static class PdfStamper {
         var effectiveOptions = options ?? new PdfTextStampOptions();
         ValidateOptions(effectiveOptions);
 
-        var (objects, _) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         var document = PdfReadDocument.Load(pdf);
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF does not contain any pages.", nameof(pdf));
@@ -59,7 +59,7 @@ public static class PdfStamper {
             overrides[page.ObjectNumber] = BuildPageOverrides(objects, pageObjectNumbers[i], fontResourceName, stampPseudoId, effectiveOptions.BehindContent);
         }
 
-        return PdfPageExtractor.ExtractPages(objects, document.Metadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects));
+        return PdfPageExtractor.ExtractPages(objects, document.Metadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw));
     }
 
     /// <summary>
@@ -135,7 +135,7 @@ public static class PdfStamper {
         }
 
         var effectiveOptions = BuildWatermarkOptions(options);
-        var (objects, _) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         var document = PdfReadDocument.Load(pdf);
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF does not contain any pages.", nameof(pdf));
@@ -171,7 +171,7 @@ public static class PdfStamper {
             overrides[page.ObjectNumber] = BuildPageOverrides(objects, pageObjectNumbers[i], fontResourceName, stampPseudoId, effectiveOptions.BehindContent);
         }
 
-        return PdfPageExtractor.ExtractPages(objects, document.Metadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects));
+        return PdfPageExtractor.ExtractPages(objects, document.Metadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw));
     }
 
     /// <summary>
@@ -313,7 +313,7 @@ public static class PdfStamper {
             throw new NotSupportedException(unsupportedReason ?? "Image format is not supported.");
         }
 
-        var (objects, _) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         var document = PdfReadDocument.Load(pdf);
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF does not contain any pages.", nameof(pdf));
@@ -354,7 +354,7 @@ public static class PdfStamper {
             overrides[page.ObjectNumber] = BuildImagePageOverrides(objects, pageObjectNumbers[i], imageResourceName, stampPseudoId, effectiveOptions.BehindContent);
         }
 
-        return PdfPageExtractor.ExtractPages(objects, document.Metadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects));
+        return PdfPageExtractor.ExtractPages(objects, document.Metadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw));
     }
 
     /// <summary>

@@ -33,12 +33,12 @@ public static class PdfPageExtractor {
             throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
         }
 
-        var (objects, _) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         var document = PdfReadDocument.Load(pdf);
         ValidatePageNumbers(selected, document.Pages.Count, nameof(pageNumbers));
 
         var pageObjectNumbers = selected.Select(pageNumber => document.Pages[pageNumber - 1].ObjectNumber).ToArray();
-        return ExtractPages(objects, document.Metadata, pageObjectNumbers, catalogState: ExtractCatalogRewriteState(objects));
+        return ExtractPages(objects, document.Metadata, pageObjectNumbers, catalogState: ExtractCatalogRewriteState(objects, trailerRaw));
     }
 
     /// <summary>
@@ -205,7 +205,7 @@ public static class PdfPageExtractor {
             throw new ArgumentException("At least one page range must be specified.", nameof(pageRanges));
         }
 
-        var (objects, _) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         var document = PdfReadDocument.Load(pdf);
         ValidatePageRanges(ranges, document.Pages.Count, nameof(pageRanges));
 
@@ -216,7 +216,7 @@ public static class PdfPageExtractor {
             }
         }
 
-        return ExtractPages(objects, document.Metadata, pageObjectNumbers.ToArray(), catalogState: ExtractCatalogRewriteState(objects));
+        return ExtractPages(objects, document.Metadata, pageObjectNumbers.ToArray(), catalogState: ExtractCatalogRewriteState(objects, trailerRaw));
     }
 
     /// <summary>
@@ -286,9 +286,9 @@ public static class PdfPageExtractor {
         Guard.NotNull(pdf, nameof(pdf));
         PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
 
-        var (objects, _) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         var document = PdfReadDocument.Load(pdf);
-        var catalogState = ExtractCatalogRewriteState(objects);
+        var catalogState = ExtractCatalogRewriteState(objects, trailerRaw);
         var result = new List<byte[]>(document.Pages.Count);
 
         foreach (var page in document.Pages) {
@@ -325,10 +325,10 @@ public static class PdfPageExtractor {
             throw new ArgumentException("At least one page range must be specified.", nameof(pageRanges));
         }
 
-        var (objects, _) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         var document = PdfReadDocument.Load(pdf);
         ValidatePageRanges(ranges, document.Pages.Count, nameof(pageRanges));
-        var catalogState = ExtractCatalogRewriteState(objects);
+        var catalogState = ExtractCatalogRewriteState(objects, trailerRaw);
         var result = new List<byte[]>(ranges.Length);
 
         foreach (var range in ranges) {
@@ -680,13 +680,9 @@ public static class PdfPageExtractor {
         return Assemble(objects, catalogId, infoId);
     }
 
-    internal static CatalogRewriteState ExtractCatalogRewriteState(Dictionary<int, PdfIndirectObject> sourceObjects) {
-        foreach (var entry in sourceObjects.Values) {
-            if (entry.Value is not PdfDictionary dictionary ||
-                dictionary.Get<PdfName>("Type")?.Name != "Catalog") {
-                continue;
-            }
-
+    internal static CatalogRewriteState ExtractCatalogRewriteState(Dictionary<int, PdfIndirectObject> sourceObjects, string? trailerRaw = null) {
+        PdfDictionary? dictionary = PdfSyntax.FindCatalog(sourceObjects, trailerRaw);
+        if (dictionary is not null) {
             string? pageMode = dictionary.Get<PdfName>("PageMode")?.Name;
             string? pageLayout = dictionary.Get<PdfName>("PageLayout")?.Name;
             dictionary.Items.TryGetValue("Version", out var catalogVersion);

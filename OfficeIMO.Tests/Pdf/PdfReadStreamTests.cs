@@ -175,6 +175,26 @@ public class PdfReadStreamTests {
     }
 
     [Fact]
+    public void ReadApis_ResolveOutlineIndirectDestinations() {
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildIndirectOutlineDestinationPdf());
+
+        PdfOutlineItem item = Assert.Single(info.Outlines);
+        Assert.Equal("Indirect destination", item.Title);
+        Assert.Equal(1, item.PageNumber);
+        Assert.Equal(144d, item.DestinationTop);
+    }
+
+    [Fact]
+    public void ReadApis_ResolveOutlineGoToActionDestinations() {
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildComplexOutlinePdf());
+
+        PdfOutlineItem item = Assert.Single(info.Outlines);
+        Assert.Equal("Chapter 1", item.Title);
+        Assert.Equal(1, item.PageNumber);
+        Assert.Equal(200d, item.DestinationTop);
+    }
+
+    [Fact]
     public void RewriteApis_RejectComplexOutlinePdfsWithClearUnsupportedDiagnostic() {
         byte[] outline = BuildComplexOutlinePdf();
 
@@ -189,6 +209,22 @@ public class PdfReadStreamTests {
         AssertOutline(() => PdfMetadataEditor.UpdateMetadata(outline, title: "Updated"));
         AssertOutline(() => PdfMerger.Merge(outline));
         AssertOutline(() => PdfStamper.StampText(outline, "STAMP"));
+    }
+
+    [Fact]
+    public void RewriteApis_UseTrailerRootCatalogWhenStaleCatalogRevisionsExist() {
+        byte[] pdf = BuildStaleCatalogRevisionPdf();
+
+        PdfDocumentInfo inputInfo = PdfInspector.Inspect(pdf);
+        Assert.Equal("SinglePage", inputInfo.CatalogPageLayout);
+        Assert.False(inputInfo.HasReadablePageLabels);
+
+        byte[] output = PdfPageExtractor.ExtractPages(pdf, 1);
+
+        string text = System.Text.Encoding.ASCII.GetString(output);
+        Assert.Contains("/PageLayout /SinglePage", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("/PageLayout /TwoColumnLeft", text, StringComparison.Ordinal);
+        Assert.False(PdfInspector.Inspect(output).HasReadablePageLabels);
     }
 
     [Fact]
@@ -973,6 +1009,76 @@ public class PdfReadStreamTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildIndirectOutlineDestinationPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 5 0 R /PageMode /UseOutlines >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Outlines /First 6 0 R /Last 6 0 R /Count 1 >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Title (Indirect destination) /Parent 5 0 R /Dest 7 0 R >>",
+            "endobj",
+            "7 0 obj",
+            "[3 0 R /XYZ 0 144 0]",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 8 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildStaleCatalogRevisionPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /PageLayout /TwoColumnLeft /PageLabels 6 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /PageLayout /SinglePage >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Kids [7 0 R] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /Nums [0 << /S /D /St 10 >>] >>",
+            "endobj",
+            "trailer",
+            "<< /Root 5 0 R /Size 8 >>",
             "%%EOF"
         });
 

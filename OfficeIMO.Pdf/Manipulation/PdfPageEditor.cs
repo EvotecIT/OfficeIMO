@@ -18,7 +18,7 @@ public static class PdfPageEditor {
             throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
         }
 
-        var (objects, _) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         var document = PdfReadDocument.Load(pdf);
         ValidatePageNumbers(pageNumbers, document.Pages.Count, nameof(pageNumbers));
 
@@ -35,7 +35,7 @@ public static class PdfPageEditor {
             }
         }
 
-        return PdfPageExtractor.ExtractPages(objects, document.Metadata, remaining.ToArray(), catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects));
+        return PdfPageExtractor.ExtractPages(objects, document.Metadata, remaining.ToArray(), catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw));
     }
 
     /// <summary>
@@ -283,7 +283,7 @@ public static class PdfPageEditor {
             throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
         }
 
-        var (objects, _) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         var document = PdfReadDocument.Load(pdf);
         ValidatePageNumbers(pageNumbers, document.Pages.Count, nameof(pageNumbers), allowDuplicates: true);
 
@@ -308,7 +308,7 @@ public static class PdfPageEditor {
             }
         }
 
-        return PdfPageExtractor.ExtractPages(objects, document.Metadata, ordered.ToArray(), catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects));
+        return PdfPageExtractor.ExtractPages(objects, document.Metadata, ordered.ToArray(), catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw));
     }
 
     /// <summary>
@@ -556,7 +556,7 @@ public static class PdfPageEditor {
             throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
         }
 
-        var (objects, _) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         var document = PdfReadDocument.Load(pdf);
         ValidateMoveInsertBeforePageNumber(insertBeforePageNumber, document.Pages.Count);
         ValidatePageNumbers(pageNumbers, document.Pages.Count, nameof(pageNumbers));
@@ -594,7 +594,7 @@ public static class PdfPageEditor {
             ordered.Add(remaining[i].PageObjectNumber);
         }
 
-        return PdfPageExtractor.ExtractPages(objects, document.Metadata, ordered.ToArray(), catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects));
+        return PdfPageExtractor.ExtractPages(objects, document.Metadata, ordered.ToArray(), catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw));
     }
 
     /// <summary>
@@ -839,7 +839,7 @@ public static class PdfPageEditor {
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
 
-        var (objects, _) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         var document = PdfReadDocument.Load(pdf);
         ValidateReorderPageNumbers(pageNumbers, document.Pages.Count, nameof(pageNumbers));
 
@@ -848,7 +848,7 @@ public static class PdfPageEditor {
             ordered[i] = document.Pages[pageNumbers[i] - 1].ObjectNumber;
         }
 
-        return PdfPageExtractor.ExtractPages(objects, document.Metadata, ordered, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects));
+        return PdfPageExtractor.ExtractPages(objects, document.Metadata, ordered, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw));
     }
 
     /// <summary>
@@ -969,7 +969,7 @@ public static class PdfPageEditor {
         PdfSyntax.ThrowIfUnsafeForRewrite(pdf);
 
         int normalizedRotation = NormalizeRotation(rotationDegrees);
-        var (objects, _) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         var document = PdfReadDocument.Load(pdf);
         var selectedPages = pageNumbers.Length == 0
             ? Enumerable.Range(1, document.Pages.Count).ToArray()
@@ -989,7 +989,7 @@ public static class PdfPageEditor {
             }
         }
 
-        return PdfPageExtractor.ExtractPages(objects, document.Metadata, pageObjectNumbers, overrides, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects));
+        return PdfPageExtractor.ExtractPages(objects, document.Metadata, pageObjectNumbers, overrides, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw));
     }
 
     /// <summary>

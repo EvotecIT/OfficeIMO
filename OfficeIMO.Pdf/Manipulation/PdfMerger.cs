@@ -270,7 +270,7 @@ public static class PdfMerger {
         IReadOnlyDictionary<int, int>? outputPageIndexByPageObjectNumber) {
         PdfSyntax.ThrowIfUnsafeForRewrite(source);
 
-        var (objects, _) = PdfSyntax.ParseObjects(source);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(source);
         var document = PdfReadDocument.Load(source);
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF input " + sourceIndex.ToString(CultureInfo.InvariantCulture) + " does not contain any pages.", nameof(source));
@@ -284,7 +284,7 @@ public static class PdfMerger {
 
         var catalogState = PdfPageExtractor.PruneCatalogStateForPages(
             objects,
-            PdfPageExtractor.ExtractCatalogRewriteState(objects),
+            PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw),
             collector.PageObjectIds,
             pageObjectNumbers,
             mergedPageOffset,

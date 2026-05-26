@@ -181,14 +181,14 @@ public static class PdfMetadataEditor {
     }
 
     private static byte[] RewriteWithMetadata(byte[] pdf, PdfMetadata metadata) {
-        var (objects, _) = PdfSyntax.ParseObjects(pdf);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
         var document = PdfReadDocument.Load(pdf);
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF does not contain any pages.", nameof(pdf));
         }
 
         var pageObjectNumbers = document.Pages.Select(page => page.ObjectNumber).ToArray();
-        return PdfPageExtractor.ExtractPages(objects, metadata, pageObjectNumbers, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects));
+        return PdfPageExtractor.ExtractPages(objects, metadata, pageObjectNumbers, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw));
     }
 
     private static byte[] ReadStream(Stream stream, string paramName) {

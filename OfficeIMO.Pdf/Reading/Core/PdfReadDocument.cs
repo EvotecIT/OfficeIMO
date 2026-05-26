@@ -185,21 +185,20 @@ public sealed class PdfReadDocument {
     }
 
     private (int? PageNumber, double? DestinationTop) GetOutlineDestination(PdfDictionary item) {
-        if (!item.Items.TryGetValue("Dest", out var destObj) || destObj is not PdfArray dest || dest.Items.Count == 0) {
-            return (null, null);
+        if (item.Items.TryGetValue("Dest", out var destObj) &&
+            TryReadDestination(destObj, out int? pageNumber, out double? destinationTop)) {
+            return (pageNumber, destinationTop);
         }
 
-        int? pageNumber = null;
-        if (dest.Items[0] is PdfReference pageRef) {
-            pageNumber = GetPageNumberForObject(pageRef.ObjectNumber);
+        if (item.Items.TryGetValue("A", out var actionObject) &&
+            ResolveObject(actionObject) is PdfDictionary action &&
+            action.Get<PdfName>("S")?.Name == "GoTo" &&
+            action.Items.TryGetValue("D", out var actionDestination) &&
+            TryReadDestination(actionDestination, out pageNumber, out destinationTop)) {
+            return (pageNumber, destinationTop);
         }
 
-        double? destinationTop = null;
-        if (dest.Items.Count > 3 && dest.Items[3] is PdfNumber top) {
-            destinationTop = top.Value;
-        }
-
-        return (pageNumber, destinationTop);
+        return (null, null);
     }
 
     private IReadOnlyList<PdfNamedDestination> ExtractNamedDestinations() {
@@ -448,13 +447,7 @@ public sealed class PdfReadDocument {
     }
 
     private PdfDictionary? FindCatalog() {
-        foreach (var kv in _objects) {
-            if (kv.Value.Value is PdfDictionary d && d.Get<PdfName>("Type")?.Name == "Catalog") {
-                return d;
-            }
-        }
-
-        return null;
+        return PdfSyntax.FindCatalog(_objects, _trailerRaw);
     }
 
     private string? ExtractCatalogName(string key) {

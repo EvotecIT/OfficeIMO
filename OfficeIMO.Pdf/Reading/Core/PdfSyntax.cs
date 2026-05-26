@@ -11,6 +11,7 @@ internal static class PdfSyntax {
     private static readonly Regex ObjRegex = new Regex(@"(\d+)\s+(\d+)\s+obj", RegexOptions.Compiled, RegexTimeout);
     private static readonly Regex StreamRegex = new Regex(@"<<(.*?)>>\s*stream\r?\n([\s\S]*?)\r?\nendstream", RegexOptions.Compiled | RegexOptions.Singleline, RegexTimeout);
 #endif
+    private static readonly Regex TrailerRootRegex = new Regex(@"/Root\s+(\d+)\s+\d+\s+R", RegexOptions.Compiled, RegexTimeout);
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(byte[] pdf) {
         string text = PdfEncoding.Latin1GetString(pdf);
@@ -199,8 +200,8 @@ internal static class PdfSyntax {
         }
 
         try {
-            var (objects, _) = ParseObjects(pdf);
-            PdfDictionary? catalog = FindCatalog(objects);
+            var (objects, trailerRaw) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
             if (catalog is null ||
                 !catalog.Items.TryGetValue("Outlines", out var outlines)) {
                 return false;
@@ -234,11 +235,11 @@ internal static class PdfSyntax {
         }
 
         try {
-            var (objects, _) = ParseObjects(pdf);
-            PdfDictionary? catalog = FindCatalog(objects);
+            var (objects, trailerRaw) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
             if (catalog is null ||
                 !catalog.Items.TryGetValue("PageLabels", out var pageLabels)) {
-                return true;
+                return catalog is null;
             }
 
             return !IsSupportedPageLabelTree(objects, pageLabels);
@@ -269,8 +270,8 @@ internal static class PdfSyntax {
         }
 
         try {
-            var (objects, _) = ParseObjects(pdf);
-            PdfDictionary? catalog = FindCatalog(objects);
+            var (objects, trailerRaw) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
             if (catalog is null ||
                 !catalog.Items.TryGetValue("Names", out var names)) {
                 return false;
@@ -303,8 +304,8 @@ internal static class PdfSyntax {
         }
 
         try {
-            var (objects, _) = ParseObjects(pdf);
-            PdfDictionary? catalog = FindCatalog(objects);
+            var (objects, trailerRaw) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
             if (catalog is null) {
                 return true;
             }
@@ -313,13 +314,19 @@ internal static class PdfSyntax {
                 return false;
             }
 
-            if (catalog.Items.TryGetValue("Names", out var names) &&
-                TryGetNamedDestinationNameTree(objects, names, out var namedDestinationTree) &&
-                IsSupportedNamedDestinationNameTree(objects, namedDestinationTree)) {
-                return false;
+            if (catalog.Items.TryGetValue("Names", out var names)) {
+                PdfDictionary? namesDictionary = ResolveObject(objects, names) as PdfDictionary;
+                if (namesDictionary is null) {
+                    return true;
+                }
+
+                if (namesDictionary.Items.ContainsKey("Dests")) {
+                    return !TryGetNamedDestinationNameTree(objects, names, out var namedDestinationTree) ||
+                        !IsSupportedNamedDestinationNameTree(objects, namedDestinationTree);
+                }
             }
 
-            return true;
+            return false;
         } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
@@ -339,11 +346,11 @@ internal static class PdfSyntax {
         }
 
         try {
-            var (objects, _) = ParseObjects(pdf);
-            PdfDictionary? catalog = FindCatalog(objects);
+            var (objects, trailerRaw) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
             if (catalog is null ||
                 !catalog.Items.TryGetValue("OpenAction", out var openAction)) {
-                return true;
+                return catalog is null;
             }
 
             PdfObject? resolved = ResolveObject(objects, openAction);
@@ -377,11 +384,11 @@ internal static class PdfSyntax {
         }
 
         try {
-            var (objects, _) = ParseObjects(pdf);
-            PdfDictionary? catalog = FindCatalog(objects);
+            var (objects, trailerRaw) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
             if (catalog is null ||
                 !catalog.Items.TryGetValue("ViewerPreferences", out var viewerPreferences)) {
-                return true;
+                return catalog is null;
             }
 
             PdfObject? resolved = ResolveObject(objects, viewerPreferences);
@@ -418,11 +425,11 @@ internal static class PdfSyntax {
         }
 
         try {
-            var (objects, _) = ParseObjects(pdf);
-            PdfDictionary? catalog = FindCatalog(objects);
+            var (objects, trailerRaw) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
             if (catalog is null ||
                 !catalog.Items.TryGetValue("Metadata", out var xmpMetadata)) {
-                return true;
+                return catalog is null;
             }
 
             if (IsSupportedCatalogXmpMetadataStream(objects, xmpMetadata)) {
@@ -444,8 +451,8 @@ internal static class PdfSyntax {
         }
 
         try {
-            var (objects, _) = ParseObjects(pdf);
-            PdfDictionary? catalog = FindCatalog(objects);
+            var (objects, trailerRaw) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
             return catalog?.Items.ContainsKey("URI") == true;
         } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
@@ -458,11 +465,11 @@ internal static class PdfSyntax {
         }
 
         try {
-            var (objects, _) = ParseObjects(pdf);
-            PdfDictionary? catalog = FindCatalog(objects);
+            var (objects, trailerRaw) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
             if (catalog is null ||
                 !catalog.Items.TryGetValue("URI", out var catalogUri)) {
-                return true;
+                return catalog is null;
             }
 
             PdfObject? resolved = ResolveObject(objects, catalogUri);
@@ -491,11 +498,11 @@ internal static class PdfSyntax {
         }
 
         try {
-            var (objects, _) = ParseObjects(pdf);
-            PdfDictionary? catalog = FindCatalog(objects);
+            var (objects, trailerRaw) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
             if (catalog is null ||
                 !catalog.Items.TryGetValue("OutputIntents", out var outputIntents)) {
-                return true;
+                return catalog is null;
             }
 
             if (IsSupportedCatalogMetadataGraph(objects, outputIntents, new HashSet<int>())) {
@@ -522,32 +529,33 @@ internal static class PdfSyntax {
         }
 
         try {
-            var (objects, _) = ParseObjects(pdf);
-            PdfDictionary? catalog = FindCatalog(objects);
+            var (objects, trailerRaw) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
             if (catalog is null) {
                 return true;
             }
 
-            bool hasSupportedEmbeddedFiles = false;
-            if (catalog.Items.TryGetValue("Names", out var names) &&
-                TryGetEmbeddedFilesNameTree(objects, names, out var embeddedFiles)) {
-                if (!IsSupportedCatalogMetadataGraph(objects, embeddedFiles, new HashSet<int>())) {
+            if (catalog.Items.TryGetValue("Names", out var names)) {
+                PdfDictionary? namesDictionary = ResolveObject(objects, names) as PdfDictionary;
+                if (namesDictionary is null) {
                     return true;
                 }
 
-                hasSupportedEmbeddedFiles = true;
+                if (namesDictionary.Items.ContainsKey("EmbeddedFiles")) {
+                    if (!TryGetEmbeddedFilesNameTree(objects, names, out var embeddedFiles) ||
+                        !IsSupportedCatalogMetadataGraph(objects, embeddedFiles, new HashSet<int>())) {
+                        return true;
+                    }
+                }
             }
 
-            bool hasSupportedAssociatedFiles = false;
             if (catalog.Items.TryGetValue("AF", out var associatedFiles)) {
                 if (!IsSupportedCatalogMetadataGraph(objects, associatedFiles, new HashSet<int>())) {
                     return true;
                 }
-
-                hasSupportedAssociatedFiles = true;
             }
 
-            return !hasSupportedEmbeddedFiles && !hasSupportedAssociatedFiles;
+            return false;
         } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
             return true;
         }
@@ -567,11 +575,11 @@ internal static class PdfSyntax {
         }
 
         try {
-            var (objects, _) = ParseObjects(pdf);
-            PdfDictionary? catalog = FindCatalog(objects);
+            var (objects, trailerRaw) = ParseObjects(pdf);
+            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
             if (catalog is null ||
                 !catalog.Items.TryGetValue("OCProperties", out var optionalContent)) {
-                return true;
+                return catalog is null;
             }
 
             if (IsSupportedCatalogMetadataGraph(objects, optionalContent, new HashSet<int>())) {
@@ -632,7 +640,18 @@ internal static class PdfSyntax {
         }
     }
 
-    private static PdfDictionary? FindCatalog(Dictionary<int, PdfIndirectObject> map) {
+    internal static PdfDictionary? FindCatalog(Dictionary<int, PdfIndirectObject> map, string? trailerRaw = null) {
+        if (TryGetTrailerRootObjectNumber(trailerRaw, out int rootObjectNumber) &&
+            map.TryGetValue(rootObjectNumber, out var rootObject) &&
+            rootObject.Value is PdfDictionary rootDictionary &&
+            rootDictionary.Get<PdfName>("Type")?.Name == "Catalog") {
+            return rootDictionary;
+        }
+
+        return FindCatalogByScan(map);
+    }
+
+    private static PdfDictionary? FindCatalogByScan(Dictionary<int, PdfIndirectObject> map) {
         foreach (var entry in map.Values) {
             if (entry.Value is PdfDictionary dictionary &&
                 dictionary.Get<PdfName>("Type")?.Name == "Catalog") {
@@ -641,6 +660,17 @@ internal static class PdfSyntax {
         }
 
         return null;
+    }
+
+    private static bool TryGetTrailerRootObjectNumber(string? trailerRaw, out int objectNumber) {
+        objectNumber = 0;
+        if (string.IsNullOrWhiteSpace(trailerRaw)) {
+            return false;
+        }
+
+        Match match = TrailerRootRegex.Match(trailerRaw);
+        return match.Success &&
+            int.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out objectNumber);
     }
 
     private static PdfObject? ResolveObject(Dictionary<int, PdfIndirectObject> map, PdfObject? value) {

@@ -22,8 +22,8 @@ public static class PdfFormFiller {
             throw new NotSupportedException("PDF active content is not supported for form filling by OfficeIMO.Pdf yet.");
         }
 
-        var (objects, _) = PdfSyntax.ParseObjects(pdf);
-        int catalogObjectNumber = FindCatalogObjectNumber(objects);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
+        int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber == 0 ||
             objects[catalogObjectNumber].Value is not PdfDictionary catalog ||
             !catalog.Items.TryGetValue("AcroForm", out var acroFormObject) ||
@@ -113,8 +113,8 @@ public static class PdfFormFiller {
             throw new NotSupportedException("PDF active content is not supported for form flattening by OfficeIMO.Pdf yet.");
         }
 
-        var (objects, _) = PdfSyntax.ParseObjects(pdf);
-        int catalogObjectNumber = FindCatalogObjectNumber(objects);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
+        int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber == 0 ||
             objects[catalogObjectNumber].Value is not PdfDictionary catalog ||
             !catalog.Items.TryGetValue("AcroForm", out var acroFormObject) ||
@@ -840,10 +840,14 @@ public static class PdfFormFiller {
         return PdfPageExtractor.Assemble(rewritten, numberMap[catalogObjectNumber], infoId);
     }
 
-    private static int FindCatalogObjectNumber(Dictionary<int, PdfIndirectObject> objects) {
+    private static int FindCatalogObjectNumber(Dictionary<int, PdfIndirectObject> objects, string? trailerRaw) {
+        PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw);
+        if (catalog is null) {
+            return 0;
+        }
+
         foreach (var entry in objects) {
-            if (entry.Value.Value is PdfDictionary dictionary &&
-                dictionary.Get<PdfName>("Type")?.Name == "Catalog") {
+            if (ReferenceEquals(entry.Value.Value, catalog)) {
                 return entry.Key;
             }
         }
