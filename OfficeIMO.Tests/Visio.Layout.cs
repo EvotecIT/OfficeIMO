@@ -351,6 +351,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ResolveShapeOverlapsMovesTopLevelShapesApart() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("ShapeCleanup", 8, 6);
+            VisioShape first = page.AddRectangle(2, 3, 1.2, 0.8, "First");
+            VisioShape second = page.AddRectangle(2.25, 3, 1.2, 0.8, "Second");
+            VisioShape third = page.AddRectangle(2.1, 3.05, 1.2, 0.8, "Third");
+
+            Assert.Contains(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckPageBounds = false,
+                CheckConnectorShapeIntersections = false,
+                CheckConnectorLabels = false
+            }), issue => issue.Kind == "ShapeOverlap");
+
+            page.ResolveShapeOverlaps(step: 0.25, maxAttempts: 12);
+
+            Assert.Equal(2, first.PinX);
+            Assert.True(
+                second.PinX != 2.25 ||
+                second.PinY != 3 ||
+                third.PinX != 2.1 ||
+                third.PinY != 3.05);
+            Assert.DoesNotContain(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckPageBounds = false,
+                CheckConnectorShapeIntersections = false,
+                CheckConnectorLabels = false
+            }), issue => issue.Kind == "ShapeOverlap");
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void PolishDiagramSizesLabelsResolvesCollisionsAndFitsPage() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
@@ -379,6 +412,37 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0.5, bounds.Left, 6);
             Assert.Equal(0.25, bounds.Bottom, 6);
             Assert.True(page.Width < 12);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void PolishDiagramCanResolveShapeOverlapsBeforeFittingPage() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("PolishShapes", 12, 8);
+            VisioShape first = page.AddRectangle(5, 4, 1.4, 0.8, "First");
+            VisioShape second = page.AddRectangle(5.2, 4, 1.4, 0.8, "Second");
+            VisioShape third = page.AddRectangle(5.4, 4, 1.4, 0.8, "Third");
+
+            page.PolishDiagram(new VisioDiagramPolishOptions {
+                ResolveShapeOverlaps = true,
+                ShapeOverlapStep = 0.25,
+                ShapeOverlapMaxAttempts = 12,
+                FitHorizontalMargin = 0.5,
+                FitVerticalMargin = 0.25
+            });
+
+            Assert.Equal(0.5, page.GetContentBounds().Left, 6);
+            Assert.DoesNotContain(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckPageBounds = false,
+                CheckConnectorShapeIntersections = false,
+                CheckConnectorLabels = false
+            }), issue => issue.Kind == "ShapeOverlap");
+            Assert.True(page.Width < 12);
+            Assert.Equal(0.5 + first.Width / 2D, first.PinX, 6);
+            Assert.True(second.PinX > first.PinX || third.PinX > first.PinX);
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));

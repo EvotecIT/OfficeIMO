@@ -71,6 +71,13 @@ namespace OfficeIMO.Visio {
                 }
             }
 
+            if (resolvedOptions.ResolveShapeOverlaps) {
+                page.ResolveShapeOverlaps(
+                    resolvedOptions.ShapeOverlapStep,
+                    resolvedOptions.ShapeOverlapMaxAttempts,
+                    resolvedOptions.IncludeContainersInShapeOverlapResolution);
+            }
+
             if (resolvedOptions.ResolveConnectorLabelOverlaps) {
                 page.ResolveConnectorLabelOverlaps(
                     resolvedOptions.ConnectorLabelStep,
@@ -101,6 +108,14 @@ namespace OfficeIMO.Visio {
 
             if (options.ConnectorLabelMaxAttempts < 0) {
                 throw new ArgumentOutOfRangeException(nameof(options), "Connector label attempt count cannot be negative.");
+            }
+
+            if (options.ShapeOverlapStep <= 0D || double.IsNaN(options.ShapeOverlapStep) || double.IsInfinity(options.ShapeOverlapStep)) {
+                throw new ArgumentOutOfRangeException(nameof(options), "Shape overlap step must be a positive finite value.");
+            }
+
+            if (options.ShapeOverlapMaxAttempts < 0) {
+                throw new ArgumentOutOfRangeException(nameof(options), "Shape overlap attempt count cannot be negative.");
             }
         }
     }

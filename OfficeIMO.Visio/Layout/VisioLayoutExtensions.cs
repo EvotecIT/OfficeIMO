@@ -151,6 +151,75 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
+        /// Moves overlapping top-level shapes apart using a deterministic nearest-open-position search.
+        /// </summary>
+        /// <param name="page">Page to update.</param>
+        /// <param name="step">Search step in inches.</param>
+        /// <param name="maxAttempts">Number of search rings to try around each overlapping shape.</param>
+        /// <param name="includeContainers">Whether container and background surface shapes should be moved and treated as obstacles.</param>
+        public static VisioPage ResolveShapeOverlaps(this VisioPage page, double step = 0.25D, int maxAttempts = 24, bool includeContainers = false) {
+            if (page == null) {
+                throw new ArgumentNullException(nameof(page));
+            }
+
+            if (step <= 0D || double.IsNaN(step) || double.IsInfinity(step)) {
+                throw new ArgumentOutOfRangeException(nameof(step), "Step must be a positive finite value.");
+            }
+
+            if (maxAttempts < 0) {
+                throw new ArgumentOutOfRangeException(nameof(maxAttempts), "Attempt count cannot be negative.");
+            }
+
+            List<VisioShape> shapes = page.Shapes
+                .Where(shape => includeContainers || (!shape.IsContainer && !shape.IsBackgroundSurface))
+                .ToList();
+            if (shapes.Count < 2) {
+                return page;
+            }
+
+            for (int index = 1; index < shapes.Count; index++) {
+                VisioShape shape = shapes[index];
+                double initialOverlap = GetTotalShapeOverlap(shape, shapes);
+                if (initialOverlap <= 1e-9) {
+                    continue;
+                }
+
+                double originalX = shape.PinX;
+                double originalY = shape.PinY;
+                double bestX = originalX;
+                double bestY = originalY;
+                double bestOverlap = initialOverlap;
+
+                foreach (ShapeCandidate candidate in EnumerateShapeCandidates(maxAttempts, step)) {
+                    if (Math.Abs(candidate.OffsetX) < 1e-9 && Math.Abs(candidate.OffsetY) < 1e-9) {
+                        continue;
+                    }
+
+                    shape.PinX = originalX + candidate.OffsetX;
+                    shape.PinY = originalY + candidate.OffsetY;
+                    double overlap = GetTotalShapeOverlap(shape, shapes);
+                    if (overlap <= 1e-9) {
+                        bestX = shape.PinX;
+                        bestY = shape.PinY;
+                        bestOverlap = overlap;
+                        break;
+                    }
+
+                    if (overlap < bestOverlap - 1e-9) {
+                        bestX = shape.PinX;
+                        bestY = shape.PinY;
+                        bestOverlap = overlap;
+                    }
+                }
+
+                shape.PinX = bestX;
+                shape.PinY = bestY;
+            }
+
+            return page;
+        }
+
+        /// <summary>
         /// Gets the bounds of a shape selection.
         /// </summary>
         /// <param name="selection">Selection to inspect.</param>
@@ -794,6 +863,21 @@ namespace OfficeIMO.Visio {
             }
         }
 
+        private static IEnumerable<ShapeCandidate> EnumerateShapeCandidates(int maxAttempts, double step) {
+            yield return new ShapeCandidate(0D, 0D);
+            for (int ring = 1; ring <= maxAttempts; ring++) {
+                double distance = ring * step;
+                yield return new ShapeCandidate(distance, 0D);
+                yield return new ShapeCandidate(0D, distance);
+                yield return new ShapeCandidate(0D, -distance);
+                yield return new ShapeCandidate(-distance, 0D);
+                yield return new ShapeCandidate(distance, distance);
+                yield return new ShapeCandidate(distance, -distance);
+                yield return new ShapeCandidate(-distance, distance);
+                yield return new ShapeCandidate(-distance, -distance);
+            }
+        }
+
         private static VisioConnectorLabelPlacement CreateCandidatePlacement(VisioConnectorLabelPlacement source, LabelCandidate candidate) {
             VisioConnectorLabelPlacement placement = source.Clone();
             if (placement.AbsolutePinX.HasValue && placement.AbsolutePinY.HasValue) {
@@ -915,6 +999,20 @@ namespace OfficeIMO.Visio {
                    outer.Bottom <= inner.Bottom + tolerance &&
                    outer.Right + tolerance >= inner.Right &&
                    outer.Top + tolerance >= inner.Top;
+        }
+
+        private static double GetTotalShapeOverlap(VisioShape shape, IReadOnlyList<VisioShape> shapes) {
+            VisioShapeBounds bounds = shape.GetShapeBounds();
+            double total = 0D;
+            foreach (VisioShape other in shapes) {
+                if (ReferenceEquals(shape, other)) {
+                    continue;
+                }
+
+                total += OverlapArea(bounds, other.GetShapeBounds());
+            }
+
+            return total;
         }
 
         private static double OverlapArea(VisioShapeBounds first, VisioShapeBounds second) {
@@ -1064,6 +1162,17 @@ namespace OfficeIMO.Visio {
 
         private readonly struct LabelCandidate {
             public LabelCandidate(double offsetX, double offsetY) {
+                OffsetX = offsetX;
+                OffsetY = offsetY;
+            }
+
+            public double OffsetX { get; }
+
+            public double OffsetY { get; }
+        }
+
+        private readonly struct ShapeCandidate {
+            public ShapeCandidate(double offsetX, double offsetY) {
                 OffsetX = offsetX;
                 OffsetY = offsetY;
             }

@@ -896,6 +896,7 @@ page.SelectConnectedConnectors(page.FindShapeById("approved")!)
     .ResizeLabelsToText(maximumWidth: 1.6);
 
 page.PolishDiagram(new VisioDiagramPolishOptions {
+    ResolveShapeOverlaps = true,
     MaximumConnectorLabelWidth = 1.6,
     FitHorizontalMargin = 0.6,
     FitVerticalMargin = 0.45
@@ -906,6 +907,9 @@ doc.Save();
 `RelayoutAsGrid`, `RelayoutAsHorizontalStack`, and `RelayoutAsVerticalStack`
 are deterministic and can reroute connectors whose endpoints are both inside a
 page-backed selection.
+`PolishDiagram` can also move crowded top-level shapes apart before it resolves
+connector labels and fits the page, which is useful when a generated diagram has
+reasonable structure but still needs a final visual cleanup pass.
 
 ## Learning from VSDX fixtures
 
