@@ -68,6 +68,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DependencyDiagramBuilderCanAddTitleWithoutOverlappingGraph() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .DependencyDiagram("Service Dependencies", diagram => diagram
+                    .Title()
+                    .External("users", "Users")
+                    .Component("api", "API")
+                    .Data("db", "Database")
+                    .DependsOn("users", "api", "HTTPS")
+                    .DataDependency("api", "db", "SQL"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape title = Assert.Single(page.Shapes, shape => shape.Id == "title");
+            double highestNodeTop = page.Shapes
+                .Where(shape => shape.Id != "title")
+                .Max(shape => shape.PinY + shape.Height / 2D);
+            Assert.Equal("Text Box", title.NameU);
+            Assert.Equal("Service Dependencies", title.Text);
+            Assert.True(title.PinY - title.Height / 2D > highestNodeTop);
+            Assert.Empty(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckConnectorShapeIntersections = false,
+                CheckConnectorLabelShapeOverlaps = false
+            }).Where(issue => issue.Severity >= VisioDiagramQualityIssueSeverity.Warning).Select(issue => issue.ToString()));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void DependencyDiagramBuilderRejectsUnknownDependencyEndpoints() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -77,6 +107,38 @@ namespace OfficeIMO.Tests {
                     .DependsOn("known", "missing")));
 
             Assert.Contains("Unknown dependency node id", exception.Message);
+        }
+
+        [Fact]
+        public void DependencyDiagramBuilderNormalizesDependencyEndpointIds() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .DependencyDiagram("Trimmed", diagram => diagram
+                    .Component("api", "API")
+                    .Data("db", "Database")
+                    .DataDependency(" api ", " db ", "SQL"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioConnector connector = Assert.Single(page.Connectors);
+            Assert.Equal("api", connector.From.Id);
+            Assert.Equal("db", connector.To.Id);
+            Assert.Equal("SQL", connector.Label);
+        }
+
+        [Fact]
+        public void DependencyDiagramBuilderRejectsTitleIdCollisions() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException nodeFirst = Assert.Throws<ArgumentException>(() =>
+                document.DependencyDiagram("Invalid", diagram => diagram
+                    .Component("title", "API")
+                    .Title()));
+            ArgumentException titleFirst = Assert.Throws<ArgumentException>(() =>
+                document.DependencyDiagram("Invalid", diagram => diagram
+                    .Title()
+                    .Component("title", "API")));
+
+            Assert.Contains("already exists", nodeFirst.Message);
+            Assert.Contains("already exists", titleFirst.Message);
         }
     }
 }

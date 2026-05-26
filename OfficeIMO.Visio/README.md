@@ -100,6 +100,7 @@ using OfficeIMO.Visio.Diagrams;
 
 VisioDocument.Create("dependencies.vsdx")
     .DependencyDiagram("Service Dependencies", diagram => diagram
+        .Title()
         .Theme(VisioStyleTheme.Fluent())
         .External("users", "Users")
         .Component("web", "Web App")

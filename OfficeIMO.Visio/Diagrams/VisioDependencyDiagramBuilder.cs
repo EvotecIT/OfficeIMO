@@ -61,6 +61,10 @@ namespace OfficeIMO.Visio.Diagrams {
         private double _nodeHeight = 0.85;
         private double _columnGap = 1.15;
         private double _rowGap = 0.55;
+        private string? _titleText;
+        private string _titleId = "title";
+        private double _titleHeight = 0.45;
+        private double _titleGap = 0.35;
         private bool _fitPageToGraph = true;
         private bool _built;
 
@@ -122,6 +126,22 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
+        /// <summary>Adds a centered editable title above the automatically placed dependency graph.</summary>
+        public VisioDependencyDiagramBuilder Title(string? text = null, string id = "title", double height = 0.45, double gap = 0.35) {
+            string normalizedId = RequireId(id, nameof(id), "Title id");
+            if (IsIdInUse(normalizedId)) {
+                throw new ArgumentException($"A dependency diagram item with id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            ValidatePositive(height, nameof(height));
+            ValidateNonNegative(gap, nameof(gap));
+            _titleText = string.IsNullOrWhiteSpace(text) ? _pageName : text;
+            _titleId = normalizedId;
+            _titleHeight = height;
+            _titleGap = gap;
+            return this;
+        }
+
         /// <summary>Adds a component node.</summary>
         public VisioDependencyDiagramBuilder Component(string id, string text) => Node(id, text, VisioDependencyNodeKind.Component);
 
@@ -137,8 +157,8 @@ namespace OfficeIMO.Visio.Diagrams {
         /// <summary>Adds a dependency node.</summary>
         public VisioDependencyDiagramBuilder Node(string id, string text, VisioDependencyNodeKind kind = VisioDependencyNodeKind.Component) {
             string normalizedId = RequireId(id, nameof(id), "Node id");
-            if (_nodesById.ContainsKey(normalizedId)) {
-                throw new ArgumentException($"A dependency node with id '{normalizedId}' already exists.", nameof(id));
+            if (IsIdInUse(normalizedId)) {
+                throw new ArgumentException($"A dependency diagram item with id '{normalizedId}' already exists.", nameof(id));
             }
 
             if (!Enum.IsDefined(typeof(VisioDependencyNodeKind), kind)) {
@@ -165,13 +185,15 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Adds a dependency connector between two known nodes.</summary>
         public VisioDependencyDiagramBuilder Dependency(string fromId, string toId, VisioDependencyConnectorKind kind, string? label = null) {
-            EnsureKnownNode(fromId, nameof(fromId));
-            EnsureKnownNode(toId, nameof(toId));
+            string normalizedFromId = RequireId(fromId, nameof(fromId), "Node id");
+            string normalizedToId = RequireId(toId, nameof(toId), "Node id");
+            EnsureKnownNode(normalizedFromId, nameof(fromId));
+            EnsureKnownNode(normalizedToId, nameof(toId));
             if (!Enum.IsDefined(typeof(VisioDependencyConnectorKind), kind)) {
                 throw new ArgumentOutOfRangeException(nameof(kind));
             }
 
-            _dependencies.Add(new DependencyItem(fromId, toId, kind, label));
+            _dependencies.Add(new DependencyItem(normalizedFromId, normalizedToId, kind, label));
             return this;
         }
 
@@ -192,6 +214,7 @@ namespace OfficeIMO.Visio.Diagrams {
             page.Grid(visible: false, snap: true);
             AddNodes(page);
             AddDependencies(page);
+            AddTitle(page);
             _document.RequestRecalcOnOpen();
             return page;
         }
@@ -240,9 +263,29 @@ namespace OfficeIMO.Visio.Diagrams {
             int layerCount = _nodes.Max(node => node.Layer) + 1;
             int rowCount = _nodes.GroupBy(node => node.Layer).Max(group => group.Count());
             double requiredWidth = _leftMargin + _rightMargin + (layerCount * _nodeWidth) + Math.Max(0, layerCount - 1) * _columnGap;
-            double requiredHeight = _topMargin + _bottomMargin + (rowCount * _nodeHeight) + Math.Max(0, rowCount - 1) * _rowGap;
+            double requiredHeight = _topMargin + _bottomMargin + HeaderHeight + (rowCount * _nodeHeight) + Math.Max(0, rowCount - 1) * _rowGap;
             _pageWidth = Math.Max(_pageWidth, requiredWidth);
             _pageHeight = Math.Max(_pageHeight, requiredHeight);
+        }
+
+        private void AddTitle(VisioPage page) {
+            if (string.IsNullOrWhiteSpace(_titleText)) {
+                return;
+            }
+
+            double y = _pageHeight - _topMargin - (_titleHeight / 2D);
+            VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
+            title.TextStyle = CreateTitleTextStyle();
+        }
+
+        private VisioTextStyle CreateTitleTextStyle() {
+            VisioTextStyle style = _theme.Emphasis.TextStyle?.Clone() ?? new VisioTextStyle();
+            style.FontFamily = string.IsNullOrWhiteSpace(style.FontFamily) ? "Aptos Display" : style.FontFamily;
+            style.Size = Math.Max(style.Size ?? 0D, 20D);
+            style.Bold = true;
+            style.HorizontalAlignment = VisioTextHorizontalAlignment.Center;
+            style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
+            return style;
         }
 
         private void AddNodes(VisioPage page) {
@@ -288,10 +331,13 @@ namespace OfficeIMO.Visio.Diagrams {
         private double YForRow(int layer, int row) {
             int rowCount = _nodes.Count(node => node.Layer == layer);
             double contentHeight = rowCount * _nodeHeight + Math.Max(0, rowCount - 1) * _rowGap;
-            double top = _pageHeight - _topMargin;
-            double layerTop = top - Math.Max(0D, ((_pageHeight - _topMargin - _bottomMargin) - contentHeight) / 2D);
+            double top = _pageHeight - _topMargin - HeaderHeight;
+            double availableHeight = _pageHeight - _topMargin - _bottomMargin - HeaderHeight;
+            double layerTop = top - Math.Max(0D, (availableHeight - contentHeight) / 2D);
             return layerTop - (_nodeHeight / 2D) - row * (_nodeHeight + _rowGap);
         }
+
+        private double HeaderHeight => string.IsNullOrWhiteSpace(_titleText) ? 0D : _titleHeight + _titleGap;
 
         private void GetNodeShape(VisioDependencyNodeKind kind, out string masterNameU, out double width, out double height) {
             width = _nodeWidth;
@@ -357,6 +403,14 @@ namespace OfficeIMO.Visio.Diagrams {
             if (!_nodesById.ContainsKey(normalizedId)) {
                 throw new ArgumentException($"Unknown dependency node id '{normalizedId}'.", parameterName);
             }
+        }
+
+        private bool IsIdInUse(string id) {
+            if (!string.IsNullOrWhiteSpace(_titleText) && string.Equals(_titleId, id, StringComparison.Ordinal)) {
+                return true;
+            }
+
+            return _nodesById.ContainsKey(id);
         }
 
         private static string RequireId(string id, string parameterName, string label) {
