@@ -16,6 +16,7 @@ using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
 using Xunit;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using Vt = DocumentFormat.OpenXml.VariantTypes;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
@@ -4141,6 +4142,153 @@ namespace OfficeIMO.Tests {
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.PivotTableParts.Any());
             var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             Assert.Equal("Manual note after report features", GetSpreadsheetCellText(spreadsheet, cells["A7"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_PostFeatureSideColumnMutationKeepsExtendedFastPath() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var links = document.AddWorkSheet("Links");
+                links.SetHyperlink(1, 1, "https://example.org/review", display: "Review link", style: false);
+
+                var customPart = document._spreadSheetDocument.AddCustomFilePropertiesPart();
+                customPart.Properties = new DocumentFormat.OpenXml.CustomProperties.Properties(
+                    new DocumentFormat.OpenXml.CustomProperties.CustomDocumentProperty(
+                        new Vt.VTLPWSTR("preserved")) {
+                            FormatId = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}",
+                            PropertyId = 2,
+                            Name = "OfficeIMOReview"
+                        });
+
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+                sheet.AddPivotTable(
+                    "A1:C4",
+                    "F20",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                sheet.CellValue(2, 4, "Side note");
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.PivotTableParts.Any());
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("North", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("Side note", GetSpreadsheetCellText(spreadsheet, cells["D2"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_PostFeatureInRangeMutationMaterializesSourceRows() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+                sheet.AddPivotTable(
+                    "A1:C4",
+                    "F20",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                sheet.CellValue(2, 2, 42);
+
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.PivotTableParts.Any());
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("North", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("42", cells["B2"].CellValue!.Text);
+            Assert.Equal("East", GetSpreadsheetCellText(spreadsheet, cells["A4"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_ExtendedFastPathPreservesSharedStringsHyperlinksAndRootParts() {
+            using var memory = new MemoryStream();
+            var dataSet = new DataSet("Export");
+            var table = new DataTable("Items");
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("Score", typeof(int));
+            table.Columns.Add("Created", typeof(DateTime));
+            for (int index = 0; index < 600; index++) {
+                table.Rows.Add(
+                    index % 2 == 0 ? "North Region Repeated" : "South Region Repeated",
+                    index,
+                    new DateTime(2026, 5, 19).AddDays(index % 7));
+            }
+
+            dataSet.Tables.Add(table);
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var links = document.AddWorkSheet("Links");
+                links.SetHyperlink(1, 1, "https://example.org/review", display: "Review link", style: false);
+
+                var customPart = document._spreadSheetDocument.AddCustomFilePropertiesPart();
+                customPart.Properties = new DocumentFormat.OpenXml.CustomProperties.Properties(
+                    new DocumentFormat.OpenXml.CustomProperties.CustomDocumentProperty(
+                        new Vt.VTLPWSTR("preserved")) {
+                            FormatId = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}",
+                            PropertyId = 2,
+                            Name = "OfficeIMOReview"
+                        });
+
+                document.InsertDataSet(dataSet);
+                var sheet = document.Sheets.First(item => string.Equals(item.Name, "Items", StringComparison.Ordinal));
+                sheet.AddPivotTable(
+                    "A1:C601",
+                    "F20",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            Assert.NotNull(spreadsheet.WorkbookPart!.SharedStringTablePart);
+            Assert.NotNull(spreadsheet.CustomFilePropertiesPart);
+
+            var sheets = spreadsheet.WorkbookPart.Workbook.Sheets!.Elements<Sheet>().ToDictionary(sheet => sheet.Name!.Value!);
+            var dataPart = (WorksheetPart)spreadsheet.WorkbookPart.GetPartById(sheets["Items"].Id!);
+            var dataCells = dataPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("North Region Repeated", GetSpreadsheetCellText(spreadsheet, dataCells["A2"]));
+            Assert.Equal("South Region Repeated", GetSpreadsheetCellText(spreadsheet, dataCells["A601"]));
+
+            var linksPart = (WorksheetPart)spreadsheet.WorkbookPart.GetPartById(sheets["Links"].Id!);
+            var relationship = Assert.Single(linksPart.HyperlinkRelationships);
+            Assert.Equal("https://example.org/review", relationship.Uri.ToString());
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 

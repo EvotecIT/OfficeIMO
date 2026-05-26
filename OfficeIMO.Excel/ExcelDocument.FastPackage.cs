@@ -201,7 +201,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                var packageRelationships = new[] {
+                var packageRelationships = new List<ExtendedRelationshipModel> {
                     new ExtendedRelationshipModel(
                         workbookRelationshipId,
                         workbookPart.RelationshipType,
@@ -218,6 +218,23 @@ namespace OfficeIMO.Excel {
                         "docProps/app.xml",
                         isExternal: false)
                 };
+
+                foreach (var child in document.Parts) {
+                    var rootPart = child.OpenXmlPart;
+                    if (ReferenceEquals(rootPart, workbookPart) || rootPart is ExtendedFilePropertiesPart) {
+                        continue;
+                    }
+
+                    if (!TryCollectPart(rootPart, parts, partMap, out skipReason)) {
+                        return false;
+                    }
+
+                    packageRelationships.Add(new ExtendedRelationshipModel(
+                        child.RelationshipId,
+                        rootPart.RelationshipType,
+                        NormalizePackagePartPath(rootPart.Uri),
+                        isExternal: false));
+                }
 
                 var directWorksheetModels = directDataSetModel == null
                     ? new Dictionary<OpenXmlPart, DirectDataSetSheetModel>(0)
@@ -328,6 +345,7 @@ namespace OfficeIMO.Excel {
                 WorksheetPart worksheetPart when worksheetPart.Worksheet != null => worksheetPart.Worksheet,
                 WorkbookStylesPart stylesPart when stylesPart.Stylesheet != null => stylesPart.Stylesheet,
                 SharedStringTablePart sharedStringPart when sharedStringPart.SharedStringTable != null => sharedStringPart.SharedStringTable,
+                CustomFilePropertiesPart customPropertiesPart when customPropertiesPart.Properties != null => customPropertiesPart.Properties,
                 ThemePart themePart when themePart.Theme != null => themePart.Theme,
                 DrawingsPart drawingsPart when drawingsPart.WorksheetDrawing != null => drawingsPart.WorksheetDrawing,
                 ChartPart chartPart when chartPart.ChartSpace != null => chartPart.ChartSpace,
@@ -377,7 +395,7 @@ namespace OfficeIMO.Excel {
             return Uri.UnescapeDataString(sourceUri.MakeRelativeUri(targetUri).ToString());
         }
 
-        private static void WriteExtendedContentTypesEntry(ZipArchive archive, IReadOnlyList<ExtendedPartModel> parts) {
+        private static void WriteExtendedContentTypesEntry(ZipArchive archive, IReadOnlyList<ExtendedPartModel> parts, bool includeDirectStyles, bool includeDirectSharedStrings) {
             var builder = new System.Text.StringBuilder(768 + parts.Count * 180);
             builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
             builder.Append("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">");
@@ -385,6 +403,13 @@ namespace OfficeIMO.Excel {
             builder.Append("<Default Extension=\"xml\" ContentType=\"application/xml\"/>");
             builder.Append("<Override PartName=\"/docProps/core.xml\" ContentType=\"application/vnd.openxmlformats-package.core-properties+xml\"/>");
             builder.Append("<Override PartName=\"/docProps/app.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.extended-properties+xml\"/>");
+            if (includeDirectStyles && !parts.Any(static part => string.Equals(part.Path, "xl/styles.xml", StringComparison.Ordinal))) {
+                builder.Append("<Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>");
+            }
+
+            if (includeDirectSharedStrings && !parts.Any(static part => string.Equals(part.Path, "xl/sharedStrings.xml", StringComparison.Ordinal))) {
+                builder.Append("<Override PartName=\"/xl/sharedStrings.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml\"/>");
+            }
 
             foreach (var part in parts.OrderBy(static item => item.Path, StringComparer.Ordinal)) {
                 builder.Append("<Override PartName=\"/");
@@ -434,12 +459,6 @@ namespace OfficeIMO.Excel {
                 }
 
                 using var archive = new ZipArchive(destination, ZipArchiveMode.Create, leaveOpen: true);
-                WriteExtendedContentTypesEntry(archive, model.Parts);
-                WriteExtendedRelationshipsEntry(archive, "_rels/.rels", model.PackageRelationships);
-                WriteCorePropertiesEntry(archive);
-                WriteAppPropertiesEntry(archive);
-                ReportTiming("Save.ExtendedPackage.WriteFixedEntries");
-
                 DirectDataSetWorkbookWriter.ExtendedDirectWritePlan? directWritePlan = null;
                 if (CanUseDirectWorksheetEntries(model)
                     && DirectDataSetWorkbookWriter.TryCreateExtendedWritePlan(model.DirectDataSetModel!, ct, out var candidateDirectWritePlan)) {
@@ -447,11 +466,24 @@ namespace OfficeIMO.Excel {
                 }
                 ReportTiming("Save.ExtendedPackage.CreateDirectWritePlan");
 
+                WriteExtendedContentTypesEntry(archive, model.Parts, directWritePlan != null, directWritePlan?.HasSharedStrings == true);
+                WriteExtendedRelationshipsEntry(archive, "_rels/.rels", model.PackageRelationships);
+                WriteCorePropertiesEntry(archive);
+                WriteAppPropertiesEntry(archive);
+                ReportTiming("Save.ExtendedPackage.WriteFixedEntries");
+
+                bool wroteDirectStyles = false;
+                bool wroteDirectSharedStrings = false;
                 foreach (var part in model.Parts) {
                     ct.ThrowIfCancellationRequested();
                     if (directWritePlan != null && part.Part is WorkbookStylesPart) {
                         DirectDataSetWorkbookWriter.WriteExtendedStyles(archive, directWritePlan);
+                        wroteDirectStyles = true;
                         ReportTiming("Save.ExtendedPackage.WriteDirectStyles");
+                    } else if (directWritePlan?.HasSharedStrings == true && part.Part is SharedStringTablePart) {
+                        DirectDataSetWorkbookWriter.WriteExtendedSharedStrings(archive, directWritePlan);
+                        wroteDirectSharedStrings = true;
+                        ReportTiming("Save.ExtendedPackage.WriteDirectSharedStrings");
                     } else if (directWritePlan != null
                         && part.Part is WorksheetPart directWorksheetPart
                         && model.DirectWorksheetModels.TryGetValue(directWorksheetPart, out DirectDataSetSheetModel? directSheetModel)) {
@@ -487,19 +519,28 @@ namespace OfficeIMO.Excel {
                         ReportTiming("Save.ExtendedPackage.WriteOpenXmlPart");
                     }
 
-                    var relationships = CreateRelationships(part.Part, part.Path, model.PartMap);
+                    var relationships = CreateRelationships(part.Part, part.Path, model.PartMap, directWritePlan);
                     if (relationships.Count != 0) {
                         WriteExtendedRelationshipsEntry(archive, GetRelationshipsPath(part.Path), relationships);
                         ReportTiming("Save.ExtendedPackage.WriteRelationships");
                     }
+                }
+
+                if (directWritePlan != null && !wroteDirectStyles) {
+                    DirectDataSetWorkbookWriter.WriteExtendedStyles(archive, directWritePlan);
+                    ReportTiming("Save.ExtendedPackage.WriteDirectStyles");
+                }
+
+                if (directWritePlan?.HasSharedStrings == true && !wroteDirectSharedStrings) {
+                    DirectDataSetWorkbookWriter.WriteExtendedSharedStrings(archive, directWritePlan);
+                    ReportTiming("Save.ExtendedPackage.WriteDirectSharedStrings");
                 }
             }
 
             private static bool CanUseDirectWorksheetEntries(ExtendedWorkbookPackageModel model) {
                 if (model.DirectDataSetModel == null
                     || model.DirectDataSetModel.Sheets.Count == 0
-                    || model.DirectWorksheetModels.Count != model.DirectDataSetModel.Sheets.Count
-                    || !model.Parts.Any(static part => part.Part is WorkbookStylesPart)) {
+                    || model.DirectWorksheetModels.Count != model.DirectDataSetModel.Sheets.Count) {
                     return false;
                 }
 
@@ -525,7 +566,8 @@ namespace OfficeIMO.Excel {
             private static IReadOnlyList<ExtendedRelationshipModel> CreateRelationships(
                 OpenXmlPartContainer container,
                 string sourcePath,
-                IReadOnlyDictionary<OpenXmlPart, ExtendedPartModel> partMap) {
+                IReadOnlyDictionary<OpenXmlPart, ExtendedPartModel> partMap,
+                DirectDataSetWorkbookWriter.ExtendedDirectWritePlan? directWritePlan) {
                 var relationships = new List<ExtendedRelationshipModel>();
                 foreach (var child in container.Parts) {
                     if (!partMap.TryGetValue(child.OpenXmlPart, out var targetPart)) {
@@ -539,6 +581,40 @@ namespace OfficeIMO.Excel {
                         isExternal: false));
                 }
 
+                if (directWritePlan != null
+                    && container is WorkbookPart
+                    && !relationships.Any(static relationship => string.Equals(
+                        relationship.RelationshipType,
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+                        StringComparison.Ordinal))) {
+                    relationships.Add(new ExtendedRelationshipModel(
+                        CreateRelationshipId(relationships),
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+                        "styles.xml",
+                        isExternal: false));
+                }
+
+                if (directWritePlan?.HasSharedStrings == true
+                    && container is WorkbookPart
+                    && !relationships.Any(static relationship => string.Equals(
+                        relationship.RelationshipType,
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings",
+                        StringComparison.Ordinal))) {
+                    relationships.Add(new ExtendedRelationshipModel(
+                        CreateRelationshipId(relationships),
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings",
+                        "sharedStrings.xml",
+                        isExternal: false));
+                }
+
+                foreach (var hyperlink in container.HyperlinkRelationships) {
+                    relationships.Add(new ExtendedRelationshipModel(
+                        hyperlink.Id,
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
+                        hyperlink.Uri.ToString(),
+                        hyperlink.IsExternal));
+                }
+
                 foreach (var external in container.ExternalRelationships) {
                     relationships.Add(new ExtendedRelationshipModel(
                         external.Id,
@@ -548,6 +624,15 @@ namespace OfficeIMO.Excel {
                 }
 
                 return relationships;
+            }
+
+            private static string CreateRelationshipId(IReadOnlyList<ExtendedRelationshipModel> relationships) {
+                for (int i = 1; ; i++) {
+                    string id = "rId" + InvariantNumberText.Get(i);
+                    if (!relationships.Any(relationship => string.Equals(relationship.Id, id, StringComparison.Ordinal))) {
+                        return id;
+                    }
+                }
             }
         }
 

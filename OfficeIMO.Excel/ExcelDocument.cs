@@ -422,6 +422,14 @@ namespace OfficeIMO.Excel {
                     return PreserveDirectDataSetFastSaveStateDuringDirtyMarks();
                 }
 
+                _materializedDirectDataSetFastSaveModel = null;
+                _materializingDeferredDataSetImport = true;
+                try {
+                    MaterializeDirectDataSetModel(model);
+                } finally {
+                    _materializingDeferredDataSetImport = false;
+                }
+
                 return null;
             }
 

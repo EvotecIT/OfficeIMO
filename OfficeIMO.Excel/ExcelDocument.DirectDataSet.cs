@@ -2017,7 +2017,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    if (cellRow <= directLastRow || cellColumn <= 0) {
+                    if (cellColumn <= 0 || (cellRow <= directLastRow && cellColumn <= sheetModel.Table.ColumnCount)) {
                         continue;
                     }
 
@@ -2732,7 +2732,19 @@ namespace OfficeIMO.Excel {
                 && OverlayCells.Count == 0;
         }
 
-        private readonly record struct DirectOverlayCell(int Row, int Column, object? Value);
+        private readonly struct DirectOverlayCell {
+            internal DirectOverlayCell(int row, int column, object? value) {
+                Row = row;
+                Column = column;
+                Value = value;
+            }
+
+            internal int Row { get; }
+
+            internal int Column { get; }
+
+            internal object? Value { get; }
+        }
 
         private readonly struct DirectBufferedRows {
             private readonly object?[][]? _arrayRows;
