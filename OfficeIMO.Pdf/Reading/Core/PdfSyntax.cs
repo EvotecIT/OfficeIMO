@@ -1342,6 +1342,14 @@ internal static class PdfSyntax {
             byte[] data = Filters.StreamDecoder.Decode(xrefStream.Stream.Dictionary, xrefStream.Stream.Data, map);
             var entries = ReadXrefStreamEntries(xrefStream.Stream.Dictionary, data).ToList();
             foreach (var entry in entries) {
+                if (entry.Type == 0 &&
+                    entry.ObjectNumber != 0) {
+                    map.Remove(entry.ObjectNumber);
+                    parsedOffsets.Remove(entry.ObjectNumber);
+                }
+            }
+
+            foreach (var entry in entries) {
                 if (entry.Type != 1 ||
                     entry.Field1 < 0 ||
                     entry.Field1 > int.MaxValue) {
