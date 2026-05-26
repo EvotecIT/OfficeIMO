@@ -54,6 +54,26 @@ public class PdfPageImporterTests {
     }
 
     [Fact]
+    public void InsertPages_RebasesTargetPageLabelsAfterInsertedPagesAtBeginning() {
+        byte[] target = BuildTwoPageLabelPdf();
+        byte[] source = BuildPdf("Inserted", "Inserted page");
+
+        byte[] imported = PdfPageImporter.InsertPages(target, source, 1);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(imported);
+        Assert.Equal(3, info.PageCount);
+        PdfPageLabel label = Assert.Single(info.PageLabels);
+        Assert.Equal(1, label.StartPageIndex);
+        Assert.Equal(2, label.StartPageNumber);
+        Assert.Equal("D", label.Style);
+        Assert.Equal(1, label.StartNumber);
+
+        string text = Encoding.ASCII.GetString(imported);
+        Assert.Contains("/PageLabels ", text, StringComparison.Ordinal);
+        Assert.Contains("/Nums [ 1 << /S /D /St 1 >> ]", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void InsertPages_ImportsSelectedSourcePagesBeforeTargetPage() {
         byte[] target = BuildPdf("Target", "Target first", "Target second", "Target third");
         byte[] source = BuildPdf("Source", "Source first", "Source second", "Source third");
@@ -443,6 +463,44 @@ public class PdfPageImporterTests {
         }
 
         return doc.ToBytes();
+    }
+
+    private static byte[] BuildTwoPageLabelPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /PageLabels 7 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 5 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 6 0 R >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            "<< /Nums [0 << /S /D /St 1 >>] >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 8 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
     }
 
     private static void AssertContainsInOrder(string text, params string[] expected) {

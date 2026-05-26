@@ -44,6 +44,7 @@ public static class PdfMerger {
         }
 
         var importedSources = new List<ImportedSource>(sources.Length);
+        int mergedPageOffset = 0;
         for (int i = 0; i < sources.Length; i++) {
             byte[] source = sources[i];
             if (source is null) {
@@ -64,7 +65,12 @@ public static class PdfMerger {
                 collector.CollectPage(pageObjectNumber);
             }
 
-            var catalogState = PdfPageExtractor.PruneCatalogStateForPages(objects, PdfPageExtractor.ExtractCatalogRewriteState(objects), collector.PageObjectIds);
+            var catalogState = PdfPageExtractor.PruneCatalogStateForPages(
+                objects,
+                PdfPageExtractor.ExtractCatalogRewriteState(objects),
+                collector.PageObjectIds,
+                pageObjectNumbers,
+                mergedPageOffset);
             collector.CollectObjectGraph(catalogState.Outlines);
             collector.CollectObjectGraph(catalogState.PageLabels);
             collector.CollectObjectGraph(catalogState.NamedDestinationNameTree);
@@ -75,6 +81,7 @@ public static class PdfMerger {
             collector.CollectObjectGraph(catalogState.AssociatedFiles);
             collector.CollectObjectGraph(catalogState.OptionalContent);
             importedSources.Add(new ImportedSource(objects, document.Metadata, pageObjectNumbers, collector, catalogState));
+            mergedPageOffset += document.Pages.Count;
         }
 
         return WriteMerged(importedSources, primarySourceIndex);

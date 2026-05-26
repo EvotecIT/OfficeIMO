@@ -272,7 +272,8 @@ public class PdfTextExtractorPageTests {
             Assert.Equal(Path.Combine(outputDirectory, "source-page-0003.txt"), paths[0]);
             Assert.Equal(Path.Combine(outputDirectory, "source-page-0001.txt"), paths[1]);
             Assert.Equal(Path.Combine(outputDirectory, "source-page-0002.txt"), paths[2]);
-            Assert.Equal(Path.Combine(outputDirectory, "source-page-0002.txt"), paths[3]);
+            Assert.Equal(Path.Combine(outputDirectory, "source-page-0002-occurrence-0002.txt"), paths[3]);
+            Assert.NotEqual(paths[2], paths[3]);
 
             Assert.Contains("Thirdpagemarker", Normalize(File.ReadAllText(paths[0], Encoding.UTF8)), StringComparison.Ordinal);
             Assert.Contains("Firstpagemarker", Normalize(File.ReadAllText(paths[1], Encoding.UTF8)), StringComparison.Ordinal);
@@ -399,6 +400,7 @@ public class PdfTextExtractorPageTests {
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractTextByPageRanges((byte[])null!, PdfPageRange.From(1, 1)));
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractTextByPageRanges(pdf, null!));
         Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractTextByPageRanges(pdf, Array.Empty<PdfPageRange>()));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractTextByPageRanges(pdf, default(PdfPageRange)));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractTextByPageRanges(pdf, PdfPageRange.From(1, 4)));
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractTextByPageRanges((string)null!, PdfPageRange.From(1, 1)));
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractTextByPageRanges((Stream)null!, PdfPageRange.From(1, 1)));

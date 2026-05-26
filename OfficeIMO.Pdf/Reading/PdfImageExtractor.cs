@@ -217,6 +217,10 @@ public static class PdfImageExtractor {
 
         var pages = new List<int>();
         for (int i = 0; i < pageRanges.Length; i++) {
+            if (pageRanges[i].FirstPage < 1 || pageRanges[i].LastPage < pageRanges[i].FirstPage) {
+                throw new ArgumentOutOfRangeException(paramName, "Page ranges must be inclusive one-based ranges.");
+            }
+
             if (pageRanges[i].LastPage > pageCount) {
                 throw new ArgumentOutOfRangeException(paramName, "Page range cannot exceed the document page count.");
             }

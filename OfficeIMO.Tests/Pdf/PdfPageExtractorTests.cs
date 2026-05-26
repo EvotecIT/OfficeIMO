@@ -564,11 +564,14 @@ public class PdfPageExtractorTests {
                 inputPath,
                 outputDirectory,
                 PdfPageRange.From(1, 2),
-                PdfPageRange.From(3, 3));
+                PdfPageRange.From(3, 3),
+                PdfPageRange.From(1, 2));
 
-            Assert.Equal(2, paths.Count);
+            Assert.Equal(3, paths.Count);
             Assert.Equal(Path.Combine(outputDirectory, "source-pages-0001-0002.pdf"), paths[0]);
             Assert.Equal(Path.Combine(outputDirectory, "source-pages-0003-0003.pdf"), paths[1]);
+            Assert.Equal(Path.Combine(outputDirectory, "source-pages-0001-0002-occurrence-0002.pdf"), paths[2]);
+            Assert.NotEqual(paths[0], paths[2]);
 
             string firstText = NormalizeExtractedText(PdfReadDocument.Load(paths[0]).ExtractText());
             Assert.Contains("Firstpagemarker", firstText);
@@ -579,6 +582,11 @@ public class PdfPageExtractorTests {
             Assert.DoesNotContain("Firstpagemarker", secondText);
             Assert.DoesNotContain("Secondpagemarker", secondText);
             Assert.Contains("Thirdpagemarker", secondText);
+
+            string duplicateText = NormalizeExtractedText(PdfReadDocument.Load(paths[2]).ExtractText());
+            Assert.Contains("Firstpagemarker", duplicateText);
+            Assert.Contains("Secondpagemarker", duplicateText);
+            Assert.DoesNotContain("Thirdpagemarker", duplicateText);
         } finally {
             if (Directory.Exists(directory)) {
                 Directory.Delete(directory, recursive: true);

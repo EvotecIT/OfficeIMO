@@ -266,8 +266,15 @@ public static class PdfTextExtractor {
         string safeBaseName = GetSafeBaseName(baseName, "page");
 
         var paths = new List<string>(pages.Count);
+        var pageOccurrences = new Dictionary<int, int>();
         for (int i = 0; i < pages.Count; i++) {
-            string outputPath = Path.Combine(fullOutputDirectory, safeBaseName + "-page-" + pages[i].PageNumber.ToString("0000", System.Globalization.CultureInfo.InvariantCulture) + ".txt");
+            int occurrence = IncrementOccurrence(pageOccurrences, pages[i].PageNumber);
+            string outputPath = Path.Combine(
+                fullOutputDirectory,
+                safeBaseName +
+                "-page-" + pages[i].PageNumber.ToString("0000", System.Globalization.CultureInfo.InvariantCulture) +
+                BuildOccurrenceSuffix(occurrence) +
+                ".txt");
             File.WriteAllText(outputPath, pages[i].Text, Encoding.UTF8);
             paths.Add(outputPath);
         }
@@ -279,12 +286,15 @@ public static class PdfTextExtractor {
         string safeBaseName = GetSafeBaseName(baseName, "table");
 
         var paths = new List<string>();
+        var pageOccurrences = new Dictionary<int, int>();
         foreach (var page in tablePages) {
+            int occurrence = IncrementOccurrence(pageOccurrences, page.PageNumber);
             for (int tableIndex = 0; tableIndex < page.Tables.Count; tableIndex++) {
                 string outputPath = Path.Combine(
                     fullOutputDirectory,
                     safeBaseName +
                     "-page-" + page.PageNumber.ToString("0000", System.Globalization.CultureInfo.InvariantCulture) +
+                    BuildOccurrenceSuffix(occurrence) +
                     "-table-" + (tableIndex + 1).ToString("0000", System.Globalization.CultureInfo.InvariantCulture) +
                     ".csv");
 
@@ -294,6 +304,19 @@ public static class PdfTextExtractor {
         }
 
         return paths;
+    }
+
+    private static int IncrementOccurrence(Dictionary<int, int> occurrences, int key) {
+        occurrences.TryGetValue(key, out int occurrence);
+        occurrence++;
+        occurrences[key] = occurrence;
+        return occurrence;
+    }
+
+    private static string BuildOccurrenceSuffix(int occurrence) {
+        return occurrence <= 1
+            ? string.Empty
+            : "-occurrence-" + occurrence.ToString("0000", System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private static string GetSafeBaseName(string? baseName, string fallback) {
@@ -795,6 +818,10 @@ public static class PdfTextExtractor {
 
         var pages = new List<int>();
         for (int i = 0; i < pageRanges.Length; i++) {
+            if (pageRanges[i].FirstPage < 1 || pageRanges[i].LastPage < pageRanges[i].FirstPage) {
+                throw new ArgumentOutOfRangeException(paramName, "Page ranges must be inclusive one-based ranges.");
+            }
+
             if (pageRanges[i].LastPage > pageCount) {
                 throw new ArgumentOutOfRangeException(paramName, "Page range cannot exceed the document page count.");
             }

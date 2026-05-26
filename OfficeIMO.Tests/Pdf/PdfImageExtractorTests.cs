@@ -247,6 +247,7 @@ public class PdfImageExtractorTests {
         Assert.Throws<ArgumentNullException>(() => PdfImageExtractor.ExtractImagesByPageRanges("input.pdf", null!, PdfPageRange.From(1, 1)));
         Assert.Throws<ArgumentException>(() => PdfImageExtractor.ExtractImages("input.pdf", " "));
         Assert.Throws<ArgumentException>(() => PdfImageExtractor.ExtractImagesByPageRanges(CreateImagePdf()));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfImageExtractor.ExtractImagesByPageRanges(CreateImagePdf(), default(PdfPageRange)));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfImageExtractor.ExtractImagesByPageRanges(CreateImagePdf(), PdfPageRange.From(2, 2)));
 
         using var unreadable = new WriteOnlyStream();

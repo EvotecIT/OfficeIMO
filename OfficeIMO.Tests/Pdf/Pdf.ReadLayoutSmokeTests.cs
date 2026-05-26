@@ -206,7 +206,8 @@ public sealed class PdfReadLayoutSmokeTests {
             Assert.Equal(3, paths.Count);
             Assert.Equal(Path.Combine(outputDirectory, "source-page-0003-table-0001.csv"), paths[0]);
             Assert.Equal(Path.Combine(outputDirectory, "source-page-0001-table-0001.csv"), paths[1]);
-            Assert.Equal(Path.Combine(outputDirectory, "source-page-0003-table-0001.csv"), paths[2]);
+            Assert.Equal(Path.Combine(outputDirectory, "source-page-0003-occurrence-0002-table-0001.csv"), paths[2]);
+            Assert.NotEqual(paths[0], paths[2]);
             Assert.Contains("C-300,Gamma,5", File.ReadAllText(paths[0]), StringComparison.Ordinal);
             Assert.Contains("A-100,Alpha,2", File.ReadAllText(paths[1]), StringComparison.Ordinal);
             Assert.Contains("C-300,Gamma,5", File.ReadAllText(paths[2]), StringComparison.Ordinal);
@@ -243,11 +244,13 @@ public sealed class PdfReadLayoutSmokeTests {
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractStructuredByPageRanges((byte[])null!, PdfPageRange.From(1, 1)));
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractStructuredByPageRanges(bytes, (PdfPageRange[])null!));
         Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractStructuredByPageRanges(bytes));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractStructuredByPageRanges(bytes, default(PdfPageRange)));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractStructuredByPageRanges(bytes, PdfPageRange.From(4, 4)));
 
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractTablesByPageRanges((byte[])null!, PdfPageRange.From(1, 1)));
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractTablesByPageRanges(bytes, (PdfPageRange[])null!));
         Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractTablesByPageRanges(bytes));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractTablesByPageRanges(bytes, default(PdfPageRange)));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractTablesByPageRanges(bytes, PdfPageRange.From(4, 4)));
 
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractTablesByPageRanges((string)null!, "out", PdfPageRange.From(1, 1)));

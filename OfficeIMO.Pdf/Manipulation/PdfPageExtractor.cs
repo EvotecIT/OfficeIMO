@@ -506,13 +506,19 @@ public static class PdfPageExtractor {
         }
 
         var paths = new List<string>(pages.Count);
+        var rangeOccurrences = new Dictionary<PdfPageRange, int>();
         for (int i = 0; i < pages.Count; i++) {
             var range = ranges[i];
+            rangeOccurrences.TryGetValue(range, out int occurrence);
+            occurrence++;
+            rangeOccurrences[range] = occurrence;
+
             string outputPath = Path.Combine(
                 fullOutputDirectory,
                 safeBaseName + "-pages-" +
                 range.FirstPage.ToString("0000", CultureInfo.InvariantCulture) + "-" +
                 range.LastPage.ToString("0000", CultureInfo.InvariantCulture) +
+                (occurrence <= 1 ? string.Empty : "-occurrence-" + occurrence.ToString("0000", CultureInfo.InvariantCulture)) +
                 ".pdf");
             File.WriteAllBytes(outputPath, pages[i]);
             paths.Add(outputPath);
@@ -684,12 +690,13 @@ public static class PdfPageExtractor {
         Dictionary<int, PdfIndirectObject> sourceObjects,
         CatalogRewriteState catalogState,
         HashSet<int> copiedPageObjectIds,
-        IReadOnlyList<int>? orderedPageObjectNumbers = null) {
+        IReadOnlyList<int>? orderedPageObjectNumbers = null,
+        int outputPageIndexOffset = 0) {
         var namedDestinations = BuildNamedDestinationsForPages(sourceObjects, catalogState.NamedDestinations, copiedPageObjectIds);
         var namedDestinationNameTree = BuildNamedDestinationNameTreeForPages(sourceObjects, catalogState.NamedDestinationNameTree, copiedPageObjectIds);
         var openAction = BuildOpenActionForPages(sourceObjects, catalogState.OpenAction, copiedPageObjectIds);
         var outlines = BuildOutlinesForPages(sourceObjects, catalogState.Outlines, copiedPageObjectIds);
-        var pageLabels = BuildPageLabelsForPages(sourceObjects, catalogState.PageLabels, orderedPageObjectNumbers);
+        var pageLabels = BuildPageLabelsForPages(sourceObjects, catalogState.PageLabels, orderedPageObjectNumbers, outputPageIndexOffset);
         string? pageMode = outlines is null && string.Equals(catalogState.PageMode, "UseOutlines", StringComparison.Ordinal)
             ? null
             : catalogState.PageMode;
@@ -1041,7 +1048,8 @@ public static class PdfPageExtractor {
     private static PdfObject? BuildPageLabelsForPages(
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject? pageLabels,
-        IReadOnlyList<int>? orderedPageObjectNumbers) {
+        IReadOnlyList<int>? orderedPageObjectNumbers,
+        int outputPageIndexOffset) {
         if (pageLabels is null || orderedPageObjectNumbers is null || orderedPageObjectNumbers.Count == 0) {
             return pageLabels;
         }
@@ -1102,7 +1110,7 @@ public static class PdfPageExtractor {
                 sourcePageIndex == previousSourcePageIndex + 1;
 
             if (!continuesPreviousRun) {
-                rewrittenNums.Items.Add(new PdfNumber(outputIndex));
+                rewrittenNums.Items.Add(new PdfNumber(outputPageIndexOffset + outputIndex));
                 rewrittenNums.Items.Add(ClonePageLabelDictionary(entry.LabelDictionary, sourcePageIndex - entry.StartPageIndex));
             }
 
