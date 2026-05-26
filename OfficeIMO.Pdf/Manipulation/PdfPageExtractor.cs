@@ -1808,12 +1808,9 @@ public static class PdfPageExtractor {
 
     private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> sourceObjects, PdfObject destination, HashSet<int> visitedReferences) {
         if (destination is PdfReference reference) {
-            if (!visitedReferences.Add(reference.ObjectNumber) ||
-                !sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect)) {
-                return false;
-            }
-
-            destination = indirect.Value;
+            return visitedReferences.Add(reference.ObjectNumber) &&
+                sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect) &&
+                IsDestinationForKnownPage(sourceObjects, indirect.Value, visitedReferences);
         }
 
         if (destination is PdfArray array) {

@@ -696,12 +696,9 @@ internal static class PdfSyntax {
 
     private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> map, PdfObject destination, HashSet<int> visitedReferences) {
         if (destination is PdfReference reference) {
-            if (!visitedReferences.Add(reference.ObjectNumber) ||
-                !map.TryGetValue(reference.ObjectNumber, out var indirect)) {
-                return false;
-            }
-
-            destination = indirect.Value;
+            return visitedReferences.Add(reference.ObjectNumber) &&
+                map.TryGetValue(reference.ObjectNumber, out var indirect) &&
+                IsDestinationForKnownPage(map, indirect.Value, visitedReferences);
         }
 
         if (destination is PdfArray array) {

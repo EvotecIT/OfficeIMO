@@ -254,6 +254,15 @@ public class PdfReadStreamTests {
     }
 
     [Fact]
+    public void Preflight_BlocksCyclicGoToActionOutlineDestinations() {
+        PdfDocumentPreflight report = PdfInspector.Preflight(BuildCyclicGoToActionDestinationPdf());
+
+        Assert.True(report.CanRead);
+        Assert.False(report.CanRewrite);
+        Assert.Contains(report.RewriteBlockers, blocker => blocker.Kind == PdfRewriteBlockerKind.Outlines);
+    }
+
+    [Fact]
     public void RewriteApis_RejectComplexOutlinePdfsWithClearUnsupportedDiagnostic() {
         byte[] outline = BuildUriActionOutlinePdf();
 
@@ -1196,6 +1205,44 @@ public class PdfReadStreamTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildCyclicGoToActionDestinationPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 5 0 R /PageMode /UseOutlines >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Outlines /First 6 0 R /Last 6 0 R /Count 1 >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Title (Cyclic GoTo action) /Parent 5 0 R /A << /S /GoTo /D 7 0 R >> >>",
+            "endobj",
+            "7 0 obj",
+            "8 0 R",
+            "endobj",
+            "8 0 obj",
+            "7 0 R",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
             "%%EOF"
         });
 
