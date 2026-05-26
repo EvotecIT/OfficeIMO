@@ -563,6 +563,9 @@ namespace OfficeIMO.Visio {
                     ColorTransparency = layer.ColorTransparency
                 };
                 CopyAttributes(layer.PreservedRowAttributes, clone.PreservedRowAttributes);
+                foreach (KeyValuePair<string, XElement> cell in layer.PreservedKnownCells) {
+                    clone.PreservedKnownCells[cell.Key] = new XElement(cell.Value);
+                }
                 CopyElements(layer.PreservedCells, clone.PreservedCells);
                 target.Layers.Add(clone);
             }

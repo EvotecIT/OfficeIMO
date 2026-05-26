@@ -1572,11 +1572,16 @@ namespace OfficeIMO.Visio {
                 bool snap = true;
                 bool glue = true;
                 int colorTransparency = 0;
+                Dictionary<string, XElement> preservedKnownCells = new(StringComparer.OrdinalIgnoreCase);
                 List<XElement> preservedCells = new();
 
                 foreach (XElement cell in row.Elements(ns + "Cell")) {
                     string? cellName = cell.Attribute("N")?.Value;
                     string? value = cell.Attribute("V")?.Value;
+                    if (IsKnownLayerCell(cellName)) {
+                        preservedKnownCells[cellName!] = new XElement(cell);
+                    }
+
                     switch (cellName) {
                         case "Name":
                             name = value;
@@ -1595,22 +1600,22 @@ namespace OfficeIMO.Visio {
                             }
                             break;
                         case "Visible":
-                            visible = !string.Equals(value, "0", StringComparison.OrdinalIgnoreCase);
+                            visible = ParseBoolCell(value, visible);
                             break;
                         case "Print":
-                            print = !string.Equals(value, "0", StringComparison.OrdinalIgnoreCase);
+                            print = ParseBoolCell(value, print);
                             break;
                         case "Active":
-                            active = !string.Equals(value, "0", StringComparison.OrdinalIgnoreCase);
+                            active = ParseBoolCell(value, active);
                             break;
                         case "Lock":
-                            locked = !string.Equals(value, "0", StringComparison.OrdinalIgnoreCase);
+                            locked = ParseBoolCell(value, locked);
                             break;
                         case "Snap":
-                            snap = !string.Equals(value, "0", StringComparison.OrdinalIgnoreCase);
+                            snap = ParseBoolCell(value, snap);
                             break;
                         case "Glue":
-                            glue = !string.Equals(value, "0", StringComparison.OrdinalIgnoreCase);
+                            glue = ParseBoolCell(value, glue);
                             break;
                         case "ColorTrans":
                             if (TryParseCellIntValue(value, out int parsedTransparency)) {
@@ -1640,6 +1645,10 @@ namespace OfficeIMO.Visio {
                 foreach (XAttribute attribute in row.Attributes().Where(attribute =>
                              !string.Equals(attribute.Name.LocalName, "IX", StringComparison.OrdinalIgnoreCase))) {
                     layer.PreservedRowAttributes.Add(new XAttribute(attribute));
+                }
+
+                foreach (KeyValuePair<string, XElement> knownCell in preservedKnownCells) {
+                    layer.PreservedKnownCells[knownCell.Key] = knownCell.Value;
                 }
 
                 foreach (XElement preservedCell in preservedCells) {
@@ -1673,13 +1682,40 @@ namespace OfficeIMO.Visio {
         }
 
         private static VisioLayer? FindLayerBySourceIndex(VisioPage page, int layerIndex) {
+            if (layerIndex >= 0 && layerIndex < page.Layers.Count) {
+                return page.Layers[layerIndex];
+            }
+
             foreach (VisioLayer layer in page.Layers) {
                 if (layer.SourceIndex == layerIndex) {
                     return layer;
                 }
             }
 
-            return layerIndex >= 0 && layerIndex < page.Layers.Count ? page.Layers[layerIndex] : null;
+            return null;
+        }
+
+        private static bool ParseBoolCell(string? value, bool fallback) {
+            return ParseNullableBoolCell(value) ?? fallback;
+        }
+
+        private static bool IsKnownLayerCell(string? cellName) {
+            switch (cellName) {
+                case "Name":
+                case "Color":
+                case "Status":
+                case "Visible":
+                case "Print":
+                case "Active":
+                case "Lock":
+                case "Snap":
+                case "Glue":
+                case "NameUniv":
+                case "ColorTrans":
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private static void ParseLayerIndexes(string? value, IList<int> target) {

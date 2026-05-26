@@ -80,6 +80,8 @@ namespace OfficeIMO.Visio {
 
         internal IList<XAttribute> PreservedRowAttributes { get; } = new List<XAttribute>();
 
+        internal IDictionary<string, XElement> PreservedKnownCells { get; } = new Dictionary<string, XElement>(StringComparer.OrdinalIgnoreCase);
+
         internal IList<XElement> PreservedCells { get; } = new List<XElement>();
     }
 }

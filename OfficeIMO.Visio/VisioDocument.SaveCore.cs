@@ -1996,22 +1996,46 @@ namespace OfficeIMO.Visio {
             for (int i = 0; i < layers.Count; i++) {
                 VisioLayer layer = layers[i];
                 writer.WriteStartElement("Row", ns);
-                writer.WriteAttributeString("IX", XmlConvert.ToString(i));
+                writer.WriteAttributeString("IX", XmlConvert.ToString(i + 1));
                 WritePreservedAttributes(writer, layer.PreservedRowAttributes);
-                WriteStringCell(writer, ns, "Name", layer.Name);
-                WriteCell(writer, ns, "Color", layer.Color);
-                WriteCell(writer, ns, "Status", layer.Status);
-                WriteCell(writer, ns, "Visible", layer.Visible ? 1 : 0);
-                WriteCell(writer, ns, "Print", layer.Print ? 1 : 0);
-                WriteCell(writer, ns, "Active", layer.Active ? 1 : 0);
-                WriteCell(writer, ns, "Lock", layer.Lock ? 1 : 0);
-                WriteCell(writer, ns, "Snap", layer.Snap ? 1 : 0);
-                WriteCell(writer, ns, "Glue", layer.Glue ? 1 : 0);
-                WriteStringCell(writer, ns, "NameUniv", string.IsNullOrWhiteSpace(layer.NameU) ? layer.Name : layer.NameU);
-                WriteCell(writer, ns, "ColorTrans", layer.ColorTransparency);
+                WriteLayerCell(writer, ns, layer, "Name", layer.Name);
+                WriteLayerCell(writer, ns, layer, "Color", layer.Color);
+                WriteLayerCell(writer, ns, layer, "Status", layer.Status);
+                WriteLayerCell(writer, ns, layer, "Visible", layer.Visible ? 1 : 0);
+                WriteLayerCell(writer, ns, layer, "Print", layer.Print ? 1 : 0);
+                WriteLayerCell(writer, ns, layer, "Active", layer.Active ? 1 : 0);
+                WriteLayerCell(writer, ns, layer, "Lock", layer.Lock ? 1 : 0);
+                WriteLayerCell(writer, ns, layer, "Snap", layer.Snap ? 1 : 0);
+                WriteLayerCell(writer, ns, layer, "Glue", layer.Glue ? 1 : 0);
+                WriteLayerCell(writer, ns, layer, "NameUniv", string.IsNullOrWhiteSpace(layer.NameU) ? layer.Name : layer.NameU);
+                WriteLayerCell(writer, ns, layer, "ColorTrans", layer.ColorTransparency);
                 WritePreservedElements(writer, layer.PreservedCells);
                 writer.WriteEndElement();
             }
+            writer.WriteEndElement();
+        }
+
+        private static void WriteLayerCell(XmlWriter writer, string ns, VisioLayer layer, string cellName, int value) {
+            WriteLayerCell(writer, ns, layer, cellName, value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        private static void WriteLayerCell(XmlWriter writer, string ns, VisioLayer layer, string cellName, string value) {
+            layer.PreservedKnownCells.TryGetValue(cellName, out XElement? template);
+            writer.WriteStartElement("Cell", ns);
+            writer.WriteAttributeString("N", cellName);
+            writer.WriteAttributeString("V", value);
+            if (template != null) {
+                foreach (XAttribute attribute in template.Attributes()) {
+                    if (attribute.IsNamespaceDeclaration ||
+                        string.Equals(attribute.Name.LocalName, "N", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(attribute.Name.LocalName, "V", StringComparison.OrdinalIgnoreCase)) {
+                        continue;
+                    }
+
+                    WriteAttribute(writer, attribute);
+                }
+            }
+
             writer.WriteEndElement();
         }
 
@@ -2765,7 +2789,7 @@ namespace OfficeIMO.Visio {
                 writer.WriteStartElement("Section", ns);
                 writer.WriteAttributeString("N", "Layer");
                 writer.WriteStartElement("Row", ns);
-                writer.WriteAttributeString("IX", "0");
+                writer.WriteAttributeString("IX", "1");
                 WriteStringCell(writer, ns, "Name", "Connector");
                 WriteCell(writer, ns, "Color", 255);
                 WriteCell(writer, ns, "Status", 0);
