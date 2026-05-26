@@ -215,6 +215,19 @@ public class PdfReadStreamTests {
     }
 
     [Fact]
+    public void ReadApis_ResolveOutlineNamedDestinationTargetsByTokenNamespace() {
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildMixedNamedDestinationOutlinePdf());
+
+        Assert.Equal(3, info.Outlines.Count);
+        Assert.Equal("Direct name destination", info.Outlines[0].Title);
+        Assert.Equal(144d, info.Outlines[0].DestinationTop);
+        Assert.Equal("Name-tree string destination", info.Outlines[1].Title);
+        Assert.Equal(188d, info.Outlines[1].DestinationTop);
+        Assert.Equal("Dictionary string destination", info.Outlines[2].Title);
+        Assert.Equal(188d, info.Outlines[2].DestinationTop);
+    }
+
+    [Fact]
     public void RewriteApis_PreserveGoToActionOutlinePdfsForCopiedPages() {
         byte[] outline = BuildGoToActionOutlinePdf();
 
@@ -1292,7 +1305,7 @@ public class PdfReadStreamTests {
             "<< /Type /Outlines /First 6 0 R /Last 6 0 R /Count 1 >>",
             "endobj",
             "6 0 obj",
-            "<< /Title (Direct named destination) /Parent 5 0 R /Dest (Chapter1) >>",
+            "<< /Title (Direct named destination) /Parent 5 0 R /Dest /Chapter1 >>",
             "endobj",
             "7 0 obj",
             "<< /Chapter1 [3 0 R /XYZ 0 200 0] >>",
@@ -1327,7 +1340,7 @@ public class PdfReadStreamTests {
             "<< /Type /Outlines /First 6 0 R /Last 6 0 R /Count 1 >>",
             "endobj",
             "6 0 obj",
-            "<< /Title (Name-tree named destination) /Parent 5 0 R /Dest /Chapter1 >>",
+            "<< /Title (Name-tree named destination) /Parent 5 0 R /Dest (Chapter1) >>",
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 7 >>",
@@ -1359,7 +1372,7 @@ public class PdfReadStreamTests {
             "<< /Type /Outlines /First 6 0 R /Last 6 0 R /Count 1 >>",
             "endobj",
             "6 0 obj",
-            "<< /Title (Action named destination) /Parent 5 0 R /A << /S /GoTo /D (Chapter1) >> >>",
+            "<< /Title (Action named destination) /Parent 5 0 R /A << /S /GoTo /D /Chapter1 >> >>",
             "endobj",
             "7 0 obj",
             "<< /Chapter1 [3 0 R /XYZ 0 176 0] >>",
@@ -1401,6 +1414,47 @@ public class PdfReadStreamTests {
             "endobj",
             "trailer",
             "<< /Root 5 0 R /Size 8 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildMixedNamedDestinationOutlinePdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 5 0 R /PageMode /UseOutlines /Dests 9 0 R /Names << /Dests << /Names [(Chapter1) [3 0 R /XYZ 0 188 0]] >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Outlines /First 6 0 R /Last 8 0 R /Count 3 >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Title (Direct name destination) /Parent 5 0 R /Dest /Chapter1 /Next 7 0 R >>",
+            "endobj",
+            "7 0 obj",
+            "<< /Title (Name-tree string destination) /Parent 5 0 R /Dest (Chapter1) /Prev 6 0 R /Next 8 0 R >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Title (Dictionary string destination) /Parent 5 0 R /Dest << /D (Chapter1) >> /Prev 7 0 R >>",
+            "endobj",
+            "9 0 obj",
+            "<< /Chapter1 [3 0 R /XYZ 0 144 0] >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 10 >>",
             "%%EOF"
         });
 
