@@ -2275,6 +2275,13 @@ namespace OfficeIMO.Excel {
                         }
 
                         break;
+                    case DirectCellValueKind.Object:
+                        if (value is DirectTypedCellValue typedValue) {
+                            WriteTypedCellValue(writer, typedValue);
+                            return;
+                        }
+
+                        break;
                     case DirectCellValueKind.String:
                         if (value is string stringValue) {
                             WriteStringCellValue(writer, stringValue, sharedStrings);
@@ -2417,6 +2424,9 @@ namespace OfficeIMO.Excel {
                     case DirectFormulaCellValue formulaValue:
                         WriteFormulaCellValue(writer, formulaValue);
                         return;
+                    case DirectTypedCellValue typedValue:
+                        WriteTypedCellValue(writer, typedValue);
+                        return;
                     case string stringValue:
                         WriteStringCellValue(writer, stringValue, sharedStrings);
                         return;
@@ -2494,6 +2504,23 @@ namespace OfficeIMO.Excel {
                 }
 
                 WriteFormulaCellValue(writer, formula.Formula);
+            }
+
+            private static void WriteTypedCellValue(TextWriter writer, DirectTypedCellValue typed) {
+                writer.Write(" t=\"");
+                WriteEscaped(writer, typed.DataType);
+                writer.Write("\">");
+                if (!string.IsNullOrEmpty(typed.InlineStringXml)) {
+                    writer.Write(typed.InlineStringXml);
+                } else if (typed.Value != null) {
+                    writer.Write("<v>");
+                    WriteEscaped(writer, typed.Value);
+                    writer.Write("</v>");
+                } else {
+                    writer.Write("<v/>");
+                }
+
+                writer.Write("</c>");
             }
 
             private static void WriteStringCellValue(TextWriter writer, string value, DirectSharedStringTable? sharedStrings) {

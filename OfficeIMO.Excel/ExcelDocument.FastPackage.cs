@@ -273,6 +273,14 @@ namespace OfficeIMO.Excel {
                         isExternal: false));
                 }
 
+                foreach (var external in document.ExternalRelationships) {
+                    packageRelationships.Add(new ExtendedRelationshipModel(
+                        external.Id,
+                        external.RelationshipType,
+                        external.Uri.ToString(),
+                        isExternal: true));
+                }
+
                 var directWorksheetModels = directDataSetModel == null
                     ? new Dictionary<OpenXmlPart, DirectDataSetSheetModel>(0)
                     : BuildDirectWorksheetModelMap(workbookPart, directDataSetModel);

@@ -17,6 +17,20 @@ namespace OfficeIMO.Excel {
         public override string ToString() => Formula;
     }
 
+    internal readonly struct DirectTypedCellValue {
+        internal DirectTypedCellValue(string dataType, string? value, string? inlineStringXml = null) {
+            DataType = dataType;
+            Value = value;
+            InlineStringXml = inlineStringXml;
+        }
+
+        internal string DataType { get; }
+
+        internal string? Value { get; }
+
+        internal string? InlineStringXml { get; }
+    }
+
     public partial class ExcelSheet {
         internal const int CellValuePlainStringPromotionSharedStringCount = 4096;
         private const int CellValueSharedStringIndexCacheLimit = 256;

@@ -1022,11 +1022,12 @@ namespace OfficeIMO.Excel {
             }
 
             var candidate = _directDataSetSaveCandidate;
-            if (candidate == null || !candidate.IsValid || candidate.Model.Sheets.Count != 1) {
+            var sourceModel = candidate?.IsValid == true ? candidate.Model : _materializedDirectDataSetFastSaveModel;
+            if (sourceModel == null || sourceModel.Sheets.Count != 1) {
                 return false;
             }
 
-            var sheetModel = candidate.Model.Sheets[0];
+            var sheetModel = sourceModel.Sheets[0];
             if (!ReferenceEquals(sheet.Document, this)
                 || !string.Equals(sheetModel.SheetName, sheet.Name, StringComparison.Ordinal)
                 || columnIndex <= 0
@@ -1035,21 +1036,35 @@ namespace OfficeIMO.Excel {
             }
 
             try {
-                var model = candidate.Model.WithColumnNumberFormat(sheet.Name, columnIndex, numberFormat);
-                _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(
-                    candidate.Owner,
-                    model,
-                    candidate.InvalidateCallback,
-                    candidate.IsDeferred,
-                    candidate.SubscribesToSourceChanges);
+                var model = sourceModel.WithColumnNumberFormat(sheet.Name, columnIndex, numberFormat);
+                if (candidate != null && candidate.IsValid) {
+                    _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(
+                        candidate.Owner,
+                        model,
+                        candidate.InvalidateCallback,
+                        candidate.IsDeferred,
+                        candidate.SubscribesToSourceChanges);
+                    candidate.Dispose();
+                } else {
+                    _materializedDirectDataSetFastSaveModel = model;
+                    _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark = true;
+                }
+
+                if (_materializedDirectDataSetFastSaveModel != null) {
+                    _materializedDirectDataSetFastSaveModel = _materializedDirectDataSetFastSaveModel.WithColumnNumberFormat(sheet.Name, columnIndex, numberFormat);
+                    _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark = true;
+                }
+
                 _directDataSetMetadataSourceSheet = sheet;
-                candidate.Dispose();
                 _packageDirty = true;
                 _unchangedPackageBytes = null;
                 _requiresSavePreflight = false;
                 return true;
             } catch {
-                ClearDirectDataSetSaveCandidate();
+                if (candidate != null) {
+                    ClearDirectDataSetSaveCandidate();
+                }
+
                 return false;
             }
         }
@@ -1070,11 +1085,12 @@ namespace OfficeIMO.Excel {
             }
 
             var candidate = _directDataSetSaveCandidate;
-            if (candidate == null || !candidate.IsValid || candidate.Model.Sheets.Count != 1) {
+            var sourceModel = candidate?.IsValid == true ? candidate.Model : _materializedDirectDataSetFastSaveModel;
+            if (sourceModel == null || sourceModel.Sheets.Count != 1) {
                 return false;
             }
 
-            var sheetModel = candidate.Model.Sheets[0];
+            var sheetModel = sourceModel.Sheets[0];
             if (!string.Equals(sheetModel.SheetName, sheet.Name, StringComparison.Ordinal)
                 || !sheetModel.IncludeHeaders) {
                 return false;
@@ -1357,7 +1373,29 @@ namespace OfficeIMO.Excel {
                     sheet.AutoFitColumnsFor(Enumerable.Range(1, sheetModel.Table.ColumnCount));
                 }
 
+                ApplyDirectMaterializedColumnNumberFormats(sheet, sheetModel);
                 ApplyCapturedDirectWorksheetMetadata(sheet.WorksheetPart.Worksheet!, preservedMetadata);
+            }
+        }
+
+        private static void ApplyDirectMaterializedColumnNumberFormats(ExcelSheet sheet, DirectDataSetSheetModel sheetModel) {
+            var formats = sheetModel.ColumnNumberFormats;
+            if (formats == null || formats.Count == 0 || sheetModel.Table.RowCount == 0) {
+                return;
+            }
+
+            int startRow = sheetModel.IncludeHeaders ? 2 : 1;
+            int endRow = startRow + sheetModel.Table.RowCount - 1;
+            for (int i = 0; i < formats.Count && i < sheetModel.Table.ColumnCount; i++) {
+                string? numberFormat = formats[i];
+                if (string.IsNullOrWhiteSpace(numberFormat)) {
+                    continue;
+                }
+
+                string column = A1.ColumnIndexToLetters(i + 1);
+                sheet.FormatRange(
+                    column + startRow.ToString(CultureInfo.InvariantCulture) + ":" + column + endRow.ToString(CultureInfo.InvariantCulture),
+                    numberFormat!);
             }
         }
 
@@ -1500,6 +1538,13 @@ namespace OfficeIMO.Excel {
                         : new CellFormula(formula.Formula);
                     cell.CellValue = null;
                     cell.DataType = null;
+                    break;
+                case DirectTypedCellValue typed:
+                    cell.CellValue = typed.Value != null ? new CellValue(typed.Value) : null;
+                    cell.DataType = GetDirectTypedCellDataType(typed.DataType);
+                    cell.InlineString = !string.IsNullOrEmpty(typed.InlineStringXml)
+                        ? CreateInlineStringFromXml(typed.InlineStringXml!)
+                        : null;
                     break;
                 case bool boolean:
                     cell.CellValue = new CellValue(boolean ? "1" : "0");
@@ -1722,6 +1767,26 @@ namespace OfficeIMO.Excel {
 
             formula.Text = reader.IsEmptyElement ? string.Empty : reader.ReadElementContentAsString();
             return formula;
+        }
+
+        private static InlineString CreateInlineStringFromXml(string xml) {
+            try {
+                return new InlineString(xml);
+            } catch (ArgumentException) {
+                return new InlineString();
+            }
+        }
+
+        private static CellValues GetDirectTypedCellDataType(string dataType) {
+            return dataType switch {
+                "b" => CellValues.Boolean,
+                "d" => CellValues.Date,
+                "e" => CellValues.Error,
+                "inlineStr" => CellValues.InlineString,
+                "s" => CellValues.SharedString,
+                "str" => CellValues.String,
+                _ => CellValues.String
+            };
         }
 
         private static string GetXmlRootLocalName(string xml) {
@@ -2281,6 +2346,10 @@ namespace OfficeIMO.Excel {
                 }
 
                 return text;
+            }
+
+            if (dataType == CellValues.Error || dataType == CellValues.Date || dataType == CellValues.InlineString) {
+                return new DirectTypedCellValue(cell.DataType?.InnerText ?? dataType.ToString(), text, cell.InlineString?.OuterXml);
             }
 
             return sheet.GetCellText(cell);
