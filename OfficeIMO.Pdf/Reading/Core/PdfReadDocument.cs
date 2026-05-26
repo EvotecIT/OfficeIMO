@@ -8,14 +8,16 @@ public sealed class PdfReadDocument {
     private readonly Dictionary<int, PdfIndirectObject> _objects;
     private readonly string _trailerRaw;
     private readonly PdfReadOptions _options;
+    private readonly Dictionary<string, PdfNamedDestination> _nameDestinations = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, PdfNamedDestination> _stringDestinations = new(StringComparer.Ordinal);
 
     private PdfReadDocument(Dictionary<int, PdfIndirectObject> objects, string trailerRaw, PdfReadOptions? options) {
         _objects = objects; _trailerRaw = trailerRaw; _options = options ?? new PdfReadOptions();
         Pages = CollectPages();
         Metadata = ExtractMetadata();
-        Outlines = ExtractOutlines();
         PageLabels = ExtractPageLabels();
         NamedDestinations = ExtractNamedDestinations();
+        Outlines = ExtractOutlines();
         OpenAction = ExtractOpenAction();
         ViewerPreferences = ExtractViewerPreferences();
         FormFields = ExtractFormFields();
@@ -179,7 +181,7 @@ public sealed class PdfReadDocument {
 
     private (int? PageNumber, double? DestinationTop) GetOutlineDestination(PdfDictionary item) {
         if (item.Items.TryGetValue("Dest", out var destObj) &&
-            TryReadDestination(destObj, out int? pageNumber, out double? destinationTop)) {
+            TryReadDestinationOrNamedDestination(destObj, out int? pageNumber, out double? destinationTop)) {
             return (pageNumber, destinationTop);
         }
 
@@ -187,7 +189,7 @@ public sealed class PdfReadDocument {
             ResolveObject(actionObject) is PdfDictionary action &&
             action.Get<PdfName>("S")?.Name == "GoTo" &&
             action.Items.TryGetValue("D", out var actionDestination) &&
-            TryReadDestination(actionDestination, out pageNumber, out destinationTop)) {
+            TryReadDestinationOrNamedDestination(actionDestination, out pageNumber, out destinationTop)) {
             return (pageNumber, destinationTop);
         }
 
@@ -205,7 +207,7 @@ public sealed class PdfReadDocument {
             ResolveDict(directDests) is PdfDictionary directDestinations) {
             foreach (var entry in directDestinations.Items) {
                 if (TryCreateNamedDestination(entry.Key, entry.Value, out var destination)) {
-                    result.Add(destination);
+                    AddNamedDestination(result, destination, PdfNamedDestinationTokenKind.Name);
                 }
             }
         }
@@ -240,9 +242,9 @@ public sealed class PdfReadDocument {
         if (tree.Items.TryGetValue("Names", out var destinationNamesObject) &&
             ResolveArray(destinationNamesObject) is PdfArray destinationNames) {
             for (int i = 0; i + 1 < destinationNames.Items.Count; i += 2) {
-                if (TryReadDestinationName(destinationNames.Items[i], out string? name) &&
+                if (TryReadDestinationName(destinationNames.Items[i], out string? name, out _) &&
                     TryCreateNamedDestination(name!, destinationNames.Items[i + 1], out var destination)) {
-                    result.Add(destination);
+                    AddNamedDestination(result, destination, PdfNamedDestinationTokenKind.String);
                 }
             }
         }
@@ -407,17 +409,37 @@ public sealed class PdfReadDocument {
         return (int)number.Value;
     }
 
-    private bool TryReadDestinationName(PdfObject obj, out string? name) {
+    private void AddNamedDestination(List<PdfNamedDestination> result, PdfNamedDestination destination, PdfNamedDestinationTokenKind kind) {
+        result.Add(destination);
+        var lookup = kind == PdfNamedDestinationTokenKind.String ? _stringDestinations : _nameDestinations;
+#if NETSTANDARD2_0 || NET472
+        if (!lookup.ContainsKey(destination.Name)) {
+            lookup[destination.Name] = destination;
+        }
+#else
+        lookup.TryAdd(destination.Name, destination);
+#endif
+    }
+
+    private bool TryReadDestinationName(PdfObject obj, out string? name, out PdfNamedDestinationTokenKind kind) {
         PdfObject? resolved = ResolveObject(obj);
+        if (resolved is PdfDictionary dictionary &&
+            dictionary.Items.TryGetValue("D", out var explicitDestination)) {
+            resolved = ResolveObject(explicitDestination);
+        }
+
         switch (resolved) {
             case PdfStringObj text:
                 name = text.Value;
+                kind = PdfNamedDestinationTokenKind.String;
                 return !string.IsNullOrEmpty(name);
             case PdfName pdfName:
                 name = pdfName.Name;
+                kind = PdfNamedDestinationTokenKind.Name;
                 return !string.IsNullOrEmpty(name);
             default:
                 name = null;
+                kind = PdfNamedDestinationTokenKind.None;
                 return false;
         }
     }
@@ -430,6 +452,25 @@ public sealed class PdfReadDocument {
 
         destination = new PdfNamedDestination(name, pageNumber, destinationTop);
         return true;
+    }
+
+    private bool TryReadDestinationOrNamedDestination(PdfObject destinationObject, out int? pageNumber, out double? destinationTop) {
+        if (TryReadDestination(destinationObject, out pageNumber, out destinationTop)) {
+            return true;
+        }
+
+        if (TryReadDestinationName(destinationObject, out string? name, out var kind)) {
+            var lookup = kind == PdfNamedDestinationTokenKind.String ? _stringDestinations : _nameDestinations;
+            if (lookup.TryGetValue(name!, out var destination)) {
+                pageNumber = destination.PageNumber;
+                destinationTop = destination.DestinationTop;
+                return true;
+            }
+        }
+
+        pageNumber = null;
+        destinationTop = null;
+        return false;
     }
 
     private bool TryReadDestination(PdfObject destinationObject, out int? pageNumber, out double? destinationTop) {
@@ -455,6 +496,12 @@ public sealed class PdfReadDocument {
         }
 
         return true;
+    }
+
+    private enum PdfNamedDestinationTokenKind {
+        None,
+        Name,
+        String
     }
 
     private int? GetPageNumberForObject(int objectNumber) {
