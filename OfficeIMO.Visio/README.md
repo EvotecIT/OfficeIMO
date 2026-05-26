@@ -291,13 +291,14 @@ VisioDocument.Create("org-chart.vsdx")
         .Position("platform", "Nina Patel", "Platform Lead", "cto", "engineering")
         .Position("security", "Owen Brooks", "Security Lead", "cto", "engineering")
         .Vacancy("sre", "Open SRE Role", "coo", "operations")
-        .External("advisor", "Taylor Reed", "Advisor", "cfo"))
+        .External("advisor", "Taylor Reed", "Advisor", "cfo")
+        .Callout("cto", "cto-note", "Owns platform and security roadmap", 8.1, 5.9))
     .Save();
 ```
 
 The org chart builder creates editable hierarchy cards, assistant placements,
-team bands, vacancies, external roles, and routed reporting lines from semantic
-relationships.
+team bands, vacancies, external roles, routed reporting lines, and semantic
+callouts from business relationships.
 
 ## Reusable style themes
 

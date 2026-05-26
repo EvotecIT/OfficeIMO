@@ -56,12 +56,36 @@ namespace OfficeIMO.Visio.Diagrams {
             public string ManagerId { get; }
         }
 
+        private sealed class CalloutItem {
+            public CalloutItem(string targetId, string id, string text, double pinX, double pinY, VisioCalloutOptions options) {
+                TargetId = targetId;
+                Id = id;
+                Text = text;
+                PinX = pinX;
+                PinY = pinY;
+                Options = options;
+            }
+
+            public string TargetId { get; }
+
+            public string Id { get; }
+
+            public string Text { get; }
+
+            public double PinX { get; }
+
+            public double PinY { get; }
+
+            public VisioCalloutOptions Options { get; }
+        }
+
         private readonly VisioDocument _document;
         private readonly string _pageName;
         private readonly List<OrgNode> _nodes = new();
         private readonly Dictionary<string, OrgNode> _nodesById = new(StringComparer.Ordinal);
         private readonly List<TeamBandItem> _bands = new();
         private readonly Dictionary<string, TeamBandItem> _bandsById = new(StringComparer.Ordinal);
+        private readonly List<CalloutItem> _callouts = new();
         private VisioStyleTheme _theme = VisioStyleTheme.Modern();
         private VisioMeasurementUnit _unit = VisioMeasurementUnit.Inches;
         private double _pageWidth = 14;
@@ -203,6 +227,32 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
+        /// <summary>Adds a semantic callout connected to a known org chart node using a generated callout id.</summary>
+        public VisioOrgChartDiagramBuilder Callout(string targetId, string text, double pinX, double pinY, Action<VisioCalloutOptions>? configure = null) {
+            string normalizedTargetId = RequireId(targetId, nameof(targetId), "Callout target id");
+            EnsureKnownNode(normalizedTargetId, nameof(targetId));
+            return Callout(normalizedTargetId, CreateCalloutId(normalizedTargetId), text, pinX, pinY, configure);
+        }
+
+        /// <summary>Adds a semantic callout connected to a known org chart node.</summary>
+        public VisioOrgChartDiagramBuilder Callout(string targetId, string id, string text, double pinX, double pinY, Action<VisioCalloutOptions>? configure = null) {
+            string normalizedTargetId = RequireId(targetId, nameof(targetId), "Callout target id");
+            string normalizedId = RequireId(id, nameof(id), "Callout id");
+            EnsureKnownNode(normalizedTargetId, nameof(targetId));
+            if (IsShapeIdInUse(normalizedId)) {
+                throw new ArgumentException($"An org chart item with shape id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            ValidateFinite(pinX, nameof(pinX));
+            ValidateFinite(pinY, nameof(pinY));
+            VisioCalloutOptions options = CreateCalloutOptions();
+            configure?.Invoke(options);
+            ValidatePositive(options.Width, nameof(options.Width));
+            ValidatePositive(options.Height, nameof(options.Height));
+            _callouts.Add(new CalloutItem(normalizedTargetId, normalizedId, text ?? string.Empty, pinX, pinY, options));
+            return this;
+        }
+
         internal VisioPage Build() {
             if (_built) {
                 throw new InvalidOperationException("This org chart builder has already produced a page.");
@@ -218,6 +268,7 @@ namespace OfficeIMO.Visio.Diagrams {
             AddTeamBands(page);
             AddNodes(page);
             AddReportingLines(page);
+            AddCallouts(page);
             AddTitle(page);
             _document.RequestRecalcOnOpen();
             return page;
@@ -485,6 +536,28 @@ namespace OfficeIMO.Visio.Diagrams {
             }
         }
 
+        private void AddCallouts(VisioPage page) {
+            foreach (CalloutItem callout in _callouts) {
+                OrgNode target = _nodesById[callout.TargetId];
+                if (target.Shape == null) {
+                    throw new InvalidOperationException("Org chart nodes must be placed before callouts are created.");
+                }
+
+                page.AddCallout(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
+            }
+        }
+
+        private VisioCalloutOptions CreateCalloutOptions() {
+            return new VisioCalloutOptions {
+                ShapeStyle = _theme.Container.Clone(),
+                LeaderStyle = new VisioConnectorStyle(_theme.Connector.LineColor, Math.Max(0.012D, _theme.Connector.LineWeight), 2, EndArrow.None) {
+                    Kind = ConnectorKind.RightAngle,
+                    TextStyle = _theme.Connector.TextStyle?.Clone()
+                },
+                RouteOffset = 0.08D
+            };
+        }
+
         private List<OrgNode> GetDirectReports(string managerId) {
             List<OrgNode> children = new();
             foreach (OrgNode node in _nodes) {
@@ -617,7 +690,27 @@ namespace OfficeIMO.Visio.Diagrams {
                 }
             }
 
+            foreach (CalloutItem callout in _callouts) {
+                if (string.Equals(callout.Id, id, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
             return false;
+        }
+
+        private string CreateCalloutId(string targetId) {
+            string id = targetId + "-callout";
+            if (!IsShapeIdInUse(id)) {
+                return id;
+            }
+
+            int index = 2;
+            while (IsShapeIdInUse(id + "-" + index)) {
+                index++;
+            }
+
+            return id + "-" + index;
         }
 
         private static string GetBandShapeId(string bandId) {
@@ -630,6 +723,12 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             return id.Trim();
+        }
+
+        private static void ValidateFinite(double value, string parameterName) {
+            if (double.IsNaN(value) || double.IsInfinity(value)) {
+                throw new ArgumentOutOfRangeException(parameterName, "Value must be a finite number.");
+            }
         }
 
         private static void ValidatePositive(double value, string parameterName) {

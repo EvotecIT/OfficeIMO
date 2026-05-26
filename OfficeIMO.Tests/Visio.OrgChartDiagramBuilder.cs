@@ -83,6 +83,58 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OrgChartDiagramBuilderCanAddSemanticCallouts() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .OrgChartDiagram("Annotated Leadership", org => org
+                    .Title()
+                    .Root("ceo", "Marta Nowak", "Chief Executive Officer")
+                    .Assistant("ea", "Eli Green", "Executive Assistant", "ceo")
+                    .Manager("cto", "Alex Chen", "Chief Technology Officer", "ceo")
+                    .TeamBand("engineering", "Engineering", "cto")
+                    .Position("platform", "Nina Patel", "Platform Lead", "cto", "engineering")
+                    .Position("security", "Owen Brooks", "Security Lead", "cto", "engineering")
+                    .Callout(" cto ", "cto-note", "Owns platform and security roadmap", 8.1, 5.9, options => {
+                        options.Width = 2.65;
+                        options.Height = 0.72;
+                        options.RouteOffset = 0.1;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape callout = Assert.Single(page.Callouts());
+            VisioShape target = Assert.Single(page.Shapes, shape => shape.Id == "cto");
+            Assert.Equal("cto-note", callout.Id);
+            Assert.Equal("Owns platform and security roadmap", callout.Text);
+            Assert.Equal(target.Id, callout.CalloutTargetId);
+            Assert.Contains("Annotations", callout.LayerNames);
+            Assert.Equal(2.65, callout.Width);
+            Assert.Equal(0.72, callout.Height);
+
+            VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, callout));
+            Assert.Same(target, leader.To);
+            Assert.Equal(EndArrow.None, leader.EndArrow);
+            Assert.Contains("Annotations", leader.LayerNames);
+            Assert.Equal(leader.Id, callout.GetUserCellValue("OfficeIMO.CalloutLeaderId"));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void OrgChartDiagramBuilderGeneratesUniqueCalloutIds() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .OrgChartDiagram("Generated", org => org
+                    .Root("ceo", "CEO")
+                    .Manager("cto", "CTO", "Technology", "ceo")
+                    .Callout("cto", "First note", 6.3, 5.8)
+                    .Callout("cto", "Second note", 6.3, 4.9));
+
+            VisioPage page = Assert.Single(document.Pages);
+            Assert.Equal(new[] { "cto-callout", "cto-callout-2" }, page.Callouts().Select(shape => shape.Id).ToArray());
+        }
+
+        [Fact]
         public void OrgChartDiagramBuilderRejectsUnknownManager() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -115,6 +167,29 @@ namespace OfficeIMO.Tests {
             Assert.Contains("already exists", nodeFirst.Message);
             Assert.Contains("already exists", titleFirst.Message);
             Assert.Contains("already exists", bandShapeCollision.Message);
+        }
+
+        [Fact]
+        public void OrgChartDiagramBuilderRejectsCalloutIdCollisionsAndUnknownTargets() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException unknownTarget = Assert.Throws<ArgumentException>(() =>
+                document.OrgChartDiagram("Invalid", org => org
+                    .Root("ceo", "CEO")
+                    .Callout("missing", "note", "No target", 4, 4)));
+            ArgumentException nodeCollision = Assert.Throws<ArgumentException>(() =>
+                document.OrgChartDiagram("Invalid", org => org
+                    .Root("ceo", "CEO")
+                    .Callout("ceo", "ceo", "Duplicate id", 4, 4)));
+            ArgumentException bandCollision = Assert.Throws<ArgumentException>(() =>
+                document.OrgChartDiagram("Invalid", org => org
+                    .Root("ceo", "CEO")
+                    .TeamBand("leadership", "Leadership", "ceo")
+                    .Callout("ceo", "org-band-leadership", "Duplicate id", 4, 4)));
+
+            Assert.Contains("Unknown org chart node id", unknownTarget.Message);
+            Assert.Contains("already exists", nodeCollision.Message);
+            Assert.Contains("already exists", bandCollision.Message);
         }
     }
 }
