@@ -209,6 +209,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ConnectorSpacingLoadsEachCellWithItsDeclaredUnit() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Mixed Routing", 11, 8.5);
+            page.SetConnectorSpacing(1, 1, 1, 1);
+            document.Save();
+
+            RewritePageSheetCells(filePath, "Mixed Routing", (pageSheet, ns) => {
+                SetPageSheetCell(pageSheet, ns, "LineToLineX", "2", "IN");
+                SetPageSheetCell(pageSheet, ns, "LineToLineY", "5.08", "CM");
+                SetPageSheetCell(pageSheet, ns, "LineToNodeX", "50.8", "MM");
+                SetPageSheetCell(pageSheet, ns, "LineToNodeY", "2", "IN");
+            });
+
+            VisioPage loadedPage = VisioDocument.Load(filePath).Pages.Single(current => current.Name == "Mixed Routing");
+            Assert.Equal(2, loadedPage.LineToLineX.GetValueOrDefault(), 6);
+            Assert.Equal(2, loadedPage.LineToLineY.GetValueOrDefault(), 6);
+            Assert.Equal(2, loadedPage.LineToNodeX.GetValueOrDefault(), 6);
+            Assert.Equal(2, loadedPage.LineToNodeY.GetValueOrDefault(), 6);
+        }
+
+        [Fact]
         public void PageLayoutGridCellsSaveLoadAndCanBeCleared() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             string roundTripPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
@@ -247,6 +270,30 @@ namespace OfficeIMO.Tests {
 
             Assert.Empty(VisioValidator.Validate(clearedPath));
             AssertPageLayoutGridXml(clearedPath, "Grid", null, null, null, null, null);
+        }
+
+        [Fact]
+        public void LayoutGridSizingLoadsEachCellWithItsDeclaredUnit() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Mixed Grid", 11, 8.5);
+            page.EnableLayoutGrid = true;
+            page.SetLayoutGridSizing(1, 1, 1, 1);
+            document.Save();
+
+            RewritePageSheetCells(filePath, "Mixed Grid", (pageSheet, ns) => {
+                SetPageSheetCell(pageSheet, ns, "BlockSizeX", "2", "IN");
+                SetPageSheetCell(pageSheet, ns, "BlockSizeY", "5.08", "CM");
+                SetPageSheetCell(pageSheet, ns, "AvenueSizeX", "50.8", "MM");
+                SetPageSheetCell(pageSheet, ns, "AvenueSizeY", "2", "IN");
+            });
+
+            VisioPage loadedPage = VisioDocument.Load(filePath).Pages.Single(current => current.Name == "Mixed Grid");
+            Assert.Equal(2, loadedPage.LayoutBlockSizeX.GetValueOrDefault(), 6);
+            Assert.Equal(2, loadedPage.LayoutBlockSizeY.GetValueOrDefault(), 6);
+            Assert.Equal(2, loadedPage.LayoutAvenueSizeX.GetValueOrDefault(), 6);
+            Assert.Equal(2, loadedPage.LayoutAvenueSizeY.GetValueOrDefault(), 6);
         }
 
         private static void AssertPageSettingsXml(
@@ -412,6 +459,31 @@ namespace OfficeIMO.Tests {
             if (expectedUnit != null) {
                 Assert.Equal(expectedUnit, cell.Attribute("U")?.Value);
             }
+        }
+
+        private static void RewritePageSheetCells(string filePath, string pageName, Action<XElement, XNamespace> mutatePageSheet) {
+            using ZipArchive archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
+            ZipArchiveEntry pagesEntry = archive.GetEntry("visio/pages/pages.xml") ?? throw new InvalidOperationException("Missing pages.xml");
+            XDocument pages;
+            using (Stream stream = pagesEntry.Open()) {
+                pages = XDocument.Load(stream);
+            }
+
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XElement page = pages.Root!.Elements(ns + "Page")
+                .Single(element => (string?)element.Attribute("Name") == pageName);
+            mutatePageSheet(page.Element(ns + "PageSheet")!, ns);
+
+            pagesEntry.Delete();
+            ZipArchiveEntry replacement = archive.CreateEntry("visio/pages/pages.xml");
+            using Stream replacementStream = replacement.Open();
+            pages.Save(replacementStream);
+        }
+
+        private static void SetPageSheetCell(XElement pageSheet, XNamespace ns, string name, string value, string unit) {
+            XElement cell = pageSheet.Elements(ns + "Cell").Single(current => (string?)current.Attribute("N") == name);
+            cell.SetAttributeValue("V", value);
+            cell.SetAttributeValue("U", unit);
         }
 
         private static XDocument ReadXml(ZipArchive archive, string entryName) {

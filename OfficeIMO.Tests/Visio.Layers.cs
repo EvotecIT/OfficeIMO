@@ -114,6 +114,26 @@ namespace OfficeIMO.Tests {
             AssertLayerFormulaXml(roundTripPath);
         }
 
+        [Fact]
+        public void LayerAssignmentRejectsShapesAndConnectorsFromOtherPages() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage first = document.AddPage("First");
+            VisioPage second = document.AddPage("Second");
+            VisioShape firstShape = first.AddRectangle(2, 2, 1, 1, "First");
+            VisioShape secondShape = second.AddRectangle(2, 2, 1, 1, "Second");
+            VisioConnector secondConnector = second.AddConnector(secondShape, second.AddRectangle(4, 2, 1, 1, "Other"));
+
+            Assert.Throws<InvalidOperationException>(() => first.AddToLayer("Invalid", secondShape));
+            Assert.Throws<InvalidOperationException>(() => first.AddToLayer("Invalid", secondConnector));
+            Assert.Empty(first.Layers);
+            Assert.Empty(secondShape.LayerNames);
+            Assert.Empty(secondConnector.LayerNames);
+
+            first.AddToLayer("Valid", firstShape);
+            Assert.Single(first.Layers);
+            Assert.Contains("Valid", firstShape.LayerNames);
+        }
+
         private static void RewriteLayerSection(string filePath, Action<XElement[]> mutateRows) {
             using ZipArchive archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
             ZipArchiveEntry pagesEntry = archive.GetEntry("visio/pages/pages.xml") ?? throw new InvalidOperationException("Missing pages.xml");

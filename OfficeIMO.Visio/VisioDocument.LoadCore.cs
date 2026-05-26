@@ -380,20 +380,24 @@ namespace OfficeIMO.Visio {
                                 page.EnableLayoutGrid = TryParseTruthyCellValue(valueAttr);
                                 break;
                             case "BlockSizeX":
-                                layoutGridUnit ??= VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, VisioMeasurementUnit.Inches);
-                                blockSizeX = ParseNonNegativeDouble(valueAttr);
+                                VisioMeasurementUnit blockSizeXUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, layoutGridUnit ?? VisioMeasurementUnit.Inches);
+                                layoutGridUnit ??= blockSizeXUnit;
+                                blockSizeX = ParseNonNegativeDouble(valueAttr)?.ToInches(blockSizeXUnit);
                                 break;
                             case "BlockSizeY":
-                                layoutGridUnit ??= VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, VisioMeasurementUnit.Inches);
-                                blockSizeY = ParseNonNegativeDouble(valueAttr);
+                                VisioMeasurementUnit blockSizeYUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, layoutGridUnit ?? VisioMeasurementUnit.Inches);
+                                layoutGridUnit ??= blockSizeYUnit;
+                                blockSizeY = ParseNonNegativeDouble(valueAttr)?.ToInches(blockSizeYUnit);
                                 break;
                             case "AvenueSizeX":
-                                layoutGridUnit ??= VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, VisioMeasurementUnit.Inches);
-                                avenueSizeX = ParseNonNegativeDouble(valueAttr);
+                                VisioMeasurementUnit avenueSizeXUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, layoutGridUnit ?? VisioMeasurementUnit.Inches);
+                                layoutGridUnit ??= avenueSizeXUnit;
+                                avenueSizeX = ParseNonNegativeDouble(valueAttr)?.ToInches(avenueSizeXUnit);
                                 break;
                             case "AvenueSizeY":
-                                layoutGridUnit ??= VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, VisioMeasurementUnit.Inches);
-                                avenueSizeY = ParseNonNegativeDouble(valueAttr);
+                                VisioMeasurementUnit avenueSizeYUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, layoutGridUnit ?? VisioMeasurementUnit.Inches);
+                                layoutGridUnit ??= avenueSizeYUnit;
+                                avenueSizeY = ParseNonNegativeDouble(valueAttr)?.ToInches(avenueSizeYUnit);
                                 break;
                             case "RouteStyle":
                                 if (TryParseCellIntValue(valueAttr, out int routeStyle) &&
@@ -444,20 +448,24 @@ namespace OfficeIMO.Visio {
                                 }
                                 break;
                             case "LineToLineX":
-                                connectorSpacingUnit ??= VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, VisioMeasurementUnit.Inches);
-                                lineToLineX = ParseNonNegativeDouble(valueAttr);
+                                VisioMeasurementUnit lineToLineXUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, connectorSpacingUnit ?? VisioMeasurementUnit.Inches);
+                                connectorSpacingUnit ??= lineToLineXUnit;
+                                lineToLineX = ParseNonNegativeDouble(valueAttr)?.ToInches(lineToLineXUnit);
                                 break;
                             case "LineToLineY":
-                                connectorSpacingUnit ??= VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, VisioMeasurementUnit.Inches);
-                                lineToLineY = ParseNonNegativeDouble(valueAttr);
+                                VisioMeasurementUnit lineToLineYUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, connectorSpacingUnit ?? VisioMeasurementUnit.Inches);
+                                connectorSpacingUnit ??= lineToLineYUnit;
+                                lineToLineY = ParseNonNegativeDouble(valueAttr)?.ToInches(lineToLineYUnit);
                                 break;
                             case "LineToNodeX":
-                                connectorSpacingUnit ??= VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, VisioMeasurementUnit.Inches);
-                                lineToNodeX = ParseNonNegativeDouble(valueAttr);
+                                VisioMeasurementUnit lineToNodeXUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, connectorSpacingUnit ?? VisioMeasurementUnit.Inches);
+                                connectorSpacingUnit ??= lineToNodeXUnit;
+                                lineToNodeX = ParseNonNegativeDouble(valueAttr)?.ToInches(lineToNodeXUnit);
                                 break;
                             case "LineToNodeY":
-                                connectorSpacingUnit ??= VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, VisioMeasurementUnit.Inches);
-                                lineToNodeY = ParseNonNegativeDouble(valueAttr);
+                                VisioMeasurementUnit lineToNodeYUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, connectorSpacingUnit ?? VisioMeasurementUnit.Inches);
+                                connectorSpacingUnit ??= lineToNodeYUnit;
+                                lineToNodeY = ParseNonNegativeDouble(valueAttr)?.ToInches(lineToNodeYUnit);
                                 break;
                             case "PageLeftMargin":
                                 marginUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, marginUnit);
@@ -516,13 +524,13 @@ namespace OfficeIMO.Visio {
                     page.Height = pageHeightInches.Value;
                 }
                 page.SetLoadedMargins(leftMargin, rightMargin, topMargin, bottomMargin, marginUnit);
-                page.SetLoadedConnectorSpacing(
+                page.SetLoadedConnectorSpacingInches(
                     lineToLineX,
                     lineToLineY,
                     lineToNodeX,
                     lineToNodeY,
                     connectorSpacingUnit ?? VisioMeasurementUnit.Inches);
-                page.SetLoadedLayoutGridSizing(
+                page.SetLoadedLayoutGridSizingInches(
                     blockSizeX,
                     blockSizeY,
                     avenueSizeX,

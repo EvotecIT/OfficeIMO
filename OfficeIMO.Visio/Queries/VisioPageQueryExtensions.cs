@@ -429,6 +429,7 @@ namespace OfficeIMO.Visio {
         /// <param name="page">Page to query.</param>
         /// <param name="shape">Shape connected from.</param>
         public static IReadOnlyList<VisioConnector> OutgoingConnectors(this VisioPage page, VisioShape shape) {
+            EnsureShapeBelongsToPage(page, shape);
             return FilterConnectors(page, connector => MatchesShape(connector.From, shape));
         }
 
@@ -438,6 +439,7 @@ namespace OfficeIMO.Visio {
         /// <param name="page">Page to query.</param>
         /// <param name="shape">Shape connected to.</param>
         public static IReadOnlyList<VisioConnector> IncomingConnectors(this VisioPage page, VisioShape shape) {
+            EnsureShapeBelongsToPage(page, shape);
             return FilterConnectors(page, connector => MatchesShape(connector.To, shape));
         }
 
@@ -447,6 +449,7 @@ namespace OfficeIMO.Visio {
         /// <param name="page">Page to query.</param>
         /// <param name="shape">Shape connected to or from.</param>
         public static IReadOnlyList<VisioConnector> ConnectedConnectors(this VisioPage page, VisioShape shape) {
+            EnsureShapeBelongsToPage(page, shape);
             return FilterConnectors(page, connector => MatchesShape(connector.From, shape) || MatchesShape(connector.To, shape));
         }
 
@@ -520,7 +523,7 @@ namespace OfficeIMO.Visio {
             List<VisioShape> connectedShapes = new();
             foreach (VisioConnector connector in page.ConnectedConnectors(shape)) {
                 VisioShape candidate = MatchesShape(connector.From, shape) ? connector.To : connector.From;
-                if (!connectedShapes.Any(existing => MatchesShape(existing, candidate))) {
+                if (!connectedShapes.Contains(candidate)) {
                     connectedShapes.Add(candidate);
                 }
             }
@@ -641,7 +644,21 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(shape));
             }
 
-            return ReferenceEquals(candidate, shape) || string.Equals(candidate.Id, shape.Id, StringComparison.Ordinal);
+            return ReferenceEquals(candidate, shape);
+        }
+
+        private static void EnsureShapeBelongsToPage(VisioPage page, VisioShape shape) {
+            if (shape == null) {
+                throw new ArgumentNullException(nameof(shape));
+            }
+
+            if (page == null) {
+                throw new ArgumentNullException(nameof(page));
+            }
+
+            if (!page.AllShapes().Contains(shape)) {
+                throw new InvalidOperationException("The shape must belong to the page.");
+            }
         }
     }
 }

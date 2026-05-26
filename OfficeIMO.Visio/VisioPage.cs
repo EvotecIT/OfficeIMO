@@ -620,20 +620,34 @@ namespace OfficeIMO.Visio {
             double? avenueSizeX,
             double? avenueSizeY,
             VisioMeasurementUnit unit) {
+            SetLoadedLayoutGridSizingInches(
+                blockSizeX?.ToInches(unit),
+                blockSizeY?.ToInches(unit),
+                avenueSizeX?.ToInches(unit),
+                avenueSizeY?.ToInches(unit),
+                unit);
+        }
+
+        internal void SetLoadedLayoutGridSizingInches(
+            double? blockSizeX,
+            double? blockSizeY,
+            double? avenueSizeX,
+            double? avenueSizeY,
+            VisioMeasurementUnit unit) {
             if (blockSizeX.HasValue && blockSizeX.Value >= 0) {
-                _layoutBlockSizeX = blockSizeX.Value.ToInches(unit);
+                _layoutBlockSizeX = blockSizeX.Value;
             }
 
             if (blockSizeY.HasValue && blockSizeY.Value >= 0) {
-                _layoutBlockSizeY = blockSizeY.Value.ToInches(unit);
+                _layoutBlockSizeY = blockSizeY.Value;
             }
 
             if (avenueSizeX.HasValue && avenueSizeX.Value >= 0) {
-                _layoutAvenueSizeX = avenueSizeX.Value.ToInches(unit);
+                _layoutAvenueSizeX = avenueSizeX.Value;
             }
 
             if (avenueSizeY.HasValue && avenueSizeY.Value >= 0) {
-                _layoutAvenueSizeY = avenueSizeY.Value.ToInches(unit);
+                _layoutAvenueSizeY = avenueSizeY.Value;
             }
 
             if (blockSizeX.HasValue || blockSizeY.HasValue || avenueSizeX.HasValue || avenueSizeY.HasValue) {
@@ -708,20 +722,34 @@ namespace OfficeIMO.Visio {
             double? lineToNodeX,
             double? lineToNodeY,
             VisioMeasurementUnit unit) {
+            SetLoadedConnectorSpacingInches(
+                lineToLineX?.ToInches(unit),
+                lineToLineY?.ToInches(unit),
+                lineToNodeX?.ToInches(unit),
+                lineToNodeY?.ToInches(unit),
+                unit);
+        }
+
+        internal void SetLoadedConnectorSpacingInches(
+            double? lineToLineX,
+            double? lineToLineY,
+            double? lineToNodeX,
+            double? lineToNodeY,
+            VisioMeasurementUnit unit) {
             if (lineToLineX.HasValue && lineToLineX.Value >= 0) {
-                _lineToLineX = lineToLineX.Value.ToInches(unit);
+                _lineToLineX = lineToLineX.Value;
             }
 
             if (lineToLineY.HasValue && lineToLineY.Value >= 0) {
-                _lineToLineY = lineToLineY.Value.ToInches(unit);
+                _lineToLineY = lineToLineY.Value;
             }
 
             if (lineToNodeX.HasValue && lineToNodeX.Value >= 0) {
-                _lineToNodeX = lineToNodeX.Value.ToInches(unit);
+                _lineToNodeX = lineToNodeX.Value;
             }
 
             if (lineToNodeY.HasValue && lineToNodeY.Value >= 0) {
-                _lineToNodeY = lineToNodeY.Value.ToInches(unit);
+                _lineToNodeY = lineToNodeY.Value;
             }
 
             if (lineToLineX.HasValue || lineToLineY.HasValue || lineToNodeX.HasValue || lineToNodeY.HasValue) {
@@ -806,8 +834,8 @@ namespace OfficeIMO.Visio {
                 throw new InvalidOperationException("A page cannot use itself as a background.");
             }
 
-            if (OwnerDocument != null &&
-                backgroundPage.OwnerDocument != null &&
+            if (OwnerDocument == null ||
+                backgroundPage.OwnerDocument == null ||
                 !ReferenceEquals(OwnerDocument, backgroundPage.OwnerDocument)) {
                 throw new InvalidOperationException("Background page must belong to the same Visio document.");
             }
@@ -891,6 +919,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(shape));
             }
 
+            EnsureShapeBelongsToPage(shape, "The shape must belong to the page.");
             AddLayer(layerName);
             shape.LayerNames.Add(layerName);
             return this;
@@ -906,6 +935,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(connector));
             }
 
+            EnsureConnectorBelongsToPage(connector);
             AddLayer(layerName);
             connector.LayerNames.Add(layerName);
             return this;

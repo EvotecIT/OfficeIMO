@@ -100,6 +100,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ConnectorQueriesRejectShapesFromOtherPagesEvenWhenIdsMatch() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage first = document.AddPage("First");
+            VisioShape firstSource = first.AddRectangle(2, 2, 1, 1, "Source");
+            VisioShape firstTarget = first.AddRectangle(4, 2, 1, 1, "Target");
+            first.AddConnector(firstSource, firstTarget);
+            VisioPage second = document.AddPage("Second");
+            VisioShape duplicateId = second.AddRectangle(2, 2, 1, 1, "Duplicate");
+
+            Assert.Equal(firstSource.Id, duplicateId.Id);
+            Assert.Throws<InvalidOperationException>(() => first.OutgoingConnectors(duplicateId));
+            Assert.Throws<InvalidOperationException>(() => first.IncomingConnectors(duplicateId));
+            Assert.Throws<InvalidOperationException>(() => first.ConnectedConnectors(duplicateId));
+            Assert.Throws<InvalidOperationException>(() => first.ConnectedShapes(duplicateId));
+        }
+
+        [Fact]
         public void GenericSelectionsMaterializeStableEditableSnapshots() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Snapshot");

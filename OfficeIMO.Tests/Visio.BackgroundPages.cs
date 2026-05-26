@@ -88,6 +88,18 @@ namespace OfficeIMO.Tests {
             AssertChainedBackgroundXml(roundTripPath, loadedBase.Id, loadedOverlay.Id, loadedForeground.Id);
         }
 
+        [Fact]
+        public void BackgroundPageMustBelongToSameDocument() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage foreground = document.AddPage("Foreground", 11, 8.5);
+            VisioDocument otherDocument = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage foreignBackground = otherDocument.AddBackgroundPage("Foreign", 11, 8.5);
+            VisioPage detachedBackground = new("Detached", 11, 8.5);
+
+            Assert.Throws<InvalidOperationException>(() => foreground.SetBackgroundPage(foreignBackground));
+            Assert.Throws<InvalidOperationException>(() => foreground.SetBackgroundPage(detachedBackground));
+        }
+
         private static void AssertPagesXml(string filePath, int backgroundId, int architectureId, int operationsId) {
             using ZipArchive archive = ZipFile.OpenRead(filePath);
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
