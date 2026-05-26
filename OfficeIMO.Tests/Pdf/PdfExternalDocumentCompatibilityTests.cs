@@ -103,6 +103,16 @@ public class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void ExtractText_FollowsXrefStreamPrevChainForInheritedObjects() {
+        byte[] pdf = BuildIncrementalXrefStreamPdfWithTrailingStaleDuplicatePage();
+
+        string text = Normalize(PdfTextExtractor.ExtractAllText(pdf));
+
+        Assert.Contains("Inherited previous xref page", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Stale incremental trailing page", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ReadExternalObjectStream_DoesNotOverwriteExplicitIndirectObjects() {
         byte[] pdf = BuildExternalObjectStreamWithExplicitReplacementPdf();
 
@@ -327,6 +337,50 @@ public class PdfExternalDocumentCompatibilityTests {
 
         WriteObject(stream, offsets, 3, "<< /Type /Page /Parent 2 0 R /Contents 6 0 R >>");
         WriteStreamObject(stream, offsets, 6, Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Stale compressed trailing page) Tj\nET\n"));
+
+        return stream.ToArray();
+    }
+
+    private static byte[] BuildIncrementalXrefStreamPdfWithTrailingStaleDuplicatePage() {
+        using var stream = new MemoryStream();
+        var offsets = new Dictionary<int, int>();
+
+        WriteAscii(stream, "%PDF-1.5\n");
+        WriteObject(stream, offsets, 1, "<< /Type /Catalog /Pages 2 0 R >>");
+        WriteObject(stream, offsets, 2, "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 7 0 R >> >> >>");
+        WriteObject(stream, offsets, 3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>");
+        WriteStreamObject(stream, offsets, 4, Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Inherited previous xref page) Tj\nET\n"));
+        WriteObject(stream, offsets, 7, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+
+        int previousXrefObjectNumber = 8;
+        offsets[previousXrefObjectNumber] = (int)stream.Position;
+        byte[] previousEntries = BuildXrefStreamEntries(offsets, previousXrefObjectNumber);
+        WriteAscii(stream, previousXrefObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " 0 obj\n<< /Type /XRef /Size 10 /Root 1 0 R /W [1 4 2] /Index [0 9] /Length " +
+            previousEntries.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " >>\nstream\n");
+        stream.Write(previousEntries, 0, previousEntries.Length);
+        WriteAscii(stream, "\nendstream\nendobj\n");
+        WriteAscii(stream, "startxref\n" + offsets[previousXrefObjectNumber].ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n%%EOF\n");
+
+        int activeXrefObjectNumber = 9;
+        offsets[activeXrefObjectNumber] = (int)stream.Position;
+        var activeEntries = new Dictionary<int, (int Type, int Field1, int Field2)> {
+            [9] = (1, offsets[activeXrefObjectNumber], 0)
+        };
+        byte[] xrefEntries = BuildXrefStreamEntries(activeEntries, size: 10);
+        WriteAscii(stream, activeXrefObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " 0 obj\n<< /Type /XRef /Size 10 /Root 1 0 R /Prev " +
+            offsets[previousXrefObjectNumber].ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " /W [1 4 2] /Index [0 10] /Length " +
+            xrefEntries.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " >>\nstream\n");
+        stream.Write(xrefEntries, 0, xrefEntries.Length);
+        WriteAscii(stream, "\nendstream\nendobj\n");
+        WriteAscii(stream, "startxref\n" + offsets[activeXrefObjectNumber].ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n%%EOF\n");
+
+        WriteObject(stream, offsets, 3, "<< /Type /Page /Parent 2 0 R /Contents 6 0 R >>");
+        WriteStreamObject(stream, offsets, 6, Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Stale incremental trailing page) Tj\nET\n"));
 
         return stream.ToArray();
     }

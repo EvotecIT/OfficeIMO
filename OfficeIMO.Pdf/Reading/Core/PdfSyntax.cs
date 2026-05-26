@@ -1195,14 +1195,13 @@ internal static class PdfSyntax {
         }
 
         xrefStreams.Sort(static (left, right) => left.Offset.CompareTo(right.Offset));
-        if (!xrefStreams.Any(item => item.Offset == activeXrefOffset)) {
+        var activeChainOffsets = GetXrefStreamChainOffsets(xrefStreams, activeXrefOffset);
+        if (activeChainOffsets.Count == 0) {
             return;
         }
 
-        foreach (var xrefStream in xrefStreams) {
-            if (xrefStream.Offset != activeXrefOffset) {
-                continue;
-            }
+        foreach (int chainOffset in activeChainOffsets) {
+            var xrefStream = xrefStreams.First(item => item.Offset == chainOffset);
 
             byte[] data = Filters.StreamDecoder.Decode(xrefStream.Stream.Dictionary, xrefStream.Stream.Data, map);
             var entries = ReadXrefStreamEntries(xrefStream.Stream.Dictionary, data).ToList();
@@ -1238,6 +1237,32 @@ internal static class PdfSyntax {
                 }
             }
         }
+    }
+
+    private static List<int> GetXrefStreamChainOffsets(List<(int ObjectNumber, int Offset, PdfStream Stream)> xrefStreams, int activeXrefOffset) {
+        var byOffset = new Dictionary<int, PdfStream>();
+        foreach (var xrefStream in xrefStreams) {
+            byOffset[xrefStream.Offset] = xrefStream.Stream;
+        }
+
+        var newestToOldest = new List<int>();
+        var visited = new HashSet<int>();
+        int currentOffset = activeXrefOffset;
+        while (byOffset.TryGetValue(currentOffset, out PdfStream? stream) &&
+            visited.Add(currentOffset) &&
+            newestToOldest.Count < 64) {
+            newestToOldest.Add(currentOffset);
+            if (stream.Dictionary.Get<PdfNumber>("Prev") is not PdfNumber previous ||
+                previous.Value < 0 ||
+                previous.Value > int.MaxValue) {
+                break;
+            }
+
+            currentOffset = (int)Math.Floor(previous.Value);
+        }
+
+        newestToOldest.Reverse();
+        return newestToOldest;
     }
 
     private static bool TryGetLatestStartXrefOffset(string text, out int offset) {
