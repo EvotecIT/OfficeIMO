@@ -83,6 +83,63 @@ public class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void ReadExternalObjectStream_DoesNotOverwriteExplicitIndirectObjects() {
+        byte[] pdf = BuildExternalObjectStreamWithExplicitReplacementPdf();
+
+        string text = Normalize(PdfTextExtractor.ExtractAllText(pdf));
+
+        Assert.Contains("Explicit object wins", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Packed object stream wins", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReadExternalObjectStream_LaterObjectStreamReplacesEarlierCompressedObjects() {
+        byte[] pdf = BuildExternalObjectStreamWithCompressedReplacementPdf();
+
+        string text = Normalize(PdfTextExtractor.ExtractAllText(pdf));
+
+        Assert.Contains("Later object stream wins", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Earlier object stream wins", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReadExternalObjectStream_LaterObjectStreamReplacesEarlierExplicitObjects() {
+        byte[] pdf = BuildExternalObjectStreamReplacingEarlierExplicitPdf();
+
+        string text = Normalize(PdfTextExtractor.ExtractAllText(pdf));
+
+        Assert.Contains("Later object stream wins", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Earlier explicit object wins", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReadExternalObjectStream_IgnoresMalformedLaterObjectHeaders() {
+        byte[] pdf = BuildExternalObjectStreamWithMalformedTrailingPageObjectPdf();
+
+        string text = Normalize(PdfTextExtractor.ExtractAllText(pdf));
+
+        Assert.Contains("Object stream page", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReadExternalObjectStream_IgnoresMalformedLaterDictionaryObjects() {
+        byte[] pdf = BuildExternalObjectStreamWithMalformedTrailingPageDictionaryPdf();
+
+        string text = Normalize(PdfTextExtractor.ExtractAllText(pdf));
+
+        Assert.Contains("Object stream page", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReadExternalObjectStream_IgnoresParseFailedLaterDictionaryObjects() {
+        byte[] pdf = BuildExternalObjectStreamWithParseFailedTrailingPageDictionaryPdf();
+
+        string text = Normalize(PdfTextExtractor.ExtractAllText(pdf));
+
+        Assert.Contains("Object stream page", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RewritePreflight_DetectsCompressedObjectStreamFormMarkers() {
         byte[] pdf = BuildExternalObjectStreamPdf(includeAcroForm: true);
         string rawPdf = Encoding.ASCII.GetString(pdf);
@@ -181,6 +238,105 @@ public class PdfExternalDocumentCompatibilityTests {
         };
 
         return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildExternalObjectStreamWithExplicitReplacementPdf() {
+        byte[] explicitContent = Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Explicit object wins) Tj\nET\n");
+        byte[] packedContent = Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Packed object stream wins) Tj\nET\n");
+        var packedObjects = new List<(int ObjectNumber, string Body)> {
+            (1, "<< /Type /Catalog /Pages 2 0 R >>"),
+            (2, "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 4 0 R >> >> >>"),
+            (3, "<< /Type /Page /Parent 2 0 R /Contents 11 0 R >>"),
+            (4, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
+        };
+
+        var objects = new[] {
+            BuildObjectStreamObject(10, packedObjects),
+            BuildStreamObject(11, packedContent),
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, explicitContent)
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildExternalObjectStreamWithCompressedReplacementPdf() {
+        byte[] earlierContent = Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Earlier object stream wins) Tj\nET\n");
+        byte[] laterContent = Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Later object stream wins) Tj\nET\n");
+        var earlierObjects = new List<(int ObjectNumber, string Body)> {
+            (1, "<< /Type /Catalog /Pages 2 0 R >>"),
+            (2, "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 4 0 R >> >> >>"),
+            (3, "<< /Type /Page /Parent 2 0 R /Contents 11 0 R >>"),
+            (4, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
+        };
+        var laterObjects = new List<(int ObjectNumber, string Body)> {
+            (1, "<< /Type /Catalog /Pages 2 0 R >>"),
+            (2, "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 4 0 R >> >> >>"),
+            (3, "<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>"),
+            (4, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
+        };
+
+        var objects = new[] {
+            BuildObjectStreamObject(10, earlierObjects),
+            BuildStreamObject(11, earlierContent),
+            BuildObjectStreamObject(12, laterObjects),
+            BuildStreamObject(5, laterContent)
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildExternalObjectStreamReplacingEarlierExplicitPdf() {
+        byte[] earlierContent = Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Earlier explicit object wins) Tj\nET\n");
+        byte[] laterContent = Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Later object stream wins) Tj\nET\n");
+        var packedObjects = new List<(int ObjectNumber, string Body)> {
+            (1, "<< /Type /Catalog /Pages 2 0 R >>"),
+            (2, "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 4 0 R >> >> >>"),
+            (3, "<< /Type /Page /Parent 2 0 R /Contents 11 0 R >>"),
+            (4, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
+        };
+
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, earlierContent),
+            BuildObjectStreamObject(10, packedObjects),
+            BuildStreamObject(11, laterContent)
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildExternalObjectStreamWithMalformedTrailingPageObjectPdf() {
+        byte[] pdf = BuildExternalObjectStreamPdf(includeAcroForm: false);
+        byte[] suffix = Encoding.ASCII.GetBytes("\n3 0 obj\nendobj\n");
+        var result = new byte[pdf.Length + suffix.Length];
+        Buffer.BlockCopy(pdf, 0, result, 0, pdf.Length);
+        Buffer.BlockCopy(suffix, 0, result, pdf.Length, suffix.Length);
+        return result;
+    }
+
+    private static byte[] BuildExternalObjectStreamWithMalformedTrailingPageDictionaryPdf() {
+        byte[] pdf = BuildExternalObjectStreamPdf(includeAcroForm: false);
+        byte[] suffix = Encoding.ASCII.GetBytes("\n3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 99 0 R /Broken (\nendobj\n");
+        var result = new byte[pdf.Length + suffix.Length];
+        Buffer.BlockCopy(pdf, 0, result, 0, pdf.Length);
+        Buffer.BlockCopy(suffix, 0, result, pdf.Length, suffix.Length);
+        return result;
+    }
+
+    private static byte[] BuildExternalObjectStreamWithParseFailedTrailingPageDictionaryPdf() {
+        byte[] pdf = BuildExternalObjectStreamPdf(includeAcroForm: false);
+        byte[] suffix = Encoding.ASCII.GetBytes("\n3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents <ZZ> >>\nendobj\n");
+        var result = new byte[pdf.Length + suffix.Length];
+        Buffer.BlockCopy(pdf, 0, result, 0, pdf.Length);
+        Buffer.BlockCopy(suffix, 0, result, pdf.Length, suffix.Length);
+        return result;
     }
 
     private static byte[] BuildExternalObjectStreamPdf(bool includeAcroForm) {

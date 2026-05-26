@@ -61,6 +61,14 @@ public static class PdfInspector {
                     AddReadBlocker(PdfReadBlockerKind.NoPages, "No PDF pages were discovered.");
                     canRead = false;
                 }
+
+                var unsupportedContentFilters = GetUnsupportedContentStreamFilters(document);
+                if (unsupportedContentFilters.Count > 0) {
+                    AddReadBlocker(
+                        PdfReadBlockerKind.UnsupportedContentStreamFilter,
+                        "PDF page content streams use unsupported filter(s): " + string.Join(", ", unsupportedContentFilters) + ".");
+                    canRead = false;
+                }
             } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
                 AddReadBlocker(PdfReadBlockerKind.ParserUnsupported, "PDF could not be parsed by OfficeIMO.Pdf: " + ex.Message);
                 canRead = false;
@@ -165,6 +173,29 @@ public static class PdfInspector {
         using var buffer = new MemoryStream();
         stream.CopyTo(buffer);
         return Preflight(buffer.ToArray(), options);
+    }
+
+    private static List<string> GetUnsupportedContentStreamFilters(PdfReadDocument document) {
+        var unsupported = new List<string>();
+        for (int i = 0; i < document.Pages.Count; i++) {
+            foreach (string filterName in document.Pages[i].GetUnsupportedContentStreamFilters()) {
+                if (!ContainsFilter(unsupported, filterName)) {
+                    unsupported.Add(filterName);
+                }
+            }
+        }
+
+        return unsupported;
+    }
+
+    private static bool ContainsFilter(List<string> filters, string filterName) {
+        for (int i = 0; i < filters.Count; i++) {
+            if (string.Equals(filters[i], filterName, StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

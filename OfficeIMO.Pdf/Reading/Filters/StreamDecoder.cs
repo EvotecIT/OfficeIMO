@@ -3,6 +3,15 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Pdf.Filters;
 
 internal static class StreamDecoder {
+    private enum DecodeFilterKind {
+        Unsupported,
+        Flate,
+        AsciiHex,
+        Ascii85,
+        RunLength,
+        Lzw
+    }
+
     public static byte[] Decode(PdfDictionary dict, byte[] data, Dictionary<int, PdfIndirectObject>? objects = null) {
         if (data == null || data.Length == 0 || !dict.Items.TryGetValue("Filter", out var filterObj)) {
             return data ?? Array.Empty<byte>();
@@ -13,23 +22,23 @@ internal static class StreamDecoder {
         int filterIndex = 0;
         foreach (string filterName in EnumerateFilters(filterObj, objects)) {
             try {
-                switch (filterName) {
-                    case "FlateDecode":
-                    case "Fl":
+                switch (GetFilterKind(filterName)) {
+                    case DecodeFilterKind.Flate:
                         current = FlateDecoder.Decode(current);
                         current = ApplyDecodeParms(dict, filterIndex, current, objects);
                         break;
-                    case "ASCIIHexDecode":
-                    case "AHx":
+                    case DecodeFilterKind.AsciiHex:
                         current = AsciiHexDecoder.Decode(current);
                         break;
-                    case "ASCII85Decode":
-                    case "A85":
+                    case DecodeFilterKind.Ascii85:
                         current = Ascii85Decoder.Decode(current);
                         break;
-                    case "RunLengthDecode":
-                    case "RL":
+                    case DecodeFilterKind.RunLength:
                         current = RunLengthDecoder.Decode(current);
+                        break;
+                    case DecodeFilterKind.Lzw:
+                        current = LzwDecoder.Decode(current, GetEarlyChange(dict, filterIndex, objects));
+                        current = ApplyDecodeParms(dict, filterIndex, current, objects);
                         break;
                     default:
                         return original;
@@ -42,6 +51,57 @@ internal static class StreamDecoder {
         }
 
         return current;
+    }
+
+    internal static List<string> GetUnsupportedFilters(PdfDictionary dict, Dictionary<int, PdfIndirectObject>? objects = null) {
+        if (!dict.Items.TryGetValue("Filter", out var filterObj)) {
+            return new List<string>(0);
+        }
+
+        var unsupported = new List<string>();
+        foreach (string filterName in EnumerateFilters(filterObj, objects)) {
+            if (!IsSupportedFilter(filterName) && !ContainsFilter(unsupported, filterName)) {
+                unsupported.Add(filterName);
+            }
+        }
+
+        return unsupported;
+    }
+
+    internal static bool IsSupportedFilter(string filterName) {
+        return GetFilterKind(filterName) != DecodeFilterKind.Unsupported;
+    }
+
+    private static DecodeFilterKind GetFilterKind(string filterName) {
+        switch (filterName) {
+            case "FlateDecode":
+            case "Fl":
+                return DecodeFilterKind.Flate;
+            case "ASCIIHexDecode":
+            case "AHx":
+                return DecodeFilterKind.AsciiHex;
+            case "ASCII85Decode":
+            case "A85":
+                return DecodeFilterKind.Ascii85;
+            case "RunLengthDecode":
+            case "RL":
+                return DecodeFilterKind.RunLength;
+            case "LZWDecode":
+            case "LZW":
+                return DecodeFilterKind.Lzw;
+            default:
+                return DecodeFilterKind.Unsupported;
+        }
+    }
+
+    private static bool ContainsFilter(List<string> filters, string filterName) {
+        for (int i = 0; i < filters.Count; i++) {
+            if (string.Equals(filters[i], filterName, StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static byte[] ApplyDecodeParms(PdfDictionary dict, int filterIndex, byte[] data, Dictionary<int, PdfIndirectObject>? objects) {
@@ -67,6 +127,15 @@ internal static class StreamDecoder {
         }
 
         return PngPredictorDecoder.Decode(data, columns, colors, bitsPerComponent);
+    }
+
+    private static int GetEarlyChange(PdfDictionary dict, int filterIndex, Dictionary<int, PdfIndirectObject>? objects) {
+        var decodeParms = GetDecodeParms(dict, filterIndex, objects);
+        if (decodeParms is null) {
+            return 1;
+        }
+
+        return (int)(decodeParms.Get<PdfNumber>("EarlyChange")?.Value ?? 1);
     }
 
     private static PdfDictionary? GetDecodeParms(PdfDictionary dict, int filterIndex, Dictionary<int, PdfIndirectObject>? objects) {

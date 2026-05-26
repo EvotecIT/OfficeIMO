@@ -127,6 +127,56 @@ public sealed class PdfReadPage {
         return ResourceResolver.GetImageXObjectsForPage(_pageDict, _objects, pageNumber);
     }
 
+    internal List<string> GetUnsupportedContentStreamFilters() {
+        var unsupported = new List<string>();
+        var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
+        var activeForms = new HashSet<PdfStream>();
+        foreach (var stream in GetContentStreamObjects()) {
+            AddUnsupportedFilters(stream, unsupported);
+            if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects).Count == 0) {
+                CollectUnsupportedFormFilters(PdfEncoding.Latin1GetString(DecodeIfNeeded(stream)), pageResources, unsupported, activeForms);
+            }
+        }
+
+        return unsupported;
+    }
+
+    private void CollectUnsupportedFormFilters(
+        string content,
+        PdfDictionary? resources,
+        List<string> unsupported,
+        HashSet<PdfStream> activeForms) {
+        foreach (var invocation in TextContentParser.ExtractFormInvocations(content)) {
+            if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
+                continue;
+            }
+
+            if (!activeForms.Add(formStream)) {
+                continue;
+            }
+
+            try {
+                AddUnsupportedFilters(formStream, unsupported);
+                if (Filters.StreamDecoder.GetUnsupportedFilters(formStream.Dictionary, _objects).Count != 0) {
+                    continue;
+                }
+
+                var formResources = ResolveDictionary(formStream.Dictionary.Items.TryGetValue("Resources", out var resObj) ? resObj : null) ?? resources;
+                CollectUnsupportedFormFilters(PdfEncoding.Latin1GetString(DecodeIfNeeded(formStream)), formResources, unsupported, activeForms);
+            } finally {
+                activeForms.Remove(formStream);
+            }
+        }
+    }
+
+    private void AddUnsupportedFilters(PdfStream stream, List<string> unsupported) {
+        foreach (string filterName in Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects)) {
+            if (!ContainsFilter(unsupported, filterName)) {
+                unsupported.Add(filterName);
+            }
+        }
+    }
+
     private void CollectTextAndForms(
         string content,
         PdfDictionary? resources,
@@ -403,10 +453,19 @@ public sealed class PdfReadPage {
     /// </summary>
     private List<byte[]> GetContentStreams() {
         var result = new List<byte[]>();
+        foreach (var stream in GetContentStreamObjects()) {
+            result.Add(DecodeIfNeeded(stream));
+        }
+
+        return result;
+    }
+
+    private List<PdfStream> GetContentStreamObjects() {
+        var result = new List<PdfStream>();
         var contents = _pageDict.Items.TryGetValue("Contents", out var obj) ? obj : null;
         if (contents is PdfReference r) {
             if (_objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfStream s) {
-                result.Add(DecodeIfNeeded(s));
+                result.Add(s);
                 return result;
             }
         }
@@ -420,13 +479,23 @@ public sealed class PdfReadPage {
             if (item is PdfReference rr &&
                 _objects.TryGetValue(rr.ObjectNumber, out var ind2) &&
                 ind2.Value is PdfStream s2) {
-                result.Add(DecodeIfNeeded(s2));
+                result.Add(s2);
             } else if (item is PdfStream directStream) {
-                result.Add(DecodeIfNeeded(directStream));
+                result.Add(directStream);
             }
         }
 
         return result;
+    }
+
+    private static bool ContainsFilter(List<string> filters, string filterName) {
+        for (int i = 0; i < filters.Count; i++) {
+            if (string.Equals(filters[i], filterName, StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private byte[] DecodeIfNeeded(PdfStream s) {

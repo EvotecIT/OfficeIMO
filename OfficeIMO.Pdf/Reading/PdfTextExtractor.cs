@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>
 /// Minimal, zero-dependency text extractor for simple PDFs produced by OfficeIMO.Pdf
-/// and common external PDFs with basic text operators and FlateDecode content streams.
+/// and common external PDFs with basic text operators and common content-stream filters.
 /// Not a general-purpose PDF parser; designed as a pragmatic starting point.
 /// </summary>
 public static class PdfTextExtractor {
@@ -980,6 +980,7 @@ public static class PdfTextExtractor {
         var sb = new StringBuilder();
         bool inText = false;
         bool pendingSpace = false;
+        bool hasTextInCurrentTextObject = false;
         double currentFontSize = 12;
         double currentHorizontalScale = 1.0;
         var args = new List<object>(8);
@@ -1016,11 +1017,13 @@ public static class PdfTextExtractor {
                 case "BT":
                     inText = true;
                     pendingSpace = false;
+                    hasTextInCurrentTextObject = false;
                     args.Clear();
                     break;
                 case "ET":
                     inText = false;
                     pendingSpace = false;
+                    hasTextInCurrentTextObject = false;
                     args.Clear();
                     break;
                 case "T*":
@@ -1043,10 +1046,13 @@ public static class PdfTextExtractor {
                     args.Clear();
                     break;
                 case "Td":
+                case "TD":
                     if (inText && args.Count >= 2) {
                         double advanceX = ToDouble(args[args.Count - 2]);
                         double advanceY = ToDouble(args[args.Count - 1]);
-                        if (advanceY == 0 && advanceX > 0.1) {
+                        if (Math.Abs(advanceY) > 0.1 && hasTextInCurrentTextObject) {
+                            AppendLineBreak();
+                        } else if (advanceX > 0.1) {
                             pendingSpace = true;
                         }
                     }
@@ -1104,11 +1110,21 @@ public static class PdfTextExtractor {
                 sb.Append(' ');
             }
             sb.Append(value);
+            if (inText) {
+                hasTextInCurrentTextObject = true;
+            }
             pendingSpace = false;
         }
 
         void RequestSpace() {
             pendingSpace = true;
+        }
+
+        void AppendLineBreak() {
+            if (sb.Length > 0) {
+                sb.AppendLine();
+            }
+            pendingSpace = false;
         }
 
         void AppendTextArray(object arrayObject) {
