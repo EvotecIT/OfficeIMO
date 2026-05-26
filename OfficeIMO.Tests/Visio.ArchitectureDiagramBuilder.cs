@@ -169,6 +169,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ArchitectureDiagramBuilderCanAutoPlaceSemanticCalloutsBesideComponents() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .ArchitectureDiagram("Auto Annotated Architecture", diagram => diagram
+                    .Title()
+                    .Region("vnet", "Virtual Network", 0, 0, 3, 2)
+                    .Service("jenkins", "Jenkins", 1, 0)
+                    .Compute("agent", "Build Agent", 2, 0)
+                    .Security("vault", "Key Vault", 1, 1)
+                    .ControlFlow("jenkins", "agent", "scale")
+                    .Dependency("jenkins", "vault", "secrets")
+                    .Callout("jenkins", "scale-note", "Scale agents automatically", VisioSide.Right, 0.45, options => {
+                        options.Width = 2.5;
+                        options.Height = 0.72;
+                    })
+                    .Callout("vault", "Managed identity boundary", VisioSide.Bottom, 0.25));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape jenkins = Assert.Single(page.Shapes, shape => shape.Id == "jenkins");
+            VisioShape vault = Assert.Single(page.Shapes, shape => shape.Id == "vault");
+            VisioShape explicitCallout = Assert.Single(page.Callouts(), shape => shape.Id == "scale-note");
+            VisioShape generatedCallout = Assert.Single(page.Callouts(), shape => shape.Id == "vault-callout");
+
+            Assert.True(explicitCallout.PinX > jenkins.PinX);
+            Assert.Equal(jenkins.PinY, explicitCallout.PinY, 6);
+            Assert.Equal(jenkins.Id, explicitCallout.CalloutTargetId);
+            Assert.Equal(2.5, explicitCallout.Width);
+            Assert.True(generatedCallout.PinY < vault.PinY);
+            Assert.Equal(vault.Id, generatedCallout.CalloutTargetId);
+
+            VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, explicitCallout));
+            Assert.Same(jenkins, leader.To);
+            Assert.Equal(EndArrow.None, leader.EndArrow);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void ArchitectureDiagramBuilderRejectsUnknownLinkEndpoints() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -214,6 +254,23 @@ namespace OfficeIMO.Tests {
                     .Callout("api", "api", "Duplicate id", 3, 3)));
 
             Assert.Contains("already exists", exception.Message);
+        }
+
+        [Fact]
+        public void ArchitectureDiagramBuilderRejectsAutoCalloutPlacementIssues() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentOutOfRangeException autoPlacement = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.ArchitectureDiagram("Invalid", diagram => diagram
+                    .Service("api", "API", 0, 0)
+                    .Callout("api", "Invalid", VisioSide.Auto)));
+            ArgumentOutOfRangeException badGap = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.ArchitectureDiagram("Invalid", diagram => diagram
+                    .Service("api", "API", 0, 0)
+                    .Callout("api", "Invalid", VisioSide.Right, double.NaN)));
+
+            Assert.Contains("Placement must be", autoPlacement.Message);
+            Assert.Contains("finite non-negative", badGap.Message);
         }
     }
 }
