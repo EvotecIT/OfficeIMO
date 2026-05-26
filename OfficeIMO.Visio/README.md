@@ -71,6 +71,8 @@ using OfficeIMO.Visio.Diagrams;
 
 VisioDocument.Create("block-diagram.vsdx")
     .BlockDiagram("Block Diagram", diagram => diagram
+        .Title()
+        .Legend()
         .Region("processor", "Processor", 1, 2, 2, 2)
         .Block("input", "Input Device", 0, 2)
         .EmphasisBlock("memory", "Memory Unit", 1, 2)
@@ -86,7 +88,7 @@ VisioDocument.Create("block-diagram.vsdx")
 
 The block diagram builder creates grid-positioned blocks, light background
 regions, solid data-flow connectors, dashed control-flow connectors, labels,
-and master-backed Visio shapes.
+optional presentation titles/legends, and master-backed Visio shapes.
 
 ## Quick sample (dependency diagram builder)
 

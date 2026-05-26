@@ -87,7 +87,8 @@ namespace OfficeIMO.Visio {
                 BlockTextStyle = Primary.TextStyle?.Clone(),
                 EmphasisTextStyle = Emphasis.TextStyle?.Clone(),
                 RegionTextStyle = Container.TextStyle?.Clone(),
-                ConnectorTextStyle = Connector.TextStyle?.Clone()
+                ConnectorTextStyle = Connector.TextStyle?.Clone(),
+                LegendTextStyle = DataConnector.TextStyle?.Clone()
             };
         }
 

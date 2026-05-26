@@ -47,6 +47,25 @@ namespace OfficeIMO.Visio.Diagrams {
         /// <summary>Default connector label text style.</summary>
         public VisioTextStyle? ConnectorTextStyle { get; set; }
 
+        /// <summary>Default title text style.</summary>
+        public VisioTextStyle? TitleTextStyle { get; set; } = new VisioTextStyle {
+            FontFamily = "Aptos Display",
+            Color = Color.FromRgb(0, 73, 108),
+            Size = 24,
+            Bold = true,
+            HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+            VerticalAlignment = VisioTextVerticalAlignment.Middle
+        };
+
+        /// <summary>Default legend label text style.</summary>
+        public VisioTextStyle? LegendTextStyle { get; set; } = new VisioTextStyle {
+            FontFamily = "Aptos",
+            Color = Color.FromRgb(0, 120, 180),
+            Size = 12,
+            HorizontalAlignment = VisioTextHorizontalAlignment.Left,
+            VerticalAlignment = VisioTextVerticalAlignment.Middle
+        };
+
         /// <summary>Default column gap in page units.</summary>
         public double ColumnGap { get; set; } = 1.1;
 
@@ -74,7 +93,9 @@ namespace OfficeIMO.Visio.Diagrams {
             BlockTextStyle = BlockTextStyle?.Clone(),
             EmphasisTextStyle = EmphasisTextStyle?.Clone(),
             RegionTextStyle = RegionTextStyle?.Clone(),
-            ConnectorTextStyle = ConnectorTextStyle?.Clone()
+            ConnectorTextStyle = ConnectorTextStyle?.Clone(),
+            TitleTextStyle = TitleTextStyle?.Clone(),
+            LegendTextStyle = LegendTextStyle?.Clone()
         };
 
         /// <summary>Default blue/gray OfficeIMO block diagram theme.</summary>

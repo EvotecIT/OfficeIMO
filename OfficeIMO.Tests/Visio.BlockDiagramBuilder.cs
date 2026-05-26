@@ -69,5 +69,33 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("Unknown block id", exception.Message);
         }
+
+        [Fact]
+        public void BlockDiagramBuilderCanAddTitleAndLegendWithoutOverlappingGrid() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .BlockDiagram("Block Diagram", diagram => diagram
+                    .Title()
+                    .Legend()
+                    .Block("input", "Input", 0, 0)
+                    .Block("memory", "Memory", 1, 0)
+                    .Block("output", "Output", 2, 0)
+                    .DataFlow("input", "memory")
+                    .ControlFlow("memory", "output", "Control"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            Assert.Contains(page.Shapes, shape => shape.Text == "Block Diagram" && shape.NameU == "Text Box");
+            Assert.Contains(page.Shapes, shape => shape.Text == "Data Flow");
+            Assert.Contains(page.Shapes, shape => shape.Text == "Control Flow");
+            Assert.True(page.Shapes.Single(shape => shape.Id == "input").PinY < page.Height - 1.2D);
+            Assert.Empty(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckConnectorShapeIntersections = false,
+                CheckConnectorLabels = false
+            }).Select(issue => issue.ToString()));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
     }
 }

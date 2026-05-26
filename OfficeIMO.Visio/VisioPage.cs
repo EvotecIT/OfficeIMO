@@ -1180,6 +1180,33 @@ namespace OfficeIMO.Visio {
             AddRectangle(x, y, width, height, text, DefaultUnit);
 
         /// <summary>
+        /// Adds an editable text box without a visible border or fill.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the text box.</param>
+        /// <param name="height">Height of the text box.</param>
+        /// <param name="text">Text to place in the box.</param>
+        /// <param name="unit">Measurement unit.</param>
+        /// <returns>The created text box shape.</returns>
+        public VisioShape AddTextBox(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            VisioShape shape = AddRectangle(x, y, width, height, text, unit);
+            shape.NameU = "Text Box";
+            shape.LinePattern = 0;
+            shape.FillPattern = 0;
+            shape.LineColor = OfficeIMO.Drawing.OfficeColor.Transparent;
+            shape.FillColor = OfficeIMO.Drawing.OfficeColor.Transparent;
+            shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.DiagramAdornmentKind, "STR", prompt: "OfficeIMO semantic kind");
+            return shape;
+        }
+
+        /// <summary>
+        /// Adds an editable text box without a visible border or fill using the page <see cref="DefaultUnit"/>.
+        /// </summary>
+        public VisioShape AddTextBox(double x, double y, double width, double height, string? text = null) =>
+            AddTextBox(x, y, width, height, text, DefaultUnit);
+
+        /// <summary>
         /// Adds a flowchart process shape.
         /// </summary>
         /// <param name="x">X coordinate.</param>

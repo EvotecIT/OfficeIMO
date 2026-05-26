@@ -85,6 +85,10 @@ namespace OfficeIMO.Visio.Diagrams {
         private double _pageHeight = 8.5;
         private double _leftMargin = 0.8;
         private double _topMargin = 0.8;
+        private string? _titleText;
+        private bool _showLegend;
+        private string _dataFlowLegendLabel = "Data Flow";
+        private string _controlFlowLegendLabel = "Control Flow";
         private bool _built;
 
         internal VisioBlockDiagramBuilder(VisioDocument document, string pageName) {
@@ -123,6 +127,20 @@ namespace OfficeIMO.Visio.Diagrams {
             ValidateNonNegative(top, nameof(top));
             _leftMargin = left;
             _topMargin = top;
+            return this;
+        }
+
+        /// <summary>Adds a centered title above the generated grid.</summary>
+        public VisioBlockDiagramBuilder Title(string? text = null) {
+            _titleText = string.IsNullOrWhiteSpace(text) ? _pageName : text;
+            return this;
+        }
+
+        /// <summary>Adds a compact data/control flow legend above the generated grid.</summary>
+        public VisioBlockDiagramBuilder Legend(bool enabled = true, string dataFlowLabel = "Data Flow", string controlFlowLabel = "Control Flow") {
+            _showLegend = enabled;
+            _dataFlowLegendLabel = string.IsNullOrWhiteSpace(dataFlowLabel) ? "Data Flow" : dataFlowLabel;
+            _controlFlowLegendLabel = string.IsNullOrWhiteSpace(controlFlowLabel) ? "Control Flow" : controlFlowLabel;
             return this;
         }
 
@@ -171,6 +189,7 @@ namespace OfficeIMO.Visio.Diagrams {
             AddRegions(page);
             AddBlocks(page);
             AddLinks(page);
+            AddAdornments(page);
             _document.RequestRecalcOnOpen();
             return page;
         }
@@ -295,6 +314,36 @@ namespace OfficeIMO.Visio.Diagrams {
             }
         }
 
+        private void AddAdornments(VisioPage page) {
+            if (!string.IsNullOrWhiteSpace(_titleText)) {
+                VisioShape title = page.AddTextBox(_pageWidth / 2D, _pageHeight - 0.42D, Math.Max(1D, _pageWidth - 1.6D), 0.45D, _titleText);
+                if (_theme.TitleTextStyle != null) {
+                    title.TextStyle = _theme.TitleTextStyle.Clone();
+                }
+            }
+
+            if (_showLegend) {
+                double y = _pageHeight - (!string.IsNullOrWhiteSpace(_titleText) ? 0.95D : 0.45D);
+                AddLegendItem(page, Math.Max(0.8D, _leftMargin), y, _dataFlowLegendLabel, _theme.DataFlowColor, 1);
+                AddLegendItem(page, Math.Max(0.8D, _pageWidth - 3.1D), y, _controlFlowLegendLabel, _theme.ControlFlowColor, 2);
+            }
+        }
+
+        private void AddLegendItem(VisioPage page, double x, double y, string label, Color color, int linePattern) {
+            VisioShape sample = page.AddRectangle(x + 0.32D, y, 0.64D, 0.08D, string.Empty);
+            sample.NameU = "Rectangle";
+            sample.FillPattern = 0;
+            sample.LineColor = color;
+            sample.LinePattern = linePattern;
+            sample.LineWeight = Math.Max(0.018D, _theme.LineWeight);
+            sample.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.DiagramAdornmentKind, "STR", prompt: "OfficeIMO semantic kind");
+
+            VisioShape text = page.AddTextBox(x + 1.5D, y, 1.4D, 0.28D, label);
+            if (_theme.LegendTextStyle != null) {
+                text.TextStyle = _theme.LegendTextStyle.Clone();
+            }
+        }
+
         private double GridX(int column, int span) {
             double left = _leftMargin + column * (_theme.BlockWidth + _theme.ColumnGap);
             double width = span * _theme.BlockWidth + (span - 1) * _theme.ColumnGap;
@@ -302,9 +351,24 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private double GridY(int row, int span) {
-            double top = _pageHeight - _topMargin - row * (_theme.BlockHeight + _theme.RowGap);
+            double top = _pageHeight - _topMargin - HeaderHeight - row * (_theme.BlockHeight + _theme.RowGap);
             double height = span * _theme.BlockHeight + (span - 1) * _theme.RowGap;
             return top - height / 2D;
+        }
+
+        private double HeaderHeight {
+            get {
+                double height = 0D;
+                if (!string.IsNullOrWhiteSpace(_titleText)) {
+                    height += 0.65D;
+                }
+
+                if (_showLegend) {
+                    height += 0.45D;
+                }
+
+                return height;
+            }
         }
 
         private void EnsureKnownBlock(string id, string parameterName) {
