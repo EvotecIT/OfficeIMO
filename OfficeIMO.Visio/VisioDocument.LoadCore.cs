@@ -258,6 +258,7 @@ namespace OfficeIMO.Visio {
                 double? rightMargin = null;
                 double? topMargin = null;
                 double? bottomMargin = null;
+                VisioMeasurementUnit marginUnit = VisioMeasurementUnit.Inches;
                 double? lineToLineX = null;
                 double? lineToLineY = null;
                 double? lineToNodeX = null;
@@ -459,16 +460,20 @@ namespace OfficeIMO.Visio {
                                 lineToNodeY = ParseNonNegativeDouble(valueAttr);
                                 break;
                             case "PageLeftMargin":
-                                leftMargin = ParseNonNegativeDouble(valueAttr);
+                                marginUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, marginUnit);
+                                leftMargin = ParseNonNegativeDouble(valueAttr)?.ToInches(marginUnit);
                                 break;
                             case "PageRightMargin":
-                                rightMargin = ParseNonNegativeDouble(valueAttr);
+                                marginUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, marginUnit);
+                                rightMargin = ParseNonNegativeDouble(valueAttr)?.ToInches(marginUnit);
                                 break;
                             case "PageTopMargin":
-                                topMargin = ParseNonNegativeDouble(valueAttr);
+                                marginUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, marginUnit);
+                                topMargin = ParseNonNegativeDouble(valueAttr)?.ToInches(marginUnit);
                                 break;
                             case "PageBottomMargin":
-                                bottomMargin = ParseNonNegativeDouble(valueAttr);
+                                marginUnit = VisioMeasurementUnitExtensions.FromVisioUnitCode(unitAttr, marginUnit);
+                                bottomMargin = ParseNonNegativeDouble(valueAttr)?.ToInches(marginUnit);
                                 break;
                             case "PrintPageOrientation":
                                 if (TryParseCellIntValue(valueAttr, out int orientation) &&
@@ -510,7 +515,7 @@ namespace OfficeIMO.Visio {
                 if (pageHeightInches.HasValue && pageHeightInches.Value > 0) {
                     page.Height = pageHeightInches.Value;
                 }
-                page.SetLoadedMargins(leftMargin, rightMargin, topMargin, bottomMargin);
+                page.SetLoadedMargins(leftMargin, rightMargin, topMargin, bottomMargin, marginUnit);
                 page.SetLoadedConnectorSpacing(
                     lineToLineX,
                     lineToLineY,

@@ -44,8 +44,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(VisioValidator.Validate(filePath));
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
             XElement faceName = Assert.Single(ReadXml(filePath, "visio/document.xml")
-                .Descendants(ns + "FaceName")
-                .Where(element => (string?)element.Attribute("Name") == "Aptos"));
+                .Descendants(ns + "FaceName"), element => (string?)element.Attribute("Name") == "Aptos");
             Assert.Equal("0", faceName.Attribute("ID")?.Value);
 
             XElement shape = FindShape(ReadXml(filePath, "visio/pages/page1.xml"), ns, "Styled text");
@@ -105,7 +104,7 @@ namespace OfficeIMO.Tests {
             document.Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            VisioShape loadedShape = Assert.Single(loaded.Pages[0].Shapes.Where(shape => shape.Text == "Round tripped"));
+            VisioShape loadedShape = Assert.Single(loaded.Pages[0].Shapes, shape => shape.Text == "Round tripped");
 
             Assert.NotNull(loadedShape.TextStyle);
             Assert.Equal("Consolas", loadedShape.TextStyle!.FontFamily);
@@ -133,11 +132,10 @@ namespace OfficeIMO.Tests {
             Assert.Empty(VisioValidator.Validate(savedPath));
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
             XElement savedShape = FindShape(ReadXml(savedPath, "visio/pages/page1.xml"), ns, "Round tripped");
-            Assert.Single(savedShape.Elements(ns + "Section").Where(section => (string?)section.Attribute("N") == "Char"));
-            Assert.Single(savedShape.Elements(ns + "Section").Where(section => (string?)section.Attribute("N") == "Para"));
+            Assert.Single(savedShape.Elements(ns + "Section"), section => (string?)section.Attribute("N") == "Char");
+            Assert.Single(savedShape.Elements(ns + "Section"), section => (string?)section.Attribute("N") == "Para");
             Assert.Single(ReadXml(savedPath, "visio/document.xml")
-                .Descendants(ns + "FaceName")
-                .Where(element => (string?)element.Attribute("Name") == "Consolas"));
+                .Descendants(ns + "FaceName"), element => (string?)element.Attribute("Name") == "Consolas");
         }
 
         [Fact]
@@ -197,8 +195,7 @@ namespace OfficeIMO.Tests {
             XElement paraRow = Assert.Single(paraSection.Elements(ns + "Row"));
             Assert.Equal("1", Cell(paraRow, ns, "HorzAlign").Attribute("V")?.Value);
             Assert.Single(ReadXml(filePath, "visio/document.xml")
-                .Descendants(ns + "FaceName")
-                .Where(element => (string?)element.Attribute("Name") == "Aptos"));
+                .Descendants(ns + "FaceName"), element => (string?)element.Attribute("Name") == "Aptos");
         }
 
         [Fact]
@@ -248,11 +245,10 @@ namespace OfficeIMO.Tests {
             Assert.Empty(VisioValidator.Validate(savedPath));
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
             XElement savedConnector = FindShape(ReadXml(savedPath, "visio/pages/page1.xml"), ns, "Denied");
-            Assert.Single(savedConnector.Elements(ns + "Section").Where(section => (string?)section.Attribute("N") == "Char"));
-            Assert.Single(savedConnector.Elements(ns + "Section").Where(section => (string?)section.Attribute("N") == "Para"));
+            Assert.Single(savedConnector.Elements(ns + "Section"), section => (string?)section.Attribute("N") == "Char");
+            Assert.Single(savedConnector.Elements(ns + "Section"), section => (string?)section.Attribute("N") == "Para");
             Assert.Single(ReadXml(savedPath, "visio/document.xml")
-                .Descendants(ns + "FaceName")
-                .Where(element => (string?)element.Attribute("Name") == "Consolas"));
+                .Descendants(ns + "FaceName"), element => (string?)element.Attribute("Name") == "Consolas");
         }
 
         [Fact]
@@ -283,7 +279,7 @@ namespace OfficeIMO.Tests {
 
             XNamespace v = "http://schemas.microsoft.com/office/visio/2012/main";
             XElement savedConnector = FindShape(ReadXml(savedPath, "visio/pages/page1.xml"), v, "Native connector text");
-            XElement charSection = Assert.Single(savedConnector.Elements(v + "Section").Where(section => (string?)section.Attribute("N") == "Char"));
+            XElement charSection = Assert.Single(savedConnector.Elements(v + "Section"), section => (string?)section.Attribute("N") == "Char");
             XElement row = Assert.Single(charSection.Elements(v + "Row"));
             Assert.Equal("#112233", Cell(row, v, "Color").Attribute("V")?.Value);
             Assert.Equal("1", Cell(row, v, "Case").Attribute("V")?.Value);
@@ -316,7 +312,7 @@ namespace OfficeIMO.Tests {
 
             XNamespace v = "http://schemas.microsoft.com/office/visio/2012/main";
             XElement savedShape = FindShape(ReadXml(savedPath, "visio/pages/page1.xml"), v, "Native rich text");
-            XElement charSection = Assert.Single(savedShape.Elements(v + "Section").Where(section => (string?)section.Attribute("N") == "Char"));
+            XElement charSection = Assert.Single(savedShape.Elements(v + "Section"), section => (string?)section.Attribute("N") == "Char");
             XElement row = Assert.Single(charSection.Elements(v + "Row"));
             Assert.Equal("#112233", Cell(row, v, "Color").Attribute("V")?.Value);
             Assert.Equal("1", Cell(row, v, "Case").Attribute("V")?.Value);

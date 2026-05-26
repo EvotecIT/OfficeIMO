@@ -43,6 +43,26 @@ namespace OfficeIMO.Tests {
 
             Assert.Empty(VisioValidator.Validate(roundTripPath));
             AssertPageSettingsXml(roundTripPath, "Settings", "1", "1", "1", "1", "1", "1", "0", unit: "CM");
+
+            VisioDocument reloadedRoundTrip = VisioDocument.Load(roundTripPath);
+            VisioPage reloadedSettings = reloadedRoundTrip.Pages.Single(current => current.Name == "Settings");
+            Assert.Equal(1D.ToInches(VisioMeasurementUnit.Centimeters), reloadedSettings.LeftMargin, 6);
+            Assert.Equal(1D.ToInches(VisioMeasurementUnit.Centimeters), reloadedSettings.RightMargin, 6);
+            Assert.Equal(1D.ToInches(VisioMeasurementUnit.Centimeters), reloadedSettings.TopMargin, 6);
+            Assert.Equal(1D.ToInches(VisioMeasurementUnit.Centimeters), reloadedSettings.BottomMargin, 6);
+        }
+
+        [Fact]
+        public void NonDefaultUnitPageDoesNotForcePrintOrientationWhenUnset() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Metric", 21, 29.7, VisioMeasurementUnit.Centimeters);
+            page.AddRectangle(10.5, 14.85, 4, 2, "Metric", VisioMeasurementUnit.Centimeters);
+            document.Save();
+
+            Assert.Empty(VisioValidator.Validate(filePath));
+            AssertPageSettingsXml(filePath, "Metric", "0.635", "0.635", "0.635", "0.635", null, "0", "0", unit: "CM");
         }
 
         [Fact]
@@ -236,7 +256,7 @@ namespace OfficeIMO.Tests {
             string expectedRightMargin,
             string expectedTopMargin,
             string expectedBottomMargin,
-            string expectedOrientation,
+            string? expectedOrientation,
             string expectedLockReplace,
             string expectedLockDuplicate,
             string? unit = null) {
@@ -251,7 +271,7 @@ namespace OfficeIMO.Tests {
             AssertCellValue(pageSheet, ns, "PageRightMargin", expectedRightMargin, unit);
             AssertCellValue(pageSheet, ns, "PageTopMargin", expectedTopMargin, unit);
             AssertCellValue(pageSheet, ns, "PageBottomMargin", expectedBottomMargin, unit);
-            AssertCellValue(pageSheet, ns, "PrintPageOrientation", expectedOrientation);
+            AssertOptionalCellValue(pageSheet, ns, "PrintPageOrientation", expectedOrientation);
             AssertCellValue(pageSheet, ns, "PageLockReplace", expectedLockReplace, "BOOL");
             AssertCellValue(pageSheet, ns, "PageLockDuplicate", expectedLockDuplicate, "BOOL");
         }

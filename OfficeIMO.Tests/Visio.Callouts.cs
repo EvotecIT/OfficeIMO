@@ -82,6 +82,24 @@ namespace OfficeIMO.Tests {
             Assert.Empty(leader.LayerNames);
         }
 
+        [Fact]
+        public void CalloutsRejectTargetsFromOtherPagesWithoutMutatingPage() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage sourcePage = document.AddPage("Source");
+            VisioPage calloutPage = document.AddPage("Callouts");
+            VisioShape target = sourcePage.AddRectangle(2, 2, 1.5, 0.8, "Target");
+
+            Assert.Throws<InvalidOperationException>(() =>
+                calloutPage.AddCallout(target, "Invalid", 4, 4));
+            Assert.Empty(calloutPage.Shapes);
+            Assert.Empty(calloutPage.Connectors);
+
+            Assert.Throws<InvalidOperationException>(() =>
+                calloutPage.AddCallout(target, "bad-callout", "Invalid", 4, 4));
+            Assert.Empty(calloutPage.Shapes);
+            Assert.Empty(calloutPage.Connectors);
+        }
+
         private static void AssertCalloutXml(string filePath) {
             using ZipArchive archive = ZipFile.OpenRead(filePath);
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";

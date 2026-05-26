@@ -61,6 +61,33 @@ namespace OfficeIMO.Tests {
             Assert.All(document.Pages.Where(page => page.BackgroundPage != null), page => Assert.True(page.BackgroundPage!.IsBackground));
         }
 
+        [Fact]
+        public void BackgroundPageCanReferenceAnotherBackgroundPageOnRoundTrip() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            string roundTripPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage baseBackground = document.AddBackgroundPage("Base", 11, 8.5);
+            VisioPage overlayBackground = document.AddBackgroundPage("Overlay", 11, 8.5);
+            overlayBackground.SetBackgroundPage(baseBackground);
+            VisioPage foreground = document.AddPage("Foreground", 11, 8.5);
+            foreground.SetBackgroundPage(overlayBackground);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioPage loadedBase = loaded.Pages.Single(page => page.Name == "Base");
+            VisioPage loadedOverlay = loaded.Pages.Single(page => page.Name == "Overlay");
+            VisioPage loadedForeground = loaded.Pages.Single(page => page.Name == "Foreground");
+            Assert.Same(loadedBase, loadedOverlay.BackgroundPage);
+            Assert.Same(loadedOverlay, loadedForeground.BackgroundPage);
+
+            loaded.Save(roundTripPath);
+            Assert.Empty(VisioValidator.Validate(roundTripPath));
+            AssertChainedBackgroundXml(roundTripPath, loadedBase.Id, loadedOverlay.Id, loadedForeground.Id);
+        }
+
         private static void AssertPagesXml(string filePath, int backgroundId, int architectureId, int operationsId) {
             using ZipArchive archive = ZipFile.OpenRead(filePath);
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
@@ -77,6 +104,24 @@ namespace OfficeIMO.Tests {
             XElement operations = PageById(pages, ns, operationsId);
             Assert.Equal(backgroundId.ToString(), operations.Attribute("BackPage")?.Value);
             Assert.Null(operations.Attribute("Background"));
+        }
+
+        private static void AssertChainedBackgroundXml(string filePath, int baseBackgroundId, int overlayBackgroundId, int foregroundId) {
+            using ZipArchive archive = ZipFile.OpenRead(filePath);
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XDocument pages = ReadXml(archive, "visio/pages/pages.xml");
+
+            XElement baseBackground = PageById(pages, ns, baseBackgroundId);
+            Assert.Equal("1", baseBackground.Attribute("Background")?.Value);
+            Assert.Null(baseBackground.Attribute("BackPage"));
+
+            XElement overlayBackground = PageById(pages, ns, overlayBackgroundId);
+            Assert.Equal("1", overlayBackground.Attribute("Background")?.Value);
+            Assert.Equal(baseBackgroundId.ToString(), overlayBackground.Attribute("BackPage")?.Value);
+
+            XElement foreground = PageById(pages, ns, foregroundId);
+            Assert.Equal(overlayBackgroundId.ToString(), foreground.Attribute("BackPage")?.Value);
+            Assert.Null(foreground.Attribute("Background"));
         }
 
         private static XElement PageById(XDocument pages, XNamespace ns, int id) {

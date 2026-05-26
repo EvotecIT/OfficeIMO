@@ -25,6 +25,7 @@ namespace OfficeIMO.Visio {
             }
 
             VisioCalloutOptions effectiveOptions = options ?? new VisioCalloutOptions();
+            EnsureTargetBelongsToPage(page, target);
             VisioShape callout = page.AddRectangle(pinX, pinY, effectiveOptions.Width, effectiveOptions.Height, text);
             ConfigureCallout(page, target, callout, effectiveOptions);
             return callout;
@@ -58,6 +59,7 @@ namespace OfficeIMO.Visio {
             }
 
             VisioCalloutOptions effectiveOptions = options ?? new VisioCalloutOptions();
+            EnsureTargetBelongsToPage(page, target);
             VisioShape callout = new VisioShape(id, pinX, pinY, effectiveOptions.Width, effectiveOptions.Height, text) {
                 Name = "Callout",
                 NameU = "Rectangle"
@@ -68,9 +70,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static void ConfigureCallout(VisioPage page, VisioShape target, VisioShape callout, VisioCalloutOptions options) {
-            if (!page.AllShapes().Contains(target)) {
-                throw new InvalidOperationException("The target shape must belong to the page.");
-            }
+            EnsureTargetBelongsToPage(page, target);
 
             callout.Name = string.IsNullOrWhiteSpace(callout.Name) ? "Callout" : callout.Name;
             callout.NameU = string.IsNullOrWhiteSpace(callout.NameU) ? "Rectangle" : callout.NameU;
@@ -92,6 +92,12 @@ namespace OfficeIMO.Visio {
             if (!string.IsNullOrWhiteSpace(options.LayerName)) {
                 page.AddToLayer(options.LayerName!, callout);
                 page.AddToLayer(options.LayerName!, leader);
+            }
+        }
+
+        private static void EnsureTargetBelongsToPage(VisioPage page, VisioShape target) {
+            if (!page.AllShapes().Contains(target)) {
+                throw new InvalidOperationException("The target shape must belong to the page.");
             }
         }
 

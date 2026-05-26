@@ -770,7 +770,7 @@ namespace OfficeIMO.Visio {
             return this;
         }
 
-        internal void SetLoadedMargins(double? left, double? right, double? top, double? bottom) {
+        internal void SetLoadedMargins(double? left, double? right, double? top, double? bottom, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             if (left.HasValue && left.Value >= 0) {
                 _leftMargin = left.Value;
             }
@@ -788,6 +788,9 @@ namespace OfficeIMO.Visio {
             }
 
             HasExplicitMargins = left.HasValue || right.HasValue || top.HasValue || bottom.HasValue;
+            if (HasExplicitMargins) {
+                _marginUnit = unit;
+            }
         }
 
         /// <summary>

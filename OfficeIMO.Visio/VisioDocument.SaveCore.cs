@@ -369,7 +369,7 @@ namespace OfficeIMO.Visio {
                         }
 
                         int? backgroundPageId = page.BackgroundPage?.Id ?? page.BackgroundPageId;
-                        if (backgroundPageId.HasValue && !page.IsBackground) {
+                        if (backgroundPageId.HasValue) {
                             writer.WriteAttributeString("BackPage", XmlConvert.ToString(backgroundPageId.Value));
                         }
 
@@ -437,7 +437,9 @@ namespace OfficeIMO.Visio {
                             WritePageCell(writer, ns, "FontSchemeIndex", 60);
                             WritePageCell(writer, ns, "ThemeIndex", 60);
                             WriteMarginCells(writer, ns, page, useUnits);
-                            WritePageCell(writer, ns, "PrintPageOrientation", (int)(page.PrintOrientation ?? VisioPagePrintOrientation.Landscape));
+                            if (page.PrintOrientation.HasValue) {
+                                WritePageCell(writer, ns, "PrintPageOrientation", (int)page.PrintOrientation.Value);
+                            }
                             if (!hasPreservedUserSection) {
                                 writer.WriteStartElement("Section", ns);
                                 writer.WriteAttributeString("N", "User");
