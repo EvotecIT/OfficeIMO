@@ -581,6 +581,17 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
+                int worksheetPartCount = 0;
+                foreach (var part in model.Parts) {
+                    if (part.Part is WorksheetPart) {
+                        worksheetPartCount++;
+                    }
+                }
+
+                if (model.DirectWorksheetModels.Count != worksheetPartCount) {
+                    return false;
+                }
+
                 foreach (var pair in model.DirectWorksheetModels) {
                     if (pair.Key is not WorksheetPart worksheetPart) {
                         return false;
