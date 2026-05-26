@@ -95,6 +95,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FluentPageCanResolveShapeOverlaps() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+
+            document.AsFluent()
+                .Page("Page1", p => p
+                    .Rect("first", 2, 3, 1.2, 0.8, "First")
+                    .Rect("second", 2.2, 3, 1.2, 0.8, "Second")
+                    .Rect("third", 2.4, 3, 1.2, 0.8, "Third")
+                    .ResolveShapeOverlaps(step: 0.25, maxAttempts: 12))
+                .End();
+
+            VisioPage page = document.Pages[0];
+            Assert.DoesNotContain(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckPageBounds = false,
+                CheckConnectorShapeIntersections = false,
+                CheckConnectorLabels = false
+            }), issue => issue.Kind == "ShapeOverlap");
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void SideSelectionUsesNamedSidePointEvenWhenCustomPointsExist() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);

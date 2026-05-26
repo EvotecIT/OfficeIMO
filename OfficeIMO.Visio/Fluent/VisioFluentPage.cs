@@ -501,6 +501,12 @@ namespace OfficeIMO.Visio.Fluent {
             return this;
         }
 
+        /// <summary>Moves overlapping top-level shapes apart using deterministic page cleanup.</summary>
+        public VisioFluentPage ResolveShapeOverlaps(double step = 0.25D, int maxAttempts = 24, bool includeContainers = false) {
+            _page.ResolveShapeOverlaps(step, maxAttempts, includeContainers);
+            return this;
+        }
+
         /// <summary>Returns to the document-level fluent builder for chaining.</summary>
         public VisioFluentDocument EndPage() => _fluent;
 
