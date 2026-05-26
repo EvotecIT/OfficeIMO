@@ -2349,7 +2349,13 @@ namespace OfficeIMO.Excel {
             }
 
             if (dataType == CellValues.Error || dataType == CellValues.Date || dataType == CellValues.InlineString) {
-                return new DirectTypedCellValue(cell.DataType?.InnerText ?? dataType.ToString(), text, cell.InlineString?.OuterXml);
+                string dataTypeText = cell.DataType?.InnerText
+                                      ?? (dataType == CellValues.Error
+                                          ? "e"
+                                          : dataType == CellValues.Date
+                                              ? "d"
+                                              : "inlineStr");
+                return new DirectTypedCellValue(dataTypeText, text, cell.InlineString?.OuterXml);
             }
 
             return sheet.GetCellText(cell);
