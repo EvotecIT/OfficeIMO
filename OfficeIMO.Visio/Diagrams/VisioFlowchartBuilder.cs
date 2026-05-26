@@ -51,6 +51,16 @@ namespace OfficeIMO.Visio.Diagrams {
                 Options = options;
             }
 
+            public CalloutItem(string targetId, string id, string text, VisioSide placement, double gap, VisioCalloutOptions options) {
+                TargetId = targetId;
+                Id = id;
+                Text = text;
+                Placement = placement;
+                Gap = gap;
+                Options = options;
+                UsePlacement = true;
+            }
+
             public string TargetId { get; }
 
             public string Id { get; }
@@ -60,6 +70,12 @@ namespace OfficeIMO.Visio.Diagrams {
             public double PinX { get; }
 
             public double PinY { get; }
+
+            public VisioSide Placement { get; }
+
+            public double Gap { get; }
+
+            public bool UsePlacement { get; }
 
             public VisioCalloutOptions Options { get; }
         }
@@ -218,6 +234,32 @@ namespace OfficeIMO.Visio.Diagrams {
             ValidatePositive(options.Width, nameof(options.Width));
             ValidatePositive(options.Height, nameof(options.Height));
             _callouts.Add(new CalloutItem(normalizedTargetId, normalizedId, text ?? string.Empty, pinX, pinY, options));
+            return this;
+        }
+
+        /// <summary>Adds a semantic callout placed beside a known flowchart node using a generated callout id.</summary>
+        public VisioFlowchartBuilder Callout(string targetId, string text, VisioSide placement, double gap = 0.35D, Action<VisioCalloutOptions>? configure = null) {
+            string normalizedTargetId = RequireId(targetId, nameof(targetId), "Callout target id");
+            EnsureKnownNode(normalizedTargetId, nameof(targetId));
+            return Callout(normalizedTargetId, CreateCalloutId(normalizedTargetId), text, placement, gap, configure);
+        }
+
+        /// <summary>Adds a semantic callout placed beside a known flowchart node.</summary>
+        public VisioFlowchartBuilder Callout(string targetId, string id, string text, VisioSide placement, double gap = 0.35D, Action<VisioCalloutOptions>? configure = null) {
+            string normalizedTargetId = RequireId(targetId, nameof(targetId), "Callout target id");
+            string normalizedId = RequireId(id, nameof(id), "Callout id");
+            EnsureKnownNode(normalizedTargetId, nameof(targetId));
+            if (IsIdInUse(normalizedId)) {
+                throw new ArgumentException($"A flowchart item with id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            ValidatePlacement(placement, nameof(placement));
+            ValidateNonNegative(gap, nameof(gap));
+            VisioCalloutOptions options = CreateCalloutOptions();
+            configure?.Invoke(options);
+            ValidatePositive(options.Width, nameof(options.Width));
+            ValidatePositive(options.Height, nameof(options.Height));
+            _callouts.Add(new CalloutItem(normalizedTargetId, normalizedId, text ?? string.Empty, placement, gap, options));
             return this;
         }
 
@@ -430,7 +472,11 @@ namespace OfficeIMO.Visio.Diagrams {
                     throw new InvalidOperationException("Flowchart nodes must be placed before callouts are created.");
                 }
 
-                page.AddCallout(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
+                if (callout.UsePlacement) {
+                    page.AddCallout(target.Shape, callout.Id, callout.Text, callout.Placement, callout.Gap, callout.Options);
+                } else {
+                    page.AddCallout(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
+                }
             }
         }
 
@@ -621,6 +667,12 @@ namespace OfficeIMO.Visio.Diagrams {
         private static void ValidateFinite(double value, string parameterName) {
             if (double.IsNaN(value) || double.IsInfinity(value)) {
                 throw new ArgumentOutOfRangeException(parameterName, "Value must be a finite number.");
+            }
+        }
+
+        private static void ValidatePlacement(VisioSide placement, string parameterName) {
+            if (placement == VisioSide.Auto || !Enum.IsDefined(typeof(VisioSide), placement)) {
+                throw new ArgumentOutOfRangeException(parameterName, "Placement must be Left, Right, Bottom, or Top.");
             }
         }
 

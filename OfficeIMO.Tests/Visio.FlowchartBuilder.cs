@@ -153,6 +153,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FlowchartBuilderCanAutoPlaceSemanticCalloutsBesideNodes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .Flowchart("Auto Annotated", flow => flow
+                    .Start("start", "Start")
+                    .Step("review", "Review")
+                    .Decision("agreement", "Agreement?")
+                    .End("done", "Done")
+                    .Callout("agreement", "agreement-note", "Escalate if rejected", VisioSide.Right, 0.4, options => {
+                        options.Width = 2.35;
+                        options.Height = 0.7;
+                    })
+                    .Callout("review", "Check completeness", VisioSide.Left, 0.25));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape target = Assert.Single(page.Shapes, shape => shape.Id == "agreement");
+            VisioShape explicitCallout = Assert.Single(page.Callouts(), shape => shape.Id == "agreement-note");
+            VisioShape generatedCallout = Assert.Single(page.Callouts(), shape => shape.Id == "review-callout");
+
+            Assert.True(explicitCallout.PinX > target.PinX);
+            Assert.Equal(target.PinY, explicitCallout.PinY, 6);
+            Assert.Equal(target.Id, explicitCallout.CalloutTargetId);
+            Assert.Equal(2.35, explicitCallout.Width);
+            Assert.True(generatedCallout.PinX < page.FindShapeById("review")!.PinX);
+
+            VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, explicitCallout));
+            Assert.Same(target, leader.To);
+            Assert.Equal(EndArrow.None, leader.EndArrow);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void FlowchartBuilderNormalizesNodeAndConnectorIds() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
                 .Flowchart("Trimmed", flow => flow
@@ -210,6 +245,23 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("already exists", nodeCollision.Message);
             Assert.Contains("already exists", titleCollision.Message);
+        }
+
+        [Fact]
+        public void FlowchartBuilderRejectsAutoCalloutPlacementIssues() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentOutOfRangeException autoPlacement = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.Flowchart("Invalid", flow => flow
+                    .Start("start", "Start")
+                    .Callout("start", "Invalid", VisioSide.Auto)));
+            ArgumentOutOfRangeException badGap = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.Flowchart("Invalid", flow => flow
+                    .Start("start", "Start")
+                    .Callout("start", "Invalid", VisioSide.Right, double.NaN)));
+
+            Assert.Contains("Placement must be", autoPlacement.Message);
+            Assert.Contains("finite non-negative", badGap.Message);
         }
     }
 }
