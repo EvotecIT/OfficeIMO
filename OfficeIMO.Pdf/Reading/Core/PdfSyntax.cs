@@ -726,29 +726,26 @@ internal static class PdfSyntax {
     }
 
     private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> map, PdfObject destination) {
-        return IsDestinationForKnownPage(map, destination, new HashSet<int>());
-    }
+        var visitedReferences = new HashSet<int>();
+        while (true) {
+            if (destination is PdfReference reference) {
+                if (!visitedReferences.Add(reference.ObjectNumber) ||
+                    !map.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                    return false;
+                }
 
-    private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> map, PdfObject destination, HashSet<int> visitedReferences) {
-        if (destination is PdfReference reference) {
-            if (!visitedReferences.Add(reference.ObjectNumber) ||
-                !map.TryGetValue(reference.ObjectNumber, out var indirect)) {
-                return false;
+                destination = indirect.Value;
+                continue;
             }
 
-            destination = indirect.Value;
-        }
+            if (destination is PdfDictionary dictionary &&
+                dictionary.Items.TryGetValue("D", out var explicitDestination)) {
+                destination = explicitDestination;
+                continue;
+            }
 
-        if (destination is PdfArray array) {
-            return IsDestinationForKnownPage(map, array);
+            return destination is PdfArray array && IsDestinationForKnownPage(map, array);
         }
-
-        if (destination is PdfDictionary dictionary &&
-            dictionary.Items.TryGetValue("D", out var explicitDestination)) {
-            return IsDestinationForKnownPage(map, explicitDestination, visitedReferences);
-        }
-
-        return false;
     }
 
     private static bool IsSupportedGoToActionDictionary(Dictionary<int, PdfIndirectObject> map, PdfDictionary dictionary) {

@@ -1803,32 +1803,30 @@ public static class PdfPageExtractor {
     }
 
     private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> sourceObjects, PdfObject destination) {
-        return IsDestinationForKnownPage(sourceObjects, destination, new HashSet<int>());
-    }
+        var visitedReferences = new HashSet<int>();
+        while (true) {
+            if (destination is PdfReference reference) {
+                if (!visitedReferences.Add(reference.ObjectNumber) ||
+                    !sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                    return false;
+                }
 
-    private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> sourceObjects, PdfObject destination, HashSet<int> visitedReferences) {
-        if (destination is PdfReference reference) {
-            if (!visitedReferences.Add(reference.ObjectNumber) ||
-                !sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect)) {
-                return false;
+                destination = indirect.Value;
+                continue;
             }
 
-            destination = indirect.Value;
-        }
+            if (destination is PdfDictionary dictionary &&
+                dictionary.Items.TryGetValue("D", out var explicitDestination)) {
+                destination = explicitDestination;
+                continue;
+            }
 
-        if (destination is PdfArray array) {
-            return array.Items.Count > 0 &&
+            return destination is PdfArray array &&
+                array.Items.Count > 0 &&
                 array.Items[0] is PdfReference pageReference &&
                 sourceObjects.TryGetValue(pageReference.ObjectNumber, out var pageObject) &&
                 IsPageDictionary(pageObject.Value);
         }
-
-        if (destination is PdfDictionary dictionary &&
-            dictionary.Items.TryGetValue("D", out var explicitDestination)) {
-            return IsDestinationForKnownPage(sourceObjects, explicitDestination, visitedReferences);
-        }
-
-        return false;
     }
 
     private static bool ReferencesOnlyCopiedPages(PdfObject value, HashSet<int> copiedPageObjectIds) {
