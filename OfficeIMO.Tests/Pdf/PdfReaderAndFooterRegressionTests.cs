@@ -469,6 +469,46 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfTextExtractor_ExtractAllText_ReadsLzwEncodedContentStreams() {
+        byte[] bytes = BuildPdfWithLzwEncodedStream("BT\n/F1 12 Tf\n72 720 Td\n(Hello LZW stream) Tj\nET\n");
+
+        string text = PdfTextExtractor.ExtractAllText(bytes);
+
+        Assert.Contains("Hello LZW stream", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_ReadsLzwEncodedContentStreams() {
+        byte[] bytes = BuildPdfWithLzwEncodedStream("BT\n/F1 12 Tf\n72 720 Td\n(Hello LZW spans) Tj\nET\n");
+
+        var doc = PdfReadDocument.Load(bytes);
+
+        Assert.Single(doc.Pages);
+        var span = Assert.Single(doc.Pages[0].GetTextSpans());
+        Assert.Equal("Hello LZW spans", span.Text);
+    }
+
+    [Fact]
+    public void PdfTextExtractor_ExtractAllText_ReadsChainedAscii85AndLzwContentStreamsWithEarlyChangeZero() {
+        byte[] bytes = BuildPdfWithAscii85AndLzwEncodedStream(
+            "BT\n/F1 12 Tf\n72 720 Td\n(Hello LZW chain with early change zero and enough repeated content for wider codes) Tj\nET\n",
+            earlyChange: 0);
+
+        string text = PdfTextExtractor.ExtractAllText(bytes);
+
+        Assert.Contains("Hello LZW chain with early change zero", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfTextExtractor_ExtractAllText_ReadsLzwStreamsWithPredictorDecodeParms() {
+        byte[] bytes = BuildPdfWithLzwPredictorEncodedStream("BT\n/F1 12 Tf\n72 720 Td\n(Hello LZW predictor) Tj\nET\n");
+
+        string text = PdfTextExtractor.ExtractAllText(bytes);
+
+        Assert.Contains("Hello LZW predictor", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfTextExtractor_ExtractAllText_ReadsInlineNestedFormResourceDictionaries() {
         byte[] bytes = BuildPdfWithInlineNestedFormResources();
 
@@ -1376,6 +1416,24 @@ public class PdfReaderAndFooterRegressionTests {
         return BuildSingleStreamPdf(encodedBytes, "/Filter [/A85 /RL]");
     }
 
+    private static byte[] BuildPdfWithLzwEncodedStream(string streamContent) {
+        byte[] encodedBytes = EncodeLzw(Encoding.ASCII.GetBytes(streamContent));
+        return BuildSingleStreamPdf(encodedBytes, "/Filter /LZWDecode");
+    }
+
+    private static byte[] BuildPdfWithAscii85AndLzwEncodedStream(string streamContent, int earlyChange) {
+        byte[] lzwBytes = EncodeLzw(Encoding.ASCII.GetBytes(streamContent), earlyChange);
+        byte[] encodedBytes = Encoding.ASCII.GetBytes(EncodeAscii85(lzwBytes));
+        return BuildSingleStreamPdf(encodedBytes, $"/Filter [/A85 /LZW] /DecodeParms [null << /EarlyChange {earlyChange} >>]");
+    }
+
+    private static byte[] BuildPdfWithLzwPredictorEncodedStream(string streamContent) {
+        byte[] streamBytes = Encoding.ASCII.GetBytes(streamContent);
+        byte[] predictedBytes = EncodeUpPredictedRows(streamBytes);
+        byte[] encodedBytes = EncodeLzw(predictedBytes);
+        return BuildSingleStreamPdf(encodedBytes, $"/Filter /LZWDecode /DecodeParms << /Predictor 12 /Columns {streamBytes.Length} >>");
+    }
+
     private static byte[] BuildPdfWithInlineNestedFormResources() {
         const string pageContent = "q\n/Fx Do\nQ\n";
         const string formContent = "BT\n/F1 12 Tf\n10 20 Td\n(Inline form) Tj\nET\n";
@@ -1511,6 +1569,48 @@ public class PdfReaderAndFooterRegressionTests {
         return output.ToArray();
     }
 
+    private static byte[] EncodeLzw(byte[] input, int earlyChange = 1) {
+        earlyChange = earlyChange == 0 ? 0 : 1;
+        var dictionary = new Dictionary<string, int>();
+        for (int i = 0; i < 256; i++) {
+            dictionary[Convert.ToBase64String(new[] { (byte)i })] = i;
+        }
+
+        using var output = new MemoryStream();
+        var writer = new LzwBitWriter(output);
+        int nextCode = 258;
+        int codeSize = 9;
+        writer.WriteBits(256, codeSize);
+        var current = new List<byte>();
+
+        foreach (byte value in input) {
+            var candidate = new List<byte>(current) { value };
+            string candidateKey = Convert.ToBase64String(candidate.ToArray());
+            if (dictionary.ContainsKey(candidateKey)) {
+                current = candidate;
+                continue;
+            }
+
+            writer.WriteBits(dictionary[Convert.ToBase64String(current.ToArray())], codeSize);
+            if (nextCode <= 4095) {
+                dictionary[candidateKey] = nextCode++;
+                if (codeSize < 12 && nextCode + earlyChange >= (1 << codeSize)) {
+                    codeSize++;
+                }
+            }
+
+            current = new List<byte> { value };
+        }
+
+        if (current.Count > 0) {
+            writer.WriteBits(dictionary[Convert.ToBase64String(current.ToArray())], codeSize);
+        }
+
+        writer.WriteBits(257, codeSize);
+        writer.Flush();
+        return output.ToArray();
+    }
+
     private static string EncodeAsciiHex(byte[] input) {
         var sb = new StringBuilder(input.Length * 2 + 1);
         for (int i = 0; i < input.Length; i++) {
@@ -1562,6 +1662,38 @@ public class PdfReaderAndFooterRegressionTests {
 
         for (int i = 0; i < count; i++) {
             sb.Append(encoded[i]);
+        }
+    }
+
+    private sealed class LzwBitWriter {
+        private readonly Stream _stream;
+        private int _currentByte;
+        private int _bitCount;
+
+        public LzwBitWriter(Stream stream) {
+            _stream = stream;
+        }
+
+        public void WriteBits(int value, int bitCount) {
+            for (int i = bitCount - 1; i >= 0; i--) {
+                _currentByte = (_currentByte << 1) | ((value >> i) & 1);
+                _bitCount++;
+                if (_bitCount == 8) {
+                    _stream.WriteByte((byte)_currentByte);
+                    _currentByte = 0;
+                    _bitCount = 0;
+                }
+            }
+        }
+
+        public void Flush() {
+            if (_bitCount == 0) {
+                return;
+            }
+
+            _stream.WriteByte((byte)(_currentByte << (8 - _bitCount)));
+            _currentByte = 0;
+            _bitCount = 0;
         }
     }
 

@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>
 /// Minimal, zero-dependency text extractor for simple PDFs produced by OfficeIMO.Pdf
-/// and common external PDFs with basic text operators and FlateDecode content streams.
+/// and common external PDFs with basic text operators and common content-stream filters.
 /// Not a general-purpose PDF parser; designed as a pragmatic starting point.
 /// </summary>
 public static class PdfTextExtractor {

@@ -5154,6 +5154,64 @@ public class PdfDocVisualQualityTests {
     }
 
     [Fact]
+    public void ShowcaseDashboard_KeepsReadableGenericLayoutGeometry() {
+        const double pageWidth = 841.89;
+        const double marginLeft = 42;
+        const double marginRight = 42;
+        const double bodyGap = 18;
+        double contentWidth = pageWidth - marginLeft - marginRight;
+        double bodyColumnWidth = contentWidth - bodyGap;
+        double leftColumnRightX = marginLeft + (bodyColumnWidth * 0.58);
+        double rightColumnX = leftColumnRightX + bodyGap;
+        double rightColumnRightX = pageWidth - marginRight;
+
+        byte[] bytes = PdfDocRasterVisualBaselineTests.CreateShowcaseDashboard();
+
+        using var pdf = PdfDocument.Open(new MemoryStream(bytes));
+        var page = pdf.GetPage(1);
+        var leftLines = GetVisualTextLines(page, marginLeft - 1, leftColumnRightX + 1);
+        var rightLines = GetVisualTextLines(page, rightColumnX - 1, rightColumnRightX + 1);
+
+        double titleY = FindWordStartY(page, "Quarterly");
+        double leadY = FindWordStartY(page, "single-page");
+        double firstMetricY = FindWordStartY(page, "92%");
+        double secondMetricY = FindWordStartY(page, "1.8h");
+        double thirdMetricY = FindWordStartY(page, "34");
+        double fourthMetricY = FindWordStartY(page, "Critical");
+        double leftHeadingY = FindWordStartY(page, "Delivery");
+        double rightHeadingY = FindWordStartY(page, "Narrative");
+        double riskHeaderY = FindWordStartY(page, "Area");
+        double riskBodyY = FindWordStartY(page, "PDF");
+        double decisionHeaderY = FindWordStartY(page, "Next");
+        double decisionBodyY = FindWordStartY(page, "fixtures");
+
+        Assert.Equal(1, pdf.NumberOfPages);
+        Assert.True(titleY - leadY >= 21, $"Expected dashboard lead copy to sit comfortably below the title. Gap: {titleY - leadY:0.##}pt.");
+        Assert.True(leadY - firstMetricY >= 24, $"Expected metric cards to start after the lead copy with visible breathing room. Gap: {leadY - firstMetricY:0.##}pt.");
+        Assert.True(Math.Abs(firstMetricY - secondMetricY) <= 0.5, "Expected metric card values to align on the same visual baseline.");
+        Assert.True(Math.Abs(firstMetricY - thirdMetricY) <= 0.5, "Expected metric card values to align on the same visual baseline.");
+        Assert.True(firstMetricY - fourthMetricY >= 12, "Expected the long fourth metric label to wrap below its value instead of colliding with neighboring cards.");
+        Assert.True(leftHeadingY - riskHeaderY >= 175, $"Expected the trend drawing to reserve vertical space before the risk table. Gap: {leftHeadingY - riskHeaderY:0.##}pt.");
+        Assert.True(Math.Abs(leftHeadingY - rightHeadingY) <= 2, "Expected the two body columns to start on the same visual row.");
+        Assert.True(riskHeaderY - riskBodyY >= 14, $"Expected dashboard table header and first row to retain readable rhythm. Gap: {riskHeaderY - riskBodyY:0.##}pt.");
+        Assert.True(decisionHeaderY - decisionBodyY >= 14, $"Expected decision table header and first row to retain readable rhythm. Gap: {decisionHeaderY - decisionBodyY:0.##}pt.");
+
+        Assert.Contains(leftLines, line => line.Text.Contains("Deliverytrend", StringComparison.Ordinal));
+        Assert.Contains(rightLines, line => line.Text.Contains("Narrative", StringComparison.Ordinal));
+        Assert.True(FindWordStartX(page, "Narrative") >= rightColumnX - 1,
+            $"Expected the right dashboard column to start after the gutter. Narrative x: {FindWordStartX(page, "Narrative"):0.##}, expected at least {rightColumnX:0.##}.");
+        Assert.True(FindWordEndX(page, "Roadmap") <= leftColumnRightX + 1,
+            "Expected the left risk table owner column to stay inside the left dashboard column.");
+        Assert.True(FindWordEndX(page, "slices") <= rightColumnRightX + 1,
+            "Expected the right decision table text to stay inside the right dashboard column.");
+
+        AssertNoCrampedBaselines(leftLines, "showcase dashboard left column");
+        AssertNoCrampedBaselines(rightLines, "showcase dashboard right column");
+        AssertNoSameBaselineTextCollisions(page, "showcase dashboard");
+        AssertNoAmbiguousSameBaselineRunGaps(page, "showcase dashboard");
+    }
+
+    [Fact]
     public void RowStyle_DefaultsApplyGutterAndOuterRhythm() {
         const double pageWidth = 360;
         const double margin = 30;

@@ -507,6 +507,21 @@ public class PdfInspectorTests {
     }
 
     [Fact]
+    public void Preflight_BlocksCyclicGoToOutlineDestinationsWithoutRecursingForever() {
+        PdfDocumentPreflight report = PdfInspector.Preflight(BuildCyclicGoToOutlineDestinationPdf());
+
+        Assert.True(report.CanRead);
+        Assert.False(report.CanRewrite);
+        Assert.True(report.Probe.HasOutlines);
+        Assert.NotNull(report.DocumentInfo);
+        PdfOutlineItem outline = Assert.Single(report.DocumentInfo!.Outlines);
+        Assert.Equal("Cyclic", outline.Title);
+        Assert.Null(outline.PageNumber);
+        Assert.Empty(report.ReadBlockers);
+        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Outlines, "PDF outlines are not supported for rewriting by OfficeIMO.Pdf yet.");
+    }
+
+    [Fact]
     public void Preflight_AllowsCatalogViewSettingPdfReadAndRewrite() {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildCatalogViewSettingPdf());
 
@@ -621,7 +636,25 @@ public class PdfInspectorTests {
     }
 
     [Fact]
-    public void Preflight_AllowsComplexNamedDestinationNameTreeReadButBlocksRewrite() {
+    public void Preflight_AllowsNamedDestinationNameTreeKidsReadAndRewrite() {
+        PdfDocumentPreflight report = PdfInspector.Preflight(BuildNamedDestinationNameTreeWithKidsPdf());
+
+        Assert.True(report.CanRead);
+        Assert.True(report.CanRewrite);
+        Assert.True(report.Probe.HasNamedDestinations);
+        Assert.True(report.Probe.HasCatalogNameTrees);
+        Assert.NotNull(report.DocumentInfo);
+        Assert.True(report.DocumentInfo!.HasNamedDestinations);
+        Assert.True(report.DocumentInfo.HasCatalogNameTrees);
+        AssertNamedDestination(report.DocumentInfo, "Chapter1", 1, 200);
+        Assert.Empty(report.ReadBlockers);
+        Assert.Empty(report.Diagnostics);
+        Assert.Empty(report.RewriteBlockers);
+        Assert.False(report.HasRewriteBlocker(PdfRewriteBlockerKind.NamedDestinations));
+    }
+
+    [Fact]
+    public void Preflight_AllowsUnsupportedNamedDestinationNameTreeReadButBlocksRewrite() {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildComplexNamedDestinationNameTreePdf());
 
         Assert.True(report.CanRead);
@@ -634,6 +667,24 @@ public class PdfInspectorTests {
         Assert.Empty(report.ReadBlockers);
         Assert.Contains("PDF named destinations are not supported for rewriting by OfficeIMO.Pdf yet.", report.Diagnostics);
         AssertRewriteBlocker(report, PdfRewriteBlockerKind.NamedDestinations, "PDF named destinations are not supported for rewriting by OfficeIMO.Pdf yet.");
+    }
+
+    [Fact]
+    public void Preflight_BlocksMalformedNamedDestinationNameTreeShapes() {
+        AssertMalformedNameTree(BuildMixedNamedDestinationNameTreePdf());
+        AssertMalformedNameTree(BuildDirectKidNamedDestinationNameTreePdf());
+
+        static void AssertMalformedNameTree(byte[] pdf) {
+            PdfDocumentPreflight report = PdfInspector.Preflight(pdf);
+
+            Assert.True(report.CanRead);
+            Assert.False(report.CanRewrite);
+            Assert.True(report.Probe.HasNamedDestinations);
+            Assert.True(report.Probe.HasCatalogNameTrees);
+            Assert.Empty(report.ReadBlockers);
+            Assert.Contains("PDF named destinations are not supported for rewriting by OfficeIMO.Pdf yet.", report.Diagnostics);
+            AssertRewriteBlocker(report, PdfRewriteBlockerKind.NamedDestinations, "PDF named destinations are not supported for rewriting by OfficeIMO.Pdf yet.");
+        }
     }
 
     [Fact]
@@ -1568,7 +1619,42 @@ public class PdfInspectorTests {
         return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 
-    private static byte[] BuildComplexNamedDestinationNameTreePdf() {
+    private static byte[] BuildCyclicGoToOutlineDestinationPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 5 0 R /PageMode /UseOutlines >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Outlines /First 6 0 R /Last 6 0 R /Count 1 >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Title (Cyclic) /Parent 5 0 R /A << /S /GoTo /D 7 0 R >> >>",
+            "endobj",
+            "7 0 obj",
+            "<< /D 7 0 R >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 8 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildNamedDestinationNameTreeWithKidsPdf() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",
             "1 0 obj",
@@ -1591,6 +1677,93 @@ public class PdfInspectorTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildComplexNamedDestinationNameTreePdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Names << /Dests << /Kids [5 0 R] >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Names [(Chapter1) [6 0 R /XYZ 0 200 0]] >>",
+            "endobj",
+            "6 0 obj",
+            "<< /NotAPage true >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildMixedNamedDestinationNameTreePdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Names << /Dests << /Names [(Chapter1) [3 0 R /XYZ 0 200 0]] /Kids [5 0 R] >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Names [(Chapter2) [3 0 R /Fit]] >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildDirectKidNamedDestinationNameTreePdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Names << /Dests << /Kids [<< /Names [(Chapter1) [3 0 R /XYZ 0 200 0]] >>] >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 5 >>",
             "%%EOF"
         });
 

@@ -1260,15 +1260,15 @@ public static class PdfPageExtractor {
         return false;
     }
 
-    private static PdfObject? BuildNamedDestinationNameTree(
+    private static PdfDictionary? BuildNamedDestinationNameTree(
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject? names) {
         if (!TryGetNamedDestinationNameTree(sourceObjects, names, out var namedDestinations)) {
             return null;
         }
 
-        return IsSupportedNamedDestinationNameTree(sourceObjects, namedDestinations)
-            ? namedDestinations
+        return TryBuildFlattenedNamedDestinationNameTree(sourceObjects, namedDestinations, null, out var flattenedTree)
+            ? flattenedTree
             : null;
     }
 
@@ -1276,32 +1276,9 @@ public static class PdfPageExtractor {
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject? namedDestinationNameTree,
         HashSet<int> copiedPageObjectIds) {
-        PdfDictionary? tree = ResolveDictionary(sourceObjects, namedDestinationNameTree);
-        if (tree is null ||
-            !tree.Items.TryGetValue("Names", out var namesObject) ||
-            ResolveObject(sourceObjects, namesObject) is not PdfArray names ||
-            names.Items.Count % 2 != 0) {
-            return null;
-        }
-
-        var filteredNames = new PdfArray();
-        for (int i = 0; i < names.Items.Count; i += 2) {
-            PdfObject name = names.Items[i];
-            PdfObject destination = names.Items[i + 1];
-            PdfObject? resolvedDestination = ResolveObject(sourceObjects, destination);
-            if (resolvedDestination is not null && IsDestinationForCopiedPages(resolvedDestination, copiedPageObjectIds)) {
-                filteredNames.Items.Add(name);
-                filteredNames.Items.Add(destination);
-            }
-        }
-
-        if (filteredNames.Items.Count == 0) {
-            return null;
-        }
-
-        var result = new PdfDictionary();
-        result.Items["Names"] = filteredNames;
-        return result;
+        return TryBuildFlattenedNamedDestinationNameTree(sourceObjects, namedDestinationNameTree, copiedPageObjectIds, out var filteredTree)
+            ? filteredTree
+            : null;
     }
 
     private static bool TryGetNamedDestinationNameTree(
@@ -1322,27 +1299,104 @@ public static class PdfPageExtractor {
     private static bool IsSupportedNamedDestinationNameTree(
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject namedDestinations) {
-        PdfDictionary? tree = ResolveDictionary(sourceObjects, namedDestinations);
-        if (tree is null ||
-            tree.Items.ContainsKey("Kids") ||
-            !tree.Items.TryGetValue("Names", out var namesObject) ||
-            ResolveObject(sourceObjects, namesObject) is not PdfArray names ||
-            names.Items.Count % 2 != 0) {
+        return TryBuildFlattenedNamedDestinationNameTree(sourceObjects, namedDestinations, null, out _);
+    }
+
+    private static bool TryBuildFlattenedNamedDestinationNameTree(
+        Dictionary<int, PdfIndirectObject> sourceObjects,
+        PdfObject? namedDestinationNameTree,
+        HashSet<int>? copiedPageObjectIds,
+        out PdfDictionary result) {
+        result = new PdfDictionary();
+        var entries = new List<NamedDestinationNameTreeEntry>();
+        if (!TryCollectNamedDestinationNameTreeEntries(sourceObjects, namedDestinationNameTree, entries, new HashSet<int>())) {
             return false;
         }
 
-        for (int i = 0; i < names.Items.Count; i += 2) {
-            if (names.Items[i] is not PdfStringObj) {
+        var names = new PdfArray();
+        foreach (var entry in entries) {
+            PdfObject? resolvedDestination = ResolveObject(sourceObjects, entry.Destination);
+            if (resolvedDestination is null) {
                 return false;
             }
 
-            PdfObject? destination = ResolveObject(sourceObjects, names.Items[i + 1]);
-            if (destination is null || !IsDestinationForKnownPage(sourceObjects, destination)) {
+            bool supportedDestination = copiedPageObjectIds is null
+                ? IsDestinationForKnownPage(sourceObjects, resolvedDestination)
+                : IsDestinationForCopiedPages(resolvedDestination, copiedPageObjectIds);
+            if (!supportedDestination) {
+                if (copiedPageObjectIds is null) {
+                    return false;
+                }
+
+                continue;
+            }
+
+            names.Items.Add(entry.Name);
+            names.Items.Add(entry.Destination);
+        }
+
+        if (names.Items.Count == 0) {
+            return false;
+        }
+
+        result.Items["Names"] = names;
+        return true;
+    }
+
+    private static bool TryCollectNamedDestinationNameTreeEntries(
+        Dictionary<int, PdfIndirectObject> sourceObjects,
+        PdfObject? value,
+        List<NamedDestinationNameTreeEntry> entries,
+        HashSet<int> visitedReferences) {
+        if (value is PdfReference reference) {
+            if (!visitedReferences.Add(reference.ObjectNumber) ||
+                !sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect)) {
                 return false;
+            }
+
+            return TryCollectNamedDestinationNameTreeEntries(sourceObjects, indirect.Value, entries, visitedReferences);
+        }
+
+        if (value is not PdfDictionary tree) {
+            return false;
+        }
+
+        bool hasNames = false;
+        if (tree.Items.TryGetValue("Names", out var namesObject)) {
+            hasNames = true;
+            if (ResolveObject(sourceObjects, namesObject) is not PdfArray names ||
+                names.Items.Count % 2 != 0) {
+                return false;
+            }
+
+            for (int i = 0; i < names.Items.Count; i += 2) {
+                if (names.Items[i] is not PdfStringObj name) {
+                    return false;
+                }
+
+                entries.Add(new NamedDestinationNameTreeEntry(name, names.Items[i + 1]));
             }
         }
 
-        return true;
+        bool hasKids = false;
+        if (tree.Items.TryGetValue("Kids", out var kidsObject)) {
+            hasKids = true;
+            if (ResolveObject(sourceObjects, kidsObject) is not PdfArray kids) {
+                return false;
+            }
+
+            foreach (var kid in kids.Items) {
+                if (kid is not PdfReference) {
+                    return false;
+                }
+
+                if (!TryCollectNamedDestinationNameTreeEntries(sourceObjects, kid, entries, visitedReferences)) {
+                    return false;
+                }
+            }
+        }
+
+        return hasNames != hasKids;
     }
 
     private static PdfObject? BuildEmbeddedFiles(
@@ -1569,11 +1623,7 @@ public static class PdfPageExtractor {
             dictionary.Items.Count == 2 &&
             dictionary.Get<PdfName>("S")?.Name == "GoTo" &&
             dictionary.Items.TryGetValue("D", out var destination) &&
-            ResolveObject(sourceObjects, destination) is PdfArray array &&
-            array.Items.Count > 0 &&
-            array.Items[0] is PdfReference pageReference &&
-            sourceObjects.TryGetValue(pageReference.ObjectNumber, out var pageObject) &&
-            IsPageDictionary(pageObject.Value);
+            IsDestinationForKnownPage(sourceObjects, destination);
     }
 
     private static bool OutlineDestinationsReferenceOnlyCopiedPages(
@@ -1753,6 +1803,19 @@ public static class PdfPageExtractor {
     }
 
     private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> sourceObjects, PdfObject destination) {
+        return IsDestinationForKnownPage(sourceObjects, destination, new HashSet<int>());
+    }
+
+    private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> sourceObjects, PdfObject destination, HashSet<int> visitedReferences) {
+        if (destination is PdfReference reference) {
+            if (!visitedReferences.Add(reference.ObjectNumber) ||
+                !sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                return false;
+            }
+
+            destination = indirect.Value;
+        }
+
         if (destination is PdfArray array) {
             return array.Items.Count > 0 &&
                 array.Items[0] is PdfReference pageReference &&
@@ -1762,7 +1825,7 @@ public static class PdfPageExtractor {
 
         if (destination is PdfDictionary dictionary &&
             dictionary.Items.TryGetValue("D", out var explicitDestination)) {
-            return IsDestinationForKnownPage(sourceObjects, explicitDestination);
+            return IsDestinationForKnownPage(sourceObjects, explicitDestination, visitedReferences);
         }
 
         return false;
@@ -2280,6 +2343,17 @@ public static class PdfPageExtractor {
         public int StartPageIndex { get; }
 
         public PdfDictionary LabelDictionary { get; }
+    }
+
+    private sealed class NamedDestinationNameTreeEntry {
+        public NamedDestinationNameTreeEntry(PdfStringObj name, PdfObject destination) {
+            Name = name;
+            Destination = destination;
+        }
+
+        public PdfStringObj Name { get; }
+
+        public PdfObject Destination { get; }
     }
 
     internal sealed class CatalogRewriteState {

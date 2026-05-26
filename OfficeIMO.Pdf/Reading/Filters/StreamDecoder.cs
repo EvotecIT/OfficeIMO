@@ -31,6 +31,11 @@ internal static class StreamDecoder {
                     case "RL":
                         current = RunLengthDecoder.Decode(current);
                         break;
+                    case "LZWDecode":
+                    case "LZW":
+                        current = LzwDecoder.Decode(current, GetEarlyChange(dict, filterIndex, objects));
+                        current = ApplyDecodeParms(dict, filterIndex, current, objects);
+                        break;
                     default:
                         return original;
                 }
@@ -67,6 +72,15 @@ internal static class StreamDecoder {
         }
 
         return PngPredictorDecoder.Decode(data, columns, colors, bitsPerComponent);
+    }
+
+    private static int GetEarlyChange(PdfDictionary dict, int filterIndex, Dictionary<int, PdfIndirectObject>? objects) {
+        var decodeParms = GetDecodeParms(dict, filterIndex, objects);
+        if (decodeParms is null) {
+            return 1;
+        }
+
+        return (int)(decodeParms.Get<PdfNumber>("EarlyChange")?.Value ?? 1);
     }
 
     private static PdfDictionary? GetDecodeParms(PdfDictionary dict, int filterIndex, Dictionary<int, PdfIndirectObject>? objects) {
