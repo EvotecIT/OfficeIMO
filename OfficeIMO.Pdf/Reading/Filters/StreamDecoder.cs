@@ -8,7 +8,8 @@ internal static class StreamDecoder {
         Flate,
         AsciiHex,
         Ascii85,
-        RunLength
+        RunLength,
+        Lzw
     }
 
     public static byte[] Decode(PdfDictionary dict, byte[] data, Dictionary<int, PdfIndirectObject>? objects = null) {
@@ -35,8 +36,7 @@ internal static class StreamDecoder {
                     case DecodeFilterKind.RunLength:
                         current = RunLengthDecoder.Decode(current);
                         break;
-                    case "LZWDecode":
-                    case "LZW":
+                    case DecodeFilterKind.Lzw:
                         current = LzwDecoder.Decode(current, GetEarlyChange(dict, filterIndex, objects));
                         current = ApplyDecodeParms(dict, filterIndex, current, objects);
                         break;
@@ -86,6 +86,9 @@ internal static class StreamDecoder {
             case "RunLengthDecode":
             case "RL":
                 return DecodeFilterKind.RunLength;
+            case "LZWDecode":
+            case "LZW":
+                return DecodeFilterKind.Lzw;
             default:
                 return DecodeFilterKind.Unsupported;
         }
