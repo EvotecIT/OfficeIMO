@@ -412,7 +412,7 @@ public sealed class PdfReadDocument {
     private void AddNamedDestination(List<PdfNamedDestination> result, PdfNamedDestination destination, PdfNamedDestinationTokenKind kind) {
         result.Add(destination);
         var lookup = kind == PdfNamedDestinationTokenKind.String ? _stringDestinations : _nameDestinations;
-#if NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET472
         if (!lookup.ContainsKey(destination.Name)) {
             lookup[destination.Name] = destination;
         }
