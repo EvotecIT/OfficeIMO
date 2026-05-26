@@ -90,7 +90,7 @@ Reading:
 - Extract text spans with positions.
 - Extract page image XObjects from bytes, paths, streams, or parsed documents with `PdfImageExtractor`; `ExtractImagesByPageRanges(..., PdfPageRange...)` selects reusable page-range lists for wrapper pipelines, JPEG images are returned as JPEG files and simple PNG-predictor Flate images as PNG files, compatible grayscale/RGB Flate images with grayscale `/SMask` alpha are returned as gray-alpha/RGBA PNGs, and helpers can write extracted images to deterministic page-numbered files.
 - Heuristic column-aware text extraction and simple structured extraction; `PdfTextExtractor` exposes layout-option overloads for bytes, paths, streams, page-range text/structured/table extraction with `PdfPageRange` lists, byte/path/stream whole-document text output to UTF-8 paths or caller-owned streams, and page-file output, plus structured-by-page and table-by-page extraction that preserves detected lines, lists, leader rows, simple table geometry, and selected source page numbers so wrappers can request readback without dropping to `PdfReadDocument`. Byte-, path-, and stream-based text/table extraction can also write deterministic `source-page-0001.txt` and `source-page-0001-table-0001.csv` files for all pages or selected page ranges, including option-aware selected text page output, with CSV escaping for table output.
-- Decode common simple streams used by many PDFs, including uncompressed, Flate, ASCIIHex, ASCII85, and RunLength paths.
+- Decode common simple streams used by many PDFs, including uncompressed, Flate, ASCIIHex, ASCII85, RunLength, and LZW paths.
 
 Manipulation:
 
