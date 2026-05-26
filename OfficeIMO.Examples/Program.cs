@@ -27,6 +27,15 @@ namespace OfficeIMO.Examples {
             Pdf.RowColumnsPdf.Example_Pdf_RowColumns(folderPath, false);
             Pdf.TableStyleGalleryPdf.Example_Pdf_TableStyleGallery(folderPath, false);
             Pdf.ProfessionalReportPdf.Example_Pdf_ProfessionalReport(folderPath, false);
+            Pdf.ShowcaseStatementPdf.Example_Pdf_ShowcaseStatement(folderPath, false);
+            Pdf.ShowcaseDashboardPdf.Example_Pdf_ShowcaseDashboard(folderPath, false);
+            Pdf.ShowcaseManipulationPdf.Example_Pdf_ShowcaseManipulation(folderPath, false);
+        }
+
+        private static void RunPdfShowcaseExamples(string folderPath) {
+            Pdf.ShowcaseStatementPdf.Example_Pdf_ShowcaseStatement(folderPath, false);
+            Pdf.ShowcaseDashboardPdf.Example_Pdf_ShowcaseDashboard(folderPath, false);
+            Pdf.ShowcaseManipulationPdf.Example_Pdf_ShowcaseManipulation(folderPath, false);
         }
 
         private static void RunPowerPointExamples(string folderPath) {
@@ -128,6 +137,11 @@ namespace OfficeIMO.Examples {
 
             if (HasArgument(args, "--pdf-table-styles")) {
                 Pdf.TableStyleGalleryPdf.Example_Pdf_TableStyleGallery(folderPath, false);
+                return;
+            }
+
+            if (HasArgument(args, "--pdf-showcase")) {
+                RunPdfShowcaseExamples(folderPath);
                 return;
             }
 
