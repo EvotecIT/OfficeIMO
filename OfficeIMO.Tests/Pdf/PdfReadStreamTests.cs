@@ -222,16 +222,35 @@ public class PdfReadStreamTests {
     }
 
     [Fact]
-    public void RewriteApis_PreserveGoToActionOutlinePdfsWithIndirectAndDictionaryDestinations() {
-        AssertOutline(PdfPageExtractor.ExtractPages(BuildIndirectGoToActionOutlinePdf(), 1), "Indirect action", 144d);
-        AssertOutline(PdfPageExtractor.ExtractPages(BuildDictionaryGoToActionOutlinePdf(), 1), "Dictionary action", 132d);
+    public void RewriteApis_PreserveGoToActionOutlinePdfsWithIndirectDestinationsForCopiedPages() {
+        byte[] outline = BuildGoToActionIndirectDestinationPdf();
 
-        static void AssertOutline(byte[] output, string title, double top) {
-            PdfOutlineItem item = Assert.Single(PdfInspector.Inspect(output).Outlines);
-            Assert.Equal(title, item.Title);
-            Assert.Equal(1, item.PageNumber);
-            Assert.Equal(top, item.DestinationTop);
-        }
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(outline);
+        Assert.True(preflight.CanRewrite);
+        Assert.False(preflight.HasRewriteBlocker(PdfRewriteBlockerKind.Outlines));
+
+        byte[] output = PdfPageExtractor.ExtractPages(outline, 1);
+
+        PdfOutlineItem item = Assert.Single(PdfInspector.Inspect(output).Outlines);
+        Assert.Equal("Indirect GoTo action", item.Title);
+        Assert.Equal(1, item.PageNumber);
+        Assert.Equal(188d, item.DestinationTop);
+    }
+
+    [Fact]
+    public void RewriteApis_PreserveGoToActionOutlinePdfsWithDictionaryDestinationsForCopiedPages() {
+        byte[] outline = BuildGoToActionDictionaryDestinationPdf();
+
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(outline);
+        Assert.True(preflight.CanRewrite);
+        Assert.False(preflight.HasRewriteBlocker(PdfRewriteBlockerKind.Outlines));
+
+        byte[] output = PdfPageExtractor.ExtractPages(outline, 1);
+
+        PdfOutlineItem item = Assert.Single(PdfInspector.Inspect(output).Outlines);
+        Assert.Equal("Dictionary GoTo action", item.Title);
+        Assert.Equal(1, item.PageNumber);
+        Assert.Equal(188d, item.DestinationTop);
     }
 
     [Fact]
@@ -1116,7 +1135,7 @@ public class PdfReadStreamTests {
         return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 
-    private static byte[] BuildIndirectGoToActionOutlinePdf() {
+    private static byte[] BuildGoToActionIndirectDestinationPdf() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",
             "1 0 obj",
@@ -1138,10 +1157,10 @@ public class PdfReadStreamTests {
             "<< /Type /Outlines /First 6 0 R /Last 6 0 R /Count 1 >>",
             "endobj",
             "6 0 obj",
-            "<< /Title (Indirect action) /Parent 5 0 R /A << /S /GoTo /D 7 0 R >> >>",
+            "<< /Title (Indirect GoTo action) /Parent 5 0 R /A << /S /GoTo /D 7 0 R >> >>",
             "endobj",
             "7 0 obj",
-            "[3 0 R /XYZ 0 144 0]",
+            "[3 0 R /XYZ 0 188 0]",
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 8 >>",
@@ -1151,7 +1170,7 @@ public class PdfReadStreamTests {
         return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 
-    private static byte[] BuildDictionaryGoToActionOutlinePdf() {
+    private static byte[] BuildGoToActionDictionaryDestinationPdf() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",
             "1 0 obj",
@@ -1173,7 +1192,7 @@ public class PdfReadStreamTests {
             "<< /Type /Outlines /First 6 0 R /Last 6 0 R /Count 1 >>",
             "endobj",
             "6 0 obj",
-            "<< /Title (Dictionary action) /Parent 5 0 R /A << /S /GoTo /D << /D [3 0 R /XYZ 0 132 0] >> >> >>",
+            "<< /Title (Dictionary GoTo action) /Parent 5 0 R /A << /S /GoTo /D << /D [3 0 R /XYZ 0 188 0] >> >> >>",
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 7 >>",
