@@ -1476,6 +1476,35 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void DocumentPageNumberStart_AppliesToComposedPagesAndContinuesAcrossFlows() {
+            var doc = PdfDoc.Create()
+                .PageNumberStart(5)
+                .Header(header => header.Text("Doc {page}/{pages}"));
+
+            doc.Compose(c => {
+                c.Page(page => {
+                    page.Content(content =>
+                        content.Column(column =>
+                            column.Item().Paragraph(p => p.Text("First composed body."))));
+                });
+                c.Page(page => {
+                    page.Content(content =>
+                        content.Column(column =>
+                            column.Item().Paragraph(p => p.Text("Second composed body."))));
+                });
+            });
+
+            using var pdf = PdfDocument.Open(new MemoryStream(doc.ToBytes()));
+            Assert.Equal(2, pdf.NumberOfPages);
+
+            string page1Text = Normalize(pdf.GetPage(1).Text);
+            string page2Text = Normalize(pdf.GetPage(2).Text);
+
+            Assert.Contains("Doc5/6", page1Text, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Doc6/6", page2Text, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void HeaderFooterPageTokens_UseConfiguredPageNumberStyleForFormatsAndSegments() {
             var doc = PdfDoc.Create()
                 .PageNumberStyle(PdfPageNumberStyle.UpperRoman)

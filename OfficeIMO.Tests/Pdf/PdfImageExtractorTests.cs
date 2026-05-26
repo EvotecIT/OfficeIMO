@@ -78,11 +78,13 @@ public class PdfImageExtractorTests {
 
         var images = PdfImageExtractor.ExtractImagesByPageRanges(stamped, PdfPageRange.ParseMany("3,1-2,3"));
 
-        Assert.Equal(2, images.Count);
+        Assert.Equal(3, images.Count);
         Assert.Equal(3, images[0].PageNumber);
         Assert.Equal(1, images[1].PageNumber);
+        Assert.Equal(3, images[2].PageNumber);
         AssertPngSignature(images[0].Bytes);
         AssertPngSignature(images[1].Bytes);
+        AssertPngSignature(images[2].Bytes);
     }
 
     [Fact]

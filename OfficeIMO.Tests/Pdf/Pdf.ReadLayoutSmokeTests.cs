@@ -171,22 +171,25 @@ public sealed class PdfReadLayoutSmokeTests {
             ForceSingleColumn = true
         }, PdfPageRange.ParseMany("3,1-2,3"));
 
-        Assert.Equal(3, structuredPages.Count);
+        Assert.Equal(4, structuredPages.Count);
         Assert.Contains(structuredPages[0].Lines, line => Normalize(line).Contains("Thirdpagetable", StringComparison.Ordinal));
         Assert.Contains(structuredPages[1].Lines, line => Normalize(line).Contains("Firstpagetable", StringComparison.Ordinal));
         Assert.Contains(structuredPages[2].Lines, line => Normalize(line).Contains("Secondpagemarker", StringComparison.Ordinal));
+        Assert.Contains(structuredPages[3].Lines, line => Normalize(line).Contains("Thirdpagetable", StringComparison.Ordinal));
 
         var tablePages = PdfTextExtractor.ExtractTablesByPageRanges(bytes, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }, PdfPageRange.ParseMany("3,1-2,3"));
 
-        Assert.Equal(3, tablePages.Count);
+        Assert.Equal(4, tablePages.Count);
         Assert.Equal(3, tablePages[0].PageNumber);
         Assert.Equal(1, tablePages[1].PageNumber);
         Assert.Equal(2, tablePages[2].PageNumber);
+        Assert.Equal(3, tablePages[3].PageNumber);
         Assert.Contains(tablePages[0].Tables.SelectMany(table => table.Rows), row => row.Length >= 3 && Normalize(row[0]) == "C-300");
         Assert.Contains(tablePages[1].Tables.SelectMany(table => table.Rows), row => row.Length >= 3 && Normalize(row[0]) == "A-100");
         Assert.DoesNotContain(tablePages[2].Tables.SelectMany(table => table.Rows), row => row.Length >= 3 && Normalize(row[0]) == "A-100");
+        Assert.Contains(tablePages[3].Tables.SelectMany(table => table.Rows), row => row.Length >= 3 && Normalize(row[0]) == "C-300");
 
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-pdf-table-page-ranges-" + Guid.NewGuid().ToString("N"));
         string inputPath = Path.Combine(directory, "source.pdf");
@@ -200,11 +203,13 @@ public sealed class PdfReadLayoutSmokeTests {
                 ForceSingleColumn = true
             }, PdfPageRange.ParseMany("3,1-2,3"));
 
-            Assert.Equal(2, paths.Count);
+            Assert.Equal(3, paths.Count);
             Assert.Equal(Path.Combine(outputDirectory, "source-page-0003-table-0001.csv"), paths[0]);
             Assert.Equal(Path.Combine(outputDirectory, "source-page-0001-table-0001.csv"), paths[1]);
+            Assert.Equal(Path.Combine(outputDirectory, "source-page-0003-table-0001.csv"), paths[2]);
             Assert.Contains("C-300,Gamma,5", File.ReadAllText(paths[0]), StringComparison.Ordinal);
             Assert.Contains("A-100,Alpha,2", File.ReadAllText(paths[1]), StringComparison.Ordinal);
+            Assert.Contains("C-300,Gamma,5", File.ReadAllText(paths[2]), StringComparison.Ordinal);
 
             using var stream = new MemoryStream(bytes);
             string streamOutputDirectory = Path.Combine(directory, "stream-tables");

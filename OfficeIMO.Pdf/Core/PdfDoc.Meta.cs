@@ -72,7 +72,9 @@ public sealed partial class PdfDoc {
     internal void AddComposedPage(System.Action<PdfPageCompose> configure) {
         Guard.NotNull(configure, nameof(configure));
         var snapshot = _options.Clone();
-        snapshot.ClearPageNumberStartOverride();
+        if (_blocks.Count > 0) {
+            snapshot.ClearPageNumberStartOverride();
+        }
         var block = new PageBlock(snapshot);
         using (PushBlockScope(block.AddBlock)) {
             var page = new PdfPageCompose(this, snapshot);

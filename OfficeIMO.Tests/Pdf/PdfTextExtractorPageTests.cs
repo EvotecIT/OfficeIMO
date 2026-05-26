@@ -20,15 +20,16 @@ public class PdfTextExtractorPageTests {
     }
 
     [Fact]
-    public void ExtractTextByPageRanges_ReturnsParsedRangesInCallerOrderAndDeduplicatesOverlap() {
+    public void ExtractTextByPageRanges_ReturnsParsedRangesInCallerOrderWithRepeatedPages() {
         byte[] pdf = BuildThreePagePdf();
 
         IReadOnlyList<string> pages = PdfTextExtractor.ExtractTextByPageRanges(pdf, PdfPageRange.ParseMany("3,1-2,2"));
 
-        Assert.Equal(3, pages.Count);
+        Assert.Equal(4, pages.Count);
         Assert.Contains("Thirdpagemarker", Normalize(pages[0]), StringComparison.Ordinal);
         Assert.Contains("Firstpagemarker", Normalize(pages[1]), StringComparison.Ordinal);
         Assert.Contains("Secondpagemarker", Normalize(pages[2]), StringComparison.Ordinal);
+        Assert.Contains("Secondpagemarker", Normalize(pages[3]), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -267,14 +268,16 @@ public class PdfTextExtractorPageTests {
 
             IReadOnlyList<string> paths = PdfTextExtractor.ExtractTextByPageRanges(inputPath, outputDirectory, PdfPageRange.ParseMany("3,1-2,2"));
 
-            Assert.Equal(3, paths.Count);
+            Assert.Equal(4, paths.Count);
             Assert.Equal(Path.Combine(outputDirectory, "source-page-0003.txt"), paths[0]);
             Assert.Equal(Path.Combine(outputDirectory, "source-page-0001.txt"), paths[1]);
             Assert.Equal(Path.Combine(outputDirectory, "source-page-0002.txt"), paths[2]);
+            Assert.Equal(Path.Combine(outputDirectory, "source-page-0002.txt"), paths[3]);
 
             Assert.Contains("Thirdpagemarker", Normalize(File.ReadAllText(paths[0], Encoding.UTF8)), StringComparison.Ordinal);
             Assert.Contains("Firstpagemarker", Normalize(File.ReadAllText(paths[1], Encoding.UTF8)), StringComparison.Ordinal);
             Assert.Contains("Secondpagemarker", Normalize(File.ReadAllText(paths[2], Encoding.UTF8)), StringComparison.Ordinal);
+            Assert.Contains("Secondpagemarker", Normalize(File.ReadAllText(paths[3], Encoding.UTF8)), StringComparison.Ordinal);
 
             using var stream = new MemoryStream(BuildThreePagePdf());
             string streamOutputDirectory = Path.Combine(directory, "stream-text");

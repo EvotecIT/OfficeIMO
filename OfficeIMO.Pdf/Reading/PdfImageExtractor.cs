@@ -200,7 +200,7 @@ public static class PdfImageExtractor {
         Guard.NotNull(document, nameof(document));
         Guard.NotNull(pageRanges, nameof(pageRanges));
 
-        int[] pageNumbers = ExpandPageRangesDistinct(pageRanges, document.Pages.Count, nameof(pageRanges));
+        int[] pageNumbers = ExpandPageRanges(pageRanges, document.Pages.Count, nameof(pageRanges));
         var images = new List<PdfExtractedImage>();
         for (int i = 0; i < pageNumbers.Length; i++) {
             int pageNumber = pageNumbers[i];
@@ -210,12 +210,11 @@ public static class PdfImageExtractor {
         return images;
     }
 
-    private static int[] ExpandPageRangesDistinct(PdfPageRange[] pageRanges, int pageCount, string paramName) {
+    private static int[] ExpandPageRanges(PdfPageRange[] pageRanges, int pageCount, string paramName) {
         if (pageRanges.Length == 0) {
             throw new ArgumentException("At least one page range must be specified.", paramName);
         }
 
-        var seen = new HashSet<int>();
         var pages = new List<int>();
         for (int i = 0; i < pageRanges.Length; i++) {
             if (pageRanges[i].LastPage > pageCount) {
@@ -223,9 +222,7 @@ public static class PdfImageExtractor {
             }
 
             for (int pageNumber = pageRanges[i].FirstPage; pageNumber <= pageRanges[i].LastPage; pageNumber++) {
-                if (seen.Add(pageNumber)) {
-                    pages.Add(pageNumber);
-                }
+                pages.Add(pageNumber);
             }
         }
 
