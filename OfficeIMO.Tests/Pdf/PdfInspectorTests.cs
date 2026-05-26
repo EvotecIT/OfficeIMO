@@ -1170,6 +1170,20 @@ public class PdfInspectorTests {
     }
 
     [Fact]
+    public void Preflight_BlocksWrongGenerationRewriteReferences() {
+        PdfDocumentPreflight report = PdfInspector.Preflight(BuildWrongGenerationContentReferencePdf());
+
+        Assert.True(report.CanRead);
+        Assert.False(report.CanRewrite);
+        Assert.NotNull(report.DocumentInfo);
+        Assert.Equal(1, report.DocumentInfo!.PageCount);
+        AssertRewriteBlocker(
+            report,
+            PdfRewriteBlockerKind.InvalidObjectReferences,
+            "PDF object graph is not safe for rewriting by OfficeIMO.Pdf yet: PDF object 4 1 R was referenced, but the active object generation is 0.");
+    }
+
+    [Fact]
     public void Preflight_ReadsFromPathAndStream() {
         byte[] bytes = BuildTwoPagePdf();
         string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-preflight-" + Guid.NewGuid().ToString("N") + ".pdf");
@@ -1281,6 +1295,32 @@ public class PdfInspectorTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildWrongGenerationContentReferencePdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 1 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 5 >>",
             "%%EOF"
         });
 

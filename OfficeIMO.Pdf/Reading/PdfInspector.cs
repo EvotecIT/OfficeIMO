@@ -42,6 +42,7 @@ public static class PdfInspector {
         var readBlockers = new List<PdfReadBlocker>();
         var rewriteBlockers = new List<PdfRewriteBlocker>();
         PdfDocumentInfo? info = null;
+        PdfReadDocument? readDocument = null;
 
         if (probe.HeaderVersion is null) {
             AddReadBlocker(PdfReadBlockerKind.MissingHeader, "PDF header was not found.");
@@ -55,14 +56,14 @@ public static class PdfInspector {
         bool canRead = diagnostics.Count == 0;
         if (canRead) {
             try {
-                var document = PdfReadDocument.Load(pdf, options);
-                info = FromReadDocument(document, probe);
+                readDocument = PdfReadDocument.Load(pdf, options);
+                info = FromReadDocument(readDocument, probe);
                 if (info.PageCount == 0) {
                     AddReadBlocker(PdfReadBlockerKind.NoPages, "No PDF pages were discovered.");
                     canRead = false;
                 }
 
-                var unsupportedContentFilters = GetUnsupportedContentStreamFilters(document);
+                var unsupportedContentFilters = GetUnsupportedContentStreamFilters(readDocument);
                 if (unsupportedContentFilters.Count > 0) {
                     AddReadBlocker(
                         PdfReadBlockerKind.UnsupportedContentStreamFilter,
@@ -72,6 +73,14 @@ public static class PdfInspector {
             } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
                 AddReadBlocker(PdfReadBlockerKind.ParserUnsupported, "PDF could not be parsed by OfficeIMO.Pdf: " + ex.Message);
                 canRead = false;
+            }
+        }
+
+        if (canRead && readDocument is not null) {
+            try {
+                ValidateRewriteObjectGraph(pdf, readDocument);
+            } catch (Exception ex) when (ex is InvalidOperationException || ex is NotSupportedException || ex is ArgumentException) {
+                AddRewriteBlocker(PdfRewriteBlockerKind.InvalidObjectReferences, "PDF object graph is not safe for rewriting by OfficeIMO.Pdf yet: " + ex.Message);
             }
         }
 
@@ -153,6 +162,26 @@ public static class PdfInspector {
                 diagnostics.Add(message);
             }
         }
+    }
+
+    private static void ValidateRewriteObjectGraph(byte[] pdf, PdfReadDocument document) {
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf);
+        var catalogState = PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw);
+        var collector = new PdfPageExtractor.ObjectCollector(objects);
+
+        for (int i = 0; i < document.Pages.Count; i++) {
+            collector.CollectPage(document.Pages[i].ObjectNumber);
+        }
+
+        collector.CollectObjectGraph(catalogState.Outlines);
+        collector.CollectObjectGraph(catalogState.PageLabels);
+        collector.CollectObjectGraph(catalogState.NamedDestinationNameTree);
+        collector.CollectObjectGraph(catalogState.XmpMetadata);
+        collector.CollectObjectGraph(catalogState.CatalogUri);
+        collector.CollectObjectGraph(catalogState.OutputIntents);
+        collector.CollectObjectGraph(catalogState.EmbeddedFiles);
+        collector.CollectObjectGraph(catalogState.AssociatedFiles);
+        collector.CollectObjectGraph(catalogState.OptionalContent);
     }
 
     /// <summary>
