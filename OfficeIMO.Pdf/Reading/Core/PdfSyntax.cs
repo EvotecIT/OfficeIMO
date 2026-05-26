@@ -1112,6 +1112,10 @@ internal static class PdfSyntax {
             for (int i = 0; i < n; i++) {
                 int objNum = pairs[i].Obj;
                 int off = pairs[i].Off;
+                if (map.ContainsKey(objNum)) {
+                    continue;
+                }
+
                 int start = first + off;
                 int end = (i + 1 < n) ? first + pairs[i + 1].Off : data.Length;
                 if (start < 0 || end > data.Length || end <= start) continue;

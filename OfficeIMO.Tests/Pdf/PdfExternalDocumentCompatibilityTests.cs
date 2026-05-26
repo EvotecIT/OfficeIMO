@@ -74,6 +74,16 @@ public class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void ReadExternalObjectStream_DoesNotOverwriteExplicitIndirectObjects() {
+        byte[] pdf = BuildExternalObjectStreamWithExplicitReplacementPdf();
+
+        string text = Normalize(PdfTextExtractor.ExtractAllText(pdf));
+
+        Assert.Contains("Explicit object wins", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Packed object stream wins", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RewritePreflight_DetectsCompressedObjectStreamFormMarkers() {
         byte[] pdf = BuildExternalObjectStreamPdf(includeAcroForm: true);
         string rawPdf = Encoding.ASCII.GetString(pdf);
@@ -144,6 +154,29 @@ public class PdfExternalDocumentCompatibilityTests {
             "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /AAAAAA+Helvetica /Encoding /WinAnsiEncoding /ToUnicode 6 0 R >>\nendobj",
             BuildStreamObject(5, content),
             BuildStreamObject(6, Encoding.ASCII.GetBytes(cmap))
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildExternalObjectStreamWithExplicitReplacementPdf() {
+        byte[] explicitContent = Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Explicit object wins) Tj\nET\n");
+        byte[] packedContent = Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Packed object stream wins) Tj\nET\n");
+        var packedObjects = new List<(int ObjectNumber, string Body)> {
+            (1, "<< /Type /Catalog /Pages 2 0 R >>"),
+            (2, "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 4 0 R >> >> >>"),
+            (3, "<< /Type /Page /Parent 2 0 R /Contents 11 0 R >>"),
+            (4, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
+        };
+
+        var objects = new[] {
+            BuildObjectStreamObject(10, packedObjects),
+            BuildStreamObject(11, packedContent),
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, explicitContent)
         };
 
         return BuildPdf(objects, rootObjectNumber: 1);
