@@ -101,7 +101,7 @@ internal static class PdfSyntax {
                 return trailerRaw;
             }
 
-            if (TryGetXrefStreamTrailerChainRaw(map, parsedOffsets, activeXrefOffset, out trailerRaw)) {
+            if (TryGetXrefStreamTrailerChainRaw(text, map, parsedOffsets, activeXrefOffset, out trailerRaw)) {
                 return trailerRaw;
             }
         }
@@ -111,6 +111,7 @@ internal static class PdfSyntax {
     }
 
     private static bool TryGetXrefStreamTrailerChainRaw(
+        string text,
         Dictionary<int, PdfIndirectObject> map,
         Dictionary<int, int> parsedOffsets,
         int activeXrefOffset,
@@ -142,6 +143,11 @@ internal static class PdfSyntax {
             }
 
             currentOffset = (int)Math.Floor(previous.Value);
+        }
+
+        if (trailers.Count > 0 &&
+            TryGetClassicTrailerChainRaw(text, currentOffset, out string classicTrailerRaw)) {
+            trailers.Add(classicTrailerRaw);
         }
 
         if (trailers.Count == 0) {
@@ -1331,26 +1337,35 @@ internal static class PdfSyntax {
         }
 
         foreach (var table in tables) {
-            foreach (var entry in table.Entries) {
-                if (!entry.InUse) {
-                    if (entry.ObjectNumber != 0) {
-                        map.Remove(entry.ObjectNumber);
-                        parsedOffsets.Remove(entry.ObjectNumber);
-                    }
+            ApplyClassicXrefTableEntries(map, pdf, parsedOffsets, text, table.Entries);
+        }
+    }
 
-                    continue;
+    private static void ApplyClassicXrefTableEntries(
+        Dictionary<int, PdfIndirectObject> map,
+        byte[] pdf,
+        Dictionary<int, int> parsedOffsets,
+        string text,
+        List<(int ObjectNumber, int Offset, bool InUse)> entries) {
+        foreach (var entry in entries) {
+            if (!entry.InUse) {
+                if (entry.ObjectNumber != 0) {
+                    map.Remove(entry.ObjectNumber);
+                    parsedOffsets.Remove(entry.ObjectNumber);
                 }
 
-                if (entry.Offset <= 0 ||
-                    entry.Offset >= pdf.Length) {
-                    continue;
-                }
+                continue;
+            }
 
-                if (TryParseIndirectObjectAt(pdf, text, entry.Offset, map, out var parsed) &&
-                    parsed.ObjectNumber == entry.ObjectNumber) {
-                    map[entry.ObjectNumber] = parsed;
-                    parsedOffsets[entry.ObjectNumber] = entry.Offset;
-                }
+            if (entry.Offset <= 0 ||
+                entry.Offset >= pdf.Length) {
+                continue;
+            }
+
+            if (TryParseIndirectObjectAt(pdf, text, entry.Offset, map, out var parsed) &&
+                parsed.ObjectNumber == entry.ObjectNumber) {
+                map[entry.ObjectNumber] = parsed;
+                parsedOffsets[entry.ObjectNumber] = entry.Offset;
             }
         }
     }
@@ -1481,6 +1496,11 @@ internal static class PdfSyntax {
             return;
         }
 
+        var classicPredecessors = GetClassicPredecessorTablesForXrefStreamChain(text, xrefStreams, activeXrefOffset);
+        foreach (var table in classicPredecessors) {
+            ApplyClassicXrefTableEntries(map, pdf, parsedOffsets, text, table.Entries);
+        }
+
         foreach (int chainOffset in activeChainOffsets) {
             var xrefStream = xrefStreams.First(item => item.Offset == chainOffset);
 
@@ -1526,6 +1546,32 @@ internal static class PdfSyntax {
                 }
             }
         }
+    }
+
+    private static List<(int Offset, List<(int ObjectNumber, int Offset, bool InUse)> Entries)> GetClassicPredecessorTablesForXrefStreamChain(
+        string text,
+        List<(int ObjectNumber, int Offset, PdfStream Stream)> xrefStreams,
+        int activeXrefOffset) {
+        var byOffset = new Dictionary<int, PdfStream>();
+        foreach (var xrefStream in xrefStreams) {
+            byOffset[xrefStream.Offset] = xrefStream.Stream;
+        }
+
+        var visited = new HashSet<int>();
+        int currentOffset = activeXrefOffset;
+        while (byOffset.TryGetValue(currentOffset, out PdfStream? stream) &&
+            visited.Add(currentOffset) &&
+            visited.Count < 64) {
+            if (stream.Dictionary.Get<PdfNumber>("Prev") is not PdfNumber previous ||
+                previous.Value < 0 ||
+                previous.Value > int.MaxValue) {
+                return new List<(int Offset, List<(int ObjectNumber, int Offset, bool InUse)> Entries)>();
+            }
+
+            currentOffset = (int)Math.Floor(previous.Value);
+        }
+
+        return GetClassicXrefTableChain(text, currentOffset);
     }
 
     private static List<int> GetXrefStreamChainOffsets(List<(int ObjectNumber, int Offset, PdfStream Stream)> xrefStreams, int activeXrefOffset) {
