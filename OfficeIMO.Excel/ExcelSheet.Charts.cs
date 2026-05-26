@@ -269,6 +269,7 @@ namespace OfficeIMO.Excel {
                 );
 
                 drawingPart.WorksheetDrawing.Append(anchor);
+                drawingPart.WorksheetDrawing.Save();
             });
 
             return new ExcelChart(frame!, drawingPart!, this);
@@ -344,6 +345,7 @@ namespace OfficeIMO.Excel {
                 );
 
                 drawingPart.WorksheetDrawing.Append(anchor);
+                drawingPart.WorksheetDrawing.Save();
             });
 
             return new ExcelChart(frame!, drawingPart!, this, range);

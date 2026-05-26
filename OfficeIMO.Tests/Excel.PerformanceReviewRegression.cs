@@ -15,6 +15,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
 using Xunit;
+using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
@@ -3938,6 +3939,7 @@ namespace OfficeIMO.Tests {
                 .SelectMany(formatting => formatting.Elements<ConditionalFormattingRule>())
                 .Select(rule => rule.Type?.Value)
                 .ToList();
+            Assert.Equal(3, ruleTypes.Count);
             Assert.Contains(ConditionalFormatValues.CellIs, ruleTypes);
             Assert.Contains(ConditionalFormatValues.ColorScale, ruleTypes);
             Assert.Contains(ConditionalFormatValues.DataBar, ruleTypes);
@@ -4012,7 +4014,8 @@ namespace OfficeIMO.Tests {
             Assert.Single(workbookPart.GetPartsOfType<ThemePart>());
             var worksheetParts = workbookPart.WorksheetParts.ToList();
             Assert.Equal(2, worksheetParts.Count);
-            Assert.Contains(worksheetParts, part => part.DrawingsPart?.ChartParts.Count() == 1);
+            var chartHostPart = Assert.Single(worksheetParts, part => part.DrawingsPart?.ChartParts.Count() == 1);
+            Assert.Single(chartHostPart.DrawingsPart!.WorksheetDrawing!.Elements<Xdr.OneCellAnchor>());
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 

@@ -1545,12 +1545,12 @@ namespace OfficeIMO.Excel {
             }
 
             return new DirectWorksheetMetadata(
-                captured.SheetPropertiesXml ?? existing.SheetPropertiesXml,
-                captured.SheetViewsXml ?? existing.SheetViewsXml,
-                captured.SheetFormatPropertiesXml ?? existing.SheetFormatPropertiesXml,
-                captured.AutoFilterXml ?? existing.AutoFilterXml,
+                existing.SheetPropertiesXml ?? captured.SheetPropertiesXml,
+                existing.SheetViewsXml ?? captured.SheetViewsXml,
+                existing.SheetFormatPropertiesXml ?? captured.SheetFormatPropertiesXml,
+                existing.AutoFilterXml ?? captured.AutoFilterXml,
                 CombineMetadataXmlLists(existing.ConditionalFormattingXml, captured.ConditionalFormattingXml),
-                captured.DataValidationsXml ?? existing.DataValidationsXml,
+                existing.DataValidationsXml ?? captured.DataValidationsXml,
                 CombineMetadataXmlLists(existing.PostDataValidationXml, captured.PostDataValidationXml));
         }
 
@@ -1558,13 +1558,18 @@ namespace OfficeIMO.Excel {
             if (first.Count == 0) return second;
             if (second.Count == 0) return first;
 
-            var combined = new string[first.Count + second.Count];
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var combined = new List<string>(first.Count + second.Count);
             for (int i = 0; i < first.Count; i++) {
-                combined[i] = first[i];
+                if (seen.Add(first[i])) {
+                    combined.Add(first[i]);
+                }
             }
 
             for (int i = 0; i < second.Count; i++) {
-                combined[first.Count + i] = second[i];
+                if (seen.Add(second[i])) {
+                    combined.Add(second[i]);
+                }
             }
 
             return combined;
