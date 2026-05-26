@@ -161,6 +161,7 @@ using OfficeIMO.Visio.Diagrams;
 
 VisioDocument.Create("network.vsdx")
     .NetworkDiagram("Branch Network", network => network
+        .Title()
         .Theme(VisioStyleTheme.Technical())
         .Zone("perimeter", "Perimeter", 0, 0, 3, 1)
         .Zone("servers", "Server Zone", 3, 0, 3, 1)

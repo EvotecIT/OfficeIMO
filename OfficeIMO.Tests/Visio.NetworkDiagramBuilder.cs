@@ -67,6 +67,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NetworkDiagramBuilderCanAddTitleWithoutOverlappingZones() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .NetworkDiagram("Branch Network", network => network
+                    .Title()
+                    .Zone("perimeter", "Perimeter", 0, 0, 3, 1)
+                    .Internet("internet", "Internet", 0, 0)
+                    .Firewall("firewall", "Firewall", 1, 0)
+                    .Switch("core", "Core Switch", 2, 0)
+                    .Ethernet("internet", "firewall", "WAN")
+                    .Trunk("firewall", "core", "uplink"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape title = Assert.Single(page.Shapes, shape => shape.Id == "title");
+            VisioShape zone = Assert.Single(page.Shapes, shape => shape.Id == "perimeter");
+            Assert.Equal("Text Box", title.NameU);
+            Assert.Equal("Branch Network", title.Text);
+            Assert.True(title.PinY > zone.PinY);
+            Assert.Empty(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckConnectorShapeIntersections = false
+            }).Select(issue => issue.ToString()));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void NetworkDiagramBuilderRejectsUnknownLinkEndpoints() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -76,6 +104,18 @@ namespace OfficeIMO.Tests {
                     .Ethernet("core", "missing")));
 
             Assert.Contains("Unknown network node id", exception.Message);
+        }
+
+        [Fact]
+        public void NetworkDiagramBuilderRejectsTitleIdCollisions() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+                document.NetworkDiagram("Invalid", network => network
+                    .Switch("title", "Core", 0, 0)
+                    .Title()));
+
+            Assert.Contains("already exists", exception.Message);
         }
     }
 }
