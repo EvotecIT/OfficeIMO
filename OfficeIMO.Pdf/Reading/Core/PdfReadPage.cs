@@ -127,6 +127,19 @@ public sealed class PdfReadPage {
         return ResourceResolver.GetImageXObjectsForPage(_pageDict, _objects, pageNumber);
     }
 
+    internal List<string> GetUnsupportedContentStreamFilters() {
+        var unsupported = new List<string>();
+        foreach (var stream in GetContentStreamObjects()) {
+            foreach (string filterName in Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects)) {
+                if (!ContainsFilter(unsupported, filterName)) {
+                    unsupported.Add(filterName);
+                }
+            }
+        }
+
+        return unsupported;
+    }
+
     private void CollectTextAndForms(
         string content,
         PdfDictionary? resources,
@@ -403,10 +416,19 @@ public sealed class PdfReadPage {
     /// </summary>
     private List<byte[]> GetContentStreams() {
         var result = new List<byte[]>();
+        foreach (var stream in GetContentStreamObjects()) {
+            result.Add(DecodeIfNeeded(stream));
+        }
+
+        return result;
+    }
+
+    private List<PdfStream> GetContentStreamObjects() {
+        var result = new List<PdfStream>();
         var contents = _pageDict.Items.TryGetValue("Contents", out var obj) ? obj : null;
         if (contents is PdfReference r) {
             if (_objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfStream s) {
-                result.Add(DecodeIfNeeded(s));
+                result.Add(s);
                 return result;
             }
         }
@@ -420,13 +442,23 @@ public sealed class PdfReadPage {
             if (item is PdfReference rr &&
                 _objects.TryGetValue(rr.ObjectNumber, out var ind2) &&
                 ind2.Value is PdfStream s2) {
-                result.Add(DecodeIfNeeded(s2));
+                result.Add(s2);
             } else if (item is PdfStream directStream) {
-                result.Add(DecodeIfNeeded(directStream));
+                result.Add(directStream);
             }
         }
 
         return result;
+    }
+
+    private static bool ContainsFilter(List<string> filters, string filterName) {
+        for (int i = 0; i < filters.Count; i++) {
+            if (string.Equals(filters[i], filterName, StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private byte[] DecodeIfNeeded(PdfStream s) {
