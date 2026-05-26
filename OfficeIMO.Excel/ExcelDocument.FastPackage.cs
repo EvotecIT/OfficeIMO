@@ -978,6 +978,9 @@ namespace OfficeIMO.Excel {
             internal IReadOnlyList<FastHyperlinkRelationshipModel> HyperlinkRelationships { get; }
 
             internal bool HasRelationships => TablePartPaths.Count > 0 || HyperlinkRelationships.Count > 0;
+
+            internal bool RequiresRelationshipNamespace
+                => HasRelationships || Worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>()?.Id != null;
         }
 
         private sealed class FastHyperlinkRelationshipModel {
@@ -1374,7 +1377,7 @@ namespace OfficeIMO.Excel {
 
             builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
             builder.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"");
-            if (model.HasRelationships) {
+            if (model.RequiresRelationshipNamespace) {
                 builder.Append(" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"");
             }
 

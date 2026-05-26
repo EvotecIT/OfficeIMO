@@ -1750,7 +1750,36 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (TrySaveWithSimplePackageToFile(path, options, out string? fastPackageSkipReason)) {
+            bool preferExtendedPackageWriter = _materializedDirectDataSetFastSaveModel != null;
+            Stopwatch? saveStageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
+            PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter);
+            ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbook");
+
+            string? extendedPackageSkipReason = null;
+            if (preferExtendedPackageWriter
+                && TrySaveWithExtendedPackageToFile(path, options, out extendedPackageSkipReason)) {
+                if (openExcel) {
+                    Helpers.Open(path, true);
+                }
+
+                return;
+            }
+
+            if (preferExtendedPackageWriter) {
+                PrepareWorkbookForSave(options);
+                ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbookFallback");
+            }
+
+            if (TrySaveWithSimplePackageToFile(path, options, out string? fastPackageSkipReason, alreadyPrepared: true)) {
+                if (openExcel) {
+                    Helpers.Open(path, true);
+                }
+
+                return;
+            }
+
+            if (!preferExtendedPackageWriter
+                && TrySaveWithExtendedPackageToFile(path, options, out extendedPackageSkipReason)) {
                 if (openExcel) {
                     Helpers.Open(path, true);
                 }
@@ -1765,7 +1794,7 @@ namespace OfficeIMO.Excel {
                 CommitPreparedPackageToFile(path, finalizedBytes);
                 ReloadFromBytes(finalizedBytes);
                 FilePath = path;
-                LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(fastPackageSkipReason);
+                LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(extendedPackageSkipReason ?? fastPackageSkipReason);
 
                 if (openExcel) {
                     Helpers.Open(path, true);
@@ -1909,7 +1938,36 @@ namespace OfficeIMO.Excel {
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            if (TrySaveWithSimplePackageToFile(target, options, out string? fastPackageSkipReason, cancellationToken)) {
+            bool preferExtendedPackageWriter = _materializedDirectDataSetFastSaveModel != null;
+            Stopwatch? saveStageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
+            PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter);
+            ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbook");
+
+            string? extendedPackageSkipReason = null;
+            if (preferExtendedPackageWriter
+                && TrySaveWithExtendedPackageToFile(target, options, out extendedPackageSkipReason, cancellationToken)) {
+                if (openExcel) {
+                    Open(target, true);
+                }
+
+                return;
+            }
+
+            if (preferExtendedPackageWriter) {
+                PrepareWorkbookForSave(options);
+                ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbookFallback");
+            }
+
+            if (TrySaveWithSimplePackageToFile(target, options, out string? fastPackageSkipReason, cancellationToken, alreadyPrepared: true)) {
+                if (openExcel) {
+                    Open(target, true);
+                }
+
+                return;
+            }
+
+            if (!preferExtendedPackageWriter
+                && TrySaveWithExtendedPackageToFile(target, options, out extendedPackageSkipReason, cancellationToken)) {
                 if (openExcel) {
                     Open(target, true);
                 }
@@ -1924,7 +1982,7 @@ namespace OfficeIMO.Excel {
                 await CommitPreparedPackageToFileAsync(target, finalizedBytes, cancellationToken).ConfigureAwait(false);
                 ReloadFromBytes(finalizedBytes);
                 FilePath = target;
-                LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(fastPackageSkipReason);
+                LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(extendedPackageSkipReason ?? fastPackageSkipReason);
 
                 if (openExcel) {
                     Open(target, true);
@@ -2364,13 +2422,16 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private bool TrySaveWithSimplePackageToFile(string targetPath, ExcelSaveOptions? options, out string? skipReason, CancellationToken ct = default) {
+        private bool TrySaveWithSimplePackageToFile(string targetPath, ExcelSaveOptions? options, out string? skipReason, CancellationToken ct = default, bool alreadyPrepared = false) {
             skipReason = null;
             var temporaryPath = CreateTemporarySavePath(targetPath);
             byte[]? packageBytes = null;
 
             try {
-                PrepareWorkbookForSave(options);
+                if (!alreadyPrepared) {
+                    PrepareWorkbookForSave(options);
+                }
+
                 using (var fs = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
                     if (!TryWriteSimpleWorkbookPackage(fs, options, updateDocumentState: false, out skipReason, ct)) {
                         return false;
@@ -2392,6 +2453,43 @@ namespace OfficeIMO.Excel {
                 throw;
             } catch (Exception ex) {
                 skipReason = "Simple package writer failed: " + ex.Message;
+                if (packageBytes != null) {
+                    try { ReloadFromBytes(packageBytes, simplePackageContentKnown: true); } catch { }
+                }
+
+                return false;
+            } finally {
+                DeleteFileIfExists(temporaryPath);
+            }
+        }
+
+        private bool TrySaveWithExtendedPackageToFile(string targetPath, ExcelSaveOptions? options, out string? skipReason, CancellationToken ct = default) {
+            skipReason = null;
+            var temporaryPath = CreateTemporarySavePath(targetPath);
+            byte[]? packageBytes = null;
+
+            try {
+                using (var fs = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
+                    if (!TryWriteExtendedWorkbookPackage(fs, options, updateDocumentState: false, out skipReason, ct)) {
+                        return false;
+                    }
+                }
+
+                ct.ThrowIfCancellationRequested();
+                packageBytes = File.ReadAllBytes(temporaryPath);
+
+                try { _spreadSheetDocument.Dispose(); } catch { }
+                ReplaceTargetFile(temporaryPath, targetPath);
+                temporaryPath = string.Empty;
+                ReloadFromBytes(packageBytes, simplePackageContentKnown: true);
+
+                FilePath = targetPath;
+                LastSaveDiagnostics = ExcelSaveDiagnostics.ExtendedPackage();
+                return true;
+            } catch (OperationCanceledException) {
+                throw;
+            } catch (Exception ex) {
+                skipReason = "Extended package writer failed: " + ex.Message;
                 if (packageBytes != null) {
                     try { ReloadFromBytes(packageBytes, simplePackageContentKnown: true); } catch { }
                 }

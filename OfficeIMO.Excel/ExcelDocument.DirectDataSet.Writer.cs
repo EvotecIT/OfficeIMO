@@ -51,7 +51,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     var sheet = model.Sheets[i];
-                    WriteWorksheet(archive, sheet, model.DateTimeOffsetWriteStrategy, sharedStrings, columnWritePlans[i], ct);
+                    WriteWorksheet(archive, sheet, model.DateTimeOffsetWriteStrategy, sharedStrings, stylePlan, columnWritePlans[i], ct);
                     if (sheet.HasTable) {
                         string sheetIndexText = InvariantNumberText.Get(sheet.Index);
                         WriteTextEntry(archive, "xl/worksheets/_rels/sheet" + sheetIndexText + ".xml.rels",
@@ -96,7 +96,7 @@ namespace OfficeIMO.Excel {
                     throw new InvalidOperationException("The direct worksheet is not part of the extended direct write plan.");
                 }
 
-                WriteWorksheet(archive, sheet, plan.Model.DateTimeOffsetWriteStrategy, plan.SharedStrings, plan.ColumnWritePlans[sheetIndex], ct, worksheetPath, tableRelationshipId);
+                WriteWorksheet(archive, sheet, plan.Model.DateTimeOffsetWriteStrategy, plan.SharedStrings, plan.StylePlan, plan.ColumnWritePlans[sheetIndex], ct, worksheetPath, tableRelationshipId);
             }
 
             private static void WriteContentTypes(ZipArchive archive, IReadOnlyList<DirectDataSetSheetModel> sheets, bool includeSharedStrings) {
@@ -256,7 +256,7 @@ namespace OfficeIMO.Excel {
                 writer.Write("</sst>");
             }
 
-            private static void WriteWorksheet(ZipArchive archive, DirectDataSetSheetModel sheet, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, DirectSharedStringTable? sharedStrings, DirectColumnWritePlan columnWritePlan, CancellationToken ct, string? worksheetPath = null, string? tableRelationshipId = null) {
+            private static void WriteWorksheet(ZipArchive archive, DirectDataSetSheetModel sheet, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, DirectSharedStringTable? sharedStrings, DirectStylePlan stylePlan, DirectColumnWritePlan columnWritePlan, CancellationToken ct, string? worksheetPath = null, string? tableRelationshipId = null) {
                 var entry = archive.CreateEntry(worksheetPath ?? "xl/worksheets/sheet" + InvariantNumberText.Get(sheet.Index) + ".xml", CompressionLevel.Fastest);
                 using var stream = entry.Open();
                 using var writer = new StreamWriter(stream, Utf8NoBom, XmlWriterBufferSize);
@@ -300,7 +300,7 @@ namespace OfficeIMO.Excel {
                         WriteCell(writer, headerRowReference, cellReferencePrefixes[c], sheet.Table.GetColumnName(c), null, dateTimeOffsetWriteStrategy, sharedStrings);
                     }
 
-                    WriteOverlayCellsForRow(writer, overlayCellsByRow, 1, dateTimeOffsetWriteStrategy, sharedStrings);
+                    WriteOverlayCellsForRow(writer, overlayCellsByRow, 1, stylePlan, dateTimeOffsetWriteStrategy, sharedStrings);
                     writer.Write("</row>");
                     rowIndex++;
                 }
@@ -308,7 +308,7 @@ namespace OfficeIMO.Excel {
                 bool hasBufferedRows = sheet.Table.TryGetBufferedRows(out DirectBufferedRows bufferedRows);
                 bool hasCellValueRows = sheet.Table.TryGetCellValueRows(out DirectCellValueRows cellValueRows);
                 if (hasInlineOverlayCells) {
-                    WriteDirectValueRows(writer, sheet, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, valueStyleColumns, dateTimeOffsetWriteStrategy, sharedStrings, ct, overlayCellsByRow);
+                    WriteDirectValueRows(writer, sheet, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, valueStyleColumns, stylePlan, dateTimeOffsetWriteStrategy, sharedStrings, ct, overlayCellsByRow);
                     rowIndex += rowCount;
                 } else if (hasBufferedRows
                     && !sheet.OmitBlankCells
@@ -431,7 +431,7 @@ namespace OfficeIMO.Excel {
                             }
                         }
                     } else {
-                        WriteDirectValueRows(writer, sheet, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, valueStyleColumns: null, dateTimeOffsetWriteStrategy, sharedStrings, ct);
+                        WriteDirectValueRows(writer, sheet, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, valueStyleColumns: null, stylePlan, dateTimeOffsetWriteStrategy, sharedStrings, ct);
                         rowIndex += rowCount;
                     }
                 } else if (hasBufferedRows) {
@@ -537,11 +537,11 @@ namespace OfficeIMO.Excel {
                         }
                     }
                 } else {
-                    WriteDirectValueRows(writer, sheet, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, valueStyleColumns, dateTimeOffsetWriteStrategy, sharedStrings, ct);
+                    WriteDirectValueRows(writer, sheet, rowCount, columnCount, rowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, valueStyleColumns, stylePlan, dateTimeOffsetWriteStrategy, sharedStrings, ct);
                     rowIndex += rowCount;
                 }
 
-                WriteOverlayCells(writer, overlayCells, dateTimeOffsetWriteStrategy, sharedStrings, directLastRow);
+                WriteOverlayCells(writer, overlayCells, stylePlan, dateTimeOffsetWriteStrategy, sharedStrings, directLastRow);
                 writer.Write("</sheetData>");
                 if (!string.IsNullOrEmpty(metadata?.AutoFilterXml)) {
                     writer.Write(metadata!.AutoFilterXml);
@@ -829,6 +829,7 @@ namespace OfficeIMO.Excel {
             private static void WriteOverlayCells(
                 TextWriter writer,
                 IReadOnlyList<DirectOverlayCell>? overlayCells,
+                DirectStylePlan stylePlan,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
                 DirectSharedStringTable? sharedStrings,
                 int skipRowsAtOrBefore = 0) {
@@ -859,7 +860,7 @@ namespace OfficeIMO.Excel {
                         InvariantNumberText.Get(cell.Row),
                         "<c r=\"" + A1.ColumnIndexToLetters(cell.Column),
                         cell.Value,
-                        CreateOverlayStyleAttribute(cell),
+                        CreateOverlayStyleAttribute(cell, stylePlan),
                         dateTimeOffsetWriteStrategy,
                         sharedStrings);
                 }
@@ -899,6 +900,7 @@ namespace OfficeIMO.Excel {
                 TextWriter writer,
                 IReadOnlyDictionary<int, IReadOnlyList<DirectOverlayCell>>? overlayCellsByRow,
                 int row,
+                DirectStylePlan stylePlan,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
                 DirectSharedStringTable? sharedStrings) {
                 if (overlayCellsByRow == null || !overlayCellsByRow.TryGetValue(row, out var rowOverlayCells)) {
@@ -913,7 +915,7 @@ namespace OfficeIMO.Excel {
                         rowReference,
                         "<c r=\"" + A1.ColumnIndexToLetters(cell.Column),
                         cell.Value,
-                        CreateOverlayStyleAttribute(cell),
+                        CreateOverlayStyleAttribute(cell, stylePlan),
                         dateTimeOffsetWriteStrategy,
                         sharedStrings);
                 }
@@ -921,10 +923,12 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            private static string? CreateOverlayStyleAttribute(DirectOverlayCell cell) {
-                return cell.StyleIndex.HasValue
-                    ? " s=\"" + InvariantNumberText.Get(cell.StyleIndex.Value) + "\""
-                    : null;
+            private static string? CreateOverlayStyleAttribute(DirectOverlayCell cell, DirectStylePlan stylePlan) {
+                if (!string.IsNullOrWhiteSpace(cell.NumberFormat)) {
+                    return stylePlan.GetStyleAttribute(cell.NumberFormat!);
+                }
+
+                return cell.StyleIndex == 0U ? " s=\"0\"" : null;
             }
 
             private static string[] CreateCellReferencePrefixes(int columnCount) {
@@ -1166,6 +1170,7 @@ namespace OfficeIMO.Excel {
 
             internal sealed class DirectStylePlan {
                 private const string DateTimeFormatCode = "yyyy-mm-dd hh:mm";
+                private const string TimeFormatCode = "[h]:mm:ss";
                 private readonly Dictionary<string, string> _styleAttributeByFormat;
 
                 private DirectStylePlan(List<string> customNumberFormats, Dictionary<string, string> styleAttributeByFormat) {
@@ -1179,25 +1184,34 @@ namespace OfficeIMO.Excel {
                     var customNumberFormats = new List<string>();
                     var styleAttributeByFormat = new Dictionary<string, string>(StringComparer.Ordinal);
                     styleAttributeByFormat[DateTimeFormatCode] = DateStyleAttribute;
+                    styleAttributeByFormat[TimeFormatCode] = TimeStyleAttribute;
                     for (int sheetIndex = 0; sheetIndex < model.Sheets.Count; sheetIndex++) {
                         var formats = model.Sheets[sheetIndex].ColumnNumberFormats;
-                        if (formats == null) {
-                            continue;
+                        if (formats != null) {
+                            for (int i = 0; i < formats.Count; i++) {
+                                AddCustomNumberFormat(formats[i], customNumberFormats, styleAttributeByFormat);
+                            }
                         }
 
-                        for (int i = 0; i < formats.Count; i++) {
-                            string? format = formats[i];
-                            if (string.IsNullOrWhiteSpace(format) || styleAttributeByFormat.ContainsKey(format!)) {
-                                continue;
+                        var overlayCells = model.Sheets[sheetIndex].Metadata?.OverlayCells;
+                        if (overlayCells != null) {
+                            for (int i = 0; i < overlayCells.Count; i++) {
+                                AddCustomNumberFormat(overlayCells[i].NumberFormat, customNumberFormats, styleAttributeByFormat);
                             }
-
-                            string styleAttribute = " s=\"" + InvariantNumberText.Get(5 + customNumberFormats.Count) + "\"";
-                            styleAttributeByFormat.Add(format!, styleAttribute);
-                            customNumberFormats.Add(format!);
                         }
                     }
 
                     return new DirectStylePlan(customNumberFormats, styleAttributeByFormat);
+                }
+
+                private static void AddCustomNumberFormat(string? format, List<string> customNumberFormats, Dictionary<string, string> styleAttributeByFormat) {
+                    if (string.IsNullOrWhiteSpace(format) || styleAttributeByFormat.ContainsKey(format!)) {
+                        return;
+                    }
+
+                    string styleAttribute = " s=\"" + InvariantNumberText.Get(5 + customNumberFormats.Count) + "\"";
+                    styleAttributeByFormat.Add(format!, styleAttribute);
+                    customNumberFormats.Add(format!);
                 }
 
                 internal string? GetStyleAttribute(string numberFormat)
@@ -1580,12 +1594,13 @@ namespace OfficeIMO.Excel {
                 string?[]? styleAttributes,
                 DirectCellValueKind[] cellValueKinds,
                 bool[]? valueStyleColumns,
+                DirectStylePlan stylePlan,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
                 DirectSharedStringTable? sharedStrings,
                 CancellationToken ct,
                 IReadOnlyDictionary<int, IReadOnlyList<DirectOverlayCell>>? overlayCellsByRow = null) {
                 if (overlayCellsByRow != null) {
-                    WriteDirectValueRowsWithOverlayCells(writer, sheet, rowCount, columnCount, startRowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, valueStyleColumns, dateTimeOffsetWriteStrategy, sharedStrings, ct, overlayCellsByRow);
+                    WriteDirectValueRowsWithOverlayCells(writer, sheet, rowCount, columnCount, startRowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, valueStyleColumns, stylePlan, dateTimeOffsetWriteStrategy, sharedStrings, ct, overlayCellsByRow);
                     return;
                 }
 
@@ -1669,6 +1684,7 @@ namespace OfficeIMO.Excel {
                 string?[]? styleAttributes,
                 DirectCellValueKind[] cellValueKinds,
                 bool[]? valueStyleColumns,
+                DirectStylePlan stylePlan,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
                 DirectSharedStringTable? sharedStrings,
                 CancellationToken ct,
@@ -1706,7 +1722,7 @@ namespace OfficeIMO.Excel {
                                 writer.Write("\">");
                             }
 
-                            WriteOverlayCellsForRow(writer, overlayCellsByRow, rowIndex, dateTimeOffsetWriteStrategy, sharedStrings);
+                            WriteOverlayCellsForRow(writer, overlayCellsByRow, rowIndex, stylePlan, dateTimeOffsetWriteStrategy, sharedStrings);
                             rowStarted = true;
                         }
 
@@ -1734,7 +1750,7 @@ namespace OfficeIMO.Excel {
                         WriteDirectValueCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], valueStyleColumns?[c] ?? false, cellValueKinds[c], sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, sharedStrings);
                     }
 
-                    WriteOverlayCellsForRow(writer, overlayCellsByRow, rowIndex, dateTimeOffsetWriteStrategy, sharedStrings);
+                    WriteOverlayCellsForRow(writer, overlayCellsByRow, rowIndex, stylePlan, dateTimeOffsetWriteStrategy, sharedStrings);
                     writer.Write("</row>");
                     rowIndex++;
                 }

@@ -2116,7 +2116,7 @@ namespace OfficeIMO.Excel {
                     case SheetDimension:
                         break;
                     case SheetData sheetData:
-                        overlayCells = CaptureDirectWorksheetOverlayCells(sheet, sheetModel, sheetData);
+                        overlayCells = CaptureDirectWorksheetOverlayCells(sheet, sheetModel, sheetData, _spreadSheetDocument.WorkbookPart?.WorkbookStylesPart?.Stylesheet);
                         break;
                     case SheetViews sheetViews when sheetViewsXml == null:
                         sheetViewsXml = sheetViews.OuterXml;
@@ -2278,7 +2278,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static IReadOnlyList<DirectOverlayCell> CaptureDirectWorksheetOverlayCells(ExcelSheet sheet, DirectDataSetSheetModel sheetModel, SheetData sheetData) {
+        private static IReadOnlyList<DirectOverlayCell> CaptureDirectWorksheetOverlayCells(ExcelSheet sheet, DirectDataSetSheetModel sheetModel, SheetData sheetData, Stylesheet? stylesheet) {
             int directLastRow = sheetModel.Table.RowCount + (sheetModel.IncludeHeaders ? 1 : 0);
             List<DirectOverlayCell>? cells = null;
             int nextRowIndex = 1;
@@ -2302,11 +2302,27 @@ namespace OfficeIMO.Excel {
                     }
 
                     cells ??= new List<DirectOverlayCell>();
-                    cells.Add(new DirectOverlayCell(cellRow, cellColumn, value, cell.StyleIndex?.Value));
+                    cells.Add(new DirectOverlayCell(cellRow, cellColumn, value, cell.StyleIndex?.Value, ResolveDirectOverlayNumberFormat(stylesheet, cell)));
                 }
             }
 
             return cells ?? (IReadOnlyList<DirectOverlayCell>)Array.Empty<DirectOverlayCell>();
+        }
+
+        private static string? ResolveDirectOverlayNumberFormat(Stylesheet? stylesheet, Cell cell) {
+            if (cell.StyleIndex?.Value is not uint styleIndex) {
+                return null;
+            }
+
+            var cellFormat = stylesheet?.CellFormats?.Elements<CellFormat>().ElementAtOrDefault((int)styleIndex);
+            if (cellFormat?.NumberFormatId?.Value is not uint numberFormatId || numberFormatId == 0U) {
+                return null;
+            }
+
+            return stylesheet?.NumberingFormats?.Elements<NumberingFormat>()
+                .FirstOrDefault(format => format.NumberFormatId?.Value == numberFormatId)
+                ?.FormatCode
+                ?.Value;
         }
 
         private static bool TryGetCellCoordinates(Cell cell, int fallbackRow, int fallbackColumn, out int row, out int column) {
@@ -3019,11 +3035,12 @@ namespace OfficeIMO.Excel {
         }
 
         private readonly struct DirectOverlayCell {
-            internal DirectOverlayCell(int row, int column, object? value, uint? styleIndex) {
+            internal DirectOverlayCell(int row, int column, object? value, uint? styleIndex, string? numberFormat) {
                 Row = row;
                 Column = column;
                 Value = value;
                 StyleIndex = styleIndex;
+                NumberFormat = numberFormat;
             }
 
             internal int Row { get; }
@@ -3033,6 +3050,8 @@ namespace OfficeIMO.Excel {
             internal object? Value { get; }
 
             internal uint? StyleIndex { get; }
+
+            internal string? NumberFormat { get; }
         }
 
         private readonly struct DirectBufferedRows {
