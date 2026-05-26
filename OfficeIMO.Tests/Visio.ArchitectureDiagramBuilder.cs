@@ -91,6 +91,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ArchitectureDiagramBuilderCanAddLegendWithoutOverlappingComponents() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .ArchitectureDiagram("Jenkins on Azure", diagram => diagram
+                    .Title()
+                    .Legend(dataFlowLabel: "Data Flow", controlFlowLabel: "Control Flow")
+                    .Region("vnet", "Virtual Network", 1, 0, 3, 2)
+                    .Actor("users", "Users", 0, 1)
+                    .Gateway("public-ip", "Public IP", 1, 1)
+                    .Service("jenkins", "Jenkins Server", 2, 1)
+                    .Compute("agent", "Build Agent", 3, 1)
+                    .DataFlow("users", "public-ip", "HTTPS")
+                    .DataFlow("public-ip", "jenkins")
+                    .ControlFlow("jenkins", "agent", "scale"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape dataLegend = Assert.Single(page.Shapes, shape => shape.Text == "Data Flow");
+            VisioShape controlLegend = Assert.Single(page.Shapes, shape => shape.Text == "Control Flow");
+            VisioShape gateway = Assert.Single(page.Shapes, shape => shape.Id == "public-ip");
+            Assert.Equal("Text Box", dataLegend.NameU);
+            Assert.Equal("Text Box", controlLegend.NameU);
+            Assert.True(dataLegend.PinY > gateway.PinY);
+            Assert.True(controlLegend.PinY > gateway.PinY);
+            Assert.Contains(page.Shapes, shape => shape.NameU == "Rectangle" && shape.LinePattern == 1 && shape.Text.Length == 0);
+            Assert.Contains(page.Shapes, shape => shape.NameU == "Rectangle" && shape.LinePattern == 2 && shape.Text.Length == 0);
+            Assert.Empty(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckConnectorShapeIntersections = false,
+                CheckConnectorLabels = false
+            }).Select(issue => issue.ToString()));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void ArchitectureDiagramBuilderRejectsUnknownLinkEndpoints() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 

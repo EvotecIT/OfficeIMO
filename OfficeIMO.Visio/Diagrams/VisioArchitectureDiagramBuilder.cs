@@ -88,6 +88,11 @@ namespace OfficeIMO.Visio.Diagrams {
         private string _titleId = "title";
         private double _titleHeight = 0.45;
         private double _titleGap = 0.35;
+        private bool _showLegend;
+        private string _dataFlowLegendLabel = "Data Flow";
+        private string _controlFlowLegendLabel = "Control Flow";
+        private double _legendHeight = 0.28;
+        private double _legendGap = 0.35;
         private bool _built;
 
         internal VisioArchitectureDiagramBuilder(VisioDocument document, string pageName) {
@@ -151,6 +156,14 @@ namespace OfficeIMO.Visio.Diagrams {
             _titleId = normalizedId;
             _titleHeight = height;
             _titleGap = gap;
+            return this;
+        }
+
+        /// <summary>Adds a compact data/control flow legend above the generated architecture grid.</summary>
+        public VisioArchitectureDiagramBuilder Legend(bool enabled = true, string dataFlowLabel = "Data Flow", string controlFlowLabel = "Control Flow") {
+            _showLegend = enabled;
+            _dataFlowLegendLabel = string.IsNullOrWhiteSpace(dataFlowLabel) ? "Data Flow" : dataFlowLabel;
+            _controlFlowLegendLabel = string.IsNullOrWhiteSpace(controlFlowLabel) ? "Control Flow" : controlFlowLabel;
             return this;
         }
 
@@ -261,20 +274,25 @@ namespace OfficeIMO.Visio.Diagrams {
             AddRegions(page);
             AddComponents(page);
             AddLinks(page);
-            AddTitle(page);
+            AddAdornments(page);
             _document.RequestRecalcOnOpen();
             return page;
         }
 
-        private void AddTitle(VisioPage page) {
-            if (string.IsNullOrWhiteSpace(_titleText)) {
-                return;
+        private void AddAdornments(VisioPage page) {
+            if (!string.IsNullOrWhiteSpace(_titleText)) {
+                double titleY = _pageHeight - _topMargin - (_titleHeight / 2D);
+                double width = Math.Max(1D, _pageWidth - 1.6D);
+                VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, titleY, width, _titleHeight, _titleText, _unit);
+                title.TextStyle = CreateTitleTextStyle();
             }
 
-            double y = _pageHeight - _topMargin - (_titleHeight / 2D);
-            double width = Math.Max(1D, _pageWidth - 1.6D);
-            VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, width, _titleHeight, _titleText, _unit);
-            title.TextStyle = CreateTitleTextStyle();
+            if (_showLegend) {
+                double titleOffset = string.IsNullOrWhiteSpace(_titleText) ? 0D : _titleHeight + _titleGap;
+                double legendY = _pageHeight - _topMargin - titleOffset - (_legendHeight / 2D);
+                AddLegendItem(page, Math.Max(0.8D, _leftMargin), legendY, _dataFlowLegendLabel, _theme.DataConnector);
+                AddLegendItem(page, Math.Max(0.8D, _pageWidth - 3.35D), legendY, _controlFlowLegendLabel, _theme.ControlConnector);
+            }
         }
 
         private VisioTextStyle CreateTitleTextStyle() {
@@ -283,6 +301,28 @@ namespace OfficeIMO.Visio.Diagrams {
             style.Size = Math.Max(style.Size ?? 0D, 20D);
             style.Bold = true;
             style.HorizontalAlignment = VisioTextHorizontalAlignment.Center;
+            style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
+            return style;
+        }
+
+        private void AddLegendItem(VisioPage page, double x, double y, string label, VisioConnectorStyle connectorStyle) {
+            VisioShape sample = page.AddRectangle(x + 0.32D, y, 0.64D, 0.08D, string.Empty, _unit);
+            sample.NameU = "Rectangle";
+            sample.FillPattern = 0;
+            sample.LineColor = connectorStyle.LineColor;
+            sample.LinePattern = connectorStyle.LinePattern;
+            sample.LineWeight = Math.Max(0.018D, connectorStyle.LineWeight);
+            sample.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.DiagramAdornmentKind, "STR", prompt: "OfficeIMO semantic kind");
+
+            VisioShape text = page.AddTextBox(x + 1.55D, y, 1.65D, _legendHeight, label, _unit);
+            text.TextStyle = CreateLegendTextStyle(connectorStyle);
+        }
+
+        private VisioTextStyle CreateLegendTextStyle(VisioConnectorStyle connectorStyle) {
+            VisioTextStyle style = connectorStyle.TextStyle?.Clone() ?? _theme.DataConnector.TextStyle?.Clone() ?? new VisioTextStyle();
+            style.FontFamily = string.IsNullOrWhiteSpace(style.FontFamily) ? "Aptos" : style.FontFamily;
+            style.Size = Math.Max(style.Size ?? 0D, 9D);
+            style.HorizontalAlignment = VisioTextHorizontalAlignment.Left;
             style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
             return style;
         }
@@ -409,7 +449,20 @@ namespace OfficeIMO.Visio.Diagrams {
             return top - height / 2D;
         }
 
-        private double HeaderHeight => string.IsNullOrWhiteSpace(_titleText) ? 0D : _titleHeight + _titleGap;
+        private double HeaderHeight {
+            get {
+                double height = 0D;
+                if (!string.IsNullOrWhiteSpace(_titleText)) {
+                    height += _titleHeight + _titleGap;
+                }
+
+                if (_showLegend) {
+                    height += _legendHeight + _legendGap;
+                }
+
+                return height;
+            }
+        }
 
         private void EnsureKnownComponent(string id, string parameterName) {
             if (string.IsNullOrWhiteSpace(id)) {
