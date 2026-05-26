@@ -773,6 +773,16 @@ public class PdfPageExtractorTests {
     }
 
     [Fact]
+    public void ExtractPages_RejectsWrongGenerationReferencesBeforeRewrite() {
+        byte[] source = BuildSinglePagePdfWithGenerationOneContent(contentObjectGeneration: 0, contentReferenceGeneration: 1);
+
+        var exception = Assert.Throws<InvalidOperationException>(() => PdfPageExtractor.ExtractPages(source, 1));
+
+        Assert.Contains("PDF object 4 1 R", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("active object generation is 0", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ExtractPages_DropsBookmarkLinksWhenDestinationPageIsNotCopied() {
         byte[] source = PdfDoc.Create()
             .Paragraph(p => p.LinkToBookmark("Jump to details", "Details"))
@@ -985,20 +995,25 @@ public class PdfPageExtractorTests {
         }
     }
 
-    private static byte[] BuildSinglePagePdfWithGenerationOneContent(bool includeAnnotation = false) {
+    private static byte[] BuildSinglePagePdfWithGenerationOneContent(
+        bool includeAnnotation = false,
+        int contentObjectGeneration = 1,
+        int contentReferenceGeneration = 1,
+        int annotationObjectGeneration = 1,
+        int annotationReferenceGeneration = 1) {
         var stream = new MemoryStream();
         var offsets = new Dictionary<int, (int Offset, int Generation)>();
-        string annotationEntry = includeAnnotation ? " /Annots [6 1 R]" : string.Empty;
+        string annotationEntry = includeAnnotation ? " /Annots [6 " + annotationReferenceGeneration.ToString(System.Globalization.CultureInfo.InvariantCulture) + " R]" : string.Empty;
 
         WriteAscii(stream, "%PDF-1.4\n");
         WriteObject(stream, offsets, 1, 0, "<< /Type /Catalog /Pages 2 0 R >>");
         WriteObject(stream, offsets, 2, 0, "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 5 0 R >> >> >>");
-        WriteObject(stream, offsets, 3, 0, "<< /Type /Page /Parent 2 0 R /Contents 4 1 R" + annotationEntry + " >>");
-        WriteStreamObject(stream, offsets, 4, 1, Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Generation one content) Tj\nET\n"));
+        WriteObject(stream, offsets, 3, 0, "<< /Type /Page /Parent 2 0 R /Contents 4 " + contentReferenceGeneration.ToString(System.Globalization.CultureInfo.InvariantCulture) + " R" + annotationEntry + " >>");
+        WriteStreamObject(stream, offsets, 4, contentObjectGeneration, Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Generation one content) Tj\nET\n"));
         WriteObject(stream, offsets, 5, 0, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
 
         if (includeAnnotation) {
-            WriteObject(stream, offsets, 6, 1, "<< /Type /Annot /Subtype /Link /Rect [72 700 180 722] /Border [0 0 0] /A << /S /URI /URI (https://evotec.xyz) >> /Contents (Generation link) >>");
+            WriteObject(stream, offsets, 6, annotationObjectGeneration, "<< /Type /Annot /Subtype /Link /Rect [72 700 180 722] /Border [0 0 0] /A << /S /URI /URI (https://evotec.xyz) >> /Contents (Generation link) >>");
         }
 
         int size = includeAnnotation ? 7 : 6;

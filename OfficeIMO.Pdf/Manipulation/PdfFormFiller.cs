@@ -827,7 +827,7 @@ public static class PdfFormFiller {
             numberMap[sourceIds[i]] = i + 1;
         }
 
-        var context = new PdfPageExtractor.SerializationContext(numberMap, pagesObjectId: 0, new Dictionary<int, Dictionary<string, PdfObject>>());
+        var context = new PdfPageExtractor.SerializationContext(numberMap, pagesObjectId: 0, new Dictionary<int, Dictionary<string, PdfObject>>(), objects);
         var rewritten = new List<byte[]>(sourceIds.Length + 1);
         foreach (int sourceId in sourceIds) {
             byte[] body = PdfPageExtractor.SerializeObject(objects[sourceId].Value, context);
