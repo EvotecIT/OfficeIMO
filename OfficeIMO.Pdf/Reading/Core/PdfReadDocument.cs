@@ -97,14 +97,7 @@ public sealed class PdfReadDocument {
     public IReadOnlyList<PdfExtractedImage> ExtractImages() => PdfImageExtractor.ExtractImages(this);
 
     private IReadOnlyList<PdfOutlineItem> ExtractOutlines() {
-        PdfDictionary? catalog = null;
-        foreach (var kv in _objects) {
-            if (kv.Value.Value is PdfDictionary d && d.Get<PdfName>("Type")?.Name == "Catalog") {
-                catalog = d;
-                break;
-            }
-        }
-
+        PdfDictionary? catalog = FindCatalog();
         if (catalog is null ||
             !catalog.Items.TryGetValue("Outlines", out var outlinesObj) ||
             ResolveDict(outlinesObj) is not PdfDictionary outlines ||
@@ -532,11 +525,8 @@ public sealed class PdfReadDocument {
     private List<PdfReadPage> CollectPages() {
         // Prefer true page tree traversal when possible (Catalog -> Pages -> Kids ...)
         var result = new List<PdfReadPage>();
-        int? catalogId = null;
-        foreach (var kv in _objects) {
-            if (kv.Value.Value is PdfDictionary d && d.Get<PdfName>("Type")?.Name == "Catalog") { catalogId = kv.Key; break; }
-        }
-        if (catalogId is int cat && _objects.TryGetValue(cat, out var catObj) && catObj.Value is PdfDictionary catalog) {
+        PdfDictionary? catalog = FindCatalog();
+        if (catalog is not null) {
             var pagesNode = ResolveDict(catalog.Items.TryGetValue("Pages", out var v) ? v : null);
             if (pagesNode is not null) {
                 var kids = ResolveArray(pagesNode.Items.TryGetValue("Kids", out var kidsObj) ? kidsObj : null);

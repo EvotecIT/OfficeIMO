@@ -1254,7 +1254,7 @@ public class PdfInspectorTests {
             "<< /Type /Outlines /First 6 0 R /Last 6 0 R /Count 1 >>",
             "endobj",
             "6 0 obj",
-            "<< /Title (Chapter 1) /Parent 5 0 R /A << /S /GoTo /D [3 0 R /XYZ 0 200 0] >> >>",
+            "<< /Title (External) /Parent 5 0 R /A << /S /URI /URI (https://evotec.xyz) >> >>",
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 7 >>",

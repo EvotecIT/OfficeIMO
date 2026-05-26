@@ -1537,8 +1537,12 @@ public static class PdfPageExtractor {
                     return true;
                 }
 
-                if (dictionary.Items.ContainsKey("A") ||
-                    dictionary.Items.ContainsKey("AA")) {
+                if (dictionary.Items.ContainsKey("AA")) {
+                    return false;
+                }
+
+                if (dictionary.Items.TryGetValue("A", out var action) &&
+                    !IsSupportedOutlineAction(sourceObjects, action)) {
                     return false;
                 }
 
@@ -1552,6 +1556,18 @@ public static class PdfPageExtractor {
             default:
                 return false;
         }
+    }
+
+    private static bool IsSupportedOutlineAction(Dictionary<int, PdfIndirectObject> sourceObjects, PdfObject action) {
+        return ResolveDictionary(sourceObjects, action) is PdfDictionary dictionary &&
+            dictionary.Items.Count == 2 &&
+            dictionary.Get<PdfName>("S")?.Name == "GoTo" &&
+            dictionary.Items.TryGetValue("D", out var destination) &&
+            ResolveObject(sourceObjects, destination) is PdfArray array &&
+            array.Items.Count > 0 &&
+            array.Items[0] is PdfReference pageReference &&
+            sourceObjects.TryGetValue(pageReference.ObjectNumber, out var pageObject) &&
+            IsPageDictionary(pageObject.Value);
     }
 
     private static bool OutlineDestinationsReferenceOnlyCopiedPages(

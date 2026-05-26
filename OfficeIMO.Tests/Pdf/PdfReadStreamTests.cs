@@ -186,7 +186,7 @@ public class PdfReadStreamTests {
 
     [Fact]
     public void ReadApis_ResolveOutlineGoToActionDestinations() {
-        PdfDocumentInfo info = PdfInspector.Inspect(BuildComplexOutlinePdf());
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildGoToActionOutlinePdf());
 
         PdfOutlineItem item = Assert.Single(info.Outlines);
         Assert.Equal("Chapter 1", item.Title);
@@ -195,8 +195,35 @@ public class PdfReadStreamTests {
     }
 
     [Fact]
+    public void RewriteApis_PreserveGoToActionOutlinePdfsForCopiedPages() {
+        byte[] outline = BuildGoToActionOutlinePdf();
+
+        AssertOutline(PdfPageExtractor.ExtractPages(outline, 1));
+        var splitPages = PdfPageExtractor.SplitPages(outline);
+        Assert.Single(splitPages);
+        AssertOutline(splitPages[0]);
+        AssertOutline(PdfPageEditor.ReorderPages(outline, 1));
+        AssertOutline(PdfPageEditor.RotatePages(outline, 90));
+        AssertOutline(PdfMetadataEditor.UpdateMetadata(outline, title: "Updated"));
+        AssertOutline(PdfMerger.Merge(outline));
+        AssertOutline(PdfStamper.StampText(outline, "STAMP"));
+
+        static void AssertOutline(byte[] output) {
+            string text = System.Text.Encoding.ASCII.GetString(output);
+            Assert.Contains("/Outlines ", text, StringComparison.Ordinal);
+            Assert.Contains("/A << /S /GoTo /D [", text, StringComparison.Ordinal);
+            Assert.Contains("/Title (Chapter 1)", text, StringComparison.Ordinal);
+
+            PdfOutlineItem item = Assert.Single(PdfInspector.Inspect(output).Outlines);
+            Assert.Equal("Chapter 1", item.Title);
+            Assert.Equal(1, item.PageNumber);
+            Assert.Equal(200d, item.DestinationTop);
+        }
+    }
+
+    [Fact]
     public void RewriteApis_RejectComplexOutlinePdfsWithClearUnsupportedDiagnostic() {
-        byte[] outline = BuildComplexOutlinePdf();
+        byte[] outline = BuildUriActionOutlinePdf();
 
         static void AssertOutline(Action action) {
             var exception = Assert.Throws<NotSupportedException>(action);
@@ -226,6 +253,19 @@ public class PdfReadStreamTests {
         Assert.Contains("/PageLayout /SinglePage", text, StringComparison.Ordinal);
         Assert.DoesNotContain("/PageLayout /TwoColumnLeft", text, StringComparison.Ordinal);
         Assert.False(PdfInspector.Inspect(output).HasReadablePageLabels);
+    }
+
+    [Fact]
+    public void ReadApis_UseTrailerRootCatalogForPagesAndOutlinesWhenStaleCatalogsExist() {
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildStaleCatalogWithDifferentPagesAndOutlinesPdf());
+
+        PdfPageInfo page = Assert.Single(info.Pages);
+        Assert.Equal(200d, page.Width);
+        Assert.Equal(200d, page.Height);
+        PdfOutlineItem outline = Assert.Single(info.Outlines);
+        Assert.Equal("Current", outline.Title);
+        Assert.Equal(1, outline.PageNumber);
+        Assert.Equal("SinglePage", info.CatalogPageLayout);
     }
 
     [Fact]
@@ -984,7 +1024,7 @@ public class PdfReadStreamTests {
             .ToBytes();
     }
 
-    private static byte[] BuildComplexOutlinePdf() {
+    private static byte[] BuildGoToActionOutlinePdf() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",
             "1 0 obj",
@@ -1007,6 +1047,38 @@ public class PdfReadStreamTests {
             "endobj",
             "6 0 obj",
             "<< /Title (Chapter 1) /Parent 5 0 R /A << /S /GoTo /D [3 0 R /XYZ 0 200 0] >> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildUriActionOutlinePdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 5 0 R /PageMode /UseOutlines >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Outlines /First 6 0 R /Last 6 0 R /Count 1 >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Title (External) /Parent 5 0 R /A << /S /URI /URI (https://evotec.xyz) >> >>",
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 7 >>",
@@ -1080,6 +1152,53 @@ public class PdfReadStreamTests {
             "endobj",
             "trailer",
             "<< /Root 5 0 R /Size 8 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildStaleCatalogWithDifferentPagesAndOutlinesPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 4 0 R /PageLayout /TwoColumnLeft >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 11 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Outlines /First 12 0 R /Last 12 0 R /Count 1 >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Catalog /Pages 6 0 R /Outlines 8 0 R /PageLayout /SinglePage >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [7 0 R] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /Type /Page /Parent 6 0 R /MediaBox [0 0 200 200] /Contents 11 0 R >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Outlines /First 9 0 R /Last 9 0 R /Count 1 >>",
+            "endobj",
+            "9 0 obj",
+            "<< /Title (Current) /Parent 8 0 R /Dest [7 0 R /XYZ 0 144 0] >>",
+            "endobj",
+            "11 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "12 0 obj",
+            "<< /Title (Old) /Parent 4 0 R /Dest [3 0 R /XYZ 0 72 0] >>",
+            "endobj",
+            "trailer",
+            "<< /Root 5 0 R /Size 13 >>",
             "%%EOF"
         });
 

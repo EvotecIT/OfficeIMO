@@ -360,7 +360,7 @@ internal static class PdfSyntax {
             }
 
             if (resolved is PdfDictionary dictionary &&
-                IsSupportedGoToOpenActionDictionary(objects, dictionary)) {
+                IsSupportedGoToActionDictionary(objects, dictionary)) {
                 return false;
             }
 
@@ -703,11 +703,16 @@ internal static class PdfSyntax {
         return false;
     }
 
-    private static bool IsSupportedGoToOpenActionDictionary(Dictionary<int, PdfIndirectObject> map, PdfDictionary dictionary) {
+    private static bool IsSupportedGoToActionDictionary(Dictionary<int, PdfIndirectObject> map, PdfDictionary dictionary) {
         return dictionary.Items.Count == 2 &&
             dictionary.Get<PdfName>("S")?.Name == "GoTo" &&
             dictionary.Items.TryGetValue("D", out var destination) &&
             IsDestinationForKnownPage(map, destination);
+    }
+
+    private static bool IsSupportedOutlineAction(Dictionary<int, PdfIndirectObject> map, PdfObject action) {
+        return ResolveObject(map, action) is PdfDictionary dictionary &&
+            IsSupportedGoToActionDictionary(map, dictionary);
     }
 
     private static bool IsSimpleCatalogDictionary(PdfDictionary dictionary) {
@@ -857,8 +862,12 @@ internal static class PdfSyntax {
                     return true;
                 }
 
-                if (dictionary.Items.ContainsKey("A") ||
-                    dictionary.Items.ContainsKey("AA")) {
+                if (dictionary.Items.ContainsKey("AA")) {
+                    return false;
+                }
+
+                if (dictionary.Items.TryGetValue("A", out var action) &&
+                    !IsSupportedOutlineAction(map, action)) {
                     return false;
                 }
 
