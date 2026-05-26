@@ -23,6 +23,7 @@ var vsd = VisioDocument.Create("diagram.vsdx");
 vsd.AsFluent()
    .Info(i => i.Title("Demo").Author("You"))
    .Page("Page-1", p => p
+       .Title("Demo Flow")
        .Rect("start", 1, 1, 2, 1, "Start")
        .Diamond("decision", 4, 1.5, 2, 2, "Decision")
        .Ellipse("end", 7, 1.5, 2, 1, "End")

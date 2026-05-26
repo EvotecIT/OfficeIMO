@@ -30,6 +30,36 @@ namespace OfficeIMO.Visio.Fluent {
         /// <param name="style">Shape style to apply.</param>
         public VisioFluentShape Style(VisioShapeStyle style) { _s.ApplyStyle(style); return this; }
 
+        /// <summary>Sets the whole-shape text color.</summary>
+        public VisioFluentShape TextColor(Color color) { EnsureTextStyle().Color = color; return this; }
+
+        /// <summary>Sets the whole-shape text font family.</summary>
+        public VisioFluentShape Font(string fontFamily) { EnsureTextStyle().FontFamily = fontFamily; return this; }
+
+        /// <summary>Sets the whole-shape text size in points.</summary>
+        public VisioFluentShape FontSize(double size) {
+            if (double.IsNaN(size) || double.IsInfinity(size) || size <= 0D) {
+                throw new System.ArgumentOutOfRangeException(nameof(size), "Font size must be a finite positive number.");
+            }
+
+            EnsureTextStyle().Size = size;
+            return this;
+        }
+
+        /// <summary>Sets whether the whole-shape text is bold.</summary>
+        public VisioFluentShape Bold(bool enabled = true) { EnsureTextStyle().Bold = enabled; return this; }
+
+        /// <summary>Sets whole-shape text alignment.</summary>
+        public VisioFluentShape TextAlignment(VisioTextHorizontalAlignment horizontal, VisioTextVerticalAlignment? vertical = null) {
+            VisioTextStyle style = EnsureTextStyle();
+            style.HorizontalAlignment = horizontal;
+            if (vertical.HasValue) {
+                style.VerticalAlignment = vertical.Value;
+            }
+
+            return this;
+        }
+
         /// <summary>Adds the shape to a page layer.</summary>
         /// <param name="layerName">Layer name.</param>
         public VisioFluentShape Layer(string layerName) { _s.LayerNames.Add(layerName); return this; }
@@ -81,5 +111,13 @@ namespace OfficeIMO.Visio.Fluent {
 
         /// <summary>Clears explicit Shape Layout override cells.</summary>
         public VisioFluentShape ClearLayoutPolicy() { _s.ClearLayoutPolicy(); return this; }
+
+        private VisioTextStyle EnsureTextStyle() {
+            if (_s.TextStyle == null) {
+                _s.TextStyle = new VisioTextStyle();
+            }
+
+            return _s.TextStyle;
+        }
     }
 }

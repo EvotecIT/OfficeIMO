@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using OfficeIMO.Visio.Stencils;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio.Fluent {
     /// <summary>
@@ -364,6 +365,56 @@ namespace OfficeIMO.Visio.Fluent {
         public VisioFluentPage Triangle(string id, double x, double y, double width, double height, string? text = null) {
             var shape = CreateShape(id, "Triangle", x, y, width, height, text);
             RegisterShape(shape);
+            return this;
+        }
+
+        /// <summary>Adds an editable text box without a visible border or fill.</summary>
+        public VisioFluentPage TextBox(string id, double x, double y, double width, double height, string? text = null, Action<VisioFluentShape>? configure = null) {
+            if (string.IsNullOrWhiteSpace(id)) {
+                throw new ArgumentException("Shape id cannot be null or whitespace.", nameof(id));
+            }
+
+            if (_byId.ContainsKey(id)) {
+                throw new ArgumentException($"A shape with id '{id}' already exists on page '{_page.Name}'.", nameof(id));
+            }
+
+            VisioShape shape = _page.AddTextBox(id, x, y, width, height, text, _page.DefaultUnit);
+            RegisterShape(shape);
+            configure?.Invoke(new VisioFluentShape(shape));
+            return this;
+        }
+
+        /// <summary>Adds a centered page title near the top of the page.</summary>
+        public VisioFluentPage Title(string text, string id = "title", double height = 0.5D, double topMargin = 0.35D, Action<VisioFluentShape>? configure = null) {
+            if (string.IsNullOrWhiteSpace(id)) {
+                throw new ArgumentException("Shape id cannot be null or whitespace.", nameof(id));
+            }
+
+            if (_byId.ContainsKey(id)) {
+                throw new ArgumentException($"A shape with id '{id}' already exists on page '{_page.Name}'.", nameof(id));
+            }
+
+            if (double.IsNaN(height) || double.IsInfinity(height) || height <= 0D) {
+                throw new ArgumentOutOfRangeException(nameof(height), "Height must be a finite positive number.");
+            }
+
+            if (double.IsNaN(topMargin) || double.IsInfinity(topMargin) || topMargin < 0D) {
+                throw new ArgumentOutOfRangeException(nameof(topMargin), "Top margin must be a finite non-negative number.");
+            }
+
+            double y = _page.Height - topMargin - (height / 2D);
+            double width = Math.Max(1D, _page.Width - (topMargin * 2D));
+            VisioShape shape = _page.AddTextBox(id, _page.Width / 2D, y, width, height, text, VisioMeasurementUnit.Inches);
+            shape.TextStyle = new VisioTextStyle {
+                FontFamily = "Aptos Display",
+                Color = Color.FromRgb(0, 73, 108),
+                Size = 22,
+                Bold = true,
+                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                VerticalAlignment = VisioTextVerticalAlignment.Middle
+            };
+            RegisterShape(shape);
+            configure?.Invoke(new VisioFluentShape(shape));
             return this;
         }
 

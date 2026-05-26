@@ -1190,7 +1190,40 @@ namespace OfficeIMO.Visio {
         /// <param name="unit">Measurement unit.</param>
         /// <returns>The created text box shape.</returns>
         public VisioShape AddTextBox(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
-            VisioShape shape = AddRectangle(x, y, width, height, text, unit);
+            VisioShape shape = AddTextBoxCore(NextId(), x, y, width, height, text, unit);
+            Shapes.Add(shape);
+            return shape;
+        }
+
+        /// <summary>
+        /// Adds an editable text box with a caller-provided shape id and without a visible border or fill.
+        /// </summary>
+        /// <param name="id">Shape identifier.</param>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the text box.</param>
+        /// <param name="height">Height of the text box.</param>
+        /// <param name="text">Text to place in the box.</param>
+        /// <param name="unit">Measurement unit.</param>
+        /// <returns>The created text box shape.</returns>
+        public VisioShape AddTextBox(string id, double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            if (string.IsNullOrWhiteSpace(id)) {
+                throw new ArgumentException("Shape id cannot be null or whitespace.", nameof(id));
+            }
+
+            VisioShape shape = AddTextBoxCore(id, x, y, width, height, text, unit);
+            Shapes.Add(shape);
+            return shape;
+        }
+
+        /// <summary>
+        /// Adds an editable text box with a caller-provided shape id and without a visible border or fill using the page <see cref="DefaultUnit"/>.
+        /// </summary>
+        public VisioShape AddTextBox(string id, double x, double y, double width, double height, string? text = null) =>
+            AddTextBox(id, x, y, width, height, text, DefaultUnit);
+
+        private static VisioShape CreateTextBoxShape(string id, double x, double y, double width, double height, string? text) {
+            VisioShape shape = new VisioShape(id, x, y, width, height, text ?? string.Empty);
             shape.NameU = "Text Box";
             shape.LinePattern = 0;
             shape.FillPattern = 0;
@@ -1198,6 +1231,22 @@ namespace OfficeIMO.Visio {
             shape.FillColor = OfficeIMO.Drawing.OfficeColor.Transparent;
             shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.DiagramAdornmentKind, "STR", prompt: "OfficeIMO semantic kind");
             return shape;
+        }
+
+        private static void ValidateTextBoxDimensions(double width, double height) {
+            if (double.IsNaN(width) || double.IsInfinity(width) || width <= 0D) {
+                throw new ArgumentOutOfRangeException(nameof(width), "Width must be a finite positive number.");
+            }
+
+            if (double.IsNaN(height) || double.IsInfinity(height) || height <= 0D) {
+                throw new ArgumentOutOfRangeException(nameof(height), "Height must be a finite positive number.");
+            }
+        }
+
+        private VisioShape AddTextBoxCore(string id, double x, double y, double width, double height, string? text, VisioMeasurementUnit unit) {
+            ValidateTextBoxDimensions(width, height);
+            ApplyUnits(ref x, ref y, ref width, ref height, unit);
+            return CreateTextBoxShape(id, x, y, width, height, text);
         }
 
         /// <summary>

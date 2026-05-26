@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Notes");
-            VisioShape textBox = page.AddTextBox(4, 7, 5, 0.6, "Generated diagram title");
+            VisioShape textBox = page.AddTextBox("title", 4, 7, 5, 0.6, "Generated diagram title");
             textBox.TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos",
                 Size = 18,
@@ -37,6 +37,7 @@ namespace OfficeIMO.Tests {
             };
 
             Assert.Equal("Text Box", textBox.NameU);
+            Assert.Equal("title", textBox.Id);
             Assert.Equal(0, textBox.LinePattern);
             Assert.Equal(0, textBox.FillPattern);
             Assert.NotNull(textBox.FindUserCell("OfficeIMO.Kind"));
@@ -46,6 +47,7 @@ namespace OfficeIMO.Tests {
 
             VisioDocument loaded = VisioDocument.Load(filePath);
             VisioShape loadedTextBox = Assert.Single(loaded.Pages[0].Shapes);
+            Assert.Equal("title", loadedTextBox.Id);
             Assert.Equal("Generated diagram title", loadedTextBox.Text);
             Assert.Equal("Text Box", loadedTextBox.NameU);
         }
