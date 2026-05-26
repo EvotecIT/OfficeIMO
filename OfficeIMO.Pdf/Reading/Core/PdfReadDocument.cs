@@ -548,13 +548,14 @@ public sealed class PdfReadDocument {
             if (pagesNode is not null) {
                 var kids = ResolveArray(pagesNode.Items.TryGetValue("Kids", out var kidsObj) ? kidsObj : null);
                 int kidCount = kids?.Items.Count ?? 0;
-                var visited = new HashSet<int>();
+                var visitedNodes = new HashSet<PdfDictionary>();
+                var visitedPages = new HashSet<int>();
                 int? target = null;
                 var cnt = pagesNode.Get<PdfNumber>("Count");
                 if (cnt is not null) {
                     int cc = (int)cnt.Value; if (cc > 0) target = cc;
                 }
-                TraversePagesNodeDeepLimited(pagesNode, visited, result, target);
+                TraversePagesNodeDeepLimited(pagesNode, visitedNodes, visitedPages, result, target);
                 if (result.Count == 0 && kidCount > 0) {
                     // Build a reachable candidate set from Kids only
                     var reachable = CollectReachableLeafCandidates(pagesNode);
@@ -632,11 +633,15 @@ public sealed class PdfReadDocument {
         return !hasKids && hasContents && (hasRes || hasMedia);
     }
 
-    private void TraversePagesNodeDeepLimited(PdfDictionary node, HashSet<int> visited, List<PdfReadPage> outList, int? limit) {
+    private void TraversePagesNodeDeepLimited(PdfDictionary node, HashSet<PdfDictionary> visitedNodes, HashSet<int> visitedPages, List<PdfReadPage> outList, int? limit) {
+        if (!visitedNodes.Add(node)) {
+            return;
+        }
+
         var type = node.Get<PdfName>("Type")?.Name;
         if (type == "Page" || (type is null && IsLikelyPage(node))) {
             int objNum = FindObjectNumberFor(node);
-            if (objNum > 0 && visited.Add(objNum)) {
+            if (objNum > 0 && visitedPages.Add(objNum)) {
                 if (type == "Page" || HasMedia(node) || HasInheritedValue(node, "MediaBox") || HasInheritedValue(node, "CropBox")) {
                     outList.Add(new PdfReadPage(objNum, node, _objects));
                 }
@@ -650,11 +655,11 @@ public sealed class PdfReadDocument {
             var d = ResolveDict(kid);
             if (d is null) { continue; }
             var t = d.Get<PdfName>("Type")?.Name;
-            if (t == "Pages" || (t is null && ResolveArray(d.Items.TryGetValue("Kids", out var dKidsObj) ? dKidsObj : null) is not null)) TraversePagesNodeDeepLimited(d, visited, outList, limit);
+            if (t == "Pages" || (t is null && ResolveArray(d.Items.TryGetValue("Kids", out var dKidsObj) ? dKidsObj : null) is not null)) TraversePagesNodeDeepLimited(d, visitedNodes, visitedPages, outList, limit);
             else if ((t == "Page" || IsLikelyPage(d) || IsLeafPageByParent(d)) &&
                      (t == "Page" || HasMedia(d) || HasInheritedValue(d, "MediaBox") || HasInheritedValue(d, "CropBox"))) {
                 int on = FindObjectNumberFor(d);
-                if (on > 0 && visited.Add(on)) {
+                if (on > 0 && visitedPages.Add(on)) {
                     outList.Add(new PdfReadPage(on, d, _objects));
                     if (limit.HasValue && outList.Count >= limit.Value) return;
                 }

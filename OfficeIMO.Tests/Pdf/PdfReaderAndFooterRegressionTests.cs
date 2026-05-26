@@ -362,7 +362,7 @@ public class PdfReaderAndFooterRegressionTests {
 
         string text = PdfTextExtractor.ExtractAllText(bytes);
 
-        Assert.Contains("Helloworld", text, StringComparison.Ordinal);
+        Assert.Contains("Hello world", text, StringComparison.Ordinal);
     }
 
     [Fact]
