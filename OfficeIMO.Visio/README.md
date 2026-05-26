@@ -129,6 +129,7 @@ using OfficeIMO.Visio.Diagrams;
 
 VisioDocument.Create("architecture.vsdx")
     .ArchitectureDiagram("Jenkins on Azure", diagram => diagram
+        .Title()
         .Theme(VisioStyleTheme.Technical())
         .Region("vnet", "Virtual Network", 1, 0, 4, 3)
         .Region("subnet", "Build Subnet", 1, 1, 4, 2)

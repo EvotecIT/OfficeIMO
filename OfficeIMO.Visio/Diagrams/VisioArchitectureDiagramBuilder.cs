@@ -84,6 +84,10 @@ namespace OfficeIMO.Visio.Diagrams {
         private double _rowGap = 0.75;
         private double _componentWidth = 1.75;
         private double _componentHeight = 0.95;
+        private string? _titleText;
+        private string _titleId = "title";
+        private double _titleHeight = 0.45;
+        private double _titleGap = 0.35;
         private bool _built;
 
         internal VisioArchitectureDiagramBuilder(VisioDocument document, string pageName) {
@@ -131,6 +135,22 @@ namespace OfficeIMO.Visio.Diagrams {
             ValidatePositive(height, nameof(height));
             _componentWidth = width;
             _componentHeight = height;
+            return this;
+        }
+
+        /// <summary>Adds a centered editable title above the generated architecture diagram.</summary>
+        public VisioArchitectureDiagramBuilder Title(string? text = null, string id = "title", double height = 0.45, double gap = 0.35) {
+            string normalizedId = RequireId(id, nameof(id), "Title id");
+            if (IsIdInUse(normalizedId)) {
+                throw new ArgumentException($"A diagram item with id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            ValidatePositive(height, nameof(height));
+            ValidateNonNegative(gap, nameof(gap));
+            _titleText = string.IsNullOrWhiteSpace(text) ? _pageName : text;
+            _titleId = normalizedId;
+            _titleHeight = height;
+            _titleGap = gap;
             return this;
         }
 
@@ -241,8 +261,30 @@ namespace OfficeIMO.Visio.Diagrams {
             AddRegions(page);
             AddComponents(page);
             AddLinks(page);
+            AddTitle(page);
             _document.RequestRecalcOnOpen();
             return page;
+        }
+
+        private void AddTitle(VisioPage page) {
+            if (string.IsNullOrWhiteSpace(_titleText)) {
+                return;
+            }
+
+            double y = _pageHeight - _topMargin - (_titleHeight / 2D);
+            double width = Math.Max(1D, _pageWidth - 1.6D);
+            VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, width, _titleHeight, _titleText, _unit);
+            title.TextStyle = CreateTitleTextStyle();
+        }
+
+        private VisioTextStyle CreateTitleTextStyle() {
+            VisioTextStyle style = _theme.Container.TextStyle?.Clone() ?? new VisioTextStyle();
+            style.FontFamily = string.IsNullOrWhiteSpace(style.FontFamily) ? "Aptos Display" : style.FontFamily;
+            style.Size = Math.Max(style.Size ?? 0D, 20D);
+            style.Bold = true;
+            style.HorizontalAlignment = VisioTextHorizontalAlignment.Center;
+            style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
+            return style;
         }
 
         private void AddRegions(VisioPage page) {
@@ -362,10 +404,12 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private double GridY(int row, int span) {
-            double top = _pageHeight - _topMargin - row * (_componentHeight + _rowGap);
+            double top = _pageHeight - _topMargin - HeaderHeight - row * (_componentHeight + _rowGap);
             double height = span * _componentHeight + (span - 1) * _rowGap;
             return top - height / 2D;
         }
+
+        private double HeaderHeight => string.IsNullOrWhiteSpace(_titleText) ? 0D : _titleHeight + _titleGap;
 
         private void EnsureKnownComponent(string id, string parameterName) {
             if (string.IsNullOrWhiteSpace(id)) {
@@ -386,6 +430,10 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private bool IsIdInUse(string id) {
+            if (!string.IsNullOrWhiteSpace(_titleText) && string.Equals(_titleId, id, StringComparison.Ordinal)) {
+                return true;
+            }
+
             if (_componentsById.ContainsKey(id)) {
                 return true;
             }

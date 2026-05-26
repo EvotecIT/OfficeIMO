@@ -60,6 +60,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ArchitectureDiagramBuilderCanAddTitleWithoutOverlappingComponents() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .ArchitectureDiagram("Jenkins on Azure", diagram => diagram
+                    .Title()
+                    .Region("vnet", "Virtual Network", 1, 0, 3, 2)
+                    .Actor("users", "Users", 0, 1)
+                    .Gateway("public-ip", "Public IP", 1, 1)
+                    .Service("jenkins", "Jenkins Server", 2, 1)
+                    .Compute("agent", "Build Agent", 3, 1)
+                    .DataFlow("users", "public-ip", "HTTPS")
+                    .DataFlow("public-ip", "jenkins")
+                    .ControlFlow("jenkins", "agent", "scale"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape title = Assert.Single(page.Shapes, shape => shape.Id == "title");
+            VisioShape gateway = Assert.Single(page.Shapes, shape => shape.Id == "public-ip");
+            Assert.Equal("Text Box", title.NameU);
+            Assert.Equal("Jenkins on Azure", title.Text);
+            Assert.True(title.PinY > gateway.PinY);
+            Assert.Empty(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckConnectorShapeIntersections = false,
+                CheckConnectorLabels = false
+            }).Select(issue => issue.ToString()));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void ArchitectureDiagramBuilderRejectsUnknownLinkEndpoints() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -69,6 +100,18 @@ namespace OfficeIMO.Tests {
                     .DataFlow("api", "missing")));
 
             Assert.Contains("Unknown architecture component id", exception.Message);
+        }
+
+        [Fact]
+        public void ArchitectureDiagramBuilderRejectsTitleIdCollisions() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+                document.ArchitectureDiagram("Invalid", diagram => diagram
+                    .Title(id: "api")
+                    .Service("api", "API", 0, 0)));
+
+            Assert.Contains("already exists", exception.Message);
         }
     }
 }
