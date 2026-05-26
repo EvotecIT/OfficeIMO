@@ -429,7 +429,7 @@ public class PdfDocRasterVisualBaselineTests {
             .ToBytes();
     }
 
-    private static byte[] CreateShowcaseDashboard() {
+    internal static byte[] CreateShowcaseDashboard() {
         return PdfDoc.Create(new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 9.5,
