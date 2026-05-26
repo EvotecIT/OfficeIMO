@@ -1394,7 +1394,7 @@ internal static class PdfSyntax {
         byte[] pdf,
         Dictionary<int, int> parsedOffsets,
         string text,
-        List<(int ObjectNumber, int Offset, bool InUse)> entries,
+        List<(int ObjectNumber, int Offset, int Generation, bool InUse)> entries,
         HashSet<int>? activeObjectNumbers = null) {
         foreach (var entry in entries) {
             if (!entry.InUse) {
@@ -1407,23 +1407,23 @@ internal static class PdfSyntax {
                 continue;
             }
 
-            activeObjectNumbers?.Add(entry.ObjectNumber);
-
             if (entry.Offset <= 0 ||
                 entry.Offset >= pdf.Length) {
                 continue;
             }
 
             if (TryParseIndirectObjectAt(pdf, text, entry.Offset, map, out var parsed) &&
-                parsed.ObjectNumber == entry.ObjectNumber) {
+                parsed.ObjectNumber == entry.ObjectNumber &&
+                parsed.Generation == entry.Generation) {
                 map[entry.ObjectNumber] = parsed;
                 parsedOffsets[entry.ObjectNumber] = entry.Offset;
+                activeObjectNumbers?.Add(entry.ObjectNumber);
             }
         }
     }
 
-    private static List<(int Offset, List<(int ObjectNumber, int Offset, bool InUse)> Entries, int? XrefStreamOffset)> GetClassicXrefTableChain(string text, int activeXrefOffset) {
-        var newestToOldest = new List<(int Offset, List<(int ObjectNumber, int Offset, bool InUse)> Entries, int? XrefStreamOffset)>();
+    private static List<(int Offset, List<(int ObjectNumber, int Offset, int Generation, bool InUse)> Entries, int? XrefStreamOffset)> GetClassicXrefTableChain(string text, int activeXrefOffset) {
+        var newestToOldest = new List<(int Offset, List<(int ObjectNumber, int Offset, int Generation, bool InUse)> Entries, int? XrefStreamOffset)>();
         var visited = new HashSet<int>();
         int currentOffset = activeXrefOffset;
         while (visited.Add(currentOffset) &&
@@ -1441,8 +1441,8 @@ internal static class PdfSyntax {
         return newestToOldest;
     }
 
-    private static bool TryParseClassicXrefTable(string text, int offset, out List<(int ObjectNumber, int Offset, bool InUse)> entries, out int? previousOffset, out string trailerRaw, out int? xrefStreamOffset) {
-        entries = new List<(int ObjectNumber, int Offset, bool InUse)>();
+    private static bool TryParseClassicXrefTable(string text, int offset, out List<(int ObjectNumber, int Offset, int Generation, bool InUse)> entries, out int? previousOffset, out string trailerRaw, out int? xrefStreamOffset) {
+        entries = new List<(int ObjectNumber, int Offset, int Generation, bool InUse)>();
         previousOffset = null;
         trailerRaw = string.Empty;
         xrefStreamOffset = null;
@@ -1481,14 +1481,15 @@ internal static class PdfSyntax {
 
                     string[] entryParts = SplitWhitespace(entryLine);
                     if (entryParts.Length < 3 ||
-                        !int.TryParse(entryParts[0], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int objectOffset)) {
+                        !int.TryParse(entryParts[0], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int objectOffset) ||
+                        !int.TryParse(entryParts[1], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int generation)) {
                         continue;
                     }
 
                     if (string.Equals(entryParts[2], "n", StringComparison.Ordinal)) {
-                        entries.Add((firstObjectNumber + i, objectOffset, true));
+                        entries.Add((firstObjectNumber + i, objectOffset, generation, true));
                     } else if (string.Equals(entryParts[2], "f", StringComparison.Ordinal)) {
-                        entries.Add((firstObjectNumber + i, objectOffset, false));
+                        entries.Add((firstObjectNumber + i, objectOffset, generation, false));
                     }
                 }
             }
@@ -1618,13 +1619,17 @@ internal static class PdfSyntax {
         foreach (var entry in entries) {
             if (entry.Type != 1 ||
                 entry.Field1 < 0 ||
-                entry.Field1 > int.MaxValue) {
+                entry.Field1 > int.MaxValue ||
+                entry.Field2 < 0 ||
+                entry.Field2 > int.MaxValue) {
                 continue;
             }
 
             int offset = (int)entry.Field1;
+            int generation = (int)entry.Field2;
             if (TryParseIndirectObjectAt(pdf, text, offset, map, out var parsed) &&
-                parsed.ObjectNumber == entry.ObjectNumber) {
+                parsed.ObjectNumber == entry.ObjectNumber &&
+                parsed.Generation == generation) {
                 map[entry.ObjectNumber] = parsed;
                 parsedOffsets[entry.ObjectNumber] = offset;
             }
@@ -1648,7 +1653,7 @@ internal static class PdfSyntax {
         }
     }
 
-    private static List<(int Offset, List<(int ObjectNumber, int Offset, bool InUse)> Entries, int? XrefStreamOffset)> GetClassicPredecessorTablesForXrefStreamChain(
+    private static List<(int Offset, List<(int ObjectNumber, int Offset, int Generation, bool InUse)> Entries, int? XrefStreamOffset)> GetClassicPredecessorTablesForXrefStreamChain(
         string text,
         List<(int ObjectNumber, int Offset, PdfStream Stream)> xrefStreams,
         int activeXrefOffset) {
@@ -1665,7 +1670,7 @@ internal static class PdfSyntax {
             if (stream.Dictionary.Get<PdfNumber>("Prev") is not PdfNumber previous ||
                 previous.Value < 0 ||
                 previous.Value > int.MaxValue) {
-                return new List<(int Offset, List<(int ObjectNumber, int Offset, bool InUse)> Entries, int? XrefStreamOffset)>();
+                return new List<(int Offset, List<(int ObjectNumber, int Offset, int Generation, bool InUse)> Entries, int? XrefStreamOffset)>();
             }
 
             currentOffset = (int)Math.Floor(previous.Value);
