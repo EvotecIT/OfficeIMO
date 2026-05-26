@@ -7,10 +7,20 @@ namespace OfficeIMO.Excel.Utilities {
             var s = input!;
             // Fast path: if nothing suspicious, clamp and return
             bool needsClean = false;
+#if NET8_0_OR_GREATER
+            int controlIndex = s.AsSpan().IndexOfAnyInRange('\0', '\x1F');
+            if (controlIndex >= 0) {
+                for (int i = controlIndex; i < s.Length; i++) {
+                    char c = s[i];
+                    if (c < 0x20 && c != '\t' && c != '\n' && c != '\r') { needsClean = true; break; }
+                }
+            }
+#else
             for (int i = 0; i < s.Length; i++) {
                 char c = s[i];
                 if ((c < 0x20 && c != '\t' && c != '\n' && c != '\r')) { needsClean = true; break; }
             }
+#endif
             if (!needsClean && s.Length <= maxLength) return s;
 
             var sb = new StringBuilder(s.Length);

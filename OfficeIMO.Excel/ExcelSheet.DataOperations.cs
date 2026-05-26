@@ -599,30 +599,16 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             if (items == null) throw new ArgumentNullException(nameof(items));
 
-            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
-                _excelDocument.MaterializeDeferredDataSetImport();
-            }
-
             var joined = string.Join(",", items.Select(i => i?.Replace("\"", "\"\"") ?? string.Empty));
             var formula = "\"" + joined + "\""; // e.g., "New,Processed,Hold"
 
-            WriteLock(() => {
-                var ws = WorksheetRoot;
-                var dvs = ws.GetFirstChild<DataValidations>();
-                if (dvs == null) {
-                    dvs = new DataValidations();
-                    ws.Append(dvs);
-                }
-
-                var dv = new DataValidation {
-                    Type = DataValidationValues.List,
-                    AllowBlank = allowBlank,
-                    SequenceOfReferences = new ListValue<StringValue> { InnerText = a1Range }
-                };
-                dv.Append(new Formula1(formula));
-                dvs.Append(dv);
-                ws.Save();
-            });
+            var dv = new DataValidation {
+                Type = DataValidationValues.List,
+                AllowBlank = allowBlank,
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = a1Range }
+            };
+            dv.Append(new Formula1(formula));
+            AppendDataValidation(dv);
         }
 
         /// <summary>
@@ -632,32 +618,18 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             if (string.IsNullOrWhiteSpace(namedRange)) throw new ArgumentNullException(nameof(namedRange));
 
-            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
-                _excelDocument.MaterializeDeferredDataSetImport();
-            }
-
             var normalizedNamedRange = namedRange.Trim();
             if (!normalizedNamedRange.StartsWith("=", StringComparison.Ordinal)) {
                 normalizedNamedRange = "=" + normalizedNamedRange;
             }
 
-            WriteLock(() => {
-                var ws = WorksheetRoot;
-                var dvs = ws.GetFirstChild<DataValidations>();
-                if (dvs == null) {
-                    dvs = new DataValidations();
-                    ws.Append(dvs);
-                }
-
-                var dv = new DataValidation {
-                    Type = DataValidationValues.List,
-                    AllowBlank = allowBlank,
-                    SequenceOfReferences = new ListValue<StringValue> { InnerText = a1Range }
-                };
-                dv.Append(new Formula1(normalizedNamedRange));
-                dvs.Append(dv);
-                ws.Save();
-            });
+            var dv = new DataValidation {
+                Type = DataValidationValues.List,
+                AllowBlank = allowBlank,
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = a1Range }
+            };
+            dv.Append(new Formula1(normalizedNamedRange));
+            AppendDataValidation(dv);
         }
 
         /// <summary>
@@ -667,10 +639,6 @@ namespace OfficeIMO.Excel {
         public void ValidationListRange(string a1Range, string sourceA1Range, string? sourceSheetName = null, bool allowBlank = true) {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             if (string.IsNullOrWhiteSpace(sourceA1Range)) throw new ArgumentNullException(nameof(sourceA1Range));
-
-            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
-                _excelDocument.MaterializeDeferredDataSetImport();
-            }
 
             var normalizedSourceRange = sourceA1Range.Trim();
             if (normalizedSourceRange.StartsWith("=", StringComparison.Ordinal)) {
@@ -686,23 +654,13 @@ namespace OfficeIMO.Excel {
             }
             var formula = "=" + formulaRange;
 
-            WriteLock(() => {
-                var ws = WorksheetRoot;
-                var dvs = ws.GetFirstChild<DataValidations>();
-                if (dvs == null) {
-                    dvs = new DataValidations();
-                    ws.Append(dvs);
-                }
-
-                var dv = new DataValidation {
-                    Type = DataValidationValues.List,
-                    AllowBlank = allowBlank,
-                    SequenceOfReferences = new ListValue<StringValue> { InnerText = a1Range }
-                };
-                dv.Append(new Formula1(formula));
-                dvs.Append(dv);
-                ws.Save();
-            });
+            var dv = new DataValidation {
+                Type = DataValidationValues.List,
+                AllowBlank = allowBlank,
+                SequenceOfReferences = new ListValue<StringValue> { InnerText = a1Range }
+            };
+            dv.Append(new Formula1(formula));
+            AppendDataValidation(dv);
         }
 
         /// <summary>
@@ -783,16 +741,53 @@ namespace OfficeIMO.Excel {
                 dv.Append(new Formula2(formula2));
             }
 
-            WriteLock(() => {
+            AppendDataValidation(dv);
+        }
+
+        private void AppendDataValidation(DataValidation dataValidation) {
+            using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
+            WriteLockWorksheetPreparationOnly(() => {
                 Worksheet ws = WorksheetRoot;
                 DataValidations? dvs = ws.GetFirstChild<DataValidations>();
                 if (dvs == null) {
                     dvs = new DataValidations();
-                    ws.Append(dvs);
+                    InsertDataValidations(ws, dvs);
                 }
-                dvs.Append(dv);
-                ws.Save();
+                uint existingCount = dvs.Count?.Value ?? (uint)dvs.Elements<DataValidation>().Count();
+                dvs.Append(dataValidation);
+                dvs.Count = existingCount + 1U;
             });
+        }
+
+        private static void InsertDataValidations(Worksheet worksheet, DataValidations dataValidations) {
+            var tableParts = worksheet.GetFirstChild<TableParts>();
+            if (tableParts != null) {
+                worksheet.InsertBefore(dataValidations, tableParts);
+                return;
+            }
+
+            ConditionalFormatting? conditionalFormatting = null;
+            foreach (var candidate in worksheet.Elements<ConditionalFormatting>()) {
+                conditionalFormatting = candidate;
+            }
+
+            if (conditionalFormatting != null) {
+                worksheet.InsertAfter(dataValidations, conditionalFormatting);
+                return;
+            }
+
+            var autoFilter = worksheet.GetFirstChild<AutoFilter>();
+            if (autoFilter != null) {
+                worksheet.InsertAfter(dataValidations, autoFilter);
+                return;
+            }
+
+            var sheetData = worksheet.GetFirstChild<SheetData>();
+            if (sheetData != null) {
+                worksheet.InsertAfter(dataValidations, sheetData);
+            } else {
+                worksheet.Append(dataValidations);
+            }
         }
 
         // -------- Sorting (values-only, rewrites range) --------

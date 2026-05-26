@@ -133,7 +133,7 @@ namespace OfficeIMO.Excel {
                     return new CellValue(sanitized);
                 },
                 dateTimeOffsetStrategy);
-            return (cellValue, new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType));
+            return (cellValue, GetCachedDataTableCellType(cellType));
         }
 
         private void RegisterDirectCellValuesSaveCandidateIfPossible(DirectCellValuesSaveCandidate? candidate) {
@@ -824,12 +824,8 @@ namespace OfficeIMO.Excel {
                     row = new Row { RowIndex = (uint)rowIndex };
                 }
 
-                var (cellValue, dataType) = CoercePlainAppendValue(item.Value, ref sharedStringIndexes, useDirectStringCells);
-                row!.Append(new Cell {
-                    CellReference = columnNames[item.Column] + rowReference,
-                    CellValue = cellValue,
-                    DataType = dataType
-                });
+                var (cellValue, cellType) = CoercePlainAppendValue(item.Value, ref sharedStringIndexes, useDirectStringCells);
+                row!.Append(CreateTabularAppendCell(columnNames[item.Column] + rowReference, cellValue, cellType));
             }
 
             if (row != null) {
@@ -956,7 +952,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoercePlainAppendValue(
+        private (CellValue cellValue, DocumentFormat.OpenXml.Spreadsheet.CellValues cellType) CoercePlainAppendValue(
             object? value,
             ref Dictionary<string, int>? sharedStringIndexes,
             bool useDirectStringCells) {
@@ -994,7 +990,7 @@ namespace OfficeIMO.Excel {
                 _ => throw new InvalidOperationException("Unsupported direct append value.")
             };
 
-            return (cellValue, new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType));
+            return (cellValue, cellType);
         }
 
         private static CellValue CreatePlainAppendStringValue(string text) {

@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
 using Xunit;
+using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
@@ -1684,6 +1685,7 @@ namespace OfficeIMO.Tests {
                 WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 Assert.NotNull(wsPart.DrawingsPart);
                 Assert.Single(wsPart.DrawingsPart!.ChartParts);
+                Assert.Single(wsPart.DrawingsPart.WorksheetDrawing!.Elements<Xdr.OneCellAnchor>());
             }
         }
 

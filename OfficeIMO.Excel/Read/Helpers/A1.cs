@@ -48,6 +48,27 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
+        internal static bool TryParseStrictRange(string a1Range, out int r1, out int c1, out int r2, out int c2) {
+            r1 = c1 = r2 = c2 = 0;
+            if (string.IsNullOrWhiteSpace(a1Range)) return false;
+            int start = 0;
+            int length = a1Range.Length;
+            TrimBounds(a1Range, ref start, ref length);
+
+            int separator = a1Range.IndexOf(':', start, length);
+            if (separator < 0 || separator != a1Range.LastIndexOf(':', start + length - 1, length)) {
+                return false;
+            }
+
+            if (!TryParseCellRef(a1Range, start, separator - start, out r1, out c1)
+                || !TryParseCellRef(a1Range, separator + 1, start + length - separator - 1, out r2, out c2)) {
+                r1 = c1 = r2 = c2 = 0;
+                return false;
+            }
+
+            return true;
+        }
+
         /// <summary>
         /// Parses an A1 range (e.g., "A1:B10") into 1-based, normalized bounds.
         /// If the bounds are inverted, they are swapped so that r1 &lt;= r2 and c1 &lt;= c2.

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -77,7 +78,11 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            CellValues(cells, null);
+            using (var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks()) {
+                if (!TryApplyPlainCellsByAppendingRows(cells, CancellationToken.None)) {
+                    CellValues(cells, null);
+                }
+            }
 
             return new ExcelChartDataRange(Name, startRow, startColumn, categoryCount, seriesCount, hasHeaderRow: includeHeaderRow);
         }
@@ -91,7 +96,7 @@ namespace OfficeIMO.Excel {
             if (row <= 0 || column <= 0) throw new ArgumentOutOfRangeException(nameof(row));
 
             var dataSheet = _excelDocument.GetOrCreateChartDataSheet();
-            int startRow = _excelDocument.ReserveChartDataStartRow(data.Categories.Count + 1);
+            int startRow = _excelDocument.ReserveChartDataStartRow(dataSheet, data.Categories.Count + 1);
             bool numericCategories = type == ExcelChartType.Scatter || HasScatterSeries(data.Series);
             ExcelChartDataRange range = dataSheet.WriteChartData(data, startRow, 1, numericCategories: numericCategories);
             return AddChart(range, row, column, widthPixels, heightPixels, type, data, title);
@@ -210,7 +215,7 @@ namespace OfficeIMO.Excel {
             Xdr.GraphicFrame? frame = null;
             DrawingsPart? drawingPart = null;
 
-            WriteLock(() => {
+            WriteLockWorksheetPreparationOnly(() => {
                 var drawing = WorksheetRoot.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
                 if (drawing == null) {
                     drawingPart = _worksheetPart.AddNewPart<DrawingsPart>();
@@ -265,7 +270,6 @@ namespace OfficeIMO.Excel {
 
                 drawingPart.WorksheetDrawing.Append(anchor);
                 drawingPart.WorksheetDrawing.Save();
-                WorksheetRoot.Save();
             });
 
             return new ExcelChart(frame!, drawingPart!, this);
@@ -287,7 +291,7 @@ namespace OfficeIMO.Excel {
             Xdr.GraphicFrame? frame = null;
             DrawingsPart? drawingPart = null;
 
-            WriteLock(() => {
+            WriteLockWorksheetPreparationOnly(() => {
                 var drawing = WorksheetRoot.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
                 if (drawing == null) {
                     drawingPart = _worksheetPart.AddNewPart<DrawingsPart>();
@@ -342,7 +346,6 @@ namespace OfficeIMO.Excel {
 
                 drawingPart.WorksheetDrawing.Append(anchor);
                 drawingPart.WorksheetDrawing.Save();
-                WorksheetRoot.Save();
             });
 
             return new ExcelChart(frame!, drawingPart!, this, range);

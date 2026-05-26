@@ -7,9 +7,47 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
+    internal interface IExcelSheetTabularRowSource {
+        int ColumnCount { get; }
+
+        int RowCount { get; }
+
+        string GetColumnName(int index);
+
+        Type GetColumnType(int index);
+
+        object? GetValue(int rowIndex, int columnIndex);
+
+        bool TryGetBufferedRow(int rowIndex, out object?[]? values);
+
+        bool TryGetFlatValues(out object?[] values, out int columnCount);
+    }
+
     public partial class ExcelSheet {
         private const string DataTableDateTimeNumberFormat = "yyyy-mm-dd hh:mm";
         private const string DataTableTimeSpanNumberFormat = "[h]:mm:ss";
+        private static readonly EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> DataTableStringCellType = new(DocumentFormat.OpenXml.Spreadsheet.CellValues.String);
+        private static readonly EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> DataTableSharedStringCellType = new(DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString);
+        private static readonly EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> DataTableNumberCellType = new(DocumentFormat.OpenXml.Spreadsheet.CellValues.Number);
+        private static readonly EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> DataTableBooleanCellType = new(DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean);
+
+        private enum TabularAppendColumnKind {
+            General,
+            String,
+            Double,
+            Float,
+            Decimal,
+            SignedInteger,
+            UnsignedInteger,
+            Boolean,
+            DateTime,
+            DateTimeOffset,
+#if NET6_0_OR_GREATER
+            DateOnly,
+            TimeOnly,
+#endif
+            TimeSpan
+        }
 
         /// <summary>
         /// Inserts a DataTable into the worksheet starting at the specified cell.
@@ -117,7 +155,7 @@ namespace OfficeIMO.Excel {
                         var (r, c, obj, fmt) = cells[i];
                         var (val, type) = CoerceForCellNoDom(obj, ssPlanner);
                         val ??= new CellValue(string.Empty);
-                        type ??= new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(DocumentFormat.OpenXml.Spreadsheet.CellValues.String);
+                        type ??= GetCachedDataTableCellType(DocumentFormat.OpenXml.Spreadsheet.CellValues.String);
                         if (type.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString && val.Text is string raw) {
                             if (raw.Contains("\n") || raw.Contains("\r"))
                                 wrapFlags[i] = true;
@@ -317,8 +355,9 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            var columnKinds = BuildDataTableAppendColumnKinds(table);
             int cellCount = (table.Rows.Count + (includeHeaders ? 1 : 0)) * columnCount;
-            bool useDirectStringCells = cellCount >= 4096 && columnCount > 1;
+            bool useDirectStringCells = false;
             Dictionary<string, int>? sharedStringIndexes = null;
             var appendedRows = new List<OpenXmlElement>(Math.Max(1, table.Rows.Count + (includeHeaders ? 1 : 0)));
             int rowIndex = startRow;
@@ -333,12 +372,168 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                appendedRows.Add(CreateDataTableValueRow(rowIndex++, columnReferencePrefixes, dataRow, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct));
+                appendedRows.Add(canCancel
+                    ? CreateDataTableValueRow(rowIndex++, columnReferencePrefixes, dataRow, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct)
+                    : CreateDataTableValueRow(rowIndex++, columnReferencePrefixes, dataRow, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes));
             }
 
             sheetData.Append(appendedRows);
             ClearHeaderCacheForPreparedAppend();
             int lastRow = startRow + table.Rows.Count + (includeHeaders ? 1 : 0) - 1;
+            int lastColumn = startColumn + columnCount - 1;
+            int dimensionMinRow = minExistingRow == int.MaxValue ? startRow : Math.Min(minExistingRow, startRow);
+            int dimensionMinColumn = minExistingColumn == int.MaxValue ? startColumn : Math.Min(minExistingColumn, startColumn);
+            int dimensionMaxRow = Math.Max(maxExistingRow, lastRow);
+            int dimensionMaxColumn = Math.Max(maxExistingColumn, lastColumn);
+            SetSheetDimensionReference(dimensionMinRow, dimensionMinColumn, dimensionMaxRow, dimensionMaxColumn);
+            _requiresSavePreparation = false;
+            return true;
+        }
+
+        internal bool TryInsertTabularRowSourceForDeferredMaterialization(IExcelSheetTabularRowSource source, int startRow = 1, int startColumn = 1, bool includeHeaders = true, CancellationToken ct = default) {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (startRow < 1) throw new ArgumentOutOfRangeException(nameof(startRow));
+            if (startColumn < 1) throw new ArgumentOutOfRangeException(nameof(startColumn));
+
+            int columnCount = source.ColumnCount;
+            int rowsCount = source.RowCount + (includeHeaders ? 1 : 0);
+            if (columnCount == 0 || rowsCount == 0) {
+                return true;
+            }
+
+            if (startColumn + columnCount - 1 > A1.MaxColumns || startRow + rowsCount - 1 > A1.MaxRows) {
+                return false;
+            }
+
+            bool applied = false;
+            System.Threading.ReaderWriterLockSlim? lck = _excelDocument._lock;
+            if (lck == null) {
+                try { lck = _excelDocument.EnsureLock(); } catch { lck = null; }
+            }
+
+            Locking.ExecuteWrite(lck, () => applied = TryInsertTabularRowSourceByAppendingRowsCore(source, startRow, startColumn, includeHeaders, ct));
+            return applied;
+        }
+
+        private bool TryInsertTabularRowSourceByAppendingRowsCore(IExcelSheetTabularRowSource source, int startRow, int startColumn, bool includeHeaders, CancellationToken ct) {
+            var sheetData = GetOrCreateSheetData();
+            int minExistingRow = int.MaxValue;
+            int minExistingColumn = int.MaxValue;
+            int maxExistingRow = 0;
+            int maxExistingColumn = 0;
+            foreach (var existingRow in sheetData.Elements<Row>()) {
+                if (existingRow.RowIndex == null) {
+                    return false;
+                }
+
+                int existingRowIndex = checked((int)(existingRow.RowIndex?.Value ?? 0U));
+                if (existingRowIndex >= startRow) {
+                    return false;
+                }
+
+                if (existingRowIndex <= 0 || !existingRow.HasChildren) {
+                    continue;
+                }
+
+                foreach (var existingCell in existingRow.Elements<Cell>()) {
+                    int existingColumnIndex = 0;
+                    string? reference = existingCell.CellReference?.Value;
+                    if (!string.IsNullOrEmpty(reference)) {
+                        existingColumnIndex = A1.ParseColumnIndexFromCellReference(reference!);
+                    }
+
+                    if (existingColumnIndex <= 0) {
+                        continue;
+                    }
+
+                    if (existingRowIndex < minExistingRow) minExistingRow = existingRowIndex;
+                    if (existingRowIndex > maxExistingRow) maxExistingRow = existingRowIndex;
+                    if (existingColumnIndex < minExistingColumn) minExistingColumn = existingColumnIndex;
+                    if (existingColumnIndex > maxExistingColumn) maxExistingColumn = existingColumnIndex;
+                }
+            }
+
+            int columnCount = source.ColumnCount;
+            string[] columnReferencePrefixes = BuildColumnReferencePrefixes(startColumn, columnCount);
+
+            string?[] numberFormats = BuildTabularRowSourceNumberFormats(source);
+            var stylePlanner = new StylePlanner();
+            bool hasObjectColumn = false;
+            for (int i = 0; i < columnCount; i++) {
+                if (source.GetColumnType(i) == typeof(object)) {
+                    hasObjectColumn = true;
+                    break;
+                }
+            }
+
+            foreach (string? numberFormat in numberFormats) {
+                stylePlanner.NoteNumberFormat(numberFormat);
+            }
+
+            if (hasObjectColumn) {
+                stylePlanner.NoteNumberFormat(DataTableDateTimeNumberFormat);
+                stylePlanner.NoteNumberFormat(DataTableTimeSpanNumberFormat);
+            }
+
+            stylePlanner.ApplyTo(_excelDocument);
+            var styleIndexes = new uint?[numberFormats.Length];
+            for (int i = 0; i < numberFormats.Length; i++) {
+                if (stylePlanner.TryGetCellFormatIndex(numberFormats[i], out uint styleIndex)) {
+                    styleIndexes[i] = styleIndex;
+                }
+            }
+
+            uint? objectDateTimeStyleIndex = null;
+            uint? objectTimeSpanStyleIndex = null;
+            if (hasObjectColumn) {
+                if (stylePlanner.TryGetCellFormatIndex(DataTableDateTimeNumberFormat, out uint dateTimeStyleIndex)) {
+                    objectDateTimeStyleIndex = dateTimeStyleIndex;
+                }
+
+                if (stylePlanner.TryGetCellFormatIndex(DataTableTimeSpanNumberFormat, out uint timeSpanStyleIndex)) {
+                    objectTimeSpanStyleIndex = timeSpanStyleIndex;
+                }
+            }
+
+            var columnKinds = BuildTabularAppendColumnKinds(source);
+            int rowCount = source.RowCount;
+            int cellCount = (rowCount + (includeHeaders ? 1 : 0)) * columnCount;
+            bool useDirectStringCells = cellCount >= 4096 && columnCount > 1;
+            Dictionary<string, int>? sharedStringIndexes = null;
+            var appendedRows = new List<OpenXmlElement>(Math.Max(1, rowCount + (includeHeaders ? 1 : 0)));
+            int rowIndex = startRow;
+            bool canCancel = ct.CanBeCanceled;
+            object?[]? flatValues = null;
+            bool useFlatValues = source.TryGetFlatValues(out var sourceFlatValues, out int flatColumnCount) && flatColumnCount == columnCount;
+            if (useFlatValues) {
+                flatValues = sourceFlatValues;
+            }
+
+            if (includeHeaders) {
+                appendedRows.Add(CreateTabularRowSourceHeaderRow(rowIndex++, columnReferencePrefixes, source, useDirectStringCells, ref sharedStringIndexes, canCancel, ct));
+            }
+
+            for (int sourceRowIndex = 0; sourceRowIndex < rowCount; sourceRowIndex++) {
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
+                if (flatValues != null && !canCancel) {
+                    appendedRows.Add(CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, flatValues, sourceRowIndex * columnCount, columnCount, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes));
+                } else if (flatValues != null) {
+                    appendedRows.Add(CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, flatValues, sourceRowIndex * columnCount, columnCount, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct));
+                } else if (source.TryGetBufferedRow(sourceRowIndex, out var rowValues) && rowValues != null && !canCancel) {
+                    appendedRows.Add(CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, rowValues, 0, columnCount, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes));
+                } else if (rowValues != null) {
+                    appendedRows.Add(CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, rowValues, 0, columnCount, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct));
+                } else {
+                    appendedRows.Add(CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, source, sourceRowIndex, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct));
+                }
+            }
+
+            sheetData.Append(appendedRows);
+            ClearHeaderCacheForPreparedAppend();
+            int lastRow = startRow + rowCount + (includeHeaders ? 1 : 0) - 1;
             int lastColumn = startColumn + columnCount - 1;
             int dimensionMinRow = minExistingRow == int.MaxValue ? startRow : Math.Min(minExistingRow, startRow);
             int dimensionMinColumn = minExistingColumn == int.MaxValue ? startColumn : Math.Min(minExistingColumn, startColumn);
@@ -365,11 +560,31 @@ namespace OfficeIMO.Excel {
                 }
 
                 var (cellValue, cellType) = CoerceDataTableAppendValue(table.Columns[offset].ColumnName, useDirectStringCells, ref sharedStringIndexes);
-                var cell = new Cell {
-                    CellReference = columnReferencePrefixes[offset] + rowReference,
-                    CellValue = cellValue,
-                    DataType = new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType)
-                };
+                var cell = CreateTabularAppendCell(columnReferencePrefixes[offset] + rowReference, cellValue, cellType);
+
+                row.Append(cell);
+            }
+
+            return row;
+        }
+
+        private Row CreateTabularRowSourceHeaderRow(
+            int rowIndex,
+            string[] columnReferencePrefixes,
+            IExcelSheetTabularRowSource source,
+            bool useDirectStringCells,
+            ref Dictionary<string, int>? sharedStringIndexes,
+            bool canCancel,
+            CancellationToken ct) {
+            string rowReference = InvariantNumberText.Get(rowIndex);
+            var row = new Row { RowIndex = (uint)rowIndex };
+            for (int offset = 0; offset < source.ColumnCount; offset++) {
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
+                var (cellValue, cellType) = CoerceDataTableAppendValue(source.GetColumnName(offset), useDirectStringCells, ref sharedStringIndexes);
+                var cell = CreateTabularAppendCell(columnReferencePrefixes[offset] + rowReference, cellValue, cellType);
 
                 row.Append(cell);
             }
@@ -381,7 +596,8 @@ namespace OfficeIMO.Excel {
             int rowIndex,
             string[] columnReferencePrefixes,
             DataRow dataRow,
-            IReadOnlyList<uint?> styleIndexes,
+            TabularAppendColumnKind[] columnKinds,
+            uint?[] styleIndexes,
             uint? objectDateTimeStyleIndex,
             uint? objectTimeSpanStyleIndex,
             bool useDirectStringCells,
@@ -390,6 +606,7 @@ namespace OfficeIMO.Excel {
             CancellationToken ct) {
             string rowReference = InvariantNumberText.Get(rowIndex);
             int columnCount = dataRow.Table.Columns.Count;
+            bool hasObjectValueStyles = objectDateTimeStyleIndex.HasValue || objectTimeSpanStyleIndex.HasValue;
             var row = new Row { RowIndex = (uint)rowIndex };
             for (int offset = 0; offset < columnCount; offset++) {
                 if (canCancel) {
@@ -401,16 +618,167 @@ namespace OfficeIMO.Excel {
                     value = null;
                 }
 
-                var (cellValue, cellType) = CoerceDataTableAppendValue(value, useDirectStringCells, ref sharedStringIndexes);
-                var cell = new Cell {
-                    CellReference = columnReferencePrefixes[offset] + rowReference,
-                    CellValue = cellValue,
-                    DataType = new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType)
-                };
+                var (cellValue, cellType) = CoerceTabularAppendValue(value, columnKinds[offset], useDirectStringCells, ref sharedStringIndexes);
+                var cell = CreateTabularAppendCell(columnReferencePrefixes[offset] + rowReference, cellValue, cellType);
 
-                if (offset < styleIndexes.Count && styleIndexes[offset] is uint styleIndex) {
+                if (styleIndexes[offset] is uint styleIndex) {
                     cell.StyleIndex = styleIndex;
-                } else if (TryGetObjectDataTableValueStyleIndex(value, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, out uint objectValueStyleIndex)) {
+                } else if (hasObjectValueStyles && TryGetObjectDataTableValueStyleIndex(value, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, out uint objectValueStyleIndex)) {
+                    cell.StyleIndex = objectValueStyleIndex;
+                }
+
+                row.Append(cell);
+            }
+
+            return row;
+        }
+
+        private Row CreateDataTableValueRow(
+            int rowIndex,
+            string[] columnReferencePrefixes,
+            DataRow dataRow,
+            TabularAppendColumnKind[] columnKinds,
+            uint?[] styleIndexes,
+            uint? objectDateTimeStyleIndex,
+            uint? objectTimeSpanStyleIndex,
+            bool useDirectStringCells,
+            ref Dictionary<string, int>? sharedStringIndexes) {
+            string rowReference = InvariantNumberText.Get(rowIndex);
+            int columnCount = dataRow.Table.Columns.Count;
+            bool hasObjectValueStyles = objectDateTimeStyleIndex.HasValue || objectTimeSpanStyleIndex.HasValue;
+            var row = new Row { RowIndex = (uint)rowIndex };
+            for (int offset = 0; offset < columnCount; offset++) {
+                object? value = dataRow[offset];
+                if (value == DBNull.Value) {
+                    value = null;
+                }
+
+                var (cellValue, cellType) = CoerceTabularAppendValue(value, columnKinds[offset], useDirectStringCells, ref sharedStringIndexes);
+                var cell = CreateTabularAppendCell(columnReferencePrefixes[offset] + rowReference, cellValue, cellType);
+
+                if (styleIndexes[offset] is uint styleIndex) {
+                    cell.StyleIndex = styleIndex;
+                } else if (hasObjectValueStyles && TryGetObjectDataTableValueStyleIndex(value, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, out uint objectValueStyleIndex)) {
+                    cell.StyleIndex = objectValueStyleIndex;
+                }
+
+                row.Append(cell);
+            }
+
+            return row;
+        }
+
+        private Row CreateTabularRowSourceValueRow(
+            int rowIndex,
+            string[] columnReferencePrefixes,
+            object?[] values,
+            int valueOffset,
+            int columnCount,
+            TabularAppendColumnKind[] columnKinds,
+            uint?[] styleIndexes,
+            uint? objectDateTimeStyleIndex,
+            uint? objectTimeSpanStyleIndex,
+            bool useDirectStringCells,
+            ref Dictionary<string, int>? sharedStringIndexes) {
+            string rowReference = InvariantNumberText.Get(rowIndex);
+            bool hasObjectValueStyles = objectDateTimeStyleIndex.HasValue || objectTimeSpanStyleIndex.HasValue;
+            var row = new Row { RowIndex = (uint)rowIndex };
+            for (int offset = 0; offset < columnCount; offset++) {
+                object? value = values[valueOffset + offset];
+                if (value == DBNull.Value) {
+                    value = null;
+                }
+
+                var (cellValue, cellType) = CoerceTabularAppendValue(value, columnKinds[offset], useDirectStringCells, ref sharedStringIndexes);
+                var cell = CreateTabularAppendCell(columnReferencePrefixes[offset] + rowReference, cellValue, cellType);
+
+                if (styleIndexes[offset] is uint styleIndex) {
+                    cell.StyleIndex = styleIndex;
+                } else if (hasObjectValueStyles && TryGetObjectDataTableValueStyleIndex(value, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, out uint objectValueStyleIndex)) {
+                    cell.StyleIndex = objectValueStyleIndex;
+                }
+
+                row.Append(cell);
+            }
+
+            return row;
+        }
+
+        private Row CreateTabularRowSourceValueRow(
+            int rowIndex,
+            string[] columnReferencePrefixes,
+            object?[] values,
+            int valueOffset,
+            int columnCount,
+            TabularAppendColumnKind[] columnKinds,
+            uint?[] styleIndexes,
+            uint? objectDateTimeStyleIndex,
+            uint? objectTimeSpanStyleIndex,
+            bool useDirectStringCells,
+            ref Dictionary<string, int>? sharedStringIndexes,
+            bool canCancel,
+            CancellationToken ct) {
+            string rowReference = InvariantNumberText.Get(rowIndex);
+            bool hasObjectValueStyles = objectDateTimeStyleIndex.HasValue || objectTimeSpanStyleIndex.HasValue;
+            var row = new Row { RowIndex = (uint)rowIndex };
+            for (int offset = 0; offset < columnCount; offset++) {
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
+                object? value = values[valueOffset + offset];
+                if (value == DBNull.Value) {
+                    value = null;
+                }
+
+                var (cellValue, cellType) = CoerceTabularAppendValue(value, columnKinds[offset], useDirectStringCells, ref sharedStringIndexes);
+                var cell = CreateTabularAppendCell(columnReferencePrefixes[offset] + rowReference, cellValue, cellType);
+
+                if (styleIndexes[offset] is uint styleIndex) {
+                    cell.StyleIndex = styleIndex;
+                } else if (hasObjectValueStyles && TryGetObjectDataTableValueStyleIndex(value, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, out uint objectValueStyleIndex)) {
+                    cell.StyleIndex = objectValueStyleIndex;
+                }
+
+                row.Append(cell);
+            }
+
+            return row;
+        }
+
+        private Row CreateTabularRowSourceValueRow(
+            int rowIndex,
+            string[] columnReferencePrefixes,
+            IExcelSheetTabularRowSource source,
+            int sourceRowIndex,
+            TabularAppendColumnKind[] columnKinds,
+            uint?[] styleIndexes,
+            uint? objectDateTimeStyleIndex,
+            uint? objectTimeSpanStyleIndex,
+            bool useDirectStringCells,
+            ref Dictionary<string, int>? sharedStringIndexes,
+            bool canCancel,
+            CancellationToken ct) {
+            string rowReference = InvariantNumberText.Get(rowIndex);
+            int columnCount = source.ColumnCount;
+            bool hasObjectValueStyles = objectDateTimeStyleIndex.HasValue || objectTimeSpanStyleIndex.HasValue;
+            var row = new Row { RowIndex = (uint)rowIndex };
+            for (int offset = 0; offset < columnCount; offset++) {
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
+                object? value = source.GetValue(sourceRowIndex, offset);
+                if (value == DBNull.Value) {
+                    value = null;
+                }
+
+                var (cellValue, cellType) = CoerceTabularAppendValue(value, columnKinds[offset], useDirectStringCells, ref sharedStringIndexes);
+                var cell = CreateTabularAppendCell(columnReferencePrefixes[offset] + rowReference, cellValue, cellType);
+
+                if (styleIndexes[offset] is uint styleIndex) {
+                    cell.StyleIndex = styleIndex;
+                } else if (hasObjectValueStyles && TryGetObjectDataTableValueStyleIndex(value, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, out uint objectValueStyleIndex)) {
                     cell.StyleIndex = objectValueStyleIndex;
                 }
 
@@ -427,6 +795,95 @@ namespace OfficeIMO.Excel {
             }
 
             return columnReferencePrefixes;
+        }
+
+        private static EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> GetCachedDataTableCellType(DocumentFormat.OpenXml.Spreadsheet.CellValues cellType) {
+            if (cellType == DocumentFormat.OpenXml.Spreadsheet.CellValues.String) return DataTableStringCellType;
+            if (cellType == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) return DataTableSharedStringCellType;
+            if (cellType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number) return DataTableNumberCellType;
+            if (cellType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean) return DataTableBooleanCellType;
+            return new EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues>(cellType);
+        }
+
+        private static Cell CreateTabularAppendCell(
+            string cellReference,
+            CellValue cellValue,
+            DocumentFormat.OpenXml.Spreadsheet.CellValues cellType) {
+            var cell = new Cell {
+                CellReference = cellReference,
+                CellValue = cellValue
+            };
+
+            if (cellType != DocumentFormat.OpenXml.Spreadsheet.CellValues.Number) {
+                cell.DataType = GetCachedDataTableCellType(cellType);
+            }
+
+            return cell;
+        }
+
+        private (CellValue cellValue, DocumentFormat.OpenXml.Spreadsheet.CellValues cellType) CoerceTabularAppendValue(
+            object? value,
+            TabularAppendColumnKind columnKind,
+            bool useDirectStringCells,
+            ref Dictionary<string, int>? sharedStringIndexes) {
+            switch (columnKind) {
+                case TabularAppendColumnKind.String:
+                    if (value is string text) {
+                        return CoerceTabularAppendStringValue(text, useDirectStringCells, ref sharedStringIndexes);
+                    }
+                    break;
+                case TabularAppendColumnKind.Double:
+                    if (value is double doubleValue) return CoerceValueHelper.HandleNumber(doubleValue);
+                    break;
+                case TabularAppendColumnKind.Float:
+                    if (value is float floatValue) return CoerceValueHelper.HandleNumber(floatValue);
+                    break;
+                case TabularAppendColumnKind.Decimal:
+                    if (value is decimal decimalValue) return CoerceValueHelper.HandleDecimal(decimalValue);
+                    break;
+                case TabularAppendColumnKind.SignedInteger:
+                    if (value is int intValue) return CoerceValueHelper.HandleSignedInteger(intValue);
+                    if (value is long longValue) return CoerceValueHelper.HandleSignedInteger(longValue);
+                    if (value is short shortValue) return CoerceValueHelper.HandleSignedInteger(shortValue);
+                    if (value is sbyte sbyteValue) return CoerceValueHelper.HandleSignedInteger(sbyteValue);
+                    break;
+                case TabularAppendColumnKind.UnsignedInteger:
+                    if (value is uint uintValue) return CoerceValueHelper.HandleUnsignedInteger(uintValue);
+                    if (value is ulong ulongValue) return CoerceValueHelper.HandleUnsignedInteger(ulongValue);
+                    if (value is ushort ushortValue) return CoerceValueHelper.HandleUnsignedInteger(ushortValue);
+                    if (value is byte byteValue) return CoerceValueHelper.HandleUnsignedInteger(byteValue);
+                    break;
+                case TabularAppendColumnKind.Boolean:
+                    if (value is bool boolValue) return CoerceValueHelper.HandleBoolean(boolValue);
+                    break;
+                case TabularAppendColumnKind.DateTime:
+                    if (value is DateTime dateTimeValue) return CoerceValueHelper.HandleNumber(dateTimeValue.ToOADate());
+                    break;
+                case TabularAppendColumnKind.DateTimeOffset:
+                    break;
+#if NET6_0_OR_GREATER
+                case TabularAppendColumnKind.DateOnly:
+                    if (value is DateOnly dateOnlyValue) return CoerceValueHelper.HandleNumber(dateOnlyValue.ToDateTime(TimeOnly.MinValue).ToOADate());
+                    break;
+                case TabularAppendColumnKind.TimeOnly:
+                    if (value is TimeOnly timeOnlyValue) return CoerceValueHelper.HandleNumber(timeOnlyValue.ToTimeSpan().TotalDays);
+                    break;
+#endif
+                case TabularAppendColumnKind.TimeSpan:
+                    if (value is TimeSpan timeSpanValue) return CoerceValueHelper.HandleNumber(timeSpanValue.TotalDays);
+                    break;
+            }
+
+            return CoerceDataTableAppendValue(value, useDirectStringCells, ref sharedStringIndexes);
+        }
+
+        private (CellValue cellValue, DocumentFormat.OpenXml.Spreadsheet.CellValues cellType) CoerceTabularAppendStringValue(
+            string text,
+            bool useDirectStringCells,
+            ref Dictionary<string, int>? sharedStringIndexes) {
+            return useDirectStringCells
+                ? (CreatePlainAppendStringValue(text), DocumentFormat.OpenXml.Spreadsheet.CellValues.String)
+                : (CreatePlainAppendSharedStringValue(text, ref sharedStringIndexes), DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString);
         }
 
         private (CellValue cellValue, DocumentFormat.OpenXml.Spreadsheet.CellValues cellType) CoerceDataTableAppendValue(
@@ -460,6 +917,51 @@ namespace OfficeIMO.Excel {
             }
 
             return formats;
+        }
+
+        private static string?[] BuildTabularRowSourceNumberFormats(IExcelSheetTabularRowSource source) {
+            var formats = new string?[source.ColumnCount];
+            for (int i = 0; i < source.ColumnCount; i++) {
+                formats[i] = GetDataTableNumberFormat(source.GetColumnType(i), value: null);
+            }
+
+            return formats;
+        }
+
+        private static TabularAppendColumnKind[] BuildDataTableAppendColumnKinds(DataTable table) {
+            var kinds = new TabularAppendColumnKind[table.Columns.Count];
+            for (int i = 0; i < kinds.Length; i++) {
+                kinds[i] = GetTabularAppendColumnKind(table.Columns[i].DataType);
+            }
+
+            return kinds;
+        }
+
+        private static TabularAppendColumnKind[] BuildTabularAppendColumnKinds(IExcelSheetTabularRowSource source) {
+            var kinds = new TabularAppendColumnKind[source.ColumnCount];
+            for (int i = 0; i < kinds.Length; i++) {
+                kinds[i] = GetTabularAppendColumnKind(source.GetColumnType(i));
+            }
+
+            return kinds;
+        }
+
+        private static TabularAppendColumnKind GetTabularAppendColumnKind(Type type) {
+            if (type == typeof(string)) return TabularAppendColumnKind.String;
+            if (type == typeof(double)) return TabularAppendColumnKind.Double;
+            if (type == typeof(float)) return TabularAppendColumnKind.Float;
+            if (type == typeof(decimal)) return TabularAppendColumnKind.Decimal;
+            if (type == typeof(int) || type == typeof(long) || type == typeof(short) || type == typeof(sbyte)) return TabularAppendColumnKind.SignedInteger;
+            if (type == typeof(uint) || type == typeof(ulong) || type == typeof(ushort) || type == typeof(byte)) return TabularAppendColumnKind.UnsignedInteger;
+            if (type == typeof(bool)) return TabularAppendColumnKind.Boolean;
+            if (type == typeof(DateTime)) return TabularAppendColumnKind.DateTime;
+            if (type == typeof(DateTimeOffset)) return TabularAppendColumnKind.DateTimeOffset;
+#if NET6_0_OR_GREATER
+            if (type == typeof(DateOnly)) return TabularAppendColumnKind.DateOnly;
+            if (type == typeof(TimeOnly)) return TabularAppendColumnKind.TimeOnly;
+#endif
+            if (type == typeof(TimeSpan)) return TabularAppendColumnKind.TimeSpan;
+            return TabularAppendColumnKind.General;
         }
 
         private static string? GetDataTableNumberFormat(Type type, object? value) {
@@ -511,6 +1013,55 @@ namespace OfficeIMO.Excel {
             }
 
             return false;
+        }
+
+        internal string InsertTabularRowSourceAsTableForDeferredMaterialization(
+            IExcelSheetTabularRowSource source,
+            int startRow = 1,
+            int startColumn = 1,
+            bool includeHeaders = true,
+            string? tableName = null,
+            TableStyle style = TableStyle.TableStyleMedium2,
+            bool includeAutoFilter = true,
+            CancellationToken ct = default) {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (startRow < 1) throw new ArgumentOutOfRangeException(nameof(startRow));
+            if (startColumn < 1) throw new ArgumentOutOfRangeException(nameof(startColumn));
+
+            int rowsCount = source.RowCount + (includeHeaders ? 1 : 0);
+            int columnCount = source.ColumnCount;
+            if (columnCount == 0 || rowsCount == 0) {
+                return string.Empty;
+            }
+
+            string startRef = A1.CellReference(startRow, startColumn);
+            string endRef = A1.CellReference(startRow + rowsCount - 1, startColumn + columnCount - 1);
+            string range = startRef + ":" + endRef;
+
+            if (!TryInsertTabularRowSourceForDeferredMaterialization(source, startRow, startColumn, includeHeaders, ct)) {
+                return string.Empty;
+            }
+
+            string[]? headerNames = null;
+            if (includeHeaders) {
+                headerNames = new string[columnCount];
+                for (int i = 0; i < headerNames.Length; i++) {
+                    headerNames[i] = source.GetColumnName(i);
+                }
+            }
+
+            AddTableAndGetName(
+                range,
+                includeHeaders,
+                tableName ?? string.Empty,
+                style,
+                includeAutoFilter,
+                ensureRangeCellsExist: false,
+                headerNames: headerNames,
+                deferPartSave: true,
+                skipExistingTableScan: true);
+
+            return range;
         }
 
         /// <summary>

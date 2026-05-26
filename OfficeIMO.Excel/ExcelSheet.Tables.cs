@@ -4,6 +4,8 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        private const int ProvidedHeaderTableColumnFastPathLimit = 64;
+
         /// <summary>
         /// Enables a totals row for the table covering <paramref name="range"/> and assigns per-column functions by header name.
         /// Supported functions are those in TotalsRowFunctionValues (Sum, Average, Count, Min, Max, etc.).
@@ -154,11 +156,17 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(range));
             }
 
-            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
+            if (filterCriteria != null && !_excelDocument.IsMaterializingDeferredDataSetImport) {
                 _excelDocument.MaterializeDeferredDataSetImport();
             }
 
-            WriteLock(() => {
+            if (filterCriteria == null && _excelDocument.TryApplyDirectWorksheetAutoFilterMetadata(this, range)) {
+                return;
+            }
+
+            using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
+            bool worksheetOnly = filterCriteria == null;
+            Action applyAutoFilter = () => {
                 // SMART DETECTION: Check if there's a table on this range
                 // If there is, we'll add the AutoFilter to the table instead of the worksheet
                 foreach (var tableDefinitionPart in _worksheetPart.TableDefinitionParts) {
@@ -167,13 +175,13 @@ namespace OfficeIMO.Excel {
                         // Found a table on the same range - add/update its AutoFilter
 
                         // First, remove any worksheet-level AutoFilter to avoid conflicts
-                        var worksheetAutoFilter = WorksheetRoot.Elements<AutoFilter>().FirstOrDefault();
+                        var worksheetAutoFilter = WorksheetRoot.GetFirstChild<AutoFilter>();
                         if (worksheetAutoFilter != null && worksheetAutoFilter.Reference?.Value == range) {
                             WorksheetRoot.RemoveChild(worksheetAutoFilter);
                         }
 
                         // Now handle the table's AutoFilter
-                        var tableAutoFilter = table.Elements<AutoFilter>().FirstOrDefault();
+                        var tableAutoFilter = table.GetFirstChild<AutoFilter>();
                         if (tableAutoFilter != null) {
                             // Remove existing to replace with new one
                             table.RemoveChild(tableAutoFilter);
@@ -196,7 +204,7 @@ namespace OfficeIMO.Excel {
                         }
 
                         // Add AutoFilter to the table (must be before tableColumns)
-                        var tableColumns = table.Elements<TableColumns>().FirstOrDefault();
+                        var tableColumns = table.GetFirstChild<TableColumns>();
                         if (tableColumns != null) {
                             table.InsertBefore(newAutoFilter, tableColumns);
                         } else {
@@ -212,7 +220,7 @@ namespace OfficeIMO.Excel {
                 Worksheet worksheet = WorksheetRoot;
 
                 // Remove any existing worksheet AutoFilter
-                AutoFilter? existing = worksheet.Elements<AutoFilter>().FirstOrDefault();
+                AutoFilter? existing = worksheet.GetFirstChild<AutoFilter>();
                 if (existing != null) {
                     worksheet.RemoveChild(existing);
                 }
@@ -237,7 +245,7 @@ namespace OfficeIMO.Excel {
                 var sheetData = worksheet.GetFirstChild<SheetData>();
                 if (sheetData != null) {
                     // Find the right position to insert AutoFilter
-                    var conditionalFormatting = worksheet.Elements<ConditionalFormatting>().FirstOrDefault();
+                    var conditionalFormatting = worksheet.GetFirstChild<ConditionalFormatting>();
                     if (conditionalFormatting != null) {
                         worksheet.InsertBefore(autoFilter, conditionalFormatting);
                     } else {
@@ -248,6 +256,75 @@ namespace OfficeIMO.Excel {
                 }
 
                 worksheet.Save();
+            };
+
+            if (!worksheetOnly) {
+                WriteLock(applyAutoFilter);
+                return;
+            }
+
+            WriteLockWorksheetPreparationOnly(() => {
+                // SMART DETECTION: Check if there's a table on this range
+                // If there is, we'll add the AutoFilter to the table instead of the worksheet
+                foreach (var tableDefinitionPart in _worksheetPart.TableDefinitionParts) {
+                    var table = tableDefinitionPart.Table;
+                    if (table is not null && table.Reference?.Value == range) {
+                        var worksheetAutoFilter = WorksheetRoot.GetFirstChild<AutoFilter>();
+                        var tableAutoFilter = table.GetFirstChild<AutoFilter>();
+                        if (worksheetAutoFilter == null
+                            && tableAutoFilter != null
+                            && tableAutoFilter.Reference?.Value == range
+                            && !tableAutoFilter.HasChildren) {
+                            _excelDocument.TryEnableDirectTableAutoFilterMetadata(this, range);
+                            return false;
+                        }
+
+                        if (worksheetAutoFilter != null && worksheetAutoFilter.Reference?.Value == range) {
+                            WorksheetRoot.RemoveChild(worksheetAutoFilter);
+                        }
+
+                        if (tableAutoFilter != null) {
+                            table.RemoveChild(tableAutoFilter);
+                        }
+
+                        var newAutoFilter = new AutoFilter { Reference = range };
+                        var tableColumns = table.GetFirstChild<TableColumns>();
+                        if (tableColumns != null) {
+                            table.InsertBefore(newAutoFilter, tableColumns);
+                        } else {
+                            table.InsertAt(newAutoFilter, 0);
+                        }
+
+                        table.Save();
+                        _excelDocument.TryEnableDirectTableAutoFilterMetadata(this, range);
+                        return true;
+                    }
+                }
+
+                Worksheet worksheet = WorksheetRoot;
+                AutoFilter? existing = worksheet.GetFirstChild<AutoFilter>();
+                if (existing != null && existing.Reference?.Value == range && !existing.HasChildren) {
+                    return false;
+                }
+
+                if (existing != null) {
+                    worksheet.RemoveChild(existing);
+                }
+
+                AutoFilter autoFilter = new AutoFilter { Reference = range };
+                var sheetData = worksheet.GetFirstChild<SheetData>();
+                if (sheetData != null) {
+                    var conditionalFormatting = worksheet.GetFirstChild<ConditionalFormatting>();
+                    if (conditionalFormatting != null) {
+                        worksheet.InsertBefore(autoFilter, conditionalFormatting);
+                    } else {
+                        worksheet.InsertAfter(autoFilter, sheetData);
+                    }
+                } else {
+                    worksheet.Append(autoFilter);
+                }
+
+                return true;
             });
         }
 
@@ -330,18 +407,9 @@ namespace OfficeIMO.Excel {
 
             string resolvedName = string.Empty;
             WriteLock(() => {
-                var cells = range.Split(':');
-                if (cells.Length != 2) {
+                if (!A1.TryParseStrictRange(range, out int startRowIndex, out int startColumnIndex, out int endRowIndex, out int endColumnIndex)) {
                     throw new ArgumentException("Invalid range format", nameof(range));
                 }
-
-                string startRef = cells[0];
-                string endRef = cells[1];
-
-                int startColumnIndex = GetColumnIndex(startRef);
-                int endColumnIndex = GetColumnIndex(endRef);
-                int startRowIndex = GetRowIndex(startRef);
-                int endRowIndex = GetRowIndex(endRef);
 
                 if (startColumnIndex > endColumnIndex || startRowIndex > endRowIndex) {
                     throw new ArgumentException($"Invalid range '{range}'. The start cell must be the top-left cell and the end cell must be the bottom-right cell.", nameof(range));
@@ -363,15 +431,7 @@ namespace OfficeIMO.Excel {
                     foreach (var existingPart in _worksheetPart.TableDefinitionParts) {
                         var existingRange = existingPart.Table?.Reference?.Value;
                         if (string.IsNullOrEmpty(existingRange)) continue;
-                        var existingCells = existingRange!.Split(':');
-                        if (existingCells.Length != 2) continue;
-                        string existingStartRef = existingCells[0];
-                        string existingEndRef = existingCells[1];
-
-                        int existingStartColumn = GetColumnIndex(existingStartRef);
-                        int existingEndColumn = GetColumnIndex(existingEndRef);
-                        int existingStartRow = GetRowIndex(existingStartRef);
-                        int existingEndRow = GetRowIndex(existingEndRef);
+                        if (!A1.TryParseStrictRange(existingRange!, out int existingStartRow, out int existingStartColumn, out int existingEndRow, out int existingEndColumn)) continue;
 
                         bool overlaps = startColumnIndex <= existingEndColumn &&
                                         endColumnIndex >= existingStartColumn &&
@@ -396,9 +456,16 @@ namespace OfficeIMO.Excel {
                 string MakeRelId() {
                     // Find an unused rId# for this worksheet
                     int n = 1;
-                    var existing = new System.Collections.Generic.HashSet<string>(
-                        _worksheetPart.Parts.Select(p => p.RelationshipId ?? string.Empty),
-                        System.StringComparer.Ordinal);
+                    using var parts = _worksheetPart.Parts.GetEnumerator();
+                    if (!parts.MoveNext()) {
+                        return "rId1";
+                    }
+
+                    var existing = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
+                    do {
+                        existing.Add(parts.Current.RelationshipId ?? string.Empty);
+                    } while (parts.MoveNext());
+
                     string id;
                     do { id = "rId" + n++; } while (existing.Contains(id));
                     return id;
@@ -427,48 +494,50 @@ namespace OfficeIMO.Excel {
                 };
 
                 var tableColumns = new TableColumns { Count = columnsCount };
-                var usedHeaders = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
-                for (uint i = 0; i < columnsCount; i++) {
-                    string baseName = $"Column{i + 1}";
-                    string headerValue = string.Empty;
-                    bool headerCellIsSharedString = false;
-                    bool headerValueProvided = false;
-                    // If the table has headers, try to get the actual header value
-                    if (hasHeader && headerNames != null && i < headerNames.Count) {
-                        headerValueProvided = true;
-                        headerValue = headerNames[(int)i] ?? string.Empty;
-                        if (!string.IsNullOrWhiteSpace(headerValue)) {
-                            baseName = headerValue;
-                        }
-                    } else if (hasHeader && startRowIndex > 0) {
-                        var headerCell = GetCell(startRowIndex, startColumnIndex + (int)i);
-                        if (headerCell != null) {
-                            headerCellIsSharedString = headerCell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString;
-                            headerValue = GetCellText(headerCell);
+                if (!TryAppendProvidedHeaderTableColumns(tableColumns, hasHeader, headerNames, columnsCount)) {
+                    var usedHeaders = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+                    for (uint i = 0; i < columnsCount; i++) {
+                        string baseName = $"Column{i + 1}";
+                        string headerValue = string.Empty;
+                        bool headerCellIsSharedString = false;
+                        bool headerValueProvided = false;
+                        // If the table has headers, try to get the actual header value
+                        if (hasHeader && headerNames != null && i < headerNames.Count) {
+                            headerValueProvided = true;
+                            headerValue = headerNames[(int)i] ?? string.Empty;
                             if (!string.IsNullOrWhiteSpace(headerValue)) {
                                 baseName = headerValue;
                             }
+                        } else if (hasHeader && startRowIndex > 0) {
+                            var headerCell = GetCell(startRowIndex, startColumnIndex + (int)i);
+                            if (headerCell != null) {
+                                headerCellIsSharedString = headerCell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString;
+                                headerValue = GetCellText(headerCell);
+                                if (!string.IsNullOrWhiteSpace(headerValue)) {
+                                    baseName = headerValue;
+                                }
+                            }
                         }
-                    }
-                    string candidate = baseName;
-                    int suffix = 2;
-                    while (!usedHeaders.Add(candidate)) {
-                        candidate = $"{baseName} ({suffix++})";
-                    }
-                    tableColumns.Append(new TableColumn { Id = i + 1, Name = candidate });
+                        string candidate = baseName;
+                        int suffix = 2;
+                        while (!usedHeaders.Add(candidate)) {
+                            candidate = $"{baseName} ({suffix++})";
+                        }
+                        tableColumns.Append(new TableColumn { Id = i + 1, Name = candidate });
 
-                    bool shouldRewriteHeader = headerValueProvided
-                        ? !string.Equals(headerValue, candidate, System.StringComparison.Ordinal)
-                        : (!headerCellIsSharedString || !string.Equals(headerValue, candidate, System.StringComparison.Ordinal));
-                    if (hasHeader && shouldRewriteHeader) {
-                        using var preserveDirectCandidate = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
-                        CellValueCore(startRowIndex, startColumnIndex + (int)i, candidate);
+                        bool shouldRewriteHeader = headerValueProvided
+                            ? !string.Equals(headerValue, candidate, System.StringComparison.Ordinal)
+                            : (!headerCellIsSharedString || !string.Equals(headerValue, candidate, System.StringComparison.Ordinal));
+                        if (hasHeader && shouldRewriteHeader) {
+                            using var preserveDirectCandidate = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
+                            CellValueCore(startRowIndex, startColumnIndex + (int)i, candidate);
+                        }
                     }
                 }
 
                 // SMART AUTOFILTER HANDLING
                 // Check if there's already a worksheet-level AutoFilter on this range
-                AutoFilter? existingWorksheetAutoFilter = WorksheetRoot.Elements<AutoFilter>().FirstOrDefault();
+                AutoFilter? existingWorksheetAutoFilter = WorksheetRoot.GetFirstChild<AutoFilter>();
                 bool hasExistingFilter = existingWorksheetAutoFilter?.Reference?.Value == range;
                 bool shouldIncludeAutoFilter = includeAutoFilter && hasHeader;
 
@@ -515,7 +584,7 @@ namespace OfficeIMO.Excel {
                     tableDefinitionPart.Table.Save();
                 }
 
-                var tableParts = WorksheetRoot.Elements<TableParts>().FirstOrDefault();
+                var tableParts = WorksheetRoot.GetFirstChild<TableParts>();
                 if (tableParts == null) {
                     tableParts = new TableParts();
                     WorksheetRoot.Append(tableParts);
@@ -523,9 +592,12 @@ namespace OfficeIMO.Excel {
                 var relId = _worksheetPart.GetIdOfPart(tableDefinitionPart);
                 // Avoid duplicate TablePart entries
                 bool hasPart = tableParts.Elements<TablePart>().Any(tp => tp.Id?.Value == relId);
-                if (!hasPart)
+                uint tablePartCount = tableParts.Count?.Value ?? (uint)tableParts.Elements<TablePart>().Count();
+                if (!hasPart) {
                     tableParts.Append(new TablePart { Id = relId });
-                tableParts.Count = (uint)tableParts.Elements<TablePart>().Count();
+                    tablePartCount++;
+                }
+                tableParts.Count = tablePartCount;
 
                 bool promotedDirectSaveCandidate = _excelDocument.TryPromoteDirectTabularSaveCandidateToTable(
                     this,
@@ -553,6 +625,32 @@ namespace OfficeIMO.Excel {
             });
 
             return resolvedName;
+        }
+
+        private static bool TryAppendProvidedHeaderTableColumns(TableColumns tableColumns, bool hasHeader, IReadOnlyList<string>? headerNames, uint columnsCount) {
+            int count = checked((int)columnsCount);
+            if (!hasHeader || count > ProvidedHeaderTableColumnFastPathLimit || headerNames == null || headerNames.Count < count) {
+                return false;
+            }
+
+            for (int i = 0; i < count; i++) {
+                string? headerName = headerNames[i];
+                if (string.IsNullOrWhiteSpace(headerName)) {
+                    return false;
+                }
+
+                for (int j = 0; j < i; j++) {
+                    if (string.Equals(headerName, headerNames[j], StringComparison.OrdinalIgnoreCase)) {
+                        return false;
+                    }
+                }
+            }
+
+            for (uint i = 0; i < columnsCount; i++) {
+                tableColumns.Append(new TableColumn { Id = i + 1, Name = headerNames[(int)i] });
+            }
+
+            return true;
         }
 
         /// <summary>
