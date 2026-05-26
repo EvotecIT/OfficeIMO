@@ -16,12 +16,14 @@ internal static class PdfSyntax {
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(byte[] pdf) {
         string text = PdfEncoding.Latin1GetString(pdf);
         var map = new Dictionary<int, PdfIndirectObject>();
+        var sourceOffsets = new Dictionary<int, int>();
         var streamLocations = new List<(int Id, int Generation, int DataStart)>();
         var matches = ObjRegex.Matches(text);
         for (int i = 0; i < matches.Count; i++) {
             int id = int.Parse(matches[i].Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
             int gen = int.Parse(matches[i].Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture);
             int start = matches[i].Index;
+            sourceOffsets[id] = start;
             int bodyStart = matches[i].Index + matches[i].Length;
             int end = FindObjectEnd(text, start);
             if (end < 0) end = (i + 1 < matches.Count) ? matches[i + 1].Index : text.Length;
@@ -82,7 +84,7 @@ internal static class PdfSyntax {
 
         ResolveIndirectStreamLengths(map, pdf, streamLocations);
         // Expand object streams (/Type /ObjStm) to populate embedded objects (pages and resources often live there)
-        ExpandObjectStreams(map, pdf);
+        ExpandObjectStreams(map, pdf, sourceOffsets);
         ThrowIfEncryptedXrefStream(map);
         return (map, trailerRaw);
     }
@@ -1089,15 +1091,17 @@ internal static class PdfSyntax {
         }
     }
 
-    private static void ExpandObjectStreams(Dictionary<int, PdfIndirectObject> map, byte[] pdf) {
+    private static void ExpandObjectStreams(Dictionary<int, PdfIndirectObject> map, byte[] pdf, Dictionary<int, int> sourceOffsets) {
         // Snapshot keys to avoid modifying during enumeration
         var keys = new List<int>(map.Keys);
-        var explicitObjectIds = new HashSet<int>(keys);
+        keys.Sort((left, right) => GetSourceOffset(left).CompareTo(GetSourceOffset(right)));
+        var effectiveOffsets = new Dictionary<int, int>(sourceOffsets);
         foreach (var id in keys) {
             if (!map.TryGetValue(id, out var ind)) continue;
             if (ind.Value is not PdfStream s) continue;
             var type = s.Dictionary.Get<PdfName>("Type")?.Name;
             if (!string.Equals(type, "ObjStm", StringComparison.Ordinal)) continue;
+            int objectStreamOffset = GetSourceOffset(id);
 
             // Decode object stream bytes (flate only for now)
             var data = Filters.StreamDecoder.Decode(s.Dictionary, s.Data, map);
@@ -1113,7 +1117,7 @@ internal static class PdfSyntax {
             for (int i = 0; i < n; i++) {
                 int objNum = pairs[i].Obj;
                 int off = pairs[i].Off;
-                if (explicitObjectIds.Contains(objNum)) {
+                if (effectiveOffsets.TryGetValue(objNum, out int currentOffset) && currentOffset > objectStreamOffset) {
                     continue;
                 }
 
@@ -1125,9 +1129,14 @@ internal static class PdfSyntax {
                 Buffer.BlockCopy(data, start, sliceBytes, 0, len);
                 var slice = PdfEncoding.Latin1GetString(sliceBytes);
                 var parsed = ParseTopLevelObject(slice);
-                if (parsed is not null) { map[objNum] = new PdfIndirectObject(objNum, 0, parsed); }
+                if (parsed is not null) {
+                    map[objNum] = new PdfIndirectObject(objNum, 0, parsed);
+                    effectiveOffsets[objNum] = objectStreamOffset;
+                }
             }
         }
+
+        int GetSourceOffset(int objectNumber) => sourceOffsets.TryGetValue(objectNumber, out int offset) ? offset : int.MaxValue;
     }
 
     private static List<(int Obj, int Off)> ParsePairs(string header, int n) {

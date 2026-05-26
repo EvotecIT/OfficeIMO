@@ -320,7 +320,7 @@ Turn the reader/writer internals into a dependable PDF object engine.
 - Parse trailers and incremental updates.
 - Preserve object identity.
 - Decode common stream filters.
-- Support object streams. Initial `/ObjStm` expansion populates compressed objects, lets later object streams replace earlier compressed copies, and avoids overwriting explicit indirect objects that are already present in the file.
+- Support object streams. Initial `/ObjStm` expansion populates compressed objects and uses source-order precedence so later object streams can replace stale earlier compressed or explicit objects while later explicit objects still win.
 - Support encrypted-file detection with clear unsupported diagnostics. Initial trailer/xref-stream detection rejects encrypted files before parser-supported read/manipulation helpers process page content.
 - Add safe object copying between documents.
 - Add resource renaming to avoid collisions when importing pages.
