@@ -1205,7 +1205,8 @@ internal static class PdfSyntax {
             }
 
             byte[] data = Filters.StreamDecoder.Decode(xrefStream.Stream.Dictionary, xrefStream.Stream.Data, map);
-            foreach (var entry in ReadXrefStreamEntries(xrefStream.Stream.Dictionary, data)) {
+            var entries = ReadXrefStreamEntries(xrefStream.Stream.Dictionary, data).ToList();
+            foreach (var entry in entries) {
                 if (entry.Type != 1 ||
                     entry.Field1 < 0 ||
                     entry.Field1 > int.MaxValue) {
@@ -1217,6 +1218,23 @@ internal static class PdfSyntax {
                     parsed.ObjectNumber == entry.ObjectNumber) {
                     map[entry.ObjectNumber] = parsed;
                     parsedOffsets[entry.ObjectNumber] = offset;
+                }
+            }
+
+            foreach (var entry in entries) {
+                if (entry.Type != 2 ||
+                    entry.Field1 < 0 ||
+                    entry.Field1 > int.MaxValue ||
+                    entry.Field2 < 0 ||
+                    entry.Field2 > int.MaxValue) {
+                    continue;
+                }
+
+                int objectStreamNumber = (int)entry.Field1;
+                int objectStreamIndex = (int)entry.Field2;
+                if (TryParseObjectFromObjectStream(map, parsedOffsets, objectStreamNumber, objectStreamIndex, entry.ObjectNumber, out var parsed, out int objectStreamOffset)) {
+                    map[entry.ObjectNumber] = parsed;
+                    parsedOffsets[entry.ObjectNumber] = objectStreamOffset;
                 }
             }
         }
@@ -1394,6 +1412,58 @@ internal static class PdfSyntax {
         }
 
         parsed = new PdfIndirectObject(id, gen, topLevelObject);
+        return true;
+    }
+
+    private static bool TryParseObjectFromObjectStream(
+        Dictionary<int, PdfIndirectObject> map,
+        Dictionary<int, int> parsedOffsets,
+        int objectStreamNumber,
+        int objectStreamIndex,
+        int expectedObjectNumber,
+        out PdfIndirectObject parsed,
+        out int objectStreamOffset) {
+        parsed = null!;
+        objectStreamOffset = int.MaxValue;
+        if (!map.TryGetValue(objectStreamNumber, out var objectStreamIndirect) ||
+            objectStreamIndirect.Value is not PdfStream objectStream ||
+            objectStream.Dictionary.Get<PdfName>("Type")?.Name != "ObjStm") {
+            return false;
+        }
+
+        byte[] data = Filters.StreamDecoder.Decode(objectStream.Dictionary, objectStream.Data, map);
+        int n = (int)(objectStream.Dictionary.Get<PdfNumber>("N")?.Value ?? 0);
+        int first = (int)(objectStream.Dictionary.Get<PdfNumber>("First")?.Value ?? 0);
+        if (objectStreamIndex < 0 || objectStreamIndex >= n || n <= 0 || first <= 0 || first > data.Length) {
+            return false;
+        }
+
+        var headerBytes = new byte[first];
+        Buffer.BlockCopy(data, 0, headerBytes, 0, first);
+        string header = PdfEncoding.Latin1GetString(headerBytes);
+        var pairs = ParsePairs(header, n);
+        if (pairs.Count != n ||
+            pairs[objectStreamIndex].Obj != expectedObjectNumber) {
+            return false;
+        }
+
+        int start = first + pairs[objectStreamIndex].Off;
+        int end = (objectStreamIndex + 1 < n) ? first + pairs[objectStreamIndex + 1].Off : data.Length;
+        if (start < 0 || end > data.Length || end <= start) {
+            return false;
+        }
+
+        int len = end - start;
+        var sliceBytes = new byte[len];
+        Buffer.BlockCopy(data, start, sliceBytes, 0, len);
+        var slice = PdfEncoding.Latin1GetString(sliceBytes);
+        var parsedObject = ParseTopLevelObject(slice);
+        if (parsedObject is null) {
+            return false;
+        }
+
+        parsed = new PdfIndirectObject(expectedObjectNumber, 0, parsedObject);
+        objectStreamOffset = parsedOffsets.TryGetValue(objectStreamNumber, out int offset) ? offset : int.MaxValue;
         return true;
     }
 

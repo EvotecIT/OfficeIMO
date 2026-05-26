@@ -93,6 +93,16 @@ public class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void ExtractText_UsesXrefStreamCompressedObjectEntriesInsteadOfTrailingStaleDuplicates() {
+        byte[] pdf = BuildXrefStreamCompressedObjectPdfWithTrailingStaleDuplicatePage();
+
+        string text = Normalize(PdfTextExtractor.ExtractAllText(pdf));
+
+        Assert.Contains("Active compressed xref page", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Stale compressed trailing page", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ReadExternalObjectStream_DoesNotOverwriteExplicitIndirectObjects() {
         byte[] pdf = BuildExternalObjectStreamWithExplicitReplacementPdf();
 
@@ -279,6 +289,48 @@ public class PdfExternalDocumentCompatibilityTests {
         return stream.ToArray();
     }
 
+    private static byte[] BuildXrefStreamCompressedObjectPdfWithTrailingStaleDuplicatePage() {
+        using var stream = new MemoryStream();
+        var offsets = new Dictionary<int, int>();
+
+        WriteAscii(stream, "%PDF-1.5\n");
+        WriteStreamObject(stream, offsets, 4, Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Active compressed xref page) Tj\nET\n"));
+
+        var packedObjects = new List<(int ObjectNumber, string Body)> {
+            (1, "<< /Type /Catalog /Pages 2 0 R >>"),
+            (2, "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 7 0 R >> >> >>"),
+            (3, "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>"),
+            (7, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
+        };
+        WriteRawObject(stream, offsets, 10, BuildObjectStreamObject(10, packedObjects));
+
+        int xrefObjectNumber = 11;
+        offsets[xrefObjectNumber] = (int)stream.Position;
+        var entries = new Dictionary<int, (int Type, int Field1, int Field2)> {
+            [1] = (2, 10, 0),
+            [2] = (2, 10, 1),
+            [3] = (2, 10, 2),
+            [4] = (1, offsets[4], 0),
+            [7] = (2, 10, 3),
+            [10] = (1, offsets[10], 0),
+            [11] = (1, offsets[xrefObjectNumber], 0)
+        };
+        byte[] xrefEntries = BuildXrefStreamEntries(entries, size: 12);
+        WriteAscii(stream, xrefObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " 0 obj\n<< /Type /XRef /Size 12 /Root 1 0 R /W [1 4 2] /Index [0 12] /Length " +
+            xrefEntries.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " >>\nstream\n");
+        stream.Write(xrefEntries, 0, xrefEntries.Length);
+        WriteAscii(stream, "\nendstream\nendobj\n");
+
+        WriteAscii(stream, "startxref\n" + offsets[xrefObjectNumber].ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n%%EOF\n");
+
+        WriteObject(stream, offsets, 3, "<< /Type /Page /Parent 2 0 R /Contents 6 0 R >>");
+        WriteStreamObject(stream, offsets, 6, Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Stale compressed trailing page) Tj\nET\n"));
+
+        return stream.ToArray();
+    }
+
     private static byte[] BuildXrefStreamEntries(Dictionary<int, int> offsets, int xrefObjectNumber) {
         using var stream = new MemoryStream();
         WriteXrefEntry(stream, 0, 0, 65535);
@@ -287,6 +339,19 @@ public class PdfExternalDocumentCompatibilityTests {
                 WriteXrefEntry(stream, 1, offsets[xrefObjectNumber], 0);
             } else if (offsets.TryGetValue(objectNumber, out int offset)) {
                 WriteXrefEntry(stream, 1, offset, 0);
+            } else {
+                WriteXrefEntry(stream, 0, 0, 65535);
+            }
+        }
+
+        return stream.ToArray();
+    }
+
+    private static byte[] BuildXrefStreamEntries(IReadOnlyDictionary<int, (int Type, int Field1, int Field2)> entries, int size) {
+        using var stream = new MemoryStream();
+        for (int objectNumber = 0; objectNumber < size; objectNumber++) {
+            if (entries.TryGetValue(objectNumber, out var entry)) {
+                WriteXrefEntry(stream, entry.Type, entry.Field1, entry.Field2);
             } else {
                 WriteXrefEntry(stream, 0, 0, 65535);
             }
@@ -320,6 +385,14 @@ public class PdfExternalDocumentCompatibilityTests {
             " >>\nstream\n");
         stream.Write(streamBytes, 0, streamBytes.Length);
         WriteAscii(stream, "\nendstream\nendobj\n");
+    }
+
+    private static void WriteRawObject(Stream stream, Dictionary<int, int> offsets, int objectNumber, string objectText) {
+        offsets[objectNumber] = (int)stream.Position;
+        WriteAscii(stream, objectText);
+        if (!objectText.EndsWith("\n", StringComparison.Ordinal)) {
+            WriteAscii(stream, "\n");
+        }
     }
 
     private static void WriteAscii(Stream stream, string value) {
