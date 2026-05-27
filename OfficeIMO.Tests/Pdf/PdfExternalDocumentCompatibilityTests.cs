@@ -46,6 +46,28 @@ public class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void ExtractTextByPage_UsesSimpleFontMacRomanEncoding() {
+        byte[] pdf = BuildExternalSinglePagePdf(
+            "BT\n/F13 12 Tf\n72 720 Td\n<4361668E> Tj\nET\n",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /MacRomanEncoding >>");
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+
+        Assert.Contains("Caf\u00E9", Normalize(pageText), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExtractTextByPage_UsesSimpleFontEncodingDifferencesWithMacRomanBase() {
+        byte[] pdf = BuildExternalSinglePagePdf(
+            "BT\n/F13 12 Tf\n72 720 Td\n<8E20C8> Tj\nET\n",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /BaseEncoding /MacRomanEncoding /Differences [ 200 /Euro ] >> >>");
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+
+        Assert.Contains("\u00E9 \u20AC", Normalize(pageText), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SplitPages_ReadsExternalProducerPdfWithInheritedResourcesAndContentArrays() {
         byte[] pdf = BuildExternalTwoPagePdf();
 
@@ -334,13 +356,16 @@ public class PdfExternalDocumentCompatibilityTests {
         Assert.Contains("PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
     }
 
-    private static byte[] BuildExternalSinglePagePdf(string content) {
+    private static byte[] BuildExternalSinglePagePdf(string content) =>
+        BuildExternalSinglePagePdf(content, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+
+    private static byte[] BuildExternalSinglePagePdf(string content, string fontObjectBody) {
         byte[] streamBytes = Encoding.ASCII.GetBytes(content.TrimEnd('\n'));
         var objects = new[] {
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 4 0 R >> >> >>\nendobj",
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents [5 0 R] >>\nendobj",
-            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            "4 0 obj\n" + fontObjectBody + "\nendobj",
             BuildStreamObject(5, streamBytes)
         };
 

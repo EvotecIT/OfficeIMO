@@ -204,12 +204,20 @@ internal static class ResourceResolver {
     private static System.Func<byte[], string> BuildDecoderForFont(PdfFontResource font) {
         // Prefer font-specific ToUnicode map when present
         if (font.HasToUnicode && font.CMap is not null) return font.CMap.MapBytes;
+        var baseDecoder = BuildBaseEncodingDecoder(font.Encoding);
         if (font.Differences is not null && font.Differences.Count > 0) {
             var differences = font.Differences;
-            return bytes => DecodeWithDifferences(bytes, differences);
+            return bytes => DecodeWithDifferences(bytes, differences, baseDecoder);
         }
 
-        // Fall back to WinAnsi
+        return baseDecoder;
+    }
+
+    private static System.Func<byte[], string> BuildBaseEncodingDecoder(string encoding) {
+        if (string.Equals(encoding, "MacRomanEncoding", System.StringComparison.Ordinal)) {
+            return PdfMacRomanEncoding.Decode;
+        }
+
         return PdfWinAnsiEncoding.Decode;
     }
 
@@ -268,7 +276,7 @@ internal static class ResourceResolver {
         return map.Count == 0 ? null : map;
     }
 
-    private static string DecodeWithDifferences(byte[] bytes, IReadOnlyDictionary<int, string> differences) {
+    private static string DecodeWithDifferences(byte[] bytes, IReadOnlyDictionary<int, string> differences, System.Func<byte[], string> baseDecoder) {
         if (bytes is null || bytes.Length == 0) return string.Empty;
         var builder = new System.Text.StringBuilder(bytes.Length);
         for (int i = 0; i < bytes.Length; i++) {
@@ -276,7 +284,7 @@ internal static class ResourceResolver {
             if (differences.TryGetValue(code, out string? value)) {
                 builder.Append(value);
             } else {
-                builder.Append(PdfWinAnsiEncoding.Decode(new[] { bytes[i] }));
+                builder.Append(baseDecoder(new[] { bytes[i] }));
             }
         }
 
