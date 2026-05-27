@@ -297,6 +297,21 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfReadPage_GetTextSpans_ResolvesMarkedContentActualTextFromPropertiesResource() {
+        byte[] bytes = BuildSingleStreamPdfWithMarkedContentProperties(
+            "/Span /MC0 BDC\n" +
+            "BT\n/F1 12 Tf\n72 720 Td\n(X) Tj\nET\n" +
+            "EMC\n");
+
+        var span = Assert.Single(PdfReadDocument.Load(bytes).Pages[0].GetTextSpans());
+
+        Assert.Equal("Resource Zed", span.Text);
+        Assert.Equal(72, span.X, 3);
+        Assert.Equal(720, span.Y, 3);
+        Assert.Equal(PdfWriter.EstimateSimpleTextWidth("X", PdfStandardFont.Helvetica, 12), span.Advance, 3);
+    }
+
+    [Fact]
     public void PdfReadPage_GetTextSpans_ReadsSimpleFontEncodingDifferences() {
         byte[] bytes = BuildPdfWithFontEncodingDifferences();
 
@@ -1766,6 +1781,38 @@ public class PdfReaderAndFooterRegressionTests {
 
     private static byte[] BuildSingleStreamPdf(string streamContent) {
         return BuildSingleStreamPdf(Encoding.ASCII.GetBytes(streamContent.TrimEnd('\n')));
+    }
+
+    private static byte[] BuildSingleStreamPdfWithMarkedContentProperties(string streamContent) {
+        streamContent = streamContent.TrimEnd('\n');
+        int streamLength = Encoding.ASCII.GetByteCount(streamContent);
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> /Properties << /MC0 << /ActualText <FEFF005200650073006F00750072006300650020005A00650064> >> >> >> /Contents 5 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            "endobj",
+            "5 0 obj",
+            $"<< /Length {streamLength} >>",
+            "stream",
+            streamContent,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
     }
 
     private static byte[] BuildPdfWithFontEncodingDifferences() {

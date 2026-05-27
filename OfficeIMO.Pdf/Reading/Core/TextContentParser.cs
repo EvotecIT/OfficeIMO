@@ -59,7 +59,8 @@ internal static class TextContentParser {
         string content,
         System.Func<string, byte[], string> decodeWithFont,
         System.Func<string, byte[], double> sumWidth1000ForFont,
-        bool adjustKerningFromTJ = true) {
+        bool adjustKerningFromTJ = true,
+        System.Func<string, string?>? actualTextForProperty = null) {
         var spans = new List<PdfTextSpan>();
         // Text state
         bool inText = false;
@@ -279,14 +280,18 @@ internal static class TextContentParser {
             return null;
         }
 
-        static string? GetActualText(object? propertyObject) {
-            if (propertyObject is not InlineDictionary dictionary ||
-                !dictionary.Items.TryGetValue("ActualText", out var value) ||
-                value is not byte[] bytes) {
-                return null;
+        string? GetActualText(object? propertyObject) {
+            if (propertyObject is string propertyName) {
+                return actualTextForProperty?.Invoke(propertyName);
             }
 
-            return DecodePdfTextString(bytes);
+            if (propertyObject is InlineDictionary dictionary &&
+                dictionary.Items.TryGetValue("ActualText", out var value) &&
+                value is byte[] bytes) {
+                return DecodePdfTextString(bytes);
+            }
+
+            return null;
         }
 
         void ShowTextArray(object arrObj) {

@@ -198,8 +198,10 @@ public sealed class PdfReadPage {
             decoders.TryGetValue(fontRes, out var dec) ? dec(bytes) : PdfWinAnsiEncoding.Decode(bytes);
         double SumWidth1000(string fontRes, byte[] bytes) =>
             widthProviders.TryGetValue(fontRes, out var wp) ? wp(bytes) : (bytes?.Length ?? 0) * 500.0;
+        string? ResolveActualTextProperty(string propertyName) =>
+            GetMarkedContentActualText(resources, propertyName);
 
-        spans.AddRange(TextContentParser.Parse(content, DecodeWithFont, SumWidth1000));
+        spans.AddRange(TextContentParser.Parse(content, DecodeWithFont, SumWidth1000, actualTextForProperty: ResolveActualTextProperty));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(content)) {
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
@@ -253,6 +255,29 @@ public sealed class PdfReadPage {
 
         formStream = null!;
         return false;
+    }
+
+    private string? GetMarkedContentActualText(PdfDictionary? resources, string propertyName) {
+        if (resources is null ||
+            !resources.Items.TryGetValue("Properties", out var propertiesObj)) {
+            return null;
+        }
+
+        var properties = ResolveDictionary(propertiesObj);
+        if (properties is null ||
+            !properties.Items.TryGetValue(propertyName, out var propertyObj)) {
+            return null;
+        }
+
+        var propertyDictionary = ResolveDictionary(propertyObj);
+        if (propertyDictionary is null ||
+            !propertyDictionary.Items.TryGetValue("ActualText", out var actualTextObj) ||
+            ResolveObject(actualTextObj) is not PdfStringObj actualText ||
+            string.IsNullOrEmpty(actualText.Value)) {
+            return null;
+        }
+
+        return actualText.Value;
     }
 
     private static Dictionary<string, Func<byte[], string>> MergeDecoders(
