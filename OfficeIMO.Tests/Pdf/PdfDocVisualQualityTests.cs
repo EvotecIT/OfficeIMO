@@ -7816,6 +7816,88 @@ public class PdfDocVisualQualityTests {
     }
 
     [Fact]
+    public void Table_SuppressesSpacingBeforeAtPageTop() {
+        var options = new PdfOptions {
+            PageWidth = 320,
+            PageHeight = 220,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 30,
+            MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 9
+        };
+        var defaultStyle = TableStyles.Minimal();
+        defaultStyle.HeaderRowCount = 0;
+        var spacedStyle = TableStyles.Minimal();
+        spacedStyle.HeaderRowCount = 0;
+        spacedStyle.SpacingBefore = 28;
+        spacedStyle.SpacingAfter = 0;
+
+        byte[] defaultBytes = PdfDoc.Create(options)
+            .Table(new[] {
+                new[] { "TopTableMarker", "Ready" },
+                new[] { "Beta", "Ready" }
+            }, style: defaultStyle)
+            .ToBytes();
+        byte[] spacedBytes = PdfDoc.Create(options)
+            .Table(new[] {
+                new[] { "TopTableMarker", "Ready" },
+                new[] { "Beta", "Ready" }
+            }, style: spacedStyle)
+            .ToBytes();
+
+        using var defaultPdf = PdfDocument.Open(new MemoryStream(defaultBytes));
+        using var spacedPdf = PdfDocument.Open(new MemoryStream(spacedBytes));
+
+        double defaultTopY = FindWordStartY(defaultPdf.GetPage(1), "TopTableMarker");
+        double spacedTopY = FindWordStartY(spacedPdf.GetPage(1), "TopTableMarker");
+
+        Assert.InRange(Math.Abs(defaultTopY - spacedTopY), 0, 1.5);
+    }
+
+    [Fact]
+    public void RowColumnTable_SuppressesSpacingBeforeAtColumnTop() {
+        var options = new PdfOptions {
+            PageWidth = 320,
+            PageHeight = 220,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 30,
+            MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 9
+        };
+        var defaultStyle = TableStyles.Minimal();
+        defaultStyle.HeaderRowCount = 0;
+        var spacedStyle = TableStyles.Minimal();
+        spacedStyle.HeaderRowCount = 0;
+        spacedStyle.SpacingBefore = 28;
+        spacedStyle.SpacingAfter = 0;
+        string[][] rows = {
+            new[] { "ColumnTableMarker", "Ready" },
+            new[] { "Beta", "Ready" }
+        };
+
+        byte[] defaultBytes = PdfDoc.Create(options)
+            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.Column(100, column => column
+                .Table(rows, style: defaultStyle))))))
+            .ToBytes();
+        byte[] spacedBytes = PdfDoc.Create(options)
+            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.Column(100, column => column
+                .Table(rows, style: spacedStyle))))))
+            .ToBytes();
+
+        using var defaultPdf = PdfDocument.Open(new MemoryStream(defaultBytes));
+        using var spacedPdf = PdfDocument.Open(new MemoryStream(spacedBytes));
+
+        double defaultTopY = FindWordStartY(defaultPdf.GetPage(1), "ColumnTableMarker");
+        double spacedTopY = FindWordStartY(spacedPdf.GetPage(1), "ColumnTableMarker");
+
+        Assert.InRange(Math.Abs(defaultTopY - spacedTopY), 0, 1.5);
+    }
+
+    [Fact]
     public void Table_RendersConfiguredCaptionAboveGrid() {
         var options = new PdfOptions {
             PageWidth = 320,

@@ -2510,32 +2510,36 @@ internal static partial class PdfWriter {
                     }
 
                     double tableContentHeight = (captionLines == null ? 0 : captionHeight + style.CaptionSpacingAfter) + rowHeights.Sum();
+                    double tableSpacingBefore = y < yStart - 0.001 ? style.SpacingBefore : 0D;
                     if (style.KeepTogether) {
-                        double keepHeight = style.SpacingBefore + tableContentHeight + style.SpacingAfter;
+                        double keepHeight = tableSpacingBefore + tableContentHeight + style.SpacingAfter;
                         if (keepHeight > maxContentHeight + 0.001) {
                             throw new ArgumentException("Table height exceeds the available page content height.");
                         }
 
                         if (y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                             NewPage();
+                            tableSpacingBefore = 0D;
                         }
                     }
 
                     if (style.KeepWithNext && nextBlock != null) {
-                        double tableHeight = style.SpacingBefore + tableContentHeight + style.SpacingAfter;
+                        double tableHeight = tableSpacingBefore + tableContentHeight + style.SpacingAfter;
                         double nextHeight = MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
                         double keepHeight = tableHeight + nextHeight;
                         if (nextHeight > 0.001 && tableHeight <= maxContentHeight + 0.001 && keepHeight <= maxContentHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                             NewPage();
+                            tableSpacingBefore = 0D;
                         }
                     }
 
-                    if (style.SpacingBefore > 0) {
-                        if (y < yStart - 0.001 && y - style.SpacingBefore < currentOpts.MarginBottom) {
+                    if (tableSpacingBefore > 0) {
+                        if (y < yStart - 0.001 && y - tableSpacingBefore < currentOpts.MarginBottom) {
                             NewPage();
+                            tableSpacingBefore = 0D;
                         }
 
-                        y -= style.SpacingBefore;
+                        y -= tableSpacingBefore;
                     }
 
                     if (captionLines != null) {
@@ -3674,8 +3678,9 @@ internal static partial class PdfWriter {
                                     double xTable = ResolveTableX(tbColumn.Align, tableStyle, xCol, wCol, table.Width);
 
                                     double maxContentHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+                                    double tableSpacingBefore = line == 0 && consumed > 0.001 ? tableStyle.SpacingBefore : 0D;
                                     if (line == 0 && tableStyle.KeepTogether) {
-                                        double keepHeight = tableStyle.SpacingBefore + table.CaptionHeight + table.RowHeights.Sum() + tableStyle.SpacingAfter;
+                                        double keepHeight = tableSpacingBefore + table.CaptionHeight + table.RowHeights.Sum() + tableStyle.SpacingAfter;
                                         if (keepHeight > maxContentHeight + 0.001) {
                                             throw new ArgumentException("Table height exceeds the available page content height.");
                                         }
@@ -3688,7 +3693,7 @@ internal static partial class PdfWriter {
                                     }
 
                                     if (line == 0 && tableStyle.KeepWithNext && idx + 1 < items.Count) {
-                                        double tableHeight = tableStyle.SpacingBefore + table.CaptionHeight + table.RowHeights.Sum() + tableStyle.SpacingAfter;
+                                        double tableHeight = tableSpacingBefore + table.CaptionHeight + table.RowHeights.Sum() + tableStyle.SpacingAfter;
                                         double nextHeight = MeasureColItemFirstVisualHeight(items[idx + 1]);
                                         double keepHeight = tableHeight + nextHeight;
                                         if (nextHeight > 0.001 && tableHeight <= maxContentHeight + 0.001 && keepHeight <= maxContentHeight + 0.001 && keepHeight > remain + 0.001) {
@@ -3698,12 +3703,12 @@ internal static partial class PdfWriter {
                                         }
                                     }
 
-                                    if (line == 0 && tableStyle.SpacingBefore > 0) {
-                                        if (tableStyle.SpacingBefore > remain && consumed > 0) break;
-                                        if (tableStyle.SpacingBefore > remain && consumed == 0) { remain = 0; break; }
-                                        yCol -= tableStyle.SpacingBefore;
-                                        remain -= tableStyle.SpacingBefore;
-                                        consumed += tableStyle.SpacingBefore;
+                                    if (line == 0 && tableSpacingBefore > 0) {
+                                        if (tableSpacingBefore > remain && consumed > 0) break;
+                                        if (tableSpacingBefore > remain && consumed == 0) { remain = 0; break; }
+                                        yCol -= tableSpacingBefore;
+                                        remain -= tableSpacingBefore;
+                                        consumed += tableSpacingBefore;
                                     }
 
                                     if (line == 0 && table.CaptionLines != null) {
