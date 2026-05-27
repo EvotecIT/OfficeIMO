@@ -15,10 +15,18 @@ namespace OfficeIMO.Pdf;
 internal static class TableDetector {
     public static List<string[]> Detect(List<TextLayoutEngine.TextLine> lines) {
         var rows = new List<string[]>();
+        foreach (var match in DetectLineRows(lines)) {
+            rows.Add(match.Cells);
+        }
+        return rows;
+    }
+
+    public static List<(TextLayoutEngine.TextLine Line, string[] Cells)> DetectLineRows(List<TextLayoutEngine.TextLine> lines) {
+        var rows = new List<(TextLayoutEngine.TextLine Line, string[] Cells)>();
         foreach (var ln in lines) {
             if (ln.Spans.Count < 2) continue;
             var cells = SplitByGaps(ln);
-            if (cells.Length >= 2 && LooksTabular(cells)) rows.Add(cells);
+            if (cells.Length >= 2 && LooksTabular(cells)) rows.Add((ln, cells));
         }
         return rows;
     }

@@ -150,9 +150,9 @@ internal static class PdfAnnotationDictionaryBuilder {
         return "<< /Type /Annot /Subtype /Widget /FT /Ch /T " +
             PdfSyntaxEscaper.TextString(name) +
             " /V " +
-            BuildChoiceValue(values) +
+            BuildChoiceValue(values, allowsMultipleSelection) +
             " /DV " +
-            BuildChoiceValue(values) +
+            BuildChoiceValue(values, allowsMultipleSelection) +
             " /Opt [" +
             optionBuilder +
             " ]" +
@@ -169,8 +169,8 @@ internal static class PdfAnnotationDictionaryBuilder {
             " >> >>\n";
     }
 
-    private static string BuildChoiceValue(IReadOnlyList<string> values) {
-        if (values.Count == 1) {
+    private static string BuildChoiceValue(IReadOnlyList<string> values, bool forceArray) {
+        if (values.Count == 1 && !forceArray) {
             return PdfSyntaxEscaper.WinAnsiHexString(values[0]);
         }
 

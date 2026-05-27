@@ -1127,8 +1127,7 @@ public static class PdfFormFiller {
                 pairExportValue is not null &&
                 TryReadOptionText(objects, pair.Items[1], out string? pairDisplayText) &&
                 pairDisplayText is not null &&
-                (string.Equals(pairExportValue, value, StringComparison.Ordinal) ||
-                 string.Equals(pairDisplayText, value, StringComparison.Ordinal))) {
+                string.Equals(pairExportValue, value, StringComparison.Ordinal)) {
                 return new ChoiceFillValue(pairExportValue, pairDisplayText);
             }
 
@@ -1137,6 +1136,19 @@ public static class PdfFormFiller {
                 singleValue is not null &&
                 string.Equals(singleValue, value, StringComparison.Ordinal)) {
                 return new ChoiceFillValue(singleValue, singleValue);
+            }
+        }
+
+        for (int i = 0; i < options.Items.Count; i++) {
+            PdfObject? optionObject = ResolveObject(objects, options.Items[i]);
+            if (optionObject is PdfArray pair &&
+                pair.Items.Count >= 2 &&
+                TryReadOptionText(objects, pair.Items[0], out string? pairExportValue) &&
+                pairExportValue is not null &&
+                TryReadOptionText(objects, pair.Items[1], out string? pairDisplayText) &&
+                pairDisplayText is not null &&
+                string.Equals(pairDisplayText, value, StringComparison.Ordinal)) {
+                return new ChoiceFillValue(pairExportValue, pairDisplayText);
             }
         }
 

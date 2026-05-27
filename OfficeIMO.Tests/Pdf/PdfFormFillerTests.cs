@@ -253,6 +253,18 @@ public class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FillFields_ChoicePrefersExactExportValueOverEarlierDisplayText() {
+        byte[] filled = PdfFormFiller.FillFields(BuildOverlappingChoiceWidgetFormPdf(), new Dictionary<string, string> {
+            ["Choice"] = "B"
+        });
+
+        PdfFormField filledField = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("B", filledField.Value);
+        Assert.Equal("C", Assert.Single(filledField.SelectedOptions).DisplayText);
+    }
+
+    [Fact]
     public void FillFields_ChoiceDisplayTextUsesInheritedOptions() {
         byte[] filled = PdfFormFiller.FillFields(BuildInheritedChoiceWidgetFormPdf(), new Dictionary<string, string> {
             ["Selection.Country"] = "United States"
@@ -714,6 +726,41 @@ public class PdfFormFillerTests {
             "endobj",
             "7 0 obj",
             "<< /FT /Ch /T (Country) /V (DE) /Opt [[(PL) (Poland)] [(DE) (Germany)] [/US (United States)]] /Kids [8 0 R] >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 100 200 122] /F 4 >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildOverlappingChoiceWidgetFormPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R /Annots [8 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [7 0 R] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /FT /Ch /T (Choice) /V (A) /Opt [[(A) (B)] [(B) (C)]] /Kids [8 0 R] >>",
             "endobj",
             "8 0 obj",
             "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 100 200 122] /F 4 >>",

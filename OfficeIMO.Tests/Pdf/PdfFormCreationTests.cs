@@ -234,6 +234,20 @@ public class PdfFormCreationTests {
     }
 
     [Fact]
+    public void MultiSelectChoiceField_WithSingleSelectedValueStoresArrayValue() {
+        byte[] pdf = PdfDoc.Create()
+            .MultiSelectChoiceField("Countries", new[] { "Poland", "Germany" }, values: new[] { "Poland" })
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(pdf);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(pdf).FormFields);
+
+        Assert.Equal(new[] { "Poland" }, field.Values);
+        Assert.Contains("/V [<506F6C616E64>]", raw, StringComparison.Ordinal);
+        Assert.Contains("/DV [<506F6C616E64>]", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GeneratedFields_ValidateFlowGeometry() {
         Assert.Throws<ArgumentException>(() => PdfDoc.Create().TextField(" "));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDoc.Create().TextField("Name", width: 0));

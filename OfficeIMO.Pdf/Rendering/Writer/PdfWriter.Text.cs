@@ -333,7 +333,7 @@ internal static partial class PdfWriter {
                     }
                     continue;
                 }
-                if (token.Length > 0 && pendingLeadingIsTab && lastLine.Count > 0) {
+                if (token.Length > 0 && pendingLeadingIsTab) {
                     pendingLeadingAdvance = CalculateTabAdvance(lineWidth, tokenW, spaceW, pendingLeadingTabAlignment, tabStopWidth, token, fontForRun, fontSize, baseline);
                 }
                 needed = lastLine.Count == 0

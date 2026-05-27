@@ -214,6 +214,34 @@ public sealed class PdfReadLayoutSmokeTests {
     }
 
     [Fact]
+    public void PdfTextExtractor_ExtractStructuredByPage_DoesNotDuplicateFallbackTableRowsAsParagraphs() {
+        byte[] bytes = PdfDoc.Create(new PdfOptions {
+                PageWidth = 360,
+                PageHeight = 180,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10,
+                DefaultParagraphStyle = new PdfParagraphStyle {
+                    DefaultTabStopWidth = 160,
+                    SpacingAfter = 0
+                }
+            })
+            .Paragraph(p => p.Text("Fallback table row").Tab().Text("12345"))
+            .ToBytes();
+
+        StructuredPage page = Assert.Single(PdfTextExtractor.ExtractStructuredByPage(bytes, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }));
+
+        Assert.Contains(page.Tables, row => row.Length >= 2 &&
+            Normalize(row[0]).Contains("Fallbacktablerow", StringComparison.Ordinal) &&
+            Normalize(row[1]).Contains("12345", StringComparison.Ordinal));
+        Assert.DoesNotContain(page.Paragraphs, paragraph => Normalize(paragraph.Text).Contains("Fallbacktablerow", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void PdfTextExtractor_ExtractStructuredByPage_DetectsHeadingLines() {
         byte[] bytes = PdfDoc.Create(new PdfOptions {
                 PageWidth = 360,

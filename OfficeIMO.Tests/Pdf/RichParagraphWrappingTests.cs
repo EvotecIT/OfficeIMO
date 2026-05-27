@@ -515,6 +515,30 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void WrapRichRuns_RightAlignedLeadingTabAccountsForFollowingTokenWidth() {
+            var shortResult = InvokeWrapRichRuns(new[] {
+                TextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right),
+                new TextRun("12")
+            }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
+            var longResult = InvokeWrapRichRuns(new[] {
+                TextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right),
+                new TextRun("12345")
+            }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
+
+            var shortLine = Assert.Single(ExtractLines(shortResult));
+            var longLine = Assert.Single(ExtractLines(longResult));
+            double shortAdvance = ExtractLeadingAdvance(shortLine[0]);
+            double longAdvance = ExtractLeadingAdvance(longLine[0]);
+            double shortWidth = InvokePrivateFontMethod<double>("EstimateSimpleTextWidth", "12", PdfStandardFont.Helvetica, 12.0);
+            double longWidth = InvokePrivateFontMethod<double>("EstimateSimpleTextWidth", "12345", PdfStandardFont.Helvetica, 12.0);
+
+            Assert.True(ExtractLeadingSpace(shortLine[0]));
+            Assert.True(ExtractLeadingSpace(longLine[0]));
+            Assert.True(longAdvance < shortAdvance, "Expected wider leading right-aligned tab text to consume less leading advance.");
+            Assert.Equal(shortAdvance + shortWidth, longAdvance + longWidth, 1);
+        }
+
+        [Fact]
         public void WrapRichRuns_CenterAlignedTabsCenterFollowingTokenOnStop() {
             var shortResult = InvokeWrapRichRuns(new[] {
                 new TextRun("A"),

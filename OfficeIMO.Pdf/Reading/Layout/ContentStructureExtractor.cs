@@ -219,6 +219,7 @@ internal static class ContentStructureExtractor {
 
     public static StructuredPage Extract(IReadOnlyList<PdfTextSpan> spans, TextLayoutEngine.Options opts) {
         var page = new StructuredPage();
+        var fallbackTableLines = new HashSet<TextLayoutEngine.TextLine>();
         var lines = TextLayoutEngine.BuildLines(spans, opts);
         var nonEmpty = new List<TextLayoutEngine.TextLine>();
         foreach (var ln in lines) if (!string.IsNullOrWhiteSpace(ln.Text)) nonEmpty.Add(ln);
@@ -321,25 +322,34 @@ internal static class ContentStructureExtractor {
                 page.TablesDetailed.Add(leaderTbl);
                 foreach (var r in leaderTbl.Rows) AddLeaderRow(page, r[0], r[1]);
             } else {
-                var rows = TableDetector.Detect(lines);
+                var rows = TableDetector.DetectLineRows(lines);
                 if (rows.Count > 0) {
-                    foreach (var r in rows) if (r.Length >= 2) { r[0] = NormalizeShattered(r[0]); r[1] = r[1].Trim('.'); }
-                    page.Tables.AddRange(rows);
+                    foreach (var row in rows) {
+                        var r = row.Cells;
+                        if (r.Length >= 2) {
+                            r[0] = NormalizeShattered(r[0]);
+                            r[1] = r[1].Trim('.');
+                        }
+
+                        fallbackTableLines.Add(row.Line);
+                        page.Tables.Add(r);
+                    }
                 }
             }
         }
         AddHeadings(page, nonEmpty);
-        AddParagraphs(page, nonEmpty);
+        AddParagraphs(page, nonEmpty, fallbackTableLines);
         return page;
     }
 
-    private static void AddParagraphs(StructuredPage page, List<TextLayoutEngine.TextLine> lines) {
+    private static void AddParagraphs(StructuredPage page, List<TextLayoutEngine.TextLine> lines, HashSet<TextLayoutEngine.TextLine> fallbackTableLines) {
         var candidates = new List<TextLayoutEngine.TextLine>();
         foreach (var line in lines) {
             string text = line.Text.Trim();
             if (text.Length == 0 ||
                 ListRegex.IsMatch(text) ||
                 IsHeadingLine(line, page.Headings) ||
+                fallbackTableLines.Contains(line) ||
                 IsInsideTable(line, page.TablesDetailed)) {
                 continue;
             }
