@@ -32,6 +32,19 @@ internal static class TextContentParser {
         }
     }
 
+    private sealed class InlineDictionary {
+        public Dictionary<string, object> Items { get; } = new(StringComparer.Ordinal);
+    }
+
+    private sealed class MarkedContentState {
+        public string? ActualText { get; }
+        public bool ActualTextEmitted { get; set; }
+
+        public MarkedContentState(string? actualText) {
+            ActualText = actualText;
+        }
+    }
+
     internal readonly struct FormInvocation {
         public string Name { get; }
         public Matrix2D Transform { get; }
@@ -61,6 +74,7 @@ internal static class TextContentParser {
         // Kerning state between text runs in TJ arrays (points) and rolling output buffer for gap checks
         double pendingGapPt = 0;
         var sbOutGlobal = new StringBuilder();
+        var markedContentStack = new Stack<MarkedContentState>();
         while (i < n) {
             SkipWs(); if (i >= n) break;
             char c = content[i];
@@ -71,7 +85,7 @@ internal static class TextContentParser {
             if (c == '/') { args.Add(ReadName()); continue; }
             if (c == '(') { args.Add(ReadLiteralStringBytes()); continue; }
             if (c == '<') {
-                if (i + 1 < n && content[i + 1] == '<') { i += 2; continue; } // ignore dictionaries in content streams
+                if (i + 1 < n && content[i + 1] == '<') { args.Add(ReadInlineDictionary()); continue; }
                 args.Add(ReadHexStringBytes()); continue;
             }
             if (c == '[') { args.Add(ReadArray()); continue; }
@@ -125,6 +139,21 @@ internal static class TextContentParser {
                     break;
                 case "Tj": if (args.Count >= 1) { ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; args.Clear(); } break;
                 case "TJ": if (args.Count >= 1) { ShowTextArray(args[args.Count - 1]); args.Clear(); } break;
+                case "BDC":
+                    markedContentStack.Push(new MarkedContentState(GetActualText(args.Count > 0 ? args[args.Count - 1] : null)));
+                    args.Clear();
+                    break;
+                case "BMC":
+                    markedContentStack.Push(new MarkedContentState(null));
+                    args.Clear();
+                    break;
+                case "EMC":
+                    if (markedContentStack.Count > 0) {
+                        markedContentStack.Pop();
+                    }
+
+                    args.Clear();
+                    break;
                 default: args.Clear(); break;
             }
         }
@@ -219,16 +248,45 @@ internal static class TextContentParser {
                 advTotal += advGlyph;
                 idx += step;
             }
-            if (sbOut.Length == 0) return;
+            var actualTextState = GetActiveActualTextState();
+            if (sbOut.Length == 0 && actualTextState is null) return;
             string textOut = NormalizeShatteredSpan(sbOut.ToString());
             var textOrigin = textMatrix.Transform(0, textRise);
             var (dx, dy) = ctm.Transform(textOrigin.X, textOrigin.Y);
             var textEnd = textMatrix.Transform(advTotal, textRise);
             var (endX, endY) = ctm.Transform(textEnd.X, textEnd.Y);
             double transformedAdvance = Math.Sqrt(((endX - dx) * (endX - dx)) + ((endY - dy) * (endY - dy)));
-            spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance));
-            sbOutGlobal.Append(textOut);
+            if (actualTextState is not null && !actualTextState.ActualTextEmitted) {
+                textOut = actualTextState.ActualText!;
+                actualTextState.ActualTextEmitted = true;
+                spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance));
+                sbOutGlobal.Append(textOut);
+            } else if (actualTextState is null && textOut.Length > 0) {
+                spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance));
+                sbOutGlobal.Append(textOut);
+            }
+
             textMatrix = Matrix2D.Multiply(textMatrix, Matrix2D.Translation(advTotal, 0));
+        }
+
+        MarkedContentState? GetActiveActualTextState() {
+            foreach (var state in markedContentStack) {
+                if (!string.IsNullOrEmpty(state.ActualText)) {
+                    return state;
+                }
+            }
+
+            return null;
+        }
+
+        static string? GetActualText(object? propertyObject) {
+            if (propertyObject is not InlineDictionary dictionary ||
+                !dictionary.Items.TryGetValue("ActualText", out var value) ||
+                value is not byte[] bytes) {
+                return null;
+            }
+
+            return DecodePdfTextString(bytes);
         }
 
         void ShowTextArray(object arrObj) {
@@ -301,6 +359,82 @@ internal static class TextContentParser {
             }
         }
 
+        InlineDictionary ReadInlineDictionary() {
+            i += 2;
+            var dictionary = new InlineDictionary();
+            while (i < n) {
+                SkipWs();
+                if (i + 1 < n && content[i] == '>' && content[i + 1] == '>') {
+                    i += 2;
+                    break;
+                }
+
+                if (i >= n) {
+                    break;
+                }
+
+                if (content[i] != '/') {
+                    SkipInlineDictionaryValue();
+                    continue;
+                }
+
+                string key = ReadName();
+                SkipWs();
+                if (i >= n) {
+                    break;
+                }
+
+                if (content[i] == '(') {
+                    dictionary.Items[key] = ReadLiteralStringBytes();
+                } else if (content[i] == '<' && i + 1 < n && content[i + 1] != '<') {
+                    dictionary.Items[key] = ReadHexStringBytes();
+                } else {
+                    SkipInlineDictionaryValue();
+                }
+            }
+
+            return dictionary;
+        }
+
+        void SkipInlineDictionaryValue() {
+            if (i >= n) {
+                return;
+            }
+
+            char ch = content[i];
+            if (ch == '(') {
+                ReadLiteralStringBytes();
+                return;
+            }
+
+            if (ch == '<') {
+                if (i + 1 < n && content[i + 1] == '<') {
+                    ReadInlineDictionary();
+                } else {
+                    ReadHexStringBytes();
+                }
+
+                return;
+            }
+
+            if (ch == '[') {
+                ReadArray();
+                return;
+            }
+
+            if (ch == '/') {
+                ReadName();
+                return;
+            }
+
+            if (IsNumberStart(ch)) {
+                ReadNumber();
+                return;
+            }
+
+            ReadOperator();
+        }
+
         List<object> ReadArray() {
             var list = new List<object>();
             i++; // skip [
@@ -331,6 +465,19 @@ internal static class TextContentParser {
         static double ToDouble(object o) { return o is double d ? d : 0.0; }
         static string ToName(object o) { return o as string ?? string.Empty; }
         static byte[] ToBytes(object o) { return o as byte[] ?? Array.Empty<byte>(); }
+
+        static string DecodePdfTextString(byte[] bytes) {
+            if (bytes.Length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF) {
+                var builder = new StringBuilder((bytes.Length - 2) / 2);
+                for (int k = 2; k + 1 < bytes.Length; k += 2) {
+                    builder.Append((char)((bytes[k] << 8) | bytes[k + 1]));
+                }
+
+                return builder.ToString();
+            }
+
+            return PdfWinAnsiEncoding.Decode(bytes);
+        }
 
         // Helpers (left empty for future metrics)
         // NormalizeThinSpaces removed in favor of per-glyph join logic
