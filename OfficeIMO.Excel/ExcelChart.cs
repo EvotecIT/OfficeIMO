@@ -2269,7 +2269,7 @@ namespace OfficeIMO.Excel {
             ReplaceChild(labels, new C.ShowBubbleSize { Val = false });
 
             if (position != null) {
-                ReplaceChild(labels, new C.DataLabelPosition { Val = position.Value });
+                ReplaceChild(labels, new C.DataLabelPosition { Val = NormalizeDataLabelPosition(chartElement, position.Value) });
             }
 
             if (numberFormat != null) {
@@ -2646,7 +2646,7 @@ namespace OfficeIMO.Excel {
                 ReplaceChild(label, new C.ShowBubbleSize { Val = showBubbleSize.Value });
             }
             if (position != null) {
-                ReplaceChild(label, new C.DataLabelPosition { Val = position.Value });
+                ReplaceChild(label, new C.DataLabelPosition { Val = NormalizeDataLabelPosition(label, position.Value) });
             }
             if (numberFormat != null) {
                 ReplaceChild(label, new C.NumberingFormat {
@@ -2677,6 +2677,21 @@ namespace OfficeIMO.Excel {
             } else if (label is C.DataLabel dataLabel) {
                 NormalizeDataLabelOrder(dataLabel);
             }
+        }
+
+        private static C.DataLabelPositionValues NormalizeDataLabelPosition(OpenXmlElement context, C.DataLabelPositionValues position) {
+            if (position != C.DataLabelPositionValues.OutsideEnd) {
+                return position;
+            }
+
+            // Excel repairs line charts that contain an outEnd data label position.
+            for (OpenXmlElement? current = context; current != null; current = current.Parent) {
+                if (current is C.LineChart || current is C.Line3DChart || current is C.LineChartSeries) {
+                    return C.DataLabelPositionValues.Top;
+                }
+            }
+
+            return position;
         }
 
         private static void ApplyDataLabelTemplate(OpenXmlCompositeElement series, ExcelChartDataLabelTemplate template) {

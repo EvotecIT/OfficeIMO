@@ -1666,6 +1666,23 @@ namespace OfficeIMO.Tests {
                 OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
                 var errors = validator.Validate(spreadsheet).ToList();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+
+                WorksheetPart worksheetPart = GetWorksheetPartWithCharts(spreadsheet);
+                var lineChart = worksheetPart.DrawingsPart!.ChartParts
+                    .SelectMany(part => part.ChartSpace.Descendants<C.LineChart>())
+                    .First();
+                var lineSeries = lineChart.Elements<C.LineChartSeries>().First();
+                var pointLabel = lineSeries.GetFirstChild<C.DataLabels>()!
+                    .Elements<C.DataLabel>()
+                    .First(label => label.GetFirstChild<C.Index>()?.Val?.Value == 2U);
+                Assert.Equal(
+                    C.DataLabelPositionValues.Top,
+                    pointLabel.GetFirstChild<C.DataLabelPosition>()!.Val!.Value);
+            }
+
+            if (IsWindowsPlatform()) {
+                AssertWorkbookOpensViaExcelComWhenAvailable(filePath,
+                    "Excel repaired the combo/scatter chart workbook. Line chart point labels must not emit outEnd positions.");
             }
         }
 
