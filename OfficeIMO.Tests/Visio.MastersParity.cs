@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         private static string AssetsPath => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets"));
 
         [Fact]
-        public void TemplateLearningRegistersNamesButGeneratesMastersFromCode() {
+        public void VsdxLearningRegistersNamesButGeneratesMastersFromCode() {
             string template = Path.Combine(AssetsPath, "VisioTemplates", "DrawingWithShapes.vsdx");
             Assert.True(File.Exists(template));
 
@@ -20,13 +20,14 @@ namespace OfficeIMO.Tests {
 
             VisioDocument doc = VisioDocument.Create(target);
             doc.UseMastersByDefault = true;
-            doc.UseMastersFromTemplate(template);
+            IReadOnlyList<VisioMaster> learned = doc.LearnMastersFromVsdx(template);
 
             Assert.True(doc.TryGetMaster("Rectangle", out _));
             Assert.True(doc.TryGetMaster("Square", out _));
             Assert.True(doc.TryGetMaster("Circle", out _));
             Assert.True(doc.TryGetMaster("Dynamic connector", out _));
             Assert.False(doc.TryGetMaster("Ellipse", out _));
+            Assert.Contains(learned, master => string.Equals(master.NameU, "Rectangle", StringComparison.OrdinalIgnoreCase));
 
             VisioPage page = doc.AddPage("Page-1", 29.7, 21, VisioMeasurementUnit.Centimeters);
             page.Shapes.Add(new VisioShape("1") { NameU = "Rectangle", PinX = 2, PinY = 6 });
@@ -115,6 +116,20 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Rectangle", imported[0].NameU);
             Assert.True(doc.TryGetMaster("Rectangle", out _));
             Assert.False(doc.TryGetMaster("FancyHexagon", out _));
+        }
+
+        [Fact]
+        public void TemplateNamedAliasLearnsMastersWithoutCopyingTemplateContent() {
+            string template = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            CreateTemplateWithMasters(template, "FancyHexagon", "Rectangle");
+
+            VisioDocument doc = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            doc.UseMastersFromTemplate(template);
+
+            Assert.True(doc.TryGetMaster("Rectangle", out _));
+            Assert.False(doc.TryGetMaster("FancyHexagon", out _));
+            Assert.Single(doc.Masters);
         }
 
         private static void CreateTemplateWithMasters(string path, params string[] masterNames) {

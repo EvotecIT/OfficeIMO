@@ -1,0 +1,142 @@
+using System;
+using System.IO;
+using System.Linq;
+using OfficeIMO.Visio;
+using OfficeIMO.Visio.Diagrams;
+using OfficeIMO.Visio.Fluent;
+using OfficeIMO.Visio.Stencils;
+using Xunit;
+using Color = OfficeIMO.Drawing.OfficeColor;
+
+namespace OfficeIMO.Tests {
+    public class VisioStyleTests {
+        [Fact]
+        public void ShapeAndConnectorStylesApplyToModelsSelectionsAndFluentApi() {
+            VisioStyleTheme theme = VisioStyleTheme.Minimal();
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Styles");
+            VisioShape first = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "first", 2, 4, "First");
+            VisioShape second = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "second", 5, 4, "Second");
+            first.Data["Style"] = "Primary";
+            second.Data["Style"] = "Primary";
+            VisioConnector connector = page.AddConnector(first, second, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
+
+            first.ApplyStyle(theme.Decision);
+            page.SelectWithData("Style", "Primary").Style(theme.Primary);
+            connector.ApplyStyle(theme.Connector);
+            page.SelectConnectedConnectors(first).Style(theme.ControlConnector);
+
+            Assert.Equal(theme.Primary.FillColor, first.FillColor);
+            Assert.Equal(theme.Primary.LineColor, second.LineColor);
+            Assert.Equal(theme.ControlConnector.LineColor, connector.LineColor);
+            Assert.Equal(theme.ControlConnector.LinePattern, connector.LinePattern);
+            Assert.Equal(theme.ControlConnector.EndArrow, connector.EndArrow);
+            Assert.Equal(theme.Primary.TextStyle!.Color, first.TextStyle!.Color);
+            Assert.Equal(theme.ControlConnector.TextStyle!.Color, connector.TextStyle!.Color);
+
+            VisioDocument fluentDocument = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            fluentDocument.AsFluent()
+                .Page("Fluent", pageBuilder => pageBuilder
+                    .Rect("a", 1, 1, 2, 1, "A")
+                    .Shape("a", shape => shape.Style(theme.Success))
+                    .Rect("b", 4, 1, 2, 1, "B")
+                    .Connect("a", "b", VisioSide.Right, VisioSide.Left, connection => connection.Style(theme.DataConnector)))
+                .End();
+
+            Assert.Equal(theme.Success.FillColor, fluentDocument.Pages[0].Shapes[0].FillColor);
+            Assert.Equal(theme.DataConnector.LineColor, fluentDocument.Pages[0].Connectors[0].LineColor);
+            Assert.Equal(theme.Success.TextStyle!.Color, fluentDocument.Pages[0].Shapes[0].TextStyle!.Color);
+            Assert.Equal(theme.DataConnector.TextStyle!.Color, fluentDocument.Pages[0].Connectors[0].TextStyle!.Color);
+        }
+
+        [Fact]
+        public void StyleThemeCloneIsDetached() {
+            VisioStyleTheme original = VisioStyleTheme.Technical();
+            VisioStyleTheme clone = original.Clone();
+
+            clone.Primary.FillColor = Color.Red;
+            clone.Primary.TextStyle!.Color = Color.Red;
+            clone.Connector.LineColor = Color.Green;
+            clone.Connector.TextStyle!.Color = Color.Green;
+
+            Assert.NotEqual(original.Primary.FillColor, clone.Primary.FillColor);
+            Assert.NotEqual(original.Primary.TextStyle!.Color, clone.Primary.TextStyle!.Color);
+            Assert.NotEqual(original.Connector.LineColor, clone.Connector.LineColor);
+            Assert.NotEqual(original.Connector.TextStyle!.Color, clone.Connector.TextStyle!.Color);
+            Assert.Equal("OfficeIMO Technical", original.Name);
+        }
+
+        [Fact]
+        public void AdditionalThemePresetsCarryReadableTextStyles() {
+            VisioStyleTheme office = VisioStyleTheme.Office();
+            VisioStyleTheme fluent = VisioStyleTheme.Fluent();
+            VisioStyleTheme dark = VisioStyleTheme.Dark();
+
+            Assert.Equal("OfficeIMO Office", office.Name);
+            Assert.Equal("OfficeIMO Fluent", fluent.Name);
+            Assert.Equal("OfficeIMO Dark", dark.Name);
+            Assert.NotNull(office.Primary.TextStyle);
+            Assert.NotNull(fluent.Decision.TextStyle);
+            Assert.NotNull(dark.Primary.TextStyle);
+            Assert.Equal(Color.White, dark.Primary.TextStyle!.Color);
+            Assert.Equal(Color.White, dark.Success.TextStyle!.Color);
+            Assert.NotEqual(dark.Container.FillColor, dark.Container.TextStyle!.Color);
+            Assert.NotNull(dark.Connector.TextStyle);
+        }
+
+        [Fact]
+        public void StyleThemeCanDriveFlowchartBuilder() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioStyleTheme theme = VisioStyleTheme.Minimal();
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .Flowchart("Styled Flowchart", flow => flow
+                    .Theme(theme)
+                    .Start("start", "Start")
+                    .Step("step", "Do work")
+                    .Decision("decision", "Done?")
+                    .End("end", "End"));
+
+            VisioPage page = document.Pages[0];
+
+            Assert.Equal(theme.Success.FillColor, page.Shapes.Single(shape => shape.Id == "start").FillColor);
+            Assert.Equal(theme.Primary.FillColor, page.Shapes.Single(shape => shape.Id == "step").FillColor);
+            Assert.Equal(theme.Decision.FillColor, page.Shapes.Single(shape => shape.Id == "decision").FillColor);
+            Assert.All(page.Connectors, connector => Assert.Equal(theme.Connector.LineColor, connector.LineColor));
+            Assert.All(page.Shapes, shape => Assert.NotNull(shape.TextStyle));
+            Assert.All(page.Connectors, connector => Assert.NotNull(connector.TextStyle));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void StyleThemeCanDriveBlockDiagramBuilder() {
+            VisioStyleTheme theme = VisioStyleTheme.Dark();
+
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .BlockDiagram("Styled Blocks", diagram => diagram
+                    .Theme(theme)
+                    .Region("region", "Zone", 0, 0, 2, 1)
+                    .Block("input", "Input", 0, 0)
+                    .EmphasisBlock("worker", "Worker", 1, 0)
+                    .ControlFlow("input", "worker", "control"));
+
+            VisioPage page = document.Pages[0];
+            VisioShape region = page.Shapes.Single(shape => shape.Id == "region");
+            VisioShape input = page.Shapes.Single(shape => shape.Id == "input");
+            VisioShape worker = page.Shapes.Single(shape => shape.Id == "worker");
+            VisioConnector connector = page.Connectors.Single();
+
+            Assert.Equal(theme.Container.FillColor, region.FillColor);
+            Assert.Equal(theme.Primary.LineColor, input.LineColor);
+            Assert.Equal(theme.Emphasis.FillColor, worker.FillColor);
+            Assert.Equal(theme.ControlConnector.LineColor, connector.LineColor);
+            Assert.Equal(theme.ControlConnector.LinePattern, connector.LinePattern);
+            Assert.Equal(theme.Container.TextStyle!.Color, region.TextStyle!.Color);
+            Assert.Equal(theme.Primary.TextStyle!.Color, input.TextStyle!.Color);
+            Assert.Equal(theme.Emphasis.TextStyle!.Color, worker.TextStyle!.Color);
+            Assert.Equal(theme.Connector.TextStyle!.Color, connector.TextStyle!.Color);
+        }
+    }
+}

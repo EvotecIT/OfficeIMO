@@ -7,7 +7,7 @@ using System.Xml.Linq;
 
 namespace OfficeIMO.Visio {
     /// <summary>
-    /// Utilities for discovering and extracting assets (masters) from existing VSDX files.
+    /// Utilities for discovering and extracting assets (masters) from existing Visio packages.
     /// </summary>
     public static class VisioAssets {
         private const string V = "http://schemas.microsoft.com/office/visio/2012/main";
@@ -15,7 +15,7 @@ namespace OfficeIMO.Visio {
         private const string REL_ODC = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
         /// <summary>
-        /// Lightweight info about a master available inside a VSDX file.
+        /// Lightweight info about a master available inside a Visio package.
         /// </summary>
         public sealed class MasterInfo {
             /// <summary>Master identifier from masters.xml.</summary>
@@ -45,7 +45,7 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
-        /// Lists masters available in the provided VSDX file.
+        /// Lists masters available in the provided Visio package.
         /// </summary>
         public static IReadOnlyList<MasterInfo> ListMasters(string vsdxPath) {
             using ZipArchive zip = ZipFile.OpenRead(vsdxPath);

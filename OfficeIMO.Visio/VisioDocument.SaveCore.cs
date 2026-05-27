@@ -21,6 +21,7 @@ namespace OfficeIMO.Visio {
         private void SaveInternalCore(string filePath) {
             bool includeTheme = Theme != null;
             List<VisioPage> pagesToSave = _pages.Count > 0 ? _pages : new List<VisioPage> { new VisioPage("Page-1") { Id = 0 } };
+            PrepareTextFontFaceNames(pagesToSave);
             int pageCount = pagesToSave.Count;
             List<string> pagePartNames = new();
             int masterCount;
@@ -39,6 +40,7 @@ namespace OfficeIMO.Visio {
         private void SaveInternalCore(Stream destination) {
             bool includeTheme = Theme != null;
             List<VisioPage> pagesToSave = _pages.Count > 0 ? _pages : new List<VisioPage> { new VisioPage("Page-1") { Id = 0 } };
+            PrepareTextFontFaceNames(pagesToSave);
             int pageCount = pagesToSave.Count;
             List<string> pagePartNames = new();
             int masterCount;
@@ -294,7 +296,7 @@ namespace OfficeIMO.Visio {
                             WriteConnectionSection(writer, ns, s.ConnectionPoints);
                             WriteMasterUserSection(writer, ns);
                             WriteMasterCharacterSection(writer, ns);
-                            WriteDataSection(writer, ns, s.Data, s.PreservedDataRows);
+                            WriteDataSection(writer, ns, s.Data, s.PreservedDataRows, shapeDataRows: s.ShapeData);
                             WriteTextElement(writer, ns, s.Text, s.PreservedTextElement, s.PreservedTextValue);
                             writer.WriteEndElement();
                             WritePreservedElements(writer, master.PreservedAdditionalShapeElements);
@@ -362,6 +364,15 @@ namespace OfficeIMO.Visio {
                         writer.WriteAttributeString("ID", XmlConvert.ToString(page.Id));
                         writer.WriteAttributeString("Name", page.Name);
                         writer.WriteAttributeString("NameU", page.NameU ?? page.Name);
+                        if (page.IsBackground) {
+                            writer.WriteAttributeString("Background", "1");
+                        }
+
+                        int? backgroundPageId = page.BackgroundPage?.Id ?? page.BackgroundPageId;
+                        if (backgroundPageId.HasValue) {
+                            writer.WriteAttributeString("BackPage", XmlConvert.ToString(backgroundPageId.Value));
+                        }
+
                         double viewScale = page.ViewScale;
                         if (double.IsNaN(viewScale) || double.IsInfinity(viewScale) || viewScale <= 0) {
                             viewScale = 1;
@@ -400,17 +411,21 @@ namespace OfficeIMO.Visio {
                         WritePageCell(writer, ns, "PageScale", pageScale.ToInches(), pageScale.Unit.ToVisioUnitCode());
                         VisioScaleSetting drawingScale = page.GetEffectiveDrawingScale();
                         WritePageCell(writer, ns, "DrawingScale", drawingScale.ToInches(), drawingScale.Unit.ToVisioUnitCode());
-                        WritePageCell(writer, ns, "DrawingSizeType", 0);
+                        WritePageCell(writer, ns, "DrawingSizeType", (int)page.DrawingSizeType);
                         WritePageCell(writer, ns, "DrawingScaleType", 0);
                         WritePageCell(writer, ns, "InhibitSnap", page.Snap ? 0 : 1);
-                        WritePageCell(writer, ns, "PageLockReplace", 0, "BOOL");
-                        WritePageCell(writer, ns, "PageLockDuplicate", 0, "BOOL");
-                        WritePageCell(writer, ns, "UIVisibility", 0);
+                        WritePageCell(writer, ns, "PageLockReplace", page.PageLockReplace ? 1 : 0, "BOOL");
+                        WritePageCell(writer, ns, "PageLockDuplicate", page.PageLockDuplicate ? 1 : 0, "BOOL");
+                        WritePageCell(writer, ns, "UIVisibility", (int)page.UiVisibility);
                         WritePageCell(writer, ns, "ShdwType", 0);
                         WritePageCell(writer, ns, "ShdwObliqueAngle", 0);
                         WritePageCell(writer, ns, "ShdwScaleFactor", 1);
-                        WritePageCell(writer, ns, "DrawingResizeType", 1);
-                        WritePageCell(writer, ns, "PageShapeSplit", 1);
+                        WritePageCell(writer, ns, "DrawingResizeType", page.AutoResizeDrawing ? 1 : 0);
+                        WritePageCell(writer, ns, "PageShapeSplit", page.AllowShapeSplitting ? 1 : 0);
+                        WritePagePlacementCells(writer, ns, page);
+                        WritePageLayoutGridCells(writer, ns, page);
+                        WritePageLayoutRoutingCells(writer, ns, page);
+                        WritePageRoutingSpacingCells(writer, ns, page);
                         WritePreservedElements(writer, page.PreservedPageSheetCells);
                         // For non-default page sizes, include theme/margin metadata like the asset samples
                         bool hasPreservedUserSection = page.PreservedPageSheetSections.Any(section =>
@@ -421,11 +436,10 @@ namespace OfficeIMO.Visio {
                             WritePageCell(writer, ns, "ConnectorSchemeIndex", 60);
                             WritePageCell(writer, ns, "FontSchemeIndex", 60);
                             WritePageCell(writer, ns, "ThemeIndex", 60);
-                            WritePageCell(writer, ns, "PageLeftMargin", 0.25, "MM");
-                            WritePageCell(writer, ns, "PageRightMargin", 0.25, "MM");
-                            WritePageCell(writer, ns, "PageTopMargin", 0.25, "MM");
-                            WritePageCell(writer, ns, "PageBottomMargin", 0.25, "MM");
-                            WritePageCell(writer, ns, "PrintPageOrientation", 2);
+                            WriteMarginCells(writer, ns, page, useUnits);
+                            if (page.PrintOrientation.HasValue) {
+                                WritePageCell(writer, ns, "PrintPageOrientation", (int)page.PrintOrientation.Value);
+                            }
                             if (!hasPreservedUserSection) {
                                 writer.WriteStartElement("Section", ns);
                                 writer.WriteAttributeString("N", "User");
@@ -443,6 +457,18 @@ namespace OfficeIMO.Visio {
                                 writer.WriteEndElement();
                                 writer.WriteEndElement();
                             }
+                        } else {
+                            if (page.HasExplicitMargins) {
+                                WriteMarginCells(writer, ns, page, useUnits);
+                            }
+
+                            if (page.PrintOrientation.HasValue) {
+                                WritePageCell(writer, ns, "PrintPageOrientation", (int)page.PrintOrientation.Value);
+                            }
+                        }
+                        BuildLayerIndexMap(page, out List<VisioLayer> layersToWrite);
+                        if (layersToWrite.Count > 0) {
+                            WriteLayerSection(writer, ns, layersToWrite);
                         }
                         WritePreservedElements(writer, page.PreservedPageSheetSections);
                         writer.WriteEndElement();
@@ -465,6 +491,7 @@ namespace OfficeIMO.Visio {
                         writer.WriteAttributeString("xml", "space", null, "preserve");
                         WritePreservedAttributes(writer, page.PreservedPageContentAttributes);
                         WritePreservedElements(writer, page.PreservedPageContentElements);
+                        Dictionary<string, int> layerIndexes = BuildLayerIndexMap(page, out _);
                         bool writeShapesContainer = page.Shapes.Count > 0 ||
                                                     page.Connectors.Count > 0 ||
                                                     page.PreservedShapesContainerAttributes.Count > 0 ||
@@ -489,7 +516,7 @@ namespace OfficeIMO.Visio {
                                     if (entry.Shape != null &&
                                         TryGetNextUnemittedShape(currentShapes, emittedShapes, ref nextShapeIndex, out VisioShape? shapeToEmit) &&
                                         shapeToEmit != null) {
-                                        WriteShapeElement(writer, ns, shapeToEmit, persistedIds, pageMasters, masters);
+                                        WriteShapeElement(writer, ns, shapeToEmit, persistedIds, pageMasters, masters, layerIndexes);
                                         emittedShapes.Add(shapeToEmit);
                                         continue;
                                     }
@@ -497,7 +524,7 @@ namespace OfficeIMO.Visio {
                                     if (entry.Connector != null &&
                                         TryGetNextUnemittedConnector(currentConnectors, emittedConnectors, ref nextConnectorIndex, out VisioConnector? connectorToEmit) &&
                                         connectorToEmit != null) {
-                                        WriteConnectorShapeElement(writer, ns, connectorToEmit, persistedIds, masters);
+                                        WriteConnectorShapeElement(writer, ns, connectorToEmit, persistedIds, masters, layerIndexes);
                                         emittedConnectors.Add(connectorToEmit);
                                     }
                                 }
@@ -507,13 +534,13 @@ namespace OfficeIMO.Visio {
 
                             foreach (VisioShape shape in page.Shapes) {
                                 if (emittedShapes.Add(shape)) {
-                                    WriteShapeElement(writer, ns, shape, persistedIds, pageMasters, masters);
+                                    WriteShapeElement(writer, ns, shape, persistedIds, pageMasters, masters, layerIndexes);
                                 }
                             }
 
                             foreach (VisioConnector connector in page.Connectors) {
                                 if (emittedConnectors.Add(connector)) {
-                                    WriteConnectorShapeElement(writer, ns, connector, persistedIds, masters);
+                                    WriteConnectorShapeElement(writer, ns, connector, persistedIds, masters, layerIndexes);
                                 }
                             }
 
@@ -591,7 +618,82 @@ namespace OfficeIMO.Visio {
             return masterCount;
         }
 
-        private void WriteShapeElement(XmlWriter writer, string ns, VisioShape shape, IReadOnlyDictionary<string, string> persistedIds, IReadOnlyDictionary<string, VisioMaster> effectiveMasters, IReadOnlyList<PackageMasterEntry> packageMasters) {
+        private void PrepareTextFontFaceNames(IEnumerable<VisioPage> pagesToSave) {
+            Dictionary<string, int> faceIdsByName = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<int> usedIds = new();
+            XNamespace ns = VisioNamespace;
+
+            foreach (XElement faceName in PreservedFaceNamesElements.Where(element => string.Equals(element.Name.LocalName, "FaceName", StringComparison.OrdinalIgnoreCase))) {
+                if (int.TryParse(faceName.Attribute("ID")?.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int id)) {
+                    usedIds.Add(id);
+                    string? name = faceName.Attribute("Name")?.Value;
+                    if (!string.IsNullOrWhiteSpace(name) && !faceIdsByName.ContainsKey(name!)) {
+                        faceIdsByName[name!] = id;
+                    }
+                }
+            }
+
+            foreach (VisioTextStyle textStyle in EnumerateTextStyles(pagesToSave)) {
+                string? fontFamily = textStyle.FontFamily?.Trim();
+                if (string.IsNullOrWhiteSpace(fontFamily)) {
+                    textStyle.FontFaceId = null;
+                    continue;
+                }
+
+                if (!faceIdsByName.TryGetValue(fontFamily!, out int faceId)) {
+                    faceId = NextFaceNameId(usedIds);
+                    usedIds.Add(faceId);
+                    faceIdsByName[fontFamily!] = faceId;
+                    PreservedFaceNamesElements.Add(new XElement(ns + "FaceName",
+                        new XAttribute("ID", faceId),
+                        new XAttribute("Name", fontFamily!),
+                        new XAttribute("UnicodeRanges", "0-255"),
+                        new XAttribute("CharSets", "0")));
+                }
+
+                textStyle.FontFamily = fontFamily;
+                textStyle.FontFaceId = faceId;
+            }
+        }
+
+        private static IEnumerable<VisioTextStyle> EnumerateTextStyles(IEnumerable<VisioPage> pages) {
+            foreach (VisioPage page in pages) {
+                foreach (VisioShape shape in page.Shapes) {
+                    foreach (VisioTextStyle textStyle in EnumerateTextStyles(shape)) {
+                        yield return textStyle;
+                    }
+                }
+
+                foreach (VisioConnector connector in page.Connectors) {
+                    if (connector.TextStyle != null) {
+                        yield return connector.TextStyle;
+                    }
+                }
+            }
+        }
+
+        private static IEnumerable<VisioTextStyle> EnumerateTextStyles(VisioShape shape) {
+            if (shape.TextStyle != null) {
+                yield return shape.TextStyle;
+            }
+
+            foreach (VisioShape child in shape.Children) {
+                foreach (VisioTextStyle textStyle in EnumerateTextStyles(child)) {
+                    yield return textStyle;
+                }
+            }
+        }
+
+        private static int NextFaceNameId(HashSet<int> usedIds) {
+            int id = 0;
+            while (usedIds.Contains(id)) {
+                id++;
+            }
+
+            return id;
+        }
+
+        private void WriteShapeElement(XmlWriter writer, string ns, VisioShape shape, IReadOnlyDictionary<string, string> persistedIds, IReadOnlyDictionary<string, VisioMaster> effectiveMasters, IReadOnlyList<PackageMasterEntry> packageMasters, IReadOnlyDictionary<string, int> layerIndexes) {
             writer.WriteStartElement("Shape", ns);
             writer.WriteAttributeString("ID", GetPersistedId(persistedIds, shape.Id));
             string shapeName = shape.Name ?? shape.NameU ?? $"Shape{shape.Id}";
@@ -612,21 +714,21 @@ namespace OfficeIMO.Visio {
             KeyValuePair<string, string>? originalIdEntry = GetOriginalIdEntry(persistedIds, shape.Id);
             bool wroteChildShapesInBody = false;
             if (effectiveMaster != null && !isGroup) {
-                WriteMasterBackedShapeBody(writer, ns, shape, effectiveMaster, originalIdEntry);
+                WriteMasterBackedShapeBody(writer, ns, shape, effectiveMaster, originalIdEntry, persistedIds, layerIndexes);
             } else if (shape.PreservedShapeChildren.Count > 0) {
-                wroteChildShapesInBody = WriteStandaloneShapeBodyWithPreservedChildOrder(writer, ns, shape, isGroup, originalIdEntry, persistedIds, effectiveMasters, packageMasters);
+                wroteChildShapesInBody = WriteStandaloneShapeBodyWithPreservedChildOrder(writer, ns, shape, isGroup, originalIdEntry, persistedIds, effectiveMasters, packageMasters, layerIndexes);
             } else {
-                WriteStandaloneShapeBody(writer, ns, shape, isGroup, originalIdEntry);
+                WriteStandaloneShapeBody(writer, ns, shape, isGroup, originalIdEntry, persistedIds, layerIndexes);
             }
 
             if (!wroteChildShapesInBody && isGroup && shape.Children.Count > 0) {
-                WriteChildShapesContainer(writer, ns, shape, persistedIds, effectiveMasters, packageMasters);
+                WriteChildShapesContainer(writer, ns, shape, persistedIds, effectiveMasters, packageMasters, layerIndexes);
             }
 
             writer.WriteEndElement();
         }
 
-        private void WriteConnectorShapeElement(XmlWriter writer, string ns, VisioConnector connector, IReadOnlyDictionary<string, string> persistedIds, IReadOnlyList<PackageMasterEntry> packageMasters) {
+        private void WriteConnectorShapeElement(XmlWriter writer, string ns, VisioConnector connector, IReadOnlyDictionary<string, string> persistedIds, IReadOnlyList<PackageMasterEntry> packageMasters, IReadOnlyDictionary<string, int> layerIndexes) {
             writer.WriteStartElement("Shape", ns);
             writer.WriteAttributeString("ID", GetPersistedId(persistedIds, connector.Id));
             bool isDynamic = connector.Kind == ConnectorKind.Dynamic;
@@ -641,11 +743,11 @@ namespace OfficeIMO.Visio {
                 writer.WriteAttributeString("Master", GetPackageMasterId(packageMasters, m));
             }
 
-            WriteConnectorShapeBody(writer, ns, connector, persistedIds);
+            WriteConnectorShapeBody(writer, ns, connector, persistedIds, layerIndexes);
             writer.WriteEndElement();
         }
 
-        private void WriteConnectorShapeBody(XmlWriter writer, string ns, VisioConnector connector, IReadOnlyDictionary<string, string> persistedIds) {
+        private void WriteConnectorShapeBody(XmlWriter writer, string ns, VisioConnector connector, IReadOnlyDictionary<string, string> persistedIds, IReadOnlyDictionary<string, int> layerIndexes) {
             ComputeConnectorEndpoints(connector, out double startX, out double startY, out double endX, out double endY);
             KeyValuePair<string, string>? connectorOriginalId = GetOriginalIdEntry(persistedIds, connector.Id);
 
@@ -660,19 +762,21 @@ namespace OfficeIMO.Visio {
                     if (entry.Token is string token &&
                         !string.IsNullOrWhiteSpace(token) &&
                         emittedTokens.Add(token) &&
-                        TryWriteConnectorShapeChildToken(writer, ns, connector, connectorOriginalId, token, startX, startY, endX, endY)) {
+                        TryWriteConnectorShapeChildToken(writer, ns, connector, connectorOriginalId, token, startX, startY, endX, endY, layerIndexes)) {
                         continue;
                     }
                 }
 
-                WriteRemainingConnectorShapeChildren(writer, ns, connector, connectorOriginalId, emittedTokens, startX, startY, endX, endY);
+                WriteRemainingConnectorShapeChildren(writer, ns, connector, connectorOriginalId, emittedTokens, startX, startY, endX, endY, layerIndexes);
                 return;
             }
 
             WriteXForm1D(writer, ns, startX, startY, endX, endY);
-            WriteModeledConnectorCells(writer, ns, connector, startX, startY, endX, endY);
+            WriteModeledConnectorCells(writer, ns, connector, startX, startY, endX, endY, layerIndexes);
             WritePreservedConnectorCells(writer, connector.PreservedCellElements);
             WritePreservedConnectorSections(writer, connector.PreservedNonGeometrySections);
+            WriteTextStyleSections(writer, ns, connector.TextStyle);
+            WriteHyperlinkSection(writer, ns, connector.Hyperlinks);
             WriteConnectorGeometry(writer, ns, connector, startX, startY, endX, endY);
             WriteDataSection(writer, ns, new Dictionary<string, string>(), null, connectorOriginalId);
             WriteTextElement(writer, ns, connector.Label, connector.PreservedTextElement, connector.PreservedTextValue);
@@ -713,7 +817,8 @@ namespace OfficeIMO.Visio {
             double startX,
             double startY,
             double endX,
-            double endY) {
+            double endY,
+            IReadOnlyDictionary<string, int> layerIndexes) {
             if (string.Equals(token, "XForm1D", StringComparison.OrdinalIgnoreCase)) {
                 WriteXForm1D(writer, ns, startX, startY, endX, endY);
                 return true;
@@ -721,6 +826,21 @@ namespace OfficeIMO.Visio {
 
             if (string.Equals(token, "Section:Geometry", StringComparison.OrdinalIgnoreCase)) {
                 WriteConnectorGeometry(writer, ns, connector, startX, startY, endX, endY);
+                return true;
+            }
+
+            if (string.Equals(token, "Section:Hyperlink", StringComparison.OrdinalIgnoreCase)) {
+                WriteHyperlinkSection(writer, ns, connector.Hyperlinks);
+                return true;
+            }
+
+            if (string.Equals(token, "Section:Char", StringComparison.OrdinalIgnoreCase)) {
+                WriteCharSection(writer, ns, connector.TextStyle);
+                return true;
+            }
+
+            if (string.Equals(token, "Section:Para", StringComparison.OrdinalIgnoreCase)) {
+                WriteParaSection(writer, ns, connector.TextStyle);
                 return true;
             }
 
@@ -735,7 +855,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (token.StartsWith("Cell:", StringComparison.OrdinalIgnoreCase)) {
-                return TryWriteModeledConnectorCell(writer, ns, connector, token.Substring("Cell:".Length), startX, startY, endX, endY);
+                return TryWriteModeledConnectorCell(writer, ns, connector, token.Substring("Cell:".Length), startX, startY, endX, endY, layerIndexes);
             }
 
             return false;
@@ -750,12 +870,25 @@ namespace OfficeIMO.Visio {
             double startX,
             double startY,
             double endX,
-            double endY) {
+            double endY,
+            IReadOnlyDictionary<string, int> layerIndexes) {
             if (emittedTokens.Add("XForm1D")) {
                 WriteXForm1D(writer, ns, startX, startY, endX, endY);
             }
 
-            WriteRemainingModeledConnectorCells(writer, ns, connector, emittedTokens, startX, startY, endX, endY);
+            WriteRemainingModeledConnectorCells(writer, ns, connector, emittedTokens, startX, startY, endX, endY, layerIndexes);
+
+            if (emittedTokens.Add("Section:Hyperlink")) {
+                WriteHyperlinkSection(writer, ns, connector.Hyperlinks);
+            }
+
+            if (emittedTokens.Add("Section:Char")) {
+                WriteCharSection(writer, ns, connector.TextStyle);
+            }
+
+            if (emittedTokens.Add("Section:Para")) {
+                WriteParaSection(writer, ns, connector.TextStyle);
+            }
 
             if (emittedTokens.Add("Section:Geometry")) {
                 WriteConnectorGeometry(writer, ns, connector, startX, startY, endX, endY);
@@ -770,22 +903,22 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        private static void WriteModeledConnectorCells(XmlWriter writer, string ns, VisioConnector connector, double startX, double startY, double endX, double endY) {
+        private static void WriteModeledConnectorCells(XmlWriter writer, string ns, VisioConnector connector, double startX, double startY, double endX, double endY, IReadOnlyDictionary<string, int> layerIndexes) {
             foreach (string cellName in ConnectorModeledCellOrder) {
-                TryWriteModeledConnectorCell(writer, ns, connector, cellName, startX, startY, endX, endY);
+                TryWriteModeledConnectorCell(writer, ns, connector, cellName, startX, startY, endX, endY, layerIndexes);
             }
         }
 
-        private static void WriteRemainingModeledConnectorCells(XmlWriter writer, string ns, VisioConnector connector, ISet<string> emittedTokens, double startX, double startY, double endX, double endY) {
+        private static void WriteRemainingModeledConnectorCells(XmlWriter writer, string ns, VisioConnector connector, ISet<string> emittedTokens, double startX, double startY, double endX, double endY, IReadOnlyDictionary<string, int> layerIndexes) {
             foreach (string cellName in ConnectorModeledCellOrder) {
                 string token = $"Cell:{cellName}";
                 if (emittedTokens.Add(token)) {
-                    TryWriteModeledConnectorCell(writer, ns, connector, cellName, startX, startY, endX, endY);
+                    TryWriteModeledConnectorCell(writer, ns, connector, cellName, startX, startY, endX, endY, layerIndexes);
                 }
             }
         }
 
-        private static bool TryWriteModeledConnectorCell(XmlWriter writer, string ns, VisioConnector connector, string cellName, double startX, double startY, double endX, double endY) {
+        private static bool TryWriteModeledConnectorCell(XmlWriter writer, string ns, VisioConnector connector, string cellName, double startX, double startY, double endX, double endY, IReadOnlyDictionary<string, int> layerIndexes) {
             switch (cellName) {
                 case "BeginX":
                     WriteCell(writer, ns, "BeginX", startX);
@@ -817,6 +950,44 @@ namespace OfficeIMO.Visio {
                 case "OneD":
                     WriteCell(writer, ns, "OneD", 1);
                     return true;
+                case "LayerMember":
+                    WriteLayerMemberCell(writer, ns, connector.LayerNames, layerIndexes);
+                    return true;
+                case "ShapeRouteStyle":
+                    if (connector.RouteStyle.HasValue) {
+                        WriteCell(writer, ns, "ShapeRouteStyle", (int)connector.RouteStyle.Value);
+                    }
+                    return true;
+                case "ConLineRouteExt":
+                    if (connector.RouteAppearance.HasValue) {
+                        WriteCell(writer, ns, "ConLineRouteExt", (int)connector.RouteAppearance.Value);
+                    }
+                    return true;
+                case "ConLineJumpStyle":
+                    if (connector.LineJumpStyle.HasValue) {
+                        WriteCell(writer, ns, "ConLineJumpStyle", (int)connector.LineJumpStyle.Value);
+                    }
+                    return true;
+                case "ConLineJumpCode":
+                    if (connector.LineJumpCode.HasValue) {
+                        WriteCell(writer, ns, "ConLineJumpCode", (int)connector.LineJumpCode.Value);
+                    }
+                    return true;
+                case "ConLineJumpDirX":
+                    if (connector.HorizontalJumpDirection.HasValue) {
+                        WriteCell(writer, ns, "ConLineJumpDirX", (int)connector.HorizontalJumpDirection.Value);
+                    }
+                    return true;
+                case "ConLineJumpDirY":
+                    if (connector.VerticalJumpDirection.HasValue) {
+                        WriteCell(writer, ns, "ConLineJumpDirY", (int)connector.VerticalJumpDirection.Value);
+                    }
+                    return true;
+                case "ConFixedCode":
+                    if (connector.RerouteBehavior.HasValue) {
+                        WriteCell(writer, ns, "ConFixedCode", (int)connector.RerouteBehavior.Value);
+                    }
+                    return true;
                 case "BeginArrow":
                     if (connector.BeginArrow.HasValue) {
                         WriteCell(writer, ns, "BeginArrow", (int)connector.BeginArrow.Value);
@@ -827,12 +998,176 @@ namespace OfficeIMO.Visio {
                         WriteCell(writer, ns, "EndArrow", (int)connector.EndArrow.Value);
                     }
                     return true;
+                case "LeftMargin":
+                    if (connector.TextStyle?.LeftMargin.HasValue == true) {
+                        WriteCell(writer, ns, "LeftMargin", connector.TextStyle.LeftMargin.Value);
+                    }
+                    return true;
+                case "RightMargin":
+                    if (connector.TextStyle?.RightMargin.HasValue == true) {
+                        WriteCell(writer, ns, "RightMargin", connector.TextStyle.RightMargin.Value);
+                    }
+                    return true;
+                case "TopMargin":
+                    if (connector.TextStyle?.TopMargin.HasValue == true) {
+                        WriteCell(writer, ns, "TopMargin", connector.TextStyle.TopMargin.Value);
+                    }
+                    return true;
+                case "BottomMargin":
+                    if (connector.TextStyle?.BottomMargin.HasValue == true) {
+                        WriteCell(writer, ns, "BottomMargin", connector.TextStyle.BottomMargin.Value);
+                    }
+                    return true;
+                case "VerticalAlign":
+                    if (connector.TextStyle?.VerticalAlignment.HasValue == true) {
+                        WriteCell(writer, ns, "VerticalAlign", (int)connector.TextStyle.VerticalAlignment.Value);
+                    }
+                    return true;
+                case "TextBkgnd":
+                    if (connector.TextStyle?.BackgroundColor.HasValue == true) {
+                        WriteCellValue(writer, ns, "TextBkgnd", connector.TextStyle.BackgroundColor.Value.ToVisioHex());
+                    }
+                    return true;
+                case "TextBkgndTrans":
+                    if (connector.TextStyle?.BackgroundTransparency.HasValue == true) {
+                        WriteCell(writer, ns, "TextBkgndTrans", connector.TextStyle.BackgroundTransparency.Value);
+                    }
+                    return true;
+                case "TxtPinX":
+                    if (TryResolveConnectorLabelPlacement(connector, startX, startY, endX, endY, out double txtPinX, out _, out _, out _, out _, out _)) {
+                        WriteCell(writer, ns, "TxtPinX", txtPinX);
+                    }
+                    return true;
+                case "TxtPinY":
+                    if (TryResolveConnectorLabelPlacement(connector, startX, startY, endX, endY, out _, out double txtPinY, out _, out _, out _, out _)) {
+                        WriteCell(writer, ns, "TxtPinY", txtPinY);
+                    }
+                    return true;
+                case "TxtWidth":
+                    if (TryResolveConnectorLabelPlacement(connector, startX, startY, endX, endY, out _, out _, out double txtWidth, out _, out _, out _)) {
+                        WriteCell(writer, ns, "TxtWidth", txtWidth);
+                    }
+                    return true;
+                case "TxtHeight":
+                    if (TryResolveConnectorLabelPlacement(connector, startX, startY, endX, endY, out _, out _, out _, out double txtHeight, out _, out _)) {
+                        WriteCell(writer, ns, "TxtHeight", txtHeight);
+                    }
+                    return true;
+                case "TxtLocPinX":
+                    if (TryResolveConnectorLabelPlacement(connector, startX, startY, endX, endY, out _, out _, out _, out _, out double txtLocPinX, out _)) {
+                        WriteCell(writer, ns, "TxtLocPinX", txtLocPinX);
+                    }
+                    return true;
+                case "TxtLocPinY":
+                    if (TryResolveConnectorLabelPlacement(connector, startX, startY, endX, endY, out _, out _, out _, out _, out _, out double txtLocPinY)) {
+                        WriteCell(writer, ns, "TxtLocPinY", txtLocPinY);
+                    }
+                    return true;
                 default:
+                    if (TryWriteProtectionCell(writer, ns, connector.Protection, cellName)) {
+                        return true;
+                    }
+
                     return false;
             }
         }
 
-        private void WriteMasterBackedShapeBody(XmlWriter writer, string ns, VisioShape shape, VisioMaster master, KeyValuePair<string, string>? originalIdEntry) {
+        private static bool TryResolveConnectorLabelPlacement(
+            VisioConnector connector,
+            double startX,
+            double startY,
+            double endX,
+            double endY,
+            out double pinX,
+            out double pinY,
+            out double width,
+            out double height,
+            out double locPinX,
+            out double locPinY) {
+            pinX = 0D;
+            pinY = 0D;
+            width = 0D;
+            height = 0D;
+            locPinX = 0D;
+            locPinY = 0D;
+
+            VisioConnectorLabelPlacement? placement = connector.LabelPlacement;
+            if (placement == null) {
+                return false;
+            }
+
+            width = placement.Width;
+            height = placement.Height;
+            locPinX = placement.GetLocPinX();
+            locPinY = placement.GetLocPinY();
+
+            if (placement.AbsolutePinX.HasValue && placement.AbsolutePinY.HasValue) {
+                pinX = placement.AbsolutePinX.Value;
+                pinY = placement.AbsolutePinY.Value;
+                return true;
+            }
+
+            (pinX, pinY) = ResolveConnectorPathPoint(connector, startX, startY, endX, endY, placement.Position);
+            pinX += placement.OffsetX;
+            pinY += placement.OffsetY;
+            return true;
+        }
+
+        private static (double X, double Y) ResolveConnectorPathPoint(VisioConnector connector, double startX, double startY, double endX, double endY, double position) {
+            double clampedPosition = VisioConnectorLabelPlacement.ClampPosition(position);
+            List<(double X, double Y)> points = new() {
+                (startX, startY)
+            };
+
+            if (connector.Waypoints.Count > 0) {
+                foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
+                    points.Add((waypoint.X, waypoint.Y));
+                }
+            } else if (connector.Kind == ConnectorKind.RightAngle) {
+                points.Add((startX, endY));
+            }
+
+            points.Add((endX, endY));
+
+            double totalLength = 0D;
+            for (int i = 1; i < points.Count; i++) {
+                totalLength += Distance(points[i - 1], points[i]);
+            }
+
+            if (totalLength <= 0D) {
+                return (startX, startY);
+            }
+
+            double targetLength = totalLength * clampedPosition;
+            double traversed = 0D;
+            for (int i = 1; i < points.Count; i++) {
+                (double X, double Y) from = points[i - 1];
+                (double X, double Y) to = points[i];
+                double segmentLength = Distance(from, to);
+                if (segmentLength <= 0D) {
+                    continue;
+                }
+
+                if (traversed + segmentLength >= targetLength) {
+                    double segmentPosition = (targetLength - traversed) / segmentLength;
+                    return (
+                        from.X + ((to.X - from.X) * segmentPosition),
+                        from.Y + ((to.Y - from.Y) * segmentPosition));
+                }
+
+                traversed += segmentLength;
+            }
+
+            return (endX, endY);
+        }
+
+        private static double Distance((double X, double Y) from, (double X, double Y) to) {
+            double dx = to.X - from.X;
+            double dy = to.Y - from.Y;
+            return Math.Sqrt((dx * dx) + (dy * dy));
+        }
+
+        private void WriteMasterBackedShapeBody(XmlWriter writer, string ns, VisioShape shape, VisioMaster master, KeyValuePair<string, string>? originalIdEntry, IReadOnlyDictionary<string, string> persistedIds, IReadOnlyDictionary<string, int> layerIndexes) {
             if (WriteMasterDeltasOnly) {
                 double masterWidth = master.Shape.Width > 0 ? master.Shape.Width : 1;
                 double masterHeight = master.Shape.Height > 0 ? master.Shape.Height : 1;
@@ -864,17 +1199,25 @@ namespace OfficeIMO.Visio {
                     }
                 }
 
-                WriteCell(writer, ns, "ObjType", 1);
-                WriteCell(writer, ns, "LineWeight", shape.LineWeight);
+            WriteCell(writer, ns, "ObjType", 1);
+            WriteLayerMemberCell(writer, ns, shape.LayerNames, layerIndexes);
+            WriteRelationshipCell(writer, ns, shape, persistedIds);
+            WriteShapeLayoutCells(writer, ns, shape);
+            WriteProtectionCells(writer, ns, shape.Protection);
+            WriteTextBlockCells(writer, ns, shape.TextStyle);
+            WriteCell(writer, ns, "LineWeight", shape.LineWeight);
                 WriteCell(writer, ns, "LinePattern", shape.LinePattern);
                 WriteCellValue(writer, ns, "LineColor", shape.LineColor.ToVisioHex());
                 WriteCell(writer, ns, "FillPattern", shape.FillPattern);
                 WriteCellValue(writer, ns, "FillForegnd", shape.FillColor.ToVisioHex());
                 WritePreservedElements(writer, shape.PreservedCellElements);
                 WritePreservedElements(writer, shape.PreservedNonGeometrySections);
+                WriteUserSection(writer, ns, shape.UserCells);
+                WriteTextStyleSections(writer, ns, shape.TextStyle);
+                WriteHyperlinkSection(writer, ns, shape.Hyperlinks);
                 WritePreservedGeometrySections(writer, shape.PreservedGeometrySections);
                 WriteConnectionSection(writer, ns, shape.ConnectionPoints);
-                WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry);
+                WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData);
                 WriteTextElement(writer, ns, shape.Text, shape.PreservedTextElement, shape.PreservedTextValue);
                 return;
             }
@@ -904,14 +1247,22 @@ namespace OfficeIMO.Visio {
             WriteCellValue(writer, ns, "LineColor", shape.LineColor.ToVisioHex());
             WriteCell(writer, ns, "FillPattern", shape.FillPattern);
             WriteCellValue(writer, ns, "FillForegnd", shape.FillColor.ToVisioHex());
+            WriteLayerMemberCell(writer, ns, shape.LayerNames, layerIndexes);
+            WriteRelationshipCell(writer, ns, shape, persistedIds);
+            WriteShapeLayoutCells(writer, ns, shape);
+            WriteProtectionCells(writer, ns, shape.Protection);
+            WriteTextBlockCells(writer, ns, shape.TextStyle);
             WritePreservedElements(writer, shape.PreservedCellElements);
             WritePreservedElements(writer, shape.PreservedNonGeometrySections);
+            WriteUserSection(writer, ns, shape.UserCells);
+            WriteTextStyleSections(writer, ns, shape.TextStyle);
+            WriteHyperlinkSection(writer, ns, shape.Hyperlinks);
             WriteConnectionSection(writer, ns, shape.ConnectionPoints);
-            WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry);
+            WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData);
             WriteTextElement(writer, ns, shape.Text, shape.PreservedTextElement, shape.PreservedTextValue);
         }
 
-        private static void WriteStandaloneShapeBody(XmlWriter writer, string ns, VisioShape shape, bool isGroup, KeyValuePair<string, string>? originalIdEntry) {
+        private static void WriteStandaloneShapeBody(XmlWriter writer, string ns, VisioShape shape, bool isGroup, KeyValuePair<string, string>? originalIdEntry, IReadOnlyDictionary<string, string> persistedIds, IReadOnlyDictionary<string, int> layerIndexes) {
             double width = shape.Width > 0 ? shape.Width : 1;
             double height = shape.Height > 0 ? shape.Height : 1;
             double locPinX = Math.Abs(shape.LocPinX) < double.Epsilon ? width / 2 : shape.LocPinX;
@@ -926,11 +1277,19 @@ namespace OfficeIMO.Visio {
             if (!isGroup) {
                 WriteCell(writer, ns, "ObjType", 1);
             }
+            WriteLayerMemberCell(writer, ns, shape.LayerNames, layerIndexes);
+            WriteRelationshipCell(writer, ns, shape, persistedIds);
+            WriteShapeLayoutCells(writer, ns, shape);
+            WriteProtectionCells(writer, ns, shape.Protection);
+            WriteTextBlockCells(writer, ns, shape.TextStyle);
             WritePreservedElements(writer, shape.PreservedCellElements);
             WritePreservedElements(writer, shape.PreservedNonGeometrySections);
+            WriteUserSection(writer, ns, shape.UserCells);
+            WriteTextStyleSections(writer, ns, shape.TextStyle);
+            WriteHyperlinkSection(writer, ns, shape.Hyperlinks);
             WriteShapeGeometry(writer, ns, shape.PreservedGeometrySections, shape.NameU, width, height, writeGeneratedGeometryWhenEmpty: !isGroup);
             WriteConnectionSection(writer, ns, shape.ConnectionPoints);
-            WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry);
+            WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData);
             WriteTextElement(writer, ns, shape.Text, shape.PreservedTextElement, shape.PreservedTextValue);
         }
 
@@ -942,7 +1301,8 @@ namespace OfficeIMO.Visio {
             KeyValuePair<string, string>? originalIdEntry,
             IReadOnlyDictionary<string, string> persistedIds,
             IReadOnlyDictionary<string, VisioMaster> effectiveMasters,
-            IReadOnlyList<PackageMasterEntry> packageMasters) {
+            IReadOnlyList<PackageMasterEntry> packageMasters,
+            IReadOnlyDictionary<string, int> layerIndexes) {
             double width = shape.Width > 0 ? shape.Width : 1;
             double height = shape.Height > 0 ? shape.Height : 1;
             double locPinX = Math.Abs(shape.LocPinX) < double.Epsilon ? width / 2 : shape.LocPinX;
@@ -959,7 +1319,7 @@ namespace OfficeIMO.Visio {
                 if (entry.Token is string token &&
                     !string.IsNullOrWhiteSpace(token) &&
                     emittedTokens.Add(token) &&
-                    TryWriteStandaloneShapeChildToken(writer, ns, shape, isGroup, originalIdEntry, token, width, height, locPinX, locPinY, persistedIds, effectiveMasters, packageMasters, ref wroteChildShapes)) {
+                    TryWriteStandaloneShapeChildToken(writer, ns, shape, isGroup, originalIdEntry, token, width, height, locPinX, locPinY, persistedIds, effectiveMasters, packageMasters, layerIndexes, ref wroteChildShapes)) {
                     if (string.Equals(token, "XForm", StringComparison.OrdinalIgnoreCase)) {
                         MarkShapeTransformCellTokens(emittedTokens);
                     }
@@ -967,7 +1327,7 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            WriteRemainingStandaloneShapeChildren(writer, ns, shape, isGroup, originalIdEntry, emittedTokens, width, height, locPinX, locPinY, persistedIds, effectiveMasters, packageMasters, ref wroteChildShapes);
+            WriteRemainingStandaloneShapeChildren(writer, ns, shape, isGroup, originalIdEntry, emittedTokens, width, height, locPinX, locPinY, persistedIds, effectiveMasters, packageMasters, layerIndexes, ref wroteChildShapes);
             return wroteChildShapes;
         }
 
@@ -985,6 +1345,7 @@ namespace OfficeIMO.Visio {
             IReadOnlyDictionary<string, string> persistedIds,
             IReadOnlyDictionary<string, VisioMaster> effectiveMasters,
             IReadOnlyList<PackageMasterEntry> packageMasters,
+            IReadOnlyDictionary<string, int> layerIndexes,
             ref bool wroteChildShapes) {
             if (string.Equals(token, "XForm", StringComparison.OrdinalIgnoreCase)) {
                 WriteXForm(writer, ns, shape.PinX, shape.PinY, width, height, locPinX, locPinY, shape.Angle);
@@ -992,11 +1353,31 @@ namespace OfficeIMO.Visio {
             }
 
             if (token.StartsWith("Cell:", StringComparison.OrdinalIgnoreCase)) {
-                return TryWriteModeledShapeCell(writer, ns, shape, token.Substring("Cell:".Length), isGroup, width, height, locPinX, locPinY);
+                return TryWriteModeledShapeCell(writer, ns, shape, token.Substring("Cell:".Length), isGroup, width, height, locPinX, locPinY, persistedIds, layerIndexes);
+            }
+
+            if (string.Equals(token, "Section:User", StringComparison.OrdinalIgnoreCase)) {
+                WriteUserSection(writer, ns, shape.UserCells);
+                return true;
+            }
+
+            if (string.Equals(token, "Section:Char", StringComparison.OrdinalIgnoreCase)) {
+                WriteCharSection(writer, ns, shape.TextStyle);
+                return true;
+            }
+
+            if (string.Equals(token, "Section:Para", StringComparison.OrdinalIgnoreCase)) {
+                WriteParaSection(writer, ns, shape.TextStyle);
+                return true;
             }
 
             if (string.Equals(token, "Section:Geometry", StringComparison.OrdinalIgnoreCase)) {
                 WriteShapeGeometry(writer, ns, shape.PreservedGeometrySections, shape.NameU, width, height, writeGeneratedGeometryWhenEmpty: !isGroup);
+                return true;
+            }
+
+            if (string.Equals(token, "Section:Hyperlink", StringComparison.OrdinalIgnoreCase)) {
+                WriteHyperlinkSection(writer, ns, shape.Hyperlinks);
                 return true;
             }
 
@@ -1006,7 +1387,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (string.Equals(token, "Section:Prop", StringComparison.OrdinalIgnoreCase)) {
-                WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry);
+                WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData);
                 return true;
             }
 
@@ -1017,7 +1398,7 @@ namespace OfficeIMO.Visio {
 
             if (string.Equals(token, "Shapes", StringComparison.OrdinalIgnoreCase)) {
                 if (isGroup && shape.Children.Count > 0) {
-                    WriteChildShapesContainer(writer, ns, shape, persistedIds, effectiveMasters, packageMasters);
+                    WriteChildShapesContainer(writer, ns, shape, persistedIds, effectiveMasters, packageMasters, layerIndexes);
                 }
                 wroteChildShapes = true;
                 return true;
@@ -1040,13 +1421,30 @@ namespace OfficeIMO.Visio {
             IReadOnlyDictionary<string, string> persistedIds,
             IReadOnlyDictionary<string, VisioMaster> effectiveMasters,
             IReadOnlyList<PackageMasterEntry> packageMasters,
+            IReadOnlyDictionary<string, int> layerIndexes,
             ref bool wroteChildShapes) {
             if (!HasAnyShapeTransformCellTokens(emittedTokens) && emittedTokens.Add("XForm")) {
                 WriteXForm(writer, ns, shape.PinX, shape.PinY, width, height, locPinX, locPinY, shape.Angle);
                 MarkShapeTransformCellTokens(emittedTokens);
             }
 
-            WriteRemainingModeledShapeCells(writer, ns, shape, isGroup, width, height, locPinX, locPinY, emittedTokens);
+            WriteRemainingModeledShapeCells(writer, ns, shape, isGroup, width, height, locPinX, locPinY, emittedTokens, persistedIds, layerIndexes);
+
+            if (emittedTokens.Add("Section:User")) {
+                WriteUserSection(writer, ns, shape.UserCells);
+            }
+
+            if (emittedTokens.Add("Section:Char")) {
+                WriteCharSection(writer, ns, shape.TextStyle);
+            }
+
+            if (emittedTokens.Add("Section:Para")) {
+                WriteParaSection(writer, ns, shape.TextStyle);
+            }
+
+            if (emittedTokens.Add("Section:Hyperlink")) {
+                WriteHyperlinkSection(writer, ns, shape.Hyperlinks);
+            }
 
             if (emittedTokens.Add("Section:Geometry")) {
                 WriteShapeGeometry(writer, ns, shape.PreservedGeometrySections, shape.NameU, width, height, writeGeneratedGeometryWhenEmpty: !isGroup);
@@ -1057,7 +1455,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (emittedTokens.Add("Section:Prop")) {
-                WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry);
+                WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData);
             }
 
             if (emittedTokens.Add("Text")) {
@@ -1065,7 +1463,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (!wroteChildShapes && emittedTokens.Add("Shapes") && isGroup && shape.Children.Count > 0) {
-                WriteChildShapesContainer(writer, ns, shape, persistedIds, effectiveMasters, packageMasters);
+                WriteChildShapesContainer(writer, ns, shape, persistedIds, effectiveMasters, packageMasters, layerIndexes);
                 wroteChildShapes = true;
             }
         }
@@ -1079,13 +1477,202 @@ namespace OfficeIMO.Visio {
             double height,
             double locPinX,
             double locPinY,
-            ISet<string> emittedTokens) {
+            ISet<string> emittedTokens,
+            IReadOnlyDictionary<string, string> persistedIds,
+            IReadOnlyDictionary<string, int> layerIndexes) {
             foreach (string cellName in ShapeModeledCellOrder) {
                 string token = $"Cell:{cellName}";
                 if (emittedTokens.Add(token)) {
-                    TryWriteModeledShapeCell(writer, ns, shape, cellName, isGroup, width, height, locPinX, locPinY);
+                    TryWriteModeledShapeCell(writer, ns, shape, cellName, isGroup, width, height, locPinX, locPinY, persistedIds, layerIndexes);
                 }
             }
+        }
+
+        private static void WriteShapeLayoutCells(XmlWriter writer, string ns, VisioShape shape) {
+            if (shape.PlacementStyle.HasValue) {
+                WriteCell(writer, ns, "ShapePlaceStyle", (int)shape.PlacementStyle.Value);
+            }
+
+            if (shape.PlacementFlip.HasValue) {
+                WriteCell(writer, ns, "ShapePlaceFlip", (int)shape.PlacementFlip.Value);
+            }
+
+            if (shape.PlowCode.HasValue) {
+                WriteCell(writer, ns, "ShapePlowCode", (int)shape.PlowCode.Value);
+            }
+
+            if (shape.AllowPlacementOnTop.HasValue) {
+                WriteCell(writer, ns, "ShapePermeablePlace", shape.AllowPlacementOnTop.Value ? 1 : 0, "BOOL", null);
+            }
+
+            if (shape.AllowHorizontalConnectorRoutingThrough.HasValue) {
+                WriteCell(writer, ns, "ShapePermeableX", shape.AllowHorizontalConnectorRoutingThrough.Value ? 1 : 0, "BOOL", null);
+            }
+
+            if (shape.AllowVerticalConnectorRoutingThrough.HasValue) {
+                WriteCell(writer, ns, "ShapePermeableY", shape.AllowVerticalConnectorRoutingThrough.Value ? 1 : 0, "BOOL", null);
+            }
+
+            if (shape.CanSplitShapes.HasValue) {
+                WriteCell(writer, ns, "ShapeSplit", shape.CanSplitShapes.Value ? 1 : 0);
+            }
+
+            if (shape.CanBeSplit.HasValue) {
+                WriteCell(writer, ns, "ShapeSplittable", shape.CanBeSplit.Value ? 1 : 0);
+            }
+        }
+
+        private static void WriteTextBlockCells(XmlWriter writer, string ns, VisioTextStyle? textStyle, bool includeTextTransform = true) {
+            if (textStyle == null) {
+                return;
+            }
+
+            if (textStyle.LeftMargin.HasValue) {
+                WriteCell(writer, ns, "LeftMargin", textStyle.LeftMargin.Value);
+            }
+
+            if (textStyle.RightMargin.HasValue) {
+                WriteCell(writer, ns, "RightMargin", textStyle.RightMargin.Value);
+            }
+
+            if (textStyle.TopMargin.HasValue) {
+                WriteCell(writer, ns, "TopMargin", textStyle.TopMargin.Value);
+            }
+
+            if (textStyle.BottomMargin.HasValue) {
+                WriteCell(writer, ns, "BottomMargin", textStyle.BottomMargin.Value);
+            }
+
+            if (textStyle.VerticalAlignment.HasValue) {
+                WriteCell(writer, ns, "VerticalAlign", (int)textStyle.VerticalAlignment.Value);
+            }
+
+            if (textStyle.BackgroundColor.HasValue) {
+                WriteCellValue(writer, ns, "TextBkgnd", textStyle.BackgroundColor.Value.ToVisioHex());
+            }
+
+            if (textStyle.BackgroundTransparency.HasValue) {
+                WriteCell(writer, ns, "TextBkgndTrans", textStyle.BackgroundTransparency.Value);
+            }
+
+            if (!includeTextTransform) {
+                return;
+            }
+
+            if (textStyle.TextPinX.HasValue) {
+                WriteCell(writer, ns, "TxtPinX", textStyle.TextPinX.Value);
+            }
+
+            if (textStyle.TextPinY.HasValue) {
+                WriteCell(writer, ns, "TxtPinY", textStyle.TextPinY.Value);
+            }
+
+            if (textStyle.TextWidth.HasValue) {
+                WriteCell(writer, ns, "TxtWidth", textStyle.TextWidth.Value);
+            }
+
+            if (textStyle.TextHeight.HasValue) {
+                WriteCell(writer, ns, "TxtHeight", textStyle.TextHeight.Value);
+            }
+
+            if (textStyle.TextLocPinX.HasValue) {
+                WriteCell(writer, ns, "TxtLocPinX", textStyle.TextLocPinX.Value);
+            }
+
+            if (textStyle.TextLocPinY.HasValue) {
+                WriteCell(writer, ns, "TxtLocPinY", textStyle.TextLocPinY.Value);
+            }
+
+            if (textStyle.TextAngle.HasValue) {
+                WriteCell(writer, ns, "TxtAngle", textStyle.TextAngle.Value);
+            }
+        }
+
+        private static void WriteTextStyleSections(XmlWriter writer, string ns, VisioTextStyle? textStyle) {
+            WriteCharSection(writer, ns, textStyle);
+            WriteParaSection(writer, ns, textStyle);
+        }
+
+        private static void WriteCharSection(XmlWriter writer, string ns, VisioTextStyle? textStyle) {
+            if (!HasCharFormatting(textStyle)) {
+                return;
+            }
+
+            writer.WriteStartElement("Section", ns);
+            writer.WriteAttributeString("N", "Char");
+            writer.WriteStartElement("Row", ns);
+            writer.WriteAttributeString("IX", "0");
+
+            if (textStyle!.FontFaceId.HasValue) {
+                WriteCell(writer, ns, "Font", textStyle.FontFaceId.Value);
+            }
+
+            if (textStyle.Color.HasValue) {
+                WriteCellValue(writer, ns, "Color", textStyle.Color.Value.ToVisioHex());
+            }
+
+            if (textStyle.Size.HasValue) {
+                WriteCell(writer, ns, "Size", textStyle.Size.Value, "PT", null);
+            }
+
+            if (TryGetCharStyleValue(textStyle, out int styleValue)) {
+                WriteCell(writer, ns, "Style", styleValue);
+            }
+
+            writer.WriteEndElement();
+            writer.WriteEndElement();
+        }
+
+        private static void WriteParaSection(XmlWriter writer, string ns, VisioTextStyle? textStyle) {
+            if (textStyle?.HorizontalAlignment == null) {
+                return;
+            }
+
+            writer.WriteStartElement("Section", ns);
+            writer.WriteAttributeString("N", "Para");
+            writer.WriteStartElement("Row", ns);
+            writer.WriteAttributeString("IX", "0");
+            WriteCell(writer, ns, "HorzAlign", (int)textStyle.HorizontalAlignment.Value);
+            writer.WriteEndElement();
+            writer.WriteEndElement();
+        }
+
+        private static bool HasCharFormatting(VisioTextStyle? textStyle) {
+            return textStyle != null &&
+                   (textStyle.FontFaceId.HasValue ||
+                    !string.IsNullOrWhiteSpace(textStyle.FontFamily) ||
+                    textStyle.Color.HasValue ||
+                    textStyle.Size.HasValue ||
+                    textStyle.Bold.HasValue ||
+                    textStyle.Italic.HasValue ||
+                    textStyle.Underline.HasValue);
+        }
+
+        private static bool TryGetCharStyleValue(VisioTextStyle textStyle, out int styleValue) {
+            bool hasAny = false;
+            styleValue = 0;
+            if (textStyle.Bold.HasValue) {
+                hasAny = true;
+                if (textStyle.Bold.Value) {
+                    styleValue |= 1;
+                }
+            }
+
+            if (textStyle.Italic.HasValue) {
+                hasAny = true;
+                if (textStyle.Italic.Value) {
+                    styleValue |= 2;
+                }
+            }
+
+            if (textStyle.Underline.HasValue) {
+                hasAny = true;
+                if (textStyle.Underline.Value) {
+                    styleValue |= 4;
+                }
+            }
+
+            return hasAny;
         }
 
         private static bool TryWriteModeledShapeCell(
@@ -1097,7 +1684,9 @@ namespace OfficeIMO.Visio {
             double width,
             double height,
             double locPinX,
-            double locPinY) {
+            double locPinY,
+            IReadOnlyDictionary<string, string> persistedIds,
+            IReadOnlyDictionary<string, int> layerIndexes) {
             switch (cellName) {
                 case "PinX":
                     WriteCell(writer, ns, "PinX", shape.PinX);
@@ -1140,7 +1729,127 @@ namespace OfficeIMO.Visio {
                         WriteCell(writer, ns, "ObjType", 1);
                     }
                     return true;
+                case "LeftMargin":
+                    if (shape.TextStyle?.LeftMargin.HasValue == true) {
+                        WriteCell(writer, ns, "LeftMargin", shape.TextStyle.LeftMargin.Value);
+                    }
+                    return true;
+                case "RightMargin":
+                    if (shape.TextStyle?.RightMargin.HasValue == true) {
+                        WriteCell(writer, ns, "RightMargin", shape.TextStyle.RightMargin.Value);
+                    }
+                    return true;
+                case "TopMargin":
+                    if (shape.TextStyle?.TopMargin.HasValue == true) {
+                        WriteCell(writer, ns, "TopMargin", shape.TextStyle.TopMargin.Value);
+                    }
+                    return true;
+                case "BottomMargin":
+                    if (shape.TextStyle?.BottomMargin.HasValue == true) {
+                        WriteCell(writer, ns, "BottomMargin", shape.TextStyle.BottomMargin.Value);
+                    }
+                    return true;
+                case "VerticalAlign":
+                    if (shape.TextStyle?.VerticalAlignment.HasValue == true) {
+                        WriteCell(writer, ns, "VerticalAlign", (int)shape.TextStyle.VerticalAlignment.Value);
+                    }
+                    return true;
+                case "TextBkgnd":
+                    if (shape.TextStyle?.BackgroundColor.HasValue == true) {
+                        WriteCellValue(writer, ns, "TextBkgnd", shape.TextStyle.BackgroundColor.Value.ToVisioHex());
+                    }
+                    return true;
+                case "TextBkgndTrans":
+                    if (shape.TextStyle?.BackgroundTransparency.HasValue == true) {
+                        WriteCell(writer, ns, "TextBkgndTrans", shape.TextStyle.BackgroundTransparency.Value);
+                    }
+                    return true;
+                case "TxtPinX":
+                    if (shape.TextStyle?.TextPinX.HasValue == true) {
+                        WriteCell(writer, ns, "TxtPinX", shape.TextStyle.TextPinX.Value);
+                    }
+                    return true;
+                case "TxtPinY":
+                    if (shape.TextStyle?.TextPinY.HasValue == true) {
+                        WriteCell(writer, ns, "TxtPinY", shape.TextStyle.TextPinY.Value);
+                    }
+                    return true;
+                case "TxtWidth":
+                    if (shape.TextStyle?.TextWidth.HasValue == true) {
+                        WriteCell(writer, ns, "TxtWidth", shape.TextStyle.TextWidth.Value);
+                    }
+                    return true;
+                case "TxtHeight":
+                    if (shape.TextStyle?.TextHeight.HasValue == true) {
+                        WriteCell(writer, ns, "TxtHeight", shape.TextStyle.TextHeight.Value);
+                    }
+                    return true;
+                case "TxtLocPinX":
+                    if (shape.TextStyle?.TextLocPinX.HasValue == true) {
+                        WriteCell(writer, ns, "TxtLocPinX", shape.TextStyle.TextLocPinX.Value);
+                    }
+                    return true;
+                case "TxtLocPinY":
+                    if (shape.TextStyle?.TextLocPinY.HasValue == true) {
+                        WriteCell(writer, ns, "TxtLocPinY", shape.TextStyle.TextLocPinY.Value);
+                    }
+                    return true;
+                case "TxtAngle":
+                    if (shape.TextStyle?.TextAngle.HasValue == true) {
+                        WriteCell(writer, ns, "TxtAngle", shape.TextStyle.TextAngle.Value);
+                    }
+                    return true;
+                case "LayerMember":
+                    WriteLayerMemberCell(writer, ns, shape.LayerNames, layerIndexes);
+                    return true;
+                case "Relationships":
+                    WriteRelationshipCell(writer, ns, shape, persistedIds);
+                    return true;
+                case "ShapePlaceStyle":
+                    if (shape.PlacementStyle.HasValue) {
+                        WriteCell(writer, ns, "ShapePlaceStyle", (int)shape.PlacementStyle.Value);
+                    }
+                    return true;
+                case "ShapePlaceFlip":
+                    if (shape.PlacementFlip.HasValue) {
+                        WriteCell(writer, ns, "ShapePlaceFlip", (int)shape.PlacementFlip.Value);
+                    }
+                    return true;
+                case "ShapePlowCode":
+                    if (shape.PlowCode.HasValue) {
+                        WriteCell(writer, ns, "ShapePlowCode", (int)shape.PlowCode.Value);
+                    }
+                    return true;
+                case "ShapePermeablePlace":
+                    if (shape.AllowPlacementOnTop.HasValue) {
+                        WriteCell(writer, ns, "ShapePermeablePlace", shape.AllowPlacementOnTop.Value ? 1 : 0, "BOOL", null);
+                    }
+                    return true;
+                case "ShapePermeableX":
+                    if (shape.AllowHorizontalConnectorRoutingThrough.HasValue) {
+                        WriteCell(writer, ns, "ShapePermeableX", shape.AllowHorizontalConnectorRoutingThrough.Value ? 1 : 0, "BOOL", null);
+                    }
+                    return true;
+                case "ShapePermeableY":
+                    if (shape.AllowVerticalConnectorRoutingThrough.HasValue) {
+                        WriteCell(writer, ns, "ShapePermeableY", shape.AllowVerticalConnectorRoutingThrough.Value ? 1 : 0, "BOOL", null);
+                    }
+                    return true;
+                case "ShapeSplit":
+                    if (shape.CanSplitShapes.HasValue) {
+                        WriteCell(writer, ns, "ShapeSplit", shape.CanSplitShapes.Value ? 1 : 0);
+                    }
+                    return true;
+                case "ShapeSplittable":
+                    if (shape.CanBeSplit.HasValue) {
+                        WriteCell(writer, ns, "ShapeSplittable", shape.CanBeSplit.Value ? 1 : 0);
+                    }
+                    return true;
                 default:
+                    if (TryWriteProtectionCell(writer, ns, shape.Protection, cellName)) {
+                        return true;
+                    }
+
                     return false;
             }
         }
@@ -1167,12 +1876,305 @@ namespace OfficeIMO.Visio {
             VisioShape shape,
             IReadOnlyDictionary<string, string> persistedIds,
             IReadOnlyDictionary<string, VisioMaster> effectiveMasters,
-            IReadOnlyList<PackageMasterEntry> packageMasters) {
+            IReadOnlyList<PackageMasterEntry> packageMasters,
+            IReadOnlyDictionary<string, int> layerIndexes) {
             writer.WriteStartElement("Shapes", ns);
             foreach (VisioShape child in shape.Children) {
-                WriteShapeElement(writer, ns, child, persistedIds, effectiveMasters, packageMasters);
+                WriteShapeElement(writer, ns, child, persistedIds, effectiveMasters, packageMasters, layerIndexes);
             }
             writer.WriteEndElement();
+        }
+
+        private static void WriteRelationshipCell(XmlWriter writer, string ns, VisioShape shape, IReadOnlyDictionary<string, string> persistedIds) {
+            string? formula = BuildRelationshipFormula(shape, persistedIds) ?? shape.RelationshipsFormula;
+            if (string.IsNullOrWhiteSpace(formula) && string.IsNullOrWhiteSpace(shape.RelationshipsValue)) {
+                return;
+            }
+
+            writer.WriteStartElement("Cell", ns);
+            writer.WriteAttributeString("N", "Relationships");
+            writer.WriteAttributeString("V", string.IsNullOrWhiteSpace(shape.RelationshipsValue) ? "0" : shape.RelationshipsValue);
+            if (!string.IsNullOrWhiteSpace(formula)) {
+                writer.WriteAttributeString("F", formula);
+            }
+
+            writer.WriteEndElement();
+        }
+
+        private static void WriteProtectionCells(XmlWriter writer, string ns, VisioProtection protection) {
+            foreach (string cellName in VisioProtection.CellNames) {
+                TryWriteProtectionCell(writer, ns, protection, cellName);
+            }
+        }
+
+        private static bool TryWriteProtectionCell(XmlWriter writer, string ns, VisioProtection protection, string cellName) {
+            if (!protection.TryGetCellValue(cellName, out bool? value)) {
+                return false;
+            }
+
+            if (value.HasValue) {
+                WriteCell(writer, ns, cellName, value.Value ? 1 : 0);
+            }
+
+            return true;
+        }
+
+        private static string? BuildRelationshipFormula(VisioShape shape, IReadOnlyDictionary<string, string> persistedIds) {
+            List<string> dependencies = new();
+            foreach (string memberId in shape.ContainerMemberIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.OrdinalIgnoreCase)) {
+                dependencies.Add($"DEPENDSON(1,Sheet.{GetPersistedId(persistedIds, memberId)}!SheetRef())");
+            }
+
+            foreach (string ownerId in shape.ContainerOwnerIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.OrdinalIgnoreCase)) {
+                dependencies.Add($"DEPENDSON(4,Sheet.{GetPersistedId(persistedIds, ownerId)}!SheetRef())");
+            }
+
+            return dependencies.Count == 0 ? null : $"SUM({string.Join(",", dependencies)})";
+        }
+
+        private static Dictionary<string, int> BuildLayerIndexMap(VisioPage page, out List<VisioLayer> layers) {
+            List<VisioLayer> resolvedLayers = new();
+            Dictionary<string, int> indexes = new(StringComparer.OrdinalIgnoreCase);
+
+            void AddLayer(VisioLayer layer) {
+                string key = GetLayerKey(layer);
+                if (indexes.ContainsKey(key)) {
+                    return;
+                }
+
+                indexes[key] = resolvedLayers.Count;
+                if (!string.Equals(layer.Name, key, StringComparison.OrdinalIgnoreCase)) {
+                    indexes[layer.Name] = resolvedLayers.Count;
+                }
+
+                resolvedLayers.Add(layer);
+            }
+
+            void AddSyntheticLayer(string layerName) {
+                if (string.IsNullOrWhiteSpace(layerName) || indexes.ContainsKey(layerName)) {
+                    return;
+                }
+
+                AddLayer(new VisioLayer(layerName));
+            }
+
+            void VisitShape(VisioShape shape) {
+                foreach (string layerName in shape.LayerNames) {
+                    AddSyntheticLayer(layerName);
+                }
+
+                foreach (VisioShape child in shape.Children) {
+                    VisitShape(child);
+                }
+            }
+
+            foreach (VisioLayer layer in page.Layers) {
+                AddLayer(layer);
+            }
+
+            foreach (VisioShape shape in page.Shapes) {
+                VisitShape(shape);
+            }
+
+            foreach (VisioConnector connector in page.Connectors) {
+                foreach (string layerName in connector.LayerNames) {
+                    AddSyntheticLayer(layerName);
+                }
+            }
+
+            layers = resolvedLayers;
+            return indexes;
+        }
+
+        private static string GetLayerKey(VisioLayer layer) {
+            return string.IsNullOrWhiteSpace(layer.NameU) ? layer.Name : layer.NameU;
+        }
+
+        private static void WriteLayerSection(XmlWriter writer, string ns, IReadOnlyList<VisioLayer> layers) {
+            writer.WriteStartElement("Section", ns);
+            writer.WriteAttributeString("N", "Layer");
+            for (int i = 0; i < layers.Count; i++) {
+                VisioLayer layer = layers[i];
+                writer.WriteStartElement("Row", ns);
+                writer.WriteAttributeString("IX", XmlConvert.ToString(i + 1));
+                WritePreservedAttributes(writer, layer.PreservedRowAttributes);
+                WriteLayerCell(writer, ns, layer, "Name", layer.Name);
+                WriteLayerCell(writer, ns, layer, "Color", layer.Color);
+                WriteLayerCell(writer, ns, layer, "Status", layer.Status);
+                WriteLayerCell(writer, ns, layer, "Visible", layer.Visible ? 1 : 0);
+                WriteLayerCell(writer, ns, layer, "Print", layer.Print ? 1 : 0);
+                WriteLayerCell(writer, ns, layer, "Active", layer.Active ? 1 : 0);
+                WriteLayerCell(writer, ns, layer, "Lock", layer.Lock ? 1 : 0);
+                WriteLayerCell(writer, ns, layer, "Snap", layer.Snap ? 1 : 0);
+                WriteLayerCell(writer, ns, layer, "Glue", layer.Glue ? 1 : 0);
+                WriteLayerCell(writer, ns, layer, "NameUniv", string.IsNullOrWhiteSpace(layer.NameU) ? layer.Name : layer.NameU);
+                WriteLayerCell(writer, ns, layer, "ColorTrans", layer.ColorTransparency);
+                WritePreservedElements(writer, layer.PreservedCells);
+                writer.WriteEndElement();
+            }
+            writer.WriteEndElement();
+        }
+
+        private static void WriteLayerCell(XmlWriter writer, string ns, VisioLayer layer, string cellName, int value) {
+            WriteLayerCell(writer, ns, layer, cellName, value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        private static void WriteLayerCell(XmlWriter writer, string ns, VisioLayer layer, string cellName, string value) {
+            layer.PreservedKnownCells.TryGetValue(cellName, out XElement? template);
+            writer.WriteStartElement("Cell", ns);
+            writer.WriteAttributeString("N", cellName);
+            writer.WriteAttributeString("V", value);
+            if (template != null) {
+                foreach (XAttribute attribute in template.Attributes()) {
+                    if (attribute.IsNamespaceDeclaration ||
+                        string.Equals(attribute.Name.LocalName, "N", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(attribute.Name.LocalName, "V", StringComparison.OrdinalIgnoreCase)) {
+                        continue;
+                    }
+
+                    WriteAttribute(writer, attribute);
+                }
+            }
+
+            writer.WriteEndElement();
+        }
+
+        private static void WriteLayerMemberCell(XmlWriter writer, string ns, IEnumerable<string> layerNames, IReadOnlyDictionary<string, int> layerIndexes) {
+            List<int> memberIndexes = new();
+            foreach (string layerName in layerNames) {
+                if (layerIndexes.TryGetValue(layerName, out int index)) {
+                    memberIndexes.Add(index);
+                }
+            }
+
+            if (memberIndexes.Count == 0) {
+                return;
+            }
+
+            string value = string.Join(";", memberIndexes.Distinct().OrderBy(index => index).Select(index => index.ToString(CultureInfo.InvariantCulture)));
+            WriteCellValue(writer, ns, "LayerMember", value);
+        }
+
+        private static void WriteMarginCells(XmlWriter writer, string ns, VisioPage page, bool useUnits) {
+            if (useUnits || page.HasExplicitMargins && page.MarginUnit != VisioMeasurementUnit.Inches) {
+                VisioMeasurementUnit unit = page.HasExplicitMargins ? page.MarginUnit : page.DefaultUnit;
+                string unitCode = unit.ToVisioUnitCode();
+                WritePageCell(writer, ns, "PageLeftMargin", NormalizeMarginValue(page.LeftMargin.FromInches(unit)), unitCode);
+                WritePageCell(writer, ns, "PageRightMargin", NormalizeMarginValue(page.RightMargin.FromInches(unit)), unitCode);
+                WritePageCell(writer, ns, "PageTopMargin", NormalizeMarginValue(page.TopMargin.FromInches(unit)), unitCode);
+                WritePageCell(writer, ns, "PageBottomMargin", NormalizeMarginValue(page.BottomMargin.FromInches(unit)), unitCode);
+                return;
+            }
+
+            WritePageCell(writer, ns, "PageLeftMargin", page.LeftMargin);
+            WritePageCell(writer, ns, "PageRightMargin", page.RightMargin);
+            WritePageCell(writer, ns, "PageTopMargin", page.TopMargin);
+            WritePageCell(writer, ns, "PageBottomMargin", page.BottomMargin);
+        }
+
+        private static double NormalizeMarginValue(double value) {
+            double rounded = Math.Round(value, 12);
+            return Math.Abs(rounded) < 0.000000000001D ? 0D : rounded;
+        }
+
+        private static void WritePageLayoutRoutingCells(XmlWriter writer, string ns, VisioPage page) {
+            if (page.ConnectorRouteStyle.HasValue) {
+                WritePageCell(writer, ns, "RouteStyle", (int)page.ConnectorRouteStyle.Value);
+            }
+
+            if (page.ConnectorRouteAppearance.HasValue) {
+                WritePageCell(writer, ns, "LineRouteExt", (int)page.ConnectorRouteAppearance.Value);
+            }
+
+            if (page.LineJumpStyle.HasValue) {
+                WritePageCell(writer, ns, "LineJumpStyle", (int)page.LineJumpStyle.Value);
+            }
+
+            if (page.LineJumpCode.HasValue) {
+                WritePageCell(writer, ns, "LineJumpCode", (int)page.LineJumpCode.Value);
+            }
+
+            if (page.HorizontalLineJumpDirection.HasValue) {
+                WritePageCell(writer, ns, "PageLineJumpDirX", (int)page.HorizontalLineJumpDirection.Value);
+            }
+
+            if (page.VerticalLineJumpDirection.HasValue) {
+                WritePageCell(writer, ns, "PageLineJumpDirY", (int)page.VerticalLineJumpDirection.Value);
+            }
+        }
+
+        private static void WritePagePlacementCells(XmlWriter writer, string ns, VisioPage page) {
+            if (page.PlacementStyle.HasValue) {
+                WritePageCell(writer, ns, "PlaceStyle", (int)page.PlacementStyle.Value);
+            }
+
+            if (page.PlacementDepth.HasValue) {
+                WritePageCell(writer, ns, "PlaceDepth", (int)page.PlacementDepth.Value);
+            }
+
+            if (page.PlacementFlip.HasValue) {
+                WritePageCell(writer, ns, "PlaceFlip", (int)page.PlacementFlip.Value);
+            }
+
+            if (page.MoveShapesAwayOnDrop.HasValue) {
+                WritePageCell(writer, ns, "PlowCode", page.MoveShapesAwayOnDrop.Value ? 1 : 0);
+            }
+
+            if (page.ResizePageToFitLayout.HasValue) {
+                WritePageCell(writer, ns, "ResizePage", page.ResizePageToFitLayout.Value ? 1 : 0, "BOOL");
+            }
+        }
+
+        private static void WritePageLayoutGridCells(XmlWriter writer, string ns, VisioPage page) {
+            if (page.EnableLayoutGrid.HasValue) {
+                WritePageCell(writer, ns, "EnableGrid", page.EnableLayoutGrid.Value ? 1 : 0, "BOOL");
+            }
+
+            if (!page.HasLayoutGridSizing) {
+                return;
+            }
+
+            VisioMeasurementUnit unit = page.LayoutGridUnit;
+            string unitCode = unit.ToVisioUnitCode();
+            if (page.LayoutBlockSizeX.HasValue) {
+                WritePageCell(writer, ns, "BlockSizeX", NormalizeMarginValue(page.LayoutBlockSizeX.Value.FromInches(unit)), unitCode);
+            }
+
+            if (page.LayoutBlockSizeY.HasValue) {
+                WritePageCell(writer, ns, "BlockSizeY", NormalizeMarginValue(page.LayoutBlockSizeY.Value.FromInches(unit)), unitCode);
+            }
+
+            if (page.LayoutAvenueSizeX.HasValue) {
+                WritePageCell(writer, ns, "AvenueSizeX", NormalizeMarginValue(page.LayoutAvenueSizeX.Value.FromInches(unit)), unitCode);
+            }
+
+            if (page.LayoutAvenueSizeY.HasValue) {
+                WritePageCell(writer, ns, "AvenueSizeY", NormalizeMarginValue(page.LayoutAvenueSizeY.Value.FromInches(unit)), unitCode);
+            }
+        }
+
+        private static void WritePageRoutingSpacingCells(XmlWriter writer, string ns, VisioPage page) {
+            if (!page.HasConnectorSpacing) {
+                return;
+            }
+
+            VisioMeasurementUnit unit = page.ConnectorSpacingUnit;
+            string unitCode = unit.ToVisioUnitCode();
+            if (page.LineToLineX.HasValue) {
+                WritePageCell(writer, ns, "LineToLineX", NormalizeMarginValue(page.LineToLineX.Value.FromInches(unit)), unitCode);
+            }
+
+            if (page.LineToLineY.HasValue) {
+                WritePageCell(writer, ns, "LineToLineY", NormalizeMarginValue(page.LineToLineY.Value.FromInches(unit)), unitCode);
+            }
+
+            if (page.LineToNodeX.HasValue) {
+                WritePageCell(writer, ns, "LineToNodeX", NormalizeMarginValue(page.LineToNodeX.Value.FromInches(unit)), unitCode);
+            }
+
+            if (page.LineToNodeY.HasValue) {
+                WritePageCell(writer, ns, "LineToNodeY", NormalizeMarginValue(page.LineToNodeY.Value.FromInches(unit)), unitCode);
+            }
         }
 
         private static readonly string[] ConnectorModeledCellOrder = {
@@ -1186,8 +2188,50 @@ namespace OfficeIMO.Visio {
             "FillPattern",
             "FillForegnd",
             "OneD",
+            "LayerMember",
+            "ShapeRouteStyle",
+            "ConLineRouteExt",
+            "ConLineJumpStyle",
+            "ConLineJumpCode",
+            "ConLineJumpDirX",
+            "ConLineJumpDirY",
+            "ConFixedCode",
             "BeginArrow",
-            "EndArrow"
+            "EndArrow",
+            "LeftMargin",
+            "RightMargin",
+            "TopMargin",
+            "BottomMargin",
+            "VerticalAlign",
+            "TextBkgnd",
+            "TextBkgndTrans",
+            "TxtPinX",
+            "TxtPinY",
+            "TxtWidth",
+            "TxtHeight",
+            "TxtLocPinX",
+            "TxtLocPinY",
+            "LockWidth",
+            "LockHeight",
+            "LockAspect",
+            "LockMoveX",
+            "LockMoveY",
+            "LockDelete",
+            "LockTextEdit",
+            "LockFormat",
+            "LockGroup",
+            "LockUngroup",
+            "LockSelect",
+            "LockRotate",
+            "LockCrop",
+            "LockVtxEdit",
+            "LockBegin",
+            "LockEnd",
+            "LockCalcWH",
+            "LockCustProp",
+            "LockFromGroupFormat",
+            "LockThemeColors",
+            "LockThemeEffects"
         };
 
         private static readonly string[] ShapeModeledCellOrder = {
@@ -1203,7 +2247,52 @@ namespace OfficeIMO.Visio {
             "LineColor",
             "FillPattern",
             "FillForegnd",
-            "ObjType"
+            "ObjType",
+            "LeftMargin",
+            "RightMargin",
+            "TopMargin",
+            "BottomMargin",
+            "VerticalAlign",
+            "TextBkgnd",
+            "TextBkgndTrans",
+            "TxtPinX",
+            "TxtPinY",
+            "TxtWidth",
+            "TxtHeight",
+            "TxtLocPinX",
+            "TxtLocPinY",
+            "TxtAngle",
+            "LayerMember",
+            "Relationships",
+            "ShapePlaceStyle",
+            "ShapePlaceFlip",
+            "ShapePlowCode",
+            "ShapePermeablePlace",
+            "ShapePermeableX",
+            "ShapePermeableY",
+            "ShapeSplit",
+            "ShapeSplittable",
+            "LockWidth",
+            "LockHeight",
+            "LockAspect",
+            "LockMoveX",
+            "LockMoveY",
+            "LockDelete",
+            "LockTextEdit",
+            "LockFormat",
+            "LockGroup",
+            "LockUngroup",
+            "LockSelect",
+            "LockRotate",
+            "LockCrop",
+            "LockVtxEdit",
+            "LockBegin",
+            "LockEnd",
+            "LockCalcWH",
+            "LockCustProp",
+            "LockFromGroupFormat",
+            "LockThemeColors",
+            "LockThemeEffects"
         };
 
         private static readonly string[] ShapeTransformCellNames = {
@@ -1305,11 +2394,12 @@ namespace OfficeIMO.Visio {
         }
 
         private static void WriteConnectorGeometry(XmlWriter writer, string ns, VisioConnector connector, double startX, double startY, double endX, double endY) {
-            if (connector.Kind == ConnectorKind.Dynamic) {
+            bool hasExplicitWaypoints = connector.Waypoints.Count > 0;
+            if (connector.Kind == ConnectorKind.Dynamic && !hasExplicitWaypoints) {
                 return;
             }
 
-            if (WritePreservedGeometrySections(writer, connector.PreservedGeometrySections)) {
+            if (!hasExplicitWaypoints && WritePreservedGeometrySections(writer, connector.PreservedGeometrySections)) {
                 return;
             }
 
@@ -1323,30 +2413,35 @@ namespace OfficeIMO.Visio {
             WriteCell(writer, ns, "Y", startY);
             writer.WriteEndElement();
 
-            switch (connector.Kind) {
-                case ConnectorKind.RightAngle:
+            if (hasExplicitWaypoints) {
+                foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
                     writer.WriteStartElement("Row", ns);
                     writer.WriteAttributeString("T", "LineTo");
-                    WriteCell(writer, ns, "X", startX);
-                    WriteCell(writer, ns, "Y", endY);
+                    WriteCell(writer, ns, "X", waypoint.X);
+                    WriteCell(writer, ns, "Y", waypoint.Y);
                     writer.WriteEndElement();
-
-                    writer.WriteStartElement("Row", ns);
-                    writer.WriteAttributeString("T", "LineTo");
-                    WriteCell(writer, ns, "X", endX);
-                    WriteCell(writer, ns, "Y", endY);
-                    writer.WriteEndElement();
-                    break;
-                case ConnectorKind.Curved:
-                case ConnectorKind.Straight:
-                default:
-                    writer.WriteStartElement("Row", ns);
-                    writer.WriteAttributeString("T", "LineTo");
-                    WriteCell(writer, ns, "X", endX);
-                    WriteCell(writer, ns, "Y", endY);
-                    writer.WriteEndElement();
-                    break;
+                }
+            } else {
+                switch (connector.Kind) {
+                    case ConnectorKind.RightAngle:
+                        writer.WriteStartElement("Row", ns);
+                        writer.WriteAttributeString("T", "LineTo");
+                        WriteCell(writer, ns, "X", startX);
+                        WriteCell(writer, ns, "Y", endY);
+                        writer.WriteEndElement();
+                        break;
+                    case ConnectorKind.Curved:
+                    case ConnectorKind.Straight:
+                    default:
+                        break;
+                }
             }
+
+            writer.WriteStartElement("Row", ns);
+            writer.WriteAttributeString("T", "LineTo");
+            WriteCell(writer, ns, "X", endX);
+            WriteCell(writer, ns, "Y", endY);
+            writer.WriteEndElement();
 
             writer.WriteEndElement();
         }
@@ -1694,7 +2789,7 @@ namespace OfficeIMO.Visio {
                 writer.WriteStartElement("Section", ns);
                 writer.WriteAttributeString("N", "Layer");
                 writer.WriteStartElement("Row", ns);
-                writer.WriteAttributeString("IX", "0");
+                writer.WriteAttributeString("IX", "1");
                 WriteStringCell(writer, ns, "Name", "Connector");
                 WriteCell(writer, ns, "Color", 255);
                 WriteCell(writer, ns, "Status", 0);

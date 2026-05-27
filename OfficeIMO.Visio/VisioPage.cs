@@ -63,6 +63,7 @@ namespace OfficeIMO.Visio {
 
         private readonly List<VisioShape> _shapes = new();
         private readonly List<VisioConnector> _connectors = new();
+        private readonly List<VisioLayer> _layers = new();
         private readonly IList<VisioShape> _shapeCollection;
         private readonly IList<VisioConnector> _connectorCollection;
         private double _width = 8.26771653543307; // A4 width in inches
@@ -74,6 +75,21 @@ namespace OfficeIMO.Visio {
         private double _viewScale = 1;
         private VisioScaleSetting? _pageScaleOverride;
         private VisioScaleSetting? _drawingScaleOverride;
+        private double _leftMargin = 0.25D;
+        private double _rightMargin = 0.25D;
+        private double _topMargin = 0.25D;
+        private double _bottomMargin = 0.25D;
+        private VisioMeasurementUnit _marginUnit = VisioMeasurementUnit.Inches;
+        private double? _lineToLineX;
+        private double? _lineToLineY;
+        private double? _lineToNodeX;
+        private double? _lineToNodeY;
+        private VisioMeasurementUnit _connectorSpacingUnit = VisioMeasurementUnit.Inches;
+        private double? _layoutBlockSizeX;
+        private double? _layoutBlockSizeY;
+        private double? _layoutAvenueSizeX;
+        private double? _layoutAvenueSizeY;
+        private VisioMeasurementUnit _layoutGridUnit = VisioMeasurementUnit.Inches;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="VisioPage"/> class with default A4 size.
@@ -303,6 +319,193 @@ namespace OfficeIMO.Visio {
             set => _snap = value;
         }
 
+        /// <summary>
+        /// Gets or sets whether Visio should prevent replacing this page.
+        /// </summary>
+        public bool PageLockReplace { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether Visio should prevent duplicating this page.
+        /// </summary>
+        public bool PageLockDuplicate { get; set; }
+
+        /// <summary>
+        /// Gets or sets how Visio determines this page's drawing size.
+        /// </summary>
+        public VisioDrawingSizeType DrawingSizeType { get; set; } = VisioDrawingSizeType.SameAsPrinter;
+
+        /// <summary>
+        /// Gets or sets whether Visio automatically resizes the drawing page to fit the diagram.
+        /// </summary>
+        public bool AutoResizeDrawing { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets whether Visio can automatically split shapes on this page.
+        /// </summary>
+        public bool AllowShapeSplitting { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets whether the page name is shown in Visio UI surfaces such as page tabs.
+        /// </summary>
+        public VisioPageUiVisibility UiVisibility { get; set; } = VisioPageUiVisibility.Normal;
+
+        /// <summary>
+        /// Gets or sets the page-level placement style Visio uses when laying out shapes.
+        /// </summary>
+        public VisioPlacementStyle? PlacementStyle { get; set; }
+
+        /// <summary>
+        /// Gets or sets the placement analysis depth Visio uses during page layout.
+        /// </summary>
+        public VisioPlacementDepth? PlacementDepth { get; set; }
+
+        /// <summary>
+        /// Gets or sets how Visio may flip or rotate shapes during page layout.
+        /// </summary>
+        public VisioPlacementFlip? PlacementFlip { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether Visio should move nearby placeable shapes away when dropping a shape.
+        /// </summary>
+        public bool? MoveShapesAwayOnDrop { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether Visio should enlarge the page after laying out shapes.
+        /// </summary>
+        public bool? ResizePageToFitLayout { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether Visio uses its internal layout grid when arranging shapes on this page.
+        /// </summary>
+        public bool? EnableLayoutGrid { get; set; }
+
+        /// <summary>
+        /// Gets or sets the page-level routing style for connectors without a local routing style.
+        /// </summary>
+        public VisioPageRouteStyle? ConnectorRouteStyle { get; set; }
+
+        /// <summary>
+        /// Gets or sets the default routed connector appearance on this page.
+        /// </summary>
+        public VisioLineRouteExtension? ConnectorRouteAppearance { get; set; }
+
+        /// <summary>
+        /// Gets or sets the line jump style for connectors without a local jump style.
+        /// </summary>
+        public VisioLineJumpStyle? LineJumpStyle { get; set; }
+
+        /// <summary>
+        /// Gets or sets which connectors receive line jumps on this page.
+        /// </summary>
+        public VisioLineJumpCode? LineJumpCode { get; set; }
+
+        /// <summary>
+        /// Gets or sets the page default line jump direction for horizontal dynamic connectors.
+        /// </summary>
+        public VisioHorizontalLineJumpDirection? HorizontalLineJumpDirection { get; set; }
+
+        /// <summary>
+        /// Gets or sets the page default line jump direction for vertical dynamic connectors.
+        /// </summary>
+        public VisioVerticalLineJumpDirection? VerticalLineJumpDirection { get; set; }
+
+        /// <summary>
+        /// Gets the horizontal clearance between connectors in inches, if explicitly set.
+        /// </summary>
+        public double? LineToLineX => _lineToLineX;
+
+        /// <summary>
+        /// Gets the vertical clearance between connectors in inches, if explicitly set.
+        /// </summary>
+        public double? LineToLineY => _lineToLineY;
+
+        /// <summary>
+        /// Gets the horizontal clearance between connectors and shapes in inches, if explicitly set.
+        /// </summary>
+        public double? LineToNodeX => _lineToNodeX;
+
+        /// <summary>
+        /// Gets the vertical clearance between connectors and shapes in inches, if explicitly set.
+        /// </summary>
+        public double? LineToNodeY => _lineToNodeY;
+
+        /// <summary>
+        /// Gets the horizontal average shape block size in inches, if explicitly set.
+        /// </summary>
+        public double? LayoutBlockSizeX => _layoutBlockSizeX;
+
+        /// <summary>
+        /// Gets the vertical average shape block size in inches, if explicitly set.
+        /// </summary>
+        public double? LayoutBlockSizeY => _layoutBlockSizeY;
+
+        /// <summary>
+        /// Gets the horizontal spacing between shapes in inches, if explicitly set.
+        /// </summary>
+        public double? LayoutAvenueSizeX => _layoutAvenueSizeX;
+
+        /// <summary>
+        /// Gets the vertical spacing between shapes in inches, if explicitly set.
+        /// </summary>
+        public double? LayoutAvenueSizeY => _layoutAvenueSizeY;
+
+        /// <summary>
+        /// Gets or sets the print orientation. When null, OfficeIMO keeps Visio's default unless non-default page metadata is required.
+        /// </summary>
+        public VisioPagePrintOrientation? PrintOrientation { get; set; }
+
+        /// <summary>
+        /// Gets the left print margin in inches.
+        /// </summary>
+        public double LeftMargin => _leftMargin;
+
+        /// <summary>
+        /// Gets the right print margin in inches.
+        /// </summary>
+        public double RightMargin => _rightMargin;
+
+        /// <summary>
+        /// Gets the top print margin in inches.
+        /// </summary>
+        public double TopMargin => _topMargin;
+
+        /// <summary>
+        /// Gets the bottom print margin in inches.
+        /// </summary>
+        public double BottomMargin => _bottomMargin;
+
+        internal bool HasExplicitMargins { get; private set; }
+
+        internal VisioMeasurementUnit MarginUnit => _marginUnit;
+
+        internal bool HasConnectorSpacing =>
+            _lineToLineX.HasValue ||
+            _lineToLineY.HasValue ||
+            _lineToNodeX.HasValue ||
+            _lineToNodeY.HasValue;
+
+        internal VisioMeasurementUnit ConnectorSpacingUnit => _connectorSpacingUnit;
+
+        internal bool HasLayoutGridSizing =>
+            _layoutBlockSizeX.HasValue ||
+            _layoutBlockSizeY.HasValue ||
+            _layoutAvenueSizeX.HasValue ||
+            _layoutAvenueSizeY.HasValue;
+
+        internal VisioMeasurementUnit LayoutGridUnit => _layoutGridUnit;
+
+        /// <summary>
+        /// Gets or sets whether this page is a Visio background page.
+        /// </summary>
+        public bool IsBackground { get; set; }
+
+        /// <summary>
+        /// Gets the background page applied to this foreground page, if any.
+        /// </summary>
+        public VisioPage? BackgroundPage { get; private set; }
+
+        internal int? BackgroundPageId { get; private set; }
+
         internal IList<XElement> PreservedPageSheetCells { get; } = new List<XElement>();
 
         internal IList<XElement> PreservedPageSheetSections { get; } = new List<XElement>();
@@ -336,6 +539,545 @@ namespace OfficeIMO.Visio {
         /// Connectors placed on the page.
         /// </summary>
         public IList<VisioConnector> Connectors => _connectorCollection;
+
+        /// <summary>
+        /// Layers defined on this page.
+        /// </summary>
+        public IList<VisioLayer> Layers => _layers;
+
+        /// <summary>
+        /// Clears page-level placement policy cells so Visio can use template defaults.
+        /// </summary>
+        public VisioPage ClearPlacementPolicy() {
+            PlacementStyle = null;
+            PlacementDepth = null;
+            PlacementFlip = null;
+            MoveShapesAwayOnDrop = null;
+            ResizePageToFitLayout = null;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets Visio layout grid block sizes and spacing values.
+        /// </summary>
+        /// <param name="blockSize">Horizontal and vertical average shape block size.</param>
+        /// <param name="avenueSize">Horizontal and vertical spacing between shapes.</param>
+        /// <param name="unit">Measurement unit for the provided values.</param>
+        public VisioPage SetLayoutGridSizing(double blockSize, double avenueSize, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            return SetLayoutGridSizing(blockSize, blockSize, avenueSize, avenueSize, unit);
+        }
+
+        /// <summary>
+        /// Sets individual Visio layout grid block sizes and spacing values.
+        /// </summary>
+        /// <param name="blockSizeX">Horizontal average shape block size.</param>
+        /// <param name="blockSizeY">Vertical average shape block size.</param>
+        /// <param name="avenueSizeX">Horizontal spacing between shapes.</param>
+        /// <param name="avenueSizeY">Vertical spacing between shapes.</param>
+        /// <param name="unit">Measurement unit for the provided values.</param>
+        public VisioPage SetLayoutGridSizing(
+            double blockSizeX,
+            double blockSizeY,
+            double avenueSizeX,
+            double avenueSizeY,
+            VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            if (blockSizeX < 0 || blockSizeY < 0 || avenueSizeX < 0 || avenueSizeY < 0) {
+                throw new ArgumentOutOfRangeException(nameof(blockSizeX), "Layout grid sizing values must be zero or greater.");
+            }
+
+            _layoutBlockSizeX = blockSizeX.ToInches(unit);
+            _layoutBlockSizeY = blockSizeY.ToInches(unit);
+            _layoutAvenueSizeX = avenueSizeX.ToInches(unit);
+            _layoutAvenueSizeY = avenueSizeY.ToInches(unit);
+            _layoutGridUnit = unit;
+            return this;
+        }
+
+        /// <summary>
+        /// Clears Visio layout grid sizing cells so Visio can use template defaults.
+        /// </summary>
+        public VisioPage ClearLayoutGridSizing() {
+            _layoutBlockSizeX = null;
+            _layoutBlockSizeY = null;
+            _layoutAvenueSizeX = null;
+            _layoutAvenueSizeY = null;
+            _layoutGridUnit = VisioMeasurementUnit.Inches;
+            return this;
+        }
+
+        /// <summary>
+        /// Clears Visio layout grid enablement and sizing cells so Visio can use template defaults.
+        /// </summary>
+        public VisioPage ClearLayoutGridPolicy() {
+            EnableLayoutGrid = null;
+            ClearLayoutGridSizing();
+            return this;
+        }
+
+        internal void SetLoadedLayoutGridSizing(
+            double? blockSizeX,
+            double? blockSizeY,
+            double? avenueSizeX,
+            double? avenueSizeY,
+            VisioMeasurementUnit unit) {
+            SetLoadedLayoutGridSizingInches(
+                blockSizeX?.ToInches(unit),
+                blockSizeY?.ToInches(unit),
+                avenueSizeX?.ToInches(unit),
+                avenueSizeY?.ToInches(unit),
+                unit);
+        }
+
+        internal void SetLoadedLayoutGridSizingInches(
+            double? blockSizeX,
+            double? blockSizeY,
+            double? avenueSizeX,
+            double? avenueSizeY,
+            VisioMeasurementUnit unit) {
+            if (blockSizeX.HasValue && blockSizeX.Value >= 0) {
+                _layoutBlockSizeX = blockSizeX.Value;
+            }
+
+            if (blockSizeY.HasValue && blockSizeY.Value >= 0) {
+                _layoutBlockSizeY = blockSizeY.Value;
+            }
+
+            if (avenueSizeX.HasValue && avenueSizeX.Value >= 0) {
+                _layoutAvenueSizeX = avenueSizeX.Value;
+            }
+
+            if (avenueSizeY.HasValue && avenueSizeY.Value >= 0) {
+                _layoutAvenueSizeY = avenueSizeY.Value;
+            }
+
+            if (blockSizeX.HasValue || blockSizeY.HasValue || avenueSizeX.HasValue || avenueSizeY.HasValue) {
+                _layoutGridUnit = unit;
+            }
+        }
+
+        /// <summary>
+        /// Clears page-level connector routing and line-jump policy cells so Visio can use template defaults.
+        /// </summary>
+        public VisioPage ClearConnectorRoutingPolicy() {
+            ConnectorRouteStyle = null;
+            ConnectorRouteAppearance = null;
+            LineJumpStyle = null;
+            LineJumpCode = null;
+            HorizontalLineJumpDirection = null;
+            VerticalLineJumpDirection = null;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets page-level connector and connector-to-shape spacing used by Visio routing.
+        /// </summary>
+        /// <param name="lineToLine">Horizontal and vertical connector-to-connector clearance.</param>
+        /// <param name="lineToNode">Horizontal and vertical connector-to-shape clearance.</param>
+        /// <param name="unit">Measurement unit for the provided values.</param>
+        public VisioPage SetConnectorSpacing(double lineToLine, double lineToNode, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            return SetConnectorSpacing(lineToLine, lineToLine, lineToNode, lineToNode, unit);
+        }
+
+        /// <summary>
+        /// Sets individual page-level connector routing clearances used by Visio.
+        /// </summary>
+        /// <param name="lineToLineX">Horizontal connector-to-connector clearance.</param>
+        /// <param name="lineToLineY">Vertical connector-to-connector clearance.</param>
+        /// <param name="lineToNodeX">Horizontal connector-to-shape clearance.</param>
+        /// <param name="lineToNodeY">Vertical connector-to-shape clearance.</param>
+        /// <param name="unit">Measurement unit for the provided values.</param>
+        public VisioPage SetConnectorSpacing(
+            double lineToLineX,
+            double lineToLineY,
+            double lineToNodeX,
+            double lineToNodeY,
+            VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            if (lineToLineX < 0 || lineToLineY < 0 || lineToNodeX < 0 || lineToNodeY < 0) {
+                throw new ArgumentOutOfRangeException(nameof(lineToLineX), "Connector spacing values must be zero or greater.");
+            }
+
+            _lineToLineX = lineToLineX.ToInches(unit);
+            _lineToLineY = lineToLineY.ToInches(unit);
+            _lineToNodeX = lineToNodeX.ToInches(unit);
+            _lineToNodeY = lineToNodeY.ToInches(unit);
+            _connectorSpacingUnit = unit;
+            return this;
+        }
+
+        /// <summary>
+        /// Clears page-level connector spacing cells so Visio can use template defaults.
+        /// </summary>
+        public VisioPage ClearConnectorSpacing() {
+            _lineToLineX = null;
+            _lineToLineY = null;
+            _lineToNodeX = null;
+            _lineToNodeY = null;
+            _connectorSpacingUnit = VisioMeasurementUnit.Inches;
+            return this;
+        }
+
+        internal void SetLoadedConnectorSpacing(
+            double? lineToLineX,
+            double? lineToLineY,
+            double? lineToNodeX,
+            double? lineToNodeY,
+            VisioMeasurementUnit unit) {
+            SetLoadedConnectorSpacingInches(
+                lineToLineX?.ToInches(unit),
+                lineToLineY?.ToInches(unit),
+                lineToNodeX?.ToInches(unit),
+                lineToNodeY?.ToInches(unit),
+                unit);
+        }
+
+        internal void SetLoadedConnectorSpacingInches(
+            double? lineToLineX,
+            double? lineToLineY,
+            double? lineToNodeX,
+            double? lineToNodeY,
+            VisioMeasurementUnit unit) {
+            if (lineToLineX.HasValue && lineToLineX.Value >= 0) {
+                _lineToLineX = lineToLineX.Value;
+            }
+
+            if (lineToLineY.HasValue && lineToLineY.Value >= 0) {
+                _lineToLineY = lineToLineY.Value;
+            }
+
+            if (lineToNodeX.HasValue && lineToNodeX.Value >= 0) {
+                _lineToNodeX = lineToNodeX.Value;
+            }
+
+            if (lineToNodeY.HasValue && lineToNodeY.Value >= 0) {
+                _lineToNodeY = lineToNodeY.Value;
+            }
+
+            if (lineToLineX.HasValue || lineToLineY.HasValue || lineToNodeX.HasValue || lineToNodeY.HasValue) {
+                _connectorSpacingUnit = unit;
+            }
+        }
+
+        /// <summary>
+        /// Sets all print margins to the same value.
+        /// </summary>
+        /// <param name="margin">Margin value.</param>
+        /// <param name="unit">Measurement unit for the provided value.</param>
+        public VisioPage SetMargins(double margin, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            return SetMargins(margin, margin, margin, margin, unit);
+        }
+
+        /// <summary>
+        /// Sets horizontal and vertical print margins.
+        /// </summary>
+        /// <param name="horizontal">Left and right margin value.</param>
+        /// <param name="vertical">Top and bottom margin value.</param>
+        /// <param name="unit">Measurement unit for the provided values.</param>
+        public VisioPage SetMargins(double horizontal, double vertical, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            return SetMargins(horizontal, horizontal, vertical, vertical, unit);
+        }
+
+        /// <summary>
+        /// Sets individual print margins.
+        /// </summary>
+        /// <param name="left">Left margin.</param>
+        /// <param name="right">Right margin.</param>
+        /// <param name="top">Top margin.</param>
+        /// <param name="bottom">Bottom margin.</param>
+        /// <param name="unit">Measurement unit for the provided values.</param>
+        public VisioPage SetMargins(double left, double right, double top, double bottom, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            if (left < 0 || right < 0 || top < 0 || bottom < 0) {
+                throw new ArgumentOutOfRangeException(nameof(left), "Margins must be zero or greater.");
+            }
+
+            _leftMargin = left.ToInches(unit);
+            _rightMargin = right.ToInches(unit);
+            _topMargin = top.ToInches(unit);
+            _bottomMargin = bottom.ToInches(unit);
+            _marginUnit = unit;
+            HasExplicitMargins = true;
+            return this;
+        }
+
+        internal void SetLoadedMargins(double? left, double? right, double? top, double? bottom, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            if (left.HasValue && left.Value >= 0) {
+                _leftMargin = left.Value;
+            }
+
+            if (right.HasValue && right.Value >= 0) {
+                _rightMargin = right.Value;
+            }
+
+            if (top.HasValue && top.Value >= 0) {
+                _topMargin = top.Value;
+            }
+
+            if (bottom.HasValue && bottom.Value >= 0) {
+                _bottomMargin = bottom.Value;
+            }
+
+            HasExplicitMargins = left.HasValue || right.HasValue || top.HasValue || bottom.HasValue;
+            if (HasExplicitMargins) {
+                _marginUnit = unit;
+            }
+        }
+
+        /// <summary>
+        /// Applies a reusable Visio background page to this page.
+        /// </summary>
+        /// <param name="backgroundPage">Background page to apply.</param>
+        public VisioPage SetBackgroundPage(VisioPage backgroundPage) {
+            if (backgroundPage == null) {
+                throw new ArgumentNullException(nameof(backgroundPage));
+            }
+
+            if (ReferenceEquals(backgroundPage, this)) {
+                throw new InvalidOperationException("A page cannot use itself as a background.");
+            }
+
+            if (OwnerDocument == null ||
+                backgroundPage.OwnerDocument == null ||
+                !ReferenceEquals(OwnerDocument, backgroundPage.OwnerDocument)) {
+                throw new InvalidOperationException("Background page must belong to the same Visio document.");
+            }
+
+            backgroundPage.IsBackground = true;
+            BackgroundPage = backgroundPage;
+            BackgroundPageId = backgroundPage.Id;
+            return this;
+        }
+
+        /// <summary>
+        /// Removes the applied background page reference.
+        /// </summary>
+        public VisioPage ClearBackgroundPage() {
+            BackgroundPage = null;
+            BackgroundPageId = null;
+            return this;
+        }
+
+        internal void SetLoadedBackgroundPageId(int? pageId) {
+            BackgroundPageId = pageId;
+        }
+
+        internal void ResolveBackgroundPage(IReadOnlyDictionary<int, VisioPage> pagesById) {
+            if (!BackgroundPageId.HasValue) {
+                BackgroundPage = null;
+                return;
+            }
+
+            if (pagesById.TryGetValue(BackgroundPageId.Value, out VisioPage? backgroundPage) &&
+                !ReferenceEquals(backgroundPage, this)) {
+                BackgroundPage = backgroundPage;
+                backgroundPage.IsBackground = true;
+            } else {
+                BackgroundPage = null;
+            }
+        }
+
+        /// <summary>
+        /// Adds a page layer, or returns the existing layer with the same name or universal name.
+        /// </summary>
+        /// <param name="name">Layer display name.</param>
+        /// <param name="nameU">Optional universal name.</param>
+        public VisioLayer AddLayer(string name, string? nameU = null) {
+            VisioLayer? existing = FindLayer(nameU ?? name);
+            if (existing != null) {
+                return existing;
+            }
+
+            VisioLayer layer = new(name, nameU);
+            _layers.Add(layer);
+            return layer;
+        }
+
+        /// <summary>
+        /// Finds a layer by display name or universal name.
+        /// </summary>
+        /// <param name="nameOrNameU">Layer name to find.</param>
+        public VisioLayer? FindLayer(string nameOrNameU) {
+            if (string.IsNullOrWhiteSpace(nameOrNameU)) {
+                throw new ArgumentException("Layer name cannot be null or whitespace.", nameof(nameOrNameU));
+            }
+
+            foreach (VisioLayer layer in _layers) {
+                if (string.Equals(layer.Name, nameOrNameU, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(layer.NameU, nameOrNameU, StringComparison.OrdinalIgnoreCase)) {
+                    return layer;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Adds a shape to a page layer, creating the layer if needed.
+        /// </summary>
+        /// <param name="layerName">Layer name.</param>
+        /// <param name="shape">Shape to assign.</param>
+        public VisioPage AddToLayer(string layerName, VisioShape shape) {
+            if (shape == null) {
+                throw new ArgumentNullException(nameof(shape));
+            }
+
+            EnsureShapeBelongsToPage(shape, "The shape must belong to the page.");
+            AddLayer(layerName);
+            shape.LayerNames.Add(layerName);
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a connector to a page layer, creating the layer if needed.
+        /// </summary>
+        /// <param name="layerName">Layer name.</param>
+        /// <param name="connector">Connector to assign.</param>
+        public VisioPage AddToLayer(string layerName, VisioConnector connector) {
+            if (connector == null) {
+                throw new ArgumentNullException(nameof(connector));
+            }
+
+            EnsureConnectorBelongsToPage(connector);
+            AddLayer(layerName);
+            connector.LayerNames.Add(layerName);
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a Visio-native container shape around existing member shapes.
+        /// </summary>
+        /// <param name="id">Container shape identifier.</param>
+        /// <param name="text">Container heading text.</param>
+        /// <param name="members">Shapes that should belong to the container.</param>
+        /// <param name="options">Optional container layout and style settings.</param>
+        /// <returns>The created container shape.</returns>
+        public VisioShape AddContainer(string id, string text, IEnumerable<VisioShape> members, VisioContainerOptions? options = null) {
+            if (string.IsNullOrWhiteSpace(id)) {
+                throw new ArgumentException("Container id cannot be empty.", nameof(id));
+            }
+
+            if (members == null) {
+                throw new ArgumentNullException(nameof(members));
+            }
+
+            List<VisioShape> memberList = members.Distinct().ToList();
+            if (memberList.Count == 0) {
+                throw new ArgumentException("A container requires at least one member shape.", nameof(members));
+            }
+
+            foreach (VisioShape member in memberList) {
+                if (!ContainsShape(member)) {
+                    throw new InvalidOperationException("All container members must already belong to this page.");
+                }
+            }
+
+            VisioContainerOptions effectiveOptions = options ?? new VisioContainerOptions();
+            GetContainerBounds(memberList, effectiveOptions, DefaultUnit, out double pinX, out double pinY, out double width, out double height);
+            VisioShape container = AddContainer(id, pinX, pinY, width, height, text, effectiveOptions);
+
+            foreach (VisioShape member in memberList) {
+                if (!container.ContainerMemberIds.Contains(member.Id, StringComparer.OrdinalIgnoreCase)) {
+                    container.ContainerMemberIds.Add(member.Id);
+                }
+
+                if (!member.ContainerOwnerIds.Contains(container.Id, StringComparer.OrdinalIgnoreCase)) {
+                    member.ContainerOwnerIds.Add(container.Id);
+                }
+            }
+
+            return container;
+        }
+
+        /// <summary>
+        /// Adds a Visio-native container shape at an explicit location and size.
+        /// </summary>
+        /// <param name="id">Container shape identifier.</param>
+        /// <param name="pinX">Container pin X coordinate.</param>
+        /// <param name="pinY">Container pin Y coordinate.</param>
+        /// <param name="width">Container width.</param>
+        /// <param name="height">Container height.</param>
+        /// <param name="text">Container heading text.</param>
+        /// <param name="options">Optional style and semantic settings.</param>
+        /// <returns>The created container shape.</returns>
+        public VisioShape AddContainer(string id, double pinX, double pinY, double width, double height, string? text = null, VisioContainerOptions? options = null) {
+            if (string.IsNullOrWhiteSpace(id)) {
+                throw new ArgumentException("Container id cannot be empty.", nameof(id));
+            }
+
+            VisioContainerOptions effectiveOptions = options ?? new VisioContainerOptions();
+            VisioShape container = new(id, pinX, pinY, width, height, text ?? string.Empty) {
+                Name = "Container",
+                NameU = "Container"
+            };
+            ApplyContainerSemantics(container, effectiveOptions, DefaultUnit);
+            Shapes.Insert(0, container);
+            return container;
+        }
+
+        private static void ApplyContainerSemantics(VisioShape container, VisioContainerOptions options, VisioMeasurementUnit unit) {
+            container.FillColor = options.FillColor;
+            container.LineColor = options.LineColor;
+            container.LineWeight = options.LineWeight;
+            container.FillPattern = 1;
+            container.LinePattern = 1;
+            container.SetUserCell("msvShapeCategories", "ContainerStyleDefaults", "STR", prompt: string.Empty);
+            container.SetUserCell("msvStructureType", "Container", "STR", prompt: string.Empty);
+            container.SetUserCell("msvSDContainerMargin", options.Margin.ToInches(unit).ToString(System.Globalization.CultureInfo.InvariantCulture), "IN", prompt: string.Empty);
+            container.SetUserCell("msvSDContainerResize", options.AutoResize ? "1" : "0", prompt: string.Empty);
+            container.SetUserCell("msvSDContainerLocked", options.Locked ? "1" : "0", "BOOL", prompt: string.Empty);
+            container.SetUserCell("msvSDContainerNoHighlight", "0", "BOOL", prompt: string.Empty);
+            container.SetUserCell("msvSDContainerNoRibbon", "0", "BOOL", prompt: string.Empty);
+            container.SetUserCell("msvSDContainerStyle", "1", prompt: string.Empty);
+            container.SetUserCell("msvSDHeadingStyle", "1", prompt: string.Empty);
+        }
+
+        private static void GetContainerBounds(IReadOnlyList<VisioShape> members, VisioContainerOptions options, VisioMeasurementUnit unit, out double pinX, out double pinY, out double width, out double height) {
+            double left = double.PositiveInfinity;
+            double bottom = double.PositiveInfinity;
+            double right = double.NegativeInfinity;
+            double top = double.NegativeInfinity;
+
+            foreach (VisioShape member in members) {
+                (double memberLeft, double memberBottom, double memberRight, double memberTop) = member.GetBounds();
+                left = Math.Min(left, memberLeft);
+                bottom = Math.Min(bottom, memberBottom);
+                right = Math.Max(right, memberRight);
+                top = Math.Max(top, memberTop);
+            }
+
+            double margin = options.Margin.ToInches(unit);
+            double headingHeight = options.HeadingHeight.ToInches(unit);
+            left -= margin;
+            right += margin;
+            bottom -= margin;
+            top += margin + headingHeight;
+            width = Math.Max(0.1D, right - left);
+            height = Math.Max(0.1D, top - bottom);
+            pinX = left + (width / 2D);
+            pinY = bottom + (height / 2D);
+        }
+
+        private bool ContainsShape(VisioShape target) {
+            foreach (VisioShape shape in _shapes) {
+                if (ContainsShape(shape, target)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool ContainsShape(VisioShape current, VisioShape target) {
+            if (ReferenceEquals(current, target)) {
+                return true;
+            }
+
+            foreach (VisioShape child in current.Children) {
+                if (ContainsShape(child, target)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         private string NextId(VisioConnector? ignoredConnector = null) {
             HashSet<int> usedIds = new();
@@ -436,6 +1178,82 @@ namespace OfficeIMO.Visio {
         /// <returns>The created rectangle shape.</returns>
         public VisioShape AddRectangle(double x, double y, double width, double height, string? text = null) =>
             AddRectangle(x, y, width, height, text, DefaultUnit);
+
+        /// <summary>
+        /// Adds an editable text box without a visible border or fill.
+        /// </summary>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the text box.</param>
+        /// <param name="height">Height of the text box.</param>
+        /// <param name="text">Text to place in the box.</param>
+        /// <param name="unit">Measurement unit.</param>
+        /// <returns>The created text box shape.</returns>
+        public VisioShape AddTextBox(double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            VisioShape shape = AddTextBoxCore(NextId(), x, y, width, height, text, unit);
+            Shapes.Add(shape);
+            return shape;
+        }
+
+        /// <summary>
+        /// Adds an editable text box with a caller-provided shape id and without a visible border or fill.
+        /// </summary>
+        /// <param name="id">Shape identifier.</param>
+        /// <param name="x">X coordinate.</param>
+        /// <param name="y">Y coordinate.</param>
+        /// <param name="width">Width of the text box.</param>
+        /// <param name="height">Height of the text box.</param>
+        /// <param name="text">Text to place in the box.</param>
+        /// <param name="unit">Measurement unit.</param>
+        /// <returns>The created text box shape.</returns>
+        public VisioShape AddTextBox(string id, double x, double y, double width, double height, string? text = null, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            if (string.IsNullOrWhiteSpace(id)) {
+                throw new ArgumentException("Shape id cannot be null or whitespace.", nameof(id));
+            }
+
+            VisioShape shape = AddTextBoxCore(id, x, y, width, height, text, unit);
+            Shapes.Add(shape);
+            return shape;
+        }
+
+        /// <summary>
+        /// Adds an editable text box with a caller-provided shape id and without a visible border or fill using the page <see cref="DefaultUnit"/>.
+        /// </summary>
+        public VisioShape AddTextBox(string id, double x, double y, double width, double height, string? text = null) =>
+            AddTextBox(id, x, y, width, height, text, DefaultUnit);
+
+        private static VisioShape CreateTextBoxShape(string id, double x, double y, double width, double height, string? text) {
+            VisioShape shape = new VisioShape(id, x, y, width, height, text ?? string.Empty);
+            shape.NameU = "Text Box";
+            shape.LinePattern = 0;
+            shape.FillPattern = 0;
+            shape.LineColor = OfficeIMO.Drawing.OfficeColor.Transparent;
+            shape.FillColor = OfficeIMO.Drawing.OfficeColor.Transparent;
+            shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.DiagramAdornmentKind, "STR", prompt: "OfficeIMO semantic kind");
+            return shape;
+        }
+
+        private static void ValidateTextBoxDimensions(double width, double height) {
+            if (double.IsNaN(width) || double.IsInfinity(width) || width <= 0D) {
+                throw new ArgumentOutOfRangeException(nameof(width), "Width must be a finite positive number.");
+            }
+
+            if (double.IsNaN(height) || double.IsInfinity(height) || height <= 0D) {
+                throw new ArgumentOutOfRangeException(nameof(height), "Height must be a finite positive number.");
+            }
+        }
+
+        private VisioShape AddTextBoxCore(string id, double x, double y, double width, double height, string? text, VisioMeasurementUnit unit) {
+            ValidateTextBoxDimensions(width, height);
+            ApplyUnits(ref x, ref y, ref width, ref height, unit);
+            return CreateTextBoxShape(id, x, y, width, height, text);
+        }
+
+        /// <summary>
+        /// Adds an editable text box without a visible border or fill using the page <see cref="DefaultUnit"/>.
+        /// </summary>
+        public VisioShape AddTextBox(double x, double y, double width, double height, string? text = null) =>
+            AddTextBox(x, y, width, height, text, DefaultUnit);
 
         /// <summary>
         /// Adds a flowchart process shape.

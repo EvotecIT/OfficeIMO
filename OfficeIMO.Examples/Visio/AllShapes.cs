@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Visio {
             string filePath = Path.Combine(folderPath, "All Shapes.vsdx");
 
             var doc = VisioDocument.Create(filePath);
-            // Prefer masters for built-in shapes to match Visio geometry
+            // Prefer generated built-in masters; sample VSDX files are only used to learn supported master names.
             doc.UseMastersByDefault = true;
             doc.WriteMasterDeltasOnly = false;
             try {
@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Visio {
                     Path.Combine(baseDir, "DrawingWithShapes.vsdx"),
                     Path.Combine(baseDir, "DrawingWithLotsOfShapresAndArrows.vsdx")
                 };
-                foreach (var c in candidates) if (File.Exists(c)) doc.UseMastersFromTemplate(c);
+                foreach (var c in candidates) if (File.Exists(c)) doc.LearnMastersFromVsdx(c);
             } catch { /* optional */ }
             doc.RequestRecalcOnOpen();
 

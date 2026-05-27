@@ -49,6 +49,35 @@ namespace OfficeIMO.Visio.Fluent {
             return this;
         }
 
+        /// <summary>
+        /// Adds a Visio background page and configures it.
+        /// </summary>
+        public VisioFluentDocument BackgroundPage(string name, Action<VisioFluentPage> configure) {
+            var page = _document.AddBackgroundPage(name);
+            var builder = new VisioFluentPage(this, page);
+            configure?.Invoke(builder);
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a sized Visio background page and configures it.
+        /// </summary>
+        public VisioFluentDocument BackgroundPage(string name, double width, double height, VisioMeasurementUnit unit, Action<VisioFluentPage> configure) {
+            var page = _document.AddBackgroundPage(name, width, height, unit);
+            var builder = new VisioFluentPage(this, page);
+            configure?.Invoke(builder);
+            return this;
+        }
+
+        /// <summary>
+        /// Applies high-level deterministic cleanup to all foreground pages.
+        /// </summary>
+        /// <param name="options">Optional polish settings.</param>
+        public VisioFluentDocument Polish(VisioDiagramPolishOptions? options = null) {
+            _document.PolishDiagrams(options);
+            return this;
+        }
+
         // Removed obsolete AddPage overloads to keep the fluent API focused and consistent.
 
         /// <summary>

@@ -1,0 +1,224 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using OfficeIMO.Visio;
+using Xunit;
+
+namespace OfficeIMO.Tests {
+    public class VisioQualityTests {
+        [Fact]
+        public void VisualQualityAnalyzerReportsObviousLayoutProblems() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Quality", 6, 4);
+            VisioShape first = new VisioShape("first", 1.5, 1, 2, 1, "First");
+            VisioShape second = new VisioShape("second", 2.1, 1, 2, 1, "Second");
+            page.Shapes.Add(first);
+            page.Shapes.Add(second);
+            page.Shapes.Add(new VisioShape("outside", 6.4, 1, 1, 1, "Outside"));
+
+            VisioShape source = new VisioShape("source", 0.7, 3, 0.8, 0.5, "Source");
+            VisioShape obstacle = new VisioShape("obstacle", 3, 3, 0.9, 0.9, "Obstacle");
+            VisioShape target = new VisioShape("target", 5.3, 3, 0.8, 0.5, "Target");
+            page.Shapes.Add(source);
+            page.Shapes.Add(obstacle);
+            page.Shapes.Add(target);
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabelAt(6.4, 4.2, width: 1.2, height: 0.3);
+            connector.Label = "outside label";
+
+            var issues = page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                RequireConnectorLabels = true
+            });
+
+            Assert.Contains(issues, issue => issue.Kind == "ShapeOverlap" && issue.ShapeId == first.Id && issue.OtherShapeId == second.Id);
+            Assert.Contains(issues, issue => issue.Kind == "ShapeOutsidePage" && issue.ShapeId == "outside");
+            Assert.Contains(issues, issue => issue.Kind == "ConnectorCrossesShape" && issue.ShapeId == obstacle.Id && issue.ConnectorId == connector.Id);
+            Assert.Contains(issues, issue => issue.Kind == "ConnectorLabelOutsidePage" && issue.ConnectorId == connector.Id);
+        }
+
+        [Fact]
+        public void VisualQualityAnalyzerReportsConnectorLabelShapeOverlaps() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("LabelShapes", 7, 5);
+            VisioShape source = page.AddRectangle(1, 2, 0.8, 0.5, "Source");
+            VisioShape obstacle = page.AddRectangle(3, 2, 1, 1, "Obstacle");
+            VisioShape target = page.AddRectangle(5, 2, 0.8, 0.5, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabelAt(3, 2, width: 1.2, height: 0.4);
+            connector.Label = "covers node";
+
+            IReadOnlyList<VisioDiagramQualityIssue> issues = page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckShapeOverlaps = false,
+                CheckConnectorShapeIntersections = false
+            });
+
+            Assert.Contains(issues, issue =>
+                issue.Kind == "ConnectorLabelOverlapsShape" &&
+                issue.ShapeId == obstacle.Id &&
+                issue.ConnectorId == connector.Id);
+        }
+
+        [Fact]
+        public void VisualQualityAnalyzerIgnoresBackgroundSurfaceLabelOverlaps() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("BackgroundLabel", 7, 5);
+            VisioShape background = page.AddRectangle(3, 2, 4, 2, "Region");
+            background.SetUserCell("OfficeIMO.Kind", "BackgroundSurface", "STR");
+            VisioShape source = page.AddRectangle(1, 2, 0.8, 0.5, "Source");
+            VisioShape target = page.AddRectangle(5, 2, 0.8, 0.5, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabelAt(3, 2, width: 1.2, height: 0.4);
+            connector.Label = "inside region";
+
+            IReadOnlyList<VisioDiagramQualityIssue> issues = page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckShapeOverlaps = false,
+                CheckConnectorShapeIntersections = false
+            });
+
+            Assert.DoesNotContain(issues, issue =>
+                issue.Kind == "ConnectorLabelOverlapsShape" &&
+                issue.ShapeId == background.Id &&
+                issue.ConnectorId == connector.Id);
+        }
+
+        [Fact]
+        public void VisualQualityAnalyzerReportsConnectorLabelOverlaps() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("LabelLabels", 7, 5);
+            VisioShape left = page.AddRectangle(1, 2, 0.8, 0.5, "Left");
+            VisioShape middle = page.AddRectangle(3, 2, 0.8, 0.5, "Middle");
+            VisioShape right = page.AddRectangle(5, 2, 0.8, 0.5, "Right");
+            VisioConnector first = page.AddConnector(left, middle, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabelAt(3, 3.4, width: 1.2, height: 0.4);
+            first.Label = "first";
+            VisioConnector second = page.AddConnector(middle, right, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabelAt(3.2, 3.4, width: 1.2, height: 0.4);
+            second.Label = "second";
+
+            IReadOnlyList<VisioDiagramQualityIssue> issues = page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckShapeOverlaps = false,
+                CheckConnectorShapeIntersections = false,
+                CheckConnectorLabelShapeOverlaps = false
+            });
+
+            Assert.Contains(issues, issue =>
+                issue.Kind == "ConnectorLabelOverlap" &&
+                issue.ConnectorId == first.Id &&
+                issue.OtherConnectorId == second.Id);
+        }
+
+        [Fact]
+        public void VisualQualityAnalyzerIgnoresContainerLikeOverlapsByDefault() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Containers", 7, 5);
+            page.Shapes.Add(new VisioShape("container", 3.5, 2.5, 5, 3, "Container"));
+            page.Shapes.Add(new VisioShape("child", 3.5, 2.5, 1, 0.7, "Child"));
+
+            var issues = page.AnalyzeVisualQuality();
+
+            Assert.DoesNotContain(issues, issue => issue.Kind == "ShapeOverlap");
+        }
+
+        [Fact]
+        public void VisualQualityReportSummarizesIssuesAndQualityGateThrowsAtRequestedSeverity() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Gate", 6, 4);
+            page.Shapes.Add(new VisioShape("first", 1.5, 1, 2, 1, "First"));
+            page.Shapes.Add(new VisioShape("second", 2.1, 1, 2, 1, "Second"));
+            page.Shapes.Add(new VisioShape("outside", 6.4, 1, 1, 1, "Outside"));
+
+            VisioShape source = page.AddRectangle(1, 3, 0.8, 0.5, "Source");
+            VisioShape target = page.AddRectangle(5, 3, 0.8, 0.5, "Target");
+            page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+
+            VisioDiagramQualityReport report = document.GetVisualQualityReport(new VisioDiagramQualityOptions {
+                RequireConnectorLabels = true
+            });
+
+            Assert.Equal(1, report.ErrorCount);
+            Assert.True(report.WarningCount >= 1);
+            Assert.Equal(1, report.InformationCount);
+            Assert.False(report.IsClean);
+            Assert.Contains("ShapeOutsidePage", report.ToString());
+
+            VisioDiagramQualityException exception = Assert.Throws<VisioDiagramQualityException>(() =>
+                document.EnsureVisualQuality(new VisioDiagramQualityOptions {
+                    RequireConnectorLabels = true
+                }));
+
+            Assert.Equal(VisioDiagramQualityIssueSeverity.Warning, exception.MinimumSeverity);
+            Assert.DoesNotContain(exception.Issues, issue => issue.Severity == VisioDiagramQualityIssueSeverity.Information);
+            Assert.Contains("quality gate failed", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void VisualQualityGateCanTreatInformationAsOptionalOrBlocking() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("InfoOnly", 6, 4);
+            VisioShape source = page.AddRectangle(1, 2, 0.8, 0.5, "Source");
+            VisioShape target = page.AddRectangle(5, 2, 0.8, 0.5, "Target");
+            page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+
+            VisioDiagramQualityOptions options = new VisioDiagramQualityOptions {
+                RequireConnectorLabels = true,
+                CheckConnectorShapeIntersections = false
+            };
+
+            VisioDiagramQualityReport report = page.GetVisualQualityReport(options);
+
+            Assert.Equal(1, report.InformationCount);
+            Assert.True(report.IsClean);
+            Assert.Same(page, page.EnsureVisualQuality(options));
+
+            VisioDiagramQualityException exception = Assert.Throws<VisioDiagramQualityException>(() =>
+                page.EnsureVisualQuality(options, VisioDiagramQualityIssueSeverity.Information));
+
+            Assert.Single(exception.Issues);
+            Assert.Equal("ConnectorMissingLabel", exception.Issues[0].Kind);
+        }
+
+        [Fact]
+        public void GallerySamplesGenerateValidAndVisuallyCleanDocuments() {
+            string folderPath = Path.Combine(Path.GetTempPath(), "OfficeIMO-Visio-Gallery-" + Guid.NewGuid());
+
+            IReadOnlyList<VisioGalleryResult> results = VisioGallery.Create(folderPath);
+
+            Assert.Equal(8, results.Count);
+            Assert.All(results, result => Assert.True(File.Exists(result.FilePath), result.FilePath));
+            Assert.All(results, result => Assert.Null(result.DesktopValidation));
+            Assert.All(results, result => Assert.Empty(result.PackageIssues));
+            Assert.All(results, result => Assert.Empty(result.QualityIssues.Select(issue => issue.ToString())));
+        }
+
+        [Fact]
+        public void GalleryDesktopValidationCanBeOptionalWhenVisioIsMissing() {
+            if (VisioDesktopValidator.IsAvailable()) {
+                return;
+            }
+
+            string optionalFolderPath = Path.Combine(Path.GetTempPath(), "OfficeIMO-Visio-Gallery-OptionalDesktop-" + Guid.NewGuid());
+            IReadOnlyList<VisioGalleryResult> optionalResults = VisioGallery.Create(optionalFolderPath, new VisioGalleryOptions {
+                ValidatePackage = false,
+                AnalyzeVisualQuality = false,
+                ValidateWithVisioDesktop = true
+            });
+
+            Assert.All(optionalResults, result => Assert.NotNull(result.DesktopValidation));
+            Assert.All(optionalResults, result => Assert.False(result.DesktopValidation!.IsAvailable));
+            Assert.All(optionalResults, result => Assert.True(result.IsClean));
+
+            string strictFolderPath = Path.Combine(Path.GetTempPath(), "OfficeIMO-Visio-Gallery-StrictDesktop-" + Guid.NewGuid());
+            IReadOnlyList<VisioGalleryResult> strictResults = VisioGallery.Create(strictFolderPath, new VisioGalleryOptions {
+                ValidatePackage = false,
+                AnalyzeVisualQuality = false,
+                ValidateWithVisioDesktop = true,
+                RequireVisioDesktop = true
+            });
+
+            Assert.All(strictResults, result => Assert.NotNull(result.DesktopValidation));
+            Assert.All(strictResults, result => Assert.False(result.DesktopValidation!.IsAvailable));
+            Assert.All(strictResults, result => Assert.False(result.IsClean));
+        }
+    }
+}

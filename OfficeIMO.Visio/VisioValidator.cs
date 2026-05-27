@@ -63,7 +63,7 @@ namespace OfficeIMO.Visio {
             }
 
             XDocument rootRels = GetRels(pkg, "/_rels/.rels");
-            XElement? docRel = rootRels.Root!.Elements(pr + "Relationship").FirstOrDefault(r => (string?)r.Attribute("Target") == "/visio/document.xml");
+            XElement? docRel = rootRels.Root!.Elements(pr + "Relationship").FirstOrDefault(r => RelationshipTargetMatches(r, "/visio/document.xml"));
             if (docRel == null || (string?)docRel.Attribute("Type") != RT_Document) {
                 issues.Add("Root relationship must target /visio/document.xml with Visio document type.");
             }
@@ -170,6 +170,20 @@ namespace OfficeIMO.Visio {
         private static XDocument GetRels(Package pkg, string relsPath) {
             using Stream s = pkg.GetPart(new Uri(relsPath, UriKind.Relative)).GetStream();
             return XDocument.Load(s);
+        }
+
+        private static bool RelationshipTargetMatches(XElement relationship, string expectedAbsolutePartName) {
+            string? target = (string?)relationship.Attribute("Target");
+            if (string.IsNullOrWhiteSpace(target)) {
+                return false;
+            }
+
+            string normalized = target!.Replace('\\', '/');
+            if (!normalized.StartsWith("/", StringComparison.Ordinal)) {
+                normalized = "/" + normalized;
+            }
+
+            return string.Equals(normalized, expectedAbsolutePartName, StringComparison.OrdinalIgnoreCase);
         }
     }
 }
