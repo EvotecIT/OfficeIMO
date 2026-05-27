@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
 
 namespace OfficeIMO.Visio.Stencils {
     /// <summary>
@@ -30,6 +32,11 @@ namespace OfficeIMO.Visio.Stencils {
             HashSet<string>? filter = options.MasterNames != null
                 ? new HashSet<string>(options.MasterNames.Where(name => !string.IsNullOrWhiteSpace(name)), StringComparer.OrdinalIgnoreCase)
                 : null;
+            Dictionary<string, VisioAssets.MasterContent> masterContents = options.LearnMasterDimensions
+                ? VisioAssets.LoadMasterContents(packagePath)
+                    .GroupBy(master => master.Id, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase)
+                : new Dictionary<string, VisioAssets.MasterContent>(StringComparer.OrdinalIgnoreCase);
 
             VisioStencilCatalogBuilder builder = new(catalogName);
             HashSet<string> usedIds = new(StringComparer.OrdinalIgnoreCase);
@@ -58,21 +65,76 @@ namespace OfficeIMO.Visio.Stencils {
                     .Where(value => !string.IsNullOrWhiteSpace(value))
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToArray();
+                double defaultWidth = options.DefaultWidth;
+                double defaultHeight = options.DefaultHeight;
+                VisioMeasurementUnit? defaultUnit = null;
+                if (masterContents.TryGetValue(master.Id, out VisioAssets.MasterContent? content) &&
+                    TryReadMasterDimensions(content, out double masterWidth, out double masterHeight)) {
+                    defaultWidth = masterWidth;
+                    defaultHeight = masterHeight;
+                    defaultUnit = VisioMeasurementUnit.Inches;
+                }
 
                 builder.AddWithMetadata(
                     id,
                     displayName,
                     master.NameU,
                     category,
-                    options.DefaultWidth,
-                    options.DefaultHeight,
+                    defaultWidth,
+                    defaultHeight,
                     keywords,
                     aliases,
                     tags,
-                    master.NameU);
+                    master.NameU,
+                    defaultUnit);
             }
 
             return builder.Build();
+        }
+
+        private static bool TryReadMasterDimensions(VisioAssets.MasterContent content, out double width, out double height) {
+            XNamespace v = "http://schemas.microsoft.com/office/visio/2012/main";
+            XElement? shape = content.MasterXml.Root?
+                .Element(v + "Shapes")?
+                .Elements(v + "Shape")
+                .FirstOrDefault();
+            if (shape == null) {
+                shape = content.MasterXml.Root?
+                    .Elements()
+                    .FirstOrDefault(element => string.Equals(element.Name.LocalName, "Shapes", StringComparison.OrdinalIgnoreCase))?
+                    .Elements()
+                    .FirstOrDefault(element => string.Equals(element.Name.LocalName, "Shape", StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (shape != null &&
+                TryReadPositiveCell(shape, "Width", out width) &&
+                TryReadPositiveCell(shape, "Height", out height)) {
+                return true;
+            }
+
+            width = 0;
+            height = 0;
+            return false;
+        }
+
+        private static bool TryReadPositiveCell(XElement shape, string name, out double value) {
+            XElement? cell = shape.Elements()
+                .FirstOrDefault(element =>
+                    string.Equals(element.Name.LocalName, "Cell", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals((string?)element.Attribute("N"), name, StringComparison.OrdinalIgnoreCase));
+            string? rawValue = (string?)cell?.Attribute("V");
+            if (string.IsNullOrWhiteSpace(rawValue) ||
+                !double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out value) ||
+                value <= 0 ||
+                double.IsNaN(value) ||
+                double.IsInfinity(value)) {
+                value = 0;
+                return false;
+            }
+
+            VisioMeasurementUnit unit = VisioMeasurementUnitExtensions.FromVisioUnitCode((string?)cell!.Attribute("U"), VisioMeasurementUnit.Inches);
+            value = value.ToInches(unit);
+            return value > 0 && !double.IsNaN(value) && !double.IsInfinity(value);
         }
 
         private static string UniqueId(string baseId, string fallback, HashSet<string> usedIds) {

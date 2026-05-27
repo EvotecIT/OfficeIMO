@@ -56,8 +56,9 @@ namespace OfficeIMO.Visio.Stencils {
             IEnumerable<string>? keywords = null,
             IEnumerable<string>? aliases = null,
             IEnumerable<string>? tags = null,
-            string? iconNameU = null) {
-            return Add(CreateShape(id, name, masterNameU, category, defaultWidth, defaultHeight, keywords, aliases, tags, iconNameU));
+            string? iconNameU = null,
+            VisioMeasurementUnit? defaultUnit = null) {
+            return Add(CreateShape(id, name, masterNameU, category, defaultWidth, defaultHeight, keywords, aliases, tags, iconNameU, defaultUnit));
         }
 
         /// <summary>
@@ -90,7 +91,8 @@ namespace OfficeIMO.Visio.Stencils {
             IEnumerable<string>? keywords,
             IEnumerable<string>? aliases,
             IEnumerable<string>? tags,
-            string? iconNameU) {
+            string? iconNameU,
+            VisioMeasurementUnit? defaultUnit) {
             string prefix = id.Contains(".") ? id.Substring(0, id.IndexOf('.')) : id;
             string localId = id.Contains(".") ? id.Substring(id.IndexOf('.') + 1) : id;
             IEnumerable<string> effectiveKeywords = keywords ?? Enumerable.Empty<string>();
@@ -114,7 +116,8 @@ namespace OfficeIMO.Visio.Stencils {
                 effectiveKeywords,
                 effectiveAliases,
                 effectiveTags,
-                iconNameU ?? masterNameU);
+                iconNameU ?? masterNameU,
+                defaultUnit);
         }
     }
 }

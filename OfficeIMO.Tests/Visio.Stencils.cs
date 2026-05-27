@@ -241,6 +241,59 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageStencilCatalogLearnsNativeMasterDimensionsWithoutRuntimeTemplateDependency() {
+            string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            CreatePackageWithMasterDimensions(
+                packagePath,
+                ("Rectangle", "Wide Box", 3.2, 1.1, null),
+                ("Decision", "Metric Decision", 50.8, 25.4, "MM"));
+
+            VisioStencilCatalog catalog = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                CatalogName = "Learned Sizes",
+                Category = "Learned",
+                IdPrefix = "learned",
+                DefaultWidth = 9,
+                DefaultHeight = 7
+            });
+
+            VisioStencilShape wideBox = catalog.Get("wide-box");
+            VisioStencilShape metricDecision = catalog.Get("metric-decision");
+
+            Assert.Equal(3.2, wideBox.DefaultWidth, 6);
+            Assert.Equal(1.1, wideBox.DefaultHeight, 6);
+            Assert.Equal(VisioMeasurementUnit.Inches, wideBox.DefaultUnit);
+            Assert.Equal(2.0, metricDecision.DefaultWidth, 6);
+            Assert.Equal(1.0, metricDecision.DefaultHeight, 6);
+            Assert.Equal(VisioMeasurementUnit.Inches, metricDecision.DefaultUnit);
+
+            using MemoryStream manifest = new();
+            catalog.Save(manifest);
+            manifest.Position = 0;
+            VisioStencilCatalog loadedCatalog = VisioStencilCatalog.Load(manifest);
+            Assert.Equal(VisioMeasurementUnit.Inches, loadedCatalog.Get("wide-box").DefaultUnit);
+
+            VisioStencilCatalog fallbackCatalog = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                LearnMasterDimensions = false,
+                DefaultWidth = 9,
+                DefaultHeight = 7
+            });
+            Assert.Equal(9, fallbackCatalog.Get("wide-box").DefaultWidth);
+            Assert.Null(fallbackCatalog.Get("wide-box").DefaultUnit);
+
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Learned Stencils", 20, 15, VisioMeasurementUnit.Centimeters);
+            VisioShape shape = page.AddStencilShape(catalog, "wide-box", "wide", 5, 8);
+            document.Save();
+
+            Assert.Equal(5.0 / 2.54, shape.PinX, 6);
+            Assert.Equal(8.0 / 2.54, shape.PinY, 6);
+            Assert.Equal(3.2, shape.Width, 6);
+            Assert.Equal(1.1, shape.Height, 6);
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void PackageStencilCatalogLoadsFromVstxAndCanIncludeUnsupportedMasters() {
             string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vstx");
             CreatePackageWithMasters(packagePath, "Rectangle", "FancyCloud");
@@ -336,6 +389,63 @@ namespace OfficeIMO.Tests {
                         new XElement(ns + "Rel", new XAttribute(rel + "id", $"rId{index + 1}")))));
 
             XDocument document = new(root);
+            writer.Write(document.Declaration + Environment.NewLine + document.ToString(SaveOptions.DisableFormatting));
+        }
+
+        private static void CreatePackageWithMasterDimensions(string path, params (string NameU, string? Name, double Width, double Height, string? Unit)[] masters) {
+            const string visioNamespace = "http://schemas.microsoft.com/office/visio/2012/main";
+            const string officeRelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+            const string packageRelationshipNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
+
+            using ZipArchive zip = ZipFile.Open(path, ZipArchiveMode.Create);
+            XNamespace ns = visioNamespace;
+            XNamespace rel = officeRelationshipNamespace;
+            XElement mastersRoot = new(ns + "Masters",
+                masters.Select((master, index) =>
+                    new XElement(ns + "Master",
+                        new XAttribute("ID", index + 1),
+                        new XAttribute("Name", master.Name ?? master.NameU),
+                        new XAttribute("NameU", master.NameU),
+                        new XElement(ns + "Rel", new XAttribute(rel + "id", $"rId{index + 1}")))));
+            WriteZipXml(zip, "visio/masters/masters.xml", new XDocument(mastersRoot));
+
+            XNamespace packageRel = packageRelationshipNamespace;
+            XElement relationshipsRoot = new(packageRel + "Relationships",
+                masters.Select((master, index) =>
+                    new XElement(packageRel + "Relationship",
+                        new XAttribute("Id", $"rId{index + 1}"),
+                        new XAttribute("Type", officeRelationshipNamespace + "/master"),
+                        new XAttribute("Target", $"master{index + 1}.xml"))));
+            WriteZipXml(zip, "visio/masters/_rels/masters.xml.rels", new XDocument(relationshipsRoot));
+
+            for (int index = 0; index < masters.Length; index++) {
+                (string nameU, string? name, double width, double height, string? unit) = masters[index];
+                XElement shape = new(ns + "Shape",
+                    new XAttribute("ID", "1"),
+                    new XAttribute("Name", name ?? nameU),
+                    new XAttribute("NameU", nameU),
+                    DimensionCell(ns, "Width", width, unit),
+                    DimensionCell(ns, "Height", height, unit));
+                XDocument masterDocument = new(new XElement(ns + "MasterContents", new XElement(ns + "Shapes", shape)));
+                WriteZipXml(zip, $"visio/masters/master{index + 1}.xml", masterDocument);
+            }
+        }
+
+        private static XElement DimensionCell(XNamespace ns, string name, double value, string? unit) {
+            XElement cell = new(ns + "Cell",
+                new XAttribute("N", name),
+                new XAttribute("V", value.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            if (!string.IsNullOrWhiteSpace(unit)) {
+                cell.Add(new XAttribute("U", unit));
+            }
+
+            return cell;
+        }
+
+        private static void WriteZipXml(ZipArchive zip, string path, XDocument document) {
+            ZipArchiveEntry entry = zip.CreateEntry(path);
+            using Stream stream = entry.Open();
+            using StreamWriter writer = new(stream, new UTF8Encoding(false));
             writer.Write(document.Declaration + Environment.NewLine + document.ToString(SaveOptions.DisableFormatting));
         }
     }

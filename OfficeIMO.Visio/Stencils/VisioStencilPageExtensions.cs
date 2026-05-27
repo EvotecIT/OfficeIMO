@@ -79,19 +79,29 @@ namespace OfficeIMO.Visio.Stencils {
             if (stencil == null) throw new ArgumentNullException(nameof(stencil));
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Shape id cannot be null or whitespace.", nameof(id));
 
-            VisioMeasurementUnit effectiveUnit = unit ?? page.DefaultUnit;
+            VisioMeasurementUnit placementUnit = unit ?? page.DefaultUnit;
+            VisioMeasurementUnit sizeUnit = unit ?? stencil.DefaultUnit ?? page.DefaultUnit;
             VisioDocument? document = page.OwnerDocument;
             string shapeText = text ?? stencil.Name;
 
             if (document != null) {
                 VisioMaster master = document.EnsureBuiltinMaster(stencil.MasterNameU);
-                return page.AddShape(id, master, x, y, width, height, shapeText, effectiveUnit);
+                x = x.ToInches(placementUnit);
+                y = y.ToInches(placementUnit);
+                width = width.ToInches(sizeUnit);
+                height = height.ToInches(sizeUnit);
+                VisioShape created = new(id, x, y, width, height, shapeText) {
+                    Master = master,
+                    NameU = master.NameU
+                };
+                page.Shapes.Add(created);
+                return created;
             }
 
-            x = x.ToInches(effectiveUnit);
-            y = y.ToInches(effectiveUnit);
-            width = width.ToInches(effectiveUnit);
-            height = height.ToInches(effectiveUnit);
+            x = x.ToInches(placementUnit);
+            y = y.ToInches(placementUnit);
+            width = width.ToInches(sizeUnit);
+            height = height.ToInches(sizeUnit);
 
             VisioShape shape = new(id, x, y, width, height, shapeText) {
                 NameU = stencil.MasterNameU

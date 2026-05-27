@@ -33,6 +33,12 @@ namespace OfficeIMO.Visio.Stencils {
         public bool IncludeUnsupportedMasters { get; set; }
 
         /// <summary>
+        /// Gets or sets whether default stencil sizes should be learned from master shape dimensions when package master parts are available.
+        /// Defaults to true.
+        /// </summary>
+        public bool LearnMasterDimensions { get; set; } = true;
+
+        /// <summary>
         /// Gets or sets the default stencil width in the caller's placement unit.
         /// </summary>
         public double DefaultWidth { get; set; } = 1.8;
