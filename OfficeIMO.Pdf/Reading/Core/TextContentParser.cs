@@ -229,19 +229,11 @@ internal static class TextContentParser {
             var sbOut = new StringBuilder(bytes.Length);
             double advTotal = 0;
             char prevChar = '\0';
+            string wholeDecoded = NormalizeDecodedGlyphText(decodeWithFont(font, bytes) ?? string.Empty);
             for (int idx = 0; idx < bytes.Length;) {
                 int step = twoByte ? (idx + 1 < bytes.Length ? 2 : 1) : 1;
                 byte[] g = step == 1 ? new byte[] { bytes[idx] } : new byte[] { bytes[idx], bytes[idx + 1] };
-                string t = decodeWithFont(font, g) ?? string.Empty;
-                // Normalize common ligatures if ToUnicode is absent or produced U+FBxx
-                if (t.Length > 0) {
-                    t = t
-                        .Replace("\uFB00", "ff") // ﬀ
-                        .Replace("\uFB01", "fi") // ﬁ
-                        .Replace("\uFB02", "fl") // ﬂ
-                        .Replace("\uFB03", "ffi") // ﬃ
-                        .Replace("\uFB04", "ffl"); // ﬄ
-                }
+                string t = NormalizeDecodedGlyphText(decodeWithFont(font, g) ?? string.Empty);
                 char ch = (t.Length > 0) ? t[0] : '\0';
                 double w1000 = sumWidth1000ForFont(font, g);
                 double advGlyph = ((w1000 / 1000.0) * size + charSpacing + (ch == ' ' ? wordSpacing : 0)) * hScale;
@@ -262,6 +254,10 @@ internal static class TextContentParser {
                 }
                 advTotal += advGlyph;
                 idx += step;
+            }
+            if (ShouldUseWholeDecodedText(sbOut.ToString(), wholeDecoded)) {
+                sbOut.Clear();
+                sbOut.Append(wholeDecoded);
             }
             var actualTextState = GetActiveActualTextState();
             bool isArtifact = HasActiveArtifact();
@@ -503,6 +499,39 @@ internal static class TextContentParser {
         static double ToDouble(object o) { return o is double d ? d : 0.0; }
         static string ToName(object o) { return o as string ?? string.Empty; }
         static byte[] ToBytes(object o) { return o as byte[] ?? Array.Empty<byte>(); }
+
+        static string NormalizeDecodedGlyphText(string text) =>
+            text.Length == 0
+                ? text
+                : text
+                    .Replace("\uFB00", "ff")
+                    .Replace("\uFB01", "fi")
+                    .Replace("\uFB02", "fl")
+                    .Replace("\uFB03", "ffi")
+                    .Replace("\uFB04", "ffl");
+
+        static bool ShouldUseWholeDecodedText(string chunkedText, string wholeDecoded) {
+            if (string.IsNullOrEmpty(wholeDecoded)) {
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(chunkedText)) {
+                return true;
+            }
+
+            return ContainsNonTextControl(chunkedText) && !ContainsNonTextControl(wholeDecoded);
+        }
+
+        static bool ContainsNonTextControl(string text) {
+            for (int index = 0; index < text.Length; index++) {
+                char ch = text[index];
+                if (char.IsControl(ch) && ch != '\t' && ch != '\n' && ch != '\r') {
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         // Helpers (left empty for future metrics)
         // NormalizeThinSpaces removed in favor of per-glyph join logic
