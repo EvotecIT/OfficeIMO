@@ -1180,6 +1180,12 @@ public class PdfInspectorTests {
         Assert.Equal(116, widget.Y2);
         Assert.Equal("Yes", widget.AppearanceState);
         Assert.Equal(4, widget.Flags);
+        Assert.True(widget.HasNormalAppearanceStates);
+        Assert.Equal(2, widget.NormalAppearanceStateCount);
+        Assert.Equal(new[] { "Off", "Yes" }, widget.NormalAppearanceStates);
+        Assert.True(widget.HasNormalAppearanceState("Yes"));
+        Assert.True(widget.HasNormalAppearanceState("Off"));
+        Assert.False(widget.HasNormalAppearanceState("Maybe"));
     }
 
     [Fact]
@@ -1829,10 +1835,22 @@ public class PdfInspectorTests {
             "<< /FT /Btn /T (AcceptTerms) /V /Yes /Kids [8 0 R] >>",
             "endobj",
             "8 0 obj",
-            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 100 36 116] /F 4 /AS /Yes >>",
+            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 100 36 116] /F 4 /AS /Yes /AP << /N << /Off 9 0 R /Yes 10 0 R >> >> >>",
+            "endobj",
+            "9 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "10 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
             "endobj",
             "trailer",
-            "<< /Root 1 0 R /Size 9 >>",
+            "<< /Root 1 0 R /Size 11 >>",
             "%%EOF"
         });
 

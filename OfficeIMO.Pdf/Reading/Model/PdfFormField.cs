@@ -299,7 +299,7 @@ public sealed class PdfFormFieldOption {
 /// Simple AcroForm widget annotation geometry read from a PDF document.
 /// </summary>
 public sealed class PdfFormWidget {
-    internal PdfFormWidget(int? objectNumber, int? pageNumber, double x1, double y1, double x2, double y2, string? appearanceState, int? flags) {
+    internal PdfFormWidget(int? objectNumber, int? pageNumber, double x1, double y1, double x2, double y2, string? appearanceState, int? flags, IReadOnlyList<string>? normalAppearanceStates = null) {
         ObjectNumber = objectNumber;
         PageNumber = pageNumber;
         X1 = x1;
@@ -308,6 +308,7 @@ public sealed class PdfFormWidget {
         Y2 = y2;
         AppearanceState = appearanceState;
         Flags = flags;
+        NormalAppearanceStates = normalAppearanceStates ?? Array.Empty<string>();
     }
 
     /// <summary>Indirect object number for the widget annotation, when known.</summary>
@@ -339,4 +340,28 @@ public sealed class PdfFormWidget {
 
     /// <summary>Raw widget annotation flags from /F, when present.</summary>
     public int? Flags { get; }
+
+    /// <summary>Normal appearance state names from /AP /N, when the widget exposes named appearance streams.</summary>
+    public IReadOnlyList<string> NormalAppearanceStates { get; }
+
+    /// <summary>Number of readable normal appearance states.</summary>
+    public int NormalAppearanceStateCount => NormalAppearanceStates.Count;
+
+    /// <summary>True when at least one normal appearance state was readable.</summary>
+    public bool HasNormalAppearanceStates => NormalAppearanceStates.Count > 0;
+
+    /// <summary>Returns true when the widget exposes a matching normal appearance state name.</summary>
+    public bool HasNormalAppearanceState(string state) {
+        if (string.IsNullOrEmpty(state)) {
+            return false;
+        }
+
+        for (int i = 0; i < NormalAppearanceStates.Count; i++) {
+            if (string.Equals(NormalAppearanceStates[i], state, StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

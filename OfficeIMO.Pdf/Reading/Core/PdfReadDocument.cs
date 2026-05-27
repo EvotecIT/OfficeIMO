@@ -483,8 +483,33 @@ public sealed class PdfReadDocument {
             rect.X2,
             rect.Y2,
             TryReadName(dictionary, "AS"),
-            TryReadInteger(dictionary, "F"));
+            TryReadInteger(dictionary, "F"),
+            ReadWidgetNormalAppearanceStates(dictionary));
         return true;
+    }
+
+    private IReadOnlyList<string> ReadWidgetNormalAppearanceStates(PdfDictionary dictionary) {
+        if (!dictionary.Items.TryGetValue("AP", out var appearancesObject) ||
+            ResolveObject(appearancesObject) is not PdfDictionary appearances ||
+            !appearances.Items.TryGetValue("N", out var normalObject) ||
+            ResolveObject(normalObject) is not PdfDictionary normalAppearances ||
+            normalAppearances.Items.Count == 0) {
+            return Array.Empty<string>();
+        }
+
+        var states = new List<string>();
+        foreach (string state in normalAppearances.Items.Keys) {
+            if (!string.IsNullOrEmpty(state)) {
+                states.Add(state);
+            }
+        }
+
+        if (states.Count == 0) {
+            return Array.Empty<string>();
+        }
+
+        states.Sort(StringComparer.Ordinal);
+        return states.AsReadOnly();
     }
 
     private static bool IsWidget(PdfDictionary dictionary) {

@@ -1204,4 +1204,18 @@ public sealed class PdfLogicalFormWidget : IPdfLogicalElement {
 
     /// <summary>Raw widget annotation flags from /F, when present.</summary>
     public int? Flags => SourceWidget.Flags;
+
+    /// <summary>Normal appearance state names from /AP /N, when the widget exposes named appearance streams.</summary>
+    public IReadOnlyList<string> NormalAppearanceStates => SourceWidget.NormalAppearanceStates;
+
+    /// <summary>Number of readable normal appearance states.</summary>
+    public int NormalAppearanceStateCount => SourceWidget.NormalAppearanceStateCount;
+
+    /// <summary>True when at least one normal appearance state was readable.</summary>
+    public bool HasNormalAppearanceStates => SourceWidget.HasNormalAppearanceStates;
+
+    /// <summary>Returns true when the widget exposes a matching normal appearance state name.</summary>
+    public bool HasNormalAppearanceState(string state) {
+        return SourceWidget.HasNormalAppearanceState(state);
+    }
 }

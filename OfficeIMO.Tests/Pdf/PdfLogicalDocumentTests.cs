@@ -251,6 +251,8 @@ public class PdfLogicalDocumentTests {
         Assert.Equal(16, widget.Height);
         Assert.Equal("Yes", widget.AppearanceState);
         Assert.Equal(4, widget.Flags);
+        Assert.Equal(new[] { "Off", "Yes" }, widget.NormalAppearanceStates);
+        Assert.True(widget.HasNormalAppearanceState("Yes"));
 
         PdfLogicalPage page = Assert.Single(logical.Pages);
         PdfLogicalFormWidget logicalWidget = Assert.Single(page.FormWidgets);
@@ -266,6 +268,10 @@ public class PdfLogicalDocumentTests {
         Assert.Equal(100, logicalWidget.Y1);
         Assert.Equal(36, logicalWidget.X2);
         Assert.Equal(116, logicalWidget.Y2);
+        Assert.True(logicalWidget.HasNormalAppearanceStates);
+        Assert.Equal(2, logicalWidget.NormalAppearanceStateCount);
+        Assert.Equal(new[] { "Off", "Yes" }, logicalWidget.NormalAppearanceStates);
+        Assert.True(logicalWidget.HasNormalAppearanceState("Off"));
         Assert.True(logical.HasFormWidgets);
         Assert.Same(logicalWidget, Assert.Single(logical.FormWidgets));
         Assert.Same(logicalWidget, Assert.Single(logical.FormWidgetsByFieldName["AcceptTerms"]));
@@ -484,10 +490,22 @@ public class PdfLogicalDocumentTests {
             "<< /FT /Btn /T (AcceptTerms) /V /Yes /Kids [8 0 R] >>",
             "endobj",
             "8 0 obj",
-            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 100 36 116] /F 4 /AS /Yes >>",
+            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 100 36 116] /F 4 /AS /Yes /AP << /N << /Off 9 0 R /Yes 10 0 R >> >> >>",
+            "endobj",
+            "9 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "10 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
             "endobj",
             "trailer",
-            "<< /Root 1 0 R /Size 9 >>",
+            "<< /Root 1 0 R /Size 11 >>",
             "%%EOF"
         });
 
