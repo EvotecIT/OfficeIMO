@@ -351,6 +351,10 @@ internal static class ResourceResolver {
             return true;
         }
 
+        if (TryDecodeCompositeGlyphName(glyphName, out value)) {
+            return true;
+        }
+
         switch (glyphName) {
             case "space": value = " "; return true;
             case "exclam": value = "!"; return true;
@@ -492,6 +496,26 @@ internal static class ResourceResolver {
             case "fl": value = "fl"; return true;
             default: return false;
         }
+    }
+
+    private static bool TryDecodeCompositeGlyphName(string glyphName, out string? value) {
+        value = null;
+        if (glyphName.IndexOf('_') < 0) {
+            return false;
+        }
+
+        var builder = new System.Text.StringBuilder(glyphName.Length);
+        string[] parts = glyphName.Split('_');
+        foreach (string part in parts) {
+            if (string.IsNullOrEmpty(part) || !TryDecodeGlyphName(part, out string? partValue)) {
+                return false;
+            }
+
+            builder.Append(partValue);
+        }
+
+        value = builder.ToString();
+        return true;
     }
 
     private static bool TryDecodeUnicodeGlyphName(string glyphName, out string? value) {

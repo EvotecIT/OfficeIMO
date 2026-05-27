@@ -103,6 +103,17 @@ public class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void ExtractTextByPage_UsesSimpleFontEncodingDifferencesWithCompositeGlyphNames() {
+        byte[] pdf = BuildExternalSinglePagePdf(
+            "BT\n/F13 12 Tf\n72 720 Td\n<414243> Tj\nET\n",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /BaseEncoding /WinAnsiEncoding /Differences [ 65 /f_f_i /A_uni0301 /f_f_l.alt ] >> >>");
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+
+        Assert.Contains("ffiA\u0301ffl", Normalize(pageText), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ExtractTextByPage_UsesBuiltInStandardEncodingForStandardType1Font() {
         byte[] pdf = BuildExternalSinglePagePdf(
             "BT\n/F13 12 Tf\n72 720 Td\n<2720AEAFE1F1> Tj\nET\n",
