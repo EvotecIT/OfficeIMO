@@ -3,6 +3,7 @@ using System.Globalization;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    private const double DefaultParagraphTabStopWidth = 36D;
     private static readonly char[] TokenSplitChars = new[] { ' ', '\n', '\t' };
     private static readonly char[] HardLineSplitChars = new[] { '\n' };
     private static readonly char[] SoftLineSplitChars = new[] { ' ', '\t' };
@@ -156,7 +157,7 @@ internal static partial class PdfWriter {
     }
 
     // Rich paragraph layout
-    private sealed record RichSeg(string Text, bool Bold, bool Italic, bool Underline, bool Strike, PdfColor? Color, string? Uri, string? DestinationName, string? Contents, PdfStandardFont Font, PdfTextBaseline Baseline, bool LeadingSpace = false, bool EndsWithHardBreak = false);
+    private sealed record RichSeg(string Text, bool Bold, bool Italic, bool Underline, bool Strike, PdfColor? Color, string? Uri, string? DestinationName, string? Contents, PdfStandardFont Font, PdfTextBaseline Baseline, bool LeadingSpace = false, double LeadingAdvance = 0, bool LeadingSpaceIsExpandable = true, bool EndsWithHardBreak = false);
 
     private static double MeasureRichText(string text, PdfStandardFont font, double fontSize) =>
         EstimateSimpleTextWidth(text, font, fontSize);
@@ -173,11 +174,21 @@ internal static partial class PdfWriter {
     private static double MeasureRichText(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline) =>
         EstimateSimpleTextWidth(text, font, EffectiveRichFontSize(fontSize, baseline));
 
+    private static double CalculateDefaultTabAdvance(double lineWidth, double spaceWidth) {
+        if (lineWidth < 0 || double.IsNaN(lineWidth) || double.IsInfinity(lineWidth)) {
+            return spaceWidth;
+        }
+
+        double nextStop = (Math.Floor(lineWidth / DefaultParagraphTabStopWidth) + 1D) * DefaultParagraphTabStopWidth;
+        return Math.Max(spaceWidth, nextStop - lineWidth);
+    }
+
     private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRuns(System.Collections.Generic.IEnumerable<TextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts = null) {
         var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> { new() };
         var heights = new System.Collections.Generic.List<double>();
         double lineWidth = 0;
-        bool pendingSpace = false;
+        double pendingLeadingAdvance = 0;
+        bool pendingLeadingIsExpandable = true;
         double CurrentMaxWidth() => lines.Count == 1 ? firstLineWidthPts ?? maxWidthPts : maxWidthPts;
 
         void MarkCurrentLineHardBreak() {
@@ -215,12 +226,13 @@ internal static partial class PdfWriter {
                 }
                 double tokenW = MeasureRichText(token, fontForRun, fontSize, baseline);
                 var lastLine = lines[lines.Count - 1];
-                double needed = (lastLine.Count == 0 ? tokenW : (pendingSpace ? spaceW : 0) + tokenW);
+                double needed = lastLine.Count == 0 ? tokenW : pendingLeadingAdvance + tokenW;
                 double currentMaxWidth = CurrentMaxWidth();
 
                 if (tokenW > currentMaxWidth) {
                     if (lastLine.Count > 0) { heights.Add(lineHeight); lines.Add(new()); lineWidth = 0; lastLine = lines[lines.Count - 1]; }
-                    pendingSpace = false;
+                    pendingLeadingAdvance = 0;
+                    pendingLeadingIsExpandable = true;
                     int pos = 0;
                     while (pos < token.Length) {
                         int take = 0;
@@ -250,29 +262,46 @@ internal static partial class PdfWriter {
                         pos += take;
                         if (pos < token.Length) { heights.Add(lineHeight); lines.Add(new()); lineWidth = 0; lastLine = lines[lines.Count - 1]; }
                     }
-                    if (hadNewline) { MarkCurrentLineHardBreak(); heights.Add(lineHeight); lines.Add(new()); lineWidth = 0; pendingSpace = false; } else { pendingSpace = nextWs != -1; }
+                    if (hadNewline) {
+                        MarkCurrentLineHardBreak();
+                        heights.Add(lineHeight);
+                        lines.Add(new());
+                        lineWidth = 0;
+                        pendingLeadingAdvance = 0;
+                        pendingLeadingIsExpandable = true;
+                    } else if (nextWs != -1) {
+                        bool hadTab = text[nextWs] == '\t';
+                        pendingLeadingAdvance = hadTab ? CalculateDefaultTabAdvance(lineWidth, spaceW) : spaceW;
+                        pendingLeadingIsExpandable = !hadTab;
+                    }
                     continue;
                 }
+                needed = lastLine.Count == 0 ? tokenW : pendingLeadingAdvance + tokenW;
                 if (lineWidth + needed > currentMaxWidth && lastLine.Count > 0) {
                     heights.Add(lineHeight);
                     lines.Add(new());
                     lineWidth = 0;
                 }
                 if (token.Length > 0) {
-                    bool needsLeadingSpace = lineWidth > 0 && pendingSpace;
-                    double segmentWidth = tokenW + (needsLeadingSpace ? spaceW : 0);
-                    lines[lines.Count - 1].Add(new RichSeg(token, bold, italic, underline, strike, color, uri, destinationName, contents, fontForRun, baseline, needsLeadingSpace));
+                    bool needsLeadingSpace = lineWidth > 0 && pendingLeadingAdvance > 0;
+                    double leadingAdvance = needsLeadingSpace ? pendingLeadingAdvance : 0;
+                    double segmentWidth = tokenW + leadingAdvance;
+                    lines[lines.Count - 1].Add(new RichSeg(token, bold, italic, underline, strike, color, uri, destinationName, contents, fontForRun, baseline, needsLeadingSpace, leadingAdvance, pendingLeadingIsExpandable));
                     lineWidth += segmentWidth;
-                    pendingSpace = false;
+                    pendingLeadingAdvance = 0;
+                    pendingLeadingIsExpandable = true;
                 }
                 if (hadNewline) {
                     MarkCurrentLineHardBreak();
                     heights.Add(lineHeight);
                     lines.Add(new());
                     lineWidth = 0;
-                    pendingSpace = false;
+                    pendingLeadingAdvance = 0;
+                    pendingLeadingIsExpandable = true;
                 } else if (nextWs != -1) {
-                    pendingSpace = true;
+                    bool hadTab = text[nextWs] == '\t';
+                    pendingLeadingAdvance = hadTab ? CalculateDefaultTabAdvance(lineWidth, spaceW) : spaceW;
+                    pendingLeadingIsExpandable = !hadTab;
                 }
             }
         }
@@ -304,8 +333,10 @@ internal static partial class PdfWriter {
                 var seg = segs[si];
                 double w = MeasureRichText(seg.Text, seg.Font, fontSize, seg.Baseline);
                 if (seg.LeadingSpace) {
-                    w += MeasureRichText(" ", seg.Font, fontSize, seg.Baseline);
-                    gapsCount++;
+                    w += seg.LeadingAdvance > 0 ? seg.LeadingAdvance : MeasureRichText(" ", seg.Font, fontSize, seg.Baseline);
+                    if (seg.LeadingSpaceIsExpandable) {
+                        gapsCount++;
+                    }
                 }
                 segWidths[si] = w;
                 baseLineW += w;
@@ -338,8 +369,23 @@ internal static partial class PdfWriter {
                 var color = s.Color ?? block.DefaultColor ?? opts.DefaultTextColor;
                 if (color.HasValue) content.FillColor(color.Value);
                 if (s.LeadingSpace) {
-                    double gap = MeasureRichText(" ", s.Font, fontSize, s.Baseline) + wordSpacing;
+                    double baseGap = s.LeadingAdvance > 0 ? s.LeadingAdvance : MeasureRichText(" ", s.Font, fontSize, s.Baseline);
+                    double gap = baseGap + (s.LeadingSpaceIsExpandable ? wordSpacing : 0);
+                    double visibleGap = MeasureRichText(" ", s.Font, fontSize, s.Baseline) + (s.LeadingSpaceIsExpandable ? wordSpacing : 0);
+                    if (!s.LeadingSpaceIsExpandable && Math.Abs(wordSpacing) > 0.0001) {
+                        content.WordSpacing(0);
+                    }
+
                     content.ShowHexText("20");
+                    if (!s.LeadingSpaceIsExpandable && Math.Abs(wordSpacing) > 0.0001) {
+                        content.WordSpacing(wordSpacing);
+                    }
+
+                    double extraAdvance = gap - visibleGap;
+                    if (extraAdvance > 0.0001) {
+                        content.MoveText(extraAdvance, 0);
+                    }
+
                     xCursor += gap;
                 }
                 double segmentStartX = xCursor;

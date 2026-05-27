@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using OfficeIMO.Pdf;
@@ -59,6 +60,18 @@ namespace OfficeIMO.Tests.Pdf {
 
         private static bool ExtractLeadingSpace(object seg) {
             var prop = seg.GetType().GetProperty("LeadingSpace");
+            Assert.NotNull(prop);
+            return (bool)prop!.GetValue(seg)!;
+        }
+
+        private static double ExtractLeadingAdvance(object seg) {
+            var prop = seg.GetType().GetProperty("LeadingAdvance");
+            Assert.NotNull(prop);
+            return (double)prop!.GetValue(seg)!;
+        }
+
+        private static bool ExtractLeadingSpaceIsExpandable(object seg) {
+            var prop = seg.GetType().GetProperty("LeadingSpaceIsExpandable");
             Assert.NotNull(prop);
             return (bool)prop!.GetValue(seg)!;
         }
@@ -378,6 +391,50 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal(new[] { "Alpha", "Beta" }, line.ConvertAll(ExtractText).ToArray());
             Assert.False(ExtractLeadingSpace(line[0]));
             Assert.True(ExtractLeadingSpace(line[1]));
+            Assert.False(ExtractLeadingSpaceIsExpandable(line[1]));
+            Assert.True(ExtractLeadingAdvance(line[1]) > 3);
+        }
+
+        [Fact]
+        public void WrapRichRuns_AdvancesTabsToDefaultHalfInchStops() {
+            var result = InvokeWrapRichRuns(new[] {
+                new TextRun("A\tB")
+            }, 200, 12, PdfStandardFont.Helvetica);
+
+            var line = Assert.Single(ExtractLines(result));
+            Assert.Equal(new[] { "A", "B" }, line.ConvertAll(ExtractText).ToArray());
+            Assert.InRange(ExtractLeadingAdvance(line[1]), 27, 29);
+        }
+
+        [Fact]
+        public void ParagraphTabs_RenderAsVisibleDefaultTabStopGap() {
+            byte[] bytes = PdfDoc.Create(new PdfOptions {
+                    DefaultFontSize = 12
+                })
+                .Paragraph(p => p.Text("A B"), style: new PdfParagraphStyle {
+                    SpacingAfter = 0
+                })
+                .Paragraph(p => p.Text("A\tB"), style: new PdfParagraphStyle {
+                    SpacingAfter = 0
+                })
+                .ToBytes();
+
+            using var pdf = UglyToad.PdfPig.PdfDocument.Open(new MemoryStream(bytes));
+            var page = pdf.GetPage(1);
+            var lineGaps = page.Letters
+                .Where(letter => letter.Value == "A" || letter.Value == "B")
+                .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1))
+                .OrderByDescending(group => group.Key)
+                .Select(group => {
+                    var ordered = group.OrderBy(letter => letter.StartBaseLine.X).ToList();
+                    var a = ordered.First(letter => letter.Value == "A");
+                    var b = ordered.First(letter => letter.Value == "B");
+                    return b.StartBaseLine.X - a.EndBaseLine.X;
+                })
+                .ToArray();
+
+            Assert.Equal(2, lineGaps.Length);
+            Assert.True(lineGaps[1] > lineGaps[0] + 10, $"Expected a default tab-stop gap rather than a collapsed single space. Plain gap: {lineGaps[0]:0.##}, tab gap: {lineGaps[1]:0.##}.");
         }
 
         [Fact]
