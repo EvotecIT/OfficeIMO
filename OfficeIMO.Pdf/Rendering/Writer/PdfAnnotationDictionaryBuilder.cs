@@ -43,9 +43,9 @@ internal static class PdfAnnotationDictionaryBuilder {
         return "<< /Type /Annot /Subtype /Widget /FT /Tx /T " +
             PdfSyntaxEscaper.LiteralString(name) +
             " /V " +
-            PdfSyntaxEscaper.LiteralString(value) +
+            PdfSyntaxEscaper.WinAnsiHexString(value) +
             " /DV " +
-            PdfSyntaxEscaper.LiteralString(value) +
+            PdfSyntaxEscaper.WinAnsiHexString(value) +
             " /Rect [" +
             FormatCoordinate(x1) + " " +
             FormatCoordinate(y1) + " " +
@@ -128,7 +128,7 @@ internal static class PdfAnnotationDictionaryBuilder {
             }
 
             optionBuilder.Append(' ')
-                .Append(PdfSyntaxEscaper.LiteralString(option));
+                .Append(PdfSyntaxEscaper.WinAnsiHexString(option));
         }
 
         var valueSet = new HashSet<string>(StringComparer.Ordinal);
@@ -169,7 +169,7 @@ internal static class PdfAnnotationDictionaryBuilder {
 
     private static string BuildChoiceValue(IReadOnlyList<string> values) {
         if (values.Count == 1) {
-            return PdfSyntaxEscaper.LiteralString(values[0]);
+            return PdfSyntaxEscaper.WinAnsiHexString(values[0]);
         }
 
         var valueBuilder = new StringBuilder();
@@ -179,7 +179,7 @@ internal static class PdfAnnotationDictionaryBuilder {
                 valueBuilder.Append(' ');
             }
 
-            valueBuilder.Append(PdfSyntaxEscaper.LiteralString(values[i]));
+            valueBuilder.Append(PdfSyntaxEscaper.WinAnsiHexString(values[i]));
         }
 
         valueBuilder.Append(']');

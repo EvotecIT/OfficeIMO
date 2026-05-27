@@ -22,6 +22,41 @@ internal static class PdfSyntaxEscaper {
         return "(" + EscapeLiteralContent(value) + ")";
     }
 
+    internal static string WinAnsiHexString(string value) {
+        Guard.NotNull(value, nameof(value));
+        byte[] bytes = PdfWinAnsiEncoding.Encode(value);
+        return HexString(bytes);
+    }
+
+    internal static string TextString(string value) {
+        Guard.NotNull(value, nameof(value));
+        if (PdfWinAnsiEncoding.CanEncode(value, out _)) {
+            return WinAnsiHexString(value);
+        }
+
+        byte[] bytes = new byte[2 + value.Length * 2];
+        bytes[0] = 0xFE;
+        bytes[1] = 0xFF;
+        for (int i = 0; i < value.Length; i++) {
+            char ch = value[i];
+            bytes[2 + i * 2] = (byte)(ch >> 8);
+            bytes[3 + i * 2] = (byte)(ch & 0xFF);
+        }
+
+        return HexString(bytes);
+    }
+
+    private static string HexString(byte[] bytes) {
+        var sb = new StringBuilder(bytes.Length * 2 + 2);
+        sb.Append('<');
+        for (int i = 0; i < bytes.Length; i++) {
+            sb.Append(bytes[i].ToString("X2", CultureInfo.InvariantCulture));
+        }
+
+        sb.Append('>');
+        return sb.ToString();
+    }
+
     internal static string EscapeLiteralContent(string value) {
         if (string.IsNullOrEmpty(value)) {
             return string.Empty;

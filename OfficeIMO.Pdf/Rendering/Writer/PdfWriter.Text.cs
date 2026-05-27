@@ -336,14 +336,16 @@ internal static partial class PdfWriter {
                 if (token.Length > 0 && pendingLeadingIsTab && lastLine.Count > 0) {
                     pendingLeadingAdvance = CalculateTabAdvance(lineWidth, tokenW, spaceW, pendingLeadingTabAlignment, tabStopWidth, token, fontForRun, fontSize, baseline);
                 }
-                needed = lastLine.Count == 0 ? tokenW : pendingLeadingAdvance + tokenW;
+                needed = lastLine.Count == 0
+                    ? (pendingLeadingIsTab ? pendingLeadingAdvance + tokenW : tokenW)
+                    : pendingLeadingAdvance + tokenW;
                 if (lineWidth + needed > currentMaxWidth && lastLine.Count > 0) {
                     heights.Add(lineHeight);
                     lines.Add(new());
                     lineWidth = 0;
                 }
                 if (token.Length > 0) {
-                    bool needsLeadingSpace = lineWidth > 0 && pendingLeadingAdvance > 0;
+                    bool needsLeadingSpace = pendingLeadingAdvance > 0 && (lineWidth > 0 || pendingLeadingIsTab);
                     double leadingAdvance = needsLeadingSpace ? pendingLeadingAdvance : 0;
                     double segmentWidth = tokenW + leadingAdvance;
                     var segmentLeader = needsLeadingSpace ? pendingLeadingTabLeader : PdfTabLeaderStyle.None;

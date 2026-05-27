@@ -6,6 +6,7 @@ namespace OfficeIMO.Pdf;
 public static class PdfFormFiller {
     private const string UnsupportedFlattenWidgetMessage = "Only simple text, choice, and button AcroForm widgets with rectangles are supported for flattening by OfficeIMO.Pdf yet.";
     private const string UnsupportedFlattenAnnotationMessage = "Only simple text, choice, and button AcroForm widgets referenced from page annotations are supported for flattening by OfficeIMO.Pdf yet.";
+    private const int MultiSelectChoiceFlag = 2097152;
 
     private readonly struct ChoiceFillValue {
         public string ExportValue { get; }
@@ -690,20 +691,30 @@ public static class PdfFormFiller {
 
         if (string.Equals(fieldType, "Ch", StringComparison.Ordinal)) {
             IReadOnlyList<ChoiceFillValue> choiceValues = ResolveChoiceFillValues(objects, field, values);
-            if (choiceValues.Count > 1) {
+            if (choiceValues.Count > 1 || HasFieldFlag(objects, field, MultiSelectChoiceFlag)) {
                 field.Items["V"] = CreateStringArray(choiceValues.Select(item => item.ExportValue));
                 SetTextWidgetAppearances(objects, field, string.Join(", ", choiceValues.Select(item => item.DisplayValue)), new HashSet<int>(), ref nextObjectNumber);
                 return;
             }
 
             ChoiceFillValue choiceValue = choiceValues[0];
-            field.Items["V"] = new PdfStringObj(choiceValue.ExportValue);
+            field.Items["V"] = new PdfStringObj(choiceValue.ExportValue, useTextStringEncoding: true);
             SetTextWidgetAppearances(objects, field, choiceValue.DisplayValue, new HashSet<int>(), ref nextObjectNumber);
             return;
         }
 
-        field.Items["V"] = new PdfStringObj(firstValue);
+        field.Items["V"] = new PdfStringObj(firstValue, useTextStringEncoding: true);
         SetTextWidgetAppearances(objects, field, firstValue, new HashSet<int>(), ref nextObjectNumber);
+    }
+
+    private static bool HasFieldFlag(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, int flag) {
+        if (!field.Items.TryGetValue("Ff", out PdfObject? flagsObject) ||
+            ResolveObject(objects, flagsObject) is not PdfNumber flagsNumber) {
+            return false;
+        }
+
+        int flags = (int)flagsNumber.Value;
+        return (flags & flag) != 0;
     }
 
     private static void SetWidgetAppearanceStates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string name, HashSet<int> visited, ref int nextObjectNumber) {
@@ -799,12 +810,11 @@ public static class PdfFormFiller {
     private static PdfStream CreateTextAppearanceStream(string value, double width, double height) {
         double fontSize = Math.Max(6D, Math.Min(12D, height - 4D));
         double baseline = Math.Max(2D, (height - fontSize) / 2D);
-        string escapedValue = PdfSyntaxEscaper.EscapeLiteralContent(value);
         string content =
             "q\n" +
             "1 1 1 rg 0 0 " + FormatNumber(width) + " " + FormatNumber(height) + " re f\n" +
             "0.75 0.75 0.75 RG 0.5 0.5 " + FormatNumber(Math.Max(0D, width - 1D)) + " " + FormatNumber(Math.Max(0D, height - 1D)) + " re S\n" +
-            "BT /Helv " + FormatNumber(fontSize) + " Tf 0 0 0 rg 2 " + FormatNumber(baseline) + " Td (" + escapedValue + ") Tj ET\n" +
+            "BT /Helv " + FormatNumber(fontSize) + " Tf 0 0 0 rg 2 " + FormatNumber(baseline) + " Td " + PdfSyntaxEscaper.WinAnsiHexString(value) + " Tj ET\n" +
             "Q\n";
 
         var dictionary = new PdfDictionary();
@@ -872,7 +882,7 @@ public static class PdfFormFiller {
     private static PdfArray CreateStringArray(IEnumerable<string> values) {
         var array = new PdfArray();
         foreach (string value in values) {
-            array.Items.Add(new PdfStringObj(value));
+            array.Items.Add(new PdfStringObj(value, useTextStringEncoding: true));
         }
 
         return array;

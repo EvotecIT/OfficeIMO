@@ -71,7 +71,7 @@ internal static class PdfAcroFormDictionaryBuilder {
         return "q\n" +
             "1 1 1 rg 0 0 " + Format(width) + " " + Format(height) + " re f\n" +
             "0.75 G 1 w 0.5 0.5 " + Format(Math.Max(0D, width - 1D)) + " " + Format(Math.Max(0D, height - 1D)) + " re S\n" +
-            "BT /Helv " + Format(fontSize) + " Tf 0 g " + Format(textX) + " " + Format(baseline) + " Td " + PdfSyntaxEscaper.LiteralString(clippedValue) + " Tj ET\n" +
+            "BT /Helv " + Format(fontSize) + " Tf 0 g " + Format(textX) + " " + Format(baseline) + " Td " + PdfSyntaxEscaper.WinAnsiHexString(clippedValue) + " Tj ET\n" +
             "Q\n";
     }
 

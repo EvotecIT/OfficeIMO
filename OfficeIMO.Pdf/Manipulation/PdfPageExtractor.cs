@@ -2036,7 +2036,9 @@ public static class PdfPageExtractor {
                 sb.Append('/').Append(PdfSyntaxEscaper.Name(name.Name));
                 break;
             case PdfStringObj text:
-                sb.Append(PdfSyntaxEscaper.LiteralString(text.Value));
+                sb.Append(text.UseTextStringEncoding
+                    ? PdfSyntaxEscaper.TextString(text.Value)
+                    : PdfSyntaxEscaper.LiteralString(text.Value));
                 break;
             case PdfNull:
                 sb.Append("null");

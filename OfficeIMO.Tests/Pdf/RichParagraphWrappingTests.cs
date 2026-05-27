@@ -420,6 +420,21 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void WrapRichRuns_PreservesLeadingTabOnEmptyLine() {
+            var result = InvokeWrapRichRuns(new[] {
+                TextRun.Tab(),
+                TextRun.Normal("Indented")
+            }, 200, 12, PdfStandardFont.Helvetica);
+
+            var line = Assert.Single(ExtractLines(result));
+            object segment = Assert.Single(line);
+            Assert.Equal("Indented", ExtractText(segment));
+            Assert.True(ExtractLeadingSpace(segment));
+            Assert.False(ExtractLeadingSpaceIsExpandable(segment));
+            Assert.InRange(ExtractLeadingAdvance(segment), 34, 37);
+        }
+
+        [Fact]
         public void WrapRichRuns_AdvancesTabsToDefaultHalfInchStops() {
             var result = InvokeWrapRichRuns(new[] {
                 new TextRun("A\tB")

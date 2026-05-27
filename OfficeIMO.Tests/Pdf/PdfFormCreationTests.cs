@@ -50,7 +50,7 @@ public class PdfFormCreationTests {
 
         Assert.False(info.HasReadableFormFields);
         Assert.DoesNotContain("/AcroForm", raw);
-        Assert.Contains("(Created fill) Tj", raw);
+        Assert.Contains("<437265617465642066696C6C> Tj", raw);
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public class PdfFormCreationTests {
         Assert.Contains("/AcroForm", raw);
         Assert.Contains("/Subtype /Widget", raw);
         Assert.Contains("/FT /Ch", raw);
-        Assert.Contains("/Opt [ (Poland) (Germany) (United States) ]", raw);
+        Assert.Contains("/Opt [ <506F6C616E64> <4765726D616E79> <556E6974656420537461746573> ]", raw);
         Assert.Contains("/Ff 131072", raw);
         PdfFormField field = Assert.Single(info.FormFields);
         Assert.Equal("Country", field.Name);
@@ -154,7 +154,7 @@ public class PdfFormCreationTests {
 
         Assert.Equal("United States", filledField.Value);
         Assert.Equal("United States", Assert.Single(filledField.SelectedOptions).DisplayText);
-        Assert.Contains("(United States) Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
+        Assert.Contains("<556E6974656420537461746573> Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
 
         byte[] flattened = PdfFormFiller.FillAndFlattenFields(pdf, new Dictionary<string, string> {
             ["Country"] = "United States"
@@ -179,8 +179,8 @@ public class PdfFormCreationTests {
         PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf);
 
         Assert.Contains("/FT /Ch", raw);
-        Assert.Contains("/V [(Poland) (United States)]", raw);
-        Assert.Contains("/DV [(Poland) (United States)]", raw);
+        Assert.Contains("/V [<506F6C616E64> <556E6974656420537461746573>]", raw);
+        Assert.Contains("/DV [<506F6C616E64> <556E6974656420537461746573>]", raw);
         Assert.Contains("/Ff 2097152", raw);
         PdfFormField field = Assert.Single(info.FormFields);
         Assert.Equal("Countries", field.Name);
@@ -210,7 +210,17 @@ public class PdfFormCreationTests {
 
         Assert.Equal(new[] { "Germany", "United States" }, filledField.Values);
         Assert.Equal(new[] { "Germany", "United States" }, filledField.SelectedOptions.Select(option => option.DisplayText).ToArray());
-        Assert.Contains("(Germany, United States) Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
+        Assert.Contains("<4765726D616E792C20556E6974656420537461746573> Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
+
+        byte[] scalarFilled = PdfFormFiller.FillFields(pdf, new Dictionary<string, string> {
+            ["Countries"] = "Germany"
+        });
+        string scalarRaw = Encoding.ASCII.GetString(scalarFilled);
+        PdfFormField scalarField = Assert.Single(PdfInspector.Inspect(scalarFilled).FormFields);
+
+        Assert.Equal(new[] { "Germany" }, scalarField.Values);
+        Assert.Contains("/V [", scalarRaw, StringComparison.Ordinal);
+        Assert.Contains("<4765726D616E79>", scalarRaw, StringComparison.Ordinal);
 
         byte[] flattened = PdfFormFiller.FillAndFlattenFields(pdf, new Dictionary<string, PdfFormFieldValue> {
             ["Countries"] = PdfFormFieldValue.FromValues("Germany", "United States")

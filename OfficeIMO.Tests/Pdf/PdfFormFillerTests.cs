@@ -35,7 +35,7 @@ public class PdfFormFillerTests {
         Assert.Contains("/Subtype /Form", output);
         Assert.Contains("/AP << /N", output);
         Assert.Contains("/Helv", output);
-        Assert.Contains("(Visible value) Tj", output);
+        Assert.Contains("<56697369626C652076616C7565> Tj", output);
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public class PdfFormFillerTests {
         Assert.DoesNotContain("/Annots", output);
         Assert.Contains("/OfficeIMOForm1", output);
         Assert.Contains("/OfficeIMOForm1 Do", output);
-        Assert.Contains("(Flattened value) Tj", output);
+        Assert.Contains("<466C617474656E65642076616C7565> Tj", output);
     }
 
     [Fact]
@@ -145,7 +145,7 @@ public class PdfFormFillerTests {
 
         Assert.False(info.HasForms);
         Assert.DoesNotContain("/AcroForm", output);
-        Assert.Contains("(Single pass) Tj", output);
+        Assert.Contains("<53696E676C652070617373> Tj", output);
         Assert.Contains("/OfficeIMOForm1 Do", output);
     }
 
@@ -208,7 +208,7 @@ public class PdfFormFillerTests {
         PdfFormField filledField = Assert.Single(filledInfo.FormFields);
         Assert.Equal("PL", filledField.Value);
         Assert.Equal("Poland", Assert.Single(filledField.SelectedOptions).DisplayText);
-        Assert.Contains("(Poland) Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
+        Assert.Contains("<506F6C616E64> Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
 
         byte[] flattened = PdfFormFiller.FlattenFields(filled);
 
@@ -220,7 +220,7 @@ public class PdfFormFillerTests {
         Assert.DoesNotContain("/Subtype /Widget", output);
         Assert.DoesNotContain("/Annots", output);
         Assert.Contains("/OfficeIMOForm1 Do", output);
-        Assert.Contains("(Poland) Tj", GetFlattenedAppearanceStreamText(flattened), StringComparison.Ordinal);
+        Assert.Contains("<506F6C616E64> Tj", GetFlattenedAppearanceStreamText(flattened), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -235,7 +235,7 @@ public class PdfFormFillerTests {
         PdfFormField filledField = Assert.Single(filledInfo.FormFields);
         Assert.Equal("US", filledField.Value);
         Assert.Equal("United States", Assert.Single(filledField.SelectedOptions).DisplayText);
-        Assert.Contains("(United States) Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
+        Assert.Contains("<556E6974656420537461746573> Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -250,7 +250,7 @@ public class PdfFormFillerTests {
         PdfFormField filledField = Assert.Single(filledInfo.FormFields);
         Assert.Equal(new[] { "PL", "US" }, filledField.Values);
         Assert.Equal(new[] { "Poland", "United States" }, filledField.SelectedOptions.Select(option => option.DisplayText).ToArray());
-        Assert.Contains("(Poland, United States) Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
+        Assert.Contains("<506F6C616E642C20556E6974656420537461746573> Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -265,7 +265,7 @@ public class PdfFormFillerTests {
         Assert.DoesNotContain("/AcroForm", output);
         Assert.DoesNotContain("/Subtype /Widget", output);
         Assert.Contains("/OfficeIMOForm1 Do", output);
-        Assert.Contains("(Germany, United States) Tj", GetFlattenedAppearanceStreamText(flattened), StringComparison.Ordinal);
+        Assert.Contains("<4765726D616E792C20556E6974656420537461746573> Tj", GetFlattenedAppearanceStreamText(flattened), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -287,7 +287,7 @@ public class PdfFormFillerTests {
         Assert.DoesNotContain("/Subtype /Widget", output);
         Assert.DoesNotContain("/Annots", output);
         Assert.Contains("/OfficeIMOForm1 Do", output);
-        Assert.Contains("(Poland, United States) Tj", GetFlattenedAppearanceStreamText(flattened), StringComparison.Ordinal);
+        Assert.Contains("<506F6C616E642C20556E6974656420537461746573> Tj", GetFlattenedAppearanceStreamText(flattened), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -329,7 +329,7 @@ public class PdfFormFillerTests {
 
             byte[] flattened = File.ReadAllBytes(outputPath);
             Assert.False(PdfInspector.Inspect(flattened).HasForms);
-            Assert.Contains("(Path flatten) Tj", Encoding.ASCII.GetString(flattened));
+            Assert.Contains("<5061746820666C617474656E> Tj", Encoding.ASCII.GetString(flattened));
         } finally {
             if (File.Exists(inputPath)) File.Delete(inputPath);
             if (File.Exists(outputPath)) File.Delete(outputPath);
@@ -365,7 +365,7 @@ public class PdfFormFillerTests {
             byte[] flattenBytes = SliceAfterPrefix(flattenOutput, 1);
             Assert.Equal(23, flattenOutput.ToArray()[0]);
             Assert.False(PdfInspector.Inspect(flattenBytes).HasForms);
-            Assert.Contains("(Path stream flatten) Tj", Encoding.ASCII.GetString(flattenBytes));
+            Assert.Contains("<506174682073747265616D20666C617474656E> Tj", Encoding.ASCII.GetString(flattenBytes));
 
             using var fillFlattenOutput = new MemoryStream();
             fillFlattenOutput.WriteByte(29);
@@ -375,7 +375,7 @@ public class PdfFormFillerTests {
             byte[] fillFlattenBytes = SliceAfterPrefix(fillFlattenOutput, 1);
             Assert.Equal(29, fillFlattenOutput.ToArray()[0]);
             Assert.False(PdfInspector.Inspect(fillFlattenBytes).HasForms);
-            Assert.Contains("(Path stream single pass) Tj", Encoding.ASCII.GetString(fillFlattenBytes));
+            Assert.Contains("<506174682073747265616D2073696E676C652070617373> Tj", Encoding.ASCII.GetString(fillFlattenBytes));
         } finally {
             if (File.Exists(fillInputPath)) File.Delete(fillInputPath);
             if (File.Exists(flattenInputPath)) File.Delete(flattenInputPath);
