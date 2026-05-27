@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio.Diagrams {
@@ -348,6 +350,7 @@ namespace OfficeIMO.Visio.Diagrams {
             AddMilestones(page, start, end);
             AddCallouts(page);
             AddTitle(page);
+            EnsureSideCalloutsFitPage(page);
             _document.RequestRecalcOnOpen();
             return page;
         }
@@ -518,6 +521,27 @@ namespace OfficeIMO.Visio.Diagrams {
                 } else {
                     page.AddCallout(target, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
                 }
+            }
+        }
+
+        private void EnsureSideCalloutsFitPage(VisioPage page) {
+            if (!_callouts.Any(callout => callout.UsePlacement)) {
+                return;
+            }
+
+            VisioShapeBounds bounds = page.GetContentBounds();
+            if (bounds.IsEmpty) {
+                return;
+            }
+
+            double horizontalMargin = Math.Min(_leftMargin, _rightMargin);
+            double verticalMargin = Math.Min(_topMargin, _bottomMargin);
+            bool overflows = bounds.Left < horizontalMargin ||
+                             bounds.Bottom < verticalMargin ||
+                             bounds.Right > page.Width - horizontalMargin ||
+                             bounds.Top > page.Height - verticalMargin;
+            if (overflows) {
+                page.FitToContent(horizontalMargin, verticalMargin);
             }
         }
 

@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
+
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -192,6 +193,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2.5, explicitCallout.Width);
             Assert.True(generatedCallout.PinX < api.PinX);
             Assert.Equal(api.Id, generatedCallout.CalloutTargetId);
+            VisioShapeBounds bounds = page.GetContentBounds();
+            Assert.True(bounds.Left >= 0);
+            Assert.True(bounds.Right <= page.Width);
+            Assert.True(bounds.Bottom >= 0);
+            Assert.True(bounds.Top <= page.Height);
 
             VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, explicitCallout));
             Assert.Same(policy, leader.To);
