@@ -192,6 +192,14 @@ public class PdfInspectorTests {
         Assert.False(report.CanFillSimpleFormFields);
         Assert.False(report.CanFlattenSimpleFormFields);
         Assert.False(report.CanFillAndFlattenSimpleFormFields);
+        Assert.True(report.Can(PdfPreflightCapability.ExtractText));
+        Assert.True(report.Can(PdfPreflightCapability.ManipulatePages));
+        Assert.False(report.Can(PdfPreflightCapability.FillSimpleFormFields));
+        Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractText));
+        Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages));
+        Assert.Contains(
+            "PDF does not contain named text, choice, or button AcroForm fields supported for simple form filling by OfficeIMO.Pdf.",
+            report.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
         Assert.Empty(report.Diagnostics);
         Assert.Empty(report.ReadBlockers);
         Assert.Empty(report.RewriteBlockers);
@@ -1044,6 +1052,11 @@ public class PdfInspectorTests {
         Assert.False(report.CanFillSimpleFormFields);
         Assert.False(report.CanFlattenSimpleFormFields);
         Assert.False(report.CanFillAndFlattenSimpleFormFields);
+        Assert.False(report.Can(PdfPreflightCapability.FillSimpleFormFields));
+        Assert.False(report.Can(PdfPreflightCapability.FlattenSimpleFormFields));
+        Assert.Contains(
+            "PDF active content is not supported for form filling or flattening by OfficeIMO.Pdf yet.",
+            report.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
         Assert.True(report.Probe.HasActiveContent);
         Assert.True(report.Probe.HasCatalogNameTrees);
         Assert.NotNull(report.DocumentInfo);
@@ -1065,6 +1078,12 @@ public class PdfInspectorTests {
         Assert.False(report.CanFillSimpleFormFields);
         Assert.False(report.CanFlattenSimpleFormFields);
         Assert.False(report.CanFillAndFlattenSimpleFormFields);
+        Assert.False(report.Can(PdfPreflightCapability.ExtractText));
+        Assert.False(report.Can(PdfPreflightCapability.ManipulatePages));
+        Assert.False(report.Can(PdfPreflightCapability.FillSimpleFormFields));
+        Assert.Contains("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractText));
+        Assert.Contains("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages));
+        Assert.Contains("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.", report.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
         Assert.Null(report.DocumentInfo);
         Assert.True(report.Probe.HasEncryption);
         Assert.Contains("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.", report.Diagnostics);
@@ -1083,6 +1102,11 @@ public class PdfInspectorTests {
         Assert.False(report.CanFillSimpleFormFields);
         Assert.False(report.CanFlattenSimpleFormFields);
         Assert.False(report.CanFillAndFlattenSimpleFormFields);
+        Assert.False(report.Can(PdfPreflightCapability.FillSimpleFormFields));
+        Assert.False(report.Can(PdfPreflightCapability.FlattenSimpleFormFields));
+        Assert.Contains(
+            "Signed PDF files are not supported for form filling or flattening by OfficeIMO.Pdf yet.",
+            report.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
         Assert.NotNull(report.DocumentInfo);
         Assert.True(report.Probe.HasSignatures);
         Assert.True(report.DocumentInfo!.HasSignatures);
@@ -1109,6 +1133,13 @@ public class PdfInspectorTests {
         Assert.True(report.CanFillSimpleFormFields);
         Assert.False(report.CanFlattenSimpleFormFields);
         Assert.False(report.CanFillAndFlattenSimpleFormFields);
+        Assert.True(report.Can(PdfPreflightCapability.FillSimpleFormFields));
+        Assert.False(report.Can(PdfPreflightCapability.FlattenSimpleFormFields));
+        Assert.False(report.Can(PdfPreflightCapability.FillAndFlattenSimpleFormFields));
+        Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
+        Assert.Contains(
+            "PDF does not contain named text or button AcroForm widgets with readable page-backed rectangles supported for simple form flattening by OfficeIMO.Pdf.",
+            report.GetCapabilityDiagnostics(PdfPreflightCapability.FlattenSimpleFormFields));
         Assert.NotNull(report.DocumentInfo);
         Assert.False(report.Probe.HasSignatures);
         Assert.True(report.Probe.HasForms);
@@ -1144,6 +1175,13 @@ public class PdfInspectorTests {
         Assert.True(report.CanFillSimpleFormFields);
         Assert.True(report.CanFlattenSimpleFormFields);
         Assert.True(report.CanFillAndFlattenSimpleFormFields);
+        Assert.True(report.Can(PdfPreflightCapability.FillSimpleFormFields));
+        Assert.True(report.Can(PdfPreflightCapability.FlattenSimpleFormFields));
+        Assert.True(report.Can(PdfPreflightCapability.FillAndFlattenSimpleFormFields));
+        Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
+        Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.FlattenSimpleFormFields));
+        Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.FillAndFlattenSimpleFormFields));
+        Assert.Contains("PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages));
         Assert.NotNull(report.DocumentInfo);
         Assert.True(report.DocumentInfo!.HasReadableFormFields);
         Assert.True(report.DocumentInfo.HasFormWidgets);
@@ -1452,6 +1490,10 @@ public class PdfInspectorTests {
         Assert.Throws<ArgumentException>(() => PdfInspector.Preflight(" "));
         Assert.Throws<ArgumentNullException>(() => PdfInspector.Preflight((Stream)null!));
         Assert.Throws<ArgumentException>(() => PdfInspector.Preflight(new WriteOnlyStream()));
+
+        PdfDocumentPreflight report = PdfInspector.Preflight(BuildTwoPagePdf());
+        Assert.Throws<ArgumentOutOfRangeException>(() => report.Can((PdfPreflightCapability)999));
+        Assert.Throws<ArgumentOutOfRangeException>(() => report.GetCapabilityDiagnostics((PdfPreflightCapability)999));
     }
 
     private static byte[] BuildTwoPagePdf() {
