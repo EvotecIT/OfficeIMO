@@ -84,6 +84,19 @@ public class PdfLogicalDocumentTests {
         Assert.Equal("image/png", image.MimeType);
         Assert.Same(image, Assert.Single(logical.Images));
 
+        Assert.True(logical.HasElementKind(PdfLogicalElementKind.Table));
+        Assert.True(logical.HasElementKind(PdfLogicalElementKind.Image));
+        Assert.True(page.HasElementKind(PdfLogicalElementKind.Heading));
+        Assert.True(page.HasElementKind(PdfLogicalElementKind.Image));
+        Assert.Same(heading.Line, Assert.Single(page.GetElements(PdfLogicalElementKind.Heading)));
+        Assert.Same(table, Assert.Single(logical.GetElements(PdfLogicalElementKind.Table)));
+        Assert.Same(image, Assert.Single(logical.ElementsByKind[PdfLogicalElementKind.Image]));
+        Assert.Equal(page.Elements, logical.ElementsByPageNumber[1]);
+        Assert.Equal(page.Elements, logical.GetElements(1));
+        Assert.Empty(logical.GetElements(PdfLogicalElementKind.LinkAnnotation));
+        Assert.Empty(page.GetElements(PdfLogicalElementKind.LinkAnnotation));
+        Assert.Empty(logical.GetElements(2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => logical.GetElements(0));
         Assert.Contains(logical.Elements, element => element.Kind == PdfLogicalElementKind.Table);
         Assert.Contains(logical.Elements, element => element.Kind == PdfLogicalElementKind.Image);
     }
@@ -104,6 +117,7 @@ public class PdfLogicalDocumentTests {
         Assert.Contains(logical.Pages[3].TextBlocks, block => block.Text.Contains("Third logical page", StringComparison.Ordinal));
         Assert.Equal(2, logical.Pages.Count(page => page.PageNumber == 3));
         Assert.Equal(2, logical.TextBlocks.Count(block => block.PageNumber == 3 && block.Text.Contains("Third logical page", StringComparison.Ordinal)));
+        Assert.Equal(2, logical.GetElements(3).OfType<PdfLogicalTextBlock>().Count(block => block.Text.Contains("Third logical page", StringComparison.Ordinal)));
 
         PdfReadDocument document = PdfReadDocument.Load(pdf);
         PdfLogicalDocument fromDocument = PdfLogicalDocument.FromPageRanges(document, PdfPageRange.From(2, 2));
