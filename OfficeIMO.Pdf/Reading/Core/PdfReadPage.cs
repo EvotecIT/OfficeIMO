@@ -132,11 +132,24 @@ public sealed class PdfReadPage {
         var unsupported = new List<string>();
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
+        var content = new System.Text.StringBuilder();
+        bool canInspectFormInvocations = true;
         foreach (var stream in GetContentStreamObjects()) {
             AddUnsupportedFilters(stream, unsupported);
-            if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects).Count == 0) {
-                CollectUnsupportedFormFilters(PdfEncoding.Latin1GetString(DecodeIfNeeded(stream)), pageResources, unsupported, activeForms);
+            if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects).Count != 0) {
+                canInspectFormInvocations = false;
+                continue;
             }
+
+            if (content.Length > 0) {
+                content.Append('\n');
+            }
+
+            content.Append(PdfEncoding.Latin1GetString(DecodeIfNeeded(stream)));
+        }
+
+        if (canInspectFormInvocations && content.Length > 0) {
+            CollectUnsupportedFormFilters(content.ToString(), pageResources, unsupported, activeForms);
         }
 
         return unsupported;

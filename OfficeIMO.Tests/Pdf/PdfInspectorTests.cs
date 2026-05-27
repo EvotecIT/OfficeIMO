@@ -1170,6 +1170,20 @@ public class PdfInspectorTests {
     }
 
     [Fact]
+    public void Preflight_ReportsUnsupportedFormXObjectFiltersAcrossSplitContentStreams() {
+        PdfDocumentPreflight report = PdfInspector.Preflight(BuildUnsupportedFormXObjectFilterSplitAcrossContentStreamsPdf());
+
+        Assert.False(report.CanRead);
+        Assert.False(report.CanRewrite);
+        Assert.NotNull(report.DocumentInfo);
+        Assert.Equal(1, report.DocumentInfo!.PageCount);
+        AssertReadBlocker(
+            report,
+            PdfReadBlockerKind.UnsupportedContentStreamFilter,
+            "PDF page content streams use unsupported filter(s): DCTDecode.");
+    }
+
+    [Fact]
     public void Preflight_BlocksWrongGenerationRewriteReferences() {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildWrongGenerationContentReferencePdf());
 
@@ -1295,6 +1309,46 @@ public class PdfInspectorTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildUnsupportedFormXObjectFilterSplitAcrossContentStreamsPdf() {
+        const string pageContentOne = "q\n/Fm1 ";
+        const string pageContentTwo = "Do\nQ";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << /Fm1 5 0 R >> >> /Contents [4 0 R 6 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + pageContentOne.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            pageContentOne,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /XObject /Subtype /Form /BBox [0 0 200 200] /Length 4 /Filter /DCTDecode >>",
+            "stream",
+            "data",
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            "<< /Length " + pageContentTwo.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            pageContentTwo,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
             "%%EOF"
         });
 
