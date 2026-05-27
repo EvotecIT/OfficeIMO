@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -105,6 +106,54 @@ namespace OfficeIMO.Tests {
                 issue.Contains("Page ID 1 (Page-2)") &&
                 issue.IndexOf("Missing Override", StringComparison.OrdinalIgnoreCase) >= 0);
             Assert.DoesNotContain(issues, issue => issue.Contains("Page ID 0 (Page-1)"));
+        }
+
+        [Fact]
+        public void ValidatorReportsMissingContentTypesWithoutThrowing() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Page-1");
+            page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Start"));
+            document.Save();
+
+            using (FileStream stream = new(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            using (ZipArchive archive = new(stream, ZipArchiveMode.Update)) {
+                ZipArchiveEntry? entry = archive.GetEntry("[Content_Types].xml");
+                Assert.NotNull(entry);
+                entry!.Delete();
+            }
+
+            IReadOnlyList<string> issues = Array.Empty<string>();
+            Exception? exception = Record.Exception(() => issues = VisioValidator.Validate(filePath));
+
+            Assert.Null(exception);
+            Assert.Contains(issues, issue => issue.Contains("[Content_Types].xml", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void ValidatorReportsMissingPagesRelationshipsWithoutThrowing() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Page-1");
+            page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Start"));
+            document.Save();
+
+            using (FileStream stream = new(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            using (ZipArchive archive = new(stream, ZipArchiveMode.Update)) {
+                ZipArchiveEntry? entry = archive.GetEntry("visio/pages/_rels/pages.xml.rels");
+                Assert.NotNull(entry);
+                entry!.Delete();
+            }
+
+            IReadOnlyList<string> issues = Array.Empty<string>();
+            Exception? exception = Record.Exception(() => issues = VisioValidator.Validate(filePath));
+
+            Assert.Null(exception);
+            Assert.Contains(issues, issue =>
+                issue.Contains("/visio/pages/_rels/pages.xml.rels", StringComparison.OrdinalIgnoreCase) &&
+                issue.Contains("missing", StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]
