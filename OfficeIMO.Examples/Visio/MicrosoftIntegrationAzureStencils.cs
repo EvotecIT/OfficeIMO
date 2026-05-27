@@ -160,7 +160,7 @@ namespace OfficeIMO.Examples.Visio {
         private static Dictionary<string, VisioStencilShape> PickRequired(VisioStencilCatalog catalog, IReadOnlyDictionary<string, string[]> selectors) {
             Dictionary<string, VisioStencilShape> selected = new(StringComparer.Ordinal);
             foreach (KeyValuePair<string, string[]> selector in selectors) {
-                if (TryPick(catalog, selector.Value, out VisioStencilShape? stencil) && stencil != null) {
+                if (catalog.TryFindBest(selector.Value, out VisioStencilShape? stencil) && stencil != null) {
                     selected.Add(selector.Key, stencil);
                     continue;
                 }
@@ -169,22 +169,6 @@ namespace OfficeIMO.Examples.Visio {
             }
 
             return selected;
-        }
-
-        private static bool TryPick(VisioStencilCatalog catalog, IEnumerable<string> queries, out VisioStencilShape? stencil) {
-            foreach (string query in queries) {
-                if (catalog.TryGet(query, out stencil) && stencil != null) {
-                    return true;
-                }
-
-                stencil = catalog.Search(query).FirstOrDefault();
-                if (stencil != null) {
-                    return true;
-                }
-            }
-
-            stencil = null;
-            return false;
         }
 
         private static VisioStencilShape AsDiagramIcon(VisioStencilShape stencil) {

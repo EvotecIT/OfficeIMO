@@ -255,6 +255,12 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
+        /// <summary>Adds a graph node backed by the first matching stencil in a catalog.</summary>
+        public VisioGraphDiagramBuilder StencilNode(string id, string text, VisioStencilCatalog catalog, params string[] stencilQueries) {
+            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
+            return StencilNode(id, text, catalog.FindBest(stencilQueries));
+        }
+
         /// <summary>Adds a standard directed graph edge.</summary>
         public VisioGraphDiagramBuilder Edge(string fromId, string toId, string? label = null) =>
             Edge(fromId, toId, VisioGraphConnectorKind.Standard, label, directed: true);

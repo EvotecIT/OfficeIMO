@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using OfficeIMO.Visio;
@@ -86,28 +85,12 @@ namespace OfficeIMO.Examples.Visio {
         }
 
         private static void AddNode(VisioGraphDiagramBuilder graph, VisioStencilCatalog? catalog, string id, string text, VisioGraphNodeKind fallbackKind, params string[] queries) {
-            if (catalog != null && TryPick(catalog, queries, out VisioStencilShape? stencil) && stencil != null) {
-                graph.StencilNode(id, text, stencil);
+            if (catalog != null && catalog.TryFindBest(queries, out VisioStencilShape? stencil) && stencil != null) {
+                graph.StencilNode(id, text, catalog, queries);
                 return;
             }
 
             graph.Node(id, text, fallbackKind);
-        }
-
-        private static bool TryPick(VisioStencilCatalog catalog, IEnumerable<string> queries, out VisioStencilShape? stencil) {
-            foreach (string query in queries) {
-                if (catalog.TryGet(query, out stencil) && stencil != null) {
-                    return true;
-                }
-
-                stencil = catalog.Search(query).FirstOrDefault();
-                if (stencil != null) {
-                    return true;
-                }
-            }
-
-            stencil = null;
-            return false;
         }
     }
 }

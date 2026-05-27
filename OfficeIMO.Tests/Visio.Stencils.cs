@@ -42,6 +42,9 @@ namespace OfficeIMO.Tests {
             Assert.Contains(tagMatches, shape => shape.Id == "net.firewall");
             Assert.All(categoryOnly, shape => Assert.Equal("Timeline", shape.Category));
             Assert.Contains(categoryOnly, shape => shape.Id == "time.milestone");
+            Assert.True(VisioStencils.All.TryFindBest(new[] { "missing", "access-point" }, out VisioStencilShape? best));
+            Assert.Equal("Wireless AP", best!.Name);
+            Assert.Equal("Storage", VisioStencils.All.FindBest("not-present", "data-store").Name);
         }
 
         [Fact]

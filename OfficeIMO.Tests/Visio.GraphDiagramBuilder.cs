@@ -105,6 +105,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GraphDiagramBuilderCanSelectStencilNodesFromCatalogQueries() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .GraphDiagram("Catalog Query Graph", graph => graph
+                    .StencilNode("client", "Client", VisioStencils.Network, "missing", "access-point")
+                    .StencilNode("service", "Service", VisioStencils.Flowchart, "process")
+                    .Edge("client", "service", "calls"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            Assert.Equal("Circle", page.Shapes.Single(shape => shape.Id == "client").MasterNameU);
+            Assert.Equal("Process", page.Shapes.Single(shape => shape.Id == "service").MasterNameU);
+            Assert.Contains(page.Shapes, shape => shape.Id == "client-label" && shape.Text == "Client");
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void GraphDiagramBuilderRejectsUnknownEdgeEndpoints() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 

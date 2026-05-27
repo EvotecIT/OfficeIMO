@@ -122,6 +122,45 @@ namespace OfficeIMO.Visio.Stencils {
         }
 
         /// <summary>
+        /// Attempts to find the first matching stencil shape from a prioritized set of lookup or search queries.
+        /// Exact id/name/master/keyword/alias/tag matches are preferred before search matches for each query.
+        /// </summary>
+        /// <param name="queries">Prioritized lookup or search queries.</param>
+        /// <param name="shape">The matched stencil shape, when one is found.</param>
+        public bool TryFindBest(IEnumerable<string> queries, out VisioStencilShape? shape) {
+            if (queries == null) throw new ArgumentNullException(nameof(queries));
+
+            foreach (string query in queries.Where(value => !string.IsNullOrWhiteSpace(value))) {
+                if (TryGet(query, out shape) && shape != null) {
+                    return true;
+                }
+
+                shape = Search(query).FirstOrDefault();
+                if (shape != null) {
+                    return true;
+                }
+            }
+
+            shape = null;
+            return false;
+        }
+
+        /// <summary>
+        /// Finds the first matching stencil shape from a prioritized set of lookup or search queries.
+        /// Exact id/name/master/keyword/alias/tag matches are preferred before search matches for each query.
+        /// </summary>
+        /// <param name="queries">Prioritized lookup or search queries.</param>
+        public VisioStencilShape FindBest(params string[] queries) {
+            if (queries == null) throw new ArgumentNullException(nameof(queries));
+            if (TryFindBest(queries, out VisioStencilShape? shape) && shape != null) {
+                return shape;
+            }
+
+            string attempted = string.Join(", ", queries.Where(value => !string.IsNullOrWhiteSpace(value)));
+            throw new KeyNotFoundException($"No stencil shape matching '{attempted}' was found in catalog '{Name}'.");
+        }
+
+        /// <summary>
         /// Searches stencil shapes by id, name, master name, category, keyword, alias, or tag.
         /// </summary>
         /// <param name="query">Search text.</param>
