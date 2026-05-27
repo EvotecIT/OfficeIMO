@@ -10,14 +10,14 @@ internal struct Matrix2D {
         return (nx, ny);
     }
     public static Matrix2D Multiply(Matrix2D m1, Matrix2D m2) {
-        // standard affine multiply: m1 * m2
+        // Column-vector affine multiply: apply m2 in the coordinate system already transformed by m1.
         return new Matrix2D(
-            m1.A * m2.A + m1.B * m2.C,
-            m1.A * m2.B + m1.B * m2.D,
-            m1.C * m2.A + m1.D * m2.C,
-            m1.C * m2.B + m1.D * m2.D,
-            m1.E * m2.A + m1.F * m2.C + m2.E,
-            m1.E * m2.B + m1.F * m2.D + m2.F);
+            m1.A * m2.A + m1.C * m2.B,
+            m1.B * m2.A + m1.D * m2.B,
+            m1.A * m2.C + m1.C * m2.D,
+            m1.B * m2.C + m1.D * m2.D,
+            m1.A * m2.E + m1.C * m2.F + m1.E,
+            m1.B * m2.E + m1.D * m2.F + m1.F);
     }
 }
 

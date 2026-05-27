@@ -637,6 +637,18 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfReadPage_GetTextSpans_AppliesScaledFormTransformsInOrder() {
+        byte[] bytes = BuildPdfWithScaledFormMatrix();
+
+        var doc = PdfReadDocument.Load(bytes);
+
+        Assert.Single(doc.Pages);
+        var span = Assert.Single(doc.Pages[0].GetTextSpans(), s => s.Text == "Scaled form");
+        Assert.Equal(26, span.X, 3);
+        Assert.Equal(42, span.Y, 3);
+    }
+
+    [Fact]
     public void PdfReadPage_GetTextSpans_ReadsInlineNestedFormResourceDictionaries() {
         byte[] bytes = BuildPdfWithInlineNestedFormResources();
 
@@ -1988,6 +2000,58 @@ public class PdfReaderAndFooterRegressionTests {
             "<< /FxInner 6 0 R >>",
             "endobj",
             "13 0 obj",
+            "<< /F1 4 0 R >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithScaledFormMatrix() {
+        const string pageContent = "q\n2 0 0 2 10 20 cm\n/Fx Do\nQ\n";
+        const string formContent = "BT\n/F1 12 Tf\n3 4 Td\n(Scaled form) Tj\nET\n";
+        int pageStreamLength = Encoding.ASCII.GetByteCount(pageContent);
+        int formStreamLength = Encoding.ASCII.GetByteCount(formContent);
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources 7 0 R >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Contents 6 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            "endobj",
+            "5 0 obj",
+            $"<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Matrix [1 0 0 1 5 7] /Resources 9 0 R /Length {formStreamLength} >>",
+            "stream",
+            formContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            $"<< /Length {pageStreamLength} >>",
+            "stream",
+            pageContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            "<< /XObject 8 0 R >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Fx 5 0 R >>",
+            "endobj",
+            "9 0 obj",
+            "<< /Font 10 0 R >>",
+            "endobj",
+            "10 0 obj",
             "<< /F1 4 0 R >>",
             "endobj",
             "trailer",
