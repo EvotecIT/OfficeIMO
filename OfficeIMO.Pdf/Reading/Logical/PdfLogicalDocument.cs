@@ -113,6 +113,7 @@ public sealed class PdfLogicalPage {
         int rotationDegrees,
         IReadOnlyList<IPdfLogicalElement> elements,
         IReadOnlyList<PdfLogicalTextBlock> textBlocks,
+        IReadOnlyList<PdfLogicalParagraph> paragraphs,
         IReadOnlyList<PdfLogicalTable> tables,
         IReadOnlyList<PdfLogicalImage> images,
         IReadOnlyList<PdfLinkAnnotation> linkAnnotations) {
@@ -122,6 +123,7 @@ public sealed class PdfLogicalPage {
         RotationDegrees = rotationDegrees;
         Elements = elements;
         TextBlocks = textBlocks;
+        Paragraphs = paragraphs;
         Tables = tables;
         Images = images;
         LinkAnnotations = linkAnnotations;
@@ -144,6 +146,9 @@ public sealed class PdfLogicalPage {
 
     /// <summary>Line-level text blocks extracted from positioned text spans.</summary>
     public IReadOnlyList<PdfLogicalTextBlock> TextBlocks { get; }
+
+    /// <summary>Heuristic paragraph groups built from non-table, non-list text lines.</summary>
+    public IReadOnlyList<PdfLogicalParagraph> Paragraphs { get; }
 
     /// <summary>Detected table-like regions.</summary>
     public IReadOnlyList<PdfLogicalTable> Tables { get; }
@@ -205,9 +210,90 @@ public sealed class PdfLogicalPage {
             page.GetRotationDegrees(),
             elements.AsReadOnly(),
             textBlocks.AsReadOnly(),
+            BuildParagraphs(pageNumber, textBlocks, tables),
             tables.AsReadOnly(),
             images.AsReadOnly(),
             page.GetLinkAnnotations());
+    }
+
+    private static IReadOnlyList<PdfLogicalParagraph> BuildParagraphs(int pageNumber, List<PdfLogicalTextBlock> textBlocks, IReadOnlyList<PdfLogicalTable> tables) {
+        var candidates = new List<PdfLogicalTextBlock>();
+        for (int i = 0; i < textBlocks.Count; i++) {
+            var block = textBlocks[i];
+            if (block.Kind != PdfLogicalElementKind.TextBlock || IsInsideTable(block, tables)) {
+                continue;
+            }
+
+            candidates.Add(block);
+        }
+
+        if (candidates.Count == 0) {
+            return Array.Empty<PdfLogicalParagraph>();
+        }
+
+        var gaps = new List<double>();
+        for (int i = 1; i < candidates.Count; i++) {
+            double gap = candidates[i - 1].BaselineY - candidates[i].BaselineY;
+            if (gap > 0.001) {
+                gaps.Add(gap);
+            }
+        }
+
+        double medianGap = Median(gaps);
+        double splitGap = medianGap <= 0 ? 18D : Math.Max(18D, medianGap * 1.35D);
+        double xTolerance = 18D;
+        var paragraphs = new List<PdfLogicalParagraph>();
+        var current = new List<PdfLogicalTextBlock> { candidates[0] };
+
+        for (int i = 1; i < candidates.Count; i++) {
+            var previous = candidates[i - 1];
+            var next = candidates[i];
+            double gap = previous.BaselineY - next.BaselineY;
+            bool split = gap > splitGap || Math.Abs(next.XStart - current[0].XStart) > xTolerance;
+            if (split) {
+                paragraphs.Add(PdfLogicalParagraph.From(pageNumber, current));
+                current = new List<PdfLogicalTextBlock>();
+            }
+
+            current.Add(next);
+        }
+
+        if (current.Count > 0) {
+            paragraphs.Add(PdfLogicalParagraph.From(pageNumber, current));
+        }
+
+        return paragraphs.AsReadOnly();
+    }
+
+    private static bool IsInsideTable(PdfLogicalTextBlock block, IReadOnlyList<PdfLogicalTable> tables) {
+        for (int i = 0; i < tables.Count; i++) {
+            var table = tables[i];
+            if (table.Columns.Count == 0) {
+                continue;
+            }
+
+            if (block.BaselineY <= table.YTop + 0.001 &&
+                block.BaselineY >= table.YBottom - 0.001 &&
+                block.XEnd >= table.Columns[0].From - 2D) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static double Median(List<double> values) {
+        if (values.Count == 0) {
+            return 0D;
+        }
+
+        values.Sort();
+        int middle = values.Count / 2;
+        if ((values.Count & 1) == 1) {
+            return values[middle];
+        }
+
+        return (values[middle - 1] + values[middle]) / 2D;
     }
 
     private static string NormalizeForKindComparison(string text) {
@@ -281,6 +367,61 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
 
     /// <summary>Number of text spans merged into this block.</summary>
     public int SpanCount { get; }
+}
+
+/// <summary>
+/// Heuristic paragraph group built from nearby line-level text blocks.
+/// </summary>
+public sealed class PdfLogicalParagraph {
+    private PdfLogicalParagraph(
+        int pageNumber,
+        string text,
+        IReadOnlyList<PdfLogicalTextBlock> lines,
+        double xStart,
+        double xEnd,
+        double yTop,
+        double yBottom) {
+        PageNumber = pageNumber;
+        Text = text;
+        Lines = lines;
+        XStart = xStart;
+        XEnd = xEnd;
+        YTop = yTop;
+        YBottom = yBottom;
+    }
+
+    /// <summary>One-based source page number.</summary>
+    public int PageNumber { get; }
+
+    /// <summary>Paragraph text with grouped lines joined by spaces.</summary>
+    public string Text { get; }
+
+    /// <summary>Line-level blocks that make up this paragraph.</summary>
+    public IReadOnlyList<PdfLogicalTextBlock> Lines { get; }
+
+    /// <summary>Leftmost X coordinate in PDF points.</summary>
+    public double XStart { get; }
+
+    /// <summary>Rightmost X coordinate in PDF points.</summary>
+    public double XEnd { get; }
+
+    /// <summary>Top baseline Y coordinate in PDF points.</summary>
+    public double YTop { get; }
+
+    /// <summary>Bottom baseline Y coordinate in PDF points.</summary>
+    public double YBottom { get; }
+
+    internal static PdfLogicalParagraph From(int pageNumber, IReadOnlyList<PdfLogicalTextBlock> lines) {
+        var text = string.Join(" ", lines.Select(line => line.Text));
+        return new PdfLogicalParagraph(
+            pageNumber,
+            text,
+            lines.ToArray(),
+            lines.Min(line => line.XStart),
+            lines.Max(line => line.XEnd),
+            lines.Max(line => line.BaselineY),
+            lines.Min(line => line.BaselineY));
+    }
 }
 
 /// <summary>
