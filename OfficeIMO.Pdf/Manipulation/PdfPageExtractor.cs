@@ -622,7 +622,7 @@ public static class PdfPageExtractor {
         int pagesId = nextObjectId++;
         int catalogId = nextObjectId++;
         int infoId = nextObjectId;
-        var context = new SerializationContext(numberMap, pagesId, collector.MaterializedPageValues, pageOverrides);
+        var context = new SerializationContext(numberMap, pagesId, collector.MaterializedPageValues, sourceObjects, pageOverrides);
         var objects = new List<byte[]>(sourceIds.Count + 3);
 
         foreach (int sourceId in sourceIds) {
@@ -660,7 +660,7 @@ public static class PdfPageExtractor {
                 : new Dictionary<int, Dictionary<string, PdfObject>> {
                     [clonedPage.SourcePageObjectNumber] = clonedPage.PageOverrides
                 };
-            var clonedContext = new SerializationContext(clonedNumberMap, pagesId, collector.MaterializedPageValues, clonedPageOverrides);
+            var clonedContext = new SerializationContext(clonedNumberMap, pagesId, collector.MaterializedPageValues, sourceObjects, clonedPageOverrides);
             byte[] body = SerializePageDictionary(dictionary, clonedPage.SourcePageObjectNumber, clonedContext);
             objects.Add(WrapObject(clonedPage.OutputPageObjectNumber, body));
 
@@ -1184,7 +1184,7 @@ public static class PdfPageExtractor {
         HashSet<int> visitedObjects) {
         if (pageNode is PdfReference reference) {
             if (!visitedObjects.Add(reference.ObjectNumber) ||
-                !sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                !PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect)) {
                 return;
             }
 
@@ -1350,7 +1350,7 @@ public static class PdfPageExtractor {
         HashSet<int> visitedReferences) {
         if (value is PdfReference reference) {
             if (!visitedReferences.Add(reference.ObjectNumber) ||
-                !sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                !PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect)) {
                 return false;
             }
 
@@ -1448,7 +1448,7 @@ public static class PdfPageExtractor {
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject? xmpMetadata) {
         if (xmpMetadata is not PdfReference reference ||
-            !sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect) ||
+            !PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect) ||
             indirect.Value is not PdfStream stream ||
             !IsXmpMetadataStream(stream)) {
             return null;
@@ -1519,7 +1519,7 @@ public static class PdfPageExtractor {
                     return true;
                 }
 
-                if (!sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                if (!PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect)) {
                     return false;
                 }
 
@@ -1578,7 +1578,7 @@ public static class PdfPageExtractor {
                     return true;
                 }
 
-                if (!sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                if (!PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect)) {
                     return false;
                 }
 
@@ -1639,7 +1639,7 @@ public static class PdfPageExtractor {
             case PdfNull:
                 return true;
             case PdfReference reference:
-                if (!sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                if (!PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect)) {
                     return false;
                 }
 
@@ -1807,7 +1807,7 @@ public static class PdfPageExtractor {
         while (true) {
             if (destination is PdfReference reference) {
                 if (!visitedReferences.Add(reference.ObjectNumber) ||
-                    !sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                    !PdfObjectLookup.TryGet(sourceObjects, reference, out var indirect)) {
                     return false;
                 }
 
@@ -1824,7 +1824,7 @@ public static class PdfPageExtractor {
             return destination is PdfArray array &&
                 array.Items.Count > 0 &&
                 array.Items[0] is PdfReference pageReference &&
-                sourceObjects.TryGetValue(pageReference.ObjectNumber, out var pageObject) &&
+                PdfObjectLookup.TryGet(sourceObjects, pageReference, out var pageObject) &&
                 IsPageDictionary(pageObject.Value);
         }
     }
@@ -1855,12 +1855,7 @@ public static class PdfPageExtractor {
     }
 
     private static PdfObject? ResolveObject(Dictionary<int, PdfIndirectObject> sourceObjects, PdfObject? value) {
-        if (value is PdfReference reference &&
-            sourceObjects.TryGetValue(reference.ObjectNumber, out var indirect)) {
-            return indirect.Value;
-        }
-
-        return value;
+        return PdfObjectLookup.Resolve(sourceObjects, value);
     }
 
     private static PdfDictionary? ResolveDictionary(Dictionary<int, PdfIndirectObject> sourceObjects, PdfObject? value) {
@@ -1884,13 +1879,13 @@ public static class PdfPageExtractor {
 
         foreach (var annotation in annotations.Items) {
             if (annotation is PdfReference annotationReference &&
-                sourceObjects.ContainsKey(annotationReference.ObjectNumber)) {
+                PdfObjectLookup.TryGet(sourceObjects, annotationReference, out _)) {
                 if (!annotationObjectMap.TryGetValue(annotationReference.ObjectNumber, out int clonedAnnotationObjectNumber)) {
                     clonedAnnotationObjectNumber = nextObjectId++;
                     annotationObjectMap[annotationReference.ObjectNumber] = clonedAnnotationObjectNumber;
                 }
 
-                clonedAnnotations.Items.Add(new PdfReference(clonedAnnotationObjectNumber, annotationReference.Generation));
+                clonedAnnotations.Items.Add(new PdfReference(annotationReference.ObjectNumber, annotationReference.Generation));
                 hasClonedIndirectAnnotation = true;
                 continue;
             }
@@ -2047,11 +2042,12 @@ public static class PdfPageExtractor {
                 sb.Append("null");
                 break;
             case PdfReference reference:
+                ValidateReferenceGeneration(reference, context);
                 if (!context.NumberMap.TryGetValue(reference.ObjectNumber, out int newObjectNumber)) {
                     throw new InvalidOperationException("PDF object " + reference.ObjectNumber.ToString(CultureInfo.InvariantCulture) + " was referenced but not copied.");
                 }
 
-                sb.Append(PdfSyntaxEscaper.IndirectReference(newObjectNumber, reference.Generation));
+                sb.Append(PdfSyntaxEscaper.IndirectReference(newObjectNumber));
                 break;
             case PdfArray array:
                 sb.Append("[ ");
@@ -2073,6 +2069,31 @@ public static class PdfPageExtractor {
             default:
                 throw new NotSupportedException("Unsupported PDF object type: " + value.GetType().Name);
         }
+    }
+
+    private static void ValidateReferenceGeneration(PdfReference reference, SerializationContext context) {
+        if (context.SourceObjectGenerations.TryGetValue(reference.ObjectNumber, out int activeGeneration)) {
+            if (reference.Generation != activeGeneration) {
+                throw BuildGenerationMismatchException(reference, activeGeneration);
+            }
+
+            return;
+        }
+
+        if (reference.ObjectNumber < 0 && reference.Generation != 0) {
+            throw new InvalidOperationException("Additional PDF object " + reference.ObjectNumber.ToString(CultureInfo.InvariantCulture) + " was referenced with generation " + reference.Generation.ToString(CultureInfo.InvariantCulture) + "; additional rewrite objects must use generation 0.");
+        }
+    }
+
+    private static InvalidOperationException BuildGenerationMismatchException(PdfReference reference, int activeGeneration) {
+        return new InvalidOperationException(
+            "PDF object " +
+            reference.ObjectNumber.ToString(CultureInfo.InvariantCulture) +
+            " " +
+            reference.Generation.ToString(CultureInfo.InvariantCulture) +
+            " R was referenced, but the active object generation is " +
+            activeGeneration.ToString(CultureInfo.InvariantCulture) +
+            ".");
     }
 
     internal static string BuildInfoDictionary(PdfMetadata metadata) {
@@ -2186,6 +2207,12 @@ public static class PdfPageExtractor {
         private void CollectReferences(PdfObject value, bool isPageObject, Dictionary<string, PdfObject>? pageOverrides = null) {
             switch (value) {
                 case PdfReference reference:
+                    if (reference.ObjectNumber >= 0 &&
+                        _sourceObjects.TryGetValue(reference.ObjectNumber, out var referenced) &&
+                        referenced.Generation != reference.Generation) {
+                        throw BuildGenerationMismatchException(reference, referenced.Generation);
+                    }
+
                     CollectObject(reference.ObjectNumber, isPageObject: false);
                     break;
                 case PdfArray array:
@@ -2254,7 +2281,7 @@ public static class PdfPageExtractor {
 
                 if (!current.Items.TryGetValue("Parent", out var parentObj) ||
                     parentObj is not PdfReference parentReference ||
-                    !_sourceObjects.TryGetValue(parentReference.ObjectNumber, out var parentIndirect) ||
+                    !PdfObjectLookup.TryGet(_sourceObjects, parentReference, out var parentIndirect) ||
                     parentIndirect.Value is not PdfDictionary parentDictionary) {
                     return null;
                 }
@@ -2271,10 +2298,12 @@ public static class PdfPageExtractor {
             Dictionary<int, int> numberMap,
             int pagesObjectId,
             Dictionary<int, Dictionary<string, PdfObject>> materializedPageValues,
+            Dictionary<int, PdfIndirectObject>? sourceObjects = null,
             Dictionary<int, Dictionary<string, PdfObject>>? pageOverrides = null) {
             NumberMap = numberMap;
             PagesObjectId = pagesObjectId;
             MaterializedPageValues = materializedPageValues;
+            SourceObjectGenerations = sourceObjects?.ToDictionary(entry => entry.Key, entry => entry.Value.Generation) ?? new Dictionary<int, int>();
             PageOverrides = pageOverrides ?? new Dictionary<int, Dictionary<string, PdfObject>>();
         }
 
@@ -2283,6 +2312,8 @@ public static class PdfPageExtractor {
         public int PagesObjectId { get; }
 
         public Dictionary<int, Dictionary<string, PdfObject>> MaterializedPageValues { get; }
+
+        public Dictionary<int, int> SourceObjectGenerations { get; }
 
         public Dictionary<int, Dictionary<string, PdfObject>> PageOverrides { get; }
     }

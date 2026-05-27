@@ -53,5 +53,8 @@ public enum PdfRewriteBlockerKind {
     OptionalContent,
 
     /// <summary>Active content markers such as JavaScript actions are present.</summary>
-    ActiveContent
+    ActiveContent,
+
+    /// <summary>Rewrite object graph contains missing or wrong-generation indirect references.</summary>
+    InvalidObjectReferences
 }

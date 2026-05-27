@@ -170,7 +170,7 @@ internal static class StreamDecoder {
     private static PdfObject? ResolveObject(PdfObject? obj, Dictionary<int, PdfIndirectObject>? objects) {
         if (obj is PdfReference reference &&
             objects is not null &&
-            objects.TryGetValue(reference.ObjectNumber, out var indirect) &&
+            PdfObjectLookup.TryGet(objects, reference, out var indirect) &&
             indirect.Value is PdfObject resolvedObject) {
             return resolvedObject;
         }

@@ -735,6 +735,54 @@ public class PdfPageExtractorTests {
     }
 
     [Fact]
+    public void ExtractPages_NormalizesRemappedReferencesToGenerationZero() {
+        byte[] source = BuildSinglePagePdfWithGenerationOneContent();
+
+        byte[] extracted = PdfPageExtractor.ExtractPages(source, 1);
+
+        string extractedText = NormalizeExtractedText(PdfReadDocument.Load(extracted).ExtractText());
+        Assert.Contains("Generationonecontent", extractedText);
+
+        var document = PdfReadDocument.Load(extracted);
+        var (objects, _) = PdfSyntax.ParseObjects(extracted);
+        int pageObjectNumber = Assert.Single(document.Pages).ObjectNumber;
+        var page = Assert.IsType<PdfDictionary>(objects[pageObjectNumber].Value);
+        var contents = Assert.IsType<PdfReference>(page.Items["Contents"]);
+        Assert.Equal(0, contents.Generation);
+        Assert.True(objects.ContainsKey(contents.ObjectNumber));
+    }
+
+    [Fact]
+    public void ExtractPages_NormalizesClonedAnnotationReferencesToGenerationZero() {
+        byte[] source = BuildSinglePagePdfWithGenerationOneContent(includeAnnotation: true);
+
+        byte[] extracted = PdfPageExtractor.ExtractPages(source, 1, 1);
+
+        var document = PdfReadDocument.Load(extracted);
+        var (objects, _) = PdfSyntax.ParseObjects(extracted);
+        Assert.Equal(2, document.Pages.Count);
+
+        foreach (var readPage in document.Pages) {
+            var page = Assert.IsType<PdfDictionary>(objects[readPage.ObjectNumber].Value);
+            var annotations = Assert.IsType<PdfArray>(page.Items["Annots"]);
+            var annotationReference = Assert.IsType<PdfReference>(Assert.Single(annotations.Items));
+
+            Assert.Equal(0, annotationReference.Generation);
+            Assert.True(objects.ContainsKey(annotationReference.ObjectNumber));
+        }
+    }
+
+    [Fact]
+    public void ExtractPages_RejectsWrongGenerationReferencesBeforeRewrite() {
+        byte[] source = BuildSinglePagePdfWithGenerationOneContent(contentObjectGeneration: 0, contentReferenceGeneration: 1);
+
+        var exception = Assert.Throws<InvalidOperationException>(() => PdfPageExtractor.ExtractPages(source, 1));
+
+        Assert.Contains("PDF object 4 1 R", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("active object generation is 0", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ExtractPages_DropsBookmarkLinksWhenDestinationPageIsNotCopied() {
         byte[] source = PdfDoc.Create()
             .Paragraph(p => p.LinkToBookmark("Jump to details", "Details"))
@@ -945,6 +993,70 @@ public class PdfPageExtractorTests {
                 Directory.Delete(directory, recursive: true);
             }
         }
+    }
+
+    private static byte[] BuildSinglePagePdfWithGenerationOneContent(
+        bool includeAnnotation = false,
+        int contentObjectGeneration = 1,
+        int contentReferenceGeneration = 1,
+        int annotationObjectGeneration = 1,
+        int annotationReferenceGeneration = 1) {
+        var stream = new MemoryStream();
+        var offsets = new Dictionary<int, (int Offset, int Generation)>();
+        string annotationEntry = includeAnnotation ? " /Annots [6 " + annotationReferenceGeneration.ToString(System.Globalization.CultureInfo.InvariantCulture) + " R]" : string.Empty;
+
+        WriteAscii(stream, "%PDF-1.4\n");
+        WriteObject(stream, offsets, 1, 0, "<< /Type /Catalog /Pages 2 0 R >>");
+        WriteObject(stream, offsets, 2, 0, "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 5 0 R >> >> >>");
+        WriteObject(stream, offsets, 3, 0, "<< /Type /Page /Parent 2 0 R /Contents 4 " + contentReferenceGeneration.ToString(System.Globalization.CultureInfo.InvariantCulture) + " R" + annotationEntry + " >>");
+        WriteStreamObject(stream, offsets, 4, contentObjectGeneration, Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n(Generation one content) Tj\nET\n"));
+        WriteObject(stream, offsets, 5, 0, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+
+        if (includeAnnotation) {
+            WriteObject(stream, offsets, 6, annotationObjectGeneration, "<< /Type /Annot /Subtype /Link /Rect [72 700 180 722] /Border [0 0 0] /A << /S /URI /URI (https://evotec.xyz) >> /Contents (Generation link) >>");
+        }
+
+        int size = includeAnnotation ? 7 : 6;
+        int xrefOffset = (int)stream.Position;
+        WriteAscii(stream, "xref\n0 " + size.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\n");
+        WriteAscii(stream, "0000000000 65535 f \n");
+
+        for (int objectNumber = 1; objectNumber < size; objectNumber++) {
+            var entry = offsets[objectNumber];
+            WriteAscii(stream,
+                entry.Offset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) +
+                " " +
+                entry.Generation.ToString("D5", System.Globalization.CultureInfo.InvariantCulture) +
+                " n \n");
+        }
+
+        WriteAscii(stream,
+            "trailer\n<< /Size " + size.ToString(System.Globalization.CultureInfo.InvariantCulture) + " /Root 1 0 R >>\n" +
+            "startxref\n" +
+            xrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            "\n%%EOF\n");
+
+        return stream.ToArray();
+    }
+
+    private static void WriteObject(Stream stream, Dictionary<int, (int Offset, int Generation)> offsets, int objectNumber, int generation, string body) {
+        offsets[objectNumber] = ((int)stream.Position, generation);
+        WriteAscii(stream, objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " + generation.ToString(System.Globalization.CultureInfo.InvariantCulture) + " obj\n");
+        WriteAscii(stream, body);
+        WriteAscii(stream, "\nendobj\n");
+    }
+
+    private static void WriteStreamObject(Stream stream, Dictionary<int, (int Offset, int Generation)> offsets, int objectNumber, int generation, byte[] streamBytes) {
+        offsets[objectNumber] = ((int)stream.Position, generation);
+        WriteAscii(stream, objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " + generation.ToString(System.Globalization.CultureInfo.InvariantCulture) + " obj\n");
+        WriteAscii(stream, "<< /Length " + streamBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
+        stream.Write(streamBytes, 0, streamBytes.Length);
+        WriteAscii(stream, "endstream\nendobj\n");
+    }
+
+    private static void WriteAscii(Stream stream, string value) {
+        byte[] bytes = Encoding.ASCII.GetBytes(value);
+        stream.Write(bytes, 0, bytes.Length);
     }
 
     private static byte[] BuildThreePagePdf() {

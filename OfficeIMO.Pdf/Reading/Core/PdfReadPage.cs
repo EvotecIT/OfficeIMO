@@ -228,7 +228,7 @@ public sealed class PdfReadPage {
         }
 
         if (formObj is PdfReference formRef &&
-            _objects.TryGetValue(formRef.ObjectNumber, out var indirectForm) &&
+            PdfObjectLookup.TryGet(_objects, formRef, out var indirectForm) &&
             indirectForm.Value is PdfStream stream &&
             string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) {
             formStream = stream;
@@ -309,7 +309,7 @@ public sealed class PdfReadPage {
 
             if (!current.Items.TryGetValue("Parent", out var parentObj) ||
                 parentObj is not PdfReference parentRef ||
-                !_objects.TryGetValue(parentRef.ObjectNumber, out var parentIndirect) ||
+                !PdfObjectLookup.TryGet(_objects, parentRef, out var parentIndirect) ||
                 parentIndirect.Value is not PdfDictionary parentDict) {
                 break;
             }
@@ -326,7 +326,7 @@ public sealed class PdfReadPage {
         }
 
         if (obj is PdfReference reference &&
-            _objects.TryGetValue(reference.ObjectNumber, out var indirect) &&
+            PdfObjectLookup.TryGet(_objects, reference, out var indirect) &&
             indirect.Value is PdfDictionary referencedDictionary) {
             return referencedDictionary;
         }
@@ -335,12 +335,7 @@ public sealed class PdfReadPage {
     }
 
     private PdfObject? ResolveObject(PdfObject? obj) {
-        if (obj is PdfReference reference &&
-            _objects.TryGetValue(reference.ObjectNumber, out var indirect)) {
-            return indirect.Value;
-        }
-
-        return obj;
+        return PdfObjectLookup.Resolve(_objects, obj);
     }
 
     private PdfArray? ResolveArray(PdfObject? obj) {
@@ -349,7 +344,7 @@ public sealed class PdfReadPage {
         }
 
         if (obj is PdfReference reference &&
-            _objects.TryGetValue(reference.ObjectNumber, out var indirect) &&
+            PdfObjectLookup.TryGet(_objects, reference, out var indirect) &&
             indirect.Value is PdfArray referencedArray) {
             return referencedArray;
         }
@@ -464,7 +459,7 @@ public sealed class PdfReadPage {
         var result = new List<PdfStream>();
         var contents = _pageDict.Items.TryGetValue("Contents", out var obj) ? obj : null;
         if (contents is PdfReference r) {
-            if (_objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfStream s) {
+            if (PdfObjectLookup.TryGet(_objects, r, out var ind) && ind.Value is PdfStream s) {
                 result.Add(s);
                 return result;
             }
@@ -477,7 +472,7 @@ public sealed class PdfReadPage {
 
         foreach (var item in contentArray.Items) {
             if (item is PdfReference rr &&
-                _objects.TryGetValue(rr.ObjectNumber, out var ind2) &&
+                PdfObjectLookup.TryGet(_objects, rr, out var ind2) &&
                 ind2.Value is PdfStream s2) {
                 result.Add(s2);
             } else if (item is PdfStream directStream) {

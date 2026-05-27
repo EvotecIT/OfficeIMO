@@ -473,7 +473,7 @@ public static class PdfFormFiller {
         }
 
         if (contents is PdfReference reference &&
-            objects.TryGetValue(reference.ObjectNumber, out var indirect) &&
+            PdfObjectLookup.TryGet(objects, reference, out var indirect) &&
             indirect.Value is PdfArray referencedArray) {
             foreach (var item in referencedArray.Items) {
                 target.Items.Add(item);
@@ -827,7 +827,7 @@ public static class PdfFormFiller {
             numberMap[sourceIds[i]] = i + 1;
         }
 
-        var context = new PdfPageExtractor.SerializationContext(numberMap, pagesObjectId: 0, new Dictionary<int, Dictionary<string, PdfObject>>());
+        var context = new PdfPageExtractor.SerializationContext(numberMap, pagesObjectId: 0, new Dictionary<int, Dictionary<string, PdfObject>>(), objects);
         var rewritten = new List<byte[]>(sourceIds.Length + 1);
         foreach (int sourceId in sourceIds) {
             byte[] body = PdfPageExtractor.SerializeObject(objects[sourceId].Value, context);
@@ -856,12 +856,7 @@ public static class PdfFormFiller {
     }
 
     private static PdfObject? ResolveObject(Dictionary<int, PdfIndirectObject> objects, PdfObject? value) {
-        if (value is PdfReference reference &&
-            objects.TryGetValue(reference.ObjectNumber, out var indirect)) {
-            return indirect.Value;
-        }
-
-        return value;
+        return PdfObjectLookup.Resolve(objects, value);
     }
 
     private static PdfDictionary? ResolveDictionary(Dictionary<int, PdfIndirectObject> objects, PdfObject? value) {

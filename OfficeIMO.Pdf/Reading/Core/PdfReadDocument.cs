@@ -227,7 +227,7 @@ public sealed class PdfReadDocument {
         HashSet<int> visitedReferences) {
         if (treeObject is PdfReference reference) {
             if (!visitedReferences.Add(reference.ObjectNumber) ||
-                !_objects.TryGetValue(reference.ObjectNumber, out var indirect)) {
+                !PdfObjectLookup.TryGet(_objects, reference, out var indirect)) {
                 return;
             }
 
@@ -642,23 +642,18 @@ public sealed class PdfReadDocument {
     private PdfDictionary? ResolveDict(PdfObject? obj) {
         if (obj is null) return null;
         if (obj is PdfDictionary d) return d;
-        if (obj is PdfReference r && _objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfDictionary dd) return dd;
+        if (obj is PdfReference r && PdfObjectLookup.TryGet(_objects, r, out var ind) && ind.Value is PdfDictionary dd) return dd;
         return null;
     }
 
     private PdfObject? ResolveObject(PdfObject? obj) {
-        if (obj is PdfReference reference &&
-            _objects.TryGetValue(reference.ObjectNumber, out var indirect)) {
-            return indirect.Value;
-        }
-
-        return obj;
+        return PdfObjectLookup.Resolve(_objects, obj);
     }
 
     private PdfArray? ResolveArray(PdfObject? obj) {
         if (obj is null) return null;
         if (obj is PdfArray a) return a;
-        if (obj is PdfReference r && _objects.TryGetValue(r.ObjectNumber, out var ind) && ind.Value is PdfArray aa) return aa;
+        if (obj is PdfReference r && PdfObjectLookup.TryGet(_objects, r, out var ind) && ind.Value is PdfArray aa) return aa;
         return null;
     }
 
