@@ -84,11 +84,13 @@ internal static partial class PdfWriter {
         public FormFieldAnnotationKind Kind { get; init; }
         public string Name { get; init; } = string.Empty;
         public string Value { get; init; } = string.Empty;
+        public IReadOnlyList<string> Values { get; init; } = Array.Empty<string>();
         public double FontSize { get; init; }
         public bool IsChecked { get; init; }
         public string CheckedValueName { get; init; } = "Yes";
         public IReadOnlyList<string> Options { get; init; } = Array.Empty<string>();
         public bool IsComboBox { get; init; }
+        public bool AllowsMultipleSelection { get; init; }
     }
 
     private enum FormFieldAnnotationKind {

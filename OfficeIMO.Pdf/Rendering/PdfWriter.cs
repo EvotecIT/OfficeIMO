@@ -196,11 +196,12 @@ internal static partial class PdfWriter {
 
                         formField = PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.IsChecked, field.CheckedValueName, offAppearanceId, checkedAppearanceId);
                     } else if (field.Kind == FormFieldAnnotationKind.Choice) {
-                        string appearanceContent = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(appearanceWidth, appearanceHeight, field.Value, field.FontSize);
+                        string appearanceValue = field.Values.Count > 1 ? string.Join(", ", field.Values) : field.Value;
+                        string appearanceContent = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(appearanceWidth, appearanceHeight, appearanceValue, field.FontSize);
                         byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
                         string appearanceDictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(appearanceWidth, appearanceHeight, helveticaFontId, appearanceBytes.Length);
                         int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
-                        formField = PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Options, field.Value, field.FontSize, appearanceId, field.IsComboBox);
+                        formField = PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Options, field.Values.Count == 0 ? new[] { field.Value } : field.Values, field.FontSize, appearanceId, field.IsComboBox, field.AllowsMultipleSelection);
                     } else {
                         string appearanceContent = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(appearanceWidth, appearanceHeight, field.Value, field.FontSize);
                         byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);

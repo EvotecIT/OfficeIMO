@@ -1798,9 +1798,11 @@ internal static partial class PdfWriter {
                 Kind = FormFieldAnnotationKind.Choice,
                 Name = block.Name,
                 Value = block.Value,
+                Values = block.Values,
                 FontSize = block.FontSize,
                 Options = block.Options,
-                IsComboBox = block.IsComboBox
+                IsComboBox = block.IsComboBox,
+                AllowsMultipleSelection = block.AllowsMultipleSelection
             });
             pageDirty = true;
             y -= block.Height + block.SpacingAfter;

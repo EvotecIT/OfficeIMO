@@ -89,11 +89,14 @@ internal static class PdfAnnotationDictionaryBuilder {
             " >> >> >>\n";
     }
 
-    internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<string> options, string value, double fontSize, int normalAppearanceId, bool isComboBox) {
+    internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<string> options, string value, double fontSize, int normalAppearanceId, bool isComboBox) =>
+        BuildChoiceFieldWidgetAnnotation(x1, y1, x2, y2, name, options, new[] { value }, fontSize, normalAppearanceId, isComboBox, allowsMultipleSelection: false);
+
+    internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<string> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNull(options, nameof(options));
-        Guard.NotNull(value, nameof(value));
+        Guard.NotNull(values, nameof(values));
         ValidateFinite(fontSize, nameof(fontSize));
         if (fontSize <= 0) {
             throw new ArgumentOutOfRangeException(nameof(fontSize), fontSize, "PDF choice field font size must be a positive finite number.");
@@ -103,33 +106,55 @@ internal static class PdfAnnotationDictionaryBuilder {
             throw new ArgumentException("PDF choice field requires at least one option.", nameof(options));
         }
 
+        if (values.Count == 0) {
+            throw new ArgumentException("PDF choice field requires at least one selected value.", nameof(values));
+        }
+
+        if (!allowsMultipleSelection && values.Count > 1) {
+            throw new ArgumentException("PDF scalar choice field cannot contain multiple selected values.", nameof(values));
+        }
+
+        if (allowsMultipleSelection && isComboBox) {
+            throw new ArgumentException("PDF multi-select choice fields must be list boxes, not combo boxes.", nameof(isComboBox));
+        }
+
         var optionBuilder = new StringBuilder();
-        bool hasSelectedValue = false;
+        var optionSet = new HashSet<string>(StringComparer.Ordinal);
         for (int i = 0; i < options.Count; i++) {
             string option = options[i];
             Guard.NotNullOrWhiteSpace(option, nameof(options));
-            if (string.Equals(option, value, StringComparison.Ordinal)) {
-                hasSelectedValue = true;
+            if (!optionSet.Add(option)) {
+                throw new ArgumentException("PDF choice field options must be unique.", nameof(options));
             }
 
             optionBuilder.Append(' ')
                 .Append(PdfSyntaxEscaper.LiteralString(option));
         }
 
-        if (!hasSelectedValue) {
-            throw new ArgumentException("PDF choice field value must match one of the provided options.", nameof(value));
+        var valueSet = new HashSet<string>(StringComparer.Ordinal);
+        for (int i = 0; i < values.Count; i++) {
+            string value = values[i];
+            Guard.NotNullOrWhiteSpace(value, nameof(values));
+            if (!optionSet.Contains(value)) {
+                throw new ArgumentException("PDF choice field values must match the provided options.", nameof(values));
+            }
+
+            if (!valueSet.Add(value)) {
+                throw new ArgumentException("PDF choice field selected values must be unique.", nameof(values));
+            }
         }
 
+        int flags = (isComboBox ? 131072 : 0) | (allowsMultipleSelection ? 2097152 : 0);
         return "<< /Type /Annot /Subtype /Widget /FT /Ch /T " +
             PdfSyntaxEscaper.LiteralString(name) +
             " /V " +
-            PdfSyntaxEscaper.LiteralString(value) +
+            BuildChoiceValue(values) +
             " /DV " +
-            PdfSyntaxEscaper.LiteralString(value) +
+            BuildChoiceValue(values) +
             " /Opt [" +
             optionBuilder +
             " ]" +
-            (isComboBox ? " /Ff 131072" : string.Empty) +
+            (flags == 0 ? string.Empty : " /Ff " + flags.ToString(CultureInfo.InvariantCulture)) +
             " /Rect [" +
             FormatCoordinate(x1) + " " +
             FormatCoordinate(y1) + " " +
@@ -140,6 +165,25 @@ internal static class PdfAnnotationDictionaryBuilder {
             " /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N " +
             PdfSyntaxEscaper.IndirectReference(normalAppearanceId) +
             " >> >>\n";
+    }
+
+    private static string BuildChoiceValue(IReadOnlyList<string> values) {
+        if (values.Count == 1) {
+            return PdfSyntaxEscaper.LiteralString(values[0]);
+        }
+
+        var valueBuilder = new StringBuilder();
+        valueBuilder.Append('[');
+        for (int i = 0; i < values.Count; i++) {
+            if (i > 0) {
+                valueBuilder.Append(' ');
+            }
+
+            valueBuilder.Append(PdfSyntaxEscaper.LiteralString(values[i]));
+        }
+
+        valueBuilder.Append(']');
+        return valueBuilder.ToString();
     }
 
     private static string BuildContentsEntry(string? contents) =>

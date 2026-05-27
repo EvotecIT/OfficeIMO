@@ -168,6 +168,62 @@ public class PdfFormCreationTests {
     }
 
     [Fact]
+    public void MultiSelectChoiceField_CreatesInspectableAcroFormField() {
+        byte[] pdf = PdfDoc.Create()
+            .Paragraph(p => p.Text("Generated multi-select choice:"))
+            .MultiSelectChoiceField("Countries", new[] { "Poland", "Germany", "United States" }, values: new[] { "Poland", "United States" }, width: 190, height: 72)
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(pdf);
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf);
+
+        Assert.Contains("/FT /Ch", raw);
+        Assert.Contains("/V [(Poland) (United States)]", raw);
+        Assert.Contains("/DV [(Poland) (United States)]", raw);
+        Assert.Contains("/Ff 2097152", raw);
+        PdfFormField field = Assert.Single(info.FormFields);
+        Assert.Equal("Countries", field.Name);
+        Assert.Equal(PdfFormFieldKind.Choice, field.Kind);
+        Assert.False(field.IsCombo);
+        Assert.True(field.AllowsMultipleSelection);
+        Assert.Equal(new[] { "Poland", "United States" }, field.Values);
+        Assert.Equal(new[] { "Poland", "United States" }, field.SelectedOptions.Select(option => option.DisplayText).ToArray());
+        PdfFormWidget widget = Assert.Single(field.Widgets);
+        Assert.True(widget.Width > 180);
+        Assert.True(widget.Height > 70);
+        Assert.True(preflight.CanFillSimpleFormFields);
+        Assert.True(preflight.CanFlattenSimpleFormFields);
+        Assert.True(preflight.CanFillAndFlattenSimpleFormFields);
+    }
+
+    [Fact]
+    public void MultiSelectChoiceField_CanBeFilledAndFlattened() {
+        byte[] pdf = PdfDoc.Create()
+            .MultiSelectChoiceField("Countries", new[] { "Poland", "Germany", "United States" }, values: new[] { "Poland" })
+            .ToBytes();
+
+        byte[] filled = PdfFormFiller.FillFields(pdf, new Dictionary<string, PdfFormFieldValue> {
+            ["Countries"] = PdfFormFieldValue.FromValues("Germany", "United States")
+        });
+        PdfFormField filledField = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal(new[] { "Germany", "United States" }, filledField.Values);
+        Assert.Equal(new[] { "Germany", "United States" }, filledField.SelectedOptions.Select(option => option.DisplayText).ToArray());
+        Assert.Contains("(Germany, United States) Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
+
+        byte[] flattened = PdfFormFiller.FillAndFlattenFields(pdf, new Dictionary<string, PdfFormFieldValue> {
+            ["Countries"] = PdfFormFieldValue.FromValues("Germany", "United States")
+        });
+        string raw = Encoding.ASCII.GetString(flattened);
+
+        Assert.False(PdfInspector.Inspect(flattened).HasReadableFormFields);
+        Assert.DoesNotContain("/AcroForm", raw);
+        Assert.DoesNotContain("/Subtype /Widget", raw);
+        Assert.Contains("/OfficeIMOForm1 Do", raw);
+    }
+
+    [Fact]
     public void GeneratedFields_ValidateFlowGeometry() {
         Assert.Throws<ArgumentException>(() => PdfDoc.Create().TextField(" "));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDoc.Create().TextField("Name", width: 0));
@@ -187,5 +243,10 @@ public class PdfFormCreationTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDoc.Create().ChoiceField("Country", new[] { "One" }, width: 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDoc.Create().ChoiceField("Country", new[] { "One" }, height: -1));
         Assert.Throws<ArgumentException>(() => PdfDoc.Create().ChoiceField("Country", new[] { "One" }, align: PdfAlign.Justify));
+        Assert.Throws<ArgumentException>(() => PdfDoc.Create().MultiSelectChoiceField("Countries", Array.Empty<string>()));
+        Assert.Throws<ArgumentException>(() => PdfDoc.Create().MultiSelectChoiceField("Countries", new[] { "One" }, values: Array.Empty<string>()));
+        Assert.Throws<ArgumentException>(() => PdfDoc.Create().MultiSelectChoiceField("Countries", new[] { "One" }, values: new[] { "Two" }));
+        Assert.Throws<ArgumentException>(() => PdfDoc.Create().MultiSelectChoiceField("Countries", new[] { "One" }, values: new[] { "One", "One" }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDoc.Create().MultiSelectChoiceField("Countries", new[] { "One" }, height: 0));
     }
 }
