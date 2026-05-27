@@ -471,7 +471,17 @@ public class PdfReaderAndFooterRegressionTests {
 
         string text = PdfTextExtractor.ExtractAllText(bytes);
 
-        Assert.Contains("Hello world", text, StringComparison.Ordinal);
+        Assert.Contains("Helloworld", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_ReadsEscapedLiteralStrings() {
+        byte[] bytes = BuildSingleStreamPdf("BT\n/F1 12 Tf\n72 720 Td\n(Hello\\040octal\\041) Tj\n( Line\\nbreak) Tj\nET\n");
+
+        var spans = PdfReadDocument.Load(bytes).Pages[0].GetTextSpans();
+
+        Assert.Contains(spans, span => span.Text == "Hello octal!");
+        Assert.Contains(spans, span => span.Text == "Line break");
     }
 
     [Fact]

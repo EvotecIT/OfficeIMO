@@ -225,7 +225,7 @@ internal static class TextContentParser {
             int start = ++i; int depth = 1; bool esc = false; var sb = new StringBuilder();
             while (i < n && depth > 0) {
                 char ch = content[i++];
-                if (esc) { sb.Append(ch); esc = false; }
+                if (esc) { sb.Append('\\'); sb.Append(ch); esc = false; }
                 else if (ch == '\\') esc = true;
                 else if (ch == '(') { depth++; sb.Append(ch); }
                 else if (ch == ')') { depth--; if (depth > 0) sb.Append(ch); }
