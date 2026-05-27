@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+
 
 namespace OfficeIMO.Visio.Diagrams {
     /// <summary>
@@ -66,6 +68,16 @@ namespace OfficeIMO.Visio.Diagrams {
                 Options = options;
             }
 
+            public CalloutItem(string targetId, string id, string text, VisioSide placement, double gap, VisioCalloutOptions options) {
+                TargetId = targetId;
+                Id = id;
+                Text = text;
+                Placement = placement;
+                Gap = gap;
+                Options = options;
+                UsePlacement = true;
+            }
+
             public string TargetId { get; }
 
             public string Id { get; }
@@ -75,6 +87,12 @@ namespace OfficeIMO.Visio.Diagrams {
             public double PinX { get; }
 
             public double PinY { get; }
+
+            public VisioSide Placement { get; }
+
+            public double Gap { get; }
+
+            public bool UsePlacement { get; }
 
             public VisioCalloutOptions Options { get; }
         }
@@ -253,6 +271,32 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
+        /// <summary>Adds a semantic callout placed beside a known org chart node using a generated callout id.</summary>
+        public VisioOrgChartDiagramBuilder Callout(string targetId, string text, VisioSide placement, double gap = 0.35D, Action<VisioCalloutOptions>? configure = null) {
+            string normalizedTargetId = RequireId(targetId, nameof(targetId), "Callout target id");
+            EnsureKnownNode(normalizedTargetId, nameof(targetId));
+            return Callout(normalizedTargetId, CreateCalloutId(normalizedTargetId), text, placement, gap, configure);
+        }
+
+        /// <summary>Adds a semantic callout placed beside a known org chart node.</summary>
+        public VisioOrgChartDiagramBuilder Callout(string targetId, string id, string text, VisioSide placement, double gap = 0.35D, Action<VisioCalloutOptions>? configure = null) {
+            string normalizedTargetId = RequireId(targetId, nameof(targetId), "Callout target id");
+            string normalizedId = RequireId(id, nameof(id), "Callout id");
+            EnsureKnownNode(normalizedTargetId, nameof(targetId));
+            if (IsShapeIdInUse(normalizedId)) {
+                throw new ArgumentException($"An org chart item with shape id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            ValidatePlacement(placement, nameof(placement));
+            ValidateNonNegative(gap, nameof(gap));
+            VisioCalloutOptions options = CreateCalloutOptions();
+            configure?.Invoke(options);
+            ValidatePositive(options.Width, nameof(options.Width));
+            ValidatePositive(options.Height, nameof(options.Height));
+            _callouts.Add(new CalloutItem(normalizedTargetId, normalizedId, text ?? string.Empty, placement, gap, options));
+            return this;
+        }
+
         internal VisioPage Build() {
             if (_built) {
                 throw new InvalidOperationException("This org chart builder has already produced a page.");
@@ -270,6 +314,7 @@ namespace OfficeIMO.Visio.Diagrams {
             AddReportingLines(page);
             AddCallouts(page);
             AddTitle(page);
+            EnsureSideCalloutsFitPage(page);
             _document.RequestRecalcOnOpen();
             return page;
         }
@@ -543,7 +588,32 @@ namespace OfficeIMO.Visio.Diagrams {
                     throw new InvalidOperationException("Org chart nodes must be placed before callouts are created.");
                 }
 
-                page.AddCallout(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
+                if (callout.UsePlacement) {
+                    page.AddCallout(target.Shape, callout.Id, callout.Text, callout.Placement, callout.Gap, callout.Options);
+                } else {
+                    page.AddCallout(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
+                }
+            }
+        }
+
+        private void EnsureSideCalloutsFitPage(VisioPage page) {
+            if (!_callouts.Any(callout => callout.UsePlacement)) {
+                return;
+            }
+
+            VisioShapeBounds bounds = page.GetContentBounds();
+            if (bounds.IsEmpty) {
+                return;
+            }
+
+            double horizontalMargin = Math.Min(_leftMargin, _rightMargin);
+            double verticalMargin = Math.Min(_topMargin, _bottomMargin);
+            bool overflows = bounds.Left < horizontalMargin ||
+                             bounds.Bottom < verticalMargin ||
+                             bounds.Right > page.Width - horizontalMargin ||
+                             bounds.Top > page.Height - verticalMargin;
+            if (overflows) {
+                page.FitToContent(horizontalMargin, verticalMargin);
             }
         }
 
@@ -740,6 +810,12 @@ namespace OfficeIMO.Visio.Diagrams {
         private static void ValidateNonNegative(double value, string parameterName) {
             if (double.IsNaN(value) || double.IsInfinity(value) || value < 0) {
                 throw new ArgumentOutOfRangeException(parameterName, "Value must be a finite non-negative number.");
+            }
+        }
+
+        private static void ValidatePlacement(VisioSide placement, string parameterName) {
+            if (placement == VisioSide.Auto || !Enum.IsDefined(typeof(VisioSide), placement)) {
+                throw new ArgumentOutOfRangeException(parameterName, "Placement must be Left, Right, Bottom, or Top.");
             }
         }
     }

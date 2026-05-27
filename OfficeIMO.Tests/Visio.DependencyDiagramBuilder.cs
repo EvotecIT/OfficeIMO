@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
+
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -163,6 +164,50 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DependencyDiagramBuilderCanAutoPlaceSemanticCalloutsBesideNodes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .DependencyDiagram("Auto Annotated Dependencies", diagram => diagram
+                    .Title()
+                    .Component("api", "API")
+                    .Decision("policy", "Policy")
+                    .Data("db", "Database")
+                    .ControlDependency("api", "policy", "Authorize")
+                    .DataDependency("api", "db", "SQL")
+                    .Callout("policy", "policy-note", "Policy gates this data path", VisioSide.Top, 0.4, options => {
+                        options.Width = 2.5;
+                        options.Height = 0.72;
+                    })
+                    .Callout("api", "Review client contracts", VisioSide.Left, 0.25));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape policy = Assert.Single(page.Shapes, shape => shape.Id == "policy");
+            VisioShape api = Assert.Single(page.Shapes, shape => shape.Id == "api");
+            VisioShape explicitCallout = Assert.Single(page.Callouts(), shape => shape.Id == "policy-note");
+            VisioShape generatedCallout = Assert.Single(page.Callouts(), shape => shape.Id == "api-callout");
+
+            Assert.True(explicitCallout.PinY > policy.PinY);
+            Assert.Equal(policy.PinX, explicitCallout.PinX, 6);
+            Assert.Equal(policy.Id, explicitCallout.CalloutTargetId);
+            Assert.Equal(2.5, explicitCallout.Width);
+            Assert.True(generatedCallout.PinX < api.PinX);
+            Assert.Equal(api.Id, generatedCallout.CalloutTargetId);
+            OfficeIMO.Visio.VisioShapeBounds bounds = page.GetContentBounds();
+            Assert.True(bounds.Left >= 0);
+            Assert.True(bounds.Right <= page.Width);
+            Assert.True(bounds.Bottom >= 0);
+            Assert.True(bounds.Top <= page.Height);
+
+            VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, explicitCallout));
+            Assert.Same(policy, leader.To);
+            Assert.Equal(EndArrow.None, leader.EndArrow);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void DependencyDiagramBuilderGeneratesUniqueCalloutIds() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
                 .DependencyDiagram("Generated", diagram => diagram
@@ -212,6 +257,23 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Unknown dependency node id", unknownTarget.Message);
             Assert.Contains("already exists", nodeCollision.Message);
             Assert.Contains("already exists", titleCollision.Message);
+        }
+
+        [Fact]
+        public void DependencyDiagramBuilderRejectsAutoCalloutPlacementIssues() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentOutOfRangeException autoPlacement = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.DependencyDiagram("Invalid", diagram => diagram
+                    .Component("api", "API")
+                    .Callout("api", "Invalid", VisioSide.Auto)));
+            ArgumentOutOfRangeException badGap = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.DependencyDiagram("Invalid", diagram => diagram
+                    .Component("api", "API")
+                    .Callout("api", "Invalid", VisioSide.Right, double.NaN)));
+
+            Assert.Contains("Placement must be", autoPlacement.Message);
+            Assert.Contains("zero or greater", badGap.Message);
         }
     }
 }
