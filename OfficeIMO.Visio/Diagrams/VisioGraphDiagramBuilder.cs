@@ -138,6 +138,7 @@ namespace OfficeIMO.Visio.Diagrams {
         private string _titleId = "title";
         private double _titleHeight = 0.45;
         private double _titleGap = 0.35;
+        private const double StencilCaptionBottomOverflow = 0.52D;
         private int _maximumRows = 1;
         private bool _fitPageToGraph = true;
         private bool _built;
@@ -631,6 +632,10 @@ namespace OfficeIMO.Visio.Diagrams {
                 requiredHeight = _topMargin + _bottomMargin + HeaderHeight + (rowCount * _nodeHeight) + Math.Max(0, rowCount - 1) * _rowGap;
             }
 
+            if (_nodes.Any(HasStencilCaption)) {
+                requiredHeight += StencilCaptionBottomOverflow;
+            }
+
             _pageWidth = Math.Max(_pageWidth, requiredWidth);
             _pageHeight = Math.Max(_pageHeight, requiredHeight);
         }
@@ -838,8 +843,8 @@ namespace OfficeIMO.Visio.Diagrams {
                 bottom = Math.Min(bottom, node.PinY - height / 2D);
                 right = Math.Max(right, node.PinX + width / 2D);
                 top = Math.Max(top, node.PinY + height / 2D);
-                if (node.Stencil != null && !string.IsNullOrWhiteSpace(node.Text)) {
-                    bottom = Math.Min(bottom, node.PinY - height / 2D - 0.52D);
+                if (HasStencilCaption(node)) {
+                    bottom = Math.Min(bottom, node.PinY - height / 2D - StencilCaptionBottomOverflow);
                 }
             }
 
@@ -874,6 +879,10 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private double HeaderHeight => string.IsNullOrWhiteSpace(_titleText) ? 0D : _titleHeight + _titleGap;
+
+        private static bool HasStencilCaption(NodeItem node) {
+            return node.Stencil != null && !string.IsNullOrWhiteSpace(node.Text);
+        }
 
         private void GetNodeShape(NodeItem node, out string masterNameU, out double width, out double height) {
             width = node.Stencil?.DefaultWidth ?? _nodeWidth;

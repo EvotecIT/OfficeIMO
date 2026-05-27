@@ -125,6 +125,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GraphDiagramBuilderFitsStencilCaptionOverflow() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .GraphDiagram("Small Stencil Graph", graph => graph
+                    .PageSize(2.4, 1.6)
+                    .StencilNode("api", "API", VisioStencils.Flowchart, "process"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            Assert.True(page.Height >= 2.94D);
+            Assert.Contains(page.Shapes, shape => shape.Id == "api-label" && shape.Text == "API");
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void GraphDiagramBuilderCanAttachShapeDataAndHyperlinksToNodes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
