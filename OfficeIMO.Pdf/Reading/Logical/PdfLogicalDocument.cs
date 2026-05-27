@@ -17,7 +17,9 @@ public enum PdfLogicalElementKind {
     /// <summary>Image XObject referenced by the page.</summary>
     Image,
     /// <summary>URI or named-destination link annotation on the page.</summary>
-    LinkAnnotation
+    LinkAnnotation,
+    /// <summary>AcroForm widget annotation on the page.</summary>
+    FormWidget
 }
 
 /// <summary>
@@ -203,7 +205,7 @@ public sealed class PdfLogicalDocument {
 
         var pages = new List<PdfLogicalPage>(document.Pages.Count);
         for (int i = 0; i < document.Pages.Count; i++) {
-            pages.Add(PdfLogicalPage.From(document.Pages[i], i + 1, options));
+            pages.Add(PdfLogicalPage.From(document.Pages[i], i + 1, options, document.FormFields));
         }
 
         return new PdfLogicalDocument(
@@ -239,7 +241,8 @@ public sealed class PdfLogicalPage {
         IReadOnlyList<PdfLogicalTable> tables,
         IReadOnlyList<PdfLogicalImage> images,
         IReadOnlyList<PdfLogicalLinkAnnotation> links,
-        IReadOnlyList<PdfLinkAnnotation> linkAnnotations) {
+        IReadOnlyList<PdfLinkAnnotation> linkAnnotations,
+        IReadOnlyList<PdfLogicalFormWidget> formWidgets) {
         PageNumber = pageNumber;
         Width = width;
         Height = height;
@@ -253,6 +256,7 @@ public sealed class PdfLogicalPage {
         Images = images;
         Links = links;
         LinkAnnotations = linkAnnotations;
+        FormWidgets = formWidgets;
     }
 
     /// <summary>One-based source page number.</summary>
@@ -294,7 +298,10 @@ public sealed class PdfLogicalPage {
     /// <summary>Simple link annotations read from the page.</summary>
     public IReadOnlyList<PdfLinkAnnotation> LinkAnnotations { get; }
 
-    internal static PdfLogicalPage From(PdfReadPage page, int pageNumber, PdfTextLayoutOptions? options) {
+    /// <summary>AcroForm widget annotations placed on this page.</summary>
+    public IReadOnlyList<PdfLogicalFormWidget> FormWidgets { get; }
+
+    internal static PdfLogicalPage From(PdfReadPage page, int pageNumber, PdfTextLayoutOptions? options, IReadOnlyList<PdfFormField>? formFields = null) {
         var size = page.GetPageSize();
         var structured = page.ExtractStructured(options);
         var elements = new List<IPdfLogicalElement>();
@@ -302,6 +309,7 @@ public sealed class PdfLogicalPage {
         var tables = new List<PdfLogicalTable>();
         var images = new List<PdfLogicalImage>();
         var links = new List<PdfLogicalLinkAnnotation>();
+        var formWidgets = new List<PdfLogicalFormWidget>();
         var listLines = new HashSet<string>(structured.ListItems.Select(NormalizeForKindComparison), StringComparer.Ordinal);
 
         foreach (var line in structured.LinesDetailed) {
@@ -348,6 +356,20 @@ public sealed class PdfLogicalPage {
             elements.Add(logicalLink);
         }
 
+        if (formFields is not null) {
+            for (int fieldIndex = 0; fieldIndex < formFields.Count; fieldIndex++) {
+                PdfFormField field = formFields[fieldIndex];
+                for (int widgetIndex = 0; widgetIndex < field.Widgets.Count; widgetIndex++) {
+                    PdfFormWidget widget = field.Widgets[widgetIndex];
+                    if (widget.PageNumber == pageNumber) {
+                        var logicalWidget = new PdfLogicalFormWidget(pageNumber, field, widget);
+                        formWidgets.Add(logicalWidget);
+                        elements.Add(logicalWidget);
+                    }
+                }
+            }
+        }
+
         return new PdfLogicalPage(
             pageNumber,
             size.Width,
@@ -361,7 +383,8 @@ public sealed class PdfLogicalPage {
             tables.AsReadOnly(),
             images.AsReadOnly(),
             links.AsReadOnly(),
-            linkAnnotations);
+            linkAnnotations,
+            formWidgets.AsReadOnly());
     }
 
     private static IReadOnlyList<PdfLogicalParagraph> BuildParagraphs(int pageNumber, List<StructuredParagraph> paragraphs, IReadOnlyList<PdfLogicalTextBlock> textBlocks) {
@@ -853,4 +876,63 @@ public sealed class PdfLogicalLinkAnnotation : IPdfLogicalElement {
 
     /// <summary>Rectangle height in PDF points.</summary>
     public double Height => SourceLink.Height;
+}
+
+/// <summary>
+/// AcroForm widget annotation entry in the logical page model.
+/// </summary>
+public sealed class PdfLogicalFormWidget : IPdfLogicalElement {
+    internal PdfLogicalFormWidget(int pageNumber, PdfFormField field, PdfFormWidget widget) {
+        PageNumber = pageNumber;
+        Field = field;
+        SourceWidget = widget;
+    }
+
+    /// <inheritdoc />
+    public int PageNumber { get; }
+
+    /// <inheritdoc />
+    public PdfLogicalElementKind Kind => PdfLogicalElementKind.FormWidget;
+
+    /// <summary>Field represented by this widget annotation.</summary>
+    public PdfFormField Field { get; }
+
+    /// <summary>Underlying parsed widget annotation.</summary>
+    public PdfFormWidget SourceWidget { get; }
+
+    /// <summary>Fully qualified field name when a name can be read.</summary>
+    public string? FieldName => Field.Name;
+
+    /// <summary>Field type name, for example Tx, Btn, Ch, or Sig, when present or inherited.</summary>
+    public string? FieldType => Field.FieldType;
+
+    /// <summary>Simple field value formatted for wrapper display, when present.</summary>
+    public string? Value => Field.Value;
+
+    /// <summary>Indirect object number for the widget annotation, when known.</summary>
+    public int? ObjectNumber => SourceWidget.ObjectNumber;
+
+    /// <summary>Left edge of the widget rectangle in PDF points.</summary>
+    public double X1 => SourceWidget.X1;
+
+    /// <summary>Bottom edge of the widget rectangle in PDF points.</summary>
+    public double Y1 => SourceWidget.Y1;
+
+    /// <summary>Right edge of the widget rectangle in PDF points.</summary>
+    public double X2 => SourceWidget.X2;
+
+    /// <summary>Top edge of the widget rectangle in PDF points.</summary>
+    public double Y2 => SourceWidget.Y2;
+
+    /// <summary>Rectangle width in PDF points.</summary>
+    public double Width => SourceWidget.Width;
+
+    /// <summary>Rectangle height in PDF points.</summary>
+    public double Height => SourceWidget.Height;
+
+    /// <summary>Current widget appearance state name from /AS, when present.</summary>
+    public string? AppearanceState => SourceWidget.AppearanceState;
+
+    /// <summary>Raw widget annotation flags from /F, when present.</summary>
+    public int? Flags => SourceWidget.Flags;
 }

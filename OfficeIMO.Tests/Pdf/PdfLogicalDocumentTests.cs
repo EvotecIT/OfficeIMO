@@ -154,6 +154,23 @@ public class PdfLogicalDocumentTests {
         Assert.Equal(16, widget.Height);
         Assert.Equal("Yes", widget.AppearanceState);
         Assert.Equal(4, widget.Flags);
+
+        PdfLogicalPage page = Assert.Single(logical.Pages);
+        PdfLogicalFormWidget logicalWidget = Assert.Single(page.FormWidgets);
+        Assert.Same(field, logicalWidget.Field);
+        Assert.Same(widget, logicalWidget.SourceWidget);
+        Assert.Equal(PdfLogicalElementKind.FormWidget, logicalWidget.Kind);
+        Assert.Equal("AcceptTerms", logicalWidget.FieldName);
+        Assert.Equal("Btn", logicalWidget.FieldType);
+        Assert.Equal("Yes", logicalWidget.Value);
+        Assert.Equal(8, logicalWidget.ObjectNumber);
+        Assert.Equal(1, logicalWidget.PageNumber);
+        Assert.Equal(20, logicalWidget.X1);
+        Assert.Equal(100, logicalWidget.Y1);
+        Assert.Equal(36, logicalWidget.X2);
+        Assert.Equal(116, logicalWidget.Y2);
+        Assert.Contains(page.Elements, element => element.Kind == PdfLogicalElementKind.FormWidget);
+        Assert.Contains(logical.Elements, element => element.Kind == PdfLogicalElementKind.FormWidget);
     }
 
     [Fact]
