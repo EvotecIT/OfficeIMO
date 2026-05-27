@@ -762,6 +762,35 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void ParagraphTabs_NonDotLeaderReadbackPreservesNumericValues() {
+            byte[] bytes = PdfDoc.Create(new PdfOptions {
+                    PageWidth = 360,
+                    PageHeight = 220,
+                    MarginLeft = 36,
+                    MarginRight = 36,
+                    MarginTop = 36,
+                    MarginBottom = 36,
+                    DefaultFontSize = 12,
+                    DefaultParagraphStyle = new PdfParagraphStyle {
+                        DefaultTabStopWidth = 216,
+                        SpacingAfter = 0
+                    }
+                })
+                .Paragraph(p => p.Text("Milestone").Tab(PdfTabLeaderStyle.Hyphens, PdfTabAlignment.Right).Text("Q4"))
+                .Paragraph(p => p.Text("Signature count").Tab(PdfTabLeaderStyle.Underscores, PdfTabAlignment.Right).Text("12"))
+                .Paragraph(p => p.Text("Balance").Tab(PdfTabLeaderStyle.Hyphens, PdfTabAlignment.DecimalSeparator).Text("$1,234.50"))
+                .ToBytes();
+
+            var structuredPage = Assert.Single(PdfTextExtractor.ExtractStructuredByPage(bytes, new PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            }));
+
+            Assert.Contains(structuredPage.LeaderRows, row => row.Length >= 2 && row[0] == "Milestone" && row[1] == "Q4");
+            Assert.Contains(structuredPage.LeaderRows, row => row.Length >= 2 && row[0] == "Signature count" && row[1] == "12");
+            Assert.Contains(structuredPage.LeaderRows, row => row.Length >= 2 && row[0] == "Balance" && row[1] == "$1,234.50");
+        }
+
+        [Fact]
         public void WrapRichRuns_DoesNotInsertSpaceBeforePunctuationAcrossRuns() {
             var result = InvokeWrapRichRuns(new[] {
                 new TextRun("Hello", bold: true),
