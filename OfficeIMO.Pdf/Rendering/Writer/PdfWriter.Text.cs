@@ -157,7 +157,7 @@ internal static partial class PdfWriter {
     }
 
     // Rich paragraph layout
-    private sealed record RichSeg(string Text, bool Bold, bool Italic, bool Underline, bool Strike, PdfColor? Color, string? Uri, string? DestinationName, string? Contents, PdfStandardFont Font, PdfTextBaseline Baseline, bool LeadingSpace = false, double LeadingAdvance = 0, bool LeadingSpaceIsExpandable = true, bool EndsWithHardBreak = false);
+    private sealed record RichSeg(string Text, bool Bold, bool Italic, bool Underline, bool Strike, PdfColor? Color, string? Uri, string? DestinationName, string? Contents, PdfStandardFont Font, PdfTextBaseline Baseline, bool LeadingSpace = false, double LeadingAdvance = 0, bool LeadingSpaceIsExpandable = true, PdfTabLeaderStyle LeadingTabLeader = PdfTabLeaderStyle.None, bool EndsWithHardBreak = false);
 
     private static double MeasureRichText(string text, PdfStandardFont font, double fontSize) =>
         EstimateSimpleTextWidth(text, font, fontSize);
@@ -190,6 +190,7 @@ internal static partial class PdfWriter {
         double lineWidth = 0;
         double pendingLeadingAdvance = 0;
         bool pendingLeadingIsExpandable = true;
+        PdfTabLeaderStyle pendingLeadingTabLeader = PdfTabLeaderStyle.None;
         double CurrentMaxWidth() => lines.Count == 1 ? firstLineWidthPts ?? maxWidthPts : maxWidthPts;
 
         void MarkCurrentLineHardBreak() {
@@ -213,6 +214,7 @@ internal static partial class PdfWriter {
             string? destinationName = run.LinkDestinationName;
             string? contents = run.LinkContents;
             var baseline = run.Baseline;
+            var tabLeader = run.TabLeader;
             var fontForRun = (bold && italic) ? ChooseBoldItalic(baseFont) : bold ? ChooseBold(baseFont) : italic ? ChooseItalic(baseFont) : baseFont;
             double spaceW = MeasureRichText(" ", fontForRun, fontSize, baseline);
             int idx = 0;
@@ -234,6 +236,7 @@ internal static partial class PdfWriter {
                     if (lastLine.Count > 0) { heights.Add(lineHeight); lines.Add(new()); lineWidth = 0; lastLine = lines[lines.Count - 1]; }
                     pendingLeadingAdvance = 0;
                     pendingLeadingIsExpandable = true;
+                    pendingLeadingTabLeader = PdfTabLeaderStyle.None;
                     int pos = 0;
                     while (pos < token.Length) {
                         int take = 0;
@@ -270,10 +273,12 @@ internal static partial class PdfWriter {
                         lineWidth = 0;
                         pendingLeadingAdvance = 0;
                         pendingLeadingIsExpandable = true;
+                        pendingLeadingTabLeader = PdfTabLeaderStyle.None;
                     } else if (nextWs != -1) {
                         bool hadTab = text[nextWs] == '\t';
                         pendingLeadingAdvance = hadTab ? CalculateDefaultTabAdvance(lineWidth, spaceW, tabStopWidth) : spaceW;
                         pendingLeadingIsExpandable = !hadTab;
+                        pendingLeadingTabLeader = hadTab ? tabLeader : PdfTabLeaderStyle.None;
                     }
                     continue;
                 }
@@ -287,10 +292,12 @@ internal static partial class PdfWriter {
                     bool needsLeadingSpace = lineWidth > 0 && pendingLeadingAdvance > 0;
                     double leadingAdvance = needsLeadingSpace ? pendingLeadingAdvance : 0;
                     double segmentWidth = tokenW + leadingAdvance;
-                    lines[lines.Count - 1].Add(new RichSeg(token, bold, italic, underline, strike, color, uri, destinationName, contents, fontForRun, baseline, needsLeadingSpace, leadingAdvance, pendingLeadingIsExpandable));
+                    var segmentLeader = needsLeadingSpace ? pendingLeadingTabLeader : PdfTabLeaderStyle.None;
+                    lines[lines.Count - 1].Add(new RichSeg(token, bold, italic, underline, strike, color, uri, destinationName, contents, fontForRun, baseline, needsLeadingSpace, leadingAdvance, pendingLeadingIsExpandable, segmentLeader));
                     lineWidth += segmentWidth;
                     pendingLeadingAdvance = 0;
                     pendingLeadingIsExpandable = true;
+                    pendingLeadingTabLeader = PdfTabLeaderStyle.None;
                 }
                 if (hadNewline) {
                     MarkCurrentLineHardBreak();
@@ -299,10 +306,12 @@ internal static partial class PdfWriter {
                     lineWidth = 0;
                     pendingLeadingAdvance = 0;
                     pendingLeadingIsExpandable = true;
+                    pendingLeadingTabLeader = PdfTabLeaderStyle.None;
                 } else if (nextWs != -1) {
                     bool hadTab = text[nextWs] == '\t';
                     pendingLeadingAdvance = hadTab ? CalculateDefaultTabAdvance(lineWidth, spaceW, tabStopWidth) : spaceW;
                     pendingLeadingIsExpandable = !hadTab;
+                    pendingLeadingTabLeader = hadTab ? tabLeader : PdfTabLeaderStyle.None;
                 }
             }
         }
@@ -372,12 +381,22 @@ internal static partial class PdfWriter {
                 if (s.LeadingSpace) {
                     double baseGap = s.LeadingAdvance > 0 ? s.LeadingAdvance : MeasureRichText(" ", s.Font, fontSize, s.Baseline);
                     double gap = baseGap + (s.LeadingSpaceIsExpandable ? wordSpacing : 0);
-                    double visibleGap = MeasureRichText(" ", s.Font, fontSize, s.Baseline) + (s.LeadingSpaceIsExpandable ? wordSpacing : 0);
+                    double visibleGap = 0;
                     if (!s.LeadingSpaceIsExpandable && Math.Abs(wordSpacing) > 0.0001) {
                         content.WordSpacing(0);
                     }
 
-                    content.ShowHexText("20");
+                    if (s.LeadingTabLeader == PdfTabLeaderStyle.Dots) {
+                        string leader = BuildDotLeaderText(gap, s.Font, fontSize, s.Baseline);
+                        if (leader.Length > 0) {
+                            content.ShowHexText(EncodeWinAnsiHex(leader));
+                            visibleGap = MeasureRichText(leader, s.Font, fontSize, s.Baseline);
+                        }
+                    } else {
+                        content.ShowHexText("20");
+                        visibleGap = MeasureRichText(" ", s.Font, fontSize, s.Baseline) + (s.LeadingSpaceIsExpandable ? wordSpacing : 0);
+                    }
+
                     if (!s.LeadingSpaceIsExpandable && Math.Abs(wordSpacing) > 0.0001) {
                         content.WordSpacing(wordSpacing);
                     }
@@ -444,5 +463,15 @@ internal static partial class PdfWriter {
                 .StrokePath()
                 .RestoreState();
         }
+    }
+
+    private static string BuildDotLeaderText(double gap, PdfStandardFont font, double fontSize, PdfTextBaseline baseline) {
+        double dotWidth = MeasureRichText(".", font, fontSize, baseline);
+        if (dotWidth <= 0 || gap <= dotWidth * 3D) {
+            return string.Empty;
+        }
+
+        int count = Math.Max(3, (int)Math.Floor(gap / dotWidth));
+        return new string('.', count);
     }
 }

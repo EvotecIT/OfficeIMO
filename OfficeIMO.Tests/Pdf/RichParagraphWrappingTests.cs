@@ -76,6 +76,12 @@ namespace OfficeIMO.Tests.Pdf {
             return (bool)prop!.GetValue(seg)!;
         }
 
+        private static PdfTabLeaderStyle ExtractLeadingTabLeader(object seg) {
+            var prop = seg.GetType().GetProperty("LeadingTabLeader");
+            Assert.NotNull(prop);
+            return (PdfTabLeaderStyle)prop!.GetValue(seg)!;
+        }
+
         private static PdfTextBaseline ExtractBaseline(object seg) {
             var prop = seg.GetType().GetProperty("Baseline");
             Assert.NotNull(prop);
@@ -182,6 +188,19 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Contains("layout", exception.Message, StringComparison.Ordinal);
             Assert.False(PdfWinAnsiEncoding.CanEncode("Alpha\tBeta", out int unsupportedIndex));
             Assert.Equal(5, unsupportedIndex);
+        }
+
+        [Fact]
+        public void TextRun_TabLeaderRequiresExplicitTabRun() {
+            var invalidLeaderException = Assert.Throws<ArgumentException>(() =>
+                new TextRun("Alpha", tabLeader: PdfTabLeaderStyle.Dots));
+
+            Assert.Contains("Tab leaders can only be applied to explicit tab runs.", invalidLeaderException.Message, StringComparison.Ordinal);
+
+            var invalidEnumException = Assert.Throws<ArgumentException>(() =>
+                TextRun.Tab((PdfTabLeaderStyle)99));
+
+            Assert.Contains("PDF tab leader style must be None or Dots.", invalidEnumException.Message, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -418,6 +437,22 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void WrapRichRuns_CarriesDotLeaderFromExplicitTabRun() {
+            var result = InvokeWrapRichRuns(new[] {
+                new TextRun("A"),
+                TextRun.Tab(PdfTabLeaderStyle.Dots),
+                new TextRun("B")
+            }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
+
+            var line = Assert.Single(ExtractLines(result));
+            Assert.Equal(new[] { "A", "B" }, line.ConvertAll(ExtractText).ToArray());
+            Assert.False(ExtractLeadingSpace(line[0]));
+            Assert.True(ExtractLeadingSpace(line[1]));
+            Assert.False(ExtractLeadingSpaceIsExpandable(line[1]));
+            Assert.Equal(PdfTabLeaderStyle.Dots, ExtractLeadingTabLeader(line[1]));
+        }
+
+        [Fact]
         public void ParagraphTabs_RenderAsVisibleDefaultTabStopGap() {
             byte[] bytes = PdfDoc.Create(new PdfOptions {
                     DefaultFontSize = 12
@@ -470,6 +505,37 @@ namespace OfficeIMO.Tests.Pdf {
             double gap = b.StartBaseLine.X - a.EndBaseLine.X;
 
             Assert.True(gap > 50, $"Expected custom 72pt tab stop to create a wide visible gap. Gap: {gap:0.##}.");
+        }
+
+        [Fact]
+        public void ParagraphTabs_RenderDotLeadersAndStructuredLeaderReadback() {
+            byte[] bytes = PdfDoc.Create(new PdfOptions {
+                    PageWidth = 360,
+                    PageHeight = 180,
+                    MarginLeft = 36,
+                    MarginRight = 36,
+                    MarginTop = 36,
+                    MarginBottom = 36,
+                    DefaultFontSize = 12,
+                    DefaultParagraphStyle = new PdfParagraphStyle {
+                        DefaultTabStopWidth = 216,
+                        SpacingAfter = 0
+                    }
+                })
+                .Paragraph(p => p.Text("Revenue").Tab(PdfTabLeaderStyle.Dots).Text("12"))
+                .ToBytes();
+
+            using var pdf = UglyToad.PdfPig.PdfDocument.Open(new MemoryStream(bytes));
+            var page = pdf.GetPage(1);
+            int dotCount = page.Letters.Count(letter => letter.Value == ".");
+            Assert.True(dotCount >= 3, $"Expected dotted leaders to render between the label and value. Dot count: {dotCount}.");
+
+            var structuredPage = Assert.Single(PdfTextExtractor.ExtractStructuredByPage(bytes, new PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            }));
+            Assert.Contains(structuredPage.LeaderRows, leader => leader.Length >= 2 &&
+                leader[0] == "Revenue" &&
+                leader[1] == "12");
         }
 
         [Fact]

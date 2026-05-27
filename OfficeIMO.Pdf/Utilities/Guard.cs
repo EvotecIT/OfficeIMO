@@ -109,6 +109,14 @@ internal static class Guard {
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void TabLeaderStyle(PdfTabLeaderStyle value, string paramName) {
+        if (value != PdfTabLeaderStyle.None &&
+            value != PdfTabLeaderStyle.Dots) {
+            throw new System.ArgumentException("PDF tab leader style must be None or Dots.", paramName);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void StandardFont(PdfStandardFont value, string paramName, string message) {
         if (value != PdfStandardFont.Helvetica &&
             value != PdfStandardFont.HelveticaOblique &&

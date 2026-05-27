@@ -24,6 +24,8 @@ public sealed class TextRun {
     public string? LinkContents { get; }
     /// <summary>Baseline placement for this run.</summary>
     public PdfTextBaseline Baseline { get; }
+    /// <summary>Leader fill used when this run represents a paragraph tab.</summary>
+    public PdfTabLeaderStyle TabLeader { get; }
 
     /// <summary>Create a new run with the specified styles.</summary>
     /// <param name="text">Run text.</param>
@@ -36,11 +38,17 @@ public sealed class TextRun {
     /// <param name="linkContents">Optional link annotation contents; defaults to the run text when omitted.</param>
     /// <param name="baseline">Baseline placement for this run.</param>
     /// <param name="linkDestinationName">Optional named destination for an internal document link annotation.</param>
-    public TextRun(string text, bool bold = false, bool underline = false, PdfColor? color = null, bool italic = false, bool strike = false, string? linkUri = null, string? linkContents = null, PdfTextBaseline baseline = PdfTextBaseline.Normal, string? linkDestinationName = null) {
+    /// <param name="tabLeader">Leader fill to render when the run text is a tab character.</param>
+    public TextRun(string text, bool bold = false, bool underline = false, PdfColor? color = null, bool italic = false, bool strike = false, string? linkUri = null, string? linkContents = null, PdfTextBaseline baseline = PdfTextBaseline.Normal, string? linkDestinationName = null, PdfTabLeaderStyle tabLeader = PdfTabLeaderStyle.None) {
         Guard.NotNull(text, nameof(text));
         Guard.TextBaseline(baseline, nameof(baseline));
+        Guard.TabLeaderStyle(tabLeader, nameof(tabLeader));
         if (linkUri != null && linkDestinationName != null) {
             throw new System.ArgumentException("A text run link can target either a URI or a bookmark, not both.", nameof(linkDestinationName));
+        }
+
+        if (tabLeader != PdfTabLeaderStyle.None && text != "\t") {
+            throw new System.ArgumentException("Tab leaders can only be applied to explicit tab runs.", nameof(tabLeader));
         }
 
         bool hasLinkTarget = linkUri != null || linkDestinationName != null;
@@ -72,12 +80,15 @@ public sealed class TextRun {
         LinkDestinationName = linkDestinationName;
         LinkContents = hasLinkTarget ? linkContents ?? text : null;
         Baseline = baseline;
+        TabLeader = tabLeader;
     }
 
     /// <summary>Create a normal (unstyled) run.</summary>
     public static TextRun Normal(string text, PdfColor? color = null) => new TextRun(text, bold: false, underline: false, color: color, italic: false, strike: false);
     /// <summary>Create an explicit line-break run.</summary>
     public static TextRun LineBreak() => new TextRun("\n", bold: false, underline: false, color: null, italic: false, strike: false);
+    /// <summary>Create an explicit paragraph tab run.</summary>
+    public static TextRun Tab(PdfTabLeaderStyle leader = PdfTabLeaderStyle.None) => new TextRun("\t", tabLeader: leader);
     /// <summary>Create a bold run.</summary>
     public static TextRun Bolded(string text, PdfColor? color = null) => new TextRun(text, bold: true, underline: false, color: color, italic: false, strike: false);
     /// <summary>Create an underlined run.</summary>
