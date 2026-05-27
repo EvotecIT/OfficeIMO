@@ -234,6 +234,33 @@ needed, adds subnet/background zones around selected devices, routes links,
 supports coordinate or side-placed semantic callouts, and keeps mesh/cycle
 links valid.
 
+## Quick sample (sequence diagram builder)
+
+```csharp
+using OfficeIMO.Visio;
+using OfficeIMO.Visio.Diagrams;
+
+VisioDocument.Create("sequence.vsdx")
+    .SequenceDiagram("Checkout Sequence", sequence => sequence
+        .Title()
+        .Theme(VisioStyleTheme.Fluent())
+        .Actor("customer", "Customer")
+        .Participant("web", "Web App")
+        .Control("api", "Orders API")
+        .Database("db", "Orders DB")
+        .Call("customer", "web", "Checkout")
+        .Call("web", "api", "POST /orders")
+        .Async("api", "db", "Persist order")
+        .Return("api", "web", "201 Created")
+        .SelfMessage("web", "Render receipt"))
+    .Save();
+```
+
+The sequence builder creates editable participants, lifelines, synchronous,
+asynchronous, return, and self-message connectors from semantic calls. It grows
+the page as needed, uses reusable style themes, and adds a native searchable
+sequence stencil catalog without depending on Visio templates at runtime.
+
 ## Quick sample (swimlane diagram builder)
 
 ```csharp
@@ -998,8 +1025,8 @@ See `OfficeIMO.Examples/Visio/*` for more.
 - 📄 Pages: ✅ add/remove pages
 - 🧱 Shapes: ✅ basic shapes from masters (rectangle, etc.), ✅ set text
 - 🔗 Connectors: ✅ basic connectors between shapes
-- 🧭 Diagram builders: ✅ flowchart builder with vertical and two-column continuation layouts plus branch routing, ✅ block diagram builder with grid regions and data/control flows, ✅ architecture builder with infrastructure components, regions, and routed data/control/dependency flows, ✅ network builder with zones, devices, links, and legends, ✅ swimlane builder with lanes, phases, activities, handoffs, and exception paths, ✅ org chart builder with hierarchy, assistants, team bands, vacancies, and external roles, ✅ timeline builder with date-scaled milestones and span lanes
-- 🧰 Native stencils: ✅ built-in searchable catalogs for basic, flowchart, block-diagram, architecture, network, swimlane, org-chart, and timeline shapes
+- 🧭 Diagram builders: ✅ flowchart builder with vertical and two-column continuation layouts plus branch routing, ✅ block diagram builder with grid regions and data/control flows, ✅ architecture builder with infrastructure components, regions, and routed data/control/dependency flows, ✅ network builder with zones, devices, links, and legends, ✅ sequence builder with participants, lifelines, message types, and self-calls, ✅ swimlane builder with lanes, phases, activities, handoffs, and exception paths, ✅ org chart builder with hierarchy, assistants, team bands, vacancies, and external roles, ✅ timeline builder with date-scaled milestones and span lanes
+- 🧰 Native stencils: ✅ built-in searchable catalogs for basic, flowchart, block-diagram, architecture, network, sequence, swimlane, org-chart, and timeline shapes
 - 🎨 Style themes: ✅ reusable shape/connector/text styles and Modern/Office/Fluent/Technical/Minimal/Dark/Print authoring presets
 - 🔎 Rich editing: ✅ recursive shape queries, shape/data/text/master/layer/hyperlink selectors, connector neighbor queries, page layers, shape and connector hyperlinks, bulk style/data/layer/hyperlink edits, align/distribute, resize-to-text, center content, and fit-to-content
 - 🧩 VSDX learning fixtures: ✅ inspect supported masters without treating sample files as runtime templates
