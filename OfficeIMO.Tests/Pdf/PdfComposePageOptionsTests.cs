@@ -531,20 +531,22 @@ namespace OfficeIMO.Tests.Pdf {
                 PdfAnnotationDictionaryBuilder.BuildGoToNamedDestinationLinkAnnotation(10, 20.5, 110, 44.25, "Intro(A)", "Jump metadata"));
 
             Assert.Equal(
-                "<< /Type /Annot /Subtype /Widget /FT /Tx /T (Person.Name) /V <416461> /DV <416461> /Rect [10 20.5 110 44.25] /F 4 /DA (/Helv 10 Tf 0 g) /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N 12 0 R >> >>\n",
+                "<< /Type /Annot /Subtype /Widget /FT /Tx /T <506572736F6E2E4E616D65> /V <416461> /DV <416461> /Rect [10 20.5 110 44.25] /F 4 /DA (/Helv 10 Tf 0 g) /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N 12 0 R >> >>\n",
                 PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(10, 20.5, 110, 44.25, "Person.Name", "Ada", 10, 12));
 
             Assert.Equal(
-                "<< /Type /Annot /Subtype /Widget /FT /Btn /T (AcceptTerms) /V /Yes /DV /Yes /Rect [10 20.5 26 36.5] /F 4 /AS /Yes /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N << /Off 12 0 R /Yes 13 0 R >> >> >>\n",
+                "<< /Type /Annot /Subtype /Widget /FT /Btn /T <4163636570745465726D73> /V /Yes /DV /Yes /Rect [10 20.5 26 36.5] /F 4 /AS /Yes /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N << /Off 12 0 R /Yes 13 0 R >> >> >>\n",
                 PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(10, 20.5, 26, 36.5, "AcceptTerms", true, "Yes", 12, 13));
 
             Assert.Equal(
-                "<< /Type /Annot /Subtype /Widget /FT /Ch /T (Country) /V <506F6C616E64> /DV <506F6C616E64> /Opt [ <506F6C616E64> <556E6974656420537461746573> ] /Ff 131072 /Rect [10 20.5 110 44.25] /F 4 /DA (/Helv 10 Tf 0 g) /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N 12 0 R >> >>\n",
+                "<< /Type /Annot /Subtype /Widget /FT /Ch /T <436F756E747279> /V <506F6C616E64> /DV <506F6C616E64> /Opt [ <506F6C616E64> <556E6974656420537461746573> ] /Ff 131072 /Rect [10 20.5 110 44.25] /F 4 /DA (/Helv 10 Tf 0 g) /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N 12 0 R >> >>\n",
                 PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(10, 20.5, 110, 44.25, "Country", new[] { "Poland", "United States" }, "Poland", 10, 12, isComboBox: true));
 
             Assert.Equal(
-                "<< /Type /Annot /Subtype /Widget /FT /Ch /T (Countries) /V [<506F6C616E64> <556E6974656420537461746573>] /DV [<506F6C616E64> <556E6974656420537461746573>] /Opt [ <506F6C616E64> <4765726D616E79> <556E6974656420537461746573> ] /Ff 2097152 /Rect [10 20.5 110 70] /F 4 /DA (/Helv 10 Tf 0 g) /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N 12 0 R >> >>\n",
+                "<< /Type /Annot /Subtype /Widget /FT /Ch /T <436F756E7472696573> /V [<506F6C616E64> <556E6974656420537461746573>] /DV [<506F6C616E64> <556E6974656420537461746573>] /Opt [ <506F6C616E64> <4765726D616E79> <556E6974656420537461746573> ] /Ff 2097152 /Rect [10 20.5 110 70] /F 4 /DA (/Helv 10 Tf 0 g) /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N 12 0 R >> >>\n",
                 PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(10, 20.5, 110, 70, "Countries", new[] { "Poland", "Germany", "United States" }, new[] { "Poland", "United States" }, 10, 12, isComboBox: false, allowsMultipleSelection: true));
+
+            Assert.Contains("/T <FEFF540D>", PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(10, 20, 110, 44, "名", "Ada", 10, 12), StringComparison.Ordinal);
 
             Assert.Throws<ArgumentException>(() =>
                 PdfAnnotationDictionaryBuilder.BuildUriLinkAnnotation(10, 20, 110, 44, "not-a-uri"));
@@ -556,6 +558,8 @@ namespace OfficeIMO.Tests.Pdf {
                 PdfAnnotationDictionaryBuilder.BuildGoToNamedDestinationLinkAnnotation(10, 20, 110, 44, " "));
             Assert.Throws<ArgumentException>(() =>
                 PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(10, 20, 26, 36, "AcceptTerms", true, "Off", 12, 13));
+            Assert.Throws<ArgumentException>(() =>
+                PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(10, 20, 26, 36, "AcceptTerms", true, "Y\u2713", 12, 13));
             Assert.Throws<ArgumentException>(() =>
                 PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(10, 20, 110, 44, "Country", Array.Empty<string>(), "Poland", 10, 12, isComboBox: true));
             Assert.Throws<ArgumentException>(() =>

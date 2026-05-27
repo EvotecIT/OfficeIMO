@@ -6,6 +6,7 @@ namespace OfficeIMO.Pdf;
 public static class PdfFormFiller {
     private const string UnsupportedFlattenWidgetMessage = "Only simple text, choice, and button AcroForm widgets with rectangles are supported for flattening by OfficeIMO.Pdf yet.";
     private const string UnsupportedFlattenAnnotationMessage = "Only simple text, choice, and button AcroForm widgets referenced from page annotations are supported for flattening by OfficeIMO.Pdf yet.";
+    private const int EditableChoiceFlag = 262144;
     private const int MultiSelectChoiceFlag = 2097152;
 
     private readonly struct ChoiceFillValue {
@@ -54,7 +55,7 @@ public static class PdfFormFiller {
         var remaining = new HashSet<string>(fieldValues.Keys, StringComparer.Ordinal);
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
         for (int i = 0; i < fields.Items.Count; i++) {
-            FillField(objects, fields.Items[i], null, null, fieldValues, remaining, new HashSet<int>(), ref nextObjectNumber);
+            FillField(objects, fields.Items[i], null, null, 0, null, fieldValues, remaining, new HashSet<int>(), ref nextObjectNumber);
         }
 
         if (remaining.Count > 0) {
@@ -648,6 +649,8 @@ public static class PdfFormFiller {
         PdfObject fieldObject,
         string? parentName,
         string? inheritedFieldType,
+        int inheritedFlags,
+        PdfArray? inheritedChoiceOptions,
         IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues,
         HashSet<string> remaining,
         HashSet<int> visited,
@@ -663,8 +666,10 @@ public static class PdfFormFiller {
         string? partialName = TryReadText(objects, field, "T");
         string? fullName = CombineFieldName(parentName, partialName);
         string? fieldType = TryReadName(objects, field, "FT") ?? inheritedFieldType;
+        int fieldFlags = ReadFieldFlags(objects, field, inheritedFlags);
+        PdfArray? choiceOptions = TryReadChoiceOptions(objects, field) ?? inheritedChoiceOptions;
         if (fullName is not null && remaining.Contains(fullName) && fieldValues.TryGetValue(fullName, out PdfFormFieldValue? value)) {
-            SetFieldValue(objects, field, fieldType, value, ref nextObjectNumber);
+            SetFieldValue(objects, field, fieldType, fieldFlags, choiceOptions, value, ref nextObjectNumber);
             remaining.Remove(fullName);
         }
 
@@ -674,11 +679,11 @@ public static class PdfFormFiller {
         }
 
         for (int i = 0; i < kids.Items.Count; i++) {
-            FillField(objects, kids.Items[i], fullName, fieldType, fieldValues, remaining, visited, ref nextObjectNumber);
+            FillField(objects, kids.Items[i], fullName, fieldType, fieldFlags, choiceOptions, fieldValues, remaining, visited, ref nextObjectNumber);
         }
     }
 
-    private static void SetFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string? fieldType, PdfFormFieldValue value, ref int nextObjectNumber) {
+    private static void SetFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string? fieldType, int fieldFlags, PdfArray? choiceOptions, PdfFormFieldValue value, ref int nextObjectNumber) {
         IReadOnlyList<string> values = value.Values;
         string firstValue = values[0];
         if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
@@ -690,8 +695,8 @@ public static class PdfFormFiller {
         }
 
         if (string.Equals(fieldType, "Ch", StringComparison.Ordinal)) {
-            IReadOnlyList<ChoiceFillValue> choiceValues = ResolveChoiceFillValues(objects, field, values);
-            if (choiceValues.Count > 1 || HasFieldFlag(objects, field, MultiSelectChoiceFlag)) {
+            IReadOnlyList<ChoiceFillValue> choiceValues = ResolveChoiceFillValues(objects, choiceOptions, (fieldFlags & EditableChoiceFlag) != 0, values);
+            if (choiceValues.Count > 1 || (fieldFlags & MultiSelectChoiceFlag) != 0) {
                 field.Items["V"] = CreateStringArray(choiceValues.Select(item => item.ExportValue));
                 SetTextWidgetAppearances(objects, field, string.Join(", ", choiceValues.Select(item => item.DisplayValue)), new HashSet<int>(), ref nextObjectNumber);
                 return;
@@ -707,14 +712,21 @@ public static class PdfFormFiller {
         SetTextWidgetAppearances(objects, field, firstValue, new HashSet<int>(), ref nextObjectNumber);
     }
 
-    private static bool HasFieldFlag(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, int flag) {
+    private static int ReadFieldFlags(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, int inheritedFlags) {
         if (!field.Items.TryGetValue("Ff", out PdfObject? flagsObject) ||
             ResolveObject(objects, flagsObject) is not PdfNumber flagsNumber) {
-            return false;
+            return inheritedFlags;
         }
 
-        int flags = (int)flagsNumber.Value;
-        return (flags & flag) != 0;
+        return (int)flagsNumber.Value;
+    }
+
+    private static PdfArray? TryReadChoiceOptions(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field) {
+        if (!field.Items.TryGetValue("Opt", out PdfObject? optionsObject)) {
+            return null;
+        }
+
+        return ResolveObject(objects, optionsObject) as PdfArray;
     }
 
     private static void SetWidgetAppearanceStates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string name, HashSet<int> visited, ref int nextObjectNumber) {
@@ -1089,23 +1101,18 @@ public static class PdfFormFiller {
         return null;
     }
 
-    private static List<ChoiceFillValue> ResolveChoiceFillValues(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, IReadOnlyList<string> values) {
-        PdfArray? options = null;
-        if (dictionary.Items.TryGetValue("Opt", out var optionsObject)) {
-            options = ResolveObject(objects, optionsObject) as PdfArray;
-        }
-
+    private static List<ChoiceFillValue> ResolveChoiceFillValues(Dictionary<int, PdfIndirectObject> objects, PdfArray? options, bool isEditableChoice, IReadOnlyList<string> values) {
         var resolved = new List<ChoiceFillValue>(values.Count);
         for (int i = 0; i < values.Count; i++) {
             resolved.Add(options is null || options.Items.Count == 0
                 ? new ChoiceFillValue(values[i], values[i])
-                : ResolveSingleChoiceFillValue(objects, options, values[i]));
+                : ResolveSingleChoiceFillValue(objects, options, isEditableChoice, values[i]));
         }
 
         return resolved;
     }
 
-    private static ChoiceFillValue ResolveSingleChoiceFillValue(Dictionary<int, PdfIndirectObject> objects, PdfArray options, string value) {
+    private static ChoiceFillValue ResolveSingleChoiceFillValue(Dictionary<int, PdfIndirectObject> objects, PdfArray options, bool isEditableChoice, string value) {
         for (int i = 0; i < options.Items.Count; i++) {
             PdfObject? optionObject = ResolveObject(objects, options.Items[i]);
             if (optionObject is PdfArray pair &&
@@ -1127,7 +1134,11 @@ public static class PdfFormFiller {
             }
         }
 
-        return new ChoiceFillValue(value, value);
+        if (isEditableChoice) {
+            return new ChoiceFillValue(value, value);
+        }
+
+        throw new ArgumentException("PDF choice field value does not match an available option: " + value, nameof(value));
     }
 
     private static bool TryReadOptionText(Dictionary<int, PdfIndirectObject> objects, PdfObject value, out string? text) {

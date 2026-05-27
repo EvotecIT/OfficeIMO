@@ -41,7 +41,7 @@ internal static class PdfAnnotationDictionaryBuilder {
         }
 
         return "<< /Type /Annot /Subtype /Widget /FT /Tx /T " +
-            PdfSyntaxEscaper.LiteralString(name) +
+            PdfSyntaxEscaper.TextString(name) +
             " /V " +
             PdfSyntaxEscaper.WinAnsiHexString(value) +
             " /DV " +
@@ -66,9 +66,11 @@ internal static class PdfAnnotationDictionaryBuilder {
             throw new ArgumentException("PDF check box selected value name cannot be Off.", nameof(checkedValueName));
         }
 
+        ValidateAsciiPdfNameValue(checkedValueName, nameof(checkedValueName));
+
         string selectedName = isChecked ? checkedValueName : "Off";
         return "<< /Type /Annot /Subtype /Widget /FT /Btn /T " +
-            PdfSyntaxEscaper.LiteralString(name) +
+            PdfSyntaxEscaper.TextString(name) +
             " /V /" +
             PdfSyntaxEscaper.Name(selectedName) +
             " /DV /" +
@@ -146,7 +148,7 @@ internal static class PdfAnnotationDictionaryBuilder {
 
         int flags = (isComboBox ? 131072 : 0) | (allowsMultipleSelection ? 2097152 : 0);
         return "<< /Type /Annot /Subtype /Widget /FT /Ch /T " +
-            PdfSyntaxEscaper.LiteralString(name) +
+            PdfSyntaxEscaper.TextString(name) +
             " /V " +
             BuildChoiceValue(values) +
             " /DV " +
@@ -190,6 +192,14 @@ internal static class PdfAnnotationDictionaryBuilder {
         string.IsNullOrWhiteSpace(contents)
             ? string.Empty
             : " /Contents " + PdfSyntaxEscaper.LiteralString(contents!);
+
+    private static void ValidateAsciiPdfNameValue(string value, string paramName) {
+        for (int i = 0; i < value.Length; i++) {
+            if (value[i] > 0x7E) {
+                throw new ArgumentException("PDF check box selected value name must contain only ASCII PDF name characters.", paramName);
+            }
+        }
+    }
 
     private static void ValidateRectangle(double x1, double y1, double x2, double y2) {
         ValidateFinite(x1, nameof(x1));

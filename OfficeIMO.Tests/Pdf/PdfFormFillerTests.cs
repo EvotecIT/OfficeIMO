@@ -239,6 +239,42 @@ public class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FillFields_ChoiceDisplayTextUsesInheritedOptions() {
+        byte[] filled = PdfFormFiller.FillFields(BuildInheritedChoiceWidgetFormPdf(), new Dictionary<string, string> {
+            ["Selection.Country"] = "United States"
+        });
+
+        PdfDocumentInfo filledInfo = PdfInspector.Inspect(filled);
+
+        PdfFormField filledField = Assert.Single(filledInfo.FormFields);
+        Assert.Equal("Selection.Country", filledField.Name);
+        Assert.Equal("US", filledField.Value);
+        Assert.Equal("United States", Assert.Single(filledField.SelectedOptions).DisplayText);
+        Assert.Contains("<556E6974656420537461746573> Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillFields_ChoiceRejectsUnknownValueWhenNotEditable() {
+        var ex = Assert.Throws<ArgumentException>(() => PdfFormFiller.FillFields(BuildChoiceWidgetFormPdf(), new Dictionary<string, string> {
+            ["Country"] = "Untied States"
+        }));
+
+        Assert.Contains("PDF choice field value does not match an available option: Untied States", ex.Message);
+    }
+
+    [Fact]
+    public void FillFields_EditableChoiceAllowsUnknownValue() {
+        byte[] filled = PdfFormFiller.FillFields(BuildEditableChoiceWidgetFormPdf(), new Dictionary<string, string> {
+            ["Country"] = "Atlantis"
+        });
+
+        PdfFormField filledField = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("Atlantis", filledField.Value);
+        Assert.Contains("<41746C616E746973> Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FillFields_MultiSelectChoiceValuesStoreExportArrayAndPaintDisplayText() {
         byte[] filled = PdfFormFiller.FillFields(BuildMultiSelectChoiceWidgetFormPdf(), new Dictionary<string, PdfFormFieldValue> {
             ["Country"] = PdfFormFieldValue.FromValues("Poland", "United States")
@@ -609,6 +645,76 @@ public class PdfFormFillerTests {
             "endobj",
             "7 0 obj",
             "<< /FT /Ch /T (Country) /V (DE) /Opt [[(PL) (Poland)] [(DE) (Germany)] [/US (United States)]] /Kids [8 0 R] >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 100 200 122] /F 4 >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildInheritedChoiceWidgetFormPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R /Annots [8 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [7 0 R] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /FT /Ch /T (Selection) /Opt [[(PL) (Poland)] [(DE) (Germany)] [/US (United States)]] /Kids [8 0 R] >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /T (Country) /Rect [20 100 200 122] /F 4 >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildEditableChoiceWidgetFormPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R /Annots [8 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [7 0 R] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /FT /Ch /T (Country) /V (DE) /Ff 393216 /Opt [[(PL) (Poland)] [(DE) (Germany)] [/US (United States)]] /Kids [8 0 R] >>",
             "endobj",
             "8 0 obj",
             "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 100 200 122] /F 4 >>",
