@@ -1023,13 +1023,12 @@ namespace OfficeIMO.Excel {
 
             var candidate = _directDataSetSaveCandidate;
             var sourceModel = candidate?.IsValid == true ? candidate.Model : _materializedDirectDataSetFastSaveModel;
-            if (sourceModel == null || sourceModel.Sheets.Count != 1) {
+            if (sourceModel == null || !ReferenceEquals(sheet.Document, this)) {
                 return false;
             }
 
-            var sheetModel = sourceModel.Sheets[0];
-            if (!ReferenceEquals(sheet.Document, this)
-                || !string.Equals(sheetModel.SheetName, sheet.Name, StringComparison.Ordinal)
+            var sheetModel = sourceModel.Sheets.FirstOrDefault(item => string.Equals(item.SheetName, sheet.Name, StringComparison.Ordinal));
+            if (sheetModel == null
                 || columnIndex <= 0
                 || columnIndex > sheetModel.Table.ColumnCount) {
                 return false;
@@ -1073,6 +1072,7 @@ namespace OfficeIMO.Excel {
             ExcelSheet sheet,
             string header,
             bool includeHeader,
+            ExcelReadOptions? options,
             out int columnIndex,
             out int startRow,
             out int endRow) {
@@ -1086,18 +1086,23 @@ namespace OfficeIMO.Excel {
 
             var candidate = _directDataSetSaveCandidate;
             var sourceModel = candidate?.IsValid == true ? candidate.Model : _materializedDirectDataSetFastSaveModel;
-            if (sourceModel == null || sourceModel.Sheets.Count != 1) {
+            if (sourceModel == null) {
                 return false;
             }
 
-            var sheetModel = sourceModel.Sheets[0];
-            if (!string.Equals(sheetModel.SheetName, sheet.Name, StringComparison.Ordinal)
-                || !sheetModel.IncludeHeaders) {
+            var sheetModel = sourceModel.Sheets.FirstOrDefault(item => string.Equals(item.SheetName, sheet.Name, StringComparison.Ordinal));
+            if (sheetModel == null || !sheetModel.IncludeHeaders) {
                 return false;
             }
 
-            for (int i = 0; i < sheetModel.Table.ColumnCount; i++) {
-                if (!string.Equals(sheetModel.Table.GetColumnName(i), header, StringComparison.OrdinalIgnoreCase)) {
+            bool normalizeHeaders = options?.NormalizeHeaders ?? true;
+            string normalizedHeader = ExcelHeaderNameHelper.NormalizeHeader(header, normalizeHeaders);
+            var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(
+                sheetModel.Table.ColumnCount,
+                column => sheetModel.Table.GetColumnName(column),
+                normalizeHeaders);
+            for (int i = 0; i < headers.Length; i++) {
+                if (!string.Equals(headers[i], normalizedHeader, StringComparison.OrdinalIgnoreCase)) {
                     continue;
                 }
 
@@ -2524,7 +2529,8 @@ namespace OfficeIMO.Excel {
                         sheet.OmitBlankCells,
                         columnWidths,
                         sheet.UseCellValueNumberFormats,
-                        sheet.Metadata);
+                        sheet.Metadata,
+                        sheet.ColumnNumberFormats);
                 }
 
                 return new DirectDataSetWorkbookModel(sheets, Results, dateTimeOffsetWriteStrategy ?? DateTimeOffsetWriteStrategy);
@@ -2553,7 +2559,8 @@ namespace OfficeIMO.Excel {
                         sheet.OmitBlankCells,
                         sheet.ColumnWidths,
                         sheet.UseCellValueNumberFormats,
-                        sheet.Metadata);
+                        sheet.Metadata,
+                        sheet.ColumnNumberFormats);
                 }
 
                 return new DirectDataSetWorkbookModel(sheets, Results, DateTimeOffsetWriteStrategy);
@@ -2605,7 +2612,8 @@ namespace OfficeIMO.Excel {
                         sheet.OmitBlankCells,
                         columnWidths,
                         sheet.UseCellValueNumberFormats,
-                        sheet.Metadata);
+                        sheet.Metadata,
+                        sheet.ColumnNumberFormats);
                 }
 
                 return new DirectDataSetWorkbookModel(sheets, Results, dateTimeOffsetWriteStrategy ?? DateTimeOffsetWriteStrategy);
@@ -2654,7 +2662,8 @@ namespace OfficeIMO.Excel {
                         sheet.OmitBlankCells,
                         columnWidths,
                         sheet.UseCellValueNumberFormats,
-                        sheet.Metadata);
+                        sheet.Metadata,
+                        sheet.ColumnNumberFormats);
                     results[i] = new ExcelDataSetImportResult(sheet.SheetName, tableName, sheet.Range, table.RowCount, table.ColumnCount);
                 }
 
