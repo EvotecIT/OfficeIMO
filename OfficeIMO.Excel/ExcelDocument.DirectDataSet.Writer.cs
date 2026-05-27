@@ -819,6 +819,10 @@ namespace OfficeIMO.Excel {
                 int lastRow = sheet.Table.RowCount + (sheet.IncludeHeaders ? 1 : 0);
                 int lastColumn = sheet.Table.ColumnCount;
                 for (int i = 0; i < overlayCells.Count; i++) {
+                    if (overlayCells[i].IsDeleted) {
+                        continue;
+                    }
+
                     lastRow = Math.Max(lastRow, overlayCells[i].Row);
                     lastColumn = Math.Max(lastColumn, overlayCells[i].Column);
                 }
@@ -840,7 +844,7 @@ namespace OfficeIMO.Excel {
                 int row = -1;
                 for (int i = 0; i < overlayCells.Count; i++) {
                     var cell = overlayCells[i];
-                    if (cell.Row <= skipRowsAtOrBefore) {
+                    if (cell.IsDeleted || cell.Row <= skipRowsAtOrBefore) {
                         continue;
                     }
 
@@ -876,6 +880,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 return overlayCells
+                    .Where(static cell => !cell.IsDeleted)
                     .GroupBy(static cell => cell.Row)
                     .ToDictionary(
                         static group => group.Key,
@@ -888,7 +893,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 for (int i = 0; i < overlayCells.Count; i++) {
-                    if (overlayCells[i].Row <= row) {
+                    if (!overlayCells[i].IsDeleted && overlayCells[i].Row <= row) {
                         return true;
                     }
                 }
@@ -1200,6 +1205,10 @@ namespace OfficeIMO.Excel {
                         var overlayCells = model.Sheets[sheetIndex].Metadata?.OverlayCells;
                         if (overlayCells != null) {
                             for (int i = 0; i < overlayCells.Count; i++) {
+                                if (overlayCells[i].IsDeleted) {
+                                    continue;
+                                }
+
                                 AddCustomNumberFormat(overlayCells[i].NumberFormat, customNumberFormats, styleAttributeByFormat);
                             }
                         }
