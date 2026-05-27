@@ -195,6 +195,21 @@ public sealed class PdfReadLayoutSmokeTests {
         Assert.True(paragraph.Lines.Count > 1);
         Assert.Contains("structured paragraph", paragraph.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("P-100", paragraph.Text, StringComparison.Ordinal);
+
+        StructuredParagraphPage paragraphPage = Assert.Single(PdfTextExtractor.ExtractParagraphsByPage(bytes, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }));
+        StructuredParagraph extractedParagraph = Assert.Single(paragraphPage.Paragraphs, item => item.Text.Contains("structured paragraph", StringComparison.Ordinal));
+        Assert.Equal(1, paragraphPage.PageNumber);
+        Assert.True(extractedParagraph.Lines.Count > 1);
+        Assert.DoesNotContain("P-100", extractedParagraph.Text, StringComparison.Ordinal);
+
+        using var stream = new MemoryStream(bytes);
+        StructuredParagraphPage streamParagraphPage = Assert.Single(PdfTextExtractor.ExtractParagraphsByPage(stream, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }));
+        Assert.Equal(1, streamParagraphPage.PageNumber);
+        Assert.Contains(streamParagraphPage.Paragraphs, item => item.Text.Contains("structured paragraph", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -210,6 +225,19 @@ public sealed class PdfReadLayoutSmokeTests {
         Assert.Contains(structuredPages[1].Lines, line => Normalize(line).Contains("Firstpagetable", StringComparison.Ordinal));
         Assert.Contains(structuredPages[2].Lines, line => Normalize(line).Contains("Secondpagemarker", StringComparison.Ordinal));
         Assert.Contains(structuredPages[3].Lines, line => Normalize(line).Contains("Thirdpagetable", StringComparison.Ordinal));
+
+        var paragraphPages = PdfTextExtractor.ExtractParagraphsByPageRanges(bytes, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }, PdfPageRange.ParseMany("3,1-2,3"));
+
+        Assert.Equal(4, paragraphPages.Count);
+        Assert.Equal(3, paragraphPages[0].PageNumber);
+        Assert.Equal(1, paragraphPages[1].PageNumber);
+        Assert.Equal(2, paragraphPages[2].PageNumber);
+        Assert.Equal(3, paragraphPages[3].PageNumber);
+        Assert.Contains(paragraphPages[0].Paragraphs, paragraph => Normalize(paragraph.Text).Contains("Thirdpagetable", StringComparison.Ordinal));
+        Assert.Contains(paragraphPages[1].Paragraphs, paragraph => Normalize(paragraph.Text).Contains("Firstpagetable", StringComparison.Ordinal));
+        Assert.Contains(paragraphPages[2].Paragraphs, paragraph => Normalize(paragraph.Text).Contains("Secondpagemarker", StringComparison.Ordinal));
 
         var tablePages = PdfTextExtractor.ExtractTablesByPageRanges(bytes, new PdfTextLayoutOptions {
             ForceSingleColumn = true
@@ -232,6 +260,23 @@ public sealed class PdfReadLayoutSmokeTests {
         try {
             Directory.CreateDirectory(directory);
             File.WriteAllBytes(inputPath, bytes);
+
+            var pathParagraphPages = PdfTextExtractor.ExtractParagraphsByPageRanges(inputPath, new PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            }, PdfPageRange.ParseMany("1"));
+
+            StructuredParagraphPage pathParagraphPage = Assert.Single(pathParagraphPages);
+            Assert.Equal(1, pathParagraphPage.PageNumber);
+            Assert.Contains(pathParagraphPage.Paragraphs, paragraph => Normalize(paragraph.Text).Contains("Firstpagetable", StringComparison.Ordinal));
+
+            using var paragraphStream = new MemoryStream(bytes);
+            var streamParagraphPages = PdfTextExtractor.ExtractParagraphsByPageRanges(paragraphStream, new PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            }, PdfPageRange.ParseMany("2"));
+
+            StructuredParagraphPage streamParagraphPage = Assert.Single(streamParagraphPages);
+            Assert.Equal(2, streamParagraphPage.PageNumber);
+            Assert.Contains(streamParagraphPage.Paragraphs, paragraph => Normalize(paragraph.Text).Contains("Secondpagemarker", StringComparison.Ordinal));
 
             var paths = PdfTextExtractor.ExtractTablesByPageRanges(inputPath, outputDirectory, new PdfTextLayoutOptions {
                 ForceSingleColumn = true
@@ -280,6 +325,13 @@ public sealed class PdfReadLayoutSmokeTests {
         Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractStructuredByPageRanges(bytes));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractStructuredByPageRanges(bytes, default(PdfPageRange)));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractStructuredByPageRanges(bytes, PdfPageRange.From(4, 4)));
+
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractParagraphsByPageRanges((byte[])null!, PdfPageRange.From(1, 1)));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractParagraphsByPageRanges(bytes, (PdfPageRange[])null!));
+        Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractParagraphsByPageRanges(bytes));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractParagraphsByPageRanges(bytes, default(PdfPageRange)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractParagraphsByPageRanges(bytes, PdfPageRange.From(4, 4)));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractParagraphsByPageRanges((string)null!, PdfPageRange.From(1, 1)));
 
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractTablesByPageRanges((byte[])null!, PdfPageRange.From(1, 1)));
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractTablesByPageRanges(bytes, (PdfPageRange[])null!));

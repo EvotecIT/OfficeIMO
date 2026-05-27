@@ -98,6 +98,25 @@ public sealed class StructuredTablePage {
     public List<StructuredTable> Tables { get; } = new();
 }
 
+/// <summary>Detected paragraphs for a single document page.</summary>
+public sealed class StructuredParagraphPage {
+    /// <summary>Creates a page paragraph result.</summary>
+    public StructuredParagraphPage(int pageNumber, IEnumerable<StructuredParagraph> paragraphs) {
+        if (pageNumber < 1) {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
+        }
+
+        PageNumber = pageNumber;
+        Paragraphs.AddRange(paragraphs ?? throw new ArgumentNullException(nameof(paragraphs)));
+    }
+
+    /// <summary>1-based page number.</summary>
+    public int PageNumber { get; }
+
+    /// <summary>Detected paragraphs on this page.</summary>
+    public List<StructuredParagraph> Paragraphs { get; } = new();
+}
+
 /// <summary>Heuristic paragraph group built from nearby non-list, non-table lines.</summary>
 public sealed class StructuredParagraph {
     /// <summary>Paragraph text with grouped lines joined by spaces.</summary>

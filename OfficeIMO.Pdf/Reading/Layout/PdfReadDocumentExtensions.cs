@@ -51,6 +51,21 @@ public static class PdfReadDocumentExtensions {
     }
 
     /// <summary>
+    /// Extracts detected paragraphs grouped by page while preserving paragraph geometry.
+    /// </summary>
+    /// <param name="doc">Source document.</param>
+    /// <param name="options">Optional layout options.</param>
+    public static IReadOnlyList<StructuredParagraphPage> ExtractParagraphsByPage(this PdfReadDocument doc, PdfTextLayoutOptions? options = null) {
+        var pages = new List<StructuredParagraphPage>(doc.Pages.Count);
+        for (int i = 0; i < doc.Pages.Count; i++) {
+            var structuredPage = doc.Pages[i].ExtractStructured(options);
+            pages.Add(new StructuredParagraphPage(i + 1, structuredPage.Paragraphs));
+        }
+
+        return pages.AsReadOnly();
+    }
+
+    /// <summary>
     /// Extracts simple structured content (lines, TOC rows, list items, leader rows) for the whole document.
     /// </summary>
     /// <param name="doc">Source document.</param>
