@@ -42,6 +42,38 @@ namespace OfficeIMO.Visio {
             public XDocument MasterXml { get; set; } = new XDocument();
             /// <summary>The corresponding <c>Master</c> element from masters.xml.</summary>
             public XElement MasterElement { get; set; } = new XElement(XName.Get("Master", V));
+            /// <summary>Relationships owned by the master part, including copied media payloads.</summary>
+            public IList<MasterRelationshipContent> Relationships { get; } = new List<MasterRelationshipContent>();
+        }
+
+        /// <summary>
+        /// A relationship from a master part to another package part or external target.
+        /// </summary>
+        public sealed class MasterRelationshipContent {
+            /// <summary>Relationship id from the source master part.</summary>
+            public string Id { get; set; } = string.Empty;
+            /// <summary>Relationship type URI.</summary>
+            public string Type { get; set; } = string.Empty;
+            /// <summary>Original relationship target.</summary>
+            public string Target { get; set; } = string.Empty;
+            /// <summary>Whether the relationship points outside the package.</summary>
+            public bool IsExternal { get; set; }
+            /// <summary>Content type of the internal target part, when known.</summary>
+            public string ContentType { get; set; } = string.Empty;
+            /// <summary>File extension for the copied internal target part.</summary>
+            public string Extension { get; set; } = string.Empty;
+            /// <summary>Raw internal target part bytes.</summary>
+            public byte[]? Data { get; set; }
+        }
+
+        /// <summary>
+        /// Visual context from a Visio package document part that imported masters may inherit.
+        /// </summary>
+        public sealed class PackageVisualContext {
+            /// <summary>Raw visio/document.xml from the source package.</summary>
+            public XDocument? DocumentXml { get; set; }
+            /// <summary>Raw theme XML from the source package, when present.</summary>
+            public XDocument? ThemeXml { get; set; }
         }
 
         /// <summary>
@@ -101,9 +133,35 @@ namespace OfficeIMO.Visio {
                 if (part == null) continue;
                 using var pStream = part.Open();
                 XDocument masterXml = XDocument.Load(pStream);
-                result.Add(new MasterContent { Id = id, NameU = nameU, MasterXml = masterXml, MasterElement = new XElement(m) });
+                MasterContent content = new() { Id = id, NameU = nameU, MasterXml = masterXml, MasterElement = new XElement(m) };
+                foreach (MasterRelationshipContent relationship in LoadMasterRelationships(zip, partPath)) {
+                    content.Relationships.Add(relationship);
+                }
+
+                result.Add(content);
             }
             return result;
+        }
+
+        /// <summary>
+        /// Loads package-level visual context that imported masters can depend on for inherited colors, styles, and theme values.
+        /// </summary>
+        public static PackageVisualContext LoadVisualContext(string vsdxPath) {
+            using ZipArchive zip = ZipFile.OpenRead(vsdxPath);
+            PackageVisualContext context = new();
+            ZipArchiveEntry? documentEntry = zip.GetEntry("visio/document.xml");
+            if (documentEntry != null) {
+                using Stream stream = documentEntry.Open();
+                context.DocumentXml = XDocument.Load(stream);
+            }
+
+            ZipArchiveEntry? themeEntry = zip.GetEntry("visio/theme/theme1.xml");
+            if (themeEntry != null) {
+                using Stream stream = themeEntry.Open();
+                context.ThemeXml = XDocument.Load(stream);
+            }
+
+            return context;
         }
 
         /// <summary>
@@ -117,6 +175,94 @@ namespace OfficeIMO.Visio {
                 using var fs = File.Create(filePath);
                 m.MasterXml.Save(fs, SaveOptions.DisableFormatting);
             }
+        }
+
+        private static IEnumerable<MasterRelationshipContent> LoadMasterRelationships(ZipArchive zip, string masterPartPath) {
+            string fileName = Path.GetFileName(masterPartPath.Replace('\\', '/'));
+            string relsPath = "visio/masters/_rels/" + fileName + ".rels";
+            ZipArchiveEntry? relsEntry = zip.GetEntry(relsPath);
+            if (relsEntry == null) {
+                return Array.Empty<MasterRelationshipContent>();
+            }
+
+            using Stream relsStream = relsEntry.Open();
+            XDocument relsDoc = XDocument.Load(relsStream);
+            XNamespace pr = REL_PKG;
+            List<MasterRelationshipContent> relationships = new();
+            foreach (XElement rel in relsDoc.Root?.Elements(pr + "Relationship") ?? Enumerable.Empty<XElement>()) {
+                string id = (string?)rel.Attribute("Id") ?? string.Empty;
+                string type = (string?)rel.Attribute("Type") ?? string.Empty;
+                string target = (string?)rel.Attribute("Target") ?? string.Empty;
+                bool external = string.Equals((string?)rel.Attribute("TargetMode"), "External", StringComparison.OrdinalIgnoreCase);
+                if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(type) || string.IsNullOrWhiteSpace(target)) {
+                    continue;
+                }
+
+                MasterRelationshipContent relationship = new() {
+                    Id = id,
+                    Type = type,
+                    Target = target,
+                    IsExternal = external
+                };
+
+                if (!external) {
+                    string masterDirectory = (Path.GetDirectoryName(masterPartPath.Replace('\\', '/')) ?? string.Empty).Replace('\\', '/');
+                    string targetPath = ResolveZipPath(masterDirectory, target);
+                    ZipArchiveEntry? targetEntry = zip.GetEntry(targetPath);
+                    if (targetEntry == null) {
+                        continue;
+                    }
+
+                    using Stream targetStream = targetEntry.Open();
+                    using MemoryStream buffer = new();
+                    targetStream.CopyTo(buffer);
+                    relationship.Data = buffer.ToArray();
+                    relationship.Extension = Path.GetExtension(targetPath);
+                    relationship.ContentType = GuessContentType(relationship.Extension);
+                }
+
+                relationships.Add(relationship);
+            }
+
+            return relationships;
+        }
+
+        private static string ResolveZipPath(string basePath, string target) {
+            string normalizedTarget = target.Replace('\\', '/');
+            if (normalizedTarget.StartsWith("/", StringComparison.Ordinal)) {
+                return normalizedTarget.TrimStart('/');
+            }
+
+            string combined = string.IsNullOrWhiteSpace(basePath) ? normalizedTarget : basePath.TrimEnd('/') + "/" + normalizedTarget;
+            Stack<string> parts = new();
+            foreach (string part in combined.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries)) {
+                if (part == ".") {
+                    continue;
+                }
+
+                if (part == "..") {
+                    if (parts.Count > 0) {
+                        parts.Pop();
+                    }
+                    continue;
+                }
+
+                parts.Push(part);
+            }
+
+            return string.Join("/", parts.Reverse());
+        }
+
+        private static string GuessContentType(string extension) {
+            return extension.TrimStart('.').ToLowerInvariant() switch {
+                "emf" => "image/x-emf",
+                "png" => "image/png",
+                "jpg" or "jpeg" => "image/jpeg",
+                "gif" => "image/gif",
+                "svg" => "image/svg+xml",
+                "tif" or "tiff" => "image/tiff",
+                _ => "application/octet-stream"
+            };
         }
     }
 }

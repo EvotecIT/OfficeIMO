@@ -237,6 +237,14 @@ namespace OfficeIMO.Visio {
                             part.CreateRelationship(new Uri($"../masters/master{entry.PartNumber}.xml", UriKind.Relative), TargetMode.Internal, MasterRelationshipType, $"rId{entry.PartNumber}");
                         }
 
+                        if (master.RawMasterContentXml != null) {
+                            using Stream stream = masterPart.GetStream(FileMode.Create, FileAccess.Write);
+                            using StreamWriter streamWriter = new(stream, new UTF8Encoding(false));
+                            streamWriter.Write(master.RawMasterContentXml.Declaration + Environment.NewLine + master.RawMasterContentXml.ToString(SaveOptions.DisableFormatting));
+                            WriteRawMasterRelationships(package, masterPart, master, entry.PartNumber);
+                            continue;
+                        }
+
                         using (XmlWriter writer = XmlWriter.Create(masterPart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
                             writer.WriteStartDocument();
                             writer.WriteStartElement("MasterContents", ns);
@@ -483,8 +491,8 @@ namespace OfficeIMO.Visio {
 
                 foreach ((VisioPage page, PackagePart pagePart, _) in pageParts) {
                     using (XmlWriter writer = XmlWriter.Create(pagePart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
-                        Dictionary<string, string> persistedIds = BuildPersistedIdMap(page);
                         Dictionary<string, VisioMaster> pageMasters = effectivePageMasters[page];
+                        Dictionary<string, string> persistedIds = BuildPersistedIdMap(page, pageMasters);
                         writer.WriteStartDocument();
                         writer.WriteStartElement("PageContents", ns);
                         writer.WriteAttributeString("xmlns", "r", null, "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
@@ -701,21 +709,31 @@ namespace OfficeIMO.Visio {
             VisioMaster? effectiveMaster = TryGetEffectiveMaster(effectiveMasters, shape);
             writer.WriteAttributeString("NameU", shape.NameU ?? effectiveMaster?.NameU ?? shapeName);
 
-            bool isGroup = string.Equals(shape.Type, "Group", StringComparison.OrdinalIgnoreCase) || shape.Children.Count > 0;
+            bool isRawMasterBackedShape = effectiveMaster?.RawMasterContentXml != null;
+            bool isRawMasterGroup = isRawMasterBackedShape &&
+                                    string.Equals(effectiveMaster!.Shape.Type, "Group", StringComparison.OrdinalIgnoreCase);
+            bool isGroup = string.Equals(shape.Type, "Group", StringComparison.OrdinalIgnoreCase) ||
+                           shape.Children.Count > 0 ||
+                           isRawMasterGroup;
             writer.WriteAttributeString("Type", isGroup ? "Group" : "Shape");
-            writer.WriteAttributeString("LineStyle", "0");
-            writer.WriteAttributeString("FillStyle", "0");
-            writer.WriteAttributeString("TextStyle", "0");
+            if (!isRawMasterBackedShape) {
+                writer.WriteAttributeString("LineStyle", "0");
+                writer.WriteAttributeString("FillStyle", "0");
+                writer.WriteAttributeString("TextStyle", "0");
+            }
 
             if (effectiveMaster != null) {
                 writer.WriteAttributeString("Master", GetPackageMasterId(packageMasters, effectiveMaster));
-                writer.WriteAttributeString("MasterShape", shape.MasterShapeId ?? "1");
+                if (shape.MasterShapeId != null || effectiveMaster.RawMasterContentXml == null) {
+                    writer.WriteAttributeString("MasterShape", shape.MasterShapeId ?? effectiveMaster.Shape.Id);
+                }
             }
 
             KeyValuePair<string, string>? originalIdEntry = GetOriginalIdEntry(persistedIds, shape.Id);
             bool wroteChildShapesInBody = false;
-            if (effectiveMaster != null && !isGroup) {
+            if (effectiveMaster != null && (isRawMasterBackedShape || !isGroup)) {
                 WriteMasterBackedShapeBody(writer, ns, shape, effectiveMaster, originalIdEntry, persistedIds, layerIndexes);
+                wroteChildShapesInBody = isRawMasterBackedShape;
             } else if (shape.PreservedShapeChildren.Count > 0) {
                 wroteChildShapesInBody = WriteStandaloneShapeBodyWithPreservedChildOrder(writer, ns, shape, isGroup, originalIdEntry, persistedIds, effectiveMasters, packageMasters, layerIndexes);
             } else {
@@ -1169,6 +1187,42 @@ namespace OfficeIMO.Visio {
         }
 
         private void WriteMasterBackedShapeBody(XmlWriter writer, string ns, VisioShape shape, VisioMaster master, KeyValuePair<string, string>? originalIdEntry, IReadOnlyDictionary<string, string> persistedIds, IReadOnlyDictionary<string, int> layerIndexes) {
+            if (WriteMasterDeltasOnly && master.RawMasterContentXml != null) {
+                double masterWidth = master.Shape.Width > 0 ? master.Shape.Width : 1;
+                double masterHeight = master.Shape.Height > 0 ? master.Shape.Height : 1;
+                double width = shape.Width > 0 ? shape.Width : masterWidth;
+                double height = shape.Height > 0 ? shape.Height : masterHeight;
+                double locPinX = Math.Abs(shape.LocPinX) < double.Epsilon ? width / 2 : shape.LocPinX;
+                double locPinY = Math.Abs(shape.LocPinY) < double.Epsilon ? height / 2 : shape.LocPinY;
+                double masterLocPinX = Math.Abs(master.Shape.LocPinX) < double.Epsilon ? masterWidth / 2 : master.Shape.LocPinX;
+                double masterLocPinY = Math.Abs(master.Shape.LocPinY) < double.Epsilon ? masterHeight / 2 : master.Shape.LocPinY;
+                bool sizeDiffers = Math.Abs(width - masterWidth) > 1e-12 ||
+                                   Math.Abs(height - masterHeight) > 1e-12;
+                bool locPinDiffers = Math.Abs(locPinX - masterLocPinX) > 1e-12 ||
+                                     Math.Abs(locPinY - masterLocPinY) > 1e-12;
+                if (sizeDiffers || locPinDiffers || Math.Abs(shape.Angle) > 1e-12) {
+                    WriteXForm(writer, ns, shape.PinX, shape.PinY, width, height, locPinX, locPinY, shape.Angle);
+                } else {
+                    WriteCell(writer, ns, "PinX", shape.PinX);
+                    WriteCell(writer, ns, "PinY", shape.PinY);
+                }
+
+                WriteCell(writer, ns, "ObjType", 1);
+                WriteLayerMemberCell(writer, ns, shape.LayerNames, layerIndexes);
+                WriteRelationshipCell(writer, ns, shape, persistedIds);
+                WriteShapeLayoutCells(writer, ns, shape);
+                WriteProtectionCells(writer, ns, shape.Protection);
+                WritePreservedElements(writer, shape.PreservedCellElements);
+                WritePreservedElements(writer, shape.PreservedNonGeometrySections);
+                WriteUserSection(writer, ns, shape.UserCells);
+                WriteHyperlinkSection(writer, ns, shape.Hyperlinks);
+                WriteConnectionSection(writer, ns, shape.ConnectionPoints);
+                WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData);
+                WriteTextElement(writer, ns, shape.Text, shape.PreservedTextElement, shape.PreservedTextValue);
+                WriteRawMasterInstanceChildShapes(writer, ns, shape, master, persistedIds);
+                return;
+            }
+
             if (WriteMasterDeltasOnly) {
                 double masterWidth = master.Shape.Width > 0 ? master.Shape.Width : 1;
                 double masterHeight = master.Shape.Height > 0 ? master.Shape.Height : 1;
@@ -2309,7 +2363,7 @@ namespace OfficeIMO.Visio {
             "Angle"
         };
 
-        private static Dictionary<string, string> BuildPersistedIdMap(VisioPage page) {
+        private static Dictionary<string, string> BuildPersistedIdMap(VisioPage page, IReadOnlyDictionary<string, VisioMaster> effectiveMasters) {
             Dictionary<string, string> map = new(StringComparer.Ordinal);
             HashSet<int> usedIds = new();
 
@@ -2333,6 +2387,10 @@ namespace OfficeIMO.Visio {
 
             void VisitShape(VisioShape shape) {
                 Reserve(shape.Id);
+                if (effectiveMasters.TryGetValue(shape.Id, out VisioMaster? master) && master.RawMasterContentXml != null) {
+                    ReserveRawMasterInstanceChildIds(shape, master, Reserve);
+                }
+
                 foreach (VisioShape child in shape.Children) {
                     VisitShape(child);
                 }
@@ -2346,6 +2404,95 @@ namespace OfficeIMO.Visio {
             }
 
             return map;
+        }
+
+        private static void ReserveRawMasterInstanceChildIds(VisioShape shape, VisioMaster master, Action<string> reserve) {
+            XElement? rootShape = FindFirstMasterShape(master.RawMasterContentXml!);
+            if (rootShape == null) {
+                return;
+            }
+
+            foreach (XElement childShape in GetRawMasterChildShapes(rootShape)) {
+                ReserveRawMasterInstanceChildId(shape.Id, childShape, reserve);
+            }
+        }
+
+        private static void ReserveRawMasterInstanceChildId(string instanceShapeId, XElement masterShape, Action<string> reserve) {
+            string? masterShapeId = masterShape.Attribute("ID")?.Value;
+            if (string.IsNullOrWhiteSpace(masterShapeId)) {
+                return;
+            }
+
+            reserve(GetRawMasterInstanceChildKey(instanceShapeId, masterShapeId!));
+            foreach (XElement childShape in GetRawMasterChildShapes(masterShape)) {
+                ReserveRawMasterInstanceChildId(instanceShapeId, childShape, reserve);
+            }
+        }
+
+        private static void WriteRawMasterInstanceChildShapes(XmlWriter writer, string ns, VisioShape shape, VisioMaster master, IReadOnlyDictionary<string, string> persistedIds) {
+            XElement? rootShape = FindFirstMasterShape(master.RawMasterContentXml!);
+            if (rootShape == null) {
+                return;
+            }
+
+            List<XElement> childShapes = GetRawMasterChildShapes(rootShape).ToList();
+            if (childShapes.Count == 0) {
+                return;
+            }
+
+            writer.WriteStartElement("Shapes", ns);
+            foreach (XElement childShape in childShapes) {
+                WriteRawMasterInstanceChildShape(writer, ns, shape.Id, childShape, persistedIds);
+            }
+            writer.WriteEndElement();
+        }
+
+        private static void WriteRawMasterInstanceChildShape(XmlWriter writer, string ns, string instanceShapeId, XElement masterShape, IReadOnlyDictionary<string, string> persistedIds) {
+            string? masterShapeId = masterShape.Attribute("ID")?.Value;
+            if (string.IsNullOrWhiteSpace(masterShapeId)) {
+                return;
+            }
+
+            writer.WriteStartElement("Shape", ns);
+            writer.WriteAttributeString("ID", GetPersistedId(persistedIds, GetRawMasterInstanceChildKey(instanceShapeId, masterShapeId!)));
+            WriteRawMasterInstanceChildAttribute(writer, masterShape, "NameU");
+            WriteRawMasterInstanceChildAttribute(writer, masterShape, "IsCustomNameU");
+            WriteRawMasterInstanceChildAttribute(writer, masterShape, "Name");
+            WriteRawMasterInstanceChildAttribute(writer, masterShape, "IsCustomName");
+            string type = masterShape.Attribute("Type")?.Value ?? (GetRawMasterChildShapes(masterShape).Any() ? "Group" : "Shape");
+            writer.WriteAttributeString("Type", type);
+            writer.WriteAttributeString("MasterShape", masterShapeId);
+
+            List<XElement> childShapes = GetRawMasterChildShapes(masterShape).ToList();
+            if (childShapes.Count > 0) {
+                writer.WriteStartElement("Shapes", ns);
+                foreach (XElement childShape in childShapes) {
+                    WriteRawMasterInstanceChildShape(writer, ns, instanceShapeId, childShape, persistedIds);
+                }
+                writer.WriteEndElement();
+            }
+
+            writer.WriteEndElement();
+        }
+
+        private static void WriteRawMasterInstanceChildAttribute(XmlWriter writer, XElement masterShape, string attributeName) {
+            string? value = masterShape.Attribute(attributeName)?.Value;
+            if (!string.IsNullOrWhiteSpace(value)) {
+                writer.WriteAttributeString(attributeName, value);
+            }
+        }
+
+        private static IEnumerable<XElement> GetRawMasterChildShapes(XElement masterShape) {
+            XElement? shapes = masterShape
+                .Elements()
+                .FirstOrDefault(element => string.Equals(element.Name.LocalName, "Shapes", StringComparison.OrdinalIgnoreCase));
+            return shapes == null
+                ? Enumerable.Empty<XElement>()
+                : shapes.Elements().Where(element => string.Equals(element.Name.LocalName, "Shape", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static string GetRawMasterInstanceChildKey(string instanceShapeId, string masterShapeId) {
+            return instanceShapeId + "::raw-master-shape::" + masterShapeId;
         }
 
         private static string GetPersistedId(IReadOnlyDictionary<string, string> persistedIds, string originalId) {
@@ -2720,6 +2867,35 @@ namespace OfficeIMO.Visio {
 
         private static VisioMaster? TryGetEffectiveMaster(IReadOnlyDictionary<string, VisioMaster> effectiveMasters, VisioShape shape) {
             return effectiveMasters.TryGetValue(shape.Id, out VisioMaster? master) ? master : null;
+        }
+
+        private static void WriteRawMasterRelationships(Package package, PackagePart masterPart, VisioMaster master, int masterPartNumber) {
+            for (int i = 0; i < master.RawMasterRelationships.Count; i++) {
+                VisioAssets.MasterRelationshipContent relationship = master.RawMasterRelationships[i];
+                if (string.IsNullOrWhiteSpace(relationship.Id) || string.IsNullOrWhiteSpace(relationship.Type) || string.IsNullOrWhiteSpace(relationship.Target)) {
+                    continue;
+                }
+
+                if (relationship.IsExternal || relationship.Data == null || relationship.Data.Length == 0) {
+                    masterPart.CreateRelationship(new Uri(relationship.Target, UriKind.RelativeOrAbsolute), TargetMode.External, relationship.Type, relationship.Id);
+                    continue;
+                }
+
+                string extension = string.IsNullOrWhiteSpace(relationship.Extension) ? ".bin" : relationship.Extension;
+                if (!extension.StartsWith(".", StringComparison.Ordinal)) {
+                    extension = "." + extension;
+                }
+
+                string mediaName = $"officeimo-master{masterPartNumber}-rel{i + 1}{extension}";
+                Uri mediaUri = new($"/visio/media/{mediaName}", UriKind.Relative);
+                if (!package.PartExists(mediaUri)) {
+                    PackagePart mediaPart = package.CreatePart(mediaUri, string.IsNullOrWhiteSpace(relationship.ContentType) ? "application/octet-stream" : relationship.ContentType);
+                    using Stream mediaStream = mediaPart.GetStream(FileMode.Create, FileAccess.Write);
+                    mediaStream.Write(relationship.Data, 0, relationship.Data.Length);
+                }
+
+                masterPart.CreateRelationship(new Uri("../media/" + mediaName, UriKind.Relative), TargetMode.Internal, relationship.Type, relationship.Id);
+            }
         }
 
         private static void WriteMasterGeometry(XmlWriter writer, string ns, string? masterNameU, double width, double height) {

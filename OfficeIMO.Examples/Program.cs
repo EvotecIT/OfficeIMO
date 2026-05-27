@@ -15,6 +15,24 @@ namespace OfficeIMO.Examples {
             return Array.Exists(args, arg => string.Equals(arg, value, StringComparison.OrdinalIgnoreCase));
         }
 
+        private static string? GetArgumentValue(string[] args, string name) {
+            for (int i = 0; i < args.Length; i++) {
+                if (!string.Equals(args[i], name, StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+
+                if (i + 1 < args.Length && !args[i + 1].StartsWith("--", StringComparison.Ordinal)) {
+                    return args[i + 1];
+                }
+
+                return null;
+            }
+
+            string prefix = name + "=";
+            string? combined = args.FirstOrDefault(arg => arg.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+            return combined == null ? null : combined.Substring(prefix.Length);
+        }
+
         private static void RunPdfExamples(string folderPath) {
             Pdf.BasicPdf.Example_Pdf_HelloWorld(folderPath, false);
             Pdf.WriterDefaults.Example_Pdf_DefaultStyles(folderPath, false);
@@ -162,6 +180,17 @@ namespace OfficeIMO.Examples {
 
             if (HasArgument(args, "--visio-showcase") || HasArgument(args, "--visio")) {
                 RunVisioShowcaseExamples(folderPath, args);
+                return;
+            }
+
+            if (HasArgument(args, "--visio-external-stencils")) {
+                string? stencilPack = GetArgumentValue(args, "--visio-stencil-pack")
+                    ?? Environment.GetEnvironmentVariable("OFFICEIMO_VISIO_STENCIL_PACK");
+                if (string.IsNullOrWhiteSpace(stencilPack)) {
+                    throw new InvalidOperationException("Provide a .vssx/.vsdx/.vstx path with --visio-stencil-pack <path> or OFFICEIMO_VISIO_STENCIL_PACK.");
+                }
+
+                Visio.ExternalStencilPack.Example_ExternalStencilPack(folderPath, HasArgument(args, "--open-visio") || HasArgument(args, "--visio-open"), stencilPack);
                 return;
             }
 

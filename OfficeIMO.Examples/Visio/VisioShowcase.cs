@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Visio {
             string showcasePath = Path.Combine(folderPath, "Visio Showcase");
             Directory.CreateDirectory(showcasePath);
 
-            IReadOnlyList<VisioShowcaseExample> examples = new[] {
+            List<VisioShowcaseExample> examples = new() {
                 new VisioShowcaseExample("01 Basic fluent shapes", () => FluentBasicVisio.Example_FluentBasicVisio(showcasePath, false)),
                 new VisioShowcaseExample("02 Flowchart builder", () => FlowchartBuilder.Example_FlowchartBuilder(showcasePath, false)),
                 new VisioShowcaseExample("03 Block diagram builder", () => BlockDiagramBuilder.Example_BlockDiagramBuilder(showcasePath, false)),
@@ -24,6 +24,10 @@ namespace OfficeIMO.Examples.Visio {
                 new VisioShowcaseExample("09 Containers and routing", () => ContainerEditing.Example_ContainerEditing(showcasePath, false)),
                 new VisioShowcaseExample("10 Visual quality gallery", () => VisualQualityGallery.Example_VisualQualityGallery(showcasePath, false))
             };
+            string? externalStencilPack = Environment.GetEnvironmentVariable("OFFICEIMO_VISIO_STENCIL_PACK");
+            if (!string.IsNullOrWhiteSpace(externalStencilPack) && File.Exists(externalStencilPack)) {
+                examples.Add(new VisioShowcaseExample("11 External VSSX stencil pack", () => ExternalStencilPack.Example_ExternalStencilPack(showcasePath, false, externalStencilPack)));
+            }
 
             foreach (VisioShowcaseExample example in examples) {
                 Console.WriteLine($"  - {example.Name}");

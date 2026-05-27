@@ -1059,7 +1059,14 @@ namespace OfficeIMO.Visio {
             XElement root = new(ct + "Types",
                 new XElement(ct + "Default", new XAttribute("Extension", "rels"), new XAttribute("ContentType", "application/vnd.openxmlformats-package.relationships+xml")),
                 new XElement(ct + "Default", new XAttribute("Extension", "xml"), new XAttribute("ContentType", "application/xml")),
-                new XElement(ct + "Default", new XAttribute("Extension", "emf"), new XAttribute("ContentType", "image/x-emf")));
+                new XElement(ct + "Default", new XAttribute("Extension", "emf"), new XAttribute("ContentType", "image/x-emf")),
+                new XElement(ct + "Default", new XAttribute("Extension", "png"), new XAttribute("ContentType", "image/png")),
+                new XElement(ct + "Default", new XAttribute("Extension", "jpg"), new XAttribute("ContentType", "image/jpeg")),
+                new XElement(ct + "Default", new XAttribute("Extension", "jpeg"), new XAttribute("ContentType", "image/jpeg")),
+                new XElement(ct + "Default", new XAttribute("Extension", "gif"), new XAttribute("ContentType", "image/gif")),
+                new XElement(ct + "Default", new XAttribute("Extension", "svg"), new XAttribute("ContentType", "image/svg+xml")),
+                new XElement(ct + "Default", new XAttribute("Extension", "tif"), new XAttribute("ContentType", "image/tiff")),
+                new XElement(ct + "Default", new XAttribute("Extension", "tiff"), new XAttribute("ContentType", "image/tiff")));
 
             HashSet<string> overridePartNames = new(StringComparer.OrdinalIgnoreCase);
             void AddOverride(string partName, string contentType) {
