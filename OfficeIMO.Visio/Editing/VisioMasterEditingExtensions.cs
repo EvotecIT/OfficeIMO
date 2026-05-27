@@ -166,7 +166,8 @@ namespace OfficeIMO.Visio {
         }
 
         private static void ResizeToStencil(VisioShape shape, VisioStencilShape stencil, VisioMeasurementUnit unit) {
-            ResizeShape(shape, stencil.DefaultWidth.ToInches(unit), stencil.DefaultHeight.ToInches(unit));
+            VisioMeasurementUnit sizeUnit = stencil.DefaultUnit ?? unit;
+            ResizeShape(shape, stencil.DefaultWidth.ToInches(sizeUnit), stencil.DefaultHeight.ToInches(sizeUnit));
         }
 
         private static void ResizeShape(VisioShape shape, double width, double height) {

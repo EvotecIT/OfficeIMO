@@ -10,7 +10,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// </summary>
         public static VisioShape AddStencilShape(this VisioPage page, VisioStencilShape stencil, string id, double x, double y, string? text = null) {
             if (stencil == null) throw new ArgumentNullException(nameof(stencil));
-            return AddStencilShape(page, stencil, id, x, y, stencil.DefaultWidth, stencil.DefaultHeight, text, null);
+            return AddStencilShape(page, stencil, id, x, y, stencil.DefaultWidth, stencil.DefaultHeight, text, null, useStencilDefaultSize: true);
         }
 
         /// <summary>
@@ -18,21 +18,21 @@ namespace OfficeIMO.Visio.Stencils {
         /// </summary>
         public static VisioShape AddStencilShape(this VisioPage page, VisioStencilShape stencil, string id, double x, double y, string? text, VisioMeasurementUnit unit) {
             if (stencil == null) throw new ArgumentNullException(nameof(stencil));
-            return AddStencilShape(page, stencil, id, x, y, stencil.DefaultWidth, stencil.DefaultHeight, text, unit);
+            return AddStencilShape(page, stencil, id, x, y, stencil.DefaultWidth, stencil.DefaultHeight, text, unit, useStencilDefaultSize: true);
         }
 
         /// <summary>
         /// Adds a stencil shape using an explicit size and the page default measurement unit.
         /// </summary>
         public static VisioShape AddStencilShape(this VisioPage page, VisioStencilShape stencil, string id, double x, double y, double width, double height, string? text = null) {
-            return AddStencilShape(page, stencil, id, x, y, width, height, text, null);
+            return AddStencilShape(page, stencil, id, x, y, width, height, text, null, useStencilDefaultSize: false);
         }
 
         /// <summary>
         /// Adds a stencil shape using an explicit size and measurement unit.
         /// </summary>
         public static VisioShape AddStencilShape(this VisioPage page, VisioStencilShape stencil, string id, double x, double y, double width, double height, string? text, VisioMeasurementUnit unit) {
-            return AddStencilShape(page, stencil, id, x, y, width, height, text, (VisioMeasurementUnit?)unit);
+            return AddStencilShape(page, stencil, id, x, y, width, height, text, (VisioMeasurementUnit?)unit, useStencilDefaultSize: false);
         }
 
         /// <summary>
@@ -74,13 +74,14 @@ namespace OfficeIMO.Visio.Stencils {
             double width,
             double height,
             string? text,
-            VisioMeasurementUnit? unit) {
+            VisioMeasurementUnit? unit,
+            bool useStencilDefaultSize) {
             if (page == null) throw new ArgumentNullException(nameof(page));
             if (stencil == null) throw new ArgumentNullException(nameof(stencil));
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Shape id cannot be null or whitespace.", nameof(id));
 
             VisioMeasurementUnit placementUnit = unit ?? page.DefaultUnit;
-            VisioMeasurementUnit sizeUnit = unit ?? stencil.DefaultUnit ?? page.DefaultUnit;
+            VisioMeasurementUnit sizeUnit = unit ?? (useStencilDefaultSize ? stencil.DefaultUnit : null) ?? page.DefaultUnit;
             VisioDocument? document = page.OwnerDocument;
             string shapeText = text ?? stencil.Name;
 

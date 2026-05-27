@@ -155,6 +155,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void StencilMetadataKeepsPreviousPublicOverloads() {
+            Type enumerableType = typeof(IEnumerable<string>);
+
+            Assert.NotNull(typeof(VisioStencilShape).GetConstructor(new[] {
+                typeof(string),
+                typeof(string),
+                typeof(string),
+                typeof(string),
+                typeof(double),
+                typeof(double),
+                enumerableType,
+                enumerableType,
+                enumerableType,
+                typeof(string)
+            }));
+            Assert.Contains(
+                typeof(VisioStencilCatalogBuilder).GetMethods().Where(method => method.Name == nameof(VisioStencilCatalogBuilder.AddWithMetadata)),
+                method => method.GetParameters().Length == 10);
+        }
+
+        [Fact]
         public void StencilCatalogManifestRoundTripsMetadataAndLoadedCatalogCanPlaceShapes() {
             string manifestPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".officeimo-visio-stencils.xml");
             VisioStencilCatalog source = VisioStencilCatalog.Create("Reusable Infrastructure", builder => builder
@@ -246,7 +267,7 @@ namespace OfficeIMO.Tests {
             CreatePackageWithMasterDimensions(
                 packagePath,
                 ("Rectangle", "Wide Box", 3.2, 1.1, null),
-                ("Decision", "Metric Decision", 50.8, 25.4, "MM"));
+                ("Decision", "Metric Decision", 2.0, 1.0, "MM"));
 
             VisioStencilCatalog catalog = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
                 CatalogName = "Learned Sizes",
@@ -284,12 +305,19 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Learned Stencils", 20, 15, VisioMeasurementUnit.Centimeters);
             VisioShape shape = page.AddStencilShape(catalog, "wide-box", "wide", 5, 8);
+            VisioShape explicitShape = page.AddStencilShape(catalog, "wide-box", "explicit", 10, 8, 4, 2, "Explicit size");
+            VisioShape resized = page.AddRectangle(14, 8, 1, 1, "Resize me", VisioMeasurementUnit.Centimeters);
+            page.ReplaceMaster(resized, wideBox, resizeToMaster: true);
             document.Save();
 
             Assert.Equal(5.0 / 2.54, shape.PinX, 6);
             Assert.Equal(8.0 / 2.54, shape.PinY, 6);
             Assert.Equal(3.2, shape.Width, 6);
             Assert.Equal(1.1, shape.Height, 6);
+            Assert.Equal(4.0 / 2.54, explicitShape.Width, 6);
+            Assert.Equal(2.0 / 2.54, explicitShape.Height, 6);
+            Assert.Equal(3.2, resized.Width, 6);
+            Assert.Equal(1.1, resized.Height, 6);
             Assert.Empty(VisioValidator.Validate(filePath));
         }
 

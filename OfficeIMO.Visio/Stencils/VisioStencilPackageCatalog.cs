@@ -132,9 +132,7 @@ namespace OfficeIMO.Visio.Stencils {
                 return false;
             }
 
-            VisioMeasurementUnit unit = VisioMeasurementUnitExtensions.FromVisioUnitCode((string?)cell!.Attribute("U"), VisioMeasurementUnit.Inches);
-            value = value.ToInches(unit);
-            return value > 0 && !double.IsNaN(value) && !double.IsInfinity(value);
+            return true;
         }
 
         private static string UniqueId(string baseId, string fallback, HashSet<string> usedIds) {

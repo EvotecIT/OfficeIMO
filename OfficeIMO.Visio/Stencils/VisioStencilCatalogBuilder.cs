@@ -56,8 +56,25 @@ namespace OfficeIMO.Visio.Stencils {
             IEnumerable<string>? keywords = null,
             IEnumerable<string>? aliases = null,
             IEnumerable<string>? tags = null,
-            string? iconNameU = null,
-            VisioMeasurementUnit? defaultUnit = null) {
+            string? iconNameU = null) {
+            return AddWithMetadata(id, name, masterNameU, category, defaultWidth, defaultHeight, keywords, aliases, tags, iconNameU, null);
+        }
+
+        /// <summary>
+        /// Adds a stencil shape with explicit search metadata and default-size unit.
+        /// </summary>
+        public VisioStencilCatalogBuilder AddWithMetadata(
+            string id,
+            string name,
+            string masterNameU,
+            string category,
+            double defaultWidth,
+            double defaultHeight,
+            IEnumerable<string>? keywords,
+            IEnumerable<string>? aliases,
+            IEnumerable<string>? tags,
+            string? iconNameU,
+            VisioMeasurementUnit? defaultUnit) {
             return Add(CreateShape(id, name, masterNameU, category, defaultWidth, defaultHeight, keywords, aliases, tags, iconNameU, defaultUnit));
         }
 

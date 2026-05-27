@@ -10,7 +10,14 @@ namespace OfficeIMO.Visio.Stencils {
         /// <summary>
         /// Initializes a new stencil shape definition.
         /// </summary>
-        public VisioStencilShape(string id, string name, string masterNameU, string category, double defaultWidth, double defaultHeight, IEnumerable<string>? keywords = null, IEnumerable<string>? aliases = null, IEnumerable<string>? tags = null, string? iconNameU = null, VisioMeasurementUnit? defaultUnit = null) {
+        public VisioStencilShape(string id, string name, string masterNameU, string category, double defaultWidth, double defaultHeight, IEnumerable<string>? keywords = null, IEnumerable<string>? aliases = null, IEnumerable<string>? tags = null, string? iconNameU = null)
+            : this(id, name, masterNameU, category, defaultWidth, defaultHeight, keywords, aliases, tags, iconNameU, null) {
+        }
+
+        /// <summary>
+        /// Initializes a new stencil shape definition with an explicit default-size unit.
+        /// </summary>
+        public VisioStencilShape(string id, string name, string masterNameU, string category, double defaultWidth, double defaultHeight, IEnumerable<string>? keywords, IEnumerable<string>? aliases, IEnumerable<string>? tags, string? iconNameU, VisioMeasurementUnit? defaultUnit) {
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Stencil shape id cannot be null or whitespace.", nameof(id));
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Stencil shape name cannot be null or whitespace.", nameof(name));
             if (string.IsNullOrWhiteSpace(masterNameU)) throw new ArgumentException("Master NameU cannot be null or whitespace.", nameof(masterNameU));
