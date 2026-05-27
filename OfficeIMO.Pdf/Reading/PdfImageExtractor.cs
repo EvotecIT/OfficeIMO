@@ -198,9 +198,7 @@ public static class PdfImageExtractor {
     /// </summary>
     public static IReadOnlyList<PdfExtractedImage> ExtractImagesByPageRanges(PdfReadDocument document, params PdfPageRange[] pageRanges) {
         Guard.NotNull(document, nameof(document));
-        Guard.NotNull(pageRanges, nameof(pageRanges));
-
-        int[] pageNumbers = ExpandPageRanges(pageRanges, document.Pages.Count, nameof(pageRanges));
+        int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
         var images = new List<PdfExtractedImage>();
         for (int i = 0; i < pageNumbers.Length; i++) {
             int pageNumber = pageNumbers[i];
@@ -210,26 +208,4 @@ public static class PdfImageExtractor {
         return images;
     }
 
-    private static int[] ExpandPageRanges(PdfPageRange[] pageRanges, int pageCount, string paramName) {
-        if (pageRanges.Length == 0) {
-            throw new ArgumentException("At least one page range must be specified.", paramName);
-        }
-
-        var pages = new List<int>();
-        for (int i = 0; i < pageRanges.Length; i++) {
-            if (pageRanges[i].FirstPage < 1 || pageRanges[i].LastPage < pageRanges[i].FirstPage) {
-                throw new ArgumentOutOfRangeException(paramName, "Page ranges must be inclusive one-based ranges.");
-            }
-
-            if (pageRanges[i].LastPage > pageCount) {
-                throw new ArgumentOutOfRangeException(paramName, "Page range cannot exceed the document page count.");
-            }
-
-            for (int pageNumber = pageRanges[i].FirstPage; pageNumber <= pageRanges[i].LastPage; pageNumber++) {
-                pages.Add(pageNumber);
-            }
-        }
-
-        return pages.ToArray();
-    }
 }

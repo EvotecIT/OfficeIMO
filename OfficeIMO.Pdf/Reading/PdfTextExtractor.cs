@@ -917,8 +917,7 @@ public static class PdfTextExtractor {
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<SelectedTextPage> ExtractSelectedTextPages(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
-        Guard.NotNull(pageRanges, nameof(pageRanges));
-        int[] pageNumbers = ExpandPageRanges(pageRanges, document.Pages.Count, nameof(pageRanges));
+        int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
 
         var pages = new List<SelectedTextPage>(pageNumbers.Length);
         for (int i = 0; i < pageNumbers.Length; i++) {
@@ -933,8 +932,7 @@ public static class PdfTextExtractor {
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<StructuredPage> ExtractStructuredByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
-        Guard.NotNull(pageRanges, nameof(pageRanges));
-        int[] pageNumbers = ExpandPageRanges(pageRanges, document.Pages.Count, nameof(pageRanges));
+        int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
 
         var pages = new List<StructuredPage>(pageNumbers.Length);
         for (int i = 0; i < pageNumbers.Length; i++) {
@@ -945,8 +943,7 @@ public static class PdfTextExtractor {
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<StructuredParagraphPage> ExtractParagraphsByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
-        Guard.NotNull(pageRanges, nameof(pageRanges));
-        int[] pageNumbers = ExpandPageRanges(pageRanges, document.Pages.Count, nameof(pageRanges));
+        int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
 
         var pages = new List<StructuredParagraphPage>(pageNumbers.Length);
         for (int i = 0; i < pageNumbers.Length; i++) {
@@ -959,8 +956,7 @@ public static class PdfTextExtractor {
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<StructuredHeadingPage> ExtractHeadingsByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
-        Guard.NotNull(pageRanges, nameof(pageRanges));
-        int[] pageNumbers = ExpandPageRanges(pageRanges, document.Pages.Count, nameof(pageRanges));
+        int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
 
         var pages = new List<StructuredHeadingPage>(pageNumbers.Length);
         for (int i = 0; i < pageNumbers.Length; i++) {
@@ -973,8 +969,7 @@ public static class PdfTextExtractor {
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<StructuredListItemPage> ExtractListItemsByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
-        Guard.NotNull(pageRanges, nameof(pageRanges));
-        int[] pageNumbers = ExpandPageRanges(pageRanges, document.Pages.Count, nameof(pageRanges));
+        int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
 
         var pages = new List<StructuredListItemPage>(pageNumbers.Length);
         for (int i = 0; i < pageNumbers.Length; i++) {
@@ -987,8 +982,7 @@ public static class PdfTextExtractor {
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<StructuredTablePage> ExtractTablesByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
-        Guard.NotNull(pageRanges, nameof(pageRanges));
-        int[] pageNumbers = ExpandPageRanges(pageRanges, document.Pages.Count, nameof(pageRanges));
+        int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
 
         var pages = new List<StructuredTablePage>(pageNumbers.Length);
         for (int i = 0; i < pageNumbers.Length; i++) {
@@ -998,29 +992,6 @@ public static class PdfTextExtractor {
         }
 
         return pages.AsReadOnly();
-    }
-
-    private static int[] ExpandPageRanges(PdfPageRange[] pageRanges, int pageCount, string paramName) {
-        if (pageRanges.Length == 0) {
-            throw new ArgumentException("At least one page range must be specified.", paramName);
-        }
-
-        var pages = new List<int>();
-        for (int i = 0; i < pageRanges.Length; i++) {
-            if (pageRanges[i].FirstPage < 1 || pageRanges[i].LastPage < pageRanges[i].FirstPage) {
-                throw new ArgumentOutOfRangeException(paramName, "Page ranges must be inclusive one-based ranges.");
-            }
-
-            if (pageRanges[i].LastPage > pageCount) {
-                throw new ArgumentOutOfRangeException(paramName, "Page range cannot exceed the document page count.");
-            }
-
-            for (int pageNumber = pageRanges[i].FirstPage; pageNumber <= pageRanges[i].LastPage; pageNumber++) {
-                pages.Add(pageNumber);
-            }
-        }
-
-        return pages.ToArray();
     }
 
     private readonly struct SelectedTextPage {

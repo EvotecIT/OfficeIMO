@@ -594,13 +594,69 @@ public sealed class PdfLogicalDocument {
         return From(PdfReadDocument.Load(stream), options);
     }
 
+    /// <summary>Loads selected source page ranges from PDF bytes into the logical read model, preserving caller order and overlaps.</summary>
+    public static PdfLogicalDocument LoadPageRanges(byte[] pdf, params PdfPageRange[] pageRanges) {
+        return LoadPageRanges(pdf, null, pageRanges);
+    }
+
+    /// <summary>Loads selected source page ranges from PDF bytes into the logical read model, preserving caller order and overlaps.</summary>
+    public static PdfLogicalDocument LoadPageRanges(byte[] pdf, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return FromPageRanges(PdfReadDocument.Load(pdf), options, pageRanges);
+    }
+
+    /// <summary>Loads selected source page ranges from a file path into the logical read model, preserving caller order and overlaps.</summary>
+    public static PdfLogicalDocument LoadPageRanges(string path, params PdfPageRange[] pageRanges) {
+        return LoadPageRanges(path, null, pageRanges);
+    }
+
+    /// <summary>Loads selected source page ranges from a file path into the logical read model, preserving caller order and overlaps.</summary>
+    public static PdfLogicalDocument LoadPageRanges(string path, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        return FromPageRanges(PdfReadDocument.Load(path), options, pageRanges);
+    }
+
+    /// <summary>Loads selected source page ranges from the current position of a readable stream into the logical read model, preserving caller order and overlaps.</summary>
+    public static PdfLogicalDocument LoadPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
+        return LoadPageRanges(stream, null, pageRanges);
+    }
+
+    /// <summary>Loads selected source page ranges from the current position of a readable stream into the logical read model, preserving caller order and overlaps.</summary>
+    public static PdfLogicalDocument LoadPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(stream, nameof(stream));
+        return FromPageRanges(PdfReadDocument.Load(stream), options, pageRanges);
+    }
+
     /// <summary>Builds the logical read model from an already parsed PDF document.</summary>
     public static PdfLogicalDocument From(PdfReadDocument document, PdfTextLayoutOptions? options = null) {
         Guard.NotNull(document, nameof(document));
 
-        var pages = new List<PdfLogicalPage>(document.Pages.Count);
+        var pageNumbers = new int[document.Pages.Count];
         for (int i = 0; i < document.Pages.Count; i++) {
-            pages.Add(PdfLogicalPage.From(document.Pages[i], i + 1, options, document.FormFields));
+            pageNumbers[i] = i + 1;
+        }
+
+        return FromPageNumbers(document, options, pageNumbers);
+    }
+
+    /// <summary>Builds a logical read model for selected source page ranges from an already parsed PDF document, preserving caller order and overlaps.</summary>
+    public static PdfLogicalDocument FromPageRanges(PdfReadDocument document, params PdfPageRange[] pageRanges) {
+        return FromPageRanges(document, null, pageRanges);
+    }
+
+    /// <summary>Builds a logical read model for selected source page ranges from an already parsed PDF document, preserving caller order and overlaps.</summary>
+    public static PdfLogicalDocument FromPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(document, nameof(document));
+        int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
+
+        return FromPageNumbers(document, options, pageNumbers);
+    }
+
+    private static PdfLogicalDocument FromPageNumbers(PdfReadDocument document, PdfTextLayoutOptions? options, int[] pageNumbers) {
+        var pages = new List<PdfLogicalPage>(pageNumbers.Length);
+        for (int i = 0; i < pageNumbers.Length; i++) {
+            int pageNumber = pageNumbers[i];
+            pages.Add(PdfLogicalPage.From(document.Pages[pageNumber - 1], pageNumber, options, document.FormFields));
         }
 
         return new PdfLogicalDocument(
