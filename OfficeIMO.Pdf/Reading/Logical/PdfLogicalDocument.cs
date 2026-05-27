@@ -38,6 +38,9 @@ public interface IPdfLogicalElement {
 /// </summary>
 public sealed class PdfLogicalDocument {
     private IReadOnlyList<IPdfLogicalElement>? _elements;
+    private IReadOnlyList<PdfLogicalLinkAnnotation>? _links;
+    private IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalLinkAnnotation>>? _linksByUri;
+    private IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalLinkAnnotation>>? _linksByDestinationName;
     private IReadOnlyList<PdfLogicalFormWidget>? _formWidgets;
     private IReadOnlyDictionary<string, PdfFormField>? _formFieldsByName;
     private IReadOnlyList<string>? _formFieldNames;
@@ -127,6 +130,81 @@ public sealed class PdfLogicalDocument {
         }
     }
 
+    /// <summary>All URI and named-destination link annotations flattened in page order.</summary>
+    public IReadOnlyList<PdfLogicalLinkAnnotation> Links {
+        get {
+            if (_links is not null) {
+                return _links;
+            }
+
+            var links = new List<PdfLogicalLinkAnnotation>();
+            for (int i = 0; i < Pages.Count; i++) {
+                links.AddRange(Pages[i].Links);
+            }
+
+            _links = links.AsReadOnly();
+            return _links;
+        }
+    }
+
+    /// <summary>URI link annotations grouped by absolute URI.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalLinkAnnotation>> LinksByUri {
+        get {
+            if (_linksByUri is not null) {
+                return _linksByUri;
+            }
+
+            var grouped = new Dictionary<string, List<PdfLogicalLinkAnnotation>>(StringComparer.Ordinal);
+            IReadOnlyList<PdfLogicalLinkAnnotation> links = Links;
+            for (int i = 0; i < links.Count; i++) {
+                PdfLogicalLinkAnnotation link = links[i];
+                string? uri = link.Uri;
+                if (uri is null || uri.Length == 0) {
+                    continue;
+                }
+
+                if (!grouped.TryGetValue(uri, out List<PdfLogicalLinkAnnotation>? uriLinks)) {
+                    uriLinks = new List<PdfLogicalLinkAnnotation>();
+                    grouped.Add(uri, uriLinks);
+                }
+
+                uriLinks.Add(link);
+            }
+
+            _linksByUri = ToReadOnlyLookup(grouped);
+            return _linksByUri;
+        }
+    }
+
+    /// <summary>Internal named-destination link annotations grouped by destination name.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalLinkAnnotation>> LinksByDestinationName {
+        get {
+            if (_linksByDestinationName is not null) {
+                return _linksByDestinationName;
+            }
+
+            var grouped = new Dictionary<string, List<PdfLogicalLinkAnnotation>>(StringComparer.Ordinal);
+            IReadOnlyList<PdfLogicalLinkAnnotation> links = Links;
+            for (int i = 0; i < links.Count; i++) {
+                PdfLogicalLinkAnnotation link = links[i];
+                string? destinationName = link.DestinationName;
+                if (destinationName is null || destinationName.Length == 0) {
+                    continue;
+                }
+
+                if (!grouped.TryGetValue(destinationName, out List<PdfLogicalLinkAnnotation>? destinationLinks)) {
+                    destinationLinks = new List<PdfLogicalLinkAnnotation>();
+                    grouped.Add(destinationName, destinationLinks);
+                }
+
+                destinationLinks.Add(link);
+            }
+
+            _linksByDestinationName = ToReadOnlyLookup(grouped);
+            return _linksByDestinationName;
+        }
+    }
+
     /// <summary>All AcroForm widget annotations flattened in page order.</summary>
     public IReadOnlyList<PdfLogicalFormWidget> FormWidgets {
         get {
@@ -208,6 +286,9 @@ public sealed class PdfLogicalDocument {
     /// <summary>True when simple viewer preferences were read from the catalog.</summary>
     public bool HasReadableViewerPreferences => ViewerPreferences is not null;
 
+    /// <summary>True when at least one URI or named-destination link annotation was placed on a logical page.</summary>
+    public bool HasLinks => Links.Count > 0;
+
     /// <summary>True when at least one simple AcroForm field was read from the document catalog.</summary>
     public bool HasFormFields => FormFields.Count > 0;
 
@@ -218,6 +299,22 @@ public sealed class PdfLogicalDocument {
     public bool TryGetFormField(string name, out PdfFormField? field) {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         return FormFieldsByName.TryGetValue(name, out field);
+    }
+
+    /// <summary>Returns logical URI link annotations for an absolute URI.</summary>
+    public IReadOnlyList<PdfLogicalLinkAnnotation> GetLinksByUri(string uri) {
+        Guard.AbsoluteUri(uri, nameof(uri));
+        return LinksByUri.TryGetValue(uri, out IReadOnlyList<PdfLogicalLinkAnnotation>? links)
+            ? links
+            : Array.Empty<PdfLogicalLinkAnnotation>();
+    }
+
+    /// <summary>Returns logical internal link annotations for a named destination.</summary>
+    public IReadOnlyList<PdfLogicalLinkAnnotation> GetLinksByDestinationName(string destinationName) {
+        Guard.NotNullOrWhiteSpace(destinationName, nameof(destinationName));
+        return LinksByDestinationName.TryGetValue(destinationName, out IReadOnlyList<PdfLogicalLinkAnnotation>? links)
+            ? links
+            : Array.Empty<PdfLogicalLinkAnnotation>();
     }
 
     /// <summary>Returns logical widget annotations for a fully qualified form field name.</summary>
@@ -243,6 +340,15 @@ public sealed class PdfLogicalDocument {
             _elements = elements.AsReadOnly();
             return _elements;
         }
+    }
+
+    private static System.Collections.ObjectModel.ReadOnlyDictionary<string, IReadOnlyList<T>> ToReadOnlyLookup<T>(Dictionary<string, List<T>> grouped) {
+        var result = new Dictionary<string, IReadOnlyList<T>>(StringComparer.Ordinal);
+        foreach (var item in grouped) {
+            result.Add(item.Key, item.Value.AsReadOnly());
+        }
+
+        return new System.Collections.ObjectModel.ReadOnlyDictionary<string, IReadOnlyList<T>>(result);
     }
 
     /// <summary>Loads a PDF from bytes and returns the logical read model.</summary>

@@ -243,9 +243,10 @@ public class PdfLogicalDocumentTests {
             .H1("Linked heading", linkUri: "https://evotec.xyz/logical-link", linkContents: "Logical link metadata")
             .ToBytes();
 
-        PdfLogicalPage page = Assert.Single(PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
             ForceSingleColumn = true
-        }).Pages);
+        });
+        PdfLogicalPage page = Assert.Single(logical.Pages);
 
         PdfLogicalLinkAnnotation link = Assert.Single(page.Links);
         Assert.Equal(1, link.PageNumber);
@@ -256,8 +257,14 @@ public class PdfLogicalDocumentTests {
         Assert.True(link.Width > 0);
         Assert.True(link.Height > 0);
         Assert.Equal(1, link.SourceLink.PageNumber);
+        Assert.True(logical.HasLinks);
+        Assert.Same(link, Assert.Single(logical.Links));
+        Assert.Same(link, Assert.Single(logical.LinksByUri["https://evotec.xyz/logical-link"]));
+        Assert.Same(link, Assert.Single(logical.GetLinksByUri("https://evotec.xyz/logical-link")));
+        Assert.Empty(logical.GetLinksByUri("https://evotec.xyz/missing"));
+        Assert.Empty(logical.GetLinksByDestinationName("Missing"));
         Assert.Contains(page.Elements, element => element.Kind == PdfLogicalElementKind.LinkAnnotation);
-        Assert.Contains(PdfLogicalDocument.Load(pdf).Elements, element => element.Kind == PdfLogicalElementKind.LinkAnnotation);
+        Assert.Contains(logical.Elements, element => element.Kind == PdfLogicalElementKind.LinkAnnotation);
     }
 
     private static string Normalize(string text) {
