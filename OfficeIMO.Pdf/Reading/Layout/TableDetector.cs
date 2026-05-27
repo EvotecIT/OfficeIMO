@@ -56,9 +56,9 @@ internal static class TableDetector {
         foreach (var ln in band) {
             if (string.IsNullOrWhiteSpace(ln.Text)) continue; nonEmpty++;
             if (TryLeaderRowFromLine(ln, out _, out _, out _)) { leaderLines++; continue; }
-            bool hasDotSpan = ln.Spans.Any(s => IsDotLeader(s.Text) && s.Text.Length >= 3);
+            bool hasLeaderSpan = ln.Spans.Any(s => IsLeaderSpan(s.Text) && s.Text.Length >= 3);
             bool looksLeader = LooksLeaderText(ln.Text);
-            if (hasDotSpan || looksLeader) leaderLines++;
+            if (hasLeaderSpan || looksLeader) leaderLines++;
         }
         if (nonEmpty == 0) return false;
         // Consider leader band if we have at least 3 leader-like rows, or >=30% of lines
@@ -218,7 +218,7 @@ internal static class TableDetector {
             // Dot-leader spans are strong split hints
             for (int k = 0; k < ln.Spans.Count; k++) {
                 var s = ln.Spans[k];
-                if (IsDotLeader(s.Text)) {
+                if (IsLeaderSpan(s.Text)) {
                     double mid = s.X + Math.Max(0, s.Advance) / 2.0;
                     cands.Add(mid);
                 }
@@ -327,22 +327,24 @@ internal static class TableDetector {
         return digits >= Math.Max(2, s.Length / 4);
     }
 
-    private static bool IsDotLeader(string s) {
+    private static bool IsLeaderSpan(string s) {
         if (string.IsNullOrEmpty(s)) return false;
-        for (int i = 0; i < s.Length; i++) if (s[i] != '.') return false; return true;
+        char c = s[0];
+        if (c != '.' && c != '-' && c != '_') return false;
+        for (int i = 1; i < s.Length; i++) if (s[i] != c) return false; return true;
     }
 
     private static bool LooksLeaderText(string s) {
         if (string.IsNullOrWhiteSpace(s)) return false;
-        int dots = 0; for (int i = 0; i < s.Length; i++) if (s[i] == '.') dots++;
-        return dots >= 3;
+        int leaders = 0; for (int i = 0; i < s.Length; i++) if (s[i] == '.' || s[i] == '-' || s[i] == '_') leaders++;
+        return leaders >= 3;
     }
 
     private static bool TryLeaderRowFromLine(TextLayoutEngine.TextLine ln, out string[] row, out (double From,double To) left, out (double From,double To) right) {
         row = Array.Empty<string>(); left = (0,0); right=(0,0);
-        // Find a dotted leader span in this line
+        // Find a leader span in this line
         int leaderIdx = -1;
-        for (int i = 0; i < ln.Spans.Count; i++) if (IsDotLeader(ln.Spans[i].Text) && ln.Spans[i].Text.Length >= 3) { leaderIdx = i; break; }
+        for (int i = 0; i < ln.Spans.Count; i++) if (IsLeaderSpan(ln.Spans[i].Text) && ln.Spans[i].Text.Length >= 3) { leaderIdx = i; break; }
         if (leaderIdx < 0) return false;
         // Left label: join spans before leader (preserve minimal spaces)
         var sbLeft = new System.Text.StringBuilder();
@@ -355,53 +357,50 @@ internal static class TableDetector {
             leftTo = Math.Max(leftTo, s.X + Math.Max(0, s.Advance));
         }
         string leftText = CleanLeftLabel(sbLeft.ToString());
-        // Right number: consume digits after leader
+        // Right value: consume the value spans after leader, preserving numeric punctuation.
         var sbRight = new System.Text.StringBuilder();
         double rightFrom = double.MaxValue, rightTo = double.MinValue;
         for (int i = leaderIdx + 1; i < ln.Spans.Count; i++) {
             var s = ln.Spans[i];
-            if (ContainsDigit(s.Text)) {
-                if (sbRight.Length > 0 && sbRight[sbRight.Length - 1] != ' ') sbRight.Append(' ');
-                sbRight.Append(s.Text);
-                rightFrom = Math.Min(rightFrom, s.X);
-                rightTo = Math.Max(rightTo, s.X + Math.Max(0, s.Advance));
+            if (IsLeaderSpan(s.Text)) {
+                continue;
             }
+
+            if (sbRight.Length > 0 && sbRight[sbRight.Length - 1] != ' ') sbRight.Append(' ');
+            sbRight.Append(s.Text);
+            rightFrom = Math.Min(rightFrom, s.X);
+            rightTo = Math.Max(rightTo, s.X + Math.Max(0, s.Advance));
         }
-        string rightText = sbRight.ToString().Trim();
+        string rightText = NormalizeLeaderValue(sbRight.ToString());
         // Sanity checks
         if (leftText.Length == 0 || rightText.Length == 0) return false;
-        // Strip non-digits and spaces from right
-        rightText = new string(rightText.Where(char.IsDigit).ToArray());
-        if (rightText.Length == 0) return false;
         row = new [] { leftText, rightText };
         left = (leftFrom, leftTo);
         right = (rightFrom, rightTo);
         return true;
     }
 
-    private static bool ContainsDigit(string s) { for (int i = 0; i < s.Length; i++) if (char.IsDigit(s[i])) return true; return false; }
-
-        private static string CleanLeftLabel(string s) {
-            if (string.IsNullOrEmpty(s)) return s;
-            // Normalize spaces
-            s = System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ").Trim();
-            // Remove trailing dots on label (leaders)
-            s = s.Trim('.');
-            // Remove repeated dot groups inside label
-            s = System.Text.RegularExpressions.Regex.Replace(s, "[.]{2,}", ".");
-            // Tidy quotes and parentheses spacing
-            s = s.Replace(" ' ", " '").Replace("( ", "(").Replace(" )", ")");
-            // Re-insert spaces around common glued prepositions if camel-cased inside
-            s = System.Text.RegularExpressions.Regex.Replace(s, "([A-Za-z])of([A-Z])", "$1 of $2");
-            s = System.Text.RegularExpressions.Regex.Replace(s, "([a-z]{2,})of([A-Z])", "$1 of $2");
-            s = System.Text.RegularExpressions.Regex.Replace(s, "([A-Za-z])in([A-Z])", "$1 in $2");
-            s = System.Text.RegularExpressions.Regex.Replace(s, "([a-z]{2,})in([A-Z])", "$1 in $2");
-            s = System.Text.RegularExpressions.Regex.Replace(s, "([A-Za-z])and([A-Z])", "$1 and $2");
-            s = System.Text.RegularExpressions.Regex.Replace(s, "([a-z]{2,})and([A-Z])", "$1 and $2");
-            // generic lower→Upper split (camel-case → spaced)
-            s = System.Text.RegularExpressions.Regex.Replace(s, "([a-z])([A-Z])", "$1 $2");
-            // Collapse micro-token shattering (aggressive but safe-ish for leaders)
-            var parts = s.Split(' ');
+    private static string CleanLeftLabel(string s) {
+        if (string.IsNullOrEmpty(s)) return s;
+        // Normalize spaces
+        s = System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ").Trim();
+        // Remove trailing leader characters on label
+        s = s.Trim('.', '-', '_');
+        // Remove repeated dot groups inside label
+        s = System.Text.RegularExpressions.Regex.Replace(s, "[.]{2,}", ".");
+        // Tidy quotes and parentheses spacing
+        s = s.Replace(" ' ", " '").Replace("( ", "(").Replace(" )", ")");
+        // Re-insert spaces around common glued prepositions if camel-cased inside
+        s = System.Text.RegularExpressions.Regex.Replace(s, "([A-Za-z])of([A-Z])", "$1 of $2");
+        s = System.Text.RegularExpressions.Regex.Replace(s, "([a-z]{2,})of([A-Z])", "$1 of $2");
+        s = System.Text.RegularExpressions.Regex.Replace(s, "([A-Za-z])in([A-Z])", "$1 in $2");
+        s = System.Text.RegularExpressions.Regex.Replace(s, "([a-z]{2,})in([A-Z])", "$1 in $2");
+        s = System.Text.RegularExpressions.Regex.Replace(s, "([A-Za-z])and([A-Z])", "$1 and $2");
+        s = System.Text.RegularExpressions.Regex.Replace(s, "([a-z]{2,})and([A-Z])", "$1 and $2");
+        // generic lower->Upper split (camel-case -> spaced)
+        s = System.Text.RegularExpressions.Regex.Replace(s, "([a-z])([A-Z])", "$1 $2");
+        // Collapse micro-token shattering (aggressive but safe-ish for leaders)
+        var parts = s.Split(' ');
         if (parts.Length <= 2) return s;
         bool Wordish(string t) { for (int i = 0; i < t.Length; i++) { char c = t[i]; if (!(char.IsLetterOrDigit(c) || c=='\''||c=='-'||c=='/')) return false; } return t.Length>0; }
         bool ShortAbbrev(string t) { if (t.Length==0 || t.Length>3) return false; for (int i=0;i<t.Length;i++) if(!char.IsUpper(t[i])) return false; return true; }
@@ -417,5 +416,26 @@ internal static class TableDetector {
             else sb.Append(' ').Append(cur);
         }
         return sb.ToString().Replace("  ", " ");
+    }
+
+    private static string NormalizeLeaderValue(string value) {
+        if (string.IsNullOrWhiteSpace(value)) {
+            return string.Empty;
+        }
+
+        string normalized = System.Text.RegularExpressions.Regex.Replace(value.Trim(), "\\s+", " ");
+        normalized = System.Text.RegularExpressions.Regex.Replace(normalized, "\\s*([.,])\\s*", "$1");
+        normalized = System.Text.RegularExpressions.Regex.Replace(normalized, "([$€£])\\s+", "$1");
+        normalized = normalized.Trim('.');
+
+        bool hasDigit = false;
+        for (int i = 0; i < normalized.Length; i++) {
+            if (char.IsDigit(normalized[i])) {
+                hasDigit = true;
+                break;
+            }
+        }
+
+        return hasDigit ? normalized : string.Empty;
     }
 }

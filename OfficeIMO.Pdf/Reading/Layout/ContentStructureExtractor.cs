@@ -9,7 +9,7 @@ namespace OfficeIMO.Pdf;
 /// - Lines: plain text lines in top-to-bottom order
 /// - Toc: table-of-contents style rows detected via dotted leaders
 /// - ListItems: bullets and numbered list items
-/// - LeaderRows: generic dotted-leader rows (label + trailing number)
+/// - LeaderRows: generic leader rows (label + trailing value)
 /// - LinesDetailed: line geometry useful for higher-level extraction/debugging
 /// - Tables: simple rows detected via large X gaps (heuristic)
 /// </summary>
@@ -20,7 +20,7 @@ public sealed class StructuredPage {
     public List<(string Title, int Page)> Toc { get; } = new();
     /// <summary>Bullet/numbered list items.</summary>
     public List<string> ListItems { get; } = new();
-    /// <summary>Leader rows split into label and trailing number.</summary>
+    /// <summary>Leader rows split into label and trailing value.</summary>
     public List<string[]> LeaderRows { get; } = new();
     /// <summary>Detected list nodes with hierarchical level.</summary>
     public List<StructuredListItem> ListNodes { get; } = new();
@@ -111,6 +111,7 @@ public sealed class StructuredLine {
 
 internal static class ContentStructureExtractor {
     private static readonly Regex TocRegex = new Regex(@"^(?<label>.+?)\s*\.{3,}\s+(?<num>\d{1,5})\s*$", RegexOptions.Compiled);
+    private static readonly Regex LeaderRowRegex = new Regex(@"^(?<label>.+?)(?:\.{3,}|-{3,}|_{3,})\s*(?<value>[$€£]?\s*[A-Za-z0-9][A-Za-z0-9\s.,'/%+\-()]*)\s*$", RegexOptions.Compiled);
     private static readonly Regex ListRegex = new Regex(@"^\s*(?:[\u2022\-\*\u25CF]|\d+(?:\.\d+)*[\.)]|\([A-Za-z0-9]+\))\s+", RegexOptions.Compiled);
     private static readonly Regex NumberListRegex = new Regex(@"^\s*(?<mark>\d+(?:\.\d+)+)[\.)]?\s+(?<text>.+)$", RegexOptions.Compiled);
     private static readonly Regex BulletRegex = new Regex(@"^\s*(?<mark>[\u2022\-\*\u25CF])\s+(?<text>.+)$", RegexOptions.Compiled);
@@ -166,14 +167,12 @@ internal static class ContentStructureExtractor {
                 }
             }
             else {
-                // generic leader split: last whitespace + digits, after 3+ dots
-                int dots = t.LastIndexOf("...", System.StringComparison.Ordinal);
-                if (dots > 0) {
-                    int k = t.Length - 1; while (k >= 0 && char.IsDigit(t[k])) k--; int numStart = k + 1;
-                    if (numStart > 0 && numStart < t.Length && TryParsePositiveIntTail(t, numStart, out int n2)) {
-                        var left = NormalizeShattered(t.Substring(0, numStart).TrimEnd('.', ' ').Trim());
-                        var right = t.Substring(numStart);
-                        AddLeaderRow(page, left, right);
+                var mLeader = LeaderRowRegex.Match(t);
+                if (mLeader.Success) {
+                    var value = NormalizeLeaderValue(mLeader.Groups["value"].Value);
+                    if (value.Length > 0) {
+                        var left = NormalizeShattered(mLeader.Groups["label"].Value.TrimEnd('.', '-', '_', ' ').Trim());
+                        AddLeaderRow(page, left, value);
                     }
                 }
             }
@@ -195,7 +194,7 @@ internal static class ContentStructureExtractor {
                 if (string.Equals(t.Kind, "leaders", StringComparison.OrdinalIgnoreCase)) {
                     for (int r = 0; r < t.Rows.Count; r++) if (t.Rows[r].Length >= 2) {
                         t.Rows[r][0] = NormalizeShattered(t.Rows[r][0]);
-                        t.Rows[r][1] = t.Rows[r][1].Trim('.');
+                        t.Rows[r][1] = NormalizeLeaderValue(t.Rows[r][1]);
                     }
                     // add only to detailed + LeaderRows; do NOT mix into generic Tables
                     page.TablesDetailed.Add(t);
@@ -227,7 +226,7 @@ internal static class ContentStructureExtractor {
                 if (string.Equals(leaderTbl.Kind, "leaders", StringComparison.OrdinalIgnoreCase)) {
                     for (int r = 0; r < leaderTbl.Rows.Count; r++) if (leaderTbl.Rows[r].Length >= 2) {
                         leaderTbl.Rows[r][0] = NormalizeShattered(leaderTbl.Rows[r][0]);
-                        leaderTbl.Rows[r][1] = leaderTbl.Rows[r][1].Trim('.');
+                        leaderTbl.Rows[r][1] = NormalizeLeaderValue(leaderTbl.Rows[r][1]);
                     }
                 }
                 page.TablesDetailed.Add(leaderTbl);
@@ -245,7 +244,7 @@ internal static class ContentStructureExtractor {
 
     private static void AddLeaderRow(StructuredPage page, string label, string value) {
         label = NormalizeShattered(label ?? string.Empty).Trim();
-        value = (value ?? string.Empty).Trim().Trim('.');
+        value = NormalizeLeaderValue(value);
         if (label.Length == 0 || value.Length == 0) {
             return;
         }
@@ -311,18 +310,24 @@ internal static class ContentStructureExtractor {
         return joined;
     }
 
-    private static bool TryParsePositiveIntTail(string text, int startIndex, out int value) {
-        value = 0;
-        if (string.IsNullOrEmpty(text)) return false;
-        if (startIndex < 0 || startIndex >= text.Length) return false;
-
-        for (int i = startIndex; i < text.Length; i++) {
-            var c = text[i];
-            if (c < '0' || c > '9') return false;
-            var digit = c - '0';
-            if (value > ((int.MaxValue - digit) / 10)) return false;
-            value = (value * 10) + digit;
+    private static string NormalizeLeaderValue(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) {
+            return string.Empty;
         }
-        return true;
+
+        string normalized = Regex.Replace(value!.Trim(), "\\s+", " ");
+        normalized = Regex.Replace(normalized, "\\s*([.,])\\s*", "$1");
+        normalized = Regex.Replace(normalized, "([$€£])\\s+", "$1");
+        normalized = normalized.Trim('.');
+
+        bool hasDigit = false;
+        for (int i = 0; i < normalized.Length; i++) {
+            if (char.IsDigit(normalized[i])) {
+                hasDigit = true;
+                break;
+            }
+        }
+
+        return hasDigit ? normalized : string.Empty;
     }
 }
