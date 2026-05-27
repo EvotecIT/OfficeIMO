@@ -1439,7 +1439,7 @@ public static class PdfTextExtractor {
             int close = FindCloseParen(obj, valueStart);
             if (close < 0) return null;
             string raw = obj.Substring(valueStart + 1, close - valueStart - 1);
-            return UnescapePdfLiteral(raw);
+            return PdfTextString.DecodeLiteral(raw);
         }
 
         if (obj[valueStart] == '<' && (valueStart + 1 >= obj.Length || obj[valueStart + 1] != '<')) {

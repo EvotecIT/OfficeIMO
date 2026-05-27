@@ -2052,7 +2052,7 @@ internal static class PdfSyntax {
             // literal string
             int end = s.LastIndexOf(')');
             string inner = end > 1 ? s.Substring(1, end - 1) : s.Substring(1);
-            return new PdfStringObj(Unescape(inner));
+            return new PdfStringObj(PdfTextString.DecodeLiteral(inner));
         }
         if (s.Length > 0 && s[0] == '<' && (s.Length == 1 || s[1] != '<')) {
             int end = s.IndexOf('>');
@@ -2124,7 +2124,7 @@ internal static class PdfSyntax {
             return (arr, j - i);
         }
         if (tok.Length > 0 && tok[0] == '/') return (new PdfName(DecodeName(tok.Substring(1))), 0);
-        if (tok.Length > 0 && tok[0] == '(') return (new PdfStringObj(Unescape(tok.Substring(1, tok.Length - 2))), 0);
+        if (tok.Length > 0 && tok[0] == '(') return (new PdfStringObj(PdfTextString.DecodeLiteral(tok.Substring(1, tok.Length - 2))), 0);
         if (tok.Length > 1 && tok[0] == '<' && tok[tok.Length - 1] == '>' && (tok.Length == 2 || tok[1] != '<')) {
             return (new PdfStringObj(DecodeHexString(tok.Substring(1, tok.Length - 2))), 0);
         }
@@ -2212,8 +2212,6 @@ internal static class PdfSyntax {
 
         return false;
     }
-
-    private static string Unescape(string s) => PdfTextExtractor.UnescapePdfLiteral(s);
 
     internal static string DecodeName(string raw) {
         if (string.IsNullOrEmpty(raw) || raw.IndexOf('#') < 0) {

@@ -33,6 +33,14 @@ internal static class PdfTextString {
         return Decode(DecodeHexBytes(raw));
     }
 
+    public static string DecodeLiteral(string inner) {
+        if (string.IsNullOrEmpty(inner)) {
+            return string.Empty;
+        }
+
+        return Decode(PdfStringParser.ParseLiteralToBytes(inner));
+    }
+
     private static string DecodeUtf16BigEndian(byte[] bytes, int offset) {
         var builder = new StringBuilder((bytes.Length - offset) / 2);
         for (int i = offset; i + 1 < bytes.Length; i += 2) {
