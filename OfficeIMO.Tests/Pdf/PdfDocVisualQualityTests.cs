@@ -7809,6 +7809,7 @@ public class PdfDocVisualQualityTests {
     [Fact]
     public void TableStyles_ExposeWordLikeGenericPresetsWithoutSemanticAlignment() {
         var tableGrid = TableStyles.TableGrid();
+        var tableGridLight = TableStyles.TableGridLight();
         var plainTable = TableStyles.PlainTable1();
         var gridTable = TableStyles.GridTable1Light();
         var listTable = TableStyles.ListTable1Light();
@@ -7817,6 +7818,11 @@ public class PdfDocVisualQualityTests {
         Assert.Equal(0.5, tableGrid.BorderWidth);
         Assert.Null(tableGrid.HeaderFill);
         Assert.Null(tableGrid.RowStripeFill);
+
+        Assert.Equal(PdfColor.FromRgb(191, 191, 191), tableGridLight.BorderColor);
+        Assert.Equal(0.5, tableGridLight.BorderWidth);
+        Assert.Null(tableGridLight.HeaderFill);
+        Assert.Null(tableGridLight.RowStripeFill);
 
         Assert.Null(plainTable.BorderColor);
         Assert.Equal(0, plainTable.BorderWidth);
@@ -7836,6 +7842,7 @@ public class PdfDocVisualQualityTests {
         Assert.Equal(PdfColor.FromRgb(224, 224, 224), listTable.RowSeparatorColor);
 
         Assert.False(tableGrid.RightAlignNumeric);
+        Assert.False(tableGridLight.RightAlignNumeric);
         Assert.False(plainTable.RightAlignNumeric);
         Assert.False(gridTable.RightAlignNumeric);
         Assert.False(listTable.RightAlignNumeric);
@@ -7850,6 +7857,7 @@ public class PdfDocVisualQualityTests {
         Assert.Equal(new[] {
             "TableNormal",
             "TableGrid",
+            "TableGridLight",
             "PlainTable1",
             "GridTable1Light",
             "GridTable1LightAccent1",
@@ -7865,6 +7873,7 @@ public class PdfDocVisualQualityTests {
             "ListTable1LightAccent4",
             "ListTable1LightAccent5",
             "ListTable1LightAccent6",
+            "GridTableLight",
             "GridTable1Light-Accent1",
             "GridTable1Light-Accent2",
             "GridTable1Light-Accent3",
@@ -7881,6 +7890,7 @@ public class PdfDocVisualQualityTests {
 
         PdfTableStyle tableNormal = TableStyles.FromWordTableStyle("Table Normal");
         PdfTableStyle tableGrid = TableStyles.FromWordTableStyle("Table Grid");
+        PdfTableStyle tableGridLight = TableStyles.FromWordTableStyle("Grid Table Light");
         PdfTableStyle plainTable = TableStyles.FromWordTableStyle("plain_table_1");
         bool resolvedGridLight = TableStyles.TryFromWordTableStyle("grid-table-1-light", out PdfTableStyle? gridLight);
         PdfTableStyle gridLightAccent = TableStyles.FromWordTableStyle("GridTable1Light-Accent2");
@@ -7889,6 +7899,8 @@ public class PdfDocVisualQualityTests {
 
         Assert.Null(tableNormal.BorderColor);
         Assert.Equal(PdfColor.FromRgb(191, 191, 191), tableGrid.BorderColor);
+        Assert.Equal(PdfColor.FromRgb(191, 191, 191), tableGridLight.BorderColor);
+        Assert.Null(tableGridLight.HeaderSeparatorColor);
         Assert.Null(plainTable.BorderColor);
         Assert.True(resolvedGridLight);
         Assert.NotNull(gridLight);
@@ -7912,7 +7924,7 @@ public class PdfDocVisualQualityTests {
         var exception = Assert.Throws<ArgumentException>(() => TableStyles.FromWordTableStyle("GridTable7Colorful"));
         Assert.Equal("styleName", exception.ParamName);
         Assert.Contains("Unsupported Word table style 'GridTable7Colorful'.", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("Supported styles: TableNormal, TableGrid, PlainTable1, GridTable1Light", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Supported styles: TableNormal, TableGrid, TableGridLight, PlainTable1, GridTable1Light", exception.Message, StringComparison.Ordinal);
         Assert.Contains("GridTable1Light-Accent6", exception.Message, StringComparison.Ordinal);
         Assert.Contains("ListTable1Light-Accent6", exception.Message, StringComparison.Ordinal);
 
@@ -7923,11 +7935,14 @@ public class PdfDocVisualQualityTests {
     [Fact]
     public void TableStyles_ExposeCanonicalWordStyleNamesWithoutAliasSpellings() {
         Assert.Contains("TableNormal", TableStyles.CanonicalWordStyleNames);
+        Assert.Contains("TableGridLight", TableStyles.CanonicalWordStyleNames);
         Assert.Contains("GridTable1LightAccent6", TableStyles.CanonicalWordStyleNames);
         Assert.Contains("ListTable1LightAccent6", TableStyles.CanonicalWordStyleNames);
         Assert.DoesNotContain("GridTable1Light-Accent1", TableStyles.CanonicalWordStyleNames);
         Assert.DoesNotContain("ListTable1Light-Accent1", TableStyles.CanonicalWordStyleNames);
+        Assert.DoesNotContain("GridTableLight", TableStyles.CanonicalWordStyleNames);
 
+        Assert.Contains("GridTableLight", TableStyles.SupportedWordStyleNames);
         Assert.Contains("GridTable1Light-Accent1", TableStyles.SupportedWordStyleNames);
         Assert.Contains("ListTable1Light-Accent1", TableStyles.SupportedWordStyleNames);
         Assert.Equal(TableStyles.CanonicalWordStyleNames.Count, TableStyles.CanonicalWordStyleNames.Distinct(StringComparer.Ordinal).Count());
@@ -7936,6 +7951,8 @@ public class PdfDocVisualQualityTests {
     [Theory]
     [InlineData("Table Normal", "TableNormal")]
     [InlineData("table-grid", "TableGrid")]
+    [InlineData("Grid Table Light", "TableGridLight")]
+    [InlineData("table_grid_light", "TableGridLight")]
     [InlineData("plain_table_1", "PlainTable1")]
     [InlineData("grid-table-1-light", "GridTable1Light")]
     [InlineData("GridTable1Light-Accent2", "GridTable1LightAccent2")]

@@ -7,6 +7,7 @@ public static class TableStyles {
     private static readonly string[] CanonicalWordStyleNameValues = {
         "TableNormal",
         "TableGrid",
+        "TableGridLight",
         "PlainTable1",
         "GridTable1Light",
         "GridTable1LightAccent1",
@@ -25,6 +26,7 @@ public static class TableStyles {
     };
 
     private static readonly string[] WordStyleAliasNameValues = {
+        "GridTableLight",
         "GridTable1Light-Accent1",
         "GridTable1Light-Accent2",
         "GridTable1Light-Accent3",
@@ -108,6 +110,11 @@ public static class TableStyles {
             return true;
         }
 
+        if (string.Equals(canonicalStyleName, "TableGridLight", StringComparison.OrdinalIgnoreCase)) {
+            style = TableGridLight();
+            return true;
+        }
+
         if (string.Equals(canonicalStyleName, "TableNormal", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(canonicalStyleName, "PlainTable1", StringComparison.OrdinalIgnoreCase)) {
             style = PlainTable1();
@@ -161,6 +168,23 @@ public static class TableStyles {
     /// Word-like Table Grid preset: a plain neutral grid with no shading.
     /// </summary>
     public static PdfTableStyle TableGrid() => new PdfTableStyle {
+        HeaderFill = null,
+        HeaderTextColor = PdfColor.Black,
+        TextColor = PdfColor.FromRgb(25, 25, 25),
+        FooterFill = null,
+        RowStripeFill = null,
+        BorderColor = PdfColor.FromRgb(191, 191, 191),
+        BorderWidth = 0.5,
+        CellPaddingX = 5,
+        CellPaddingY = 4,
+        HeaderRowCount = 1,
+        FooterRowCount = 0
+    };
+
+    /// <summary>
+    /// Word-like Table Grid Light preset: a light neutral grid matching Word's built-in Grid Table Light style.
+    /// </summary>
+    public static PdfTableStyle TableGridLight() => new PdfTableStyle {
         HeaderFill = null,
         HeaderTextColor = PdfColor.Black,
         TextColor = PdfColor.FromRgb(25, 25, 25),
@@ -290,6 +314,12 @@ public static class TableStyles {
 
         if (string.Equals(normalized, "TableGrid", StringComparison.OrdinalIgnoreCase)) {
             canonicalStyleName = "TableGrid";
+            return true;
+        }
+
+        if (string.Equals(normalized, "TableGridLight", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalized, "GridTableLight", StringComparison.OrdinalIgnoreCase)) {
+            canonicalStyleName = "TableGridLight";
             return true;
         }
 
