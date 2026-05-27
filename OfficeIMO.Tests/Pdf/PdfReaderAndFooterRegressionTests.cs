@@ -1138,8 +1138,8 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     private static byte[] BuildPdfWithContentStreamArray() {
-        const string streamOne = "BT\n/F1 12 Tf\n72 720 Td\n(Hello) Tj\nET\n";
-        const string streamTwo = "BT\n/F1 12 Tf\n72 720 Td\n( world) Tj\nET\n";
+        const string streamOne = "BT\n/F1 12 Tf\n72 720 Td\n(Hello) Tj\nET";
+        const string streamTwo = "\nBT\n/F1 12 Tf\n72 720 Td\n( world) Tj\nET";
         int streamOneLength = Encoding.ASCII.GetByteCount(streamOne);
         int streamTwoLength = Encoding.ASCII.GetByteCount(streamTwo);
 
@@ -1178,8 +1178,8 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     private static byte[] BuildPdfWithSplitTextStateContentStreamArray() {
-        const string streamOne = "BT\n/F1 12 Tf\n72 720 Td\n";
-        const string streamTwo = "(Split state) Tj\nET\n";
+        const string streamOne = "BT\n/F1 12 Tf\n72 720 Td";
+        const string streamTwo = "\n(Split state) Tj\nET";
         int streamOneLength = Encoding.ASCII.GetByteCount(streamOne);
         int streamTwoLength = Encoding.ASCII.GetByteCount(streamTwo);
 
@@ -1288,8 +1288,8 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     private static byte[] BuildPdfWithIndirectContentArrayObject() {
-        const string streamOne = "BT\n/F1 12 Tf\n72 720 Td\n(Hello) Tj\nET\n";
-        const string streamTwo = "BT\n/F1 12 Tf\n72 720 Td\n( world) Tj\nET\n";
+        const string streamOne = "BT\n/F1 12 Tf\n72 720 Td\n(Hello) Tj\nET";
+        const string streamTwo = "\nBT\n/F1 12 Tf\n72 720 Td\n( world) Tj\nET";
         int streamOneLength = Encoding.ASCII.GetByteCount(streamOne);
         int streamTwoLength = Encoding.ASCII.GetByteCount(streamTwo);
 

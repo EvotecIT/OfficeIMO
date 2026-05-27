@@ -141,10 +141,6 @@ public sealed class PdfReadPage {
                 continue;
             }
 
-            if (content.Length > 0) {
-                content.Append('\n');
-            }
-
             content.Append(PdfEncoding.Latin1GetString(DecodeIfNeeded(stream)));
         }
 
@@ -463,10 +459,6 @@ public sealed class PdfReadPage {
     private string GetContentStreamContent() {
         var builder = new System.Text.StringBuilder();
         foreach (var stream in GetContentStreamObjects()) {
-            if (builder.Length > 0) {
-                builder.Append('\n');
-            }
-
             builder.Append(PdfEncoding.Latin1GetString(DecodeIfNeeded(stream)));
         }
 

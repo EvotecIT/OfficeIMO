@@ -1184,6 +1184,20 @@ public class PdfInspectorTests {
     }
 
     [Fact]
+    public void Preflight_ReportsUnsupportedFormXObjectFiltersWhenNameTokenIsSplitAcrossContentStreams() {
+        PdfDocumentPreflight report = PdfInspector.Preflight(BuildUnsupportedFormXObjectFilterSplitAcrossContentStreamsPdf("q\n/Fm", "1 Do\nQ"));
+
+        Assert.False(report.CanRead);
+        Assert.False(report.CanRewrite);
+        Assert.NotNull(report.DocumentInfo);
+        Assert.Equal(1, report.DocumentInfo!.PageCount);
+        AssertReadBlocker(
+            report,
+            PdfReadBlockerKind.UnsupportedContentStreamFilter,
+            "PDF page content streams use unsupported filter(s): DCTDecode.");
+    }
+
+    [Fact]
     public void Preflight_BlocksWrongGenerationRewriteReferences() {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildWrongGenerationContentReferencePdf());
 
@@ -1315,9 +1329,7 @@ public class PdfInspectorTests {
         return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 
-    private static byte[] BuildUnsupportedFormXObjectFilterSplitAcrossContentStreamsPdf() {
-        const string pageContentOne = "q\n/Fm1 ";
-        const string pageContentTwo = "Do\nQ";
+    private static byte[] BuildUnsupportedFormXObjectFilterSplitAcrossContentStreamsPdf(string pageContentOne = "q\n/Fm1 ", string pageContentTwo = "Do\nQ") {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",
             "1 0 obj",
