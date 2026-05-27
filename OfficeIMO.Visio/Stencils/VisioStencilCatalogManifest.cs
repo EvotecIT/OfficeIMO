@@ -80,6 +80,7 @@ namespace OfficeIMO.Visio.Stencils {
                         new XAttribute("DefaultWidth", XmlConvert.ToString(shape.DefaultWidth)),
                         new XAttribute("DefaultHeight", XmlConvert.ToString(shape.DefaultHeight)),
                         new XAttribute("IconNameU", shape.IconNameU),
+                        shape.DefaultUnit.HasValue ? new XAttribute("DefaultUnit", shape.DefaultUnit.Value.ToString()) : null,
                         Values("Keywords", shape.Keywords),
                         Values("Aliases", shape.Aliases),
                         Values("Tags", shape.Tags))));
@@ -115,7 +116,8 @@ namespace OfficeIMO.Visio.Stencils {
                     ReadValues(shape, "Keywords"),
                     ReadValues(shape, "Aliases"),
                     ReadValues(shape, "Tags"),
-                    (string?)shape.Attribute("IconNameU"));
+                    (string?)shape.Attribute("IconNameU"),
+                    ReadUnit(shape, "DefaultUnit"));
             }
 
             return builder.Build();
@@ -158,6 +160,19 @@ namespace OfficeIMO.Visio.Stencils {
             }
 
             return parsed;
+        }
+
+        private static VisioMeasurementUnit? ReadUnit(XElement element, string attributeName) {
+            string? value = (string?)element.Attribute(attributeName);
+            if (string.IsNullOrWhiteSpace(value)) {
+                return null;
+            }
+
+            if (Enum.TryParse(value, ignoreCase: true, out VisioMeasurementUnit unit)) {
+                return unit;
+            }
+
+            throw new InvalidDataException($"Stencil manifest attribute '{attributeName}' is not a supported measurement unit.");
         }
     }
 }

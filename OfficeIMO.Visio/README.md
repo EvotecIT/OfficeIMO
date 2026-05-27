@@ -517,6 +517,7 @@ var packageCatalog = VisioStencilPackageCatalog.Load("network.vssx",
     new VisioStencilPackageLoadOptions {
         Category = "Network",
         MasterNames = new[] { "Server", "rId4", "database-cylinder" },
+        LearnMasterDimensions = true,
         IncludeUnsupportedMasters = false
     });
 custom.Save("infrastructure.officeimo-visio-stencils.xml");
@@ -529,9 +530,10 @@ doc.Save();
 
 `VisioStencilPackageCatalog.Load(...)` reads master metadata from `.vsdx`,
 `.vssx`, and `.vstx` packages. It does not use those files as runtime templates;
-by default it only exposes masters that OfficeIMO can generate natively. The
-`MasterNames` filter can target the universal name, visible name, relationship id,
-numeric id, or normalized slug discovered in the package. Set
+by default it only exposes masters that OfficeIMO can generate natively and, when
+master parts are present, learns the native master width and height as reusable
+catalog metadata. The `MasterNames` filter can target the universal name, visible
+name, relationship id, numeric id, or normalized slug discovered in the package. Set
 `IncludeUnsupportedMasters` only when a generic generated placeholder is useful
 for discovery, migration tooling, or keeping a learned palette placeable without
 shipping the source stencil or template.
