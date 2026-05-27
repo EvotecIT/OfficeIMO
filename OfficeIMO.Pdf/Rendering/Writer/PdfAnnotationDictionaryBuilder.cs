@@ -89,6 +89,59 @@ internal static class PdfAnnotationDictionaryBuilder {
             " >> >> >>\n";
     }
 
+    internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<string> options, string value, double fontSize, int normalAppearanceId, bool isComboBox) {
+        ValidateRectangle(x1, y1, x2, y2);
+        Guard.NotNullOrWhiteSpace(name, nameof(name));
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(value, nameof(value));
+        ValidateFinite(fontSize, nameof(fontSize));
+        if (fontSize <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(fontSize), fontSize, "PDF choice field font size must be a positive finite number.");
+        }
+
+        if (options.Count == 0) {
+            throw new ArgumentException("PDF choice field requires at least one option.", nameof(options));
+        }
+
+        var optionBuilder = new StringBuilder();
+        bool hasSelectedValue = false;
+        for (int i = 0; i < options.Count; i++) {
+            string option = options[i];
+            Guard.NotNullOrWhiteSpace(option, nameof(options));
+            if (string.Equals(option, value, StringComparison.Ordinal)) {
+                hasSelectedValue = true;
+            }
+
+            optionBuilder.Append(' ')
+                .Append(PdfSyntaxEscaper.LiteralString(option));
+        }
+
+        if (!hasSelectedValue) {
+            throw new ArgumentException("PDF choice field value must match one of the provided options.", nameof(value));
+        }
+
+        return "<< /Type /Annot /Subtype /Widget /FT /Ch /T " +
+            PdfSyntaxEscaper.LiteralString(name) +
+            " /V " +
+            PdfSyntaxEscaper.LiteralString(value) +
+            " /DV " +
+            PdfSyntaxEscaper.LiteralString(value) +
+            " /Opt [" +
+            optionBuilder +
+            " ]" +
+            (isComboBox ? " /Ff 131072" : string.Empty) +
+            " /Rect [" +
+            FormatCoordinate(x1) + " " +
+            FormatCoordinate(y1) + " " +
+            FormatCoordinate(x2) + " " +
+            FormatCoordinate(y2) +
+            "] /F 4 /DA " +
+            PdfSyntaxEscaper.LiteralString("/Helv " + FormatCoordinate(fontSize) + " Tf 0 g") +
+            " /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N " +
+            PdfSyntaxEscaper.IndirectReference(normalAppearanceId) +
+            " >> >>\n";
+    }
+
     private static string BuildContentsEntry(string? contents) =>
         string.IsNullOrWhiteSpace(contents)
             ? string.Empty

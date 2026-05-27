@@ -1776,6 +1776,36 @@ internal static partial class PdfWriter {
             y -= block.Size + block.SpacingAfter;
         }
 
+        void RenderChoiceFieldBlock(ChoiceFieldBlock block, double containerX, double containerWidth) {
+            double spacingBefore = ResolveTopLevelSpacingBefore(block.SpacingBefore);
+            double needed = spacingBefore + block.Height + block.SpacingAfter;
+            EnsureFixedFlowBlockFits("Choice field", block.Width, needed, containerWidth);
+            if (y - needed < currentOpts.MarginBottom) {
+                NewPage();
+                spacingBefore = 0D;
+            }
+
+            if (spacingBefore > 0) {
+                y -= spacingBefore;
+            }
+
+            double x = GetAlignedObjectX(containerX, containerWidth, block.Width, block.Align);
+            currentPage!.FormFields.Add(new FormFieldAnnotation {
+                X1 = x,
+                Y1 = y - block.Height,
+                X2 = x + block.Width,
+                Y2 = y,
+                Kind = FormFieldAnnotationKind.Choice,
+                Name = block.Name,
+                Value = block.Value,
+                FontSize = block.FontSize,
+                Options = block.Options,
+                IsComboBox = block.IsComboBox
+            });
+            pageDirty = true;
+            y -= block.Height + block.SpacingAfter;
+        }
+
         void EnsureFixedFlowBlockFits(string blockName, double blockWidth, double blockHeight, double availableWidth) {
             if (blockWidth > availableWidth + 0.001) {
                 throw new ArgumentException(blockName + " width exceeds the available page content width.");
@@ -2027,6 +2057,10 @@ internal static partial class PdfWriter {
 
             if (block is CheckBoxBlock checkBox) {
                 return checkBox.SpacingBefore + checkBox.Size + checkBox.SpacingAfter;
+            }
+
+            if (block is ChoiceFieldBlock choiceField) {
+                return choiceField.SpacingBefore + choiceField.Height + choiceField.SpacingAfter;
             }
 
             if (block is ImageBlock image) {
@@ -2968,6 +3002,8 @@ internal static partial class PdfWriter {
                     RenderTextFieldBlock(tf, currentOpts.MarginLeft, width);
                 } else if (block is CheckBoxBlock cbx) {
                     RenderCheckBoxBlock(cbx, currentOpts.MarginLeft, width);
+                } else if (block is ChoiceFieldBlock choice) {
+                    RenderChoiceFieldBlock(choice, currentOpts.MarginLeft, width);
                 } else if (block is ShapeBlock sbk) {
                     PdfDrawingStyle shapeStyle = ResolveDrawingStyle(sbk, currentOpts);
                     PdfDoc.ValidateDrawingStyle(shapeStyle, "Shape");

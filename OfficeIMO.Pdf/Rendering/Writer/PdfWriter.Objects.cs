@@ -87,11 +87,14 @@ internal static partial class PdfWriter {
         public double FontSize { get; init; }
         public bool IsChecked { get; init; }
         public string CheckedValueName { get; init; } = "Yes";
+        public IReadOnlyList<string> Options { get; init; } = Array.Empty<string>();
+        public bool IsComboBox { get; init; }
     }
 
     private enum FormFieldAnnotationKind {
         Text,
-        CheckBox
+        CheckBox,
+        Choice
     }
 
     private sealed class PageBookmark {

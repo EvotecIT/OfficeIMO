@@ -265,6 +265,12 @@ public sealed partial class PdfDoc {
         return this;
     }
 
+    /// <summary>Adds a simple AcroForm choice field at the current flow position.</summary>
+    public PdfDoc ChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, double width = 180, double height = 22, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, bool isComboBox = true) {
+        AddBlock(new ChoiceFieldBlock(name, options, value, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox));
+        return this;
+    }
+
     /// <summary>Adds a shared OfficeIMO.Drawing shape at the current flow position.</summary>
     public PdfDoc Shape(OfficeShape shape, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         AddBlock(CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents));
