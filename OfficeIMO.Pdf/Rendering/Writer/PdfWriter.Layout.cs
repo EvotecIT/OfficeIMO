@@ -2028,7 +2028,7 @@ internal static partial class PdfWriter {
                     PdfHeadingStyle? headingStyle = ResolveHeadingStyle(hb, currentOpts);
                     double size = GetHeadingFontSize(hb, headingStyle);
                     double leading = GetHeadingLeading(headingStyle, size);
-                    double spacingBefore = headingStyle?.SpacingBefore ?? 0D;
+                    double spacingBefore = y < yStart - 0.001 ? headingStyle?.SpacingBefore ?? 0D : 0D;
                     double spacingAfter = GetHeadingSpacingAfter(headingStyle, leading);
                     var headingFont = ChooseBold(ChooseNormal(currentOpts.DefaultFont));
                     var lines = WrapSimpleText(hb.Text, width, headingFont, size);
@@ -2039,10 +2039,16 @@ internal static partial class PdfWriter {
                         double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                         if (keepHeight > needed + 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                             NewPage();
+                            spacingBefore = 0D;
+                            needed = lines.Count * leading + spacingAfter;
                         }
                     }
 
-                    if (y - needed < currentOpts.MarginBottom) { NewPage(); }
+                    if (y - needed < currentOpts.MarginBottom) {
+                        NewPage();
+                        spacingBefore = 0D;
+                        needed = lines.Count * leading + spacingAfter;
+                    }
                     if (spacingBefore > 0) {
                         y -= spacingBefore;
                     }
@@ -3439,7 +3445,8 @@ internal static partial class PdfWriter {
                                     var lines = ch.Lines;
                                     double leading = ch.Leading;
                                     double size = ch.Size;
-                                    double needed = ch.SpacingBefore + lines.Count * leading + ch.SpacingAfter;
+                                    double spacingBefore = consumed > 0.001 ? ch.SpacingBefore : 0D;
+                                    double needed = spacingBefore + lines.Count * leading + ch.SpacingAfter;
                                     if (ch.KeepWithNext && idx + 1 < items.Count) {
                                         double nextHeight = MeasureColItemFirstVisualHeight(items[idx + 1]);
                                         double keepHeight = needed + nextHeight;
@@ -3453,10 +3460,10 @@ internal static partial class PdfWriter {
 
                                     if (needed > remain && consumed > 0) break;
                                     if (needed > remain && consumed == 0) { remain = 0; break; }
-                                    if (ch.SpacingBefore > 0) {
-                                        yCol -= ch.SpacingBefore;
-                                        remain -= ch.SpacingBefore;
-                                        consumed += ch.SpacingBefore;
+                                    if (spacingBefore > 0) {
+                                        yCol -= spacingBefore;
+                                        remain -= spacingBefore;
+                                        consumed += spacingBefore;
                                     }
 
                                     if (currentOpts.CreateOutlineFromHeadings) {

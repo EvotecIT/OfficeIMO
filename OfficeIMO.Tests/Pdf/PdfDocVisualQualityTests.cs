@@ -801,6 +801,140 @@ public class PdfDocVisualQualityTests {
     }
 
     [Fact]
+    public void Heading_UsesConfiguredSpacingBeforeAndAfter() {
+        var options = new PdfOptions {
+            PageWidth = 320,
+            PageHeight = 260,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 30,
+            MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 10
+        };
+        var defaultStyle = new PdfHeadingStyle {
+            FontSize = 12,
+            LineHeight = 1,
+            SpacingBefore = 0,
+            SpacingAfter = 0
+        };
+        var spacedStyle = new PdfHeadingStyle {
+            FontSize = 12,
+            LineHeight = 1,
+            SpacingBefore = 12,
+            SpacingAfter = 18
+        };
+
+        byte[] defaultBytes = PdfDoc.Create(options)
+            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .H2("HeadingMarker", style: defaultStyle)
+            .Paragraph(p => p.Text("AfterMarker"))
+            .ToBytes();
+        byte[] spacedBytes = PdfDoc.Create(options)
+            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .H2("HeadingMarker", style: spacedStyle)
+            .Paragraph(p => p.Text("AfterMarker"))
+            .ToBytes();
+
+        using var defaultPdf = PdfDocument.Open(new MemoryStream(defaultBytes));
+        using var spacedPdf = PdfDocument.Open(new MemoryStream(spacedBytes));
+        var defaultPage = defaultPdf.GetPage(1);
+        var spacedPage = spacedPdf.GetPage(1);
+
+        double defaultHeadingY = FindWordStartY(defaultPage, "HeadingMarker");
+        double spacedHeadingY = FindWordStartY(spacedPage, "HeadingMarker");
+        double defaultAfterY = FindWordStartY(defaultPage, "AfterMarker");
+        double spacedAfterY = FindWordStartY(spacedPage, "AfterMarker");
+
+        Assert.True(defaultHeadingY - spacedHeadingY >= 10, $"Expected heading spacing before to move heading text down. Default y: {defaultHeadingY:0.##}, spaced y: {spacedHeadingY:0.##}.");
+        Assert.True(defaultAfterY - spacedAfterY >= 28, $"Expected heading spacing before and after to move following content down. Default y: {defaultAfterY:0.##}, spaced y: {spacedAfterY:0.##}.");
+    }
+
+    [Fact]
+    public void Heading_SuppressesSpacingBeforeAtPageTop() {
+        var options = new PdfOptions {
+            PageWidth = 320,
+            PageHeight = 220,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 30,
+            MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 10
+        };
+        var defaultStyle = new PdfHeadingStyle {
+            FontSize = 12,
+            LineHeight = 1,
+            SpacingBefore = 0,
+            SpacingAfter = 0
+        };
+        var spacedStyle = new PdfHeadingStyle {
+            FontSize = 12,
+            LineHeight = 1,
+            SpacingBefore = 28,
+            SpacingAfter = 0
+        };
+
+        byte[] defaultBytes = PdfDoc.Create(options)
+            .H2("TopHeadingMarker", style: defaultStyle)
+            .ToBytes();
+        byte[] spacedBytes = PdfDoc.Create(options)
+            .H2("TopHeadingMarker", style: spacedStyle)
+            .ToBytes();
+
+        using var defaultPdf = PdfDocument.Open(new MemoryStream(defaultBytes));
+        using var spacedPdf = PdfDocument.Open(new MemoryStream(spacedBytes));
+
+        double defaultTopY = FindWordStartY(defaultPdf.GetPage(1), "TopHeadingMarker");
+        double spacedTopY = FindWordStartY(spacedPdf.GetPage(1), "TopHeadingMarker");
+
+        Assert.InRange(Math.Abs(defaultTopY - spacedTopY), 0, 1.5);
+    }
+
+    [Fact]
+    public void RowColumnHeading_SuppressesSpacingBeforeAtColumnTop() {
+        var options = new PdfOptions {
+            PageWidth = 320,
+            PageHeight = 220,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 30,
+            MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 10
+        };
+        var defaultStyle = new PdfHeadingStyle {
+            FontSize = 12,
+            LineHeight = 1,
+            SpacingBefore = 0,
+            SpacingAfter = 0
+        };
+        var spacedStyle = new PdfHeadingStyle {
+            FontSize = 12,
+            LineHeight = 1,
+            SpacingBefore = 28,
+            SpacingAfter = 0
+        };
+
+        byte[] defaultBytes = PdfDoc.Create(options)
+            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.Column(100, column => column
+                .H2("ColumnHeadingMarker", style: defaultStyle))))))
+            .ToBytes();
+        byte[] spacedBytes = PdfDoc.Create(options)
+            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.Column(100, column => column
+                .H2("ColumnHeadingMarker", style: spacedStyle))))))
+            .ToBytes();
+
+        using var defaultPdf = PdfDocument.Open(new MemoryStream(defaultBytes));
+        using var spacedPdf = PdfDocument.Open(new MemoryStream(spacedBytes));
+
+        double defaultTopY = FindWordStartY(defaultPdf.GetPage(1), "ColumnHeadingMarker");
+        double spacedTopY = FindWordStartY(spacedPdf.GetPage(1), "ColumnHeadingMarker");
+
+        Assert.InRange(Math.Abs(defaultTopY - spacedTopY), 0, 1.5);
+    }
+
+    [Fact]
     public void PdfDoc_DefaultPanelStyleAppliesToFollowingPanelsAndSnapshotsInput() {
         var style = new PanelStyle {
             Background = PdfColor.FromRgb(240, 248, 255),
