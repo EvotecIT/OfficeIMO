@@ -246,6 +246,17 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfReadPage_GetTextSpans_PreservesTextStateAcrossContentStreamArrays() {
+        byte[] bytes = BuildPdfWithSplitTextStateContentStreamArray();
+
+        var spans = PdfReadDocument.Load(bytes).Pages[0].GetTextSpans();
+
+        var span = Assert.Single(spans, item => item.Text == "Split state");
+        Assert.Equal(72, span.X, 3);
+        Assert.Equal(720, span.Y, 3);
+    }
+
+    [Fact]
     public void PdfTextExtractor_ExtractAllText_ReadsPagesWithIndirectKidsArrayObjects() {
         byte[] bytes = BuildPdfWithIndirectKidsArrayObject();
 
@@ -1129,6 +1140,46 @@ public class PdfReaderAndFooterRegressionTests {
     private static byte[] BuildPdfWithContentStreamArray() {
         const string streamOne = "BT\n/F1 12 Tf\n72 720 Td\n(Hello) Tj\nET\n";
         const string streamTwo = "BT\n/F1 12 Tf\n72 720 Td\n( world) Tj\nET\n";
+        int streamOneLength = Encoding.ASCII.GetByteCount(streamOne);
+        int streamTwoLength = Encoding.ASCII.GetByteCount(streamTwo);
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /Contents [5 0 R 6 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            "endobj",
+            "5 0 obj",
+            $"<< /Length {streamOneLength} >>",
+            "stream",
+            streamOne.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            $"<< /Length {streamTwoLength} >>",
+            "stream",
+            streamTwo.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithSplitTextStateContentStreamArray() {
+        const string streamOne = "BT\n/F1 12 Tf\n72 720 Td\n";
+        const string streamTwo = "(Split state) Tj\nET\n";
         int streamOneLength = Encoding.ASCII.GetByteCount(streamOne);
         int streamTwoLength = Encoding.ASCII.GetByteCount(streamTwo);
 

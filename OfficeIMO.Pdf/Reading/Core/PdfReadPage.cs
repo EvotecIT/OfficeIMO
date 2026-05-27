@@ -61,9 +61,10 @@ public sealed class PdfReadPage {
         var pageWidthProviders = ResourceResolver.GetFontWidthProviders(_pageDict, _objects);
         var activeForms = new HashSet<PdfStream>();
 
-        foreach (var stream in GetContentStreams()) {
+        string content = GetContentStreamContent();
+        if (content.Length > 0) {
             CollectTextAndForms(
-                PdfEncoding.Latin1GetString(stream),
+                content,
                 pageResources,
                 pageDecoders,
                 pageWidthProviders,
@@ -444,15 +445,19 @@ public sealed class PdfReadPage {
     }
 
     /// <summary>
-    /// Returns a shallow list of content stream bytes for the page (handles single or array of streams).
+    /// Returns decoded page content with stream arrays concatenated in PDF processing order.
     /// </summary>
-    private List<byte[]> GetContentStreams() {
-        var result = new List<byte[]>();
+    private string GetContentStreamContent() {
+        var builder = new System.Text.StringBuilder();
         foreach (var stream in GetContentStreamObjects()) {
-            result.Add(DecodeIfNeeded(stream));
+            if (builder.Length > 0) {
+                builder.Append('\n');
+            }
+
+            builder.Append(PdfEncoding.Latin1GetString(DecodeIfNeeded(stream)));
         }
 
-        return result;
+        return builder.ToString();
     }
 
     private List<PdfStream> GetContentStreamObjects() {
