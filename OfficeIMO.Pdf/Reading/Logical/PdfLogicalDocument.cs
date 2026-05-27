@@ -62,6 +62,8 @@ public sealed class PdfLogicalDocument {
         PdfDocumentOpenAction? openAction,
         PdfViewerPreferences? viewerPreferences,
         IReadOnlyList<PdfFormField> formFields,
+        bool? acroFormNeedAppearances,
+        int? acroFormSignatureFlags,
         string? catalogPageMode,
         string? catalogPageLayout,
         string? catalogVersion,
@@ -74,6 +76,8 @@ public sealed class PdfLogicalDocument {
         OpenAction = openAction;
         ViewerPreferences = viewerPreferences;
         FormFields = formFields;
+        AcroFormNeedAppearances = acroFormNeedAppearances;
+        AcroFormSignatureFlags = acroFormSignatureFlags;
         CatalogPageMode = catalogPageMode;
         CatalogPageLayout = catalogPageLayout;
         CatalogVersion = catalogVersion;
@@ -103,6 +107,21 @@ public sealed class PdfLogicalDocument {
 
     /// <summary>Simple AcroForm fields discovered from the document catalog.</summary>
     public IReadOnlyList<PdfFormField> FormFields { get; }
+
+    /// <summary>AcroForm NeedAppearances flag, when present.</summary>
+    public bool? AcroFormNeedAppearances { get; }
+
+    /// <summary>True when the AcroForm requests viewer-side appearance regeneration.</summary>
+    public bool RequiresAcroFormAppearanceRegeneration => AcroFormNeedAppearances == true;
+
+    /// <summary>True when an AcroForm NeedAppearances flag was readable.</summary>
+    public bool HasAcroFormNeedAppearances => AcroFormNeedAppearances.HasValue;
+
+    /// <summary>Raw AcroForm signature flags from /SigFlags, when present.</summary>
+    public int? AcroFormSignatureFlags { get; }
+
+    /// <summary>True when AcroForm signature flags were readable.</summary>
+    public bool HasAcroFormSignatureFlags => AcroFormSignatureFlags.HasValue;
 
     /// <summary>Named simple AcroForm fields keyed by fully qualified field name.</summary>
     public IReadOnlyDictionary<string, PdfFormField> FormFieldsByName {
@@ -486,6 +505,8 @@ public sealed class PdfLogicalDocument {
             document.OpenAction,
             document.ViewerPreferences,
             document.FormFields,
+            document.AcroFormNeedAppearances,
+            document.AcroFormSignatureFlags,
             document.CatalogPageMode,
             document.CatalogPageLayout,
             document.CatalogVersion,

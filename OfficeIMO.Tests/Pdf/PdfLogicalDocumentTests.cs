@@ -124,6 +124,11 @@ public class PdfLogicalDocumentTests {
         PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildHierarchicalFormPdf());
 
         Assert.True(logical.HasFormFields);
+        Assert.True(logical.HasAcroFormNeedAppearances);
+        Assert.Equal(true, logical.AcroFormNeedAppearances);
+        Assert.True(logical.RequiresAcroFormAppearanceRegeneration);
+        Assert.True(logical.HasAcroFormSignatureFlags);
+        Assert.Equal(1, logical.AcroFormSignatureFlags);
         Assert.Equal(new[] { "Person.Name", "AcceptTerms", "Selection.Country" }, logical.FormFields.Select(field => field.Name).ToArray());
         Assert.Equal("OfficeIMO", logical.FormFields[0].Value);
         Assert.Equal("InheritedDraft", logical.FormFields[0].DefaultValue);
@@ -393,7 +398,7 @@ public class PdfLogicalDocumentTests {
             "endstream",
             "endobj",
             "5 0 obj",
-            "<< /Fields [6 0 R 8 0 R 9 0 R] >>",
+            "<< /NeedAppearances true /SigFlags 1 /Fields [6 0 R 8 0 R 9 0 R] >>",
             "endobj",
             "6 0 obj",
             "<< /FT /Tx /T (Person) /Ff 1 /MaxLen 64 /DV (InheritedDraft) /Kids [7 0 R] >>",

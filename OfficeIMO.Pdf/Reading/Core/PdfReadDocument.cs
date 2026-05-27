@@ -21,6 +21,8 @@ public sealed class PdfReadDocument {
         OpenAction = ExtractOpenAction();
         ViewerPreferences = ExtractViewerPreferences();
         FormFields = ExtractFormFields();
+        AcroFormNeedAppearances = ExtractAcroFormBoolean("NeedAppearances");
+        AcroFormSignatureFlags = ExtractAcroFormInteger("SigFlags");
         CatalogPageMode = ExtractCatalogName("PageMode");
         CatalogPageLayout = ExtractCatalogName("PageLayout");
         CatalogVersion = ExtractCatalogName("Version");
@@ -50,6 +52,12 @@ public sealed class PdfReadDocument {
 
     /// <summary>Simple AcroForm fields discovered from the document catalog.</summary>
     public IReadOnlyList<PdfFormField> FormFields { get; }
+
+    /// <summary>AcroForm NeedAppearances flag, when present.</summary>
+    public bool? AcroFormNeedAppearances { get; }
+
+    /// <summary>Raw AcroForm signature flags from /SigFlags, when present.</summary>
+    public int? AcroFormSignatureFlags { get; }
 
     /// <summary>Catalog page mode, for example UseOutlines or FullScreen, when present.</summary>
     public string? CatalogPageMode { get; }
@@ -301,10 +309,8 @@ public sealed class PdfReadDocument {
     }
 
     private IReadOnlyList<PdfFormField> ExtractFormFields() {
-        PdfDictionary? catalog = FindCatalog();
-        if (catalog is null ||
-            !catalog.Items.TryGetValue("AcroForm", out var acroFormObject) ||
-            ResolveObject(acroFormObject) is not PdfDictionary acroForm ||
+        PdfDictionary? acroForm = GetAcroFormDictionary();
+        if (acroForm is null ||
             !acroForm.Items.TryGetValue("Fields", out var fieldsObject) ||
             ResolveArray(fieldsObject) is not PdfArray fields) {
             return Array.Empty<PdfFormField>();
@@ -318,6 +324,42 @@ public sealed class PdfReadDocument {
         }
 
         return result.Count == 0 ? Array.Empty<PdfFormField>() : result.AsReadOnly();
+    }
+
+    private bool? ExtractAcroFormBoolean(string key) {
+        PdfDictionary? acroForm = GetAcroFormDictionary();
+        if (acroForm is null ||
+            !acroForm.Items.TryGetValue(key, out var value) ||
+            ResolveObject(value) is not PdfBoolean boolean) {
+            return null;
+        }
+
+        return boolean.Value;
+    }
+
+    private int? ExtractAcroFormInteger(string key) {
+        PdfDictionary? acroForm = GetAcroFormDictionary();
+        if (acroForm is null ||
+            !acroForm.Items.TryGetValue(key, out var value) ||
+            ResolveObject(value) is not PdfNumber number ||
+            number.Value < int.MinValue ||
+            number.Value > int.MaxValue ||
+            Math.Truncate(number.Value) != number.Value) {
+            return null;
+        }
+
+        return (int)number.Value;
+    }
+
+    private PdfDictionary? GetAcroFormDictionary() {
+        PdfDictionary? catalog = FindCatalog();
+        if (catalog is null ||
+            !catalog.Items.TryGetValue("AcroForm", out var acroFormObject) ||
+            ResolveObject(acroFormObject) is not PdfDictionary acroForm) {
+            return null;
+        }
+
+        return acroForm;
     }
 
     private Dictionary<int, int> BuildWidgetPageNumberLookup() {

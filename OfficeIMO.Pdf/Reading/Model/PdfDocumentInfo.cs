@@ -10,7 +10,7 @@ public sealed class PdfDocumentInfo {
     private IReadOnlyList<string>? _namedDestinationNames;
     private IReadOnlyList<string>? _formFieldNames;
 
-    internal PdfDocumentInfo(IReadOnlyList<PdfPageInfo> pages, PdfMetadata metadata, IReadOnlyList<PdfOutlineItem> outlines, IReadOnlyList<PdfPageLabel> pageLabels, IReadOnlyList<PdfNamedDestination> namedDestinations, PdfDocumentOpenAction? openAction, PdfViewerPreferences? viewerPreferences, IReadOnlyList<PdfFormField> formFields, string? headerVersion, string? catalogPageMode, string? catalogPageLayout, string? catalogVersion, string? catalogLanguage, bool hasSignatures, bool hasForms, bool hasAnnotations, bool hasOutlines, bool hasCatalogViewSettings, bool hasPageLabels, bool hasCatalogNameTrees, bool hasNamedDestinations, bool hasOpenActions, bool hasViewerPreferences, bool hasTaggedContent, bool hasXmpMetadata, bool hasCatalogUri, bool hasOutputIntents, bool hasEmbeddedFiles, bool hasOptionalContent, bool hasActiveContent) {
+    internal PdfDocumentInfo(IReadOnlyList<PdfPageInfo> pages, PdfMetadata metadata, IReadOnlyList<PdfOutlineItem> outlines, IReadOnlyList<PdfPageLabel> pageLabels, IReadOnlyList<PdfNamedDestination> namedDestinations, PdfDocumentOpenAction? openAction, PdfViewerPreferences? viewerPreferences, IReadOnlyList<PdfFormField> formFields, bool? acroFormNeedAppearances, int? acroFormSignatureFlags, string? headerVersion, string? catalogPageMode, string? catalogPageLayout, string? catalogVersion, string? catalogLanguage, bool hasSignatures, bool hasForms, bool hasAnnotations, bool hasOutlines, bool hasCatalogViewSettings, bool hasPageLabels, bool hasCatalogNameTrees, bool hasNamedDestinations, bool hasOpenActions, bool hasViewerPreferences, bool hasTaggedContent, bool hasXmpMetadata, bool hasCatalogUri, bool hasOutputIntents, bool hasEmbeddedFiles, bool hasOptionalContent, bool hasActiveContent) {
         Pages = pages;
         Metadata = metadata;
         Outlines = outlines;
@@ -19,6 +19,8 @@ public sealed class PdfDocumentInfo {
         OpenAction = openAction;
         ViewerPreferences = viewerPreferences;
         FormFields = formFields;
+        AcroFormNeedAppearances = acroFormNeedAppearances;
+        AcroFormSignatureFlags = acroFormSignatureFlags;
         HeaderVersion = headerVersion;
         CatalogPageMode = catalogPageMode;
         CatalogPageLayout = catalogPageLayout;
@@ -186,6 +188,21 @@ public sealed class PdfDocumentInfo {
 
     /// <summary>True when at least one simple AcroForm field was read from the document catalog.</summary>
     public bool HasReadableFormFields => FormFieldCount > 0;
+
+    /// <summary>AcroForm NeedAppearances flag, when present.</summary>
+    public bool? AcroFormNeedAppearances { get; }
+
+    /// <summary>True when the AcroForm requests viewer-side appearance regeneration.</summary>
+    public bool RequiresAcroFormAppearanceRegeneration => AcroFormNeedAppearances == true;
+
+    /// <summary>True when an AcroForm NeedAppearances flag was readable.</summary>
+    public bool HasAcroFormNeedAppearances => AcroFormNeedAppearances.HasValue;
+
+    /// <summary>Raw AcroForm signature flags from /SigFlags, when present.</summary>
+    public int? AcroFormSignatureFlags { get; }
+
+    /// <summary>True when AcroForm signature flags were readable.</summary>
+    public bool HasAcroFormSignatureFlags => AcroFormSignatureFlags.HasValue;
 
     /// <summary>Simple document open action read from the document catalog, when supported.</summary>
     public PdfDocumentOpenAction? OpenAction { get; }

@@ -1068,6 +1068,8 @@ public class PdfInspectorTests {
         Assert.True(report.DocumentInfo!.HasSignatures);
         Assert.True(report.Probe.HasForms);
         Assert.True(report.DocumentInfo.HasForms);
+        Assert.True(report.DocumentInfo.HasAcroFormSignatureFlags);
+        Assert.Equal(3, report.DocumentInfo.AcroFormSignatureFlags);
         Assert.Empty(report.ReadBlockers);
         Assert.Contains("Signed PDF files are not supported for rewriting by OfficeIMO.Pdf yet.", report.Diagnostics);
         AssertRewriteBlocker(report, PdfRewriteBlockerKind.Signatures, "Signed PDF files are not supported for rewriting by OfficeIMO.Pdf yet.");
@@ -1084,6 +1086,10 @@ public class PdfInspectorTests {
         Assert.False(report.Probe.HasSignatures);
         Assert.True(report.Probe.HasForms);
         Assert.True(report.DocumentInfo!.HasForms);
+        Assert.True(report.DocumentInfo.HasAcroFormNeedAppearances);
+        Assert.Equal(true, report.DocumentInfo.AcroFormNeedAppearances);
+        Assert.True(report.DocumentInfo.RequiresAcroFormAppearanceRegeneration);
+        Assert.False(report.DocumentInfo.HasAcroFormSignatureFlags);
         Assert.True(report.DocumentInfo.HasReadableFormFields);
         Assert.Equal(1, report.DocumentInfo.FormFieldCount);
         Assert.Equal("Name", report.DocumentInfo.FormFields[0].Name);
@@ -1101,6 +1107,9 @@ public class PdfInspectorTests {
 
         Assert.True(info.HasForms);
         Assert.True(info.HasReadableFormFields);
+        Assert.True(info.HasAcroFormNeedAppearances);
+        Assert.Equal(false, info.AcroFormNeedAppearances);
+        Assert.False(info.RequiresAcroFormAppearanceRegeneration);
         Assert.Equal(3, info.FormFieldCount);
         Assert.Equal(new[] { "Person.Name", "AcceptTerms", "Selection.Country" }, info.FormFieldNames);
         Assert.Equal("Person.Name", info.FormFields[0].Name);
@@ -1718,7 +1727,7 @@ public class PdfInspectorTests {
             "endstream",
             "endobj",
             "5 0 obj",
-            "<< /Fields [6 0 R] >>",
+            "<< /NeedAppearances true /Fields [6 0 R] >>",
             "endobj",
             "6 0 obj",
             "<< /FT /Tx /T (Name) /V (OfficeIMO) >>",
@@ -1750,7 +1759,7 @@ public class PdfInspectorTests {
             "endstream",
             "endobj",
             "5 0 obj",
-            "<< /Fields [6 0 R 8 0 R 9 0 R] >>",
+            "<< /NeedAppearances false /Fields [6 0 R 8 0 R 9 0 R] >>",
             "endobj",
             "6 0 obj",
             "<< /FT /Tx /T (Person) /Ff 1 /MaxLen 64 /DV (InheritedDraft) /Kids [7 0 R] >>",
