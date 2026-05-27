@@ -2095,11 +2095,14 @@ internal static partial class PdfWriter {
                             continue;
                         }
 
-                        double segmentSpacingBefore = firstSegment ? spacingBefore : 0;
+                        double segmentSpacingBefore = firstSegment && y < yStart - 0.001 ? spacingBefore : 0;
                         double minimumLineHeight = lineHeights[lineIndex];
                         if (available < segmentSpacingBefore + minimumLineHeight) {
                             NewPage();
                             available = y - currentOpts.MarginBottom;
+                            if (y >= yStart - 0.001) {
+                                segmentSpacingBefore = 0;
+                            }
                             if (available < segmentSpacingBefore + minimumLineHeight) {
                                 segmentSpacingBefore = Math.Max(0, available - minimumLineHeight);
                             }
@@ -3363,7 +3366,7 @@ internal static partial class PdfWriter {
                                     double leading = par.Leading;
                                     double size = par.Size;
                                     PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(pblock);
-                                    double spacingBefore = line == 0 ? GetParagraphSpacingBefore(paragraphStyle) : 0;
+                                    double spacingBefore = line == 0 && consumed > 0.001 ? GetParagraphSpacingBefore(paragraphStyle) : 0;
                                     double spacingAfter = GetParagraphSpacingAfter(paragraphStyle, leading);
                                     if (paragraphStyle?.KeepWithNext == true && line == 0 && idx + 1 < items.Count) {
                                         double nextHeight = MeasureColItemFirstVisualHeight(items[idx + 1]);

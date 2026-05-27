@@ -2676,6 +2676,72 @@ public class PdfDocVisualQualityTests {
     }
 
     [Fact]
+    public void Paragraph_SuppressesSpacingBeforeAtPageTop() {
+        var options = new PdfOptions {
+            PageWidth = 320,
+            PageHeight = 220,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 30,
+            MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 10
+        };
+
+        byte[] defaultBytes = PdfDoc.Create(options)
+            .Paragraph(p => p.Text("TopMarker"))
+            .ToBytes();
+        byte[] spacedBytes = PdfDoc.Create(options)
+            .Paragraph(p => p.Text("TopMarker"), style: new PdfParagraphStyle {
+                SpacingBefore = 28,
+                SpacingAfter = 0
+            })
+            .ToBytes();
+
+        using var defaultPdf = PdfDocument.Open(new MemoryStream(defaultBytes));
+        using var spacedPdf = PdfDocument.Open(new MemoryStream(spacedBytes));
+
+        double defaultTopY = FindWordStartY(defaultPdf.GetPage(1), "TopMarker");
+        double spacedTopY = FindWordStartY(spacedPdf.GetPage(1), "TopMarker");
+
+        Assert.InRange(Math.Abs(defaultTopY - spacedTopY), 0, 1.5);
+    }
+
+    [Fact]
+    public void Paragraph_SuppressesSpacingBeforeAtRowColumnTop() {
+        var options = new PdfOptions {
+            PageWidth = 320,
+            PageHeight = 220,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 30,
+            MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 10
+        };
+
+        byte[] defaultBytes = PdfDoc.Create(options)
+            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.Column(100, column => column
+                .Paragraph(p => p.Text("ColumnTopMarker")))))))
+            .ToBytes();
+        byte[] spacedBytes = PdfDoc.Create(options)
+            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.Column(100, column => column
+                .Paragraph(p => p.Text("ColumnTopMarker"), style: new PdfParagraphStyle {
+                    SpacingBefore = 28,
+                    SpacingAfter = 0
+                }))))))
+            .ToBytes();
+
+        using var defaultPdf = PdfDocument.Open(new MemoryStream(defaultBytes));
+        using var spacedPdf = PdfDocument.Open(new MemoryStream(spacedBytes));
+
+        double defaultTopY = FindWordStartY(defaultPdf.GetPage(1), "ColumnTopMarker");
+        double spacedTopY = FindWordStartY(spacedPdf.GetPage(1), "ColumnTopMarker");
+
+        Assert.InRange(Math.Abs(defaultTopY - spacedTopY), 0, 1.5);
+    }
+
+    [Fact]
     public void Spacer_AddsInvisibleVerticalSpaceWithoutExtractedText() {
         var options = new PdfOptions {
             PageWidth = 320,
