@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, shapes.Length);
             var circleGeom = shapes.First(s => (string?)s.Attribute("NameU") == "Circle").Elements(ns + "Section").FirstOrDefault(e => (string?)e.Attribute("N") == "Geometry");
             Assert.NotNull(circleGeom);
-            Assert.Contains(circleGeom!.Elements(ns + "Row"), r => (string?)r.Attribute("T") == "EllipticalArcTo");
+            Assert.True(circleGeom!.Elements(ns + "Row").Count(r => (string?)r.Attribute("T") == "LineTo") >= 20);
             var triGeom = shapes.First(s => (string?)s.Attribute("NameU") == "Triangle").Elements(ns + "Section").FirstOrDefault(e => (string?)e.Attribute("N") == "Geometry");
             Assert.NotNull(triGeom);
             Assert.True(triGeom!.Elements(ns + "Row").Count(r => (string?)r.Attribute("T") == "LineTo") >= 3);

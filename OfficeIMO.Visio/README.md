@@ -129,6 +129,47 @@ nodes and directed relationships. It automatically grows the page, places
 component/data/external/decision nodes, routes dependencies, supports semantic
 coordinate or side-placed callouts, and rejects cycles.
 
+## Quick sample (graph diagram builder)
+
+```csharp
+using System;
+using System.IO;
+using System.Linq;
+using OfficeIMO.Visio;
+using OfficeIMO.Visio.Diagrams;
+using OfficeIMO.Visio.Stencils;
+
+var installed = VisioStencilPackageCatalog.DiscoverInstalledVisioPackages()
+    .Where(path => Path.GetFileName(path).StartsWith("AZURE", StringComparison.OrdinalIgnoreCase));
+var stencils = VisioStencilPackageCatalog.LoadMany(installed,
+    new VisioStencilPackageLoadOptions {
+        IncludeUnsupportedMasters = true
+    });
+
+VisioDocument.Create("graph.vsdx")
+    .GraphDiagram("Event-driven graph", graph => graph
+        .Title()
+        .Layout(VisioGraphLayout.Layered)
+        .Direction(VisioGraphDirection.LeftToRight)
+        .StencilNode("gateway", "API", stencils.Search("API Management").First())
+        .StencilNode("events", "Events", stencils.Search("Event Grid").First())
+        .Node("worker", "Worker")
+        .Node("database", "Database", VisioGraphNodeKind.Data)
+        .Zone("runtime", "Runtime", "gateway", "events", "worker")
+        .Root("gateway")
+        .ControlEdge("gateway", "events", "publish")
+        .Edge("events", "worker", "trigger")
+        .DataEdge("worker", "database", "write")
+        .DataEdge("database", "gateway", "read model"))
+    .Save();
+```
+
+The generic graph builder is for real node/edge maps that are not strict DAGs
+or one diagram domain. It supports layered, grid, and radial layouts; directed
+and undirected edges; cycles; disconnected components; background zones; native
+nodes; and source-aware `VisioStencilShape` nodes loaded from installed Visio
+or external `.vssx`/`.vstx` packages.
+
 ## Quick sample (architecture diagram builder)
 
 ```csharp
@@ -233,6 +274,33 @@ and links, then OfficeIMO derives deterministic layers, grows the page when
 needed, adds subnet/background zones around selected devices, routes links,
 supports coordinate or side-placed semantic callouts, and keeps mesh/cycle
 links valid.
+
+## Quick sample (sequence diagram builder)
+
+```csharp
+using OfficeIMO.Visio;
+using OfficeIMO.Visio.Diagrams;
+
+VisioDocument.Create("sequence.vsdx")
+    .SequenceDiagram("Checkout Sequence", sequence => sequence
+        .Title()
+        .Theme(VisioStyleTheme.Fluent())
+        .Actor("customer", "Customer")
+        .Participant("web", "Web App")
+        .Control("api", "Orders API")
+        .Database("db", "Orders DB")
+        .Call("customer", "web", "Checkout")
+        .Call("web", "api", "POST /orders")
+        .Async("api", "db", "Persist order")
+        .Return("api", "web", "201 Created")
+        .SelfMessage("web", "Render receipt"))
+    .Save();
+```
+
+The sequence builder creates editable participants, lifelines, synchronous,
+asynchronous, return, and self-message connectors from semantic calls. It grows
+the page as needed, uses reusable style themes, and adds a native searchable
+sequence stencil catalog without depending on Visio templates at runtime.
 
 ## Quick sample (swimlane diagram builder)
 
@@ -529,14 +597,50 @@ doc.Save();
 ```
 
 `VisioStencilPackageCatalog.Load(...)` reads master metadata from `.vsdx`,
-`.vssx`, and `.vstx` packages. It does not use those files as runtime templates;
-by default it only exposes masters that OfficeIMO can generate natively and, when
-master parts are present, learns the native master width and height as reusable
-catalog metadata. The `MasterNames` filter can target the universal name, visible
-name, relationship id, numeric id, or normalized slug discovered in the package. Set
-`IncludeUnsupportedMasters` only when a generic generated placeholder is useful
-for discovery, migration tooling, or keeping a learned palette placeable without
-shipping the source stencil or template.
+`.vssx`, `.vstx`, and the macro-enabled package variants. It does not use those
+files as runtime templates. The `MasterNames` filter can target the universal
+name, visible name, relationship id, numeric id, or normalized slug discovered in
+the package.
+
+When you want real external artwork, load the package catalog with
+`IncludeUnsupportedMasters = true` and place shapes from that catalog. Package
+catalog shapes retain their `SourcePackagePath`, so `AddStencilShape(...)`
+auto-imports the required raw master XML, relationships, media, colors, styles,
+fonts, and theme into the generated `.vsdx`:
+
+```csharp
+using OfficeIMO.Visio;
+using OfficeIMO.Visio.Stencils;
+
+var catalog = VisioStencilPackageCatalog.Load("Azure.vssx",
+    new VisioStencilPackageLoadOptions {
+        IncludeUnsupportedMasters = true
+    });
+
+var doc = VisioDocument.Create("external-stencils.vsdx");
+var page = doc.AddPage("Architecture", 14, 8.5);
+
+var api = page.AddStencilShape(catalog.Get("API Management"), "api", 2, 5);
+var queue = page.AddStencilShape(catalog.Search("Service Bus").First(), "queue", 5, 5);
+
+page.AddConnector(api, queue, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+doc.Save();
+```
+
+Use `LoadMany(...)` or `LoadDirectory(...)` to compose a palette from many packs.
+`DiscoverInstalledVisioPackages()` finds the local Microsoft Visio `.vssx` and
+`.vstx` content folders without automating Visio, letting you build diagrams from
+installed Visio stencils while keeping OfficeIMO itself dependency-free:
+
+```csharp
+var installed = VisioStencilPackageCatalog.DiscoverInstalledVisioPackages()
+    .Where(path => Path.GetFileName(path).StartsWith("AZURE", StringComparison.OrdinalIgnoreCase));
+var azure = VisioStencilPackageCatalog.LoadMany(installed,
+    new VisioStencilPackageLoadOptions {
+        CatalogName = "Installed Azure Stencils",
+        IncludeUnsupportedMasters = true
+    });
+```
 
 `VisioStencilCatalog.Save(...)` and `VisioStencilCatalog.Load(...)` persist
 OfficeIMO-native catalog metadata as a small XML manifest. This is useful for
@@ -998,8 +1102,8 @@ See `OfficeIMO.Examples/Visio/*` for more.
 - 📄 Pages: ✅ add/remove pages
 - 🧱 Shapes: ✅ basic shapes from masters (rectangle, etc.), ✅ set text
 - 🔗 Connectors: ✅ basic connectors between shapes
-- 🧭 Diagram builders: ✅ flowchart builder with vertical and two-column continuation layouts plus branch routing, ✅ block diagram builder with grid regions and data/control flows, ✅ architecture builder with infrastructure components, regions, and routed data/control/dependency flows, ✅ network builder with zones, devices, links, and legends, ✅ swimlane builder with lanes, phases, activities, handoffs, and exception paths, ✅ org chart builder with hierarchy, assistants, team bands, vacancies, and external roles, ✅ timeline builder with date-scaled milestones and span lanes
-- 🧰 Native stencils: ✅ built-in searchable catalogs for basic, flowchart, block-diagram, architecture, network, swimlane, org-chart, and timeline shapes
+- 🧭 Diagram builders: ✅ flowchart builder with vertical and two-column continuation layouts plus branch routing, ✅ generic graph builder with cycles, disconnected components, layered/grid/radial layouts, zones, and package-backed stencil nodes, ✅ block diagram builder with grid regions and data/control flows, ✅ architecture builder with infrastructure components, regions, and routed data/control/dependency flows, ✅ network builder with zones, devices, links, and legends, ✅ sequence builder with participants, lifelines, message types, and self-calls, ✅ swimlane builder with lanes, phases, activities, handoffs, and exception paths, ✅ org chart builder with hierarchy, assistants, team bands, vacancies, and external roles, ✅ timeline builder with date-scaled milestones and span lanes
+- 🧰 Native stencils: ✅ built-in searchable catalogs for basic, flowchart, block-diagram, architecture, network, sequence, swimlane, org-chart, and timeline shapes
 - 🎨 Style themes: ✅ reusable shape/connector/text styles and Modern/Office/Fluent/Technical/Minimal/Dark/Print authoring presets
 - 🔎 Rich editing: ✅ recursive shape queries, shape/data/text/master/layer/hyperlink selectors, connector neighbor queries, page layers, shape and connector hyperlinks, bulk style/data/layer/hyperlink edits, align/distribute, resize-to-text, center content, and fit-to-content
 - 🧩 VSDX learning fixtures: ✅ inspect supported masters without treating sample files as runtime templates

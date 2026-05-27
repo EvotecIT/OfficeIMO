@@ -340,8 +340,6 @@ namespace OfficeIMO.Visio.Diagrams {
                 if (_theme.RegionTextStyle != null) {
                     shape.TextStyle = _theme.RegionTextStyle.Clone();
                 }
-
-                shape.Master = _document.EnsureBuiltinMaster("Rectangle");
                 shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR", prompt: "OfficeIMO semantic kind");
                 page.Shapes.Add(shape);
             }
@@ -353,10 +351,6 @@ namespace OfficeIMO.Visio.Diagrams {
                 double x = GridX(block.Column, 1);
                 double y = GridY(block.Row, 1);
                 VisioShape shape = CreateBlockShape(page, block, x, y);
-                string? nameU = shape.NameU;
-                if (!string.IsNullOrWhiteSpace(nameU)) {
-                    shape.Master = _document.EnsureBuiltinMaster(nameU!);
-                }
 
                 block.Shape = shape;
             }
@@ -418,6 +412,11 @@ namespace OfficeIMO.Visio.Diagrams {
 
                 if (_theme.ConnectorTextStyle != null) {
                     connector.TextStyle = _theme.ConnectorTextStyle.Clone();
+                }
+
+                if (!string.IsNullOrWhiteSpace(link.Label)) {
+                    double labelWidth = Math.Max(1.25D, Math.Min(2.2D, link.Label!.Length * 0.14D));
+                    connector.PlaceLabel(0.5D, offsetY: 0.18D, width: labelWidth, height: 0.35D);
                 }
             }
         }

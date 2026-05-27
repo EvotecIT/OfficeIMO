@@ -426,7 +426,6 @@ namespace OfficeIMO.Visio.Diagrams {
                 double height = (region.RowSpan * _componentHeight) + ((region.RowSpan - 1) * _rowGap) + 0.6;
                 VisioShape shape = new(region.Id, GridX(region.Column, region.ColumnSpan), GridY(region.Row, region.RowSpan), width, height, region.Text) {
                     NameU = "Rectangle",
-                    Master = _document.EnsureBuiltinMaster("Rectangle")
                 };
                 _theme.Container.ApplyTo(shape);
                 shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR", prompt: "OfficeIMO semantic kind");
@@ -439,7 +438,6 @@ namespace OfficeIMO.Visio.Diagrams {
                 GetComponentShape(component.Kind, out string masterNameU, out double width, out double height);
                 VisioShape shape = new(component.Id, GridX(component.Column, 1), GridY(component.Row, 1), width, height, component.Text) {
                     NameU = masterNameU,
-                    Master = _document.EnsureBuiltinMaster(masterNameU)
                 };
                 GetComponentStyle(component.Kind).ApplyTo(shape);
                 component.Shape = shape;

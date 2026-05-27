@@ -83,7 +83,6 @@ namespace OfficeIMO.Visio.Diagrams {
             VisioStyleTheme theme) {
             VisioShape shape = new(id, pinX, pinY, width, height, text) {
                 NameU = "Rectangle",
-                Master = document.EnsureBuiltinMaster("Rectangle")
             };
             theme.Container.ApplyTo(shape);
             shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR", prompt: "OfficeIMO semantic kind");

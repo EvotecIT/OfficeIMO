@@ -81,6 +81,7 @@ namespace OfficeIMO.Visio.Stencils {
                         new XAttribute("DefaultHeight", XmlConvert.ToString(shape.DefaultHeight)),
                         new XAttribute("IconNameU", shape.IconNameU),
                         shape.DefaultUnit.HasValue ? new XAttribute("DefaultUnit", shape.DefaultUnit.Value.ToString()) : null,
+                        string.IsNullOrWhiteSpace(shape.SourcePackagePath) ? null : new XAttribute("SourcePackagePath", shape.SourcePackagePath),
                         Values("Keywords", shape.Keywords),
                         Values("Aliases", shape.Aliases),
                         Values("Tags", shape.Tags))));
@@ -117,7 +118,8 @@ namespace OfficeIMO.Visio.Stencils {
                     ReadValues(shape, "Aliases"),
                     ReadValues(shape, "Tags"),
                     (string?)shape.Attribute("IconNameU"),
-                    ReadUnit(shape, "DefaultUnit"));
+                    ReadUnit(shape, "DefaultUnit"),
+                    (string?)shape.Attribute("SourcePackagePath"));
             }
 
             return builder.Build();

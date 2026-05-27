@@ -392,6 +392,93 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ImportedStencilMastersPreserveExternalMasterArtwork() {
+            string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud");
+            VisioStencilCatalog catalog = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                IncludeUnsupportedMasters = true,
+                Category = "External"
+            });
+
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            IReadOnlyList<VisioMaster> imported = document.ImportStencilMastersAndGet(packagePath, new[] { "fancy-cloud" });
+            VisioPage page = document.AddPage("External Stencils");
+            VisioShape cloud = page.AddStencilShape(catalog, "fancy-cloud", "cloud", 2, 4, "Cloud");
+            document.Save();
+
+            Assert.Single(imported);
+            Assert.Same(imported[0], cloud.Master);
+            Assert.Equal("FancyCloud", cloud.MasterNameU);
+            Assert.Empty(VisioValidator.Validate(filePath));
+
+            using ZipArchive zip = ZipFile.OpenRead(filePath);
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XDocument masterDocument = XDocument.Load(zip.GetEntry("visio/masters/master1.xml")!.Open());
+            XElement rootShape = masterDocument.Root!.Element(ns + "Shapes")!.Element(ns + "Shape")!;
+            Assert.Equal("5", (string?)rootShape.Attribute("ID"));
+            Assert.Equal("Group", (string?)rootShape.Attribute("Type"));
+            Assert.NotNull(rootShape.Element(ns + "Shapes")?.Element(ns + "Shape"));
+
+            XDocument pageDocument = XDocument.Load(zip.GetEntry("visio/pages/page1.xml")!.Open());
+            XElement pageShape = pageDocument.Root!.Element(ns + "Shapes")!.Element(ns + "Shape")!;
+            Assert.Null(pageShape.Attribute("MasterShape"));
+            XElement pageChildShape = pageShape.Element(ns + "Shapes")!.Element(ns + "Shape")!;
+            Assert.Equal("6", (string?)pageChildShape.Attribute("MasterShape"));
+            Assert.DoesNotContain(pageShape.Elements(ns + "Section"), section => (string?)section.Attribute("N") == "Geometry");
+
+            XDocument documentXml = XDocument.Load(zip.GetEntry("visio/document.xml")!.Open());
+            Assert.NotNull(documentXml.Root!.Element(ns + "Colors")!.Elements(ns + "ColorEntry").FirstOrDefault(element => (string?)element.Attribute("IX") == "24"));
+            Assert.NotNull(documentXml.Root!.Element(ns + "StyleSheets")!.Elements(ns + "StyleSheet").FirstOrDefault(element => (string?)element.Attribute("ID") == "8"));
+            Assert.NotNull(zip.GetEntry("visio/theme/theme1.xml"));
+            Assert.NotNull(zip.GetEntry("visio/media/officeimo-master1-rel1.emf"));
+            XNamespace packageRel = "http://schemas.openxmlformats.org/package/2006/relationships";
+            XDocument masterRelationships = XDocument.Load(zip.GetEntry("visio/masters/_rels/master1.xml.rels")!.Open());
+            Assert.NotNull(masterRelationships.Root!.Elements(packageRel + "Relationship").FirstOrDefault(element =>
+                (string?)element.Attribute("Id") == "rIdImage" &&
+                ((string?)element.Attribute("Target"))!.Contains("officeimo-master1-rel1.emf", StringComparison.OrdinalIgnoreCase)));
+        }
+
+        [Fact]
+        public void PackageCatalogLoadManyAutoImportsSourceMasters() {
+            string firstPackage = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            string secondPackage = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            CreatePackageWithRawGroupMaster(firstPackage, "FancyCloud", "Fancy Cloud");
+            CreatePackageWithRawGroupMaster(secondPackage, "DataVault", "Data Vault");
+
+            VisioStencilCatalog catalog = VisioStencilPackageCatalog.LoadMany(new[] { firstPackage, secondPackage }, new VisioStencilPackageLoadOptions {
+                CatalogName = "Combined",
+                IncludeUnsupportedMasters = true
+            });
+
+            VisioStencilShape cloudStencil = catalog.Get("fancy-cloud");
+            VisioStencilShape vaultStencil = catalog.Get("data-vault");
+            string manifestPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xml");
+            catalog.Save(manifestPath);
+            VisioStencilCatalog reloadedCatalog = VisioStencilCatalog.Load(manifestPath);
+            Assert.Equal(Path.GetFullPath(firstPackage), reloadedCatalog.Get("fancy-cloud").SourcePackagePath);
+
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("External Stencils");
+            VisioShape cloud = page.AddStencilShape(cloudStencil, "cloud", 2, 4);
+            VisioShape vault = page.AddStencilShape(vaultStencil, "vault", 5, 4);
+            document.Save();
+
+            Assert.Equal(Path.GetFullPath(firstPackage), cloudStencil.SourcePackagePath);
+            Assert.Equal(Path.GetFullPath(secondPackage), vaultStencil.SourcePackagePath);
+            Assert.Equal(cloudStencil.MasterNameU, cloud.MasterNameU);
+            Assert.Equal(vaultStencil.MasterNameU, vault.MasterNameU);
+            Assert.NotNull(cloud.Master);
+            Assert.NotNull(vault.Master);
+            Assert.Empty(VisioValidator.Validate(filePath));
+
+            using ZipArchive zip = ZipFile.OpenRead(filePath);
+            Assert.NotNull(zip.GetEntry("visio/masters/master1.xml"));
+            Assert.NotNull(zip.GetEntry("visio/masters/master2.xml"));
+        }
+
+        [Fact]
         public void CatalogThrowsForUnknownStencilShape() {
             KeyNotFoundException exception = Assert.Throws<KeyNotFoundException>(() => VisioStencils.BasicShapes.Get("not-here"));
 
@@ -423,6 +510,114 @@ namespace OfficeIMO.Tests {
 
             XDocument document = new(root);
             writer.Write(document.Declaration + Environment.NewLine + document.ToString(SaveOptions.DisableFormatting));
+        }
+
+        private static void CreatePackageWithRawGroupMaster(string path, string nameU, string name) {
+            const string visioNamespace = "http://schemas.microsoft.com/office/visio/2012/main";
+            const string officeRelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+            const string packageRelationshipNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
+
+            using ZipArchive zip = ZipFile.Open(path, ZipArchiveMode.Create);
+            XNamespace ns = visioNamespace;
+            XNamespace rel = officeRelationshipNamespace;
+            XElement mastersRoot = new(ns + "Masters",
+                new XElement(ns + "Master",
+                    new XAttribute("ID", "42"),
+                    new XAttribute("Name", name),
+                    new XAttribute("NameU", nameU),
+                    new XElement(ns + "Rel", new XAttribute(rel + "id", "rId1"))));
+            WriteZipXml(zip, "visio/masters/masters.xml", new XDocument(mastersRoot));
+
+            XNamespace packageRel = packageRelationshipNamespace;
+            XElement relationshipsRoot = new(packageRel + "Relationships",
+                new XElement(packageRel + "Relationship",
+                    new XAttribute("Id", "rId1"),
+                    new XAttribute("Type", officeRelationshipNamespace + "/master"),
+                    new XAttribute("Target", "master42.xml")));
+            WriteZipXml(zip, "visio/masters/_rels/masters.xml.rels", new XDocument(relationshipsRoot));
+
+            XElement documentRoot = new(ns + "VisioDocument",
+                new XElement(ns + "DocumentSettings"),
+                new XElement(ns + "Colors",
+                    new XElement(ns + "ColorEntry", new XAttribute("IX", "24"), new XAttribute("RGB", "#50E6FF"))),
+                new XElement(ns + "FaceNames",
+                    new XElement(ns + "FaceName", new XAttribute("NameU", "Sample UI"))),
+                new XElement(ns + "StyleSheets",
+                    new XElement(ns + "StyleSheet",
+                        new XAttribute("ID", "8"),
+                        new XAttribute("Name", "External Azure"),
+                        new XAttribute("NameU", "External Azure"),
+                        new XAttribute("LineStyle", "0"),
+                        new XAttribute("FillStyle", "0"),
+                        new XAttribute("TextStyle", "0"),
+                        new XElement(ns + "Cell", new XAttribute("N", "FillForegnd"), new XAttribute("V", "#50E6FF")),
+                        new XElement(ns + "Cell", new XAttribute("N", "LineColor"), new XAttribute("V", "#0078D4")))));
+            WriteZipXml(zip, "visio/document.xml", new XDocument(documentRoot));
+            WriteZipXml(zip, "visio/theme/theme1.xml", new XDocument(new XElement(XName.Get("theme", "http://schemas.openxmlformats.org/drawingml/2006/main"), new XAttribute("name", "External Theme"))));
+
+            XElement childShape = new(ns + "Shape",
+                new XAttribute("ID", "6"),
+                new XAttribute("NameU", "FancyCloud.Icon"),
+                new XAttribute("Type", "Shape"),
+                new XElement(ns + "Cell", new XAttribute("N", "PinX"), new XAttribute("V", "0.5")),
+                new XElement(ns + "Cell", new XAttribute("N", "PinY"), new XAttribute("V", "0.35")),
+                new XElement(ns + "Cell", new XAttribute("N", "Width"), new XAttribute("V", "0.6")),
+                new XElement(ns + "Cell", new XAttribute("N", "Height"), new XAttribute("V", "0.4")),
+                new XElement(ns + "Cell", new XAttribute("N", "LocPinX"), new XAttribute("V", "0.3")),
+                new XElement(ns + "Cell", new XAttribute("N", "LocPinY"), new XAttribute("V", "0.2")),
+                new XElement(ns + "Section",
+                    new XAttribute("N", "Geometry"),
+                    new XAttribute("IX", "0"),
+                    new XElement(ns + "Row", new XAttribute("T", "MoveTo"),
+                        new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0")),
+                        new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.2"))),
+                    new XElement(ns + "Row", new XAttribute("T", "LineTo"),
+                        new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.2")),
+                        new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.4"))),
+                    new XElement(ns + "Row", new XAttribute("T", "LineTo"),
+                        new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.6")),
+                        new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.3"))),
+                    new XElement(ns + "Row", new XAttribute("T", "LineTo"),
+                        new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.6")),
+                        new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.1"))),
+                    new XElement(ns + "Row", new XAttribute("T", "LineTo"),
+                        new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0")),
+                        new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.2")))));
+            XElement groupShape = new(ns + "Shape",
+                new XAttribute("ID", "5"),
+                new XAttribute("Name", name),
+                new XAttribute("NameU", nameU),
+                new XAttribute("Type", "Group"),
+                new XAttribute("LineStyle", "8"),
+                new XAttribute("FillStyle", "8"),
+                new XAttribute("TextStyle", "8"),
+                new XElement(ns + "Cell", new XAttribute("N", "PinX"), new XAttribute("V", "0.5")),
+                new XElement(ns + "Cell", new XAttribute("N", "PinY"), new XAttribute("V", "0.5")),
+                new XElement(ns + "Cell", new XAttribute("N", "Width"), new XAttribute("V", "1")),
+                new XElement(ns + "Cell", new XAttribute("N", "Height"), new XAttribute("V", "1")),
+                new XElement(ns + "Cell", new XAttribute("N", "LocPinX"), new XAttribute("V", "0.5")),
+                new XElement(ns + "Cell", new XAttribute("N", "LocPinY"), new XAttribute("V", "0.5")),
+                new XElement(ns + "Shapes", childShape));
+            XDocument masterDocument = new(new XElement(ns + "MasterContents",
+                new XAttribute(XNamespace.Xml + "space", "preserve"),
+                new XAttribute(XNamespace.Xmlns + "r", officeRelationshipNamespace),
+                new XElement(ns + "Shapes", groupShape),
+                new XElement(ns + "ForeignData",
+                    new XAttribute("ForeignType", "Bitmap"),
+                    new XAttribute(rel + "id", "rIdImage"))));
+            WriteZipXml(zip, "visio/masters/master42.xml", masterDocument);
+
+            XElement masterRelRoot = new(packageRel + "Relationships",
+                new XElement(packageRel + "Relationship",
+                    new XAttribute("Id", "rIdImage"),
+                    new XAttribute("Type", "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"),
+                    new XAttribute("Target", "../media/image1.emf")));
+            WriteZipXml(zip, "visio/masters/_rels/master42.xml.rels", new XDocument(masterRelRoot));
+
+            ZipArchiveEntry mediaEntry = zip.CreateEntry("visio/media/image1.emf");
+            using Stream mediaStream = mediaEntry.Open();
+            byte[] media = { 1, 0, 0, 0, 32, 69, 77, 70 };
+            mediaStream.Write(media, 0, media.Length);
         }
 
         private static void CreatePackageWithMasterDimensions(string path, params (string NameU, string? Name, double Width, double Height, string? Unit)[] masters) {

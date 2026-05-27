@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
+using OfficeIMO.Visio.Stencils;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -196,6 +198,74 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
+        /// Imports actual master definitions from a user-supplied Visio stencil, drawing, or template package.
+        /// Unlike <see cref="LearnMastersFromVsdx"/>, this preserves the package master XML so shapes can use
+        /// real external stencil artwork. Use this only for stencil packs the caller is allowed to embed.
+        /// </summary>
+        /// <param name="packagePath">Path to a `.vssx`, `.vsdx`, or `.vstx` package.</param>
+        /// <param name="names">Optional filters matching master NameU, display name, relationship id, numeric id, or normalized slug.</param>
+        public void ImportStencilMasters(string packagePath, IEnumerable<string>? names = null) {
+            ImportStencilMastersAndGet(packagePath, names);
+        }
+
+        /// <summary>
+        /// Imports actual master definitions from a user-supplied Visio stencil, drawing, or template package and returns the registered masters.
+        /// </summary>
+        /// <param name="packagePath">Path to a `.vssx`, `.vsdx`, or `.vstx` package.</param>
+        /// <param name="names">Optional filters matching master NameU, display name, relationship id, numeric id, or normalized slug.</param>
+        public IReadOnlyList<VisioMaster> ImportStencilMastersAndGet(string packagePath, IEnumerable<string>? names = null) {
+            if (string.IsNullOrWhiteSpace(packagePath)) throw new ArgumentException("Package path cannot be null or whitespace.", nameof(packagePath));
+            if (!File.Exists(packagePath)) throw new FileNotFoundException("Visio package was not found.", packagePath);
+
+            ImportStencilPackageVisualContext(packagePath);
+            IEnumerable<string>? resolvedNames = ResolvePackageMasterNameFilters(packagePath, names);
+            IReadOnlyList<VisioAssets.MasterContent> contents = VisioAssets.LoadMasterContents(packagePath, resolvedNames);
+            List<VisioMaster> imported = new();
+            foreach (VisioAssets.MasterContent content in contents) {
+                VisioShape shape = CreateImportedMasterShape(content);
+                XDocument rawMasterXml = new(content.MasterXml);
+                NormalizeImportedMasterRoot(rawMasterXml);
+                VisioMaster master = new(content.Id, content.NameU, shape) {
+                    RawMasterContentXml = rawMasterXml
+                };
+                foreach (VisioAssets.MasterRelationshipContent relationship in content.Relationships) {
+                    master.RawMasterRelationships.Add(relationship);
+                }
+
+                RegisterMaster(master);
+                imported.Add(master);
+            }
+
+            return imported.AsReadOnly();
+        }
+
+        /// <summary>
+        /// Imports the package-backed masters required by the provided stencil shapes.
+        /// Shapes loaded from multiple `.vssx`, `.vstx`, or `.vsdx` packages are grouped by source package.
+        /// </summary>
+        /// <param name="shapes">Stencil shapes with <see cref="VisioStencilShape.SourcePackagePath"/> metadata.</param>
+        public void ImportStencilMasters(IEnumerable<VisioStencilShape> shapes) {
+            ImportStencilMastersAndGet(shapes);
+        }
+
+        /// <summary>
+        /// Imports the package-backed masters required by the provided stencil shapes and returns the imported masters.
+        /// </summary>
+        /// <param name="shapes">Stencil shapes with <see cref="VisioStencilShape.SourcePackagePath"/> metadata.</param>
+        public IReadOnlyList<VisioMaster> ImportStencilMastersAndGet(IEnumerable<VisioStencilShape> shapes) {
+            if (shapes == null) throw new ArgumentNullException(nameof(shapes));
+
+            List<VisioMaster> imported = new();
+            foreach (IGrouping<string, VisioStencilShape> group in shapes
+                .Where(shape => shape != null && !string.IsNullOrWhiteSpace(shape.SourcePackagePath))
+                .GroupBy(shape => shape.SourcePackagePath!, StringComparer.OrdinalIgnoreCase)) {
+                imported.AddRange(ImportStencilMastersAndGet(group.Key, group.Select(shape => shape.MasterNameU)));
+            }
+
+            return imported.AsReadOnly();
+        }
+
+        /// <summary>
         /// Adds a new page to the document.
         /// </summary>
         /// <param name="name">Name of the page.</param>
@@ -280,6 +350,229 @@ namespace OfficeIMO.Visio {
         /// <param name="vsdxPath">Path to a VSDX file that contains canonical masters.</param>
         public void UseMastersFromTemplate(string vsdxPath) {
             LearnMastersFromVsdx(vsdxPath);
+        }
+
+        private static IEnumerable<string>? ResolvePackageMasterNameFilters(string packagePath, IEnumerable<string>? names) {
+            if (names == null) {
+                return null;
+            }
+
+            HashSet<string> filter = new(names, StringComparer.OrdinalIgnoreCase);
+            if (filter.Count == 0) {
+                return null;
+            }
+
+            return VisioAssets.ListMasters(packagePath)
+                .Where(master => VisioMasterIdentity.MatchesAny(master, filter))
+                .Select(master => master.NameU)
+                .ToArray();
+        }
+
+        private void ImportStencilPackageVisualContext(string packagePath) {
+            VisioAssets.PackageVisualContext context = VisioAssets.LoadVisualContext(packagePath);
+            XNamespace ns = VisioNamespace;
+
+            XElement? documentRoot = context.DocumentXml?.Root;
+            if (documentRoot != null) {
+                ImportColors(documentRoot.Element(ns + "Colors"), ns);
+                ImportFaceNames(documentRoot.Element(ns + "FaceNames"), ns);
+                ImportStyleSheets(documentRoot.Element(ns + "StyleSheets"), ns);
+            }
+
+            if (Theme == null && context.ThemeXml?.Root != null) {
+                Theme = new VisioTheme {
+                    Name = context.ThemeXml.Root.Attribute("name")?.Value,
+                    TemplateXml = new XDocument(context.ThemeXml)
+                };
+            }
+        }
+
+        private void ImportColors(XElement? colors, XNamespace ns) {
+            if (colors == null) {
+                return;
+            }
+
+            foreach (XAttribute attribute in colors.Attributes().Where(ShouldPreserveColorsAttribute)) {
+                AddMissingAttribute(PreservedColorsAttributes, attribute);
+            }
+
+            HashSet<string> existingColorIndexes = new HashSet<string>(PreservedColorsElements
+                .Where(element => string.Equals(element.Name.LocalName, "ColorEntry", StringComparison.OrdinalIgnoreCase))
+                .Select(element => element.Attribute("IX")?.Value ?? string.Empty)
+                .Where(value => !string.IsNullOrWhiteSpace(value)), StringComparer.OrdinalIgnoreCase);
+            foreach (XElement element in colors.Elements().Where(ShouldPreserveColorsElement)) {
+                string? colorIndex = element.Attribute("IX")?.Value;
+                if (!string.IsNullOrWhiteSpace(colorIndex) && !existingColorIndexes.Add(colorIndex!)) {
+                    continue;
+                }
+
+                PreservedColorsElements.Add(new XElement(element));
+            }
+        }
+
+        private void ImportFaceNames(XElement? faceNames, XNamespace ns) {
+            if (faceNames == null) {
+                return;
+            }
+
+            foreach (XAttribute attribute in faceNames.Attributes().Where(ShouldPreserveFaceNamesAttribute)) {
+                AddMissingAttribute(PreservedFaceNamesAttributes, attribute);
+            }
+
+            HashSet<string> existingFaces = new HashSet<string>(PreservedFaceNamesElements
+                .Where(element => string.Equals(element.Name.LocalName, "FaceName", StringComparison.OrdinalIgnoreCase))
+                .Select(element => element.Attribute("NameU")?.Value ?? element.Attribute("Name")?.Value ?? element.Attribute("ID")?.Value ?? string.Empty)
+                .Where(value => !string.IsNullOrWhiteSpace(value)), StringComparer.OrdinalIgnoreCase);
+            foreach (XElement element in faceNames.Elements().Where(ShouldPreserveFaceNamesElement)) {
+                string faceKey = element.Attribute("NameU")?.Value ?? element.Attribute("Name")?.Value ?? element.Attribute("ID")?.Value ?? Guid.NewGuid().ToString("N");
+                if (!existingFaces.Add(faceKey)) {
+                    continue;
+                }
+
+                PreservedFaceNamesElements.Add(new XElement(element));
+            }
+        }
+
+        private void ImportStyleSheets(XElement? styleSheets, XNamespace ns) {
+            if (styleSheets == null) {
+                return;
+            }
+
+            foreach (XAttribute attribute in styleSheets.Attributes().Where(ShouldPreserveStyleSheetsAttribute)) {
+                AddMissingAttribute(PreservedStyleSheetsAttributes, attribute);
+            }
+
+            foreach (XElement element in styleSheets.Elements().Where(ShouldPreserveStyleSheetsElement)) {
+                if (!PreservedStyleSheetsElements.Any(existing => XNode.DeepEquals(existing, element))) {
+                    PreservedStyleSheetsElements.Add(new XElement(element));
+                }
+            }
+
+            HashSet<string> existingAdditionalStyleIds = new HashSet<string>(PreservedAdditionalStyleSheets
+                .Select(styleSheet => styleSheet.Attribute("ID")?.Value ?? string.Empty)
+                .Where(value => !string.IsNullOrWhiteSpace(value)), StringComparer.Ordinal);
+            foreach (XElement styleSheet in styleSheets.Elements(ns + "StyleSheet")) {
+                string id = styleSheet.Attribute("ID")?.Value ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(id)) {
+                    continue;
+                }
+
+                if (!IsGeneratedStyleSheet(id)) {
+                    if (existingAdditionalStyleIds.Add(id)) {
+                        PreservedAdditionalStyleSheets.Add(new XElement(styleSheet));
+                    }
+
+                    continue;
+                }
+
+                PreservedStyleSheetData preserved = GetOrCreatePreservedStyleSheet(this, id);
+                foreach (XAttribute attribute in styleSheet.Attributes().Where(attribute => ShouldPreserveStyleSheetAttribute(attribute, id))) {
+                    AddMissingAttribute(preserved.Attributes, attribute);
+                }
+
+                foreach (XElement element in styleSheet.Elements().Where(element => ShouldPreserveStyleSheetElement(element, id))) {
+                    if (!preserved.ChildElements.Any(existing => XNode.DeepEquals(existing, element))) {
+                        preserved.ChildElements.Add(new XElement(element));
+                    }
+                }
+            }
+        }
+
+        private static void AddMissingAttribute(IList<XAttribute> attributes, XAttribute attribute) {
+            if (!attributes.Any(existing => existing.Name == attribute.Name)) {
+                attributes.Add(new XAttribute(attribute));
+            }
+        }
+
+        private static void NormalizeImportedMasterRoot(XDocument masterXml) {
+            XElement? rootShape = FindFirstMasterShape(masterXml);
+            if (rootShape == null) {
+                return;
+            }
+
+            if (TryReadImportedMasterCell(rootShape, "LocPinX", out double locPinX)) {
+                SetImportedMasterCell(rootShape, "PinX", locPinX);
+            } else if (TryReadImportedMasterCell(rootShape, "Width", out double width) && width > 0) {
+                SetImportedMasterCell(rootShape, "PinX", width / 2D);
+            }
+
+            if (TryReadImportedMasterCell(rootShape, "LocPinY", out double locPinY)) {
+                SetImportedMasterCell(rootShape, "PinY", locPinY);
+            } else if (TryReadImportedMasterCell(rootShape, "Height", out double height) && height > 0) {
+                SetImportedMasterCell(rootShape, "PinY", height / 2D);
+            }
+        }
+
+        private static XElement? FindFirstMasterShape(XDocument masterXml) {
+            XNamespace ns = VisioNamespace;
+            XElement? shapeElement = masterXml.Root?
+                .Element(ns + "Shapes")?
+                .Elements(ns + "Shape")
+                .FirstOrDefault();
+            if (shapeElement != null) {
+                return shapeElement;
+            }
+
+            return masterXml.Root?
+                .Elements()
+                .FirstOrDefault(element => string.Equals(element.Name.LocalName, "Shapes", StringComparison.OrdinalIgnoreCase))?
+                .Elements()
+                .FirstOrDefault(element => string.Equals(element.Name.LocalName, "Shape", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static void SetImportedMasterCell(XElement shapeElement, string name, double value) {
+            XElement? cell = shapeElement
+                .Elements()
+                .FirstOrDefault(element =>
+                    string.Equals(element.Name.LocalName, "Cell", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(element.Attribute("N")?.Value, name, StringComparison.OrdinalIgnoreCase));
+            XNamespace ns = shapeElement.Name.Namespace;
+            if (cell == null) {
+                shapeElement.AddFirst(new XElement(ns + "Cell", new XAttribute("N", name)));
+                cell = shapeElement
+                    .Elements()
+                    .FirstOrDefault(element =>
+                        string.Equals(element.Name.LocalName, "Cell", StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(element.Attribute("N")?.Value, name, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (cell != null) {
+                cell.SetAttributeValue("V", value.ToString(CultureInfo.InvariantCulture));
+            }
+        }
+
+        private static VisioShape CreateImportedMasterShape(VisioAssets.MasterContent content) {
+            XElement? shapeElement = FindFirstMasterShape(content.MasterXml);
+
+            string shapeId = shapeElement?.Attribute("ID")?.Value ?? "1";
+            double width = TryReadImportedMasterCell(shapeElement, "Width", out double parsedWidth) && parsedWidth > 0 ? parsedWidth : 1D;
+            double height = TryReadImportedMasterCell(shapeElement, "Height", out double parsedHeight) && parsedHeight > 0 ? parsedHeight : 1D;
+            double pinX = TryReadImportedMasterCell(shapeElement, "PinX", out double parsedPinX) ? parsedPinX : width / 2D;
+            double pinY = TryReadImportedMasterCell(shapeElement, "PinY", out double parsedPinY) ? parsedPinY : height / 2D;
+            double locPinX = TryReadImportedMasterCell(shapeElement, "LocPinX", out double parsedLocPinX) ? parsedLocPinX : width / 2D;
+            double locPinY = TryReadImportedMasterCell(shapeElement, "LocPinY", out double parsedLocPinY) ? parsedLocPinY : height / 2D;
+
+            return new VisioShape(shapeId, pinX, pinY, width, height, string.Empty) {
+                Name = shapeElement?.Attribute("Name")?.Value ?? content.NameU,
+                NameU = shapeElement?.Attribute("NameU")?.Value ?? content.NameU,
+                Type = shapeElement?.Attribute("Type")?.Value,
+                LocPinX = locPinX,
+                LocPinY = locPinY
+            };
+        }
+
+        private static bool TryReadImportedMasterCell(XElement? shapeElement, string name, out double value) {
+            string? rawValue = shapeElement?
+                .Elements()
+                .FirstOrDefault(element =>
+                    string.Equals(element.Name.LocalName, "Cell", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(element.Attribute("N")?.Value, name, StringComparison.OrdinalIgnoreCase))?
+                .Attribute("V")?
+                .Value;
+
+            return double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out value) &&
+                   !double.IsNaN(value) &&
+                   !double.IsInfinity(value);
         }
 
         /// <summary>
@@ -390,10 +683,8 @@ namespace OfficeIMO.Visio {
         }
 
         private static VisioShape CreateMasterBlueprint(string nameU, BuiltinMasterDefinition? definition) {
-            VisioShape blueprint = new("1") {
-                NameU = nameU,
-                Width = 1,
-                Height = 1
+            VisioShape blueprint = new("1", 0.5, 0.5, 1, 1, string.Empty) {
+                NameU = nameU
             };
 
             if (definition?.GeometryKind != BuiltinGeometryKind.DynamicConnector) {

@@ -404,7 +404,6 @@ namespace OfficeIMO.Visio.Diagrams {
                 VisioNetworkDiagramVisuals.GetNodeShape(node.Kind, _nodeWidth, _nodeHeight, out string masterNameU, out double width, out double height);
                 VisioShape shape = new(node.Id, GridX(node.Column, 1), GridY(node.Row, 1), width, height, node.Text) {
                     NameU = masterNameU,
-                    Master = _document.EnsureBuiltinMaster(masterNameU)
                 };
                 VisioNetworkDiagramVisuals.GetNodeStyle(_theme, node.Kind).ApplyTo(shape);
                 node.Shape = shape;

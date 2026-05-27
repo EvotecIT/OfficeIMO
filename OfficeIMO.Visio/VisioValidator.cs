@@ -31,14 +31,11 @@ namespace OfficeIMO.Visio {
         /// <returns>List of validation issues.</returns>
         public static IReadOnlyList<string> Validate(string vsdxPath) {
             List<string> issues = new();
-            using Package pkg = Package.Open(vsdxPath, FileMode.Open, FileAccess.Read, FileShare.Read);
 
-            XDocument ctDoc;
-            using (FileStream zipStream = File.OpenRead(vsdxPath))
-            using (ZipArchive archive = new(zipStream, ZipArchiveMode.Read))
-            using (Stream s = archive.GetEntry("[Content_Types].xml")!.Open()) {
-                ctDoc = XDocument.Load(s);
+            if (!TryLoadZipXml(vsdxPath, "[Content_Types].xml", "content types", issues, out XDocument? ctDoc)) {
+                return issues;
             }
+
             var defaults = ctDoc.Root!.Elements(ct + "Default").ToList();
             var overrides = ctDoc.Root!.Elements(ct + "Override").ToList();
 
@@ -62,33 +59,40 @@ namespace OfficeIMO.Visio {
                 issues.Add("Missing Override for /visio/pages/page1.xml -> application/vnd.ms-visio.page+xml.");
             }
 
-            XDocument rootRels = GetRels(pkg, "/_rels/.rels");
-            XElement? docRel = rootRels.Root!.Elements(pr + "Relationship").FirstOrDefault(r => RelationshipTargetMatches(r, "/visio/document.xml"));
-            if (docRel == null || (string?)docRel.Attribute("Type") != RT_Document) {
-                issues.Add("Root relationship must target /visio/document.xml with Visio document type.");
+            using Package pkg = Package.Open(vsdxPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+            if (TryLoadPackageXml(pkg, "/_rels/.rels", "relationship", issues, out XDocument? rootRels)) {
+                XElement? docRel = rootRels.Root!.Elements(pr + "Relationship").FirstOrDefault(r => RelationshipTargetMatches(r, "/visio/document.xml"));
+                if (docRel == null || (string?)docRel.Attribute("Type") != RT_Document) {
+                    issues.Add("Root relationship must target /visio/document.xml with Visio document type.");
+                }
             }
 
-            XDocument docRels = GetRels(pkg, "/visio/_rels/document.xml.rels");
-            XElement? pagesRel = docRels.Root!.Elements(pr + "Relationship").FirstOrDefault(r => (string?)r.Attribute("Target") == "pages/pages.xml");
-            if (pagesRel == null || (string?)pagesRel.Attribute("Type") != RT_Pages) {
-                issues.Add("document.xml must relate to pages/pages.xml with visio/2010/relationships/pages.");
+            if (TryLoadPackageXml(pkg, "/visio/_rels/document.xml.rels", "relationship", issues, out XDocument? docRels)) {
+                XElement? pagesRel = docRels.Root!.Elements(pr + "Relationship").FirstOrDefault(r => (string?)r.Attribute("Target") == "pages/pages.xml");
+                if (pagesRel == null || (string?)pagesRel.Attribute("Type") != RT_Pages) {
+                    issues.Add("document.xml must relate to pages/pages.xml with visio/2010/relationships/pages.");
+                }
             }
 
-            XDocument pagesXml = LoadXml(pkg, "/visio/pages/pages.xml");
-            IReadOnlyList<XElement> pageElements = pagesXml.Root!
-                .Elements(v + "Page")
-                .ToList();
+            IReadOnlyList<XElement> pageElements = Array.Empty<XElement>();
+            if (TryLoadPackageXml(pkg, "/visio/pages/pages.xml", "Visio", issues, out XDocument? pagesXml)) {
+                pageElements = pagesXml.Root!
+                    .Elements(v + "Page")
+                    .ToList();
 
-            if (pageElements.Count == 0) {
-                issues.Add("pages.xml must contain a Page element.");
+                if (pageElements.Count == 0) {
+                    issues.Add("pages.xml must contain a Page element.");
+                }
             }
 
-            XDocument pagesRels = GetRels(pkg, "/visio/pages/_rels/pages.xml.rels");
             Dictionary<string, XElement> relationshipsById = new(StringComparer.Ordinal);
-            foreach (XElement relElem in pagesRels.Root!.Elements(pr + "Relationship")) {
-                string? relIdAttr = (string?)relElem.Attribute("Id");
-                if (!string.IsNullOrEmpty(relIdAttr)) {
-                    relationshipsById[relIdAttr!] = relElem;
+            if (TryLoadPackageXml(pkg, "/visio/pages/_rels/pages.xml.rels", "relationship", issues, out XDocument? pagesRels)) {
+                foreach (XElement relElem in pagesRels.Root!.Elements(pr + "Relationship")) {
+                    string? relIdAttr = (string?)relElem.Attribute("Id");
+                    if (!string.IsNullOrEmpty(relIdAttr)) {
+                        relationshipsById[relIdAttr!] = relElem;
+                    }
                 }
             }
 
@@ -135,8 +139,7 @@ namespace OfficeIMO.Visio {
 
                     if (!pkg.PartExists(partUri)) {
                         issues.Add($"Page {pageLabel}: Target part '{partName}' referenced by relationship '{rid}' is missing.");
-                    } else if (processedPageParts.Add(partName)) {
-                        XDocument pageXml = LoadXml(pkg, partName);
+                    } else if (processedPageParts.Add(partName) && TryLoadPackageXml(pkg, partName, "Visio", issues, out XDocument? pageXml)) {
                         string? badId = pageXml
                             .Descendants(v + "Shape")
                             .Select(x => (string?)x.Attribute("ID"))
@@ -162,14 +165,45 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        private static XDocument LoadXml(Package pkg, string partName) {
-            using Stream s = pkg.GetPart(new Uri(partName, UriKind.Relative)).GetStream();
-            return XDocument.Load(s);
+        private static bool TryLoadZipXml(string packagePath, string entryName, string partKind, List<string> issues, out XDocument document) {
+            document = null!;
+            try {
+                using FileStream zipStream = File.OpenRead(packagePath);
+                using ZipArchive archive = new(zipStream, ZipArchiveMode.Read);
+                ZipArchiveEntry? entry = archive.GetEntry(entryName);
+                if (entry == null) {
+                    issues.Add($"Missing required Visio {partKind} part '{entryName}'.");
+                    return false;
+                }
+
+                using Stream stream = entry.Open();
+                document = XDocument.Load(stream);
+                return true;
+            } catch (InvalidDataException ex) {
+                issues.Add($"Cannot read Visio package '{packagePath}' as a zip archive: {ex.Message}");
+                return false;
+            } catch (System.Xml.XmlException ex) {
+                issues.Add($"Visio {partKind} part '{entryName}' is not valid XML: {ex.Message}");
+                return false;
+            }
         }
 
-        private static XDocument GetRels(Package pkg, string relsPath) {
-            using Stream s = pkg.GetPart(new Uri(relsPath, UriKind.Relative)).GetStream();
-            return XDocument.Load(s);
+        private static bool TryLoadPackageXml(Package pkg, string partName, string partKind, List<string> issues, out XDocument document) {
+            document = null!;
+            Uri partUri = new(partName, UriKind.Relative);
+            if (!pkg.PartExists(partUri)) {
+                issues.Add($"Missing required Visio {partKind} part '{partName}'.");
+                return false;
+            }
+
+            try {
+                using Stream stream = pkg.GetPart(partUri).GetStream();
+                document = XDocument.Load(stream);
+                return true;
+            } catch (System.Xml.XmlException ex) {
+                issues.Add($"Visio {partKind} part '{partName}' is not valid XML: {ex.Message}");
+                return false;
+            }
         }
 
         private static bool RelationshipTargetMatches(XElement relationship, string expectedAbsolutePartName) {

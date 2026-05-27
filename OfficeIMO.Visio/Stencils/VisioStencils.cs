@@ -134,6 +134,21 @@ namespace OfficeIMO.Visio.Stencils {
             });
 
         /// <summary>
+        /// Gets UML-style sequence diagram shapes.
+        /// </summary>
+        public static VisioStencilCatalog Sequence { get; } = new(
+            "Sequence Diagram",
+            new[] {
+                Shape("seq.participant", "Participant", "Rectangle", "Sequence Diagram", 1.45, 0.62, "lifeline", "service", "component"),
+                Shape("seq.actor", "Actor", "Circle", "Sequence Diagram", 0.72, 0.72, "user", "person", "client"),
+                Shape("seq.boundary", "Boundary", "Rectangle", "Sequence Diagram", 1.45, 0.62, "edge", "interface"),
+                Shape("seq.control", "Control", "Rectangle", "Sequence Diagram", 1.45, 0.62, "coordinator", "controller"),
+                Shape("seq.entity", "Entity", "Rectangle", "Sequence Diagram", 1.45, 0.62, "domain", "object"),
+                Shape("seq.database", "Database", "Data", "Sequence Diagram", 1.45, 0.62, "store", "data-store"),
+                Shape("seq.note", "Note", "Rectangle", "Sequence Diagram", 1.8, 0.75, "annotation", "callout")
+            });
+
+        /// <summary>
         /// Gets a combined catalog containing all built-in OfficeIMO-native stencil shapes.
         /// </summary>
         public static VisioStencilCatalog All { get; } = new(
@@ -146,6 +161,7 @@ namespace OfficeIMO.Visio.Stencils {
                 .Concat(Swimlane.Shapes)
                 .Concat(OrgChart.Shapes)
                 .Concat(Timeline.Shapes)
+                .Concat(Sequence.Shapes)
                 .GroupBy(shape => shape.Id)
                 .Select(group => group.First())
                 .ToList());

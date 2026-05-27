@@ -36,16 +36,30 @@ namespace OfficeIMO.Visio.Diagrams {
         public double BlockHeight { get; set; } = 1.0;
 
         /// <summary>Default block text style.</summary>
-        public VisioTextStyle? BlockTextStyle { get; set; }
+        public VisioTextStyle? BlockTextStyle { get; set; } = FilledNodeText();
 
         /// <summary>Default emphasis block text style.</summary>
-        public VisioTextStyle? EmphasisTextStyle { get; set; }
+        public VisioTextStyle? EmphasisTextStyle { get; set; } = FilledNodeText();
 
         /// <summary>Default region text style.</summary>
-        public VisioTextStyle? RegionTextStyle { get; set; }
+        public VisioTextStyle? RegionTextStyle { get; set; } = new VisioTextStyle {
+            FontFamily = "Aptos",
+            Color = Color.FromRgb(40, 55, 70),
+            Size = 10,
+            HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+            VerticalAlignment = VisioTextVerticalAlignment.Middle
+        };
 
         /// <summary>Default connector label text style.</summary>
-        public VisioTextStyle? ConnectorTextStyle { get; set; }
+        public VisioTextStyle? ConnectorTextStyle { get; set; } = new VisioTextStyle {
+            FontFamily = "Aptos",
+            Color = Color.FromRgb(20, 75, 120),
+            Size = 9,
+            HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+            VerticalAlignment = VisioTextVerticalAlignment.Middle,
+            BackgroundColor = Color.FromRgb(255, 255, 255),
+            BackgroundTransparency = 8
+        };
 
         /// <summary>Default title text style.</summary>
         public VisioTextStyle? TitleTextStyle { get; set; } = new VisioTextStyle {
@@ -100,5 +114,18 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Default blue/gray OfficeIMO block diagram theme.</summary>
         public static VisioBlockDiagramTheme TechnicalBlue() => new VisioBlockDiagramTheme();
+
+        private static VisioTextStyle FilledNodeText() => new VisioTextStyle {
+            FontFamily = "Aptos",
+            Color = Color.FromRgb(255, 255, 255),
+            Size = 10,
+            Bold = true,
+            HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+            VerticalAlignment = VisioTextVerticalAlignment.Middle,
+            LeftMargin = 0.12,
+            RightMargin = 0.12,
+            TopMargin = 0.08,
+            BottomMargin = 0.08
+        };
     }
 }

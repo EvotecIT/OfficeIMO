@@ -17,7 +17,14 @@ namespace OfficeIMO.Visio.Stencils {
         /// <summary>
         /// Initializes a new stencil shape definition with an explicit default-size unit.
         /// </summary>
-        public VisioStencilShape(string id, string name, string masterNameU, string category, double defaultWidth, double defaultHeight, IEnumerable<string>? keywords, IEnumerable<string>? aliases, IEnumerable<string>? tags, string? iconNameU, VisioMeasurementUnit? defaultUnit) {
+        public VisioStencilShape(string id, string name, string masterNameU, string category, double defaultWidth, double defaultHeight, IEnumerable<string>? keywords, IEnumerable<string>? aliases, IEnumerable<string>? tags, string? iconNameU, VisioMeasurementUnit? defaultUnit)
+            : this(id, name, masterNameU, category, defaultWidth, defaultHeight, keywords, aliases, tags, iconNameU, defaultUnit, null) {
+        }
+
+        /// <summary>
+        /// Initializes a new stencil shape definition with source package metadata.
+        /// </summary>
+        public VisioStencilShape(string id, string name, string masterNameU, string category, double defaultWidth, double defaultHeight, IEnumerable<string>? keywords, IEnumerable<string>? aliases, IEnumerable<string>? tags, string? iconNameU, VisioMeasurementUnit? defaultUnit, string? sourcePackagePath) {
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Stencil shape id cannot be null or whitespace.", nameof(id));
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Stencil shape name cannot be null or whitespace.", nameof(name));
             if (string.IsNullOrWhiteSpace(masterNameU)) throw new ArgumentException("Master NameU cannot be null or whitespace.", nameof(masterNameU));
@@ -48,6 +55,7 @@ namespace OfficeIMO.Visio.Stencils {
                 .AsReadOnly();
             IconNameU = string.IsNullOrWhiteSpace(iconNameU) ? masterNameU : iconNameU!;
             DefaultUnit = defaultUnit;
+            SourcePackagePath = string.IsNullOrWhiteSpace(sourcePackagePath) ? null : sourcePackagePath;
         }
 
         /// <summary>
@@ -85,6 +93,11 @@ namespace OfficeIMO.Visio.Stencils {
         /// When null, default sizes are interpreted in the caller's placement unit.
         /// </summary>
         public VisioMeasurementUnit? DefaultUnit { get; }
+
+        /// <summary>
+        /// Gets the source `.vssx`, `.vstx`, or `.vsdx` package path when this shape was cataloged from a package.
+        /// </summary>
+        public string? SourcePackagePath { get; }
 
         /// <summary>
         /// Gets searchable keywords.

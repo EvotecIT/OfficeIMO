@@ -54,5 +54,9 @@ namespace OfficeIMO.Visio {
         internal IList<XAttribute> PreservedMastersRootAttributes { get; } = new List<XAttribute>();
 
         internal IList<XElement> PreservedMastersRootElements { get; } = new List<XElement>();
+
+        internal XDocument? RawMasterContentXml { get; set; }
+
+        internal IList<VisioAssets.MasterRelationshipContent> RawMasterRelationships { get; } = new List<VisioAssets.MasterRelationshipContent>();
     }
 }
