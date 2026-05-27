@@ -146,7 +146,7 @@ internal static class ContentStructureExtractor {
             if (mToc.Success && int.TryParse(mToc.Groups["num"].Value, out int num)) {
                 var label = NormalizeShattered(mToc.Groups["label"].Value.TrimEnd('.').Trim());
                 page.Toc.Add((label, num));
-                page.LeaderRows.Add(new [] { label, num.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+                AddLeaderRow(page, label, num.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 continue;
             }
             if (ListRegex.IsMatch(t)) {
@@ -173,7 +173,7 @@ internal static class ContentStructureExtractor {
                     if (numStart > 0 && numStart < t.Length && TryParsePositiveIntTail(t, numStart, out int n2)) {
                         var left = NormalizeShattered(t.Substring(0, numStart).TrimEnd('.', ' ').Trim());
                         var right = t.Substring(numStart);
-                        page.LeaderRows.Add(new [] { left, right });
+                        AddLeaderRow(page, left, right);
                     }
                 }
             }
@@ -199,7 +199,7 @@ internal static class ContentStructureExtractor {
                     }
                     // add only to detailed + LeaderRows; do NOT mix into generic Tables
                     page.TablesDetailed.Add(t);
-                    foreach (var r in t.Rows) page.LeaderRows.Add(new[] { r[0], r[1] });
+                    foreach (var r in t.Rows) AddLeaderRow(page, r[0], r[1]);
                     continue;
                 }
                 // Clean generic band/group tables to remove micro-token shattering and dot runs
@@ -231,7 +231,7 @@ internal static class ContentStructureExtractor {
                     }
                 }
                 page.TablesDetailed.Add(leaderTbl);
-                foreach (var r in leaderTbl.Rows) page.LeaderRows.Add(new [] { r[0], r[1] });
+                foreach (var r in leaderTbl.Rows) AddLeaderRow(page, r[0], r[1]);
             } else {
                 var rows = TableDetector.Detect(lines);
                 if (rows.Count > 0) {
@@ -241,6 +241,24 @@ internal static class ContentStructureExtractor {
             }
         }
         return page;
+    }
+
+    private static void AddLeaderRow(StructuredPage page, string label, string value) {
+        label = NormalizeShattered(label ?? string.Empty).Trim();
+        value = (value ?? string.Empty).Trim().Trim('.');
+        if (label.Length == 0 || value.Length == 0) {
+            return;
+        }
+
+        foreach (var row in page.LeaderRows) {
+            if (row.Length >= 2 &&
+                string.Equals(row[0], label, StringComparison.Ordinal) &&
+                string.Equals(row[1], value, StringComparison.Ordinal)) {
+                return;
+            }
+        }
+
+        page.LeaderRows.Add(new[] { label, value });
     }
 
     private static bool IsWordish(char c) => char.IsLetter(c) || c == '\'' || c == '-' || c == '/';

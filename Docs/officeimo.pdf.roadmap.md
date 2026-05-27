@@ -575,7 +575,7 @@ These are the eventual PSWriteOffice-facing operations needed to replace PSWrite
 
 Good first issues should be small and visual:
 
-1. Add visual regression harness and baselines for current `OfficeIMO.Pdf` examples. Initial geometry/content-stream baselines exist, and the first repo-local Poppler raster comparison lane now covers the professional report, a two-page line-item statement fixture, a Word-like table style gallery, a landscape showcase dashboard, plus compact hello-world, core-layout, style-cheatsheet, styled-runs, drawing-gallery, row-columns, links-rules, lists-tables, default-styles, three-page flow-dsl, and two-page headers-footers scenarios with diff artifacts; next step is expanding raster coverage across the remaining runnable example set.
+1. Add visual regression harness and baselines for current `OfficeIMO.Pdf` examples. Initial geometry/content-stream baselines exist, and the first repo-local Poppler raster comparison lane now covers the professional report, a two-page line-item statement fixture, a Word-like table style gallery, a landscape showcase dashboard, plus compact hello-world, core-layout, style-cheatsheet, styled-runs, tabs-leaders, drawing-gallery, row-columns, links-rules, lists-tables, default-styles, three-page flow-dsl, and two-page headers-footers scenarios with diff artifacts; next step is expanding raster coverage across the remaining runnable example set.
 2. Fix paragraph spacing so generated reports no longer look stretched.
 3. Fix table cell overflow and add wrapping tests.
 4. Update `OfficeIMO.Pdf/README.md` with real current features and roadmap link.
@@ -587,7 +587,7 @@ Good first issues should be small and visual:
 10. Implement delete and rotate page helpers. Initial API: `PdfPageEditor`.
 11. Implement metadata editing helpers. Initial API: `PdfMetadataEditor`.
 12. Implement generated navigation anchors, links, and outlines. Initial APIs: `PdfOptions.CreateOutlineFromHeadings` for heading outlines, generic `Bookmark(...)` flow anchors for named destinations, and paragraph `LinkToBookmark(...)` runs for internal document navigation.
-13. Add professional report example that becomes the visual quality reference. Initial professional report baseline exists in `PdfDocVisualBaselineTests`, runnable example coverage exists in `OfficeIMO.Examples/Pdf/Pdf.ProfessionalReport.cs`, and Poppler-rendered PNG approval exists in `PdfDocRasterVisualBaselineTests` alongside a two-page line-item statement fixture, a Word-like table style gallery, a landscape showcase dashboard, compact smoke, core-layout, style-cheatsheet, styled-runs, drawing-gallery, row-columns, links-rules, lists-tables, default-styles, three-page flow-dsl, and two-page headers-footers approvals.
+13. Add professional report example that becomes the visual quality reference. Initial professional report baseline exists in `PdfDocVisualBaselineTests`, runnable example coverage exists in `OfficeIMO.Examples/Pdf/Pdf.ProfessionalReport.cs`, and Poppler-rendered PNG approval exists in `PdfDocRasterVisualBaselineTests` alongside a two-page line-item statement fixture, a Word-like table style gallery, a landscape showcase dashboard, compact smoke, core-layout, style-cheatsheet, styled-runs, tabs-leaders, drawing-gallery, row-columns, links-rules, lists-tables, default-styles, three-page flow-dsl, and two-page headers-footers approvals.
 
 ## Non-Goals For Now
 

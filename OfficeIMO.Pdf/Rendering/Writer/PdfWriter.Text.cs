@@ -367,6 +367,7 @@ internal static partial class PdfWriter {
             double currentTextRise = 0;
             for (int si = 0; si < segs.Count; si++) {
                 var s = segs[si];
+                double lineY = startY - li * defaultLeading;
                 string fontRes = (s.Bold && s.Italic) ? "F4" : s.Bold ? "F2" : s.Italic ? "F3" : "F1";
                 double runFontSize = EffectiveRichFontSize(fontSize, s.Baseline);
                 double textRise = TextRiseForBaseline(fontSize, s.Baseline);
@@ -381,37 +382,31 @@ internal static partial class PdfWriter {
                 if (s.LeadingSpace) {
                     double baseGap = s.LeadingAdvance > 0 ? s.LeadingAdvance : MeasureRichText(" ", s.Font, fontSize, s.Baseline);
                     double gap = baseGap + (s.LeadingSpaceIsExpandable ? wordSpacing : 0);
-                    double visibleGap = 0;
-                    if (!s.LeadingSpaceIsExpandable && Math.Abs(wordSpacing) > 0.0001) {
-                        content.WordSpacing(0);
-                    }
 
                     if (s.LeadingTabLeader == PdfTabLeaderStyle.Dots) {
                         string leader = BuildDotLeaderText(gap, s.Font, fontSize, s.Baseline);
                         if (leader.Length > 0) {
-                            content.ShowHexText(EncodeWinAnsiHex(leader));
-                            visibleGap = MeasureRichText(leader, s.Font, fontSize, s.Baseline);
+                            content
+                                .TextMatrix(lineXOrigin + xCursor, lineY)
+                                .ShowHexText(EncodeWinAnsiHex(leader));
                         }
+                        xCursor += gap;
+                        content.TextMatrix(lineXOrigin + xCursor, lineY);
+                    } else if (!s.LeadingSpaceIsExpandable) {
+                        content
+                            .TextMatrix(lineXOrigin + xCursor, lineY)
+                            .ShowHexText("20");
+                        xCursor += gap;
+                        content.TextMatrix(lineXOrigin + xCursor, lineY);
                     } else {
                         content.ShowHexText("20");
-                        visibleGap = MeasureRichText(" ", s.Font, fontSize, s.Baseline) + (s.LeadingSpaceIsExpandable ? wordSpacing : 0);
+                        xCursor += gap;
                     }
-
-                    if (!s.LeadingSpaceIsExpandable && Math.Abs(wordSpacing) > 0.0001) {
-                        content.WordSpacing(wordSpacing);
-                    }
-
-                    double extraAdvance = gap - visibleGap;
-                    if (extraAdvance > 0.0001) {
-                        content.MoveText(extraAdvance, 0);
-                    }
-
-                    xCursor += gap;
                 }
                 double segmentStartX = xCursor;
                 content.ShowHexText(EncodeWinAnsiHex(s.Text));
                 double wSeg = MeasureRichText(s.Text, s.Font, fontSize, s.Baseline);
-                double baselineY = startY - li * defaultLeading + textRise;
+                double baselineY = lineY + textRise;
 
                 if (s.Underline) {
                     var ulColor = (s.Color ?? block.DefaultColor ?? opts.DefaultTextColor) ?? PdfColor.Black;

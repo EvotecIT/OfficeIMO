@@ -40,6 +40,7 @@ public class PdfDocRasterVisualBaselineTests {
     [InlineData("table-style-gallery")]
     [InlineData("default-styles")]
     [InlineData("styled-runs")]
+    [InlineData("tabs-leaders")]
     [InlineData("drawing-gallery")]
     [InlineData("row-columns")]
     [InlineData("showcase-dashboard")]
@@ -147,6 +148,8 @@ public class PdfDocRasterVisualBaselineTests {
                 return CreateDefaultStyles();
             case "styled-runs":
                 return CreateStyledRuns();
+            case "tabs-leaders":
+                return CreateTabsLeaders();
             case "drawing-gallery":
                 return CreateDrawingGallery();
             case "row-columns":
@@ -357,6 +360,60 @@ public class PdfDocRasterVisualBaselineTests {
                 .Color(PdfColor.FromRgb(22, 101, 52)).Text("healthy ")
                 .Color(PdfColor.FromRgb(31, 41, 55)).Text("normal."))
             .Paragraph(p => p.Text("End of styled runs sample."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80))
+            .ToBytes();
+    }
+
+    private static byte[] CreateTabsLeaders() {
+        return PdfDoc.Create(new PdfOptions {
+                DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = 10,
+                DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
+                HeaderFont = PdfStandardFont.Helvetica,
+                HeaderFontSize = 8,
+                HeaderFormat = "OfficeIMO.Pdf tabs and leaders",
+                HeaderAlign = PdfAlign.Left,
+                ShowHeader = true,
+                FooterFont = PdfStandardFont.Helvetica,
+                FooterFontSize = 8,
+                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
+                FooterAlign = PdfAlign.Right,
+                ShowPageNumbers = true,
+                DefaultParagraphStyle = new PdfParagraphStyle {
+                    DefaultTabStopWidth = 252,
+                    LineHeight = 1.18,
+                    SpacingAfter = 4
+                }
+            })
+            .Meta(title: "OfficeIMO.Pdf Tabs and Leaders", author: "OfficeIMO")
+            .H1("Tabs and Leaders", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
+            .Paragraph(p => p.Text("A compact visual gate for Word-like paragraph tabs, dotted leaders, and structured readback rhythm."))
+            .HR(style: new PdfHorizontalRuleStyle {
+                Color = PdfColor.FromRgb(183, 194, 207),
+                Thickness = 0.8,
+                SpacingBefore = 6,
+                SpacingAfter = 8
+            })
+            .Paragraph(p => p.Bold("Revenue").Tab(PdfTabLeaderStyle.Dots).Text("128 450"))
+            .Paragraph(p => p.Text("Operating cost").Tab(PdfTabLeaderStyle.Dots).Text("84 210"))
+            .Paragraph(p => p.Text("Margin").Tab(PdfTabLeaderStyle.Dots).Text("44 240"))
+            .Spacer(4)
+            .Paragraph(p => p.Text("Left label").Tab().Text("plain tab").Tab(PdfTabLeaderStyle.Dots).Text("42"),
+                style: new PdfParagraphStyle {
+                    DefaultTabStopWidth = 144,
+                    SpacingBefore = 4,
+                    SpacingAfter = 2
+                })
+            .PanelParagraph(
+                p => p.Text("The dots are paragraph tab leaders, not invoice-specific rendering. They should align values while remaining extractable as leader rows."),
+                new PanelStyle {
+                    Background = PdfColor.FromRgb(248, 250, 252),
+                    BorderColor = PdfColor.FromRgb(183, 194, 207),
+                    PaddingX = 9,
+                    PaddingY = 7,
+                    SpacingBefore = 10,
+                    SpacingAfter = 8
+                })
+            .Paragraph(p => p.Text("End of tabs and leaders sample."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80))
             .ToBytes();
     }
 

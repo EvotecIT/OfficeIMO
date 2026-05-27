@@ -533,9 +533,8 @@ namespace OfficeIMO.Tests.Pdf {
             var structuredPage = Assert.Single(PdfTextExtractor.ExtractStructuredByPage(bytes, new PdfTextLayoutOptions {
                 ForceSingleColumn = true
             }));
-            Assert.Contains(structuredPage.LeaderRows, leader => leader.Length >= 2 &&
-                leader[0] == "Revenue" &&
-                leader[1] == "12");
+            var leader = Assert.Single(structuredPage.LeaderRows);
+            Assert.Equal(new[] { "Revenue", "12" }, leader);
         }
 
         [Fact]
