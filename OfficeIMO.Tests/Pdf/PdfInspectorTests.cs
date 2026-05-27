@@ -1220,6 +1220,10 @@ public class PdfInspectorTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => info.GetFormFields(0));
 
         PdfFormWidget widget = Assert.Single(field.Widgets);
+        Assert.Same(widget, Assert.Single(field.WidgetsByPageNumber[1]));
+        Assert.Same(widget, Assert.Single(field.GetWidgets(1)));
+        Assert.Empty(field.GetWidgets(2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => field.GetWidgets(0));
         Assert.Same(widget, Assert.Single(info.FormWidgets));
         Assert.Same(widget, Assert.Single(info.Pages[0].FormWidgets));
         Assert.Same(widget, Assert.Single(info.FormWidgetsByFieldName["AcceptTerms"]));

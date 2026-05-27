@@ -55,6 +55,7 @@ public sealed class PdfFormField {
     private IReadOnlyList<PdfFormFieldOption>? _selectedOptions;
     private IReadOnlyList<PdfFormFieldOption>? _defaultSelectedOptions;
     private IReadOnlyList<int>? _pageNumbers;
+    private IReadOnlyDictionary<int, IReadOnlyList<PdfFormWidget>>? _widgetsByPageNumber;
 
     internal PdfFormField(int? objectNumber, string? name, string? partialName, string? fieldType, string? value, string? alternateName, string? mappingName, int? flags, int? maxLength = null, IReadOnlyList<string>? values = null, string? defaultValue = null, IReadOnlyList<string>? defaultValues = null, string? defaultAppearance = null, int? quadding = null, IReadOnlyList<PdfFormFieldOption>? options = null, IReadOnlyList<PdfFormWidget>? widgets = null) {
         ObjectNumber = objectNumber;
@@ -326,6 +327,49 @@ public sealed class PdfFormField {
 
     /// <summary>True when at least one widget for this field has a readable page number.</summary>
     public bool HasPageNumbers => PageNumberCount > 0;
+
+    /// <summary>Readable widget annotations for this field grouped by one-based page number.</summary>
+    public IReadOnlyDictionary<int, IReadOnlyList<PdfFormWidget>> WidgetsByPageNumber {
+        get {
+            if (_widgetsByPageNumber is not null) {
+                return _widgetsByPageNumber;
+            }
+
+            var grouped = new Dictionary<int, List<PdfFormWidget>>();
+            for (int i = 0; i < Widgets.Count; i++) {
+                PdfFormWidget widget = Widgets[i];
+                if (!widget.PageNumber.HasValue) {
+                    continue;
+                }
+
+                if (!grouped.TryGetValue(widget.PageNumber.Value, out List<PdfFormWidget>? widgets)) {
+                    widgets = new List<PdfFormWidget>();
+                    grouped.Add(widget.PageNumber.Value, widgets);
+                }
+
+                widgets.Add(widget);
+            }
+
+            var result = new Dictionary<int, IReadOnlyList<PdfFormWidget>>();
+            foreach (var item in grouped) {
+                result.Add(item.Key, item.Value.AsReadOnly());
+            }
+
+            _widgetsByPageNumber = new System.Collections.ObjectModel.ReadOnlyDictionary<int, IReadOnlyList<PdfFormWidget>>(result);
+            return _widgetsByPageNumber;
+        }
+    }
+
+    /// <summary>Returns readable widget annotations for this field on a one-based page number.</summary>
+    public IReadOnlyList<PdfFormWidget> GetWidgets(int pageNumber) {
+        if (pageNumber <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
+        }
+
+        return WidgetsByPageNumber.TryGetValue(pageNumber, out IReadOnlyList<PdfFormWidget>? widgets)
+            ? widgets
+            : Array.Empty<PdfFormWidget>();
+    }
 
     private bool HasFlag(int flag) {
         return Flags.HasValue && (Flags.Value & flag) != 0;
