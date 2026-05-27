@@ -122,6 +122,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OrgChartDiagramBuilderCanAutoPlaceSemanticCalloutsBesideNodes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .OrgChartDiagram("Auto Annotated Leadership", org => org
+                    .Title()
+                    .Root("ceo", "Marta Nowak", "Chief Executive Officer")
+                    .Manager("cto", "Alex Chen", "Chief Technology Officer", "ceo")
+                    .TeamBand("engineering", "Engineering", "cto")
+                    .Position("platform", "Nina Patel", "Platform Lead", "cto", "engineering")
+                    .Position("security", "Owen Brooks", "Security Lead", "cto", "engineering")
+                    .Callout("cto", "cto-note", "Owns platform and security roadmap", VisioSide.Right, 0.45, options => {
+                        options.Width = 2.65;
+                        options.Height = 0.72;
+                    })
+                    .Callout("platform", "Succession backup", VisioSide.Bottom, 0.25));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape cto = Assert.Single(page.Shapes, shape => shape.Id == "cto");
+            VisioShape platform = Assert.Single(page.Shapes, shape => shape.Id == "platform");
+            VisioShape explicitCallout = Assert.Single(page.Callouts(), shape => shape.Id == "cto-note");
+            VisioShape generatedCallout = Assert.Single(page.Callouts(), shape => shape.Id == "platform-callout");
+
+            Assert.True(explicitCallout.PinX > cto.PinX);
+            Assert.Equal(cto.PinY, explicitCallout.PinY, 6);
+            Assert.Equal(cto.Id, explicitCallout.CalloutTargetId);
+            Assert.Equal(2.65, explicitCallout.Width);
+            Assert.True(generatedCallout.PinY < platform.PinY);
+            Assert.Equal(platform.Id, generatedCallout.CalloutTargetId);
+
+            VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, explicitCallout));
+            Assert.Same(cto, leader.To);
+            Assert.Equal(EndArrow.None, leader.EndArrow);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void OrgChartDiagramBuilderGeneratesUniqueCalloutIds() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
                 .OrgChartDiagram("Generated", org => org
@@ -190,6 +229,23 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Unknown org chart node id", unknownTarget.Message);
             Assert.Contains("already exists", nodeCollision.Message);
             Assert.Contains("already exists", bandCollision.Message);
+        }
+
+        [Fact]
+        public void OrgChartDiagramBuilderRejectsAutoCalloutPlacementIssues() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentOutOfRangeException autoPlacement = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.OrgChartDiagram("Invalid", org => org
+                    .Root("ceo", "CEO")
+                    .Callout("ceo", "Invalid", VisioSide.Auto)));
+            ArgumentOutOfRangeException badGap = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.OrgChartDiagram("Invalid", org => org
+                    .Root("ceo", "CEO")
+                    .Callout("ceo", "Invalid", VisioSide.Right, double.NaN)));
+
+            Assert.Contains("Placement must be", autoPlacement.Message);
+            Assert.Contains("finite non-negative", badGap.Message);
         }
     }
 }

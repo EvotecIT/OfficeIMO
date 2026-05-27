@@ -116,7 +116,7 @@ VisioDocument.Create("dependencies.vsdx")
         .DependsOn("web", "api")
         .ControlDependency("api", "policy", "Authorize")
         .DataDependency("api", "database", "SQL")
-        .Callout("policy", "policy-note", "Authorization gates access to data", 7.4, 5.3))
+        .Callout("policy", "policy-note", "Authorization gates access to data", VisioSide.Top))
     .EnsureVisualQuality(new VisioDiagramQualityOptions {
         CheckConnectorShapeIntersections = false,
         CheckConnectorLabelShapeOverlaps = false
@@ -127,7 +127,7 @@ VisioDocument.Create("dependencies.vsdx")
 The dependency diagram builder creates deterministic layered DAG layouts from
 nodes and directed relationships. It automatically grows the page, places
 component/data/external/decision nodes, routes dependencies, supports semantic
-callouts, and rejects cycles.
+coordinate or side-placed callouts, and rejects cycles.
 
 ## Quick sample (architecture diagram builder)
 
@@ -264,15 +264,15 @@ VisioDocument.Create("swimlane.vsdx")
         .Handoff("approved", "pick", "yes")
         .Flow("pick", "invoice")
         .Flow("invoice", "ship")
-        .Callout("approved", "approval-note", "Escalate exceptions before fulfillment", 7.8, 5.9))
+        .Callout("approved", "approval-note", "Escalate exceptions before fulfillment", VisioSide.Right))
     .Save();
 ```
 
 The swimlane builder creates editable role lanes, phase headers, semantic
 activities, labeled flows, dashed exception paths, deterministic routing, and
 automatic stacking when more than one activity lands in the same lane/phase
-cell. It supports semantic callouts for risk and exception notes, and does not
-require Visio templates at runtime.
+cell. It supports coordinate or side-placed semantic callouts for risk and
+exception notes, and does not require Visio templates at runtime.
 
 ## Quick sample (org chart builder)
 
@@ -295,13 +295,13 @@ VisioDocument.Create("org-chart.vsdx")
         .Position("security", "Owen Brooks", "Security Lead", "cto", "engineering")
         .Vacancy("sre", "Open SRE Role", "coo", "operations")
         .External("advisor", "Taylor Reed", "Advisor", "cfo")
-        .Callout("cto", "cto-note", "Owns platform and security roadmap", 8.1, 5.9))
+        .Callout("cto", "cto-note", "Owns platform and security roadmap", VisioSide.Right))
     .Save();
 ```
 
 The org chart builder creates editable hierarchy cards, assistant placements,
-team bands, vacancies, external roles, routed reporting lines, and semantic
-callouts from business relationships.
+team bands, vacancies, external roles, routed reporting lines, and coordinate
+or side-placed semantic callouts from business relationships.
 
 ## Reusable style themes
 
@@ -431,12 +431,13 @@ VisioDocument.Create("roadmap.vsdx")
         .Span("build", new DateTime(2026, 2, 21), new DateTime(2026, 5, 15), "Build", lane: 1)
         .Release("preview", new DateTime(2026, 5, 20), "Public preview", VisioTimelinePlacement.Below)
         .Milestone("ga", new DateTime(2026, 6, 25), "GA")
-        .Callout("build", "build-note", "Implementation runway", 5.2, 5.7))
+        .Callout("build", "build-note", "Implementation runway", VisioSide.Top))
     .Save();
 ```
 
 Timeline callouts can target either milestone IDs or span IDs, so roadmap
-notes stay attached to the dated item they explain.
+notes stay attached to the dated item they explain. They can be placed by
+coordinates or relative to the target side.
 
 ## Visual quality checks and gallery output
 

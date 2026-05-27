@@ -154,6 +154,49 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SwimlaneDiagramBuilderCanAutoPlaceSemanticCalloutsBesideActivities() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .SwimlaneDiagram("Auto Annotated Fulfillment", swim => swim
+                    .Title()
+                    .Lane("sales", "Sales")
+                    .Lane("ops", "Operations")
+                    .Phase("intake", "Intake")
+                    .Phase("fulfill", "Fulfill")
+                    .Start("qualify", "Qualify request", "sales", "intake")
+                    .Decision("approved", "Approved?", "sales", "fulfill")
+                    .End("ship", "Ship order", "ops", "fulfill")
+                    .Flow("qualify", "approved")
+                    .Handoff("approved", "ship")
+                    .Callout("approved", "approval-note", "Escalate exceptions before fulfillment", VisioSide.Right, 0.45, options => {
+                        options.Width = 2.65;
+                        options.Height = 0.72;
+                    })
+                    .Callout("qualify", "Confirm account owner", VisioSide.Left, 0.25));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape approved = Assert.Single(page.Shapes, shape => shape.Id == "approved");
+            VisioShape qualify = Assert.Single(page.Shapes, shape => shape.Id == "qualify");
+            VisioShape explicitCallout = Assert.Single(page.Callouts(), shape => shape.Id == "approval-note");
+            VisioShape generatedCallout = Assert.Single(page.Callouts(), shape => shape.Id == "qualify-callout");
+
+            Assert.True(explicitCallout.PinX > approved.PinX);
+            Assert.Equal(approved.PinY, explicitCallout.PinY, 6);
+            Assert.Equal(approved.Id, explicitCallout.CalloutTargetId);
+            Assert.Equal(2.65, explicitCallout.Width);
+            Assert.True(generatedCallout.PinX < qualify.PinX);
+            Assert.Equal(qualify.Id, generatedCallout.CalloutTargetId);
+
+            VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, explicitCallout));
+            Assert.Same(approved, leader.To);
+            Assert.Equal(EndArrow.None, leader.EndArrow);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void SwimlaneDiagramBuilderGeneratesUniqueCalloutIds() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
                 .SwimlaneDiagram("Generated", swim => swim
@@ -221,6 +264,27 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Unknown swimlane activity id", unknownTarget.Message);
             Assert.Contains("already exists", activityCollision.Message);
             Assert.Contains("already exists", laneCollision.Message);
+        }
+
+        [Fact]
+        public void SwimlaneDiagramBuilderRejectsAutoCalloutPlacementIssues() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentOutOfRangeException autoPlacement = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.SwimlaneDiagram("Invalid", swim => swim
+                    .Lane("ops", "Operations")
+                    .Phase("review", "Review")
+                    .Step("review", "Review", "ops", "review")
+                    .Callout("review", "Invalid", VisioSide.Auto)));
+            ArgumentOutOfRangeException badGap = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.SwimlaneDiagram("Invalid", swim => swim
+                    .Lane("ops", "Operations")
+                    .Phase("review", "Review")
+                    .Step("review", "Review", "ops", "review")
+                    .Callout("review", "Invalid", VisioSide.Right, double.NaN)));
+
+            Assert.Contains("Placement must be", autoPlacement.Message);
+            Assert.Contains("finite non-negative", badGap.Message);
         }
     }
 }
