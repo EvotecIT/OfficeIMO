@@ -363,6 +363,8 @@ public sealed class PdfReadDocument {
         string? alternateName = TryReadText(field, "TU");
         string? mappingName = TryReadText(field, "TM");
         int? flags = TryReadInteger(field, "Ff");
+        int? maxLength = TryReadPositiveInteger(field, "MaxLen");
+        IReadOnlyList<PdfFormFieldOption> options = ReadFormFieldOptions(field);
         bool isWidget = IsWidget(field);
         var widgets = new List<PdfFormWidget>();
         if (TryReadFormWidget(field, objectNumber, widgetPageNumbers, out PdfFormWidget? widget) && widget is not null) {
@@ -390,8 +392,19 @@ public sealed class PdfReadDocument {
             }
         }
 
-        if (hasTerminalShape && (fullName != null || hasReadableFieldState || alternateName != null || mappingName != null)) {
-            result.Add(new PdfFormField(objectNumber, fullName, partialName, fieldType, value, alternateName, mappingName, flags, widgets.Count == 0 ? null : widgets.AsReadOnly()));
+        if (hasTerminalShape && (fullName != null || hasReadableFieldState || alternateName != null || mappingName != null || maxLength.HasValue || options.Count > 0)) {
+            result.Add(new PdfFormField(
+                objectNumber,
+                fullName,
+                partialName,
+                fieldType,
+                value,
+                alternateName,
+                mappingName,
+                flags,
+                maxLength,
+                options.Count == 0 ? null : options,
+                widgets.Count == 0 ? null : widgets.AsReadOnly()));
         }
 
         if (fieldKids.Count == 0) {
@@ -509,6 +522,50 @@ public sealed class PdfReadDocument {
         return text;
     }
 
+    private IReadOnlyList<PdfFormFieldOption> ReadFormFieldOptions(PdfDictionary dictionary) {
+        if (!dictionary.Items.TryGetValue("Opt", out var optionsObject) ||
+            ResolveArray(optionsObject) is not PdfArray optionsArray ||
+            optionsArray.Items.Count == 0) {
+            return Array.Empty<PdfFormFieldOption>();
+        }
+
+        var options = new List<PdfFormFieldOption>();
+        for (int i = 0; i < optionsArray.Items.Count; i++) {
+            PdfObject? optionObject = ResolveObject(optionsArray.Items[i]);
+            if (optionObject is PdfArray pair &&
+                pair.Items.Count >= 2 &&
+                TryReadOptionText(pair.Items[0], out string? exportValue) &&
+                TryReadOptionText(pair.Items[1], out string? displayText)) {
+                options.Add(new PdfFormFieldOption(exportValue!, displayText!));
+                continue;
+            }
+
+            if (optionObject is not null && TryReadOptionText(optionObject, out string? value)) {
+                options.Add(new PdfFormFieldOption(value!, value!));
+            }
+        }
+
+        return options.Count == 0 ? Array.Empty<PdfFormFieldOption>() : options.AsReadOnly();
+    }
+
+    private bool TryReadOptionText(PdfObject value, out string? text) {
+        PdfObject? resolved = ResolveObject(value);
+        switch (resolved) {
+            case PdfStringObj stringObj:
+                text = stringObj.Value;
+                return true;
+            case PdfName name:
+                text = name.Name;
+                return true;
+            case PdfNumber number:
+                text = number.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                return true;
+            default:
+                text = null;
+                return false;
+        }
+    }
+
     private int? TryReadInteger(PdfDictionary dictionary, string key) {
         if (!dictionary.Items.TryGetValue(key, out var value) ||
             ResolveObject(value) is not PdfNumber number ||
@@ -519,6 +576,11 @@ public sealed class PdfReadDocument {
         }
 
         return (int)number.Value;
+    }
+
+    private int? TryReadPositiveInteger(PdfDictionary dictionary, string key) {
+        int? value = TryReadInteger(dictionary, key);
+        return value.HasValue && value.Value > 0 ? value.Value : null;
     }
 
     private void AddNamedDestination(List<PdfNamedDestination> result, PdfNamedDestination destination, PdfNamedDestinationTokenKind kind) {

@@ -39,7 +39,7 @@ public sealed class PdfFormField {
     private const int RichTextFlag = 33554432;
     private const int CommitOnSelectionChangeFlag = 67108864;
 
-    internal PdfFormField(int? objectNumber, string? name, string? partialName, string? fieldType, string? value, string? alternateName, string? mappingName, int? flags, IReadOnlyList<PdfFormWidget>? widgets = null) {
+    internal PdfFormField(int? objectNumber, string? name, string? partialName, string? fieldType, string? value, string? alternateName, string? mappingName, int? flags, int? maxLength = null, IReadOnlyList<PdfFormFieldOption>? options = null, IReadOnlyList<PdfFormWidget>? widgets = null) {
         ObjectNumber = objectNumber;
         Name = name;
         PartialName = partialName;
@@ -48,6 +48,8 @@ public sealed class PdfFormField {
         AlternateName = alternateName;
         MappingName = mappingName;
         Flags = flags;
+        MaxLength = maxLength;
+        Options = options ?? Array.Empty<PdfFormFieldOption>();
         Widgets = widgets ?? Array.Empty<PdfFormWidget>();
     }
 
@@ -97,6 +99,18 @@ public sealed class PdfFormField {
 
     /// <summary>Raw field flags from /Ff, when present.</summary>
     public int? Flags { get; }
+
+    /// <summary>Maximum text length from /MaxLen, when present on a simple field.</summary>
+    public int? MaxLength { get; }
+
+    /// <summary>Choice field options from /Opt, when readable.</summary>
+    public IReadOnlyList<PdfFormFieldOption> Options { get; }
+
+    /// <summary>Number of readable choice options.</summary>
+    public int OptionCount => Options.Count;
+
+    /// <summary>True when at least one choice option was readable.</summary>
+    public bool HasOptions => Options.Count > 0;
 
     /// <summary>True when the common read-only field flag is set.</summary>
     public bool IsReadOnly => HasFlag(ReadOnlyFlag);
@@ -179,6 +193,25 @@ public sealed class PdfFormField {
     private bool HasFlag(int flag) {
         return Flags.HasValue && (Flags.Value & flag) != 0;
     }
+}
+
+/// <summary>
+/// Simple AcroForm choice option read from a field /Opt array.
+/// </summary>
+public sealed class PdfFormFieldOption {
+    internal PdfFormFieldOption(string exportValue, string displayText) {
+        ExportValue = exportValue;
+        DisplayText = displayText;
+    }
+
+    /// <summary>Export value used by the form field.</summary>
+    public string ExportValue { get; }
+
+    /// <summary>User-facing option text displayed by PDF viewers.</summary>
+    public string DisplayText { get; }
+
+    /// <summary>True when the option provides separate export and display text.</summary>
+    public bool HasSeparateDisplayText => !string.Equals(ExportValue, DisplayText, StringComparison.Ordinal);
 }
 
 /// <summary>

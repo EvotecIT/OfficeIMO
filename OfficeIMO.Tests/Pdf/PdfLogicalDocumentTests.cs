@@ -151,6 +151,8 @@ public class PdfLogicalDocumentTests {
         Assert.True(text.IsNoExport);
         Assert.True(text.IsMultiline);
         Assert.True(text.IsPassword);
+        Assert.Equal(42, text.MaxLength);
+        Assert.False(text.HasOptions);
         Assert.False(text.IsButtonField);
         Assert.False(text.IsChoiceField);
 
@@ -179,6 +181,16 @@ public class PdfLogicalDocumentTests {
         Assert.True(choice.AllowsMultipleSelection);
         Assert.True(choice.DoesNotSpellCheck);
         Assert.True(choice.CommitsOnSelectionChange);
+        Assert.True(choice.HasOptions);
+        Assert.Equal(3, choice.OptionCount);
+        Assert.Equal("PL", choice.Options[0].ExportValue);
+        Assert.Equal("Poland", choice.Options[0].DisplayText);
+        Assert.True(choice.Options[0].HasSeparateDisplayText);
+        Assert.Equal("DE", choice.Options[1].ExportValue);
+        Assert.Equal("DE", choice.Options[1].DisplayText);
+        Assert.False(choice.Options[1].HasSeparateDisplayText);
+        Assert.Equal("US", choice.Options[2].ExportValue);
+        Assert.Equal("United States", choice.Options[2].DisplayText);
 
         PdfFormField signature = logical.FormFieldsByName["Approval"];
         Assert.Equal(PdfFormFieldKind.Signature, signature.Kind);
@@ -389,7 +401,7 @@ public class PdfLogicalDocumentTests {
             "<< /Fields [6 0 R 7 0 R 8 0 R 9 0 R 10 0 R 11 0 R] >>",
             "endobj",
             "6 0 obj",
-            "<< /FT /Tx /T (Notes) /V (Secret) /Ff 12295 >>",
+            "<< /FT /Tx /T (Notes) /V (Secret) /Ff 12295 /MaxLen 42 >>",
             "endobj",
             "7 0 obj",
             "<< /FT /Btn /T (Accept) /V /Yes >>",
@@ -401,7 +413,7 @@ public class PdfLogicalDocumentTests {
             "<< /FT /Btn /T (Submit) /Ff 65536 >>",
             "endobj",
             "10 0 obj",
-            "<< /FT /Ch /T (Country) /V (PL) /Ff 74317826 >>",
+            "<< /FT /Ch /T (Country) /V (PL) /Ff 74317826 /Opt [[(PL) (Poland)] (DE) [/US (United States)]] >>",
             "endobj",
             "11 0 obj",
             "<< /FT /Sig /T (Approval) >>",

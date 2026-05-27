@@ -1116,6 +1116,29 @@ public class PdfInspectorTests {
     }
 
     [Fact]
+    public void Inspect_ReadsAcroFormChoiceOptionsAndTextConstraintsForWrappers() {
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildChoiceAndTextConstraintFormPdf());
+
+        PdfFormField text = Assert.Single(info.FormFields, field => field.Name == "Notes");
+        Assert.Equal(PdfFormFieldKind.Text, text.Kind);
+        Assert.Equal(42, text.MaxLength);
+        Assert.False(text.HasOptions);
+
+        PdfFormField choice = Assert.Single(info.FormFields, field => field.Name == "Country");
+        Assert.Equal(PdfFormFieldKind.Choice, choice.Kind);
+        Assert.True(choice.HasOptions);
+        Assert.Equal(3, choice.OptionCount);
+        Assert.Equal("PL", choice.Options[0].ExportValue);
+        Assert.Equal("Poland", choice.Options[0].DisplayText);
+        Assert.True(choice.Options[0].HasSeparateDisplayText);
+        Assert.Equal("DE", choice.Options[1].ExportValue);
+        Assert.Equal("DE", choice.Options[1].DisplayText);
+        Assert.False(choice.Options[1].HasSeparateDisplayText);
+        Assert.Equal("US", choice.Options[2].ExportValue);
+        Assert.Equal("United States", choice.Options[2].DisplayText);
+    }
+
+    [Fact]
     public void Inspect_ReadsAcroFormWidgetGeometryForWrappers() {
         PdfDocumentInfo info = PdfInspector.Inspect(BuildWidgetFormPdf());
 
@@ -1709,6 +1732,41 @@ public class PdfInspectorTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildChoiceAndTextConstraintFormPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [6 0 R 7 0 R] >>",
+            "endobj",
+            "6 0 obj",
+            "<< /FT /Tx /T (Notes) /V (Secret) /MaxLen 42 >>",
+            "endobj",
+            "7 0 obj",
+            "<< /FT /Ch /T (Country) /V (PL) /Opt [[(PL) (Poland)] (DE) [/US (United States)]] >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 8 >>",
             "%%EOF"
         });
 
