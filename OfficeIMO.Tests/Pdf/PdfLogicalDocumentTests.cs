@@ -169,6 +169,11 @@ public class PdfLogicalDocumentTests {
         Assert.Equal(100, logicalWidget.Y1);
         Assert.Equal(36, logicalWidget.X2);
         Assert.Equal(116, logicalWidget.Y2);
+        Assert.True(logical.HasFormWidgets);
+        Assert.Same(logicalWidget, Assert.Single(logical.FormWidgets));
+        Assert.Same(logicalWidget, Assert.Single(logical.FormWidgetsByFieldName["AcceptTerms"]));
+        Assert.Same(logicalWidget, Assert.Single(logical.GetFormWidgets("AcceptTerms")));
+        Assert.Empty(logical.GetFormWidgets("Missing"));
         Assert.Contains(page.Elements, element => element.Kind == PdfLogicalElementKind.FormWidget);
         Assert.Contains(logical.Elements, element => element.Kind == PdfLogicalElementKind.FormWidget);
     }

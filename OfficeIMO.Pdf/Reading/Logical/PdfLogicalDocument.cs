@@ -38,8 +38,10 @@ public interface IPdfLogicalElement {
 /// </summary>
 public sealed class PdfLogicalDocument {
     private IReadOnlyList<IPdfLogicalElement>? _elements;
+    private IReadOnlyList<PdfLogicalFormWidget>? _formWidgets;
     private IReadOnlyDictionary<string, PdfFormField>? _formFieldsByName;
     private IReadOnlyList<string>? _formFieldNames;
+    private IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalFormWidget>>? _formWidgetsByFieldName;
 
     private PdfLogicalDocument(
         PdfMetadata metadata,
@@ -125,6 +127,57 @@ public sealed class PdfLogicalDocument {
         }
     }
 
+    /// <summary>All AcroForm widget annotations flattened in page order.</summary>
+    public IReadOnlyList<PdfLogicalFormWidget> FormWidgets {
+        get {
+            if (_formWidgets is not null) {
+                return _formWidgets;
+            }
+
+            var widgets = new List<PdfLogicalFormWidget>();
+            for (int i = 0; i < Pages.Count; i++) {
+                widgets.AddRange(Pages[i].FormWidgets);
+            }
+
+            _formWidgets = widgets.AsReadOnly();
+            return _formWidgets;
+        }
+    }
+
+    /// <summary>AcroForm widget annotations grouped by fully qualified field name.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalFormWidget>> FormWidgetsByFieldName {
+        get {
+            if (_formWidgetsByFieldName is not null) {
+                return _formWidgetsByFieldName;
+            }
+
+            var grouped = new Dictionary<string, List<PdfLogicalFormWidget>>(StringComparer.Ordinal);
+            IReadOnlyList<PdfLogicalFormWidget> widgets = FormWidgets;
+            for (int i = 0; i < widgets.Count; i++) {
+                PdfLogicalFormWidget widget = widgets[i];
+                string? fieldName = widget.FieldName;
+                if (fieldName is null || fieldName.Length == 0) {
+                    continue;
+                }
+
+                if (!grouped.TryGetValue(fieldName, out List<PdfLogicalFormWidget>? fieldWidgets)) {
+                    fieldWidgets = new List<PdfLogicalFormWidget>();
+                    grouped.Add(fieldName, fieldWidgets);
+                }
+
+                fieldWidgets.Add(widget);
+            }
+
+            var result = new Dictionary<string, IReadOnlyList<PdfLogicalFormWidget>>(StringComparer.Ordinal);
+            foreach (var item in grouped) {
+                result.Add(item.Key, item.Value.AsReadOnly());
+            }
+
+            _formWidgetsByFieldName = new System.Collections.ObjectModel.ReadOnlyDictionary<string, IReadOnlyList<PdfLogicalFormWidget>>(result);
+            return _formWidgetsByFieldName;
+        }
+    }
+
     /// <summary>Catalog page mode, for example UseOutlines or FullScreen, when present.</summary>
     public string? CatalogPageMode { get; }
 
@@ -158,10 +211,21 @@ public sealed class PdfLogicalDocument {
     /// <summary>True when at least one simple AcroForm field was read from the document catalog.</summary>
     public bool HasFormFields => FormFields.Count > 0;
 
+    /// <summary>True when at least one AcroForm widget annotation was placed on a logical page.</summary>
+    public bool HasFormWidgets => FormWidgets.Count > 0;
+
     /// <summary>Attempts to get a simple AcroForm field by its fully qualified field name.</summary>
     public bool TryGetFormField(string name, out PdfFormField? field) {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         return FormFieldsByName.TryGetValue(name, out field);
+    }
+
+    /// <summary>Returns logical widget annotations for a fully qualified form field name.</summary>
+    public IReadOnlyList<PdfLogicalFormWidget> GetFormWidgets(string fieldName) {
+        Guard.NotNullOrWhiteSpace(fieldName, nameof(fieldName));
+        return FormWidgetsByFieldName.TryGetValue(fieldName, out IReadOnlyList<PdfLogicalFormWidget>? widgets)
+            ? widgets
+            : Array.Empty<PdfLogicalFormWidget>();
     }
 
     /// <summary>All logical page elements flattened in page order.</summary>
