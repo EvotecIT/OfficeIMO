@@ -30,7 +30,12 @@ namespace OfficeIMO.Visio.Stencils {
                 return Array.Empty<VisioShape>();
             }
 
-            HashSet<string> reservedIds = new(page.Shapes.Select(shape => shape.Id), StringComparer.Ordinal);
+            HashSet<string> reservedIds = new(StringComparer.Ordinal);
+            ReserveExistingShapeIds(page.Shapes, reservedIds);
+            foreach (VisioConnector connector in page.Connectors) {
+                reservedIds.Add(connector.Id);
+            }
+
             int columns = Math.Min(effectiveOptions.Columns, stencils.Count);
             int rows = (int)Math.Ceiling(stencils.Count / (double)columns);
             double titleHeight = 0.46D;
@@ -155,6 +160,15 @@ namespace OfficeIMO.Visio.Stencils {
 
             reservedIds.Add(id);
             return id;
+        }
+
+        private static void ReserveExistingShapeIds(IEnumerable<VisioShape> shapes, HashSet<string> reservedIds) {
+            foreach (VisioShape shape in shapes) {
+                reservedIds.Add(shape.Id);
+                if (shape.Children.Count > 0) {
+                    ReserveExistingShapeIds(shape.Children, reservedIds);
+                }
+            }
         }
 
         private static void ValidateOptions(VisioStencilGalleryOptions options) {

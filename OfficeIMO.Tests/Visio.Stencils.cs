@@ -173,6 +173,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void StencilCatalogGalleryReservesExistingConnectorIds() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Gallery Catalog", builder => builder
+                .Add("gallery.api", "API", "Process", "Integration", 1.8, 0.9));
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Gallery", 5, 4);
+            VisioShape left = page.AddRectangle("left", 0.8, 0.8, 0.5, 0.5, "L");
+            VisioShape right = page.AddRectangle("right", 1.8, 0.8, 0.5, 0.5, "R");
+            page.AddConnector("gallery-title", left, right, ConnectorKind.Dynamic);
+
+            page.AddStencilGallery(catalog, new VisioStencilGalleryOptions {
+                IdPrefix = "gallery",
+                Columns = 1,
+                MaxShapes = 1,
+                Title = "Reusable palette"
+            });
+
+            Assert.Contains(page.Connectors, connector => connector.Id == "gallery-title");
+            Assert.Contains(page.Shapes, shape => shape.Id == "gallery-title-2" && shape.Text == "Reusable palette");
+            Assert.DoesNotContain(page.Shapes, shape => shape.Id == "gallery-title");
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void CustomStencilCatalogBuilderCreatesSearchablePaletteAndPlaceableShapes() {
             VisioStencilCatalog catalog = VisioStencilCatalog.Create("Custom Infrastructure", builder => builder
                 .Add("custom.cache", "Cache", "Process", "Infrastructure", 1.8, 0.9, "redis", "memory-store")
