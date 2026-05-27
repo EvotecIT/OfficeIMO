@@ -227,6 +227,7 @@ public class PdfReaderAndFooterRegressionTests {
         var span = Assert.Single(spans, item => item.Text == "Z \u20AC\u0104A");
         Assert.Equal(72, span.X, 3);
         Assert.Equal(720, span.Y, 3);
+        Assert.Equal(PdfWriter.EstimateSimpleTextWidth("Z \u20AC\u0104A", PdfStandardFont.Helvetica, 12), span.Advance, 3);
     }
 
     [Fact]

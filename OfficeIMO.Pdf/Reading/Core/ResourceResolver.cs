@@ -36,6 +36,7 @@ internal static class ResourceResolver {
         foreach (var kv in fontDict.Items) {
             var fontVal = ResolveDict(kv.Value, objects);
             if (fontVal is null) continue;
+            var fontResource = CreateFontResource(kv.Key, fontVal, objects);
             var subtype = fontVal.Get<PdfName>("Subtype")?.Name ?? string.Empty;
             if (string.Equals(subtype, "Type0", System.StringComparison.Ordinal)) {
                 if (TryBuildCidWidthMap(fontVal, objects, out var cidMap)) {
@@ -45,12 +46,12 @@ internal static class ResourceResolver {
                     map[kv.Key] = bytes => bytes != null ? (bytes.Length / 2d) * 1000.0 : 0.0; // conservative default
                 }
             } else {
-                string baseFont = (fontVal.Get<PdfName>("BaseFont")?.Name) ?? "";
                 int firstChar = (int)(fontVal.Get<PdfNumber>("FirstChar")?.Value ?? 0);
                 var widths = ResolveArray(fontVal.Items.TryGetValue("Widths", out var wobj) ? wobj : null, objects);
                 if (widths is null) {
-                    if (PdfWriter.TryGetStandardFontByBaseFontName(baseFont, out var standardFont)) {
-                        map[kv.Key] = bytes => PdfWriter.EstimateSimpleTextWidth1000(PdfWinAnsiEncoding.Decode(bytes), standardFont);
+                    if (PdfWriter.TryGetStandardFontByBaseFontName(fontResource.BaseFont, out var standardFont)) {
+                        var decoder = BuildDecoderForFont(fontResource);
+                        map[kv.Key] = bytes => PdfWriter.EstimateSimpleTextWidth1000(decoder(bytes), standardFont);
                     } else {
                         map[kv.Key] = bytes => (bytes?.Length ?? 0) * 500.0;
                     }
