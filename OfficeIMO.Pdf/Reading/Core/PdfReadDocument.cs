@@ -431,7 +431,7 @@ public sealed class PdfReadDocument {
         IReadOnlyList<PdfFormFieldOption> options = field.Items.ContainsKey("Opt") ? ReadFormFieldOptions(field) : inherited.Options;
         bool isWidget = IsWidget(field);
         var widgets = new List<PdfFormWidget>();
-        if (TryReadFormWidget(field, objectNumber, widgetPageNumbers, out PdfFormWidget? widget) && widget is not null) {
+        if (TryReadFormWidget(field, fullName, objectNumber, widgetPageNumbers, out PdfFormWidget? widget) && widget is not null) {
             widgets.Add(widget);
         }
 
@@ -444,7 +444,7 @@ public sealed class PdfReadDocument {
                 PdfDictionary? kid = ResolveObject(kidObject) as PdfDictionary;
                 if (kid is not null && IsWidget(kid) && !HasOwnFieldName(kid)) {
                     int? kidObjectNumber = TryGetObjectNumber(kidObject, kid);
-                    if (TryReadFormWidget(kid, kidObjectNumber, widgetPageNumbers, out PdfFormWidget? kidWidget) && kidWidget is not null) {
+                    if (TryReadFormWidget(kid, fullName, kidObjectNumber, widgetPageNumbers, out PdfFormWidget? kidWidget) && kidWidget is not null) {
                         widgets.Add(kidWidget);
                     }
 
@@ -538,7 +538,7 @@ public sealed class PdfReadDocument {
         return foundObjectNumber > 0 ? foundObjectNumber : null;
     }
 
-    private bool TryReadFormWidget(PdfDictionary dictionary, int? objectNumber, IReadOnlyDictionary<int, int> widgetPageNumbers, out PdfFormWidget? widget) {
+    private bool TryReadFormWidget(PdfDictionary dictionary, string? fieldName, int? objectNumber, IReadOnlyDictionary<int, int> widgetPageNumbers, out PdfFormWidget? widget) {
         widget = null;
         if (!IsWidget(dictionary) ||
             !TryReadRectangle(dictionary.Items.TryGetValue("Rect", out var rectObject) ? rectObject : null, out var rect)) {
@@ -552,6 +552,7 @@ public sealed class PdfReadDocument {
 
         widget = new PdfFormWidget(
             objectNumber,
+            fieldName,
             pageNumber,
             rect.X1,
             rect.Y1,

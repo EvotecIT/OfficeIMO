@@ -340,8 +340,9 @@ public sealed class PdfFormFieldOption {
 /// Simple AcroForm widget annotation geometry read from a PDF document.
 /// </summary>
 public sealed class PdfFormWidget {
-    internal PdfFormWidget(int? objectNumber, int? pageNumber, double x1, double y1, double x2, double y2, string? appearanceState, int? flags, IReadOnlyList<string>? normalAppearanceStates = null) {
+    internal PdfFormWidget(int? objectNumber, string? fieldName, int? pageNumber, double x1, double y1, double x2, double y2, string? appearanceState, int? flags, IReadOnlyList<string>? normalAppearanceStates = null) {
         ObjectNumber = objectNumber;
+        FieldName = fieldName;
         PageNumber = pageNumber;
         X1 = x1;
         Y1 = y1;
@@ -354,6 +355,9 @@ public sealed class PdfFormWidget {
 
     /// <summary>Indirect object number for the widget annotation, when known.</summary>
     public int? ObjectNumber { get; }
+
+    /// <summary>Fully qualified form field name associated with the widget, when known.</summary>
+    public string? FieldName { get; }
 
     /// <summary>One-based page number containing the widget annotation, when known.</summary>
     public int? PageNumber { get; }

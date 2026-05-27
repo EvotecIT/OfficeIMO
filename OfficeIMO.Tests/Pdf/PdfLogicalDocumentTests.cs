@@ -259,6 +259,7 @@ public class PdfLogicalDocumentTests {
         Assert.True(field.HasWidgets);
 
         PdfFormWidget widget = Assert.Single(field.Widgets);
+        Assert.Equal("AcceptTerms", widget.FieldName);
         Assert.Equal(8, widget.ObjectNumber);
         Assert.Equal(1, widget.PageNumber);
         Assert.Equal(20, widget.X1);

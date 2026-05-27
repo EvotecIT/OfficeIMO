@@ -1216,6 +1216,7 @@ public class PdfInspectorTests {
         Assert.Same(widget, Assert.Single(info.FormWidgetsByFieldName["AcceptTerms"]));
         Assert.Same(widget, Assert.Single(info.GetFormWidgets("AcceptTerms")));
         Assert.Empty(info.GetFormWidgets("Missing"));
+        Assert.Equal("AcceptTerms", widget.FieldName);
         Assert.Equal(8, widget.ObjectNumber);
         Assert.Equal(1, widget.PageNumber);
         Assert.Equal(20, widget.X1);
