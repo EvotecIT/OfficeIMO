@@ -9,6 +9,8 @@ public sealed class PdfDocumentInfo {
     private IReadOnlyList<string>? _linkDestinationNames;
     private IReadOnlyList<string>? _namedDestinationNames;
     private IReadOnlyList<string>? _formFieldNames;
+    private IReadOnlyDictionary<string, PdfFormField>? _formFieldsByName;
+    private IReadOnlyDictionary<PdfFormFieldKind, IReadOnlyList<PdfFormField>>? _formFieldsByKind;
 
     internal PdfDocumentInfo(IReadOnlyList<PdfPageInfo> pages, PdfMetadata metadata, IReadOnlyList<PdfOutlineItem> outlines, IReadOnlyList<PdfPageLabel> pageLabels, IReadOnlyList<PdfNamedDestination> namedDestinations, PdfDocumentOpenAction? openAction, PdfViewerPreferences? viewerPreferences, IReadOnlyList<PdfFormField> formFields, string? acroFormDefaultAppearance, bool? acroFormNeedAppearances, int? acroFormSignatureFlags, string? headerVersion, string? catalogPageMode, string? catalogPageLayout, string? catalogVersion, string? catalogLanguage, bool hasSignatures, bool hasForms, bool hasAnnotations, bool hasOutlines, bool hasCatalogViewSettings, bool hasPageLabels, bool hasCatalogNameTrees, bool hasNamedDestinations, bool hasOpenActions, bool hasViewerPreferences, bool hasTaggedContent, bool hasXmpMetadata, bool hasCatalogUri, bool hasOutputIntents, bool hasEmbeddedFiles, bool hasOptionalContent, bool hasActiveContent) {
         Pages = pages;
@@ -154,15 +156,57 @@ public sealed class PdfDocumentInfo {
                 return _formFieldNames;
             }
 
-            var names = new List<string>();
+            _formFieldNames = FormFieldsByName.Keys.ToArray();
+            return _formFieldNames;
+        }
+    }
+
+    /// <summary>Named simple AcroForm fields keyed by fully qualified field name.</summary>
+    public IReadOnlyDictionary<string, PdfFormField> FormFieldsByName {
+        get {
+            if (_formFieldsByName is not null) {
+                return _formFieldsByName;
+            }
+
+            var fields = new Dictionary<string, PdfFormField>(StringComparer.Ordinal);
             for (int i = 0; i < FormFields.Count; i++) {
-                if (!string.IsNullOrEmpty(FormFields[i].Name)) {
-                    names.Add(FormFields[i].Name!);
+                PdfFormField formField = FormFields[i];
+                string? name = formField.Name;
+                if (name is not null && name.Length > 0 && !fields.ContainsKey(name)) {
+                    fields.Add(name, formField);
                 }
             }
 
-            _formFieldNames = names.AsReadOnly();
-            return _formFieldNames;
+            _formFieldsByName = new System.Collections.ObjectModel.ReadOnlyDictionary<string, PdfFormField>(fields);
+            return _formFieldsByName;
+        }
+    }
+
+    /// <summary>Simple AcroForm fields grouped by common field kind.</summary>
+    public IReadOnlyDictionary<PdfFormFieldKind, IReadOnlyList<PdfFormField>> FormFieldsByKind {
+        get {
+            if (_formFieldsByKind is not null) {
+                return _formFieldsByKind;
+            }
+
+            var grouped = new Dictionary<PdfFormFieldKind, List<PdfFormField>>();
+            for (int i = 0; i < FormFields.Count; i++) {
+                PdfFormField formField = FormFields[i];
+                if (!grouped.TryGetValue(formField.Kind, out List<PdfFormField>? fields)) {
+                    fields = new List<PdfFormField>();
+                    grouped.Add(formField.Kind, fields);
+                }
+
+                fields.Add(formField);
+            }
+
+            var result = new Dictionary<PdfFormFieldKind, IReadOnlyList<PdfFormField>>();
+            foreach (var item in grouped) {
+                result.Add(item.Key, item.Value.AsReadOnly());
+            }
+
+            _formFieldsByKind = new System.Collections.ObjectModel.ReadOnlyDictionary<PdfFormFieldKind, IReadOnlyList<PdfFormField>>(result);
+            return _formFieldsByKind;
         }
     }
 
@@ -189,6 +233,19 @@ public sealed class PdfDocumentInfo {
 
     /// <summary>True when at least one simple AcroForm field was read from the document catalog.</summary>
     public bool HasReadableFormFields => FormFieldCount > 0;
+
+    /// <summary>Attempts to get a simple AcroForm field by its fully qualified field name.</summary>
+    public bool TryGetFormField(string name, out PdfFormField? field) {
+        Guard.NotNullOrWhiteSpace(name, nameof(name));
+        return FormFieldsByName.TryGetValue(name, out field);
+    }
+
+    /// <summary>Returns simple AcroForm fields for the requested common field kind.</summary>
+    public IReadOnlyList<PdfFormField> GetFormFields(PdfFormFieldKind kind) {
+        return FormFieldsByKind.TryGetValue(kind, out IReadOnlyList<PdfFormField>? fields)
+            ? fields
+            : Array.Empty<PdfFormField>();
+    }
 
     /// <summary>AcroForm default appearance string from /DA, when present.</summary>
     public string? AcroFormDefaultAppearance { get; }

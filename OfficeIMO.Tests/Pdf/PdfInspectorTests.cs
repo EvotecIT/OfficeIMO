@@ -1116,6 +1116,7 @@ public class PdfInspectorTests {
         Assert.True(info.HasAcroFormDefaultAppearance);
         Assert.Equal("/Helv 7 Tf 0.5 g", info.AcroFormDefaultAppearance);
         Assert.Equal(3, info.FormFieldCount);
+        Assert.Equal(3, info.FormFieldsByName.Count);
         Assert.Equal(new[] { "Person.Name", "AcceptTerms", "Selection.Country" }, info.FormFieldNames);
         Assert.Equal("Person.Name", info.FormFields[0].Name);
         Assert.Equal("Name", info.FormFields[0].PartialName);
@@ -1143,6 +1144,19 @@ public class PdfInspectorTests {
         Assert.Equal(2, info.FormFields[2].OptionCount);
         Assert.Equal(new[] { "DE" }, info.FormFields[2].SelectedOptions.Select(option => option.ExportValue).ToArray());
         Assert.Equal(new[] { "PL" }, info.FormFields[2].DefaultSelectedOptions.Select(option => option.ExportValue).ToArray());
+        Assert.True(info.TryGetFormField("Person.Name", out PdfFormField? nameField));
+        Assert.Same(info.FormFields[0], nameField);
+        Assert.Equal("OfficeIMO", nameField!.Value);
+        Assert.True(info.TryGetFormField("AcceptTerms", out PdfFormField? acceptField));
+        Assert.Same(info.FormFields[1], acceptField);
+        Assert.True(info.TryGetFormField("Selection.Country", out PdfFormField? countryField));
+        Assert.True(countryField!.IsChoiceField);
+        Assert.False(info.TryGetFormField("Missing", out PdfFormField? missingField));
+        Assert.Null(missingField);
+        Assert.Same(info.FormFields[0], Assert.Single(info.GetFormFields(PdfFormFieldKind.Text)));
+        Assert.Same(info.FormFields[1], Assert.Single(info.GetFormFields(PdfFormFieldKind.Button)));
+        Assert.Same(info.FormFields[2], Assert.Single(info.FormFieldsByKind[PdfFormFieldKind.Choice]));
+        Assert.Empty(info.GetFormFields(PdfFormFieldKind.Signature));
     }
 
     [Fact]
