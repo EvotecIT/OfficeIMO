@@ -120,6 +120,25 @@ public sealed class StructuredParagraphPage {
     public List<StructuredParagraph> Paragraphs { get; } = new();
 }
 
+/// <summary>Detected headings for a single document page.</summary>
+public sealed class StructuredHeadingPage {
+    /// <summary>Creates a page heading result.</summary>
+    public StructuredHeadingPage(int pageNumber, IEnumerable<StructuredHeading> headings) {
+        if (pageNumber < 1) {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
+        }
+
+        PageNumber = pageNumber;
+        Headings.AddRange(headings ?? throw new ArgumentNullException(nameof(headings)));
+    }
+
+    /// <summary>1-based page number.</summary>
+    public int PageNumber { get; }
+
+    /// <summary>Detected headings on this page.</summary>
+    public List<StructuredHeading> Headings { get; } = new();
+}
+
 /// <summary>Heuristic heading line inferred from font size and geometry.</summary>
 public sealed class StructuredHeading {
     /// <summary>Best-effort heading level, where 1 is the largest heading tier.</summary>

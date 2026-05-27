@@ -236,6 +236,42 @@ public sealed class PdfReadLayoutSmokeTests {
         Assert.Equal(1, heading.Level);
         Assert.True(heading.FontSize > page.Paragraphs[0].Lines[0].FontSize);
         Assert.DoesNotContain(page.Paragraphs, paragraph => paragraph.Text.Contains("Structured Heading", StringComparison.Ordinal));
+
+        StructuredHeadingPage headingPage = Assert.Single(PdfTextExtractor.ExtractHeadingsByPage(bytes, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }));
+        StructuredHeading extractedHeading = Assert.Single(headingPage.Headings);
+        Assert.Equal(1, headingPage.PageNumber);
+        Assert.Equal("Structured Heading", extractedHeading.Text);
+
+        using var stream = new MemoryStream(bytes);
+        StructuredHeadingPage streamHeadingPage = Assert.Single(PdfTextExtractor.ExtractHeadingsByPage(stream, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }));
+        Assert.Equal(1, streamHeadingPage.PageNumber);
+        Assert.Contains(streamHeadingPage.Headings, item => item.Text == "Structured Heading");
+
+        var rangeHeadingPages = PdfTextExtractor.ExtractHeadingsByPageRanges(bytes, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }, PdfPageRange.ParseMany("1,1"));
+        Assert.Equal(2, rangeHeadingPages.Count);
+        Assert.All(rangeHeadingPages, item => Assert.Contains(item.Headings, heading => heading.Text == "Structured Heading"));
+
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-pdf-heading-ranges-" + Guid.NewGuid().ToString("N"));
+        string inputPath = Path.Combine(directory, "headings.pdf");
+        try {
+            Directory.CreateDirectory(directory);
+            File.WriteAllBytes(inputPath, bytes);
+
+            StructuredHeadingPage pathHeadingPage = Assert.Single(PdfTextExtractor.ExtractHeadingsByPageRanges(inputPath, new PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            }, PdfPageRange.ParseMany("1")));
+            Assert.Contains(pathHeadingPage.Headings, item => item.Text == "Structured Heading");
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
     }
 
     [Fact]
@@ -251,6 +287,17 @@ public sealed class PdfReadLayoutSmokeTests {
         Assert.Contains(structuredPages[1].Lines, line => Normalize(line).Contains("Firstpagetable", StringComparison.Ordinal));
         Assert.Contains(structuredPages[2].Lines, line => Normalize(line).Contains("Secondpagemarker", StringComparison.Ordinal));
         Assert.Contains(structuredPages[3].Lines, line => Normalize(line).Contains("Thirdpagetable", StringComparison.Ordinal));
+
+        var headingPages = PdfTextExtractor.ExtractHeadingsByPageRanges(bytes, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }, PdfPageRange.ParseMany("3,1-2,3"));
+
+        Assert.Equal(4, headingPages.Count);
+        Assert.Equal(3, headingPages[0].PageNumber);
+        Assert.Equal(1, headingPages[1].PageNumber);
+        Assert.Equal(2, headingPages[2].PageNumber);
+        Assert.Equal(3, headingPages[3].PageNumber);
+        Assert.Empty(headingPages[0].Headings);
 
         var paragraphPages = PdfTextExtractor.ExtractParagraphsByPageRanges(bytes, new PdfTextLayoutOptions {
             ForceSingleColumn = true
@@ -286,6 +333,23 @@ public sealed class PdfReadLayoutSmokeTests {
         try {
             Directory.CreateDirectory(directory);
             File.WriteAllBytes(inputPath, bytes);
+
+            var pathHeadingPages = PdfTextExtractor.ExtractHeadingsByPageRanges(inputPath, new PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            }, PdfPageRange.ParseMany("1"));
+
+            StructuredHeadingPage pathHeadingPage = Assert.Single(pathHeadingPages);
+            Assert.Equal(1, pathHeadingPage.PageNumber);
+            Assert.Empty(pathHeadingPage.Headings);
+
+            using var headingStream = new MemoryStream(bytes);
+            var streamHeadingPages = PdfTextExtractor.ExtractHeadingsByPageRanges(headingStream, new PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            }, PdfPageRange.ParseMany("2"));
+
+            StructuredHeadingPage streamHeadingPage = Assert.Single(streamHeadingPages);
+            Assert.Equal(2, streamHeadingPage.PageNumber);
+            Assert.Empty(streamHeadingPage.Headings);
 
             var pathParagraphPages = PdfTextExtractor.ExtractParagraphsByPageRanges(inputPath, new PdfTextLayoutOptions {
                 ForceSingleColumn = true
@@ -351,6 +415,13 @@ public sealed class PdfReadLayoutSmokeTests {
         Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractStructuredByPageRanges(bytes));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractStructuredByPageRanges(bytes, default(PdfPageRange)));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractStructuredByPageRanges(bytes, PdfPageRange.From(4, 4)));
+
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractHeadingsByPageRanges((byte[])null!, PdfPageRange.From(1, 1)));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractHeadingsByPageRanges(bytes, (PdfPageRange[])null!));
+        Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractHeadingsByPageRanges(bytes));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractHeadingsByPageRanges(bytes, default(PdfPageRange)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractHeadingsByPageRanges(bytes, PdfPageRange.From(4, 4)));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractHeadingsByPageRanges((string)null!, PdfPageRange.From(1, 1)));
 
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractParagraphsByPageRanges((byte[])null!, PdfPageRange.From(1, 1)));
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractParagraphsByPageRanges(bytes, (PdfPageRange[])null!));

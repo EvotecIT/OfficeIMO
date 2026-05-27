@@ -66,6 +66,21 @@ public static class PdfReadDocumentExtensions {
     }
 
     /// <summary>
+    /// Extracts detected headings grouped by page while preserving heading geometry.
+    /// </summary>
+    /// <param name="doc">Source document.</param>
+    /// <param name="options">Optional layout options.</param>
+    public static IReadOnlyList<StructuredHeadingPage> ExtractHeadingsByPage(this PdfReadDocument doc, PdfTextLayoutOptions? options = null) {
+        var pages = new List<StructuredHeadingPage>(doc.Pages.Count);
+        for (int i = 0; i < doc.Pages.Count; i++) {
+            var structuredPage = doc.Pages[i].ExtractStructured(options);
+            pages.Add(new StructuredHeadingPage(i + 1, structuredPage.Headings));
+        }
+
+        return pages.AsReadOnly();
+    }
+
+    /// <summary>
     /// Extracts simple structured content (lines, TOC rows, list items, leader rows) for the whole document.
     /// </summary>
     /// <param name="doc">Source document.</param>
