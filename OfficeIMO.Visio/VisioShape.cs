@@ -117,7 +117,7 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Gets the universal name of the master.
         /// </summary>
-        public string? MasterNameU => Master?.NameU;
+        public string? MasterNameU => Master?.NameU ?? NameU;
 
         /// <summary>
         /// Gets or sets the X coordinate of the pin.

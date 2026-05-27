@@ -434,7 +434,6 @@ namespace OfficeIMO.Visio.Diagrams {
             double width = TimelineWidth();
             VisioShape axis = new("timeline-axis", _leftMargin + (width / 2D), _axisY, width, _axisHeight, string.Empty) {
                 NameU = "Rectangle",
-                Master = _document.EnsureBuiltinMaster("Rectangle")
             };
             _theme.Emphasis.ApplyTo(axis);
             page.Shapes.Add(axis);
@@ -451,7 +450,6 @@ namespace OfficeIMO.Visio.Diagrams {
 
             VisioShape label = new(id + "-label", x, _axisY - 0.42D, 1.05, 0.28, FormatShortDate(date)) {
                 NameU = "Rectangle",
-                Master = _document.EnsureBuiltinMaster("Rectangle")
             };
             _theme.Container.ApplyTo(label);
             page.Shapes.Add(label);
@@ -465,7 +463,6 @@ namespace OfficeIMO.Visio.Diagrams {
                 double y = SpanY(span);
                 VisioShape shape = new(span.Id, startX + (width / 2D), y, width, _spanHeight, span.Text) {
                     NameU = "Rectangle",
-                    Master = _document.EnsureBuiltinMaster("Rectangle")
                 };
                 _theme.Primary.ApplyTo(shape);
                 page.Shapes.Add(shape);
@@ -494,7 +491,6 @@ namespace OfficeIMO.Visio.Diagrams {
 
                 VisioShape marker = new(milestone.Id, x, markerY, _milestoneSize, _milestoneSize, string.Empty) {
                     NameU = GetMarkerMaster(milestone.Kind),
-                    Master = _document.EnsureBuiltinMaster(GetMarkerMaster(milestone.Kind))
                 };
                 GetMilestoneStyle(milestone.Kind).ApplyTo(marker);
                 page.Shapes.Add(marker);
@@ -502,7 +498,6 @@ namespace OfficeIMO.Visio.Diagrams {
 
                 VisioShape label = new(GetMilestoneLabelId(milestone.Id), x, labelY, _labelWidth, _labelHeight, GetMilestoneText(milestone)) {
                     NameU = "Rectangle",
-                    Master = _document.EnsureBuiltinMaster("Rectangle")
                 };
                 GetMilestoneLabelStyle(milestone.Kind).ApplyTo(label);
                 page.Shapes.Add(label);

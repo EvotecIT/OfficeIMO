@@ -42,7 +42,7 @@ namespace OfficeIMO.Visio.Diagrams {
         public double ProcessHeight { get; set; } = 1.05;
 
         /// <summary>Default process text style.</summary>
-        public VisioTextStyle? ProcessTextStyle { get; set; }
+        public VisioTextStyle? ProcessTextStyle { get; set; } = FilledNodeText();
 
         /// <summary>Default decision width in page units.</summary>
         public double DecisionWidth { get; set; } = 2.35;
@@ -51,7 +51,7 @@ namespace OfficeIMO.Visio.Diagrams {
         public double DecisionHeight { get; set; } = 1.45;
 
         /// <summary>Default decision text style.</summary>
-        public VisioTextStyle? DecisionTextStyle { get; set; }
+        public VisioTextStyle? DecisionTextStyle { get; set; } = FilledNodeText();
 
         /// <summary>Default terminator width in page units.</summary>
         public double TerminatorWidth { get; set; } = 2.35;
@@ -60,16 +60,24 @@ namespace OfficeIMO.Visio.Diagrams {
         public double TerminatorHeight { get; set; } = 0.9;
 
         /// <summary>Default terminator text style.</summary>
-        public VisioTextStyle? TerminatorTextStyle { get; set; }
+        public VisioTextStyle? TerminatorTextStyle { get; set; } = FilledNodeText();
 
         /// <summary>Default continuation marker diameter in page units.</summary>
         public double MarkerDiameter { get; set; } = 0.55;
 
         /// <summary>Default continuation marker text style.</summary>
-        public VisioTextStyle? MarkerTextStyle { get; set; }
+        public VisioTextStyle? MarkerTextStyle { get; set; } = FilledNodeText(10);
 
         /// <summary>Default connector label text style.</summary>
-        public VisioTextStyle? ConnectorTextStyle { get; set; }
+        public VisioTextStyle? ConnectorTextStyle { get; set; } = new VisioTextStyle {
+            FontFamily = "Aptos",
+            Color = Color.FromRgb(20, 75, 120),
+            Size = 9.5,
+            HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+            VerticalAlignment = VisioTextVerticalAlignment.Middle,
+            BackgroundColor = Color.FromRgb(255, 255, 255),
+            BackgroundTransparency = 8
+        };
 
         /// <summary>Default title text style.</summary>
         public VisioTextStyle? TitleTextStyle { get; set; } = new VisioTextStyle {
@@ -110,5 +118,18 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Default blue/green OfficeIMO flowchart theme.</summary>
         public static VisioFlowchartTheme ModernBlueGreen() => new VisioFlowchartTheme();
+
+        private static VisioTextStyle FilledNodeText(double size = 9.5D) => new VisioTextStyle {
+            FontFamily = "Aptos",
+            Color = Color.FromRgb(255, 255, 255),
+            Size = size,
+            Bold = true,
+            HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+            VerticalAlignment = VisioTextVerticalAlignment.Middle,
+            LeftMargin = 0.12,
+            RightMargin = 0.12,
+            TopMargin = 0.08,
+            BottomMargin = 0.08
+        };
     }
 }

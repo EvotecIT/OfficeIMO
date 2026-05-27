@@ -513,7 +513,6 @@ namespace OfficeIMO.Visio.Diagrams {
                 double y = (bottom + top) / 2D;
                 VisioShape shape = new(GetBandShapeId(band.Id), x, y, width, height, band.Text) {
                     NameU = "Rectangle",
-                    Master = _document.EnsureBuiltinMaster("Rectangle")
                 };
                 _theme.Container.ApplyTo(shape);
                 shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR", prompt: "OfficeIMO semantic kind");
@@ -546,7 +545,6 @@ namespace OfficeIMO.Visio.Diagrams {
                 GetNodeShape(node.Kind, out string masterNameU, out double width, out double height);
                 VisioShape shape = new(node.Id, node.X, node.Y, width, height, GetNodeText(node)) {
                     NameU = masterNameU,
-                    Master = _document.EnsureBuiltinMaster(masterNameU)
                 };
                 GetNodeStyle(node.Kind).ApplyTo(shape);
                 node.Shape = shape;

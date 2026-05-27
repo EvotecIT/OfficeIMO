@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Buying", page.Name);
             Assert.Equal(new[] { "start", "consult", "agreement", "close" }, page.Shapes.Select(shape => shape.Id).ToArray());
             Assert.Equal(new[] { "Ellipse", "Process", "Decision", "Ellipse" }, page.Shapes.Select(shape => shape.NameU).ToArray());
-            Assert.Equal(new[] { "Ellipse", "Process", "Decision", "Ellipse" }, page.Shapes.Select(shape => shape.Master?.NameU).ToArray());
+            Assert.All(page.Shapes, shape => Assert.Null(shape.Master));
             Assert.Equal(4, page.Connectors.Count);
             Assert.Contains(page.Connectors, connector => connector.Label == "No");
             Assert.All(page.Connectors, connector => Assert.Equal(EndArrow.Triangle, connector.EndArrow));

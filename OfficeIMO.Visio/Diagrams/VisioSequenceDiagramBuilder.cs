@@ -250,7 +250,7 @@ namespace OfficeIMO.Visio.Diagrams {
             double lifelineBottomY = Math.Max(_bottomMargin, firstMessageY - (messageRows * _messageSpacing));
 
             bool previousMastersByDefault = _document.UseMastersByDefault;
-            _document.UseMastersByDefault = true;
+            _document.UseMastersByDefault = false;
             try {
                 VisioPage page = _document.AddPage(_pageName, pageWidth, pageHeight, _unit);
                 page.Grid(visible: false, snap: true);
@@ -304,7 +304,6 @@ namespace OfficeIMO.Visio.Diagrams {
             string masterNameU = GetParticipantMaster(participant.Kind);
             VisioShape shape = new(participant.Id, x, y, _participantWidth, _participantHeight, participant.Text) {
                 NameU = masterNameU,
-                Master = _document.EnsureBuiltinMaster(masterNameU)
             };
             GetParticipantStyle(participant.Kind).ApplyTo(shape);
             shape.SetUserCell(VisioSemanticUserCells.Kind, "SequenceParticipant", "STR", prompt: "OfficeIMO semantic kind");

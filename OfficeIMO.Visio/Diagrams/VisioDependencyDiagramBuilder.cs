@@ -388,7 +388,6 @@ namespace OfficeIMO.Visio.Diagrams {
                 GetNodeShape(node.Kind, out string masterNameU, out double width, out double height);
                 VisioShape shape = new(node.Id, XForLayer(node.Layer), YForRow(node.Layer, node.Row), width, height, node.Text) {
                     NameU = masterNameU,
-                    Master = _document.EnsureBuiltinMaster(masterNameU)
                 };
                 GetNodeStyle(node.Kind).ApplyTo(shape);
                 node.Shape = shape;

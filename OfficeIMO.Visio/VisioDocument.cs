@@ -390,10 +390,8 @@ namespace OfficeIMO.Visio {
         }
 
         private static VisioShape CreateMasterBlueprint(string nameU, BuiltinMasterDefinition? definition) {
-            VisioShape blueprint = new("1") {
-                NameU = nameU,
-                Width = 1,
-                Height = 1
+            VisioShape blueprint = new("1", 0.5, 0.5, 1, 1, string.Empty) {
+                NameU = nameU
             };
 
             if (definition?.GeometryKind != BuiltinGeometryKind.DynamicConnector) {

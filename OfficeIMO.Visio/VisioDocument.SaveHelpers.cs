@@ -269,6 +269,9 @@ namespace OfficeIMO.Visio {
         private static void WriteEllipseGeometry(XmlWriter writer, string ns, double width, double height) {
             double rx = width / 2.0;
             double ry = height / 2.0;
+            double centerX = rx;
+            double centerY = ry;
+            const int segments = 24;
             writer.WriteStartElement("Section", ns);
             writer.WriteAttributeString("N", "Geometry");
             writer.WriteAttributeString("IX", "0");
@@ -276,26 +279,18 @@ namespace OfficeIMO.Visio {
 
             writer.WriteStartElement("Row", ns);
             writer.WriteAttributeString("T", "MoveTo");
-            WriteCell(writer, ns, "X", 0);
-            WriteCell(writer, ns, "Y", ry);
+            WriteCell(writer, ns, "X", centerX + rx);
+            WriteCell(writer, ns, "Y", centerY);
             writer.WriteEndElement();
 
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "EllipticalArcTo");
-            WriteCell(writer, ns, "X", width);
-            WriteCell(writer, ns, "Y", ry);
-            WriteCell(writer, ns, "A", ry);
-            WriteCell(writer, ns, "B", width);
-            writer.WriteEndElement();
-
-            writer.WriteStartElement("Row", ns);
-            writer.WriteAttributeString("T", "EllipticalArcTo");
-            // Explicitly close back to the leftmost point to avoid viewer quirks
-            WriteCell(writer, ns, "X", 0);
-            WriteCell(writer, ns, "Y", ry);
-            WriteCell(writer, ns, "A", ry);
-            WriteCell(writer, ns, "B", width);
-            writer.WriteEndElement();
+            for (int i = 1; i <= segments; i++) {
+                double angle = (Math.PI * 2D * i) / segments;
+                writer.WriteStartElement("Row", ns);
+                writer.WriteAttributeString("T", "LineTo");
+                WriteCell(writer, ns, "X", centerX + (Math.Cos(angle) * rx));
+                WriteCell(writer, ns, "Y", centerY + (Math.Sin(angle) * ry));
+                writer.WriteEndElement();
+            }
 
             writer.WriteEndElement();
         }

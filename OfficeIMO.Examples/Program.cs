@@ -38,6 +38,16 @@ namespace OfficeIMO.Examples {
             Pdf.ShowcaseManipulationPdf.Example_Pdf_ShowcaseManipulation(folderPath, false);
         }
 
+        private static void RunVisioShowcaseExamples(string folderPath, string[] args) {
+            bool exportPreviews = HasArgument(args, "--visio-export")
+                || HasArgument(args, "--visio-showcase-export")
+                || HasArgument(args, "--visio-preview");
+            bool openVisio = HasArgument(args, "--open-visio")
+                || HasArgument(args, "--visio-open");
+
+            Visio.VisioShowcase.Example_VisioShowcase(folderPath, openVisio, exportPreviews);
+        }
+
         private static void RunPowerPointExamples(string folderPath) {
             DateTime startedUtc = DateTime.UtcNow.AddSeconds(-2);
 
@@ -150,6 +160,11 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--visio-showcase") || HasArgument(args, "--visio")) {
+                RunVisioShowcaseExamples(folderPath, args);
+                return;
+            }
+
             // Visio - Core Examples
             // Visio.BasicVisioDocument.Example_BasicVisio(folderPath, false);
             // Visio.FlowchartBuilder.Example_FlowchartBuilder(folderPath, false);
@@ -161,6 +176,7 @@ namespace OfficeIMO.Examples {
             // Visio.SwimlaneDiagramBuilder.Example_SwimlaneDiagramBuilder(folderPath, false);
             // Visio.OrgChartDiagramBuilder.Example_OrgChartDiagramBuilder(folderPath, false);
             // Visio.TimelineDiagramBuilder.Example_TimelineDiagramBuilder(folderPath, false);
+            // Visio.SequenceDiagramBuilder.Example_SequenceDiagramBuilder(folderPath, false);
             // Visio.StencilCatalog.Example_StencilCatalog(folderPath, false);
             // Visio.QueryAndSelection.Example_QueryAndSelection(folderPath, false);
             // Visio.LayoutEditing.Example_LayoutEditing(folderPath, false);

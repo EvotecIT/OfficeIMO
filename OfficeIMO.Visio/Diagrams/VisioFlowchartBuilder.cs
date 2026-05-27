@@ -274,7 +274,7 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             bool previousMastersByDefault = _document.UseMastersByDefault;
-            _document.UseMastersByDefault = true;
+            _document.UseMastersByDefault = false;
             try {
                 VisioPage page = _document.AddPage(_pageName, _pageWidth, _pageHeight, _unit);
                 page.Grid(visible: false, snap: true);
@@ -407,8 +407,6 @@ namespace OfficeIMO.Visio.Diagrams {
             if (textStyle != null) {
                 shape.TextStyle = textStyle.Clone();
             }
-
-            shape.Master = _document.EnsureBuiltinMaster(nameU);
             page.Shapes.Add(shape);
 
             return shape;

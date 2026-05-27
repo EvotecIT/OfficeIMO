@@ -10,7 +10,7 @@ using Color = OfficeIMO.Drawing.OfficeColor;
 namespace OfficeIMO.Tests {
     public class VisioTextStyleTests {
         [Fact]
-        public void VisioTextStyleWritesCharParaAndTextBlockCells() {
+        public void VisioTextStyleWritesCharacterParagraphAndTextBlockCells() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Text");
@@ -64,15 +64,15 @@ namespace OfficeIMO.Tests {
             Assert.Equal("0.225", Cell(shape, ns, "TxtLocPinY").Attribute("V")?.Value);
             Assert.Equal("0.25", Cell(shape, ns, "TxtAngle").Attribute("V")?.Value);
 
-            XElement charSection = SingleSection(shape, ns, "Char");
+            XElement charSection = SingleSection(shape, ns, "Character");
             XElement charRow = Assert.Single(charSection.Elements(ns + "Row"));
             Assert.Equal("0", Cell(charRow, ns, "Font").Attribute("V")?.Value);
             Assert.Equal("#336699", Cell(charRow, ns, "Color").Attribute("V")?.Value);
-            Assert.Equal("13.5", Cell(charRow, ns, "Size").Attribute("V")?.Value);
+            Assert.Equal("0.1875", Cell(charRow, ns, "Size").Attribute("V")?.Value);
             Assert.Equal("PT", Cell(charRow, ns, "Size").Attribute("U")?.Value);
             Assert.Equal("3", Cell(charRow, ns, "Style").Attribute("V")?.Value);
 
-            XElement paraSection = SingleSection(shape, ns, "Para");
+            XElement paraSection = SingleSection(shape, ns, "Paragraph");
             XElement paraRow = Assert.Single(paraSection.Elements(ns + "Row"));
             Assert.Equal("1", Cell(paraRow, ns, "HorzAlign").Attribute("V")?.Value);
         }
@@ -132,14 +132,14 @@ namespace OfficeIMO.Tests {
             Assert.Empty(VisioValidator.Validate(savedPath));
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
             XElement savedShape = FindShape(ReadXml(savedPath, "visio/pages/page1.xml"), ns, "Round tripped");
-            Assert.Single(savedShape.Elements(ns + "Section"), section => (string?)section.Attribute("N") == "Char");
-            Assert.Single(savedShape.Elements(ns + "Section"), section => (string?)section.Attribute("N") == "Para");
+            Assert.Single(savedShape.Elements(ns + "Section"), section => (string?)section.Attribute("N") == "Character");
+            Assert.Single(savedShape.Elements(ns + "Section"), section => (string?)section.Attribute("N") == "Paragraph");
             Assert.Single(ReadXml(savedPath, "visio/document.xml")
                 .Descendants(ns + "FaceName"), element => (string?)element.Attribute("Name") == "Consolas");
         }
 
         [Fact]
-        public void ConnectorLabelTextStyleWritesCharParaAndTextBlockCells() {
+        public void ConnectorLabelTextStyleWritesCharacterParagraphAndTextBlockCells() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("ConnectorText");
@@ -183,15 +183,15 @@ namespace OfficeIMO.Tests {
             Assert.Equal("1.4", Cell(connector, ns, "TxtWidth").Attribute("V")?.Value);
             Assert.Equal("0.35", Cell(connector, ns, "TxtHeight").Attribute("V")?.Value);
 
-            XElement charSection = SingleSection(connector, ns, "Char");
+            XElement charSection = SingleSection(connector, ns, "Character");
             XElement charRow = Assert.Single(charSection.Elements(ns + "Row"));
             Assert.Equal("0", Cell(charRow, ns, "Font").Attribute("V")?.Value);
             Assert.Equal("#1E90FF", Cell(charRow, ns, "Color").Attribute("V")?.Value);
-            Assert.Equal("9.5", Cell(charRow, ns, "Size").Attribute("V")?.Value);
+            Assert.Equal("0.131944444444444", Cell(charRow, ns, "Size").Attribute("V")?.Value);
             Assert.Equal("PT", Cell(charRow, ns, "Size").Attribute("U")?.Value);
             Assert.Equal("5", Cell(charRow, ns, "Style").Attribute("V")?.Value);
 
-            XElement paraSection = SingleSection(connector, ns, "Para");
+            XElement paraSection = SingleSection(connector, ns, "Paragraph");
             XElement paraRow = Assert.Single(paraSection.Elements(ns + "Row"));
             Assert.Equal("1", Cell(paraRow, ns, "HorzAlign").Attribute("V")?.Value);
             Assert.Single(ReadXml(filePath, "visio/document.xml")
@@ -245,8 +245,8 @@ namespace OfficeIMO.Tests {
             Assert.Empty(VisioValidator.Validate(savedPath));
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
             XElement savedConnector = FindShape(ReadXml(savedPath, "visio/pages/page1.xml"), ns, "Denied");
-            Assert.Single(savedConnector.Elements(ns + "Section"), section => (string?)section.Attribute("N") == "Char");
-            Assert.Single(savedConnector.Elements(ns + "Section"), section => (string?)section.Attribute("N") == "Para");
+            Assert.Single(savedConnector.Elements(ns + "Section"), section => (string?)section.Attribute("N") == "Character");
+            Assert.Single(savedConnector.Elements(ns + "Section"), section => (string?)section.Attribute("N") == "Paragraph");
             Assert.Single(ReadXml(savedPath, "visio/document.xml")
                 .Descendants(ns + "FaceName"), element => (string?)element.Attribute("Name") == "Consolas");
         }

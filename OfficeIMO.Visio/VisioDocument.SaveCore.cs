@@ -709,6 +709,7 @@ namespace OfficeIMO.Visio {
 
             if (effectiveMaster != null) {
                 writer.WriteAttributeString("Master", GetPackageMasterId(packageMasters, effectiveMaster));
+                writer.WriteAttributeString("MasterShape", shape.MasterShapeId ?? "1");
             }
 
             KeyValuePair<string, string>? originalIdEntry = GetOriginalIdEntry(persistedIds, shape.Id);
@@ -1215,7 +1216,9 @@ namespace OfficeIMO.Visio {
                 WriteUserSection(writer, ns, shape.UserCells);
                 WriteTextStyleSections(writer, ns, shape.TextStyle);
                 WriteHyperlinkSection(writer, ns, shape.Hyperlinks);
-                WritePreservedGeometrySections(writer, shape.PreservedGeometrySections);
+                double geometryWidth = shape.Width > 0 ? shape.Width : masterWidth;
+                double geometryHeight = shape.Height > 0 ? shape.Height : masterHeight;
+                WriteShapeGeometry(writer, ns, shape.PreservedGeometrySections, master.NameU, geometryWidth, geometryHeight);
                 WriteConnectionSection(writer, ns, shape.ConnectionPoints);
                 WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData);
                 WriteTextElement(writer, ns, shape.Text, shape.PreservedTextElement, shape.PreservedTextValue);
@@ -1257,6 +1260,7 @@ namespace OfficeIMO.Visio {
             WriteUserSection(writer, ns, shape.UserCells);
             WriteTextStyleSections(writer, ns, shape.TextStyle);
             WriteHyperlinkSection(writer, ns, shape.Hyperlinks);
+            WriteShapeGeometry(writer, ns, shape.PreservedGeometrySections, master.NameU, widthValue, heightValue);
             WriteConnectionSection(writer, ns, shape.ConnectionPoints);
             WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData);
             WriteTextElement(writer, ns, shape.Text, shape.PreservedTextElement, shape.PreservedTextValue);
@@ -1599,7 +1603,7 @@ namespace OfficeIMO.Visio {
             }
 
             writer.WriteStartElement("Section", ns);
-            writer.WriteAttributeString("N", "Char");
+            writer.WriteAttributeString("N", "Character");
             writer.WriteStartElement("Row", ns);
             writer.WriteAttributeString("IX", "0");
 
@@ -1612,7 +1616,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (textStyle.Size.HasValue) {
-                WriteCell(writer, ns, "Size", textStyle.Size.Value, "PT", null);
+                WriteCell(writer, ns, "Size", textStyle.Size.Value / 72D, "PT", null);
             }
 
             if (TryGetCharStyleValue(textStyle, out int styleValue)) {
@@ -1629,7 +1633,7 @@ namespace OfficeIMO.Visio {
             }
 
             writer.WriteStartElement("Section", ns);
-            writer.WriteAttributeString("N", "Para");
+            writer.WriteAttributeString("N", "Paragraph");
             writer.WriteStartElement("Row", ns);
             writer.WriteAttributeString("IX", "0");
             WriteCell(writer, ns, "HorzAlign", (int)textStyle.HorizontalAlignment.Value);

@@ -40,11 +40,11 @@ namespace OfficeIMO.Tests {
                 return "visio/masters/" + (string)rel.Attribute("Target")!;
             }
 
-            // Circle master -> must contain EllipticalArcTo rows
+            // Circle master -> must contain enough line rows for Visio's preview renderer to render it reliably.
             var circlePath = GetMasterTarget("Circle");
             var circle = LoadZipXml(zip, circlePath);
             var cGeom = circle.Root!.Element(v + "Shapes")!.Element(v + "Shape")!.Elements(v + "Section").First(e => (string?)e.Attribute("N") == "Geometry");
-            Assert.Contains(cGeom.Elements(v + "Row"), row => (string?)row.Attribute("T") == "EllipticalArcTo");
+            Assert.True(cGeom.Elements(v + "Row").Count(row => (string?)row.Attribute("T") == "LineTo") >= 20);
 
             // Triangle master -> exactly 3 LineTo rows
             var triPath = GetMasterTarget("Triangle");

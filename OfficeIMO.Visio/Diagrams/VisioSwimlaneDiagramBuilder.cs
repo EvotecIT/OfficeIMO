@@ -458,14 +458,12 @@ namespace OfficeIMO.Visio.Diagrams {
                 double y = LaneCenterY(i);
                 VisioShape laneHeader = new("lane-header-" + lane.Id, _leftMargin + (_laneHeaderWidth / 2D), y, _laneHeaderWidth, _laneHeight, lane.Text) {
                     NameU = "Rectangle",
-                    Master = _document.EnsureBuiltinMaster("Rectangle")
                 };
                 _theme.Emphasis.ApplyTo(laneHeader);
                 page.Shapes.Add(laneHeader);
 
                 VisioShape laneBody = new("lane-" + lane.Id, processCenterX, y, processWidth, _laneHeight, string.Empty) {
                     NameU = "Rectangle",
-                    Master = _document.EnsureBuiltinMaster("Rectangle")
                 };
                 ApplyLaneBodyStyle(laneBody, i);
                 laneBody.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR", prompt: "OfficeIMO semantic kind");
@@ -476,7 +474,6 @@ namespace OfficeIMO.Visio.Diagrams {
                 PhaseItem phase = _phases[i];
                 VisioShape phaseHeader = new("phase-" + phase.Id, PhaseCenterX(i), PhaseHeaderCenterY(), _phaseWidth, _phaseHeaderHeight, phase.Text) {
                     NameU = "Rectangle",
-                    Master = _document.EnsureBuiltinMaster("Rectangle")
                 };
                 _theme.Container.ApplyTo(phaseHeader);
                 phaseHeader.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR", prompt: "OfficeIMO semantic kind");
@@ -491,7 +488,6 @@ namespace OfficeIMO.Visio.Diagrams {
                 GetActivityShape(activity.Kind, out string masterNameU, out double width, out double height);
                 VisioShape shape = new(activity.Id, PhaseCenterX(phaseIndex), ActivityCenterY(activity, laneIndex, height), width, height, activity.Text) {
                     NameU = masterNameU,
-                    Master = _document.EnsureBuiltinMaster(masterNameU)
                 };
                 GetActivityStyle(activity.Kind).ApplyTo(shape);
                 activity.Shape = shape;
