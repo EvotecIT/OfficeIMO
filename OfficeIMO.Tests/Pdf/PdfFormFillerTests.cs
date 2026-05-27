@@ -239,6 +239,36 @@ public class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FillFields_MultiSelectChoiceValuesStoreExportArrayAndPaintDisplayText() {
+        byte[] filled = PdfFormFiller.FillFields(BuildMultiSelectChoiceWidgetFormPdf(), new Dictionary<string, PdfFormFieldValue> {
+            ["Country"] = PdfFormFieldValue.FromValues("Poland", "United States")
+        });
+
+        PdfDocumentInfo filledInfo = PdfInspector.Inspect(filled);
+
+        Assert.True(filledInfo.HasReadableFormFields);
+        PdfFormField filledField = Assert.Single(filledInfo.FormFields);
+        Assert.Equal(new[] { "PL", "US" }, filledField.Values);
+        Assert.Equal(new[] { "Poland", "United States" }, filledField.SelectedOptions.Select(option => option.DisplayText).ToArray());
+        Assert.Contains("(Poland, United States) Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillAndFlattenFields_MultiSelectChoiceValuesPaintDisplayText() {
+        byte[] flattened = PdfFormFiller.FillAndFlattenFields(BuildMultiSelectChoiceWidgetFormPdf(), new Dictionary<string, PdfFormFieldValue> {
+            ["Country"] = PdfFormFieldValue.FromValues("Germany", "United States")
+        });
+
+        string output = Encoding.ASCII.GetString(flattened);
+
+        Assert.False(PdfInspector.Inspect(flattened).HasForms);
+        Assert.DoesNotContain("/AcroForm", output);
+        Assert.DoesNotContain("/Subtype /Widget", output);
+        Assert.Contains("/OfficeIMOForm1 Do", output);
+        Assert.Contains("(Germany, United States) Tj", GetFlattenedAppearanceStreamText(flattened), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FlattenFields_PaintsMultiSelectChoiceOptionDisplayText() {
         byte[] source = BuildMultiSelectChoiceWidgetFormPdf();
         PdfDocumentInfo sourceInfo = PdfInspector.Inspect(source);
