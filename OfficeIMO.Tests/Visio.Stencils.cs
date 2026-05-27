@@ -108,6 +108,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PageCanRenderStencilCatalogGallery() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Gallery Catalog", builder => builder
+                .Add("gallery.api", "API", "Process", "Integration", 1.8, 0.9)
+                .Add("gallery.queue", "Queue", "Data", "Integration", 1.4, 0.8)
+                .Add("gallery.worker", "Worker", "Rectangle", "Compute", 1.6, 0.9));
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Gallery", 5, 4);
+
+            IReadOnlyList<VisioShape> placed = page.AddStencilGallery(catalog, new VisioStencilGalleryOptions {
+                IdPrefix = "gallery",
+                Columns = 2,
+                MaxShapes = 3,
+                Title = "Reusable palette",
+                AutoResizePage = true
+            });
+
+            Assert.Equal(3, placed.Count);
+            Assert.True(page.Width > 5);
+            Assert.Contains(page.Shapes, shape => shape.Id == "gallery-title" && shape.Text == "Reusable palette");
+            Assert.Contains(page.Shapes, shape => shape.Id == "gallery-0-name" && shape.Text == "API");
+            Assert.Contains(page.Shapes, shape => shape.Id == "gallery-1-category" && shape.Text == "Integration");
+            Assert.Equal("Process", page.Shapes.Single(shape => shape.Id == "gallery-0-shape").MasterNameU);
+
+            document.Save();
+
+            Assert.Empty(VisioValidator.Validate(filePath));
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            Assert.Equal(13, loaded.Pages[0].Shapes.Count);
+        }
+
+        [Fact]
         public void CustomStencilCatalogBuilderCreatesSearchablePaletteAndPlaceableShapes() {
             VisioStencilCatalog catalog = VisioStencilCatalog.Create("Custom Infrastructure", builder => builder
                 .Add("custom.cache", "Cache", "Process", "Infrastructure", 1.8, 0.9, "redis", "memory-store")

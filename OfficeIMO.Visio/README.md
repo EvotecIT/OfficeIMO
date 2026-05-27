@@ -646,6 +646,19 @@ var apim = integration.Search("API Management").First();
 var serviceBus = integration.Search("Service Bus").First();
 ```
 
+To inspect a pack before building a diagram, render a catalog contact sheet:
+
+```csharp
+var doc = VisioDocument.Create("stencil-gallery.vsdx");
+var page = doc.AddPage("Gallery", 11, 8.5);
+page.AddStencilGallery(integration, new VisioStencilGalleryOptions {
+    Title = "Microsoft Integration and Azure",
+    Columns = 4,
+    MaxShapes = 24
+});
+doc.Save();
+```
+
 `DiscoverInstalledVisioPackages()` finds the local Microsoft Visio `.vssx` and
 `.vstx` content folders without automating Visio, letting you build diagrams from
 installed Visio stencils while keeping OfficeIMO itself dependency-free:

@@ -209,6 +209,16 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--visio-stencil-gallery")) {
+                string? stencilGalleryPath = Visio.ExternalStencilGallery.ResolveConfiguredGalleryPath(args);
+                if (string.IsNullOrWhiteSpace(stencilGalleryPath)) {
+                    throw new InvalidOperationException("Provide a .vssx/.vsdx/.vstx file or root directory with --visio-stencil-gallery <path> or OFFICEIMO_VISIO_STENCIL_GALLERY.");
+                }
+
+                Visio.ExternalStencilGallery.Example_ExternalStencilGallery(folderPath, HasArgument(args, "--open-visio") || HasArgument(args, "--visio-open"), stencilGalleryPath);
+                return;
+            }
+
             if (HasArgument(args, "--visio-graph")) {
                 Visio.GraphDiagramBuilder.Example_GraphDiagramBuilder(folderPath, HasArgument(args, "--open-visio") || HasArgument(args, "--visio-open"));
                 return;
@@ -221,6 +231,7 @@ namespace OfficeIMO.Examples {
             // Visio.DependencyDiagramBuilder.Example_DependencyDiagramBuilder(folderPath, false);
             // Visio.GraphDiagramBuilder.Example_GraphDiagramBuilder(folderPath, false);
             // Visio.MicrosoftIntegrationAzureStencils.Example_MicrosoftIntegrationAzureStencils(folderPath, false, @"C:\StencilPacks\Microsoft-Integration-and-Azure-Stencils-Pack-for-Visio");
+            // Visio.ExternalStencilGallery.Example_ExternalStencilGallery(folderPath, false, @"C:\StencilPacks\Microsoft-Integration-and-Azure-Stencils-Pack-for-Visio");
             // Visio.ArchitectureDiagramBuilder.Example_ArchitectureDiagramBuilder(folderPath, false);
             // Visio.NetworkDiagramBuilder.Example_NetworkDiagramBuilder(folderPath, false);
             // Visio.NetworkTopologyDiagramBuilder.Example_NetworkTopologyDiagramBuilder(folderPath, false);
