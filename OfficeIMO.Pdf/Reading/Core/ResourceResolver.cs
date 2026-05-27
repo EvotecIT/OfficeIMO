@@ -227,7 +227,7 @@ internal static class ResourceResolver {
 
     private static PdfFontResource CreateFontResource(string resourceName, PdfDictionary fontVal, Dictionary<int, PdfIndirectObject> objects) {
         string baseFont = (fontVal.Get<PdfName>("BaseFont")?.Name) ?? "";
-        string encoding = "WinAnsiEncoding";
+        string encoding = GetDefaultEncodingForBaseFont(baseFont);
         IReadOnlyDictionary<int, string>? differences = null;
         if (fontVal.Items.TryGetValue("Encoding", out var encodingObj)) {
             if (ResolveObject(encodingObj, objects) is PdfName encodingName) {
@@ -251,6 +251,42 @@ internal static class ResourceResolver {
         }
 
         return new PdfFontResource(resourceName, baseFont, encoding, hasToUnicode, cmap, differences);
+    }
+
+    private static string GetDefaultEncodingForBaseFont(string baseFont) {
+        string fontName = StripSubsetPrefix(baseFont);
+        switch (fontName) {
+            case "Courier":
+            case "Courier-Bold":
+            case "Courier-Oblique":
+            case "Courier-BoldOblique":
+            case "Helvetica":
+            case "Helvetica-Bold":
+            case "Helvetica-Oblique":
+            case "Helvetica-BoldOblique":
+            case "Times-Roman":
+            case "Times-Bold":
+            case "Times-Italic":
+            case "Times-BoldItalic":
+                return "StandardEncoding";
+            default:
+                return "WinAnsiEncoding";
+        }
+    }
+
+    private static string StripSubsetPrefix(string baseFont) {
+        if (baseFont.Length > 7 && baseFont[6] == '+') {
+            for (int i = 0; i < 6; i++) {
+                char ch = baseFont[i];
+                if (ch < 'A' || ch > 'Z') {
+                    return baseFont;
+                }
+            }
+
+            return baseFont.Substring(7);
+        }
+
+        return baseFont;
     }
 
     private static Dictionary<int, string>? BuildDifferencesMap(PdfObject? differencesObj, Dictionary<int, PdfIndirectObject> objects) {
