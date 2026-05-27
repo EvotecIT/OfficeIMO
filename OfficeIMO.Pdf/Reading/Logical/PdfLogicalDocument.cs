@@ -37,10 +37,31 @@ public interface IPdfLogicalElement {
 public sealed class PdfLogicalDocument {
     private IReadOnlyList<IPdfLogicalElement>? _elements;
 
-    private PdfLogicalDocument(PdfMetadata metadata, IReadOnlyList<PdfLogicalPage> pages, IReadOnlyList<PdfFormField> formFields) {
+    private PdfLogicalDocument(
+        PdfMetadata metadata,
+        IReadOnlyList<PdfLogicalPage> pages,
+        IReadOnlyList<PdfOutlineItem> outlines,
+        IReadOnlyList<PdfPageLabel> pageLabels,
+        IReadOnlyList<PdfNamedDestination> namedDestinations,
+        PdfDocumentOpenAction? openAction,
+        PdfViewerPreferences? viewerPreferences,
+        IReadOnlyList<PdfFormField> formFields,
+        string? catalogPageMode,
+        string? catalogPageLayout,
+        string? catalogVersion,
+        string? catalogLanguage) {
         Metadata = metadata;
         Pages = pages;
+        Outlines = outlines;
+        PageLabels = pageLabels;
+        NamedDestinations = namedDestinations;
+        OpenAction = openAction;
+        ViewerPreferences = viewerPreferences;
         FormFields = formFields;
+        CatalogPageMode = catalogPageMode;
+        CatalogPageLayout = catalogPageLayout;
+        CatalogVersion = catalogVersion;
+        CatalogLanguage = catalogLanguage;
     }
 
     /// <summary>Document metadata read from the PDF Info dictionary when available.</summary>
@@ -49,11 +70,53 @@ public sealed class PdfLogicalDocument {
     /// <summary>Logical pages in document order.</summary>
     public IReadOnlyList<PdfLogicalPage> Pages { get; }
 
+    /// <summary>Top-level document outline/bookmark entries.</summary>
+    public IReadOnlyList<PdfOutlineItem> Outlines { get; }
+
+    /// <summary>Page-label rules discovered from the document catalog.</summary>
+    public IReadOnlyList<PdfPageLabel> PageLabels { get; }
+
+    /// <summary>Named destinations discovered from the document catalog.</summary>
+    public IReadOnlyList<PdfNamedDestination> NamedDestinations { get; }
+
+    /// <summary>Simple document open action discovered from the document catalog, when supported.</summary>
+    public PdfDocumentOpenAction? OpenAction { get; }
+
+    /// <summary>Simple viewer preference entries discovered from the document catalog, when supported.</summary>
+    public PdfViewerPreferences? ViewerPreferences { get; }
+
     /// <summary>Simple AcroForm fields discovered from the document catalog.</summary>
     public IReadOnlyList<PdfFormField> FormFields { get; }
 
+    /// <summary>Catalog page mode, for example UseOutlines or FullScreen, when present.</summary>
+    public string? CatalogPageMode { get; }
+
+    /// <summary>Catalog page layout, for example SinglePage or TwoColumnLeft, when present.</summary>
+    public string? CatalogPageLayout { get; }
+
+    /// <summary>Catalog PDF version override, for example 1.7, when present.</summary>
+    public string? CatalogVersion { get; }
+
+    /// <summary>Catalog language tag, for example en-US or pl-PL, when present.</summary>
+    public string? CatalogLanguage { get; }
+
     /// <summary>Number of pages in the logical document.</summary>
     public int PageCount => Pages.Count;
+
+    /// <summary>True when at least one outline/bookmark entry was read from the catalog.</summary>
+    public bool HasOutlines => Outlines.Count > 0;
+
+    /// <summary>True when at least one readable page-label rule was read from the catalog.</summary>
+    public bool HasReadablePageLabels => PageLabels.Count > 0;
+
+    /// <summary>True when at least one named destination was read from the catalog.</summary>
+    public bool HasNamedDestinations => NamedDestinations.Count > 0;
+
+    /// <summary>True when a simple document open action was read from the catalog.</summary>
+    public bool HasReadableOpenAction => OpenAction is not null;
+
+    /// <summary>True when simple viewer preferences were read from the catalog.</summary>
+    public bool HasReadableViewerPreferences => ViewerPreferences is not null;
 
     /// <summary>True when at least one simple AcroForm field was read from the document catalog.</summary>
     public bool HasFormFields => FormFields.Count > 0;
@@ -102,7 +165,19 @@ public sealed class PdfLogicalDocument {
             pages.Add(PdfLogicalPage.From(document.Pages[i], i + 1, options));
         }
 
-        return new PdfLogicalDocument(document.Metadata, pages.AsReadOnly(), document.FormFields);
+        return new PdfLogicalDocument(
+            document.Metadata,
+            pages.AsReadOnly(),
+            document.Outlines,
+            document.PageLabels,
+            document.NamedDestinations,
+            document.OpenAction,
+            document.ViewerPreferences,
+            document.FormFields,
+            document.CatalogPageMode,
+            document.CatalogPageLayout,
+            document.CatalogVersion,
+            document.CatalogLanguage);
     }
 }
 

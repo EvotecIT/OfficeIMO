@@ -113,6 +113,43 @@ public class PdfLogicalDocumentTests {
     }
 
     [Fact]
+    public void Load_ExposesDocumentNavigationObjects() {
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildNavigationPdf());
+
+        Assert.Equal("FullScreen", logical.CatalogPageMode);
+        Assert.Equal("TwoColumnLeft", logical.CatalogPageLayout);
+        Assert.Equal("1.7", logical.CatalogVersion);
+        Assert.Equal("en-US", logical.CatalogLanguage);
+
+        Assert.True(logical.HasOutlines);
+        PdfOutlineItem outline = Assert.Single(logical.Outlines);
+        Assert.Equal("Logical outline", outline.Title);
+        Assert.Equal(1, outline.PageNumber);
+
+        Assert.True(logical.HasReadablePageLabels);
+        PdfPageLabel label = Assert.Single(logical.PageLabels);
+        Assert.Equal(0, label.StartPageIndex);
+        Assert.Equal("D", label.Style);
+        Assert.Equal("A-", label.Prefix);
+        Assert.Equal(3, label.StartNumber);
+
+        Assert.True(logical.HasNamedDestinations);
+        PdfNamedDestination destination = Assert.Single(logical.NamedDestinations);
+        Assert.Equal("Chapter1", destination.Name);
+        Assert.Equal(1, destination.PageNumber);
+
+        Assert.True(logical.HasReadableOpenAction);
+        Assert.NotNull(logical.OpenAction);
+        Assert.Equal("Destination", logical.OpenAction!.ActionType);
+        Assert.Equal(1, logical.OpenAction.PageNumber);
+
+        Assert.True(logical.HasReadableViewerPreferences);
+        Assert.NotNull(logical.ViewerPreferences);
+        Assert.True(logical.ViewerPreferences!.GetBoolean("HideToolbar"));
+        Assert.True(logical.ViewerPreferences.GetBoolean("DisplayDocTitle"));
+    }
+
+    [Fact]
     public void Load_ReadsStreamFromCurrentPosition() {
         byte[] source = PdfDoc.Create()
             .Paragraph(p => p.Text("Logical stream marker."))
@@ -193,6 +230,47 @@ public class PdfLogicalDocumentTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildNavigationPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /PageMode /FullScreen /PageLayout /TwoColumnLeft /Version /1.7 /Lang (en-US) /PageLabels 5 0 R /Dests 6 0 R /OpenAction [3 0 R /XYZ 0 200 0] /ViewerPreferences 7 0 R /Outlines 8 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Nums [0 << /S /D /P (A-) /St 3 >>] >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Chapter1 [3 0 R /XYZ 0 200 0] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /HideToolbar true /DisplayDocTitle true >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Outlines /First 9 0 R /Last 9 0 R /Count 1 >>",
+            "endobj",
+            "9 0 obj",
+            "<< /Title (Logical outline) /Parent 8 0 R /Dest [3 0 R /XYZ 0 200 0] >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 10 >>",
             "%%EOF"
         });
 
