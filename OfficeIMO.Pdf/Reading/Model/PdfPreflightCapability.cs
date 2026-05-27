@@ -7,6 +7,9 @@ public enum PdfPreflightCapability {
     /// <summary>Text, structured, and logical readback operations.</summary>
     ExtractText,
 
+    /// <summary>Image XObject extraction operations.</summary>
+    ExtractImages,
+
     /// <summary>Page-level rewrite operations such as extract, split, merge, import, edit, stamp, and metadata updates.</summary>
     ManipulatePages,
 

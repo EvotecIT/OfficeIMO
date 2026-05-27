@@ -36,6 +36,9 @@ public sealed class PdfDocumentPreflight {
     /// <summary>True when OfficeIMO.Pdf can attempt text and logical readback operations for this PDF.</summary>
     public bool CanExtractText => CanRead;
 
+    /// <summary>True when OfficeIMO.Pdf can attempt image XObject extraction for this PDF.</summary>
+    public bool CanExtractImages => DocumentInfo is not null && !HasImageExtractionBlocker();
+
     /// <summary>True when OfficeIMO.Pdf can attempt page-level rewrite operations such as extract, split, merge, import, edit, stamp, and metadata updates.</summary>
     public bool CanManipulatePages => CanRewrite;
 
@@ -84,6 +87,8 @@ public sealed class PdfDocumentPreflight {
         switch (capability) {
             case PdfPreflightCapability.ExtractText:
                 return CanExtractText;
+            case PdfPreflightCapability.ExtractImages:
+                return CanExtractImages;
             case PdfPreflightCapability.ManipulatePages:
                 return CanManipulatePages;
             case PdfPreflightCapability.FillSimpleFormFields:
@@ -106,6 +111,8 @@ public sealed class PdfDocumentPreflight {
         switch (capability) {
             case PdfPreflightCapability.ExtractText:
                 return GetReadCapabilityDiagnostics("PDF text extraction is not available because OfficeIMO.Pdf cannot read this PDF.");
+            case PdfPreflightCapability.ExtractImages:
+                return GetImageExtractionDiagnostics();
             case PdfPreflightCapability.ManipulatePages:
                 return GetPageManipulationDiagnostics();
             case PdfPreflightCapability.FillSimpleFormFields:
@@ -124,6 +131,13 @@ public sealed class PdfDocumentPreflight {
             Probe.HasActiveContent ||
             DocumentInfo?.AcroFormSignaturesExist == true ||
             DocumentInfo?.HasActiveContent == true;
+    }
+
+    private bool HasImageExtractionBlocker() {
+        return HasReadBlocker(PdfReadBlockerKind.MissingHeader) ||
+            HasReadBlocker(PdfReadBlockerKind.Encryption) ||
+            HasReadBlocker(PdfReadBlockerKind.NoPages) ||
+            HasReadBlocker(PdfReadBlockerKind.ParserUnsupported);
     }
 
     private bool HasSimpleFillableFormFields() {
@@ -190,6 +204,25 @@ public sealed class PdfDocumentPreflight {
         var messages = new List<string>(ReadBlockers.Count);
         for (int i = 0; i < ReadBlockers.Count; i++) {
             AddDistinct(messages, ReadBlockers[i].Message);
+        }
+
+        return messages.AsReadOnly();
+    }
+
+    private IReadOnlyList<string> GetImageExtractionDiagnostics() {
+        if (ReadBlockers.Count == 0) {
+            return new[] { "PDF image extraction is not available because OfficeIMO.Pdf cannot inspect this PDF." };
+        }
+
+        var messages = new List<string>(ReadBlockers.Count);
+        for (int i = 0; i < ReadBlockers.Count; i++) {
+            if (ReadBlockers[i].Kind != PdfReadBlockerKind.UnsupportedContentStreamFilter) {
+                AddDistinct(messages, ReadBlockers[i].Message);
+            }
+        }
+
+        if (messages.Count == 0) {
+            AddDistinct(messages, "PDF image extraction is not available for this PDF.");
         }
 
         return messages.AsReadOnly();
