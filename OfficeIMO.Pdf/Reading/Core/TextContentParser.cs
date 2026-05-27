@@ -36,13 +36,23 @@ internal static class TextContentParser {
         public Dictionary<string, object> Items { get; } = new(StringComparer.Ordinal);
     }
 
+    private readonly struct ActualTextValue {
+        public string Text { get; }
+
+        public ActualTextValue(string text) {
+            Text = text;
+        }
+    }
+
     private sealed class MarkedContentState {
-        public string? ActualText { get; }
+        public string ActualText { get; }
+        public bool HasActualText { get; }
         public bool IsArtifact { get; }
         public bool ActualTextEmitted { get; set; }
 
-        public MarkedContentState(string? actualText, bool isArtifact) {
-            ActualText = actualText;
+        public MarkedContentState(ActualTextValue? actualText, bool isArtifact) {
+            ActualText = actualText?.Text ?? string.Empty;
+            HasActualText = actualText.HasValue;
             IsArtifact = isArtifact;
         }
     }
@@ -265,10 +275,12 @@ internal static class TextContentParser {
             if (isArtifact) {
                 // Artifact content is visual decoration, not logical page text.
             } else if (actualTextState is not null && !actualTextState.ActualTextEmitted) {
-                textOut = actualTextState.ActualText!;
+                textOut = actualTextState.ActualText;
                 actualTextState.ActualTextEmitted = true;
-                spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance));
-                sbOutGlobal.Append(textOut);
+                if (textOut.Length > 0) {
+                    spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance));
+                    sbOutGlobal.Append(textOut);
+                }
             } else if (actualTextState is null && textOut.Length > 0) {
                 spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance));
                 sbOutGlobal.Append(textOut);
@@ -279,7 +291,7 @@ internal static class TextContentParser {
 
         MarkedContentState? GetActiveActualTextState() {
             foreach (var state in markedContentStack) {
-                if (!string.IsNullOrEmpty(state.ActualText)) {
+                if (state.HasActualText) {
                     return state;
                 }
             }
@@ -297,15 +309,16 @@ internal static class TextContentParser {
             return false;
         }
 
-        string? GetActualText(object? propertyObject) {
+        ActualTextValue? GetActualText(object? propertyObject) {
             if (propertyObject is string propertyName) {
-                return actualTextForProperty?.Invoke(propertyName);
+                string? text = actualTextForProperty?.Invoke(propertyName);
+                return text is null ? (ActualTextValue?)null : new ActualTextValue(text);
             }
 
             if (propertyObject is InlineDictionary dictionary &&
                 dictionary.Items.TryGetValue("ActualText", out var value) &&
                 value is byte[] bytes) {
-                return DecodePdfTextString(bytes);
+                return new ActualTextValue(DecodePdfTextString(bytes));
             }
 
             return null;

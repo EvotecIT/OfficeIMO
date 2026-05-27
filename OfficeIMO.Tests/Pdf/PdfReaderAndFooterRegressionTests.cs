@@ -312,6 +312,41 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfReadPage_GetTextSpans_HonorsEmptyMarkedContentActualText() {
+        byte[] bytes = BuildSingleStreamPdf(
+            "/Span << /ActualText <> >> BDC\n" +
+            "BT\n/F1 12 Tf\n72 760 Td\n(Decorative glyph text) Tj\nET\n" +
+            "EMC\n" +
+            "BT\n/F1 12 Tf\n72 720 Td\n(Body text) Tj\nET\n");
+
+        var page = PdfReadDocument.Load(bytes).Pages[0];
+        var span = Assert.Single(page.GetTextSpans());
+
+        Assert.Equal("Body text", span.Text);
+        Assert.Equal(72, span.X, 3);
+        Assert.Equal(720, span.Y, 3);
+        Assert.DoesNotContain("Decorative glyph text", page.ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_HonorsEmptyMarkedContentActualTextFromPropertiesResource() {
+        byte[] bytes = BuildSingleStreamPdfWithMarkedContentProperties(
+            "/Span /MC0 BDC\n" +
+            "BT\n/F1 12 Tf\n72 760 Td\n(Decorative resource text) Tj\nET\n" +
+            "EMC\n" +
+            "BT\n/F1 12 Tf\n72 720 Td\n(Body text) Tj\nET\n",
+            "<>");
+
+        var page = PdfReadDocument.Load(bytes).Pages[0];
+        var span = Assert.Single(page.GetTextSpans());
+
+        Assert.Equal("Body text", span.Text);
+        Assert.Equal(72, span.X, 3);
+        Assert.Equal(720, span.Y, 3);
+        Assert.DoesNotContain("Decorative resource text", page.ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfReadPage_GetTextSpans_IgnoresArtifactMarkedContent() {
         byte[] bytes = BuildSingleStreamPdf(
             "/Artifact BMC\n" +
@@ -1800,7 +1835,7 @@ public class PdfReaderAndFooterRegressionTests {
         return BuildSingleStreamPdf(Encoding.ASCII.GetBytes(streamContent.TrimEnd('\n')));
     }
 
-    private static byte[] BuildSingleStreamPdfWithMarkedContentProperties(string streamContent) {
+    private static byte[] BuildSingleStreamPdfWithMarkedContentProperties(string streamContent, string actualTextPdfString = "<FEFF005200650073006F00750072006300650020005A00650064>") {
         streamContent = streamContent.TrimEnd('\n');
         int streamLength = Encoding.ASCII.GetByteCount(streamContent);
 
@@ -1813,7 +1848,7 @@ public class PdfReaderAndFooterRegressionTests {
             "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>",
             "endobj",
             "3 0 obj",
-            "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> /Properties << /MC0 << /ActualText <FEFF005200650073006F00750072006300650020005A00650064> >> >> >> /Contents 5 0 R >>",
+            $"<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> /Properties << /MC0 << /ActualText {actualTextPdfString} >> >> >> /Contents 5 0 R >>",
             "endobj",
             "4 0 obj",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",

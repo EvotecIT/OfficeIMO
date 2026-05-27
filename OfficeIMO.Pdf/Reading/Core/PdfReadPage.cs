@@ -272,8 +272,7 @@ public sealed class PdfReadPage {
         var propertyDictionary = ResolveDictionary(propertyObj);
         if (propertyDictionary is null ||
             !propertyDictionary.Items.TryGetValue("ActualText", out var actualTextObj) ||
-            ResolveObject(actualTextObj) is not PdfStringObj actualText ||
-            string.IsNullOrEmpty(actualText.Value)) {
+            ResolveObject(actualTextObj) is not PdfStringObj actualText) {
             return null;
         }
 
