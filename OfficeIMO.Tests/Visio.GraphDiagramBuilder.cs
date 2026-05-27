@@ -85,6 +85,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GraphDiagramBuilderAvoidsGeneratedStencilCaptionIdCollisions() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioStencilShape serverStencil = VisioStencils.Network.Get("server");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .GraphDiagram("Collision Graph", graph => graph
+                    .StencilNode("web", "Web", serverStencil)
+                    .Node("web-label", "Existing label id", VisioGraphNodeKind.Process)
+                    .Edge("web", "web-label"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            Assert.Contains(page.Shapes, shape => shape.Id == "web");
+            Assert.Contains(page.Shapes, shape => shape.Id == "web-label" && shape.Text == "Existing label id");
+            Assert.Contains(page.Shapes, shape => shape.Id == "web-label-2" && shape.Text == "Web");
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void GraphDiagramBuilderRejectsUnknownEdgeEndpoints() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 

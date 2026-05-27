@@ -79,6 +79,7 @@ namespace OfficeIMO.Visio.Diagrams {
         private readonly HashSet<string> _rootIdSet = new(StringComparer.Ordinal);
         private readonly List<ZoneItem> _zones = new();
         private readonly HashSet<string> _zoneIds = new(StringComparer.Ordinal);
+        private readonly HashSet<string> _generatedIds = new(StringComparer.Ordinal);
         private VisioStyleTheme _theme = VisioStyleTheme.Technical();
         private VisioMeasurementUnit _unit = VisioMeasurementUnit.Inches;
         private VisioGraphLayout _layout = VisioGraphLayout.Layered;
@@ -486,7 +487,7 @@ namespace OfficeIMO.Visio.Diagrams {
                     string.Empty,
                     _theme);
                 page.Shapes.Add(shape);
-                VisioShape label = page.AddTextBox(zone.Id + "-label", left + width / 2D, top - 0.18D, Math.Max(0.8D, width - 0.25D), 0.28D, zone.Text);
+                VisioShape label = page.AddTextBox(CreateGeneratedId(zone.Id + "-label"), left + width / 2D, top - 0.18D, Math.Max(0.8D, width - 0.25D), 0.28D, zone.Text);
                 VisioTextStyle labelStyle = _theme.Container.TextStyle?.Clone() ?? new VisioTextStyle();
                 labelStyle.FontFamily = string.IsNullOrWhiteSpace(labelStyle.FontFamily) ? "Aptos" : labelStyle.FontFamily;
                 labelStyle.Size = Math.Max(labelStyle.Size ?? 0D, 9.5D);
@@ -518,9 +519,9 @@ namespace OfficeIMO.Visio.Diagrams {
             }
         }
 
-        private static void AddStencilNodeCaption(VisioPage page, NodeItem node, double width, double height) {
+        private void AddStencilNodeCaption(VisioPage page, NodeItem node, double width, double height) {
             VisioShape label = page.AddTextBox(
-                node.Id + "-label",
+                CreateGeneratedId(node.Id + "-label"),
                 node.PinX,
                 node.PinY - (height / 2D) - 0.26D,
                 Math.Max(1.15D, width + 0.55D),
@@ -720,6 +721,18 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             return false;
+        }
+
+        private string CreateGeneratedId(string baseId) {
+            string id = baseId;
+            int index = 2;
+            while (IsIdInUse(id) || _generatedIds.Contains(id)) {
+                id = baseId + "-" + index;
+                index++;
+            }
+
+            _generatedIds.Add(id);
+            return id;
         }
 
         private void EnsureKnownNode(string id, string parameterName) {

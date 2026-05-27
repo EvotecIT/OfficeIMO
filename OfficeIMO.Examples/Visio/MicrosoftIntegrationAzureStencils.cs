@@ -8,6 +8,14 @@ using OfficeIMO.Visio.Stencils;
 
 namespace OfficeIMO.Examples.Visio {
     public static class MicrosoftIntegrationAzureStencils {
+        private static readonly string[] PreferredPackageNames = {
+            "Microsoft Integration Stencils.vssx",
+            "MIS Azure Integration Services.vssx",
+            "MIS Azure Stencils.vssx",
+            "MIS Databases and Analytics Stencils.vssx",
+            "MIS Infrastructure and Networking Stencils.vssx"
+        };
+
         public static void Example_MicrosoftIntegrationAzureStencils(string folderPath, bool openVisio, string stencilPackPathOrDirectory) {
             if (string.IsNullOrWhiteSpace(stencilPackPathOrDirectory)) throw new ArgumentException("Stencil pack path cannot be null or whitespace.", nameof(stencilPackPathOrDirectory));
 
@@ -100,8 +108,7 @@ namespace OfficeIMO.Examples.Visio {
                 return argument;
             }
 
-            return Environment.GetEnvironmentVariable("OFFICEIMO_VISIO_INTEGRATION_STENCILS")
-                ?? Environment.GetEnvironmentVariable("OFFICEIMO_VISIO_STENCIL_PACK_DIR");
+            return Environment.GetEnvironmentVariable("OFFICEIMO_VISIO_INTEGRATION_STENCILS");
         }
 
         public static bool IsConfigured(string? pathOrDirectory) {
@@ -109,7 +116,17 @@ namespace OfficeIMO.Examples.Visio {
                 return false;
             }
 
-            return File.Exists(pathOrDirectory) || Directory.Exists(pathOrDirectory);
+            if (File.Exists(pathOrDirectory)) {
+                return VisioStencilPackageCatalog.EnumeratePackageFiles(Path.GetDirectoryName(Path.GetFullPath(pathOrDirectory)) ?? ".", recursive: false)
+                    .Contains(Path.GetFullPath(pathOrDirectory), StringComparer.OrdinalIgnoreCase);
+            }
+
+            if (!Directory.Exists(pathOrDirectory)) {
+                return false;
+            }
+
+            IReadOnlyList<string> packages = VisioStencilPackageCatalog.EnumeratePackageFiles(pathOrDirectory, recursive: true);
+            return packages.Any(IsPreferredPackage);
         }
 
         private static IEnumerable<string> ResolvePackagePaths(string pathOrDirectory) {
@@ -123,25 +140,21 @@ namespace OfficeIMO.Examples.Visio {
             }
 
             IReadOnlyList<string> packages = VisioStencilPackageCatalog.EnumeratePackageFiles(pathOrDirectory, recursive: true);
-            string[] preferredNames = {
-                "Microsoft Integration Stencils.vssx",
-                "MIS Azure Integration Services.vssx",
-                "MIS Azure Stencils.vssx",
-                "MIS Databases and Analytics Stencils.vssx",
-                "MIS Infrastructure and Networking Stencils.vssx"
-            };
-
             List<string> selected = new();
-            foreach (string preferredName in preferredNames) {
+            foreach (string preferredName in PreferredPackageNames) {
                 string? package = packages.FirstOrDefault(path => string.Equals(Path.GetFileName(path), preferredName, StringComparison.OrdinalIgnoreCase));
                 if (package != null) {
                     selected.Add(package);
                 }
             }
 
-            foreach (string package in selected.Count == 0 ? packages.Take(8) : selected) {
+            foreach (string package in selected) {
                 yield return package;
             }
+        }
+
+        private static bool IsPreferredPackage(string packagePath) {
+            return PreferredPackageNames.Contains(Path.GetFileName(packagePath), StringComparer.OrdinalIgnoreCase);
         }
 
         private static Dictionary<string, VisioStencilShape> PickRequired(VisioStencilCatalog catalog, IReadOnlyDictionary<string, string[]> selectors) {

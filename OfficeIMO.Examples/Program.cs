@@ -15,6 +15,13 @@ namespace OfficeIMO.Examples {
             return Array.Exists(args, arg => string.Equals(arg, value, StringComparison.OrdinalIgnoreCase));
         }
 
+        private static bool HasOption(string[] args, string name) {
+            string prefix = name + "=";
+            return Array.Exists(args, arg =>
+                string.Equals(arg, name, StringComparison.OrdinalIgnoreCase) ||
+                arg.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+        }
+
         private static string? GetArgumentValue(string[] args, string name) {
             for (int i = 0; i < args.Length; i++) {
                 if (!string.Equals(args[i], name, StringComparison.OrdinalIgnoreCase)) {
@@ -199,7 +206,7 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
-            if (HasArgument(args, "--visio-integration-stencils") || HasArgument(args, "--visio-microsoft-integration-stencils")) {
+            if (HasOption(args, "--visio-integration-stencils") || HasOption(args, "--visio-microsoft-integration-stencils")) {
                 string? stencilPackPath = Visio.MicrosoftIntegrationAzureStencils.ResolveConfiguredPackPath(args);
                 if (string.IsNullOrWhiteSpace(stencilPackPath)) {
                     throw new InvalidOperationException("Provide a Microsoft Integration/Azure stencil pack file or root directory with --visio-integration-stencils <path> or OFFICEIMO_VISIO_INTEGRATION_STENCILS.");
@@ -209,7 +216,7 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
-            if (HasArgument(args, "--visio-stencil-gallery")) {
+            if (HasOption(args, "--visio-stencil-gallery") || HasOption(args, "--visio-stencil-gallery-pack")) {
                 string? stencilGalleryPath = Visio.ExternalStencilGallery.ResolveConfiguredGalleryPath(args);
                 if (string.IsNullOrWhiteSpace(stencilGalleryPath)) {
                     throw new InvalidOperationException("Provide a .vssx/.vsdx/.vstx file or root directory with --visio-stencil-gallery <path> or OFFICEIMO_VISIO_STENCIL_GALLERY.");
