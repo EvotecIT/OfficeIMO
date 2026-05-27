@@ -49,6 +49,7 @@ public sealed class PdfLogicalDocument {
     private IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalLinkAnnotation>>? _linksByDestinationName;
     private IReadOnlyList<PdfLogicalFormWidget>? _formWidgets;
     private IReadOnlyDictionary<string, PdfFormField>? _formFieldsByName;
+    private IReadOnlyDictionary<PdfFormFieldKind, IReadOnlyList<PdfFormField>>? _formFieldsByKind;
     private IReadOnlyList<string>? _formFieldNames;
     private IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalFormWidget>>? _formWidgetsByFieldName;
 
@@ -133,6 +134,34 @@ public sealed class PdfLogicalDocument {
 
             _formFieldNames = FormFieldsByName.Keys.ToArray();
             return _formFieldNames;
+        }
+    }
+
+    /// <summary>Simple AcroForm fields grouped by common field kind.</summary>
+    public IReadOnlyDictionary<PdfFormFieldKind, IReadOnlyList<PdfFormField>> FormFieldsByKind {
+        get {
+            if (_formFieldsByKind is not null) {
+                return _formFieldsByKind;
+            }
+
+            var grouped = new Dictionary<PdfFormFieldKind, List<PdfFormField>>();
+            for (int i = 0; i < FormFields.Count; i++) {
+                PdfFormField formField = FormFields[i];
+                if (!grouped.TryGetValue(formField.Kind, out List<PdfFormField>? fields)) {
+                    fields = new List<PdfFormField>();
+                    grouped.Add(formField.Kind, fields);
+                }
+
+                fields.Add(formField);
+            }
+
+            var result = new Dictionary<PdfFormFieldKind, IReadOnlyList<PdfFormField>>();
+            foreach (var item in grouped) {
+                result.Add(item.Key, item.Value.AsReadOnly());
+            }
+
+            _formFieldsByKind = new System.Collections.ObjectModel.ReadOnlyDictionary<PdfFormFieldKind, IReadOnlyList<PdfFormField>>(result);
+            return _formFieldsByKind;
         }
     }
 
@@ -353,6 +382,13 @@ public sealed class PdfLogicalDocument {
     public bool TryGetFormField(string name, out PdfFormField? field) {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         return FormFieldsByName.TryGetValue(name, out field);
+    }
+
+    /// <summary>Returns simple AcroForm fields for the requested common field kind.</summary>
+    public IReadOnlyList<PdfFormField> GetFormFields(PdfFormFieldKind kind) {
+        return FormFieldsByKind.TryGetValue(kind, out IReadOnlyList<PdfFormField>? fields)
+            ? fields
+            : Array.Empty<PdfFormField>();
     }
 
     /// <summary>Returns logical URI link annotations for an absolute URI.</summary>

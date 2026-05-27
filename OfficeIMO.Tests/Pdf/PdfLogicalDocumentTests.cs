@@ -140,6 +140,58 @@ public class PdfLogicalDocumentTests {
     }
 
     [Fact]
+    public void Load_ExposesAcroFormFieldKindsAndFlags() {
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildFieldKindFormPdf());
+
+        PdfFormField text = logical.FormFieldsByName["Notes"];
+        Assert.Equal(PdfFormFieldKind.Text, text.Kind);
+        Assert.True(text.IsTextField);
+        Assert.True(text.IsReadOnly);
+        Assert.True(text.IsRequired);
+        Assert.True(text.IsNoExport);
+        Assert.True(text.IsMultiline);
+        Assert.True(text.IsPassword);
+        Assert.False(text.IsButtonField);
+        Assert.False(text.IsChoiceField);
+
+        PdfFormField checkBox = logical.FormFieldsByName["Accept"];
+        Assert.Equal(PdfFormFieldKind.Button, checkBox.Kind);
+        Assert.True(checkBox.IsButtonField);
+        Assert.True(checkBox.IsCheckBox);
+        Assert.False(checkBox.IsRadioButton);
+        Assert.False(checkBox.IsPushButton);
+
+        PdfFormField radio = logical.FormFieldsByName["Choice"];
+        Assert.True(radio.IsRadioButton);
+        Assert.True(radio.IsNoToggleToOff);
+        Assert.False(radio.IsCheckBox);
+
+        PdfFormField pushButton = logical.FormFieldsByName["Submit"];
+        Assert.True(pushButton.IsPushButton);
+        Assert.False(pushButton.IsCheckBox);
+
+        PdfFormField choice = logical.FormFieldsByName["Country"];
+        Assert.Equal(PdfFormFieldKind.Choice, choice.Kind);
+        Assert.True(choice.IsChoiceField);
+        Assert.True(choice.IsCombo);
+        Assert.True(choice.IsEditableChoice);
+        Assert.True(choice.IsSortedChoice);
+        Assert.True(choice.AllowsMultipleSelection);
+        Assert.True(choice.DoesNotSpellCheck);
+        Assert.True(choice.CommitsOnSelectionChange);
+
+        PdfFormField signature = logical.FormFieldsByName["Approval"];
+        Assert.Equal(PdfFormFieldKind.Signature, signature.Kind);
+        Assert.True(signature.IsSignatureField);
+
+        Assert.Same(text, Assert.Single(logical.GetFormFields(PdfFormFieldKind.Text)));
+        Assert.Equal(new[] { "Accept", "Choice", "Submit" }, logical.GetFormFields(PdfFormFieldKind.Button).Select(field => field.Name).ToArray());
+        Assert.Same(choice, Assert.Single(logical.FormFieldsByKind[PdfFormFieldKind.Choice]));
+        Assert.Same(signature, Assert.Single(logical.GetFormFields(PdfFormFieldKind.Signature)));
+        Assert.Empty(logical.GetFormFields(PdfFormFieldKind.Unknown));
+    }
+
+    [Fact]
     public void Load_ExposesAcroFormWidgetGeometry() {
         PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildWidgetFormPdf());
 
@@ -309,6 +361,53 @@ public class PdfLogicalDocumentTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildFieldKindFormPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [6 0 R 7 0 R 8 0 R 9 0 R 10 0 R 11 0 R] >>",
+            "endobj",
+            "6 0 obj",
+            "<< /FT /Tx /T (Notes) /V (Secret) /Ff 12295 >>",
+            "endobj",
+            "7 0 obj",
+            "<< /FT /Btn /T (Accept) /V /Yes >>",
+            "endobj",
+            "8 0 obj",
+            "<< /FT /Btn /T (Choice) /V /A /Ff 49152 >>",
+            "endobj",
+            "9 0 obj",
+            "<< /FT /Btn /T (Submit) /Ff 65536 >>",
+            "endobj",
+            "10 0 obj",
+            "<< /FT /Ch /T (Country) /V (PL) /Ff 74317826 >>",
+            "endobj",
+            "11 0 obj",
+            "<< /FT /Sig /T (Approval) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 12 >>",
             "%%EOF"
         });
 
