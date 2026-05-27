@@ -36,6 +36,8 @@ public interface IPdfLogicalElement {
 /// </summary>
 public sealed class PdfLogicalDocument {
     private IReadOnlyList<IPdfLogicalElement>? _elements;
+    private IReadOnlyDictionary<string, PdfFormField>? _formFieldsByName;
+    private IReadOnlyList<string>? _formFieldNames;
 
     private PdfLogicalDocument(
         PdfMetadata metadata,
@@ -88,6 +90,39 @@ public sealed class PdfLogicalDocument {
     /// <summary>Simple AcroForm fields discovered from the document catalog.</summary>
     public IReadOnlyList<PdfFormField> FormFields { get; }
 
+    /// <summary>Named simple AcroForm fields keyed by fully qualified field name.</summary>
+    public IReadOnlyDictionary<string, PdfFormField> FormFieldsByName {
+        get {
+            if (_formFieldsByName is not null) {
+                return _formFieldsByName;
+            }
+
+            var fields = new Dictionary<string, PdfFormField>(StringComparer.Ordinal);
+            for (int i = 0; i < FormFields.Count; i++) {
+                PdfFormField formField = FormFields[i];
+                string? name = formField.Name;
+                if (name is not null && name.Length > 0 && !fields.ContainsKey(name)) {
+                    fields.Add(name, formField);
+                }
+            }
+
+            _formFieldsByName = new System.Collections.ObjectModel.ReadOnlyDictionary<string, PdfFormField>(fields);
+            return _formFieldsByName;
+        }
+    }
+
+    /// <summary>Fully qualified names for simple AcroForm fields that have a readable name.</summary>
+    public IReadOnlyList<string> FormFieldNames {
+        get {
+            if (_formFieldNames is not null) {
+                return _formFieldNames;
+            }
+
+            _formFieldNames = FormFieldsByName.Keys.ToArray();
+            return _formFieldNames;
+        }
+    }
+
     /// <summary>Catalog page mode, for example UseOutlines or FullScreen, when present.</summary>
     public string? CatalogPageMode { get; }
 
@@ -120,6 +155,12 @@ public sealed class PdfLogicalDocument {
 
     /// <summary>True when at least one simple AcroForm field was read from the document catalog.</summary>
     public bool HasFormFields => FormFields.Count > 0;
+
+    /// <summary>Attempts to get a simple AcroForm field by its fully qualified field name.</summary>
+    public bool TryGetFormField(string name, out PdfFormField? field) {
+        Guard.NotNullOrWhiteSpace(name, nameof(name));
+        return FormFieldsByName.TryGetValue(name, out field);
+    }
 
     /// <summary>All logical page elements flattened in page order.</summary>
     public IReadOnlyList<IPdfLogicalElement> Elements {

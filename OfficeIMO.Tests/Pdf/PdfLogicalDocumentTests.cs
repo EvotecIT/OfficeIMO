@@ -121,6 +121,16 @@ public class PdfLogicalDocumentTests {
         Assert.Equal(new[] { "Person.Name", "AcceptTerms" }, logical.FormFields.Select(field => field.Name).ToArray());
         Assert.Equal("OfficeIMO", logical.FormFields[0].Value);
         Assert.Equal("Yes", logical.FormFields[1].Value);
+        Assert.Equal(2, logical.FormFieldsByName.Count);
+        Assert.Contains("Person.Name", logical.FormFieldNames);
+        Assert.Contains("AcceptTerms", logical.FormFieldNames);
+
+        Assert.True(logical.TryGetFormField("Person.Name", out PdfFormField? nameField));
+        Assert.Equal("OfficeIMO", nameField!.Value);
+        Assert.True(logical.TryGetFormField("AcceptTerms", out PdfFormField? acceptField));
+        Assert.Equal("Yes", acceptField!.Value);
+        Assert.False(logical.TryGetFormField("Missing", out PdfFormField? missingField));
+        Assert.Null(missingField);
     }
 
     [Fact]
