@@ -60,6 +60,17 @@ public class PdfLogicalDocumentTests {
             Normalize(row[0]) == "A-100" &&
             Normalize(row[1]) == "Alpha" &&
             Normalize(row[2]) == "2");
+        Assert.Contains(table.Cells, cell =>
+            cell.PageNumber == 1 &&
+            cell.RowIndex == 1 &&
+            cell.ColumnIndex == 0 &&
+            Normalize(cell.Text) == "A-100" &&
+            cell.Column is not null &&
+            cell.Column.From < cell.Column.To);
+        Assert.Contains(table.Cells, cell =>
+            cell.RowIndex == 2 &&
+            cell.ColumnIndex == 2 &&
+            Normalize(cell.Text) == "14");
 
         PdfLogicalImage image = Assert.Single(page.Images);
         Assert.Equal(1, image.PageNumber);

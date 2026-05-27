@@ -625,13 +625,15 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
         double yTop,
         double yBottom,
         IReadOnlyList<PdfLogicalTableColumn> columns,
-        IReadOnlyList<IReadOnlyList<string>> rows) {
+        IReadOnlyList<IReadOnlyList<string>> rows,
+        IReadOnlyList<PdfLogicalTableCell> cells) {
         PageNumber = pageNumber;
         DetectionKind = kind;
         YTop = yTop;
         YBottom = yBottom;
         Columns = columns;
         Rows = rows;
+        Cells = cells;
     }
 
     /// <inheritdoc />
@@ -655,6 +657,9 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
     /// <summary>Extracted table rows.</summary>
     public IReadOnlyList<IReadOnlyList<string>> Rows { get; }
 
+    /// <summary>Extracted table cells with row and column indexes.</summary>
+    public IReadOnlyList<PdfLogicalTableCell> Cells { get; }
+
     internal static PdfLogicalTable From(int pageNumber, StructuredTable table) {
         var columns = new List<PdfLogicalTableColumn>(table.Columns.Count);
         for (int i = 0; i < table.Columns.Count; i++) {
@@ -662,8 +667,14 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
         }
 
         var rows = new List<IReadOnlyList<string>>(table.Rows.Count);
+        var cells = new List<PdfLogicalTableCell>();
         for (int i = 0; i < table.Rows.Count; i++) {
-            rows.Add(Array.AsReadOnly((string[])table.Rows[i].Clone()));
+            string[] row = (string[])table.Rows[i].Clone();
+            rows.Add(Array.AsReadOnly(row));
+            for (int columnIndex = 0; columnIndex < row.Length; columnIndex++) {
+                PdfLogicalTableColumn? column = columnIndex < columns.Count ? columns[columnIndex] : null;
+                cells.Add(new PdfLogicalTableCell(pageNumber, i, columnIndex, row[columnIndex], column));
+            }
         }
 
         return new PdfLogicalTable(
@@ -672,8 +683,37 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
             table.YTop,
             table.YBottom,
             columns.AsReadOnly(),
-            rows.AsReadOnly());
+            rows.AsReadOnly(),
+            cells.AsReadOnly());
     }
+}
+
+/// <summary>
+/// Extracted table cell with row and column indexes.
+/// </summary>
+public sealed class PdfLogicalTableCell {
+    internal PdfLogicalTableCell(int pageNumber, int rowIndex, int columnIndex, string text, PdfLogicalTableColumn? column) {
+        PageNumber = pageNumber;
+        RowIndex = rowIndex;
+        ColumnIndex = columnIndex;
+        Text = text;
+        Column = column;
+    }
+
+    /// <summary>One-based source page number.</summary>
+    public int PageNumber { get; }
+
+    /// <summary>Zero-based row index within the detected table.</summary>
+    public int RowIndex { get; }
+
+    /// <summary>Zero-based column index within the detected table row.</summary>
+    public int ColumnIndex { get; }
+
+    /// <summary>Extracted cell text.</summary>
+    public string Text { get; }
+
+    /// <summary>Detected column geometry when available.</summary>
+    public PdfLogicalTableColumn? Column { get; }
 }
 
 /// <summary>
