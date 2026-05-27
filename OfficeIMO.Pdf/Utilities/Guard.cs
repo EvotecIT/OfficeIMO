@@ -119,8 +119,10 @@ internal static class Guard {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void TabAlignment(PdfTabAlignment value, string paramName) {
         if (value != PdfTabAlignment.Left &&
-            value != PdfTabAlignment.Right) {
-            throw new System.ArgumentException("PDF tab alignment must be Left or Right.", paramName);
+            value != PdfTabAlignment.Center &&
+            value != PdfTabAlignment.Right &&
+            value != PdfTabAlignment.DecimalSeparator) {
+            throw new System.ArgumentException("PDF tab alignment must be Left, Center, Right, or DecimalSeparator.", paramName);
         }
     }
 

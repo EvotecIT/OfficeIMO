@@ -7,6 +7,7 @@ internal static partial class PdfWriter {
     private static readonly char[] TokenSplitChars = new[] { ' ', '\n', '\t' };
     private static readonly char[] HardLineSplitChars = new[] { '\n' };
     private static readonly char[] SoftLineSplitChars = new[] { ' ', '\t' };
+    private static readonly char[] DecimalTabAnchorChars = new[] { '.', ',' };
     private static string EscapeText(string s) => PdfSyntaxEscaper.EscapeLiteralContent(s);
 
     private static string EncodeWinAnsiHex(string s) {
@@ -184,7 +185,20 @@ internal static partial class PdfWriter {
         return Math.Max(spaceWidth, nextStop - lineWidth);
     }
 
-    private static double CalculateTabAdvance(double lineWidth, double followingTextWidth, double spaceWidth, PdfTabAlignment alignment, double tabStopWidth = DefaultParagraphTabStopWidth) {
+    private static double MeasureDecimalAnchorWidth(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline) {
+        if (string.IsNullOrEmpty(text)) {
+            return 0D;
+        }
+
+        int decimalIndex = text.IndexOfAny(DecimalTabAnchorChars);
+        if (decimalIndex < 0) {
+            return MeasureRichText(text, font, fontSize, baseline);
+        }
+
+        return MeasureRichText(text.Substring(0, decimalIndex), font, fontSize, baseline);
+    }
+
+    private static double CalculateTabAdvance(double lineWidth, double followingTextWidth, double spaceWidth, PdfTabAlignment alignment, double tabStopWidth = DefaultParagraphTabStopWidth, string followingText = "", PdfStandardFont followingFont = PdfStandardFont.Helvetica, double fontSize = 12D, PdfTextBaseline baseline = PdfTextBaseline.Normal) {
         if (alignment == PdfTabAlignment.Left) {
             return CalculateDefaultTabAdvance(lineWidth, spaceWidth, tabStopWidth);
         }
@@ -195,12 +209,18 @@ internal static partial class PdfWriter {
             return spaceWidth;
         }
 
+        double anchorWidth = alignment switch {
+            PdfTabAlignment.Center => followingTextWidth / 2D,
+            PdfTabAlignment.Right => followingTextWidth,
+            PdfTabAlignment.DecimalSeparator => MeasureDecimalAnchorWidth(followingText, followingFont, fontSize, baseline),
+            _ => followingTextWidth
+        };
         double nextStop = (Math.Floor(lineWidth / tabStopWidth) + 1D) * tabStopWidth;
-        double advance = nextStop - followingTextWidth - lineWidth;
+        double advance = nextStop - anchorWidth - lineWidth;
         if (advance < spaceWidth) {
             double stopsToAdd = Math.Ceiling((spaceWidth - advance) / tabStopWidth);
             nextStop += Math.Max(1D, stopsToAdd) * tabStopWidth;
-            advance = nextStop - followingTextWidth - lineWidth;
+            advance = nextStop - anchorWidth - lineWidth;
         }
 
         return Math.Max(spaceWidth, advance);
@@ -314,7 +334,7 @@ internal static partial class PdfWriter {
                     continue;
                 }
                 if (token.Length > 0 && pendingLeadingIsTab && lastLine.Count > 0) {
-                    pendingLeadingAdvance = CalculateTabAdvance(lineWidth, tokenW, spaceW, pendingLeadingTabAlignment, tabStopWidth);
+                    pendingLeadingAdvance = CalculateTabAdvance(lineWidth, tokenW, spaceW, pendingLeadingTabAlignment, tabStopWidth, token, fontForRun, fontSize, baseline);
                 }
                 needed = lastLine.Count == 0 ? tokenW : pendingLeadingAdvance + tokenW;
                 if (lineWidth + needed > currentMaxWidth && lastLine.Count > 0) {

@@ -205,7 +205,7 @@ namespace OfficeIMO.Tests.Pdf {
             var invalidAlignmentException = Assert.Throws<ArgumentException>(() =>
                 TextRun.Tab(alignment: (PdfTabAlignment)99));
 
-            Assert.Contains("PDF tab alignment must be Left or Right.", invalidAlignmentException.Message, StringComparison.Ordinal);
+            Assert.Contains("PDF tab alignment must be Left, Center, Right, or DecimalSeparator.", invalidAlignmentException.Message, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -482,6 +482,54 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void WrapRichRuns_CenterAlignedTabsCenterFollowingTokenOnStop() {
+            var shortResult = InvokeWrapRichRuns(new[] {
+                new TextRun("A"),
+                TextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Center),
+                new TextRun("AB")
+            }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
+            var longResult = InvokeWrapRichRuns(new[] {
+                new TextRun("A"),
+                TextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Center),
+                new TextRun("ABCDE")
+            }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
+
+            var shortLine = Assert.Single(ExtractLines(shortResult));
+            var longLine = Assert.Single(ExtractLines(longResult));
+            double shortAdvance = ExtractLeadingAdvance(shortLine[1]);
+            double longAdvance = ExtractLeadingAdvance(longLine[1]);
+            double shortWidth = InvokePrivateFontMethod<double>("EstimateSimpleTextWidth", "AB", PdfStandardFont.Helvetica, 12.0);
+            double longWidth = InvokePrivateFontMethod<double>("EstimateSimpleTextWidth", "ABCDE", PdfStandardFont.Helvetica, 12.0);
+
+            Assert.True(longAdvance < shortAdvance, "Expected wider center-aligned tab text to consume less leading advance.");
+            Assert.Equal(shortAdvance + shortWidth / 2D, longAdvance + longWidth / 2D, 1);
+        }
+
+        [Fact]
+        public void WrapRichRuns_DecimalAlignedTabsAlignDecimalSeparator() {
+            var shortResult = InvokeWrapRichRuns(new[] {
+                new TextRun("A"),
+                TextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator),
+                new TextRun("12.30")
+            }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
+            var longResult = InvokeWrapRichRuns(new[] {
+                new TextRun("A"),
+                TextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator),
+                new TextRun("1234.50")
+            }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
+
+            var shortLine = Assert.Single(ExtractLines(shortResult));
+            var longLine = Assert.Single(ExtractLines(longResult));
+            double shortAdvance = ExtractLeadingAdvance(shortLine[1]);
+            double longAdvance = ExtractLeadingAdvance(longLine[1]);
+            double shortPrefixWidth = InvokePrivateFontMethod<double>("EstimateSimpleTextWidth", "12", PdfStandardFont.Helvetica, 12.0);
+            double longPrefixWidth = InvokePrivateFontMethod<double>("EstimateSimpleTextWidth", "1234", PdfStandardFont.Helvetica, 12.0);
+
+            Assert.True(longAdvance < shortAdvance, "Expected wider decimal prefix text to consume less leading advance.");
+            Assert.Equal(shortAdvance + shortPrefixWidth, longAdvance + longPrefixWidth, 1);
+        }
+
+        [Fact]
         public void ParagraphTabs_RenderAsVisibleDefaultTabStopGap() {
             byte[] bytes = PdfDoc.Create(new PdfOptions {
                     DefaultFontSize = 12
@@ -596,6 +644,48 @@ namespace OfficeIMO.Tests.Pdf {
 
             Assert.Equal(2, digitEnds.Length);
             Assert.InRange(Math.Abs(digitEnds[0] - digitEnds[1]), 0, 1.5);
+        }
+
+        [Fact]
+        public void ParagraphTabs_DecimalAlignedDotLeadersAlignDecimalSeparators() {
+            byte[] bytes = PdfDoc.Create(new PdfOptions {
+                    PageWidth = 360,
+                    PageHeight = 200,
+                    MarginLeft = 36,
+                    MarginRight = 36,
+                    MarginTop = 36,
+                    MarginBottom = 36,
+                    DefaultFontSize = 12,
+                    DefaultParagraphStyle = new PdfParagraphStyle {
+                        DefaultTabStopWidth = 216,
+                        SpacingAfter = 0
+                    }
+                })
+                .Paragraph(p => p.Text("Tax").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator).Text("8.50"))
+                .Paragraph(p => p.Text("Total").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator).Text("12845.75"))
+                .ToBytes();
+
+            using var pdf = UglyToad.PdfPig.PdfDocument.Open(new MemoryStream(bytes));
+            var page = pdf.GetPage(1);
+            var decimalStarts = page.Letters
+                .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1))
+                .OrderByDescending(group => group.Key)
+                .Select(group => {
+                    var ordered = group.OrderBy(letter => letter.StartBaseLine.X).ToList();
+                    for (int i = 1; i < ordered.Count - 1; i++) {
+                        if (ordered[i].Value == "." &&
+                            char.IsDigit(ordered[i - 1].Value[0]) &&
+                            char.IsDigit(ordered[i + 1].Value[0])) {
+                            return ordered[i].StartBaseLine.X;
+                        }
+                    }
+
+                    throw new InvalidOperationException("Could not find a decimal separator surrounded by digits.");
+                })
+                .ToArray();
+
+            Assert.Equal(2, decimalStarts.Length);
+            Assert.InRange(Math.Abs(decimalStarts[0] - decimalStarts[1]), 0, 1.5);
         }
 
         [Fact]
