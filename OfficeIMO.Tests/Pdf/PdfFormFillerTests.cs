@@ -197,6 +197,33 @@ public class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FillAndFlattenFields_PaintsChoiceOptionDisplayText() {
+        byte[] filled = PdfFormFiller.FillFields(BuildChoiceWidgetFormPdf(), new Dictionary<string, string> {
+            ["Country"] = "PL"
+        });
+
+        PdfDocumentInfo filledInfo = PdfInspector.Inspect(filled);
+
+        Assert.True(filledInfo.HasReadableFormFields);
+        PdfFormField filledField = Assert.Single(filledInfo.FormFields);
+        Assert.Equal("PL", filledField.Value);
+        Assert.Equal("Poland", Assert.Single(filledField.SelectedOptions).DisplayText);
+        Assert.Contains("(Poland) Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
+
+        byte[] flattened = PdfFormFiller.FlattenFields(filled);
+
+        string output = Encoding.ASCII.GetString(flattened);
+        PdfDocumentInfo flattenedInfo = PdfInspector.Inspect(flattened);
+
+        Assert.False(flattenedInfo.HasForms);
+        Assert.DoesNotContain("/AcroForm", output);
+        Assert.DoesNotContain("/Subtype /Widget", output);
+        Assert.DoesNotContain("/Annots", output);
+        Assert.Contains("/OfficeIMOForm1 Do", output);
+        Assert.Contains("(Poland) Tj", GetFlattenedAppearanceStreamText(flattened), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FlattenFields_GeneratesMissingButtonAppearanceFromExistingState() {
         byte[] flattened = PdfFormFiller.FlattenFields(BuildCheckboxWidgetWithoutAppearancePdf("Yes"));
 
@@ -474,6 +501,41 @@ public class PdfFormFillerTests {
             "endobj",
             "8 0 obj",
             $"<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 100 36 116] /F 4 /AS /{stateName} >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildChoiceWidgetFormPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R /Annots [8 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [7 0 R] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /FT /Ch /T (Country) /V (DE) /Opt [[(PL) (Poland)] [(DE) (Germany)] [/US (United States)]] /Kids [8 0 R] >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 100 200 122] /F 4 >>",
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 9 >>",
