@@ -163,9 +163,13 @@ VisioDocument.Create("graph.vsdx")
             "Data classification", VisioShapeDataType.String)
         .Zone("runtime", "Runtime", "gateway", "events", "worker")
         .Root("gateway")
-        .ControlEdge("gateway", "events", "publish")
+        .ControlEdge("gateway-publishes-events", "gateway", "events", "publish")
+        .EdgeHyperlink("gateway-publishes-events",
+            "https://learn.microsoft.com/azure/event-grid/", "Event docs")
         .Edge("events", "worker", "trigger")
-        .DataEdge("worker", "database", "write")
+        .DataEdge("worker-writes-database", "worker", "database", "write")
+        .EdgeHyperlink("worker-writes-database",
+            "https://example.org/contracts/write-model", "Write contract")
         .DataEdge("database", "gateway", "read model"))
     .Save();
 ```
@@ -176,7 +180,9 @@ and undirected edges; cycles; disconnected components; background zones; native
 nodes; and source-aware `VisioStencilShape` nodes loaded from installed Visio
 or external `.vssx`/`.vstx` packages. Use `NodeShapeData` and `NodeHyperlink`
 to keep generated graph nodes searchable, inspectable, and linked to runbooks,
-dashboards, API docs, or data catalogs inside Visio.
+dashboards, API docs, or data catalogs inside Visio. Named edges can also carry
+connector hyperlinks with `EdgeHyperlink`, which is useful for API contracts,
+message schemas, queries, and relationship-specific runbooks.
 
 ## Quick sample (architecture diagram builder)
 

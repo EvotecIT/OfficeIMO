@@ -136,25 +136,30 @@ namespace OfficeIMO.Tests {
                     .NodeShapeData("database", "Classification", "Confidential", "Data classification", VisioShapeDataType.String)
                     .NodeHyperlink("api", "https://example.org/runbook", "Runbook")
                     .NodeHyperlink("database", new Uri("https://example.org/data-catalog"), "Data catalog")
-                    .DataEdge("api", "database", "reads"));
+                    .DataEdge("api-reads-database", "api", "database", "reads")
+                    .EdgeHyperlink("api-reads-database", "https://example.org/openapi.json", "API contract"));
 
             VisioPage page = Assert.Single(document.Pages);
             VisioShape api = page.Shapes.Single(shape => shape.Id == "api");
             VisioShape database = page.Shapes.Single(shape => shape.Id == "database");
+            VisioConnector connector = page.Connectors.Single(edge => edge.Id == "api-reads-database");
             Assert.Equal("Platform", api.GetShapeDataValue("Owner"));
             Assert.Equal("Public", api.GetShapeDataValue("Tier"));
             Assert.Equal("Confidential", database.GetShapeDataValue("Classification"));
             Assert.Contains(api.ShapeData, row => row.Name == "Owner" && row.Label == "Owner" && row.Prompt == "Owning team");
             Assert.Contains(api.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/runbook" && hyperlink.Description == "Runbook");
             Assert.Contains(database.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/data-catalog" && hyperlink.Description == "Data catalog");
+            Assert.Contains(connector.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/openapi.json" && hyperlink.Description == "API contract");
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
 
             VisioDocument loaded = VisioDocument.Load(filePath);
             VisioShape loadedApi = loaded.Pages[0].Shapes.Single(shape => shape.Id == "api");
+            VisioConnector loadedConnector = loaded.Pages[0].Connectors.Single(edge => edge.Id == "api-reads-database");
             Assert.Equal("Platform", loadedApi.GetShapeDataValue("Owner"));
             Assert.Contains(loadedApi.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/runbook" && hyperlink.Description == "Runbook");
+            Assert.Contains(loadedConnector.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/openapi.json" && hyperlink.Description == "API contract");
         }
 
         [Fact]
@@ -167,6 +172,29 @@ namespace OfficeIMO.Tests {
                     .Edge("known", "missing")));
 
             Assert.Contains("Unknown graph node id", exception.Message);
+        }
+
+        [Fact]
+        public void GraphDiagramBuilderRejectsUnknownNamedEdgesAndDuplicateEdgeIds() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException unknown = Assert.Throws<ArgumentException>(() =>
+                document.GraphDiagram("Unknown Edge", graph => graph
+                    .Node("api", "API")
+                    .Node("database", "Database")
+                    .DataEdge("api-reads-database", "api", "database", "reads")
+                    .EdgeHyperlink("missing-edge", "https://example.org")));
+
+            Assert.Contains("Unknown graph edge id", unknown.Message);
+
+            ArgumentException duplicate = Assert.Throws<ArgumentException>(() =>
+                VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                    .GraphDiagram("Duplicate Edge", graph => graph
+                        .Node("api", "API")
+                        .Node("database", "Database")
+                        .DataEdge("api", "api", "database", "reads")));
+
+            Assert.Contains("already exists", duplicate.Message);
         }
     }
 }

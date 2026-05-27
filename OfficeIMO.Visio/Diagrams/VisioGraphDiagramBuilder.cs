@@ -64,13 +64,16 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private sealed class EdgeItem {
-            public EdgeItem(string fromId, string toId, VisioGraphConnectorKind kind, string? label, bool directed) {
+            public EdgeItem(string? id, string fromId, string toId, VisioGraphConnectorKind kind, string? label, bool directed) {
+                Id = id;
                 FromId = fromId;
                 ToId = toId;
                 Kind = kind;
                 Label = label;
                 Directed = directed;
             }
+
+            public string? Id { get; }
 
             public string FromId { get; }
 
@@ -81,6 +84,8 @@ namespace OfficeIMO.Visio.Diagrams {
             public string? Label { get; }
 
             public bool Directed { get; }
+
+            public List<VisioHyperlink> Hyperlinks { get; } = new();
         }
 
         private sealed class ZoneItem {
@@ -102,6 +107,8 @@ namespace OfficeIMO.Visio.Diagrams {
         private readonly List<NodeItem> _nodes = new();
         private readonly Dictionary<string, NodeItem> _nodesById = new(StringComparer.Ordinal);
         private readonly List<EdgeItem> _edges = new();
+        private readonly Dictionary<string, EdgeItem> _edgesById = new(StringComparer.Ordinal);
+        private readonly HashSet<string> _edgeIds = new(StringComparer.Ordinal);
         private readonly List<string> _rootIds = new();
         private readonly HashSet<string> _rootIdSet = new(StringComparer.Ordinal);
         private readonly List<ZoneItem> _zones = new();
@@ -327,24 +334,81 @@ namespace OfficeIMO.Visio.Diagrams {
         public VisioGraphDiagramBuilder Edge(string fromId, string toId, string? label = null) =>
             Edge(fromId, toId, VisioGraphConnectorKind.Standard, label, directed: true);
 
+        /// <summary>Adds a named standard directed graph edge.</summary>
+        public VisioGraphDiagramBuilder Edge(string edgeId, string fromId, string toId, string? label) =>
+            Edge(edgeId, fromId, toId, VisioGraphConnectorKind.Standard, label, directed: true);
+
         /// <summary>Adds a data-flow graph edge.</summary>
         public VisioGraphDiagramBuilder DataEdge(string fromId, string toId, string? label = null) =>
             Edge(fromId, toId, VisioGraphConnectorKind.Data, label, directed: true);
+
+        /// <summary>Adds a named data-flow graph edge.</summary>
+        public VisioGraphDiagramBuilder DataEdge(string edgeId, string fromId, string toId, string? label) =>
+            Edge(edgeId, fromId, toId, VisioGraphConnectorKind.Data, label, directed: true);
 
         /// <summary>Adds a control-flow graph edge.</summary>
         public VisioGraphDiagramBuilder ControlEdge(string fromId, string toId, string? label = null) =>
             Edge(fromId, toId, VisioGraphConnectorKind.Control, label, directed: true);
 
+        /// <summary>Adds a named control-flow graph edge.</summary>
+        public VisioGraphDiagramBuilder ControlEdge(string edgeId, string fromId, string toId, string? label) =>
+            Edge(edgeId, fromId, toId, VisioGraphConnectorKind.Control, label, directed: true);
+
         /// <summary>Adds an emphasized graph edge.</summary>
         public VisioGraphDiagramBuilder EmphasisEdge(string fromId, string toId, string? label = null) =>
             Edge(fromId, toId, VisioGraphConnectorKind.Emphasis, label, directed: true);
+
+        /// <summary>Adds a named emphasized graph edge.</summary>
+        public VisioGraphDiagramBuilder EmphasisEdge(string edgeId, string fromId, string toId, string? label) =>
+            Edge(edgeId, fromId, toId, VisioGraphConnectorKind.Emphasis, label, directed: true);
 
         /// <summary>Adds an undirected graph edge.</summary>
         public VisioGraphDiagramBuilder Relationship(string fromId, string toId, string? label = null) =>
             Edge(fromId, toId, VisioGraphConnectorKind.Standard, label, directed: false);
 
+        /// <summary>Adds a named undirected graph edge.</summary>
+        public VisioGraphDiagramBuilder Relationship(string edgeId, string fromId, string toId, string? label) =>
+            Edge(edgeId, fromId, toId, VisioGraphConnectorKind.Standard, label, directed: false);
+
         /// <summary>Adds a graph edge between two known nodes.</summary>
         public VisioGraphDiagramBuilder Edge(string fromId, string toId, VisioGraphConnectorKind kind, string? label = null, bool directed = true) {
+            AddEdge(null, fromId, toId, kind, label, directed);
+            return this;
+        }
+
+        /// <summary>Adds a named graph edge between two known nodes.</summary>
+        public VisioGraphDiagramBuilder Edge(string edgeId, string fromId, string toId, VisioGraphConnectorKind kind, string? label = null, bool directed = true) {
+            string normalizedEdgeId = RequireId(edgeId, nameof(edgeId), "Edge id");
+            if (IsIdInUse(normalizedEdgeId)) {
+                throw new ArgumentException($"A graph diagram item with id '{normalizedEdgeId}' already exists.", nameof(edgeId));
+            }
+
+            AddEdge(normalizedEdgeId, fromId, toId, kind, label, directed);
+            return this;
+        }
+
+        /// <summary>Adds a hyperlink that will be written to a named graph edge connector.</summary>
+        public VisioGraphDiagramBuilder EdgeHyperlink(string edgeId, string address, string? description = null, string? subAddress = null) {
+            string normalizedEdgeId = RequireId(edgeId, nameof(edgeId), "Edge id");
+            EdgeItem edge = GetKnownEdge(normalizedEdgeId, nameof(edgeId));
+            if (string.IsNullOrWhiteSpace(address)) {
+                throw new ArgumentException("Hyperlink address cannot be null or whitespace.", nameof(address));
+            }
+
+            edge.Hyperlinks.Add(new VisioHyperlink(address, description, subAddress));
+            return this;
+        }
+
+        /// <summary>Adds a hyperlink that will be written to a named graph edge connector.</summary>
+        public VisioGraphDiagramBuilder EdgeHyperlink(string edgeId, Uri address, string? description = null, string? subAddress = null) {
+            if (address == null) {
+                throw new ArgumentNullException(nameof(address));
+            }
+
+            return EdgeHyperlink(edgeId, address.ToString(), description, subAddress);
+        }
+
+        private void AddEdge(string? edgeId, string fromId, string toId, VisioGraphConnectorKind kind, string? label, bool directed) {
             string normalizedFromId = RequireId(fromId, nameof(fromId), "From node id");
             string normalizedToId = RequireId(toId, nameof(toId), "To node id");
             EnsureKnownNode(normalizedFromId, nameof(fromId));
@@ -353,8 +417,12 @@ namespace OfficeIMO.Visio.Diagrams {
                 throw new ArgumentOutOfRangeException(nameof(kind));
             }
 
-            _edges.Add(new EdgeItem(normalizedFromId, normalizedToId, kind, label, directed));
-            return this;
+            EdgeItem edge = new(edgeId, normalizedFromId, normalizedToId, kind, label, directed);
+            _edges.Add(edge);
+            if (edgeId != null) {
+                _edgesById.Add(edgeId, edge);
+                _edgeIds.Add(edgeId);
+            }
         }
 
         internal VisioPage Build() {
@@ -595,14 +663,18 @@ namespace OfficeIMO.Visio.Diagrams {
 
             foreach (VisioHyperlink hyperlink in node.Hyperlinks) {
                 VisioHyperlink target = shape.AddHyperlink(hyperlink.Address ?? string.Empty, hyperlink.Description, hyperlink.SubAddress);
-                target.RowName = hyperlink.RowName;
-                target.ExtraInfo = hyperlink.ExtraInfo;
-                target.Frame = hyperlink.Frame;
-                target.NewWindow = hyperlink.NewWindow;
-                target.Default = hyperlink.Default;
-                target.Invisible = hyperlink.Invisible;
-                target.SortKey = hyperlink.SortKey;
+                CopyHyperlinkSettings(hyperlink, target);
             }
+        }
+
+        private static void CopyHyperlinkSettings(VisioHyperlink source, VisioHyperlink target) {
+            target.RowName = source.RowName;
+            target.ExtraInfo = source.ExtraInfo;
+            target.Frame = source.Frame;
+            target.NewWindow = source.NewWindow;
+            target.Default = source.Default;
+            target.Invisible = source.Invisible;
+            target.SortKey = source.SortKey;
         }
 
         private void AddStencilNodeCaption(VisioPage page, NodeItem node, double width, double height) {
@@ -636,8 +708,13 @@ namespace OfficeIMO.Visio.Diagrams {
                 VisioNetworkDiagramVisuals.ResolveSides(from.Shape, to.Shape, out VisioSide fromSide, out VisioSide toSide);
                 ConnectorKind connectorKind = _layout == VisioGraphLayout.Radial ? ConnectorKind.Straight : ConnectorKind.RightAngle;
                 VisioConnector connector = page.AddConnector(from.Shape, to.Shape, connectorKind, fromSide, toSide);
+                if (edge.Id != null) {
+                    connector.Id = edge.Id;
+                }
+
                 GetConnectorStyle(edge.Kind, edge.Directed).ApplyTo(connector);
                 connector.Label = edge.Label;
+                ApplyEdgeMetadata(connector, edge);
                 if (_layout != VisioGraphLayout.Radial) {
                     connector.RouteOrthogonal(offset: (routeIndex % 7) * 0.05D);
                 }
@@ -653,6 +730,13 @@ namespace OfficeIMO.Visio.Diagrams {
                 }
 
                 routeIndex++;
+            }
+        }
+
+        private static void ApplyEdgeMetadata(VisioConnector connector, EdgeItem edge) {
+            foreach (VisioHyperlink hyperlink in edge.Hyperlinks) {
+                VisioHyperlink target = connector.AddHyperlink(hyperlink.Address ?? string.Empty, hyperlink.Description, hyperlink.SubAddress);
+                CopyHyperlinkSettings(hyperlink, target);
             }
         }
 
@@ -802,7 +886,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 return true;
             }
 
-            if (_nodesById.ContainsKey(id) || _zoneIds.Contains(id)) {
+            if (_nodesById.ContainsKey(id) || _zoneIds.Contains(id) || _edgeIds.Contains(id)) {
                 return true;
             }
 
@@ -833,6 +917,14 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             throw new ArgumentException($"Unknown graph node id '{id}'.", parameterName);
+        }
+
+        private EdgeItem GetKnownEdge(string id, string parameterName) {
+            if (_edgesById.TryGetValue(id, out EdgeItem? edge)) {
+                return edge;
+            }
+
+            throw new ArgumentException($"Unknown graph edge id '{id}'.", parameterName);
         }
 
         private static IReadOnlyList<string> NormalizeZoneNodeIds(string[] nodeIds) {
