@@ -15,6 +15,7 @@ internal static partial class PdfWriter {
         int infoId = 0, catalogId = 0;
         int pagesId = ReserveObject(objects);
         var pageIds = new List<int>();
+        var formFieldIds = new List<int>();
 
         // Collect fonts used across pages
         var fontObjectIds = new Dictionary<PdfStandardFont, int>();
@@ -159,7 +160,7 @@ internal static partial class PdfWriter {
                 contentStr += footer;
             }
             int contentId = AddStreamObject(objects, Encoding.ASCII.GetBytes(contentStr));
-            // Annotations (links)
+            // Annotations (links and form widgets)
             var pageAnnotIds = new List<int>();
             if (page.Annotations.Count > 0) {
                 foreach (var a in page.Annotations) {
@@ -174,6 +175,21 @@ internal static partial class PdfWriter {
 
                     int annId = AddObject(objects, annot);
                     pageAnnotIds.Add(annId);
+                }
+            }
+            if (page.FormFields.Count > 0) {
+                int helveticaFontId = EnsureFont(PdfStandardFont.Helvetica);
+                foreach (var field in page.FormFields) {
+                    double appearanceWidth = field.X2 - field.X1;
+                    double appearanceHeight = field.Y2 - field.Y1;
+                    string appearanceContent = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(appearanceWidth, appearanceHeight, field.Value, field.FontSize);
+                    byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
+                    string appearanceDictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(appearanceWidth, appearanceHeight, helveticaFontId, appearanceBytes.Length);
+                    int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
+                    string formField = PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Value, field.FontSize, appearanceId);
+                    int formFieldId = AddObject(objects, formField);
+                    pageAnnotIds.Add(formFieldId);
+                    formFieldIds.Add(formFieldId);
                 }
             }
             // Page object
@@ -196,9 +212,14 @@ internal static partial class PdfWriter {
 
         int outlinesId = BuildOutlines(objects, layout.Pages, pageIds);
         int namedDestinationsId = BuildNamedDestinations(objects, layout.Pages, pageIds);
+        int acroFormId = 0;
+        if (formFieldIds.Count > 0) {
+            int helveticaFontId = EnsureFont(PdfStandardFont.Helvetica);
+            acroFormId = AddObject(objects, PdfAcroFormDictionaryBuilder.BuildAcroFormDictionary(formFieldIds, helveticaFontId));
+        }
 
         // Catalog
-        catalogId = AddObject(objects, PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(pagesId, outlinesId, namedDestinationsId));
+        catalogId = AddObject(objects, PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(pagesId, outlinesId, namedDestinationsId, acroFormId));
 
         infoId = AddObject(objects, PdfInfoDictionaryBuilder.Build(title, author, subject, keywords));
 

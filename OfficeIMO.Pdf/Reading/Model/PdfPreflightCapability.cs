@@ -16,7 +16,7 @@ public enum PdfPreflightCapability {
     /// <summary>Simple AcroForm value updates for named text, choice, or button fields.</summary>
     FillSimpleFormFields,
 
-    /// <summary>Simple AcroForm flattening for named text or button widgets with page-backed rectangles.</summary>
+    /// <summary>Simple AcroForm flattening for named text, choice, or button widgets with page-backed rectangles.</summary>
     FlattenSimpleFormFields,
 
     /// <summary>Simple AcroForm value updates followed by simple widget flattening.</summary>

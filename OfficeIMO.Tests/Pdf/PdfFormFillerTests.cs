@@ -306,6 +306,15 @@ public class PdfFormFillerTests {
     }
 
     [Fact]
+    public void Preflight_AllowsChoiceFieldFlattening() {
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(BuildChoiceWidgetFormPdf());
+
+        Assert.True(preflight.CanFlattenSimpleFormFields);
+        Assert.True(preflight.CanFillAndFlattenSimpleFormFields);
+        Assert.Empty(preflight.GetCapabilityDiagnostics(PdfPreflightCapability.FlattenSimpleFormFields));
+    }
+
+    [Fact]
     public void FlattenFields_PathHelpersWriteFlattenedPdf() {
         string inputPath = Path.Combine(Path.GetTempPath(), "officeimo-form-flatten-input-" + Guid.NewGuid().ToString("N") + ".pdf");
         string outputPath = Path.Combine(Path.GetTempPath(), "officeimo-form-flatten-output-" + Guid.NewGuid().ToString("N") + ".pdf");

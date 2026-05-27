@@ -31,6 +31,33 @@ internal static class PdfAnnotationDictionaryBuilder {
             " >> >>\n";
     }
 
+    internal static string BuildTextFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, string value, double fontSize, int normalAppearanceId) {
+        ValidateRectangle(x1, y1, x2, y2);
+        Guard.NotNullOrWhiteSpace(name, nameof(name));
+        Guard.NotNull(value, nameof(value));
+        ValidateFinite(fontSize, nameof(fontSize));
+        if (fontSize <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(fontSize), fontSize, "PDF text field font size must be a positive finite number.");
+        }
+
+        return "<< /Type /Annot /Subtype /Widget /FT /Tx /T " +
+            PdfSyntaxEscaper.LiteralString(name) +
+            " /V " +
+            PdfSyntaxEscaper.LiteralString(value) +
+            " /DV " +
+            PdfSyntaxEscaper.LiteralString(value) +
+            " /Rect [" +
+            FormatCoordinate(x1) + " " +
+            FormatCoordinate(y1) + " " +
+            FormatCoordinate(x2) + " " +
+            FormatCoordinate(y2) +
+            "] /F 4 /DA " +
+            PdfSyntaxEscaper.LiteralString("/Helv " + FormatCoordinate(fontSize) + " Tf 0 g") +
+            " /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N " +
+            PdfSyntaxEscaper.IndirectReference(normalAppearanceId) +
+            " >> >>\n";
+    }
+
     private static string BuildContentsEntry(string? contents) =>
         string.IsNullOrWhiteSpace(contents)
             ? string.Empty

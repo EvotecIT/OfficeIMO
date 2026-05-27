@@ -48,7 +48,7 @@ public sealed class PdfDocumentPreflight {
     /// <summary>True when OfficeIMO.Pdf can attempt simple AcroForm value updates for named text, choice, or button fields.</summary>
     public bool CanFillSimpleFormFields => CanRead && !HasFormMutationBlocker() && HasSimpleFillableFormFields();
 
-    /// <summary>True when OfficeIMO.Pdf can attempt simple AcroForm flattening for text or button widgets with page-backed rectangles.</summary>
+    /// <summary>True when OfficeIMO.Pdf can attempt simple AcroForm flattening for text, choice, or button widgets with page-backed rectangles.</summary>
     public bool CanFlattenSimpleFormFields => CanRead && !HasFormMutationBlocker() && HasSimpleFlattenableFormFields();
 
     /// <summary>True when OfficeIMO.Pdf can attempt simple AcroForm value updates followed by simple widget flattening.</summary>
@@ -200,6 +200,7 @@ public sealed class PdfDocumentPreflight {
     private static bool IsNamedSimpleFlattenField(PdfFormField field) {
         return !string.IsNullOrEmpty(field.Name) &&
             (field.Kind == PdfFormFieldKind.Text ||
+            field.Kind == PdfFormFieldKind.Choice ||
             field.Kind == PdfFormFieldKind.Button);
     }
 
@@ -272,7 +273,7 @@ public sealed class PdfDocumentPreflight {
         }
 
         if (requireFlattenableWidget && !HasSimpleFlattenableFormFields()) {
-            AddDistinct(messages, "PDF does not contain named text or button AcroForm widgets with readable page-backed rectangles supported for simple form flattening by OfficeIMO.Pdf.");
+            AddDistinct(messages, "PDF does not contain named text, choice, or button AcroForm widgets with readable page-backed rectangles supported for simple form flattening by OfficeIMO.Pdf.");
         }
 
         if (messages.Count == 0) {

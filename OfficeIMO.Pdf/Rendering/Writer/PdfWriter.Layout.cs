@@ -1323,9 +1323,18 @@ internal static partial class PdfWriter {
             if (currentPage == null) StartPage(currentOpts);
         }
 
+        bool HasCurrentPageNonContentObjects() =>
+            currentPage != null &&
+            (currentPage.Images.Count > 0 ||
+            currentPage.Annotations.Count > 0 ||
+            currentPage.FormFields.Count > 0 ||
+            currentPage.GraphicsStates.Count > 0 ||
+            currentPage.Shadings.Count > 0 ||
+            currentPage.NamedDestinations.Count > 0);
+
         void FlushPage(bool force = false) {
             if (currentPage == null) return;
-            if (!force && !pageDirty && currentPage.Images.Count == 0 && currentPage.Annotations.Count == 0 && currentPage.GraphicsStates.Count == 0 && currentPage.Shadings.Count == 0 && currentPage.NamedDestinations.Count == 0) {
+            if (!force && !pageDirty && !HasCurrentPageNonContentObjects()) {
                 currentPage = null;
                 sb.Clear();
                 pageDirty = false;
@@ -1339,7 +1348,7 @@ internal static partial class PdfWriter {
         }
 
         void NewPage() {
-            FlushPage(pageDirty || (currentPage?.Images.Count ?? 0) > 0 || (currentPage?.Annotations.Count ?? 0) > 0 || (currentPage?.GraphicsStates.Count ?? 0) > 0 || (currentPage?.Shadings.Count ?? 0) > 0 || (currentPage?.NamedDestinations.Count ?? 0) > 0);
+            FlushPage(pageDirty || HasCurrentPageNonContentObjects());
             StartPage(currentOpts);
         }
 
@@ -1710,6 +1719,33 @@ internal static partial class PdfWriter {
             y -= ruleStyle.Thickness + ruleStyle.SpacingAfter;
         }
 
+        void RenderTextFieldBlock(TextFieldBlock block, double containerX, double containerWidth) {
+            double spacingBefore = ResolveTopLevelSpacingBefore(block.SpacingBefore);
+            double needed = spacingBefore + block.Height + block.SpacingAfter;
+            EnsureFixedFlowBlockFits("Text field", block.Width, needed, containerWidth);
+            if (y - needed < currentOpts.MarginBottom) {
+                NewPage();
+                spacingBefore = 0D;
+            }
+
+            if (spacingBefore > 0) {
+                y -= spacingBefore;
+            }
+
+            double x = GetAlignedObjectX(containerX, containerWidth, block.Width, block.Align);
+            currentPage!.FormFields.Add(new FormFieldAnnotation {
+                X1 = x,
+                Y1 = y - block.Height,
+                X2 = x + block.Width,
+                Y2 = y,
+                Name = block.Name,
+                Value = block.Value,
+                FontSize = block.FontSize
+            });
+            pageDirty = true;
+            y -= block.Height + block.SpacingAfter;
+        }
+
         void EnsureFixedFlowBlockFits(string blockName, double blockWidth, double blockHeight, double availableWidth) {
             if (blockWidth > availableWidth + 0.001) {
                 throw new ArgumentException(blockName + " width exceeds the available page content width.");
@@ -1955,6 +1991,10 @@ internal static partial class PdfWriter {
                 return style.SpacingBefore + style.Thickness + style.SpacingAfter;
             }
 
+            if (block is TextFieldBlock textField) {
+                return textField.SpacingBefore + textField.Height + textField.SpacingAfter;
+            }
+
             if (block is ImageBlock image) {
                 PdfImageStyle style = ResolveImageStyle(image, currentOpts);
                 return style.SpacingBefore + image.Height + style.SpacingAfter;
@@ -2025,7 +2065,7 @@ internal static partial class PdfWriter {
                 var block = blockList[blockIndex];
                 IPdfBlock? nextBlock = blockIndex + 1 < blockList.Count ? blockList[blockIndex + 1] : null;
                 if (block is PageBlock pageBlock) {
-                    FlushPage(pageDirty || (currentPage?.Images.Count ?? 0) > 0 || (currentPage?.Annotations.Count ?? 0) > 0 || (currentPage?.GraphicsStates.Count ?? 0) > 0 || (currentPage?.Shadings.Count ?? 0) > 0 || (currentPage?.NamedDestinations.Count ?? 0) > 0);
+                    FlushPage(pageDirty || HasCurrentPageNonContentObjects());
                     optionsStack.Push(pageBlock.Options);
                     pageGroupStack.Push(currentPageGroupId);
                     currentOpts = pageBlock.Options;
@@ -2890,6 +2930,8 @@ internal static partial class PdfWriter {
                     }
 
                     RenderHorizontalRuleBlock(hr, currentOpts.MarginLeft, width);
+                } else if (block is TextFieldBlock tf) {
+                    RenderTextFieldBlock(tf, currentOpts.MarginLeft, width);
                 } else if (block is ShapeBlock sbk) {
                     PdfDrawingStyle shapeStyle = ResolveDrawingStyle(sbk, currentOpts);
                     PdfDoc.ValidateDrawingStyle(shapeStyle, "Shape");
@@ -4349,7 +4391,7 @@ internal static partial class PdfWriter {
         }
 
         ProcessBlocks(blocks);
-        FlushPage(pageDirty || (currentPage?.Images.Count ?? 0) > 0 || (currentPage?.Annotations.Count ?? 0) > 0 || (currentPage?.GraphicsStates.Count ?? 0) > 0 || (currentPage?.Shadings.Count ?? 0) > 0 || (currentPage?.NamedDestinations.Count ?? 0) > 0);
+        FlushPage(pageDirty || HasCurrentPageNonContentObjects());
 
         var result = new LayoutResult { UsedBold = usedBold, UsedItalic = usedItalic, UsedBoldItalic = usedBoldItalic };
         foreach (var p in pages) result.Pages.Add(p);

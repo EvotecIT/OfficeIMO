@@ -1156,7 +1156,7 @@ public class PdfInspectorTests {
         Assert.False(report.Can(PdfPreflightCapability.FillAndFlattenSimpleFormFields));
         Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
         Assert.Contains(
-            "PDF does not contain named text or button AcroForm widgets with readable page-backed rectangles supported for simple form flattening by OfficeIMO.Pdf.",
+            "PDF does not contain named text, choice, or button AcroForm widgets with readable page-backed rectangles supported for simple form flattening by OfficeIMO.Pdf.",
             report.GetCapabilityDiagnostics(PdfPreflightCapability.FlattenSimpleFormFields));
         Assert.NotNull(report.DocumentInfo);
         Assert.False(report.Probe.HasSignatures);

@@ -472,6 +472,10 @@ namespace OfficeIMO.Tests.Pdf {
                 "<< /Type /Catalog /Pages 2 0 R /Outlines 5 0 R /PageMode /UseOutlines /Names << /Dests 7 0 R >> >>\n",
                 PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 5, 7));
 
+            Assert.Equal(
+                "<< /Type /Catalog /Pages 2 0 R /AcroForm 8 0 R >>\n",
+                PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, 0, 8));
+
             var sb = new StringBuilder();
             PdfCatalogDictionaryBuilder.AppendCatalogStart(sb, 3);
             PdfCatalogDictionaryBuilder.AppendNameEntry(sb, "PageLayout", "TwoColumnLeft");
@@ -482,6 +486,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Throws<ArgumentOutOfRangeException>(() => PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(0, 0));
             Assert.Throws<ArgumentOutOfRangeException>(() => PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, -1));
             Assert.Throws<ArgumentOutOfRangeException>(() => PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, -1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, 0, -1));
         }
 
         [Fact]
@@ -525,6 +530,10 @@ namespace OfficeIMO.Tests.Pdf {
                 "<< /Type /Annot /Subtype /Link /Border [0 0 0] /Contents (Jump metadata) /Rect [10 20.5 110 44.25] /A << /S /GoTo /D (Intro\\(A\\)) >> >>\n",
                 PdfAnnotationDictionaryBuilder.BuildGoToNamedDestinationLinkAnnotation(10, 20.5, 110, 44.25, "Intro(A)", "Jump metadata"));
 
+            Assert.Equal(
+                "<< /Type /Annot /Subtype /Widget /FT /Tx /T (Person.Name) /V (Ada) /DV (Ada) /Rect [10 20.5 110 44.25] /F 4 /DA (/Helv 10 Tf 0 g) /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N 12 0 R >> >>\n",
+                PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(10, 20.5, 110, 44.25, "Person.Name", "Ada", 10, 12));
+
             Assert.Throws<ArgumentException>(() =>
                 PdfAnnotationDictionaryBuilder.BuildUriLinkAnnotation(10, 20, 110, 44, "not-a-uri"));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -533,6 +542,24 @@ namespace OfficeIMO.Tests.Pdf {
                 PdfAnnotationDictionaryBuilder.BuildUriLinkAnnotation(10, 20, 110, double.NaN, "https://evotec.xyz"));
             Assert.Throws<ArgumentException>(() =>
                 PdfAnnotationDictionaryBuilder.BuildGoToNamedDestinationLinkAnnotation(10, 20, 110, 44, " "));
+        }
+
+        [Fact]
+        public void AcroFormDictionaryBuilder_EmitsFieldsAndTextAppearance() {
+            Assert.Equal(
+                "<< /Fields [ 4 0 R 5 0 R ] /NeedAppearances true /DR << /Font << /Helv 3 0 R >> >> /DA (/Helv 10 Tf 0 g) >>\n",
+                PdfAcroFormDictionaryBuilder.BuildAcroFormDictionary(new[] { 4, 5 }, 3));
+
+            string content = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(120, 20, "Ada", 10);
+            Assert.Contains("(Ada) Tj", content);
+
+            string dictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(120, 20, 3, Encoding.ASCII.GetByteCount(content));
+            Assert.Equal(
+                "<< /Type /XObject /Subtype /Form /BBox [0 0 120 20] /Resources << /Font << /Helv 3 0 R >> >> /Length " + Encoding.ASCII.GetByteCount(content) + " >>",
+                dictionary);
+
+            Assert.Throws<ArgumentException>(() => PdfAcroFormDictionaryBuilder.BuildAcroFormDictionary(Array.Empty<int>(), 3));
+            Assert.Throws<ArgumentOutOfRangeException>(() => PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(120, 20, 3, -1));
         }
 
         [Fact]

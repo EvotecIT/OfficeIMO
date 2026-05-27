@@ -253,6 +253,12 @@ public sealed partial class PdfDoc {
         return this;
     }
 
+    /// <summary>Adds a simple AcroForm text field at the current flow position.</summary>
+    public PdfDoc TextField(string name, double width = 180, double height = 22, string value = "", PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6) {
+        AddBlock(new TextFieldBlock(name, width, height, value, align, fontSize, spacingBefore, spacingAfter));
+        return this;
+    }
+
     /// <summary>Adds a shared OfficeIMO.Drawing shape at the current flow position.</summary>
     public PdfDoc Shape(OfficeShape shape, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         AddBlock(CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents));
