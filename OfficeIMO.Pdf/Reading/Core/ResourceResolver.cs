@@ -11,17 +11,7 @@ internal static class ResourceResolver {
         foreach (var kv in fontDict.Items) {
             var fontVal = ResolveDict(kv.Value, objects);
             if (fontVal is null) continue;
-            string baseFont = (fontVal.Get<PdfName>("BaseFont")?.Name) ?? "";
-            string encoding = (fontVal.Get<PdfName>("Encoding")?.Name) ?? "WinAnsiEncoding"; // default heuristic
-            bool hasToUnicode = fontVal.Items.ContainsKey("ToUnicode");
-            ToUnicodeCMap? cmap = null;
-            if (hasToUnicode) {
-                if (fontVal.Items.TryGetValue("ToUnicode", out var tu) && tu is PdfReference r && PdfObjectLookup.TryGet(objects, r, out var ind) && ind.Value is PdfStream s) {
-                    var data = Filters.StreamDecoder.Decode(s.Dictionary, s.Data, objects);
-                    if (!ToUnicodeCMap.TryParse(data, out cmap)) cmap = null;
-                }
-            }
-            fonts[kv.Key] = new PdfFontResource(kv.Key, baseFont, encoding, hasToUnicode, cmap);
+            fonts[kv.Key] = CreateFontResource(kv.Key, fontVal, objects);
         }
         return fonts;
     }
@@ -149,18 +139,8 @@ internal static class ResourceResolver {
         foreach (var kv in fontDict.Items) {
             var fontVal = ResolveDict(kv.Value, objects);
             if (fontVal is null) continue;
-            string baseFont = (fontVal.Get<PdfName>("BaseFont")?.Name) ?? "";
-            string encoding = (fontVal.Get<PdfName>("Encoding")?.Name) ?? "WinAnsiEncoding";
-            bool hasToUnicode = fontVal.Items.ContainsKey("ToUnicode");
-            ToUnicodeCMap? cmap = null;
-            if (hasToUnicode) {
-                if (fontVal.Items.TryGetValue("ToUnicode", out var tu) && tu is PdfReference r && PdfObjectLookup.TryGet(objects, r, out var ind) && ind.Value is PdfStream s) {
-                    var data = Filters.StreamDecoder.Decode(s.Dictionary, s.Data, objects);
-                    if (!ToUnicodeCMap.TryParse(data, out cmap)) cmap = null;
-                }
-            }
             var resName = kv.Key;
-            var dec = BuildDecoderForFont(new PdfFontResource(resName, baseFont, encoding, hasToUnicode, cmap));
+            var dec = BuildDecoderForFont(CreateFontResource(resName, fontVal, objects));
             map[resName] = dec;
         }
         return map;
@@ -223,8 +203,201 @@ internal static class ResourceResolver {
     private static System.Func<byte[], string> BuildDecoderForFont(PdfFontResource font) {
         // Prefer font-specific ToUnicode map when present
         if (font.HasToUnicode && font.CMap is not null) return font.CMap.MapBytes;
+        if (font.Differences is not null && font.Differences.Count > 0) {
+            var differences = font.Differences;
+            return bytes => DecodeWithDifferences(bytes, differences);
+        }
+
         // Fall back to WinAnsi
         return PdfWinAnsiEncoding.Decode;
+    }
+
+    private static PdfFontResource CreateFontResource(string resourceName, PdfDictionary fontVal, Dictionary<int, PdfIndirectObject> objects) {
+        string baseFont = (fontVal.Get<PdfName>("BaseFont")?.Name) ?? "";
+        string encoding = "WinAnsiEncoding";
+        IReadOnlyDictionary<int, string>? differences = null;
+        if (fontVal.Items.TryGetValue("Encoding", out var encodingObj)) {
+            if (ResolveObject(encodingObj, objects) is PdfName encodingName) {
+                encoding = encodingName.Name;
+            } else if (ResolveDict(encodingObj, objects) is PdfDictionary encodingDict) {
+                encoding = encodingDict.Get<PdfName>("BaseEncoding")?.Name ?? encoding;
+                differences = BuildDifferencesMap(encodingDict.Items.TryGetValue("Differences", out var diffObj) ? diffObj : null, objects);
+            }
+        }
+
+        bool hasToUnicode = fontVal.Items.ContainsKey("ToUnicode");
+        ToUnicodeCMap? cmap = null;
+        if (hasToUnicode) {
+            if (fontVal.Items.TryGetValue("ToUnicode", out var tu) &&
+                tu is PdfReference r &&
+                PdfObjectLookup.TryGet(objects, r, out var ind) &&
+                ind.Value is PdfStream s) {
+                var data = Filters.StreamDecoder.Decode(s.Dictionary, s.Data, objects);
+                if (!ToUnicodeCMap.TryParse(data, out cmap)) cmap = null;
+            }
+        }
+
+        return new PdfFontResource(resourceName, baseFont, encoding, hasToUnicode, cmap, differences);
+    }
+
+    private static Dictionary<int, string>? BuildDifferencesMap(PdfObject? differencesObj, Dictionary<int, PdfIndirectObject> objects) {
+        var differences = ResolveArray(differencesObj, objects);
+        if (differences is null) return null;
+
+        var map = new Dictionary<int, string>();
+        int code = -1;
+        foreach (var item in differences.Items) {
+            if (ResolveObject(item, objects) is PdfNumber number) {
+                code = (int)number.Value;
+                continue;
+            }
+
+            if (code < 0 || code > 255) {
+                continue;
+            }
+
+            if (ResolveObject(item, objects) is PdfName glyphName &&
+                TryDecodeGlyphName(glyphName.Name, out string? value)) {
+                map[code] = value!;
+            }
+
+            code++;
+        }
+
+        return map.Count == 0 ? null : map;
+    }
+
+    private static string DecodeWithDifferences(byte[] bytes, IReadOnlyDictionary<int, string> differences) {
+        if (bytes is null || bytes.Length == 0) return string.Empty;
+        var builder = new System.Text.StringBuilder(bytes.Length);
+        for (int i = 0; i < bytes.Length; i++) {
+            int code = bytes[i];
+            if (differences.TryGetValue(code, out string? value)) {
+                builder.Append(value);
+            } else {
+                builder.Append(PdfWinAnsiEncoding.Decode(new[] { bytes[i] }));
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    private static bool TryDecodeGlyphName(string glyphName, out string? value) {
+        value = null;
+        if (string.IsNullOrEmpty(glyphName) || string.Equals(glyphName, ".notdef", System.StringComparison.Ordinal)) {
+            return false;
+        }
+
+        int variantIndex = glyphName.IndexOf('.');
+        if (variantIndex > 0) {
+            glyphName = glyphName.Substring(0, variantIndex);
+        }
+
+        if (glyphName.Length == 1) {
+            value = glyphName;
+            return true;
+        }
+
+        if (TryDecodeUnicodeGlyphName(glyphName, out value)) {
+            return true;
+        }
+
+        switch (glyphName) {
+            case "space": value = " "; return true;
+            case "exclam": value = "!"; return true;
+            case "quotedbl": value = "\""; return true;
+            case "numbersign": value = "#"; return true;
+            case "dollar": value = "$"; return true;
+            case "percent": value = "%"; return true;
+            case "ampersand": value = "&"; return true;
+            case "quotesingle": value = "'"; return true;
+            case "parenleft": value = "("; return true;
+            case "parenright": value = ")"; return true;
+            case "asterisk": value = "*"; return true;
+            case "plus": value = "+"; return true;
+            case "comma": value = ","; return true;
+            case "hyphen": value = "-"; return true;
+            case "period": value = "."; return true;
+            case "slash": value = "/"; return true;
+            case "colon": value = ":"; return true;
+            case "semicolon": value = ";"; return true;
+            case "less": value = "<"; return true;
+            case "equal": value = "="; return true;
+            case "greater": value = ">"; return true;
+            case "question": value = "?"; return true;
+            case "at": value = "@"; return true;
+            case "bracketleft": value = "["; return true;
+            case "backslash": value = "\\"; return true;
+            case "bracketright": value = "]"; return true;
+            case "asciicircum": value = "^"; return true;
+            case "underscore": value = "_"; return true;
+            case "grave": value = "`"; return true;
+            case "braceleft": value = "{"; return true;
+            case "bar": value = "|"; return true;
+            case "braceright": value = "}"; return true;
+            case "asciitilde": value = "~"; return true;
+            case "Euro": value = "\u20AC"; return true;
+            case "bullet": value = "\u2022"; return true;
+            case "endash": value = "\u2013"; return true;
+            case "emdash": value = "\u2014"; return true;
+            case "quoteleft": value = "\u2018"; return true;
+            case "quoteright": value = "\u2019"; return true;
+            case "quotedblleft": value = "\u201C"; return true;
+            case "quotedblright": value = "\u201D"; return true;
+            case "ellipsis": value = "\u2026"; return true;
+            case "fi": value = "fi"; return true;
+            case "fl": value = "fl"; return true;
+            default: return false;
+        }
+    }
+
+    private static bool TryDecodeUnicodeGlyphName(string glyphName, out string? value) {
+        value = null;
+        if (glyphName.Length > 3 &&
+            glyphName.StartsWith("uni", System.StringComparison.Ordinal) &&
+            (glyphName.Length - 3) % 4 == 0) {
+            var builder = new System.Text.StringBuilder((glyphName.Length - 3) / 4);
+            for (int i = 3; i < glyphName.Length; i += 4) {
+                if (!TryParseHexCodePoint(glyphName.Substring(i, 4), out int codePoint)) {
+                    return false;
+                }
+
+                builder.Append((char)codePoint);
+            }
+
+            value = builder.ToString();
+            return true;
+        }
+
+        if (glyphName.Length >= 5 &&
+            glyphName.Length <= 7 &&
+            glyphName[0] == 'u' &&
+            TryParseHexCodePoint(glyphName.Substring(1), out int scalar) &&
+            scalar <= 0x10FFFF) {
+#if NET5_0_OR_GREATER
+            value = char.ConvertFromUtf32(scalar);
+#else
+            value = scalar <= 0xFFFF ? ((char)scalar).ToString() : char.ConvertFromUtf32(scalar);
+#endif
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryParseHexCodePoint(string text, out int value) {
+        value = 0;
+        for (int i = 0; i < text.Length; i++) {
+            int digit;
+            char ch = text[i];
+            if (ch >= '0' && ch <= '9') digit = ch - '0';
+            else if (ch >= 'A' && ch <= 'F') digit = ch - 'A' + 10;
+            else if (ch >= 'a' && ch <= 'f') digit = ch - 'a' + 10;
+            else return false;
+            value = (value << 4) | digit;
+        }
+
+        return true;
     }
 
     private static PdfDictionary? GetInheritedDictionary(PdfDictionary page, string key, Dictionary<int, PdfIndirectObject> objects) {
