@@ -11,6 +11,7 @@ namespace OfficeIMO.Pdf;
 /// - ListItems: bullets and numbered list items
 /// - LeaderRows: generic leader rows (label + trailing value)
 /// - LinesDetailed: line geometry useful for higher-level extraction/debugging
+/// - Headings: heuristic heading lines inferred from larger-than-body font sizes
 /// - Paragraphs: heuristic paragraph groups built from nearby non-list, non-table lines
 /// - Tables: simple rows detected via large X gaps (heuristic)
 /// </summary>
@@ -27,6 +28,8 @@ public sealed class StructuredPage {
     public List<StructuredListItem> ListNodes { get; } = new();
     /// <summary>Per-line geometry details (Y, XStart, XEnd, Text, Spans).</summary>
     public List<StructuredLine> LinesDetailed { get; } = new();
+    /// <summary>Heuristic heading lines inferred from larger-than-body font sizes.</summary>
+    public List<StructuredHeading> Headings { get; } = new();
     /// <summary>Heuristic paragraph groups built from nearby non-list, non-table lines.</summary>
     public List<StructuredParagraph> Paragraphs { get; } = new();
     /// <summary>Simple table-like rows derived from large X gaps per line.</summary>
@@ -117,6 +120,18 @@ public sealed class StructuredParagraphPage {
     public List<StructuredParagraph> Paragraphs { get; } = new();
 }
 
+/// <summary>Heuristic heading line inferred from font size and geometry.</summary>
+public sealed class StructuredHeading {
+    /// <summary>Best-effort heading level, where 1 is the largest heading tier.</summary>
+    public int Level { get; init; }
+    /// <summary>Heading text.</summary>
+    public string Text { get; init; } = string.Empty;
+    /// <summary>Line geometry for the heading.</summary>
+    public StructuredLine Line { get; init; } = new();
+    /// <summary>Representative font size in points.</summary>
+    public double FontSize { get; init; }
+}
+
 /// <summary>Heuristic paragraph group built from nearby non-list, non-table lines.</summary>
 public sealed class StructuredParagraph {
     /// <summary>Paragraph text with grouped lines joined by spaces.</summary>
@@ -143,6 +158,8 @@ public sealed class StructuredLine {
     public double XEnd { get; init; }
     /// <summary>Line text.</summary>
     public string Text { get; init; } = string.Empty;
+    /// <summary>Representative font size in points.</summary>
+    public double FontSize { get; init; }
     /// <summary>Number of underlying spans grouped into this line.</summary>
     public int SpanCount { get; init; }
 }
@@ -173,6 +190,7 @@ internal static class ContentStructureExtractor {
                 XStart = ln.XStart,
                 XEnd = ln.XEnd,
                 Text = ln.Text,
+                FontSize = GetLineFontSize(ln),
                 SpanCount = ln.Spans.Count
             });
         }
@@ -277,6 +295,7 @@ internal static class ContentStructureExtractor {
                 }
             }
         }
+        AddHeadings(page, nonEmpty);
         AddParagraphs(page, nonEmpty);
         return page;
     }
@@ -287,6 +306,7 @@ internal static class ContentStructureExtractor {
             string text = line.Text.Trim();
             if (text.Length == 0 ||
                 ListRegex.IsMatch(text) ||
+                IsHeadingLine(line, page.Headings) ||
                 IsInsideTable(line, page.TablesDetailed)) {
                 continue;
             }
@@ -345,11 +365,105 @@ internal static class ContentStructureExtractor {
                 XStart = line.XStart,
                 XEnd = line.XEnd,
                 Text = line.Text,
+                FontSize = GetLineFontSize(line),
                 SpanCount = line.Spans.Count
             });
         }
 
         return paragraph;
+    }
+
+    private static void AddHeadings(StructuredPage page, List<TextLayoutEngine.TextLine> lines) {
+        var bodySizes = new List<double>();
+        foreach (var line in lines) {
+            string text = line.Text.Trim();
+            if (text.Length == 0 ||
+                ListRegex.IsMatch(text) ||
+                IsInsideTable(line, page.TablesDetailed)) {
+                continue;
+            }
+
+            bodySizes.Add(GetLineFontSize(line));
+        }
+
+        double bodySize = EstimateBodyFontSize(bodySizes);
+        if (bodySize <= 0) {
+            return;
+        }
+
+        foreach (var line in lines) {
+            string text = line.Text.Trim();
+            if (text.Length == 0 ||
+                text.Length > 160 ||
+                ListRegex.IsMatch(text) ||
+                IsInsideTable(line, page.TablesDetailed)) {
+                continue;
+            }
+
+            double fontSize = GetLineFontSize(line);
+            if (fontSize < Math.Max(bodySize + 1.5D, bodySize * 1.18D)) {
+                continue;
+            }
+
+            var structuredLine = new StructuredLine {
+                Y = line.Y,
+                XStart = line.XStart,
+                XEnd = line.XEnd,
+                Text = text,
+                FontSize = fontSize,
+                SpanCount = line.Spans.Count
+            };
+            page.Headings.Add(new StructuredHeading {
+                Level = GetHeadingLevel(fontSize, bodySize),
+                Text = text,
+                Line = structuredLine,
+                FontSize = fontSize
+            });
+        }
+    }
+
+    private static int GetHeadingLevel(double fontSize, double bodySize) {
+        if (fontSize >= bodySize * 1.65D) {
+            return 1;
+        }
+
+        if (fontSize >= bodySize * 1.35D) {
+            return 2;
+        }
+
+        return 3;
+    }
+
+    private static double EstimateBodyFontSize(List<double> fontSizes) {
+        if (fontSizes.Count == 0) {
+            return 0D;
+        }
+
+        fontSizes.Sort();
+        int index = Math.Max(0, (int)Math.Floor((fontSizes.Count - 1) * 0.35D));
+        return fontSizes[index];
+    }
+
+    private static bool IsHeadingLine(TextLayoutEngine.TextLine line, List<StructuredHeading> headings) {
+        for (int i = 0; i < headings.Count; i++) {
+            var heading = headings[i];
+            if (Math.Abs(heading.Line.Y - line.Y) <= 0.001 &&
+                Math.Abs(heading.Line.XStart - line.XStart) <= 0.001 &&
+                string.Equals(heading.Text, line.Text.Trim(), StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static double GetLineFontSize(TextLayoutEngine.TextLine line) {
+        double fontSize = 0D;
+        for (int i = 0; i < line.Spans.Count; i++) {
+            fontSize = Math.Max(fontSize, line.Spans[i].FontSize);
+        }
+
+        return fontSize;
     }
 
     private static bool IsInsideTable(TextLayoutEngine.TextLine line, List<StructuredTable> tables) {

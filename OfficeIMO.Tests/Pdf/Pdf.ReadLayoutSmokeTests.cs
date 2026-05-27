@@ -213,6 +213,32 @@ public sealed class PdfReadLayoutSmokeTests {
     }
 
     [Fact]
+    public void PdfTextExtractor_ExtractStructuredByPage_DetectsHeadingLines() {
+        byte[] bytes = PdfDoc.Create(new PdfOptions {
+                PageWidth = 360,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .H1("Structured Heading")
+            .Paragraph(p => p.Text("Body copy for heading detection."))
+            .ToBytes();
+
+        StructuredPage page = Assert.Single(PdfTextExtractor.ExtractStructuredByPage(bytes, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }));
+
+        StructuredHeading heading = Assert.Single(page.Headings);
+        Assert.Equal("Structured Heading", heading.Text);
+        Assert.Equal(1, heading.Level);
+        Assert.True(heading.FontSize > page.Paragraphs[0].Lines[0].FontSize);
+        Assert.DoesNotContain(page.Paragraphs, paragraph => paragraph.Text.Contains("Structured Heading", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void PdfTextExtractor_ExtractStructuredAndTablesByPageRanges_UsesSelectedSourcePages() {
         byte[] bytes = BuildThreePageTablePdf();
 

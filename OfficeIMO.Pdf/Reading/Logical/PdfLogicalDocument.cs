@@ -6,6 +6,8 @@ namespace OfficeIMO.Pdf;
 public enum PdfLogicalElementKind {
     /// <summary>Line-level text recovered from positioned PDF text spans.</summary>
     TextBlock,
+    /// <summary>Heuristic heading line inferred from text size and geometry.</summary>
+    Heading,
     /// <summary>Detected bullet or numbered list item.</summary>
     ListItem,
     /// <summary>Detected leader row such as label plus dotted value.</summary>
@@ -113,6 +115,7 @@ public sealed class PdfLogicalPage {
         int rotationDegrees,
         IReadOnlyList<IPdfLogicalElement> elements,
         IReadOnlyList<PdfLogicalTextBlock> textBlocks,
+        IReadOnlyList<PdfLogicalHeading> headings,
         IReadOnlyList<PdfLogicalParagraph> paragraphs,
         IReadOnlyList<PdfLogicalTable> tables,
         IReadOnlyList<PdfLogicalImage> images,
@@ -123,6 +126,7 @@ public sealed class PdfLogicalPage {
         RotationDegrees = rotationDegrees;
         Elements = elements;
         TextBlocks = textBlocks;
+        Headings = headings;
         Paragraphs = paragraphs;
         Tables = tables;
         Images = images;
@@ -146,6 +150,9 @@ public sealed class PdfLogicalPage {
 
     /// <summary>Line-level text blocks extracted from positioned text spans.</summary>
     public IReadOnlyList<PdfLogicalTextBlock> TextBlocks { get; }
+
+    /// <summary>Heuristic heading lines inferred from text size and geometry.</summary>
+    public IReadOnlyList<PdfLogicalHeading> Headings { get; }
 
     /// <summary>Heuristic paragraph groups built from non-table, non-list text lines.</summary>
     public IReadOnlyList<PdfLogicalParagraph> Paragraphs { get; }
@@ -174,7 +181,9 @@ public sealed class PdfLogicalPage {
                 continue;
             }
 
-            var kind = listLines.Contains(NormalizeForKindComparison(text)) || LooksLikeListItem(text)
+            var kind = IsStructuredHeadingLine(line, structured.Headings)
+                ? PdfLogicalElementKind.Heading
+                : listLines.Contains(NormalizeForKindComparison(text)) || LooksLikeListItem(text)
                 ? PdfLogicalElementKind.ListItem
                 : PdfLogicalElementKind.TextBlock;
             var block = new PdfLogicalTextBlock(pageNumber, kind, text, line.XStart, line.XEnd, line.Y, line.SpanCount);
@@ -210,6 +219,7 @@ public sealed class PdfLogicalPage {
             page.GetRotationDegrees(),
             elements.AsReadOnly(),
             textBlocks.AsReadOnly(),
+            BuildHeadings(pageNumber, structured.Headings, textBlocks),
             BuildParagraphs(pageNumber, structured.Paragraphs, textBlocks),
             tables.AsReadOnly(),
             images.AsReadOnly(),
@@ -227,7 +237,7 @@ public sealed class PdfLogicalPage {
             var lines = new List<PdfLogicalTextBlock>(paragraph.Lines.Count);
             for (int lineIndex = 0; lineIndex < paragraph.Lines.Count; lineIndex++) {
                 var line = paragraph.Lines[lineIndex];
-                PdfLogicalTextBlock? block = FindTextBlock(line, textBlocks);
+                PdfLogicalTextBlock? block = FindTextBlock(line, textBlocks, PdfLogicalElementKind.TextBlock);
                 if (block is not null) {
                     lines.Add(block);
                 }
@@ -241,10 +251,27 @@ public sealed class PdfLogicalPage {
         return result.AsReadOnly();
     }
 
-    private static PdfLogicalTextBlock? FindTextBlock(StructuredLine line, IReadOnlyList<PdfLogicalTextBlock> textBlocks) {
+    private static IReadOnlyList<PdfLogicalHeading> BuildHeadings(int pageNumber, List<StructuredHeading> headings, IReadOnlyList<PdfLogicalTextBlock> textBlocks) {
+        if (headings.Count == 0) {
+            return Array.Empty<PdfLogicalHeading>();
+        }
+
+        var result = new List<PdfLogicalHeading>(headings.Count);
+        for (int i = 0; i < headings.Count; i++) {
+            var heading = headings[i];
+            PdfLogicalTextBlock? block = FindTextBlock(heading.Line, textBlocks, PdfLogicalElementKind.Heading);
+            if (block is not null) {
+                result.Add(new PdfLogicalHeading(pageNumber, heading.Level, heading.Text, heading.FontSize, block));
+            }
+        }
+
+        return result.AsReadOnly();
+    }
+
+    private static PdfLogicalTextBlock? FindTextBlock(StructuredLine line, IReadOnlyList<PdfLogicalTextBlock> textBlocks, PdfLogicalElementKind kind) {
         for (int i = 0; i < textBlocks.Count; i++) {
             var block = textBlocks[i];
-            if (block.Kind == PdfLogicalElementKind.TextBlock &&
+            if (block.Kind == kind &&
                 Math.Abs(block.BaselineY - line.Y) <= 0.001 &&
                 Math.Abs(block.XStart - line.XStart) <= 0.001 &&
                 string.Equals(block.Text, line.Text.Trim(), StringComparison.Ordinal)) {
@@ -253,6 +280,19 @@ public sealed class PdfLogicalPage {
         }
 
         return null;
+    }
+
+    private static bool IsStructuredHeadingLine(StructuredLine line, List<StructuredHeading> headings) {
+        for (int i = 0; i < headings.Count; i++) {
+            var heading = headings[i];
+            if (Math.Abs(heading.Line.Y - line.Y) <= 0.001 &&
+                Math.Abs(heading.Line.XStart - line.XStart) <= 0.001 &&
+                string.Equals(heading.Text, line.Text.Trim(), StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static string NormalizeForKindComparison(string text) {
@@ -326,6 +366,34 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
 
     /// <summary>Number of text spans merged into this block.</summary>
     public int SpanCount { get; }
+}
+
+/// <summary>
+/// Heuristic heading line inferred from text size and geometry.
+/// </summary>
+public sealed class PdfLogicalHeading {
+    internal PdfLogicalHeading(int pageNumber, int level, string text, double fontSize, PdfLogicalTextBlock line) {
+        PageNumber = pageNumber;
+        Level = level;
+        Text = text;
+        FontSize = fontSize;
+        Line = line;
+    }
+
+    /// <summary>One-based source page number.</summary>
+    public int PageNumber { get; }
+
+    /// <summary>Best-effort heading level, where 1 is the largest heading tier.</summary>
+    public int Level { get; }
+
+    /// <summary>Heading text.</summary>
+    public string Text { get; }
+
+    /// <summary>Representative font size in points.</summary>
+    public double FontSize { get; }
+
+    /// <summary>Line-level text block that produced the heading.</summary>
+    public PdfLogicalTextBlock Line { get; }
 }
 
 /// <summary>

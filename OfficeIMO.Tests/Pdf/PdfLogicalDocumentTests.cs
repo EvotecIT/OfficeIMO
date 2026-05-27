@@ -17,6 +17,7 @@ public class PdfLogicalDocumentTests {
                 DefaultFontSize = 10
             })
             .Meta(title: "Logical sample", author: "OfficeIMO")
+            .H1("Logical Heading")
             .Paragraph(p => p.Text("Logical readback marker."))
             .Bullets(new[] { "Detected logical bullet" })
             .Table(new[] {
@@ -38,6 +39,10 @@ public class PdfLogicalDocumentTests {
 
         PdfLogicalPage page = Assert.Single(logical.Pages);
         Assert.Equal("Logical sample", logical.Metadata.Title);
+        PdfLogicalHeading heading = Assert.Single(page.Headings);
+        Assert.Equal("Logical Heading", heading.Text);
+        Assert.Equal(1, heading.Level);
+        Assert.Equal(PdfLogicalElementKind.Heading, heading.Line.Kind);
         Assert.Contains(page.TextBlocks, block => Normalize(block.Text).Contains("Logicalreadbackmarker", StringComparison.Ordinal));
         Assert.Contains(page.TextBlocks, block =>
             block.Kind == PdfLogicalElementKind.ListItem &&
