@@ -409,6 +409,8 @@ public sealed class PdfReadDocument {
         string? mappingName = TryReadText(field, "TM");
         int? flags = field.Items.ContainsKey("Ff") ? TryReadInteger(field, "Ff") : inherited.Flags;
         int? maxLength = field.Items.ContainsKey("MaxLen") ? TryReadPositiveInteger(field, "MaxLen") : inherited.MaxLength;
+        string? defaultAppearance = field.Items.ContainsKey("DA") ? TryReadText(field, "DA") : inherited.DefaultAppearance;
+        int? quadding = field.Items.ContainsKey("Q") ? TryReadInteger(field, "Q") : inherited.Quadding;
         IReadOnlyList<PdfFormFieldOption> options = field.Items.ContainsKey("Opt") ? ReadFormFieldOptions(field) : inherited.Options;
         bool isWidget = IsWidget(field);
         var widgets = new List<PdfFormWidget>();
@@ -437,7 +439,7 @@ public sealed class PdfReadDocument {
         }
 
         bool hasTerminalShape = isWidget || fieldKids.Count == 0;
-        if (hasTerminalShape && (fullName != null || hasReadableFieldState || defaultValues.Count > 0 || alternateName != null || mappingName != null || maxLength.HasValue || options.Count > 0)) {
+        if (hasTerminalShape && (fullName != null || hasReadableFieldState || defaultValues.Count > 0 || alternateName != null || mappingName != null || maxLength.HasValue || defaultAppearance != null || quadding.HasValue || options.Count > 0)) {
             result.Add(new PdfFormField(
                 objectNumber: objectNumber,
                 name: fullName,
@@ -451,6 +453,8 @@ public sealed class PdfReadDocument {
                 values: values.Count == 0 ? null : values,
                 defaultValue: defaultValue,
                 defaultValues: defaultValues.Count == 0 ? null : defaultValues,
+                defaultAppearance: defaultAppearance,
+                quadding: quadding,
                 options: options.Count == 0 ? null : options,
                 widgets: widgets.Count == 0 ? null : widgets.AsReadOnly()));
         }
@@ -459,16 +463,16 @@ public sealed class PdfReadDocument {
             return;
         }
 
-        var childInherited = new PdfFormFieldInheritedState(fieldType, value, values, defaultValue, defaultValues, flags, maxLength, options);
+        var childInherited = new PdfFormFieldInheritedState(fieldType, value, values, defaultValue, defaultValues, flags, maxLength, defaultAppearance, quadding, options);
         for (int i = 0; i < fieldKids.Count; i++) {
             ReadFormField(fieldKids[i], fullName, childInherited, result, visited, widgetPageNumbers);
         }
     }
 
     private sealed class PdfFormFieldInheritedState {
-        internal static readonly PdfFormFieldInheritedState Empty = new PdfFormFieldInheritedState(null, null, Array.Empty<string>(), null, Array.Empty<string>(), null, null, Array.Empty<PdfFormFieldOption>());
+        internal static readonly PdfFormFieldInheritedState Empty = new PdfFormFieldInheritedState(null, null, Array.Empty<string>(), null, Array.Empty<string>(), null, null, null, null, Array.Empty<PdfFormFieldOption>());
 
-        internal PdfFormFieldInheritedState(string? fieldType, string? value, IReadOnlyList<string> values, string? defaultValue, IReadOnlyList<string> defaultValues, int? flags, int? maxLength, IReadOnlyList<PdfFormFieldOption> options) {
+        internal PdfFormFieldInheritedState(string? fieldType, string? value, IReadOnlyList<string> values, string? defaultValue, IReadOnlyList<string> defaultValues, int? flags, int? maxLength, string? defaultAppearance, int? quadding, IReadOnlyList<PdfFormFieldOption> options) {
             FieldType = fieldType;
             Value = value;
             Values = values;
@@ -476,6 +480,8 @@ public sealed class PdfReadDocument {
             DefaultValues = defaultValues;
             Flags = flags;
             MaxLength = maxLength;
+            DefaultAppearance = defaultAppearance;
+            Quadding = quadding;
             Options = options;
         }
 
@@ -492,6 +498,10 @@ public sealed class PdfReadDocument {
         internal int? Flags { get; }
 
         internal int? MaxLength { get; }
+
+        internal string? DefaultAppearance { get; }
+
+        internal int? Quadding { get; }
 
         internal IReadOnlyList<PdfFormFieldOption> Options { get; }
     }

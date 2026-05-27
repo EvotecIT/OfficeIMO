@@ -1122,6 +1122,10 @@ public class PdfInspectorTests {
         Assert.Equal(64, info.FormFields[0].MaxLength);
         Assert.Equal("InheritedDraft", info.FormFields[0].DefaultValue);
         Assert.Equal(new[] { "InheritedDraft" }, info.FormFields[0].DefaultValues);
+        Assert.Equal("/Helv 10 Tf 0 g", info.FormFields[0].DefaultAppearance);
+        Assert.True(info.FormFields[0].HasDefaultAppearance);
+        Assert.Equal(2, info.FormFields[0].Quadding);
+        Assert.Equal(PdfFormFieldTextAlignment.Right, info.FormFields[0].TextAlignment);
         Assert.Equal("AcceptTerms", info.FormFields[1].Name);
         Assert.Equal("Btn", info.FormFields[1].FieldType);
         Assert.Equal("Yes", info.FormFields[1].Value);
@@ -1147,6 +1151,9 @@ public class PdfInspectorTests {
         Assert.Equal("Draft", text.DefaultValue);
         Assert.Equal(new[] { "Draft" }, text.DefaultValues);
         Assert.True(text.HasDefaultValues);
+        Assert.Equal("/Helv 9 Tf 0 g", text.DefaultAppearance);
+        Assert.Equal(0, text.Quadding);
+        Assert.Equal(PdfFormFieldTextAlignment.Left, text.TextAlignment);
         Assert.False(text.HasOptions);
         Assert.False(text.HasDefaultSelectedOptions);
 
@@ -1156,6 +1163,9 @@ public class PdfInspectorTests {
         Assert.Equal(new[] { "PL", "US" }, choice.Values);
         Assert.Equal("[DE US]", choice.DefaultValue);
         Assert.Equal(new[] { "DE", "US" }, choice.DefaultValues);
+        Assert.Equal("/Helv 8 Tf 0 0 1 rg", choice.DefaultAppearance);
+        Assert.Equal(1, choice.Quadding);
+        Assert.Equal(PdfFormFieldTextAlignment.Center, choice.TextAlignment);
         Assert.True(choice.HasOptions);
         Assert.Equal(3, choice.OptionCount);
         Assert.Equal("PL", choice.Options[0].ExportValue);
@@ -1762,7 +1772,7 @@ public class PdfInspectorTests {
             "<< /NeedAppearances false /Fields [6 0 R 8 0 R 9 0 R] >>",
             "endobj",
             "6 0 obj",
-            "<< /FT /Tx /T (Person) /Ff 1 /MaxLen 64 /DV (InheritedDraft) /Kids [7 0 R] >>",
+            "<< /FT /Tx /T (Person) /Ff 1 /MaxLen 64 /DV (InheritedDraft) /DA (/Helv 10 Tf 0 g) /Q 2 /Kids [7 0 R] >>",
             "endobj",
             "7 0 obj",
             "<< /T (Name) /TU (Display name) /TM (ExportName) /V (OfficeIMO) >>",
@@ -1806,10 +1816,10 @@ public class PdfInspectorTests {
             "<< /Fields [6 0 R 7 0 R] >>",
             "endobj",
             "6 0 obj",
-            "<< /FT /Tx /T (Notes) /V (Secret) /DV (Draft) /MaxLen 42 >>",
+            "<< /FT /Tx /T (Notes) /V (Secret) /DV (Draft) /DA (/Helv 9 Tf 0 g) /Q 0 /MaxLen 42 >>",
             "endobj",
             "7 0 obj",
-            "<< /FT /Ch /T (Country) /V [(PL) /US] /DV [(DE) /US] /Opt [[(PL) (Poland)] (DE) [/US (United States)]] >>",
+            "<< /FT /Ch /T (Country) /V [(PL) /US] /DV [(DE) /US] /DA (/Helv 8 Tf 0 0 1 rg) /Q 1 /Opt [[(PL) (Poland)] (DE) [/US (United States)]] >>",
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 8 >>",

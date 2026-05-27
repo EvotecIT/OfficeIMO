@@ -134,9 +134,14 @@ public class PdfLogicalDocumentTests {
         Assert.Equal("InheritedDraft", logical.FormFields[0].DefaultValue);
         Assert.Equal(64, logical.FormFields[0].MaxLength);
         Assert.True(logical.FormFields[0].IsReadOnly);
+        Assert.Equal("/Helv 10 Tf 0 g", logical.FormFields[0].DefaultAppearance);
+        Assert.Equal(2, logical.FormFields[0].Quadding);
+        Assert.Equal(PdfFormFieldTextAlignment.Right, logical.FormFields[0].TextAlignment);
         Assert.Equal("Yes", logical.FormFields[1].Value);
         Assert.Equal("DE", logical.FormFields[2].Value);
         Assert.Equal("PL", logical.FormFields[2].DefaultValue);
+        Assert.Equal("/Helv 8 Tf 0 0 1 rg", logical.FormFields[2].DefaultAppearance);
+        Assert.Equal(PdfFormFieldTextAlignment.Center, logical.FormFields[2].TextAlignment);
         Assert.Equal(2, logical.FormFields[2].OptionCount);
         Assert.Equal(new[] { "DE" }, logical.FormFields[2].SelectedOptions.Select(option => option.ExportValue).ToArray());
         Assert.Equal(new[] { "PL" }, logical.FormFields[2].DefaultSelectedOptions.Select(option => option.ExportValue).ToArray());
@@ -148,6 +153,7 @@ public class PdfLogicalDocumentTests {
         Assert.True(logical.TryGetFormField("Person.Name", out PdfFormField? nameField));
         Assert.Equal("OfficeIMO", nameField!.Value);
         Assert.Equal(new[] { "InheritedDraft" }, nameField.DefaultValues);
+        Assert.True(nameField.HasDefaultAppearance);
         Assert.True(logical.TryGetFormField("AcceptTerms", out PdfFormField? acceptField));
         Assert.Equal("Yes", acceptField!.Value);
         Assert.True(logical.TryGetFormField("Selection.Country", out PdfFormField? countryField));
@@ -173,6 +179,8 @@ public class PdfLogicalDocumentTests {
         Assert.Equal("Draft", text.DefaultValue);
         Assert.Equal(new[] { "Draft" }, text.DefaultValues);
         Assert.True(text.HasDefaultValues);
+        Assert.Equal("/Helv 9 Tf 0 g", text.DefaultAppearance);
+        Assert.Equal(PdfFormFieldTextAlignment.Left, text.TextAlignment);
         Assert.False(text.HasOptions);
         Assert.False(text.HasDefaultSelectedOptions);
         Assert.False(text.IsButtonField);
@@ -200,6 +208,9 @@ public class PdfLogicalDocumentTests {
         Assert.Equal(new[] { "PL", "US" }, choice.Values);
         Assert.Equal("[DE US]", choice.DefaultValue);
         Assert.Equal(new[] { "DE", "US" }, choice.DefaultValues);
+        Assert.Equal("/Helv 8 Tf 0 0 1 rg", choice.DefaultAppearance);
+        Assert.Equal(1, choice.Quadding);
+        Assert.Equal(PdfFormFieldTextAlignment.Center, choice.TextAlignment);
         Assert.True(choice.IsChoiceField);
         Assert.True(choice.IsCombo);
         Assert.True(choice.IsEditableChoice);
@@ -401,7 +412,7 @@ public class PdfLogicalDocumentTests {
             "<< /NeedAppearances true /SigFlags 1 /Fields [6 0 R 8 0 R 9 0 R] >>",
             "endobj",
             "6 0 obj",
-            "<< /FT /Tx /T (Person) /Ff 1 /MaxLen 64 /DV (InheritedDraft) /Kids [7 0 R] >>",
+            "<< /FT /Tx /T (Person) /Ff 1 /MaxLen 64 /DV (InheritedDraft) /DA (/Helv 10 Tf 0 g) /Q 2 /Kids [7 0 R] >>",
             "endobj",
             "7 0 obj",
             "<< /T (Name) /TU (Display name) /TM (ExportName) /V (OfficeIMO) >>",
@@ -410,7 +421,7 @@ public class PdfLogicalDocumentTests {
             "<< /FT /Btn /T (AcceptTerms) /V /Yes >>",
             "endobj",
             "9 0 obj",
-            "<< /FT /Ch /T (Selection) /V /DE /DV (PL) /Opt [[(PL) (Poland)] (DE)] /Kids [10 0 R] >>",
+            "<< /FT /Ch /T (Selection) /V /DE /DV (PL) /DA (/Helv 8 Tf 0 0 1 rg) /Q 1 /Opt [[(PL) (Poland)] (DE)] /Kids [10 0 R] >>",
             "endobj",
             "10 0 obj",
             "<< /T (Country) >>",
@@ -445,7 +456,7 @@ public class PdfLogicalDocumentTests {
             "<< /Fields [6 0 R 7 0 R 8 0 R 9 0 R 10 0 R 11 0 R] >>",
             "endobj",
             "6 0 obj",
-            "<< /FT /Tx /T (Notes) /V (Secret) /DV (Draft) /Ff 12295 /MaxLen 42 >>",
+            "<< /FT /Tx /T (Notes) /V (Secret) /DV (Draft) /Ff 12295 /MaxLen 42 /DA (/Helv 9 Tf 0 g) /Q 0 >>",
             "endobj",
             "7 0 obj",
             "<< /FT /Btn /T (Accept) /V /Yes >>",
@@ -457,7 +468,7 @@ public class PdfLogicalDocumentTests {
             "<< /FT /Btn /T (Submit) /Ff 65536 >>",
             "endobj",
             "10 0 obj",
-            "<< /FT /Ch /T (Country) /V [(PL) /US] /DV [(DE) /US] /Ff 74317826 /Opt [[(PL) (Poland)] (DE) [/US (United States)]] >>",
+            "<< /FT /Ch /T (Country) /V [(PL) /US] /DV [(DE) /US] /Ff 74317826 /DA (/Helv 8 Tf 0 0 1 rg) /Q 1 /Opt [[(PL) (Poland)] (DE) [/US (United States)]] >>",
             "endobj",
             "11 0 obj",
             "<< /FT /Sig /T (Approval) >>",

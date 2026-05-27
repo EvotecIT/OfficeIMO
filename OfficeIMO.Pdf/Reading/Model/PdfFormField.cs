@@ -17,6 +17,20 @@ public enum PdfFormFieldKind {
 }
 
 /// <summary>
+/// Common text alignment values exposed by AcroForm /Q quadding.
+/// </summary>
+public enum PdfFormFieldTextAlignment {
+    /// <summary>The field did not expose a recognized text alignment.</summary>
+    Unknown,
+    /// <summary>Left-aligned text.</summary>
+    Left,
+    /// <summary>Centered text.</summary>
+    Center,
+    /// <summary>Right-aligned text.</summary>
+    Right
+}
+
+/// <summary>
 /// Simple AcroForm field information read from a PDF document.
 /// </summary>
 public sealed class PdfFormField {
@@ -41,7 +55,7 @@ public sealed class PdfFormField {
     private IReadOnlyList<PdfFormFieldOption>? _selectedOptions;
     private IReadOnlyList<PdfFormFieldOption>? _defaultSelectedOptions;
 
-    internal PdfFormField(int? objectNumber, string? name, string? partialName, string? fieldType, string? value, string? alternateName, string? mappingName, int? flags, int? maxLength = null, IReadOnlyList<string>? values = null, string? defaultValue = null, IReadOnlyList<string>? defaultValues = null, IReadOnlyList<PdfFormFieldOption>? options = null, IReadOnlyList<PdfFormWidget>? widgets = null) {
+    internal PdfFormField(int? objectNumber, string? name, string? partialName, string? fieldType, string? value, string? alternateName, string? mappingName, int? flags, int? maxLength = null, IReadOnlyList<string>? values = null, string? defaultValue = null, IReadOnlyList<string>? defaultValues = null, string? defaultAppearance = null, int? quadding = null, IReadOnlyList<PdfFormFieldOption>? options = null, IReadOnlyList<PdfFormWidget>? widgets = null) {
         ObjectNumber = objectNumber;
         Name = name;
         PartialName = partialName;
@@ -54,6 +68,8 @@ public sealed class PdfFormField {
         Values = values ?? Array.Empty<string>();
         DefaultValue = defaultValue;
         DefaultValues = defaultValues ?? Array.Empty<string>();
+        DefaultAppearance = defaultAppearance;
+        Quadding = quadding;
         Options = options ?? Array.Empty<PdfFormFieldOption>();
         Widgets = widgets ?? Array.Empty<PdfFormWidget>();
     }
@@ -128,6 +144,31 @@ public sealed class PdfFormField {
 
     /// <summary>Maximum text length from /MaxLen, when present on a simple field.</summary>
     public int? MaxLength { get; }
+
+    /// <summary>Default appearance string from /DA, when present or inherited.</summary>
+    public string? DefaultAppearance { get; }
+
+    /// <summary>True when a default appearance string was readable.</summary>
+    public bool HasDefaultAppearance => !string.IsNullOrEmpty(DefaultAppearance);
+
+    /// <summary>Raw AcroForm /Q quadding value, when present or inherited.</summary>
+    public int? Quadding { get; }
+
+    /// <summary>Common text alignment inferred from /Q quadding.</summary>
+    public PdfFormFieldTextAlignment TextAlignment {
+        get {
+            switch (Quadding) {
+                case 0:
+                    return PdfFormFieldTextAlignment.Left;
+                case 1:
+                    return PdfFormFieldTextAlignment.Center;
+                case 2:
+                    return PdfFormFieldTextAlignment.Right;
+                default:
+                    return PdfFormFieldTextAlignment.Unknown;
+            }
+        }
+    }
 
     /// <summary>Choice field options from /Opt, when readable.</summary>
     public IReadOnlyList<PdfFormFieldOption> Options { get; }
