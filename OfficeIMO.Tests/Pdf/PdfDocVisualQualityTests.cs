@@ -7894,12 +7894,13 @@ public class PdfDocVisualQualityTests {
         Assert.NotNull(gridLight);
         Assert.Equal(PdfColor.FromRgb(217, 217, 217), gridLight!.BorderColor);
         Assert.Equal(PdfColor.FromRgb(127, 127, 127), gridLight.FooterSeparatorColor);
-        Assert.Equal(PdfColor.FromRgb(217, 217, 217), gridLightAccent.BorderColor);
-        Assert.Equal(PdfColor.FromRgb(127, 127, 127), gridLightAccent.HeaderSeparatorColor);
+        Assert.Equal(PdfColor.FromRgb(247, 202, 172), gridLightAccent.BorderColor);
+        Assert.Equal(PdfColor.FromRgb(244, 176, 131), gridLightAccent.HeaderSeparatorColor);
         Assert.Equal(PdfColor.FromRgb(224, 224, 224), listTable.RowSeparatorColor);
         Assert.Equal(PdfColor.Black, listTable.FooterSeparatorColor);
+        Assert.Equal(PdfColor.FromRgb(222, 234, 246), listTableAccent.RowStripeFill);
         Assert.Equal(PdfColor.FromRgb(224, 224, 224), listTableAccent.RowSeparatorColor);
-        Assert.Equal(PdfColor.Black, listTableAccent.HeaderSeparatorColor);
+        Assert.Equal(PdfColor.FromRgb(156, 194, 229), listTableAccent.HeaderSeparatorColor);
 
         PdfTableStyle independentListTable = TableStyles.FromWordTableStyle("ListTable1Light");
         listTable.CellPaddingX = 20;
@@ -7917,6 +7918,38 @@ public class PdfDocVisualQualityTests {
 
         Assert.Throws<ArgumentNullException>(() => TableStyles.FromWordTableStyle(null!));
         Assert.Throws<ArgumentNullException>(() => TableStyles.TryFromWordTableStyle(null!, out _));
+    }
+
+    [Theory]
+    [InlineData(1, 180, 198, 231, 142, 170, 219, 217, 226, 243)]
+    [InlineData(2, 247, 202, 172, 244, 176, 131, 251, 228, 213)]
+    [InlineData(3, 219, 219, 219, 201, 201, 201, 237, 237, 237)]
+    [InlineData(4, 255, 229, 153, 255, 217, 102, 255, 242, 204)]
+    [InlineData(5, 189, 214, 238, 156, 194, 229, 222, 234, 246)]
+    [InlineData(6, 197, 224, 179, 168, 208, 141, 226, 239, 217)]
+    public void TableStyles_ResolveWordAccentVariantsWithDefaultThemeColors(
+        int accent,
+        int lightR,
+        int lightG,
+        int lightB,
+        int strongR,
+        int strongG,
+        int strongB,
+        int paleR,
+        int paleG,
+        int paleB) {
+        PdfTableStyle grid = TableStyles.FromWordTableStyle("GridTable1Light-Accent" + accent.ToString(CultureInfo.InvariantCulture));
+        PdfTableStyle list = TableStyles.FromWordTableStyle("ListTable1LightAccent" + accent.ToString(CultureInfo.InvariantCulture));
+
+        PdfColor ExpectedRgb(int r, int g, int b) => PdfColor.FromRgb((byte)r, (byte)g, (byte)b);
+
+        Assert.Equal(ExpectedRgb(lightR, lightG, lightB), grid.BorderColor);
+        Assert.Equal(ExpectedRgb(strongR, strongG, strongB), grid.HeaderSeparatorColor);
+        Assert.Equal(ExpectedRgb(strongR, strongG, strongB), grid.FooterSeparatorColor);
+
+        Assert.Equal(ExpectedRgb(paleR, paleG, paleB), list.RowStripeFill);
+        Assert.Equal(ExpectedRgb(strongR, strongG, strongB), list.HeaderSeparatorColor);
+        Assert.Equal(ExpectedRgb(strongR, strongG, strongB), list.FooterSeparatorColor);
     }
 
     [Fact]

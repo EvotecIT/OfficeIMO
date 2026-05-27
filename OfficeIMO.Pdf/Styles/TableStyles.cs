@@ -101,15 +101,23 @@ public static class TableStyles {
             return true;
         }
 
-        if (string.Equals(normalized, "GridTable1Light", StringComparison.OrdinalIgnoreCase) ||
-            IsAccentVariant(normalized, "GridTable1LightAccent")) {
+        if (string.Equals(normalized, "GridTable1Light", StringComparison.OrdinalIgnoreCase)) {
             style = GridTable1Light();
             return true;
         }
 
-        if (string.Equals(normalized, "ListTable1Light", StringComparison.OrdinalIgnoreCase) ||
-            IsAccentVariant(normalized, "ListTable1LightAccent")) {
+        if (TryGetAccentNumber(normalized, "GridTable1LightAccent", out int gridAccent)) {
+            style = GridTable1LightAccent(gridAccent);
+            return true;
+        }
+
+        if (string.Equals(normalized, "ListTable1Light", StringComparison.OrdinalIgnoreCase)) {
             style = ListTable1Light();
+            return true;
+        }
+
+        if (TryGetAccentNumber(normalized, "ListTable1LightAccent", out int listAccent)) {
+            style = ListTable1LightAccent(listAccent);
             return true;
         }
 
@@ -195,6 +203,46 @@ public static class TableStyles {
         FooterRowCount = 0
     };
 
+    private static PdfTableStyle GridTable1LightAccent(int accentNumber) {
+        PdfTableStyle style = GridTable1Light();
+        WordAccentColors colors = GetWordTableAccentColors(accentNumber);
+        style.BorderColor = colors.Light;
+        style.HeaderSeparatorColor = colors.Strong;
+        style.FooterSeparatorColor = colors.Strong;
+        return style;
+    }
+
+    private static PdfTableStyle ListTable1LightAccent(int accentNumber) {
+        PdfTableStyle style = ListTable1Light();
+        WordAccentColors colors = GetWordTableAccentColors(accentNumber);
+        style.RowStripeFill = colors.Pale;
+        style.HeaderSeparatorColor = colors.Strong;
+        style.FooterSeparatorColor = colors.Strong;
+        return style;
+    }
+
+    private readonly struct WordAccentColors {
+        public WordAccentColors(PdfColor light, PdfColor strong, PdfColor pale) {
+            Light = light;
+            Strong = strong;
+            Pale = pale;
+        }
+
+        public PdfColor Light { get; }
+        public PdfColor Strong { get; }
+        public PdfColor Pale { get; }
+    }
+
+    private static WordAccentColors GetWordTableAccentColors(int accentNumber) => accentNumber switch {
+        1 => new WordAccentColors(PdfColor.FromRgb(180, 198, 231), PdfColor.FromRgb(142, 170, 219), PdfColor.FromRgb(217, 226, 243)),
+        2 => new WordAccentColors(PdfColor.FromRgb(247, 202, 172), PdfColor.FromRgb(244, 176, 131), PdfColor.FromRgb(251, 228, 213)),
+        3 => new WordAccentColors(PdfColor.FromRgb(219, 219, 219), PdfColor.FromRgb(201, 201, 201), PdfColor.FromRgb(237, 237, 237)),
+        4 => new WordAccentColors(PdfColor.FromRgb(255, 229, 153), PdfColor.FromRgb(255, 217, 102), PdfColor.FromRgb(255, 242, 204)),
+        5 => new WordAccentColors(PdfColor.FromRgb(189, 214, 238), PdfColor.FromRgb(156, 194, 229), PdfColor.FromRgb(222, 234, 246)),
+        6 => new WordAccentColors(PdfColor.FromRgb(197, 224, 179), PdfColor.FromRgb(168, 208, 141), PdfColor.FromRgb(226, 239, 217)),
+        _ => throw new ArgumentOutOfRangeException(nameof(accentNumber), "Word table accent number must be between 1 and 6.")
+    };
+
     private static string NormalizeWordTableStyleName(string styleName) {
         string trimmed = styleName.Trim();
         if (trimmed.Length == 0) {
@@ -214,12 +262,18 @@ public static class TableStyles {
         return sb.ToString();
     }
 
-    private static bool IsAccentVariant(string normalized, string prefix) {
+    private static bool TryGetAccentNumber(string normalized, string prefix, out int accentNumber) {
+        accentNumber = 0;
         if (!normalized.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) {
             return false;
         }
 
         string suffix = normalized.Substring(prefix.Length);
-        return suffix.Length == 1 && suffix[0] >= '1' && suffix[0] <= '6';
+        if (suffix.Length != 1 || suffix[0] < '1' || suffix[0] > '6') {
+            return false;
+        }
+
+        accentNumber = suffix[0] - '0';
+        return true;
     }
 }
