@@ -1211,6 +1211,10 @@ public class PdfInspectorTests {
         Assert.True(info.HasFormWidgets);
         Assert.Equal(1, info.FormWidgetCount);
         Assert.True(info.Pages[0].HasFormWidgets);
+        Assert.Same(field, Assert.Single(info.FormFieldsByPageNumber[1]));
+        Assert.Same(field, Assert.Single(info.GetFormFields(1)));
+        Assert.Empty(info.GetFormFields(2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => info.GetFormFields(0));
 
         PdfFormWidget widget = Assert.Single(field.Widgets);
         Assert.Same(widget, Assert.Single(info.FormWidgets));

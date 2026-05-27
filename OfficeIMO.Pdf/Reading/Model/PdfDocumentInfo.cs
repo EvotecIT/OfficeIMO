@@ -11,6 +11,7 @@ public sealed class PdfDocumentInfo {
     private IReadOnlyList<string>? _formFieldNames;
     private IReadOnlyDictionary<string, PdfFormField>? _formFieldsByName;
     private IReadOnlyDictionary<PdfFormFieldKind, IReadOnlyList<PdfFormField>>? _formFieldsByKind;
+    private IReadOnlyDictionary<int, IReadOnlyList<PdfFormField>>? _formFieldsByPageNumber;
     private IReadOnlyList<PdfFormWidget>? _formWidgets;
     private IReadOnlyDictionary<string, IReadOnlyList<PdfFormWidget>>? _formWidgetsByFieldName;
     private IReadOnlyDictionary<int, IReadOnlyList<PdfFormWidget>>? _formWidgetsByPageNumber;
@@ -216,6 +217,43 @@ public sealed class PdfDocumentInfo {
         }
     }
 
+    /// <summary>Simple AcroForm fields grouped by one-based page number for fields that have readable widgets.</summary>
+    public IReadOnlyDictionary<int, IReadOnlyList<PdfFormField>> FormFieldsByPageNumber {
+        get {
+            if (_formFieldsByPageNumber is not null) {
+                return _formFieldsByPageNumber;
+            }
+
+            var grouped = new Dictionary<int, List<PdfFormField>>();
+            for (int i = 0; i < FormFields.Count; i++) {
+                PdfFormField formField = FormFields[i];
+                for (int j = 0; j < formField.Widgets.Count; j++) {
+                    int? pageNumber = formField.Widgets[j].PageNumber;
+                    if (!pageNumber.HasValue) {
+                        continue;
+                    }
+
+                    if (!grouped.TryGetValue(pageNumber.Value, out List<PdfFormField>? fields)) {
+                        fields = new List<PdfFormField>();
+                        grouped.Add(pageNumber.Value, fields);
+                    }
+
+                    if (!fields.Contains(formField)) {
+                        fields.Add(formField);
+                    }
+                }
+            }
+
+            var result = new Dictionary<int, IReadOnlyList<PdfFormField>>();
+            foreach (var item in grouped) {
+                result.Add(item.Key, item.Value.AsReadOnly());
+            }
+
+            _formFieldsByPageNumber = new System.Collections.ObjectModel.ReadOnlyDictionary<int, IReadOnlyList<PdfFormField>>(result);
+            return _formFieldsByPageNumber;
+        }
+    }
+
     /// <summary>Simple AcroForm widget annotations flattened in field and widget order.</summary>
     public IReadOnlyList<PdfFormWidget> FormWidgets {
         get {
@@ -334,6 +372,17 @@ public sealed class PdfDocumentInfo {
     /// <summary>Returns simple AcroForm fields for the requested common field kind.</summary>
     public IReadOnlyList<PdfFormField> GetFormFields(PdfFormFieldKind kind) {
         return FormFieldsByKind.TryGetValue(kind, out IReadOnlyList<PdfFormField>? fields)
+            ? fields
+            : Array.Empty<PdfFormField>();
+    }
+
+    /// <summary>Returns simple AcroForm fields represented by widgets on a one-based page number.</summary>
+    public IReadOnlyList<PdfFormField> GetFormFields(int pageNumber) {
+        if (pageNumber <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
+        }
+
+        return FormFieldsByPageNumber.TryGetValue(pageNumber, out IReadOnlyList<PdfFormField>? fields)
             ? fields
             : Array.Empty<PdfFormField>();
     }

@@ -257,6 +257,10 @@ public class PdfLogicalDocumentTests {
         Assert.Equal("Btn", field.FieldType);
         Assert.Equal("Yes", field.Value);
         Assert.True(field.HasWidgets);
+        Assert.Same(field, Assert.Single(logical.FormFieldsByPageNumber[1]));
+        Assert.Same(field, Assert.Single(logical.GetFormFields(1)));
+        Assert.Empty(logical.GetFormFields(2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => logical.GetFormFields(0));
 
         PdfFormWidget widget = Assert.Single(field.Widgets);
         Assert.Equal("AcceptTerms", widget.FieldName);
