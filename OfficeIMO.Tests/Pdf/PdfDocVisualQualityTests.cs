@@ -5401,6 +5401,85 @@ public class PdfDocVisualQualityTests {
     }
 
     [Fact]
+    public void TwoPageLineItemStatementFixture_KeepsReadableReportRhythmWithoutTemplateApi() {
+        const double pageWidth = 595;
+        const double marginLeft = 50;
+        const double marginRight = 50;
+        double contentRight = pageWidth - marginRight;
+
+        byte[] bytes = PdfDocRasterVisualBaselineTests.CreateLineItemsTwoPage();
+
+        using var pdf = PdfDocument.Open(new MemoryStream(bytes));
+        Assert.Equal(2, pdf.NumberOfPages);
+
+        var page1 = pdf.GetPage(1);
+        var page1Lines = GetVisualTextLines(page1, 0, pageWidth);
+        double titleY = FindWordStartY(page1, "Statement");
+        double preparedDateY = FindWordStartY(page1, "Prepared:");
+        double preparedHeadingY = FindWordStartY(page1, "Preparedby");
+        double tableHeaderY = FindWordStartY(page1, "Product");
+        double firstRowY = FindWordStartY(page1, "Experientiam");
+        double secondRowY = FindWordStartY(page1, "Radio");
+        double lastPage1RowY = FindWordStartY(page1, "Custodi");
+
+        Assert.True(titleY - preparedDateY >= 22,
+            $"Expected issue metadata to sit comfortably below the statement title. Gap: {titleY - preparedDateY:0.##}pt.");
+        Assert.True(preparedDateY - preparedHeadingY >= 56,
+            $"Expected sender/recipient blocks to start after the header with visible breathing room. Gap: {preparedDateY - preparedHeadingY:0.##}pt.");
+        Assert.True(preparedHeadingY - tableHeaderY >= 118,
+            $"Expected the line-item table to start after the address blocks, not collide with them. Gap: {preparedHeadingY - tableHeaderY:0.##}pt.");
+        Assert.True(tableHeaderY - firstRowY >= 15,
+            $"Expected table header and first row to retain readable rhythm. Gap: {tableHeaderY - firstRowY:0.##}pt.");
+        Assert.True(firstRowY - secondRowY >= 17,
+            $"Expected body rows to keep readable baseline rhythm. Gap: {firstRowY - secondRowY:0.##}pt.");
+
+        AssertStatementRowColumns(page1, "Experientiam", "31,80", "2", "63,60", "page 1 first row");
+        AssertStatementRowColumns(page1, "Custodi", "79,05", "8", "632,40", "page 1 last visible row");
+        Assert.True(FindWordStartX(page1, "Product") >= marginLeft + 24,
+            "Expected the product header to sit inside the line-item table frame.");
+        Assert.True(FindWordEndX(page1, "632,40") <= contentRight + 1,
+            "Expected the rightmost page 1 total to stay inside the document margin.");
+        Assert.True(lastPage1RowY > 78,
+            $"Expected the final page 1 row to leave room for the footer. Baseline: {lastPage1RowY:0.##}pt.");
+
+        AssertNoCrampedBaselines(page1Lines, "two-page statement page 1");
+        AssertNoSameBaselineTextCollisions(page1, "two-page statement page 1");
+        AssertNoAmbiguousSameBaselineRunGaps(page1, "two-page statement page 1");
+
+        var page2 = pdf.GetPage(2);
+        var page2Lines = GetVisualTextLines(page2, 0, pageWidth);
+        double page2FirstRowY = FindWordStartY(page2, "Praestare");
+        double page2SecondRowY = FindWordStartY(page2, "Umero");
+        double page2LastItemY = FindWordStartY(page2, "Finis");
+        double subtotalY = FindWordStartY(page2, "Subtotal");
+        double vatY = FindWordStartY(page2, "VAT");
+        double totalValueY = FindWordStartY(page2, "6397,62");
+        double noteY = FindWordStartY(page2, "Documentnote:");
+
+        Assert.True(page2FirstRowY - page2SecondRowY >= 17,
+            $"Expected continued body rows to keep readable baseline rhythm. Gap: {page2FirstRowY - page2SecondRowY:0.##}pt.");
+        Assert.True(page2LastItemY - subtotalY >= 24,
+            $"Expected summary totals to sit after the final line item with visible breathing room. Gap: {page2LastItemY - subtotalY:0.##}pt.");
+        Assert.True(subtotalY - vatY >= 14,
+            $"Expected totals rows to keep readable rhythm. Gap: {subtotalY - vatY:0.##}pt.");
+        Assert.True(vatY - totalValueY >= 14,
+            $"Expected VAT and total rows to stay separated. Gap: {vatY - totalValueY:0.##}pt.");
+        Assert.True(totalValueY - noteY >= 22,
+            $"Expected document note panel to follow totals with breathing room. Gap: {totalValueY - noteY:0.##}pt.");
+
+        AssertStatementRowColumns(page2, "Umero", "81,72", "2", "163,44", "page 2 continued row");
+        double subtotalBaselineY = FindWordStartY(page2, "Subtotal");
+        Assert.True(FindWordEndXOnBaseline(page2, "Subtotal", subtotalBaselineY) < FindWordStartXOnBaseline(page2, "5201,32", subtotalBaselineY) - 10,
+            "Expected subtotal label and value to stay visibly separated.");
+        Assert.True(FindWordEndX(page2, "6397,62") <= contentRight + 1,
+            "Expected the rightmost grand total to stay inside the document margin.");
+
+        AssertNoCrampedBaselines(page2Lines, "two-page statement page 2");
+        AssertNoSameBaselineTextCollisions(page2, "two-page statement page 2");
+        AssertNoAmbiguousSameBaselineRunGaps(page2, "two-page statement page 2");
+    }
+
+    [Fact]
     public void ShowcaseDashboard_KeepsReadableGenericLayoutGeometry() {
         const double pageWidth = 841.89;
         const double marginLeft = 42;
@@ -11933,6 +12012,34 @@ public class PdfDocVisualQualityTests {
         }
 
         throw new InvalidOperationException("Could not find word '" + word + "' in rendered PDF text.");
+    }
+
+    private static void AssertStatementRowColumns(UglyToad.PdfPig.Content.Page page, string productWord, string unitPrice, string quantity, string total, string rowName) {
+        const double minimumProductGap = 10;
+        const double minimumNumericGap = 6;
+        double baselineY = FindWordStartY(page, productWord);
+        var ordered = GetLettersOnBaseline(page, baselineY);
+        string text = string.Concat(ordered.Select(letter => letter.Value));
+        int productIndex = text.IndexOf(productWord, StringComparison.Ordinal);
+        int unitPriceIndex = productIndex >= 0 ? text.IndexOf(unitPrice, productIndex + productWord.Length, StringComparison.Ordinal) : -1;
+        int quantityIndex = unitPriceIndex >= 0 ? text.IndexOf(quantity, unitPriceIndex + unitPrice.Length, StringComparison.Ordinal) : -1;
+        int totalIndex = quantityIndex >= 0 ? text.IndexOf(total, quantityIndex + quantity.Length, StringComparison.Ordinal) : -1;
+
+        Assert.True(productIndex >= 0 && unitPriceIndex >= 0 && quantityIndex >= 0 && totalIndex >= 0,
+            $"Expected {rowName} to contain product, unit price, quantity, and total tokens in left-to-right order. Text: '{text}'.");
+        double productEndX = ordered[productIndex + productWord.Length - 1].EndBaseLine.X;
+        double unitPriceStartX = ordered[unitPriceIndex].StartBaseLine.X;
+        double unitPriceEndX = ordered[unitPriceIndex + unitPrice.Length - 1].EndBaseLine.X;
+        double quantityStartX = ordered[quantityIndex].StartBaseLine.X;
+        double quantityEndX = ordered[quantityIndex + quantity.Length - 1].EndBaseLine.X;
+        double totalStartX = ordered[totalIndex].StartBaseLine.X;
+
+        Assert.True(productEndX < unitPriceStartX - minimumProductGap,
+            $"Expected {rowName} product text to end with visible space before the unit price column.");
+        Assert.True(unitPriceEndX < quantityStartX - minimumNumericGap,
+            $"Expected {rowName} unit price text to stay separated from the quantity column.");
+        Assert.True(quantityEndX < totalStartX - minimumNumericGap,
+            $"Expected {rowName} quantity text to stay separated from the total column.");
     }
 
     private static double FindWordStartXOnBaseline(UglyToad.PdfPig.Content.Page page, string word, double baselineY) {

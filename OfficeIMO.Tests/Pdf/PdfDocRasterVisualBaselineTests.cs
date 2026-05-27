@@ -1119,7 +1119,7 @@ public class PdfDocRasterVisualBaselineTests {
             .ToBytes();
     }
 
-    private static byte[] CreateLineItemsTwoPage() {
+    internal static byte[] CreateLineItemsTwoPage() {
         string logoPath = Path.Combine(GetTestsProjectRoot(), "Images", "EvotecLogo.png");
         byte[] logo = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : CreateFallbackLogo();
         var lineItemRows = CreateLineItemRows();
