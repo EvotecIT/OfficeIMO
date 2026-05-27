@@ -7814,7 +7814,7 @@ public class PdfDocVisualQualityTests {
         var gridTable = TableStyles.GridTable1Light();
         var listTable = TableStyles.ListTable1Light();
 
-        Assert.Equal(PdfColor.FromRgb(191, 191, 191), tableGrid.BorderColor);
+        Assert.Equal(PdfColor.Black, tableGrid.BorderColor);
         Assert.Equal(0.5, tableGrid.BorderWidth);
         Assert.Null(tableGrid.HeaderFill);
         Assert.Null(tableGrid.RowStripeFill);
@@ -7823,6 +7823,7 @@ public class PdfDocVisualQualityTests {
         Assert.Equal(0.5, tableGridLight.BorderWidth);
         Assert.Null(tableGridLight.HeaderFill);
         Assert.Null(tableGridLight.RowStripeFill);
+        Assert.NotEqual(tableGrid.BorderColor, tableGridLight.BorderColor);
 
         Assert.Null(plainTable.BorderColor);
         Assert.Equal(0, plainTable.BorderWidth);
@@ -7898,7 +7899,7 @@ public class PdfDocVisualQualityTests {
         PdfTableStyle listTableAccent = TableStyles.FromWordTableStyle("ListTable1LightAccent5");
 
         Assert.Null(tableNormal.BorderColor);
-        Assert.Equal(PdfColor.FromRgb(191, 191, 191), tableGrid.BorderColor);
+        Assert.Equal(PdfColor.Black, tableGrid.BorderColor);
         Assert.Equal(PdfColor.FromRgb(191, 191, 191), tableGridLight.BorderColor);
         Assert.Null(tableGridLight.HeaderSeparatorColor);
         Assert.Null(plainTable.BorderColor);

@@ -165,7 +165,7 @@ public static class TableStyles {
     }
 
     /// <summary>
-    /// Word-like Table Grid preset: a plain neutral grid with no shading.
+    /// Word-like Table Grid preset: a plain automatic-color grid with no shading.
     /// </summary>
     public static PdfTableStyle TableGrid() => new PdfTableStyle {
         HeaderFill = null,
@@ -173,7 +173,7 @@ public static class TableStyles {
         TextColor = PdfColor.FromRgb(25, 25, 25),
         FooterFill = null,
         RowStripeFill = null,
-        BorderColor = PdfColor.FromRgb(191, 191, 191),
+        BorderColor = PdfColor.Black,
         BorderWidth = 0.5,
         CellPaddingX = 5,
         CellPaddingY = 4,

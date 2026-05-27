@@ -909,8 +909,7 @@ public class PdfDocRasterVisualBaselineTests {
     private static byte[] CreateTableStyleGallery() {
         var rows = new[] {
             new[] { "Signal", "State", "Notes" },
-            new[] { "Header", "Repeated", "The first row should stay readable without relying on a domain-specific preset." },
-            new[] { "Flow", "Generic", "Borders, row separators, and spacing should reveal the preset shape at raster level." }
+            new[] { "Flow", "Generic", "Borders and row separators should reveal each preset shape at raster level." }
         };
 
         PdfDoc doc = PdfDoc.Create(new PdfOptions {
@@ -934,6 +933,7 @@ public class PdfDocRasterVisualBaselineTests {
 
         string[] visualStyleNames = {
             "TableGrid",
+            "TableGridLight",
             "PlainTable1",
             "GridTable1Light",
             "ListTable1Light"
