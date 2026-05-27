@@ -13,6 +13,7 @@ public sealed class PdfDocumentInfo {
     private IReadOnlyDictionary<PdfFormFieldKind, IReadOnlyList<PdfFormField>>? _formFieldsByKind;
     private IReadOnlyList<PdfFormWidget>? _formWidgets;
     private IReadOnlyDictionary<string, IReadOnlyList<PdfFormWidget>>? _formWidgetsByFieldName;
+    private IReadOnlyDictionary<int, IReadOnlyList<PdfFormWidget>>? _formWidgetsByPageNumber;
 
     internal PdfDocumentInfo(IReadOnlyList<PdfPageInfo> pages, PdfMetadata metadata, IReadOnlyList<PdfOutlineItem> outlines, IReadOnlyList<PdfPageLabel> pageLabels, IReadOnlyList<PdfNamedDestination> namedDestinations, PdfDocumentOpenAction? openAction, PdfViewerPreferences? viewerPreferences, IReadOnlyList<PdfFormField> formFields, string? acroFormDefaultAppearance, bool? acroFormNeedAppearances, int? acroFormSignatureFlags, string? headerVersion, string? catalogPageMode, string? catalogPageLayout, string? catalogVersion, string? catalogLanguage, bool hasSignatures, bool hasForms, bool hasAnnotations, bool hasOutlines, bool hasCatalogViewSettings, bool hasPageLabels, bool hasCatalogNameTrees, bool hasNamedDestinations, bool hasOpenActions, bool hasViewerPreferences, bool hasTaggedContent, bool hasXmpMetadata, bool hasCatalogUri, bool hasOutputIntents, bool hasEmbeddedFiles, bool hasOptionalContent, bool hasActiveContent) {
         Pages = pages;
@@ -265,6 +266,38 @@ public sealed class PdfDocumentInfo {
         }
     }
 
+    /// <summary>Simple AcroForm widget annotations grouped by one-based page number.</summary>
+    public IReadOnlyDictionary<int, IReadOnlyList<PdfFormWidget>> FormWidgetsByPageNumber {
+        get {
+            if (_formWidgetsByPageNumber is not null) {
+                return _formWidgetsByPageNumber;
+            }
+
+            var grouped = new Dictionary<int, List<PdfFormWidget>>();
+            for (int i = 0; i < Pages.Count; i++) {
+                PdfPageInfo page = Pages[i];
+                if (page.FormWidgets.Count == 0) {
+                    continue;
+                }
+
+                if (!grouped.TryGetValue(page.PageNumber, out List<PdfFormWidget>? widgets)) {
+                    widgets = new List<PdfFormWidget>();
+                    grouped.Add(page.PageNumber, widgets);
+                }
+
+                widgets.AddRange(page.FormWidgets);
+            }
+
+            var result = new Dictionary<int, IReadOnlyList<PdfFormWidget>>();
+            foreach (var item in grouped) {
+                result.Add(item.Key, item.Value.AsReadOnly());
+            }
+
+            _formWidgetsByPageNumber = new System.Collections.ObjectModel.ReadOnlyDictionary<int, IReadOnlyList<PdfFormWidget>>(result);
+            return _formWidgetsByPageNumber;
+        }
+    }
+
     /// <summary>True when at least one simple link annotation was read from the document pages.</summary>
     public bool HasLinkAnnotations => LinkAnnotationCount > 0;
 
@@ -309,6 +342,17 @@ public sealed class PdfDocumentInfo {
     public IReadOnlyList<PdfFormWidget> GetFormWidgets(string fieldName) {
         Guard.NotNullOrWhiteSpace(fieldName, nameof(fieldName));
         return FormWidgetsByFieldName.TryGetValue(fieldName, out IReadOnlyList<PdfFormWidget>? widgets)
+            ? widgets
+            : Array.Empty<PdfFormWidget>();
+    }
+
+    /// <summary>Returns simple widget annotations for a one-based page number.</summary>
+    public IReadOnlyList<PdfFormWidget> GetFormWidgets(int pageNumber) {
+        if (pageNumber <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
+        }
+
+        return FormWidgetsByPageNumber.TryGetValue(pageNumber, out IReadOnlyList<PdfFormWidget>? widgets)
             ? widgets
             : Array.Empty<PdfFormWidget>();
     }

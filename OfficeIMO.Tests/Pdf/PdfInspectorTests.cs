@@ -1216,8 +1216,12 @@ public class PdfInspectorTests {
         Assert.Same(widget, Assert.Single(info.FormWidgets));
         Assert.Same(widget, Assert.Single(info.Pages[0].FormWidgets));
         Assert.Same(widget, Assert.Single(info.FormWidgetsByFieldName["AcceptTerms"]));
+        Assert.Same(widget, Assert.Single(info.FormWidgetsByPageNumber[1]));
         Assert.Same(widget, Assert.Single(info.GetFormWidgets("AcceptTerms")));
+        Assert.Same(widget, Assert.Single(info.GetFormWidgets(1)));
         Assert.Empty(info.GetFormWidgets("Missing"));
+        Assert.Empty(info.GetFormWidgets(2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => info.GetFormWidgets(0));
         Assert.Equal("AcceptTerms", widget.FieldName);
         Assert.Equal(8, widget.ObjectNumber);
         Assert.Equal(1, widget.PageNumber);

@@ -298,8 +298,12 @@ public class PdfLogicalDocumentTests {
         Assert.True(logical.HasFormWidgets);
         Assert.Same(logicalWidget, Assert.Single(logical.FormWidgets));
         Assert.Same(logicalWidget, Assert.Single(logical.FormWidgetsByFieldName["AcceptTerms"]));
+        Assert.Same(logicalWidget, Assert.Single(logical.FormWidgetsByPageNumber[1]));
         Assert.Same(logicalWidget, Assert.Single(logical.GetFormWidgets("AcceptTerms")));
+        Assert.Same(logicalWidget, Assert.Single(logical.GetFormWidgets(1)));
         Assert.Empty(logical.GetFormWidgets("Missing"));
+        Assert.Empty(logical.GetFormWidgets(2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => logical.GetFormWidgets(0));
         Assert.Contains(page.Elements, element => element.Kind == PdfLogicalElementKind.FormWidget);
         Assert.Contains(logical.Elements, element => element.Kind == PdfLogicalElementKind.FormWidget);
     }

@@ -52,6 +52,7 @@ public sealed class PdfLogicalDocument {
     private IReadOnlyDictionary<PdfFormFieldKind, IReadOnlyList<PdfFormField>>? _formFieldsByKind;
     private IReadOnlyList<string>? _formFieldNames;
     private IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalFormWidget>>? _formWidgetsByFieldName;
+    private IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalFormWidget>>? _formWidgetsByPageNumber;
 
     private PdfLogicalDocument(
         PdfMetadata metadata,
@@ -366,6 +367,38 @@ public sealed class PdfLogicalDocument {
         }
     }
 
+    /// <summary>AcroForm widget annotations grouped by one-based page number.</summary>
+    public IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalFormWidget>> FormWidgetsByPageNumber {
+        get {
+            if (_formWidgetsByPageNumber is not null) {
+                return _formWidgetsByPageNumber;
+            }
+
+            var grouped = new Dictionary<int, List<PdfLogicalFormWidget>>();
+            for (int i = 0; i < Pages.Count; i++) {
+                PdfLogicalPage page = Pages[i];
+                if (page.FormWidgets.Count == 0) {
+                    continue;
+                }
+
+                if (!grouped.TryGetValue(page.PageNumber, out List<PdfLogicalFormWidget>? pageWidgets)) {
+                    pageWidgets = new List<PdfLogicalFormWidget>();
+                    grouped.Add(page.PageNumber, pageWidgets);
+                }
+
+                pageWidgets.AddRange(page.FormWidgets);
+            }
+
+            var result = new Dictionary<int, IReadOnlyList<PdfLogicalFormWidget>>();
+            foreach (var item in grouped) {
+                result.Add(item.Key, item.Value.AsReadOnly());
+            }
+
+            _formWidgetsByPageNumber = new System.Collections.ObjectModel.ReadOnlyDictionary<int, IReadOnlyList<PdfLogicalFormWidget>>(result);
+            return _formWidgetsByPageNumber;
+        }
+    }
+
     /// <summary>Catalog page mode, for example UseOutlines or FullScreen, when present.</summary>
     public string? CatalogPageMode { get; }
 
@@ -438,6 +471,17 @@ public sealed class PdfLogicalDocument {
     public IReadOnlyList<PdfLogicalFormWidget> GetFormWidgets(string fieldName) {
         Guard.NotNullOrWhiteSpace(fieldName, nameof(fieldName));
         return FormWidgetsByFieldName.TryGetValue(fieldName, out IReadOnlyList<PdfLogicalFormWidget>? widgets)
+            ? widgets
+            : Array.Empty<PdfLogicalFormWidget>();
+    }
+
+    /// <summary>Returns logical widget annotations for a one-based page number.</summary>
+    public IReadOnlyList<PdfLogicalFormWidget> GetFormWidgets(int pageNumber) {
+        if (pageNumber <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
+        }
+
+        return FormWidgetsByPageNumber.TryGetValue(pageNumber, out IReadOnlyList<PdfLogicalFormWidget>? widgets)
             ? widgets
             : Array.Empty<PdfLogicalFormWidget>();
     }
