@@ -284,7 +284,7 @@ public static class PdfFormFiller {
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject fieldObject,
         string? inheritedFieldType,
-        string? inheritedValue,
+        string? inheritedDisplayValue,
         string? inheritedName,
         Dictionary<int, FlattenWidgetState> widgets,
         HashSet<int> removableObjects,
@@ -309,10 +309,11 @@ public static class PdfFormFiller {
         string? partialName = TryReadText(objects, field, "T");
         string? fullName = CombineFieldName(inheritedName, partialName);
         string? fieldType = TryReadName(objects, field, "FT") ?? inheritedFieldType;
-        string? value = TryReadSimpleValue(objects, field, "V") ?? inheritedValue;
+        IReadOnlyList<string>? values = TryReadSimpleValues(objects, field, "V");
+        string? value = values is { Count: > 0 } ? values[0] : inheritedDisplayValue;
         bool isButtonField = string.Equals(fieldType, "Btn", StringComparison.Ordinal);
         string? appearanceValue = string.Equals(fieldType, "Ch", StringComparison.Ordinal)
-            ? TryResolveChoiceDisplayValue(objects, field, value) ?? value
+            ? TryResolveChoiceDisplayValue(objects, field, values) ?? JoinSimpleValues(values) ?? inheritedDisplayValue
             : value;
 
         if (IsWidget(field)) {
@@ -534,7 +535,7 @@ public static class PdfFormFiller {
 
         field.Items["V"] = new PdfStringObj(value);
         string appearanceValue = string.Equals(fieldType, "Ch", StringComparison.Ordinal)
-            ? TryResolveChoiceDisplayValue(objects, field, value) ?? value
+            ? TryResolveChoiceDisplayValue(objects, field, new[] { value }) ?? value
             : value;
         SetTextWidgetAppearances(objects, field, appearanceValue, new HashSet<int>(), ref nextObjectNumber);
     }
@@ -818,14 +819,71 @@ public static class PdfFormFiller {
         };
     }
 
-    private static string? TryResolveChoiceDisplayValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string? exportValue) {
-        if (string.IsNullOrEmpty(exportValue) ||
+    private static IReadOnlyList<string>? TryReadSimpleValues(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) {
+        if (!dictionary.Items.TryGetValue(key, out var value)) {
+            return null;
+        }
+
+        PdfObject? resolved = ResolveObject(objects, value);
+        if (resolved is PdfArray array) {
+            var values = new List<string>();
+            for (int i = 0; i < array.Items.Count; i++) {
+                if (TryFormatSimpleValue(objects, array.Items[i], out string? item)) {
+                    values.Add(item!);
+                }
+            }
+
+            return values.Count == 0 ? null : values.AsReadOnly();
+        }
+
+        return TryFormatSimpleValue(objects, resolved, out string? single)
+            ? new[] { single! }
+            : null;
+    }
+
+    private static bool TryFormatSimpleValue(Dictionary<int, PdfIndirectObject> objects, PdfObject? value, out string? text) {
+        text = null;
+        switch (ResolveObject(objects, value)) {
+            case PdfStringObj stringObj:
+                text = stringObj.Value;
+                return true;
+            case PdfName name:
+                text = name.Name;
+                return true;
+            case PdfNumber number:
+                text = FormatNumber(number.Value);
+                return true;
+            case PdfBoolean boolean:
+                text = boolean.Value ? "true" : "false";
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static string? JoinSimpleValues(IReadOnlyList<string>? values) {
+        return values is { Count: > 0 }
+            ? string.Join(", ", values)
+            : null;
+    }
+
+    private static string? TryResolveChoiceDisplayValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, IReadOnlyList<string>? exportValues) {
+        if (exportValues is not { Count: > 0 } ||
             !dictionary.Items.TryGetValue("Opt", out var optionsObject) ||
             ResolveObject(objects, optionsObject) is not PdfArray options ||
             options.Items.Count == 0) {
             return null;
         }
 
+        var displayValues = new List<string>(exportValues.Count);
+        for (int i = 0; i < exportValues.Count; i++) {
+            displayValues.Add(ResolveSingleChoiceDisplayValue(objects, options, exportValues[i]) ?? exportValues[i]);
+        }
+
+        return displayValues.Count == 0 ? null : string.Join(", ", displayValues);
+    }
+
+    private static string? ResolveSingleChoiceDisplayValue(Dictionary<int, PdfIndirectObject> objects, PdfArray options, string exportValue) {
         for (int i = 0; i < options.Items.Count; i++) {
             PdfObject? optionObject = ResolveObject(objects, options.Items[i]);
             if (optionObject is PdfArray pair &&
