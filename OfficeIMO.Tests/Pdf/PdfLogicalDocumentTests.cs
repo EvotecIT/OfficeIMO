@@ -153,7 +153,11 @@ public class PdfLogicalDocumentTests {
         Assert.True(text.IsPassword);
         Assert.Equal(42, text.MaxLength);
         Assert.Equal(new[] { "Secret" }, text.Values);
+        Assert.Equal("Draft", text.DefaultValue);
+        Assert.Equal(new[] { "Draft" }, text.DefaultValues);
+        Assert.True(text.HasDefaultValues);
         Assert.False(text.HasOptions);
+        Assert.False(text.HasDefaultSelectedOptions);
         Assert.False(text.IsButtonField);
         Assert.False(text.IsChoiceField);
 
@@ -177,6 +181,8 @@ public class PdfLogicalDocumentTests {
         Assert.Equal(PdfFormFieldKind.Choice, choice.Kind);
         Assert.Equal("[PL US]", choice.Value);
         Assert.Equal(new[] { "PL", "US" }, choice.Values);
+        Assert.Equal("[DE US]", choice.DefaultValue);
+        Assert.Equal(new[] { "DE", "US" }, choice.DefaultValues);
         Assert.True(choice.IsChoiceField);
         Assert.True(choice.IsCombo);
         Assert.True(choice.IsEditableChoice);
@@ -197,6 +203,9 @@ public class PdfLogicalDocumentTests {
         Assert.True(choice.HasSelectedOptions);
         Assert.Equal(2, choice.SelectedOptionCount);
         Assert.Equal(new[] { "PL", "US" }, choice.SelectedOptions.Select(option => option.ExportValue).ToArray());
+        Assert.True(choice.HasDefaultSelectedOptions);
+        Assert.Equal(2, choice.DefaultSelectedOptionCount);
+        Assert.Equal(new[] { "DE", "US" }, choice.DefaultSelectedOptions.Select(option => option.ExportValue).ToArray());
 
         PdfFormField signature = logical.FormFieldsByName["Approval"];
         Assert.Equal(PdfFormFieldKind.Signature, signature.Kind);
@@ -407,7 +416,7 @@ public class PdfLogicalDocumentTests {
             "<< /Fields [6 0 R 7 0 R 8 0 R 9 0 R 10 0 R 11 0 R] >>",
             "endobj",
             "6 0 obj",
-            "<< /FT /Tx /T (Notes) /V (Secret) /Ff 12295 /MaxLen 42 >>",
+            "<< /FT /Tx /T (Notes) /V (Secret) /DV (Draft) /Ff 12295 /MaxLen 42 >>",
             "endobj",
             "7 0 obj",
             "<< /FT /Btn /T (Accept) /V /Yes >>",
@@ -419,7 +428,7 @@ public class PdfLogicalDocumentTests {
             "<< /FT /Btn /T (Submit) /Ff 65536 >>",
             "endobj",
             "10 0 obj",
-            "<< /FT /Ch /T (Country) /V [(PL) /US] /Ff 74317826 /Opt [[(PL) (Poland)] (DE) [/US (United States)]] >>",
+            "<< /FT /Ch /T (Country) /V [(PL) /US] /DV [(DE) /US] /Ff 74317826 /Opt [[(PL) (Poland)] (DE) [/US (United States)]] >>",
             "endobj",
             "11 0 obj",
             "<< /FT /Sig /T (Approval) >>",

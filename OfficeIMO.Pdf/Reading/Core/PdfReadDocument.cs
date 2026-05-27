@@ -361,6 +361,8 @@ public sealed class PdfReadDocument {
         string? fieldType = TryReadName(field, "FT") ?? inheritedFieldType;
         string? value = TryReadSimpleFieldValue(field, "V");
         IReadOnlyList<string> values = ReadSimpleFieldValues(field, "V");
+        string? defaultValue = TryReadSimpleFieldValue(field, "DV");
+        IReadOnlyList<string> defaultValues = ReadSimpleFieldValues(field, "DV");
         string? alternateName = TryReadText(field, "TU");
         string? mappingName = TryReadText(field, "TM");
         int? flags = TryReadInteger(field, "Ff");
@@ -373,7 +375,7 @@ public sealed class PdfReadDocument {
         }
 
         PdfArray? kids = field.Items.TryGetValue("Kids", out var kidsObject) ? ResolveArray(kidsObject) : null;
-        bool hasReadableFieldState = fieldType != null || value != null || flags.HasValue;
+        bool hasReadableFieldState = fieldType != null || value != null || defaultValue != null || flags.HasValue;
         bool hasTerminalShape = isWidget || kids is null || hasReadableFieldState;
         var fieldKids = new List<PdfObject>();
         if (kids is not null) {
@@ -393,20 +395,22 @@ public sealed class PdfReadDocument {
             }
         }
 
-        if (hasTerminalShape && (fullName != null || hasReadableFieldState || alternateName != null || mappingName != null || maxLength.HasValue || options.Count > 0)) {
+        if (hasTerminalShape && (fullName != null || hasReadableFieldState || defaultValues.Count > 0 || alternateName != null || mappingName != null || maxLength.HasValue || options.Count > 0)) {
             result.Add(new PdfFormField(
-                objectNumber,
-                fullName,
-                partialName,
-                fieldType,
-                value,
-                alternateName,
-                mappingName,
-                flags,
-                maxLength,
-                values.Count == 0 ? null : values,
-                options.Count == 0 ? null : options,
-                widgets.Count == 0 ? null : widgets.AsReadOnly()));
+                objectNumber: objectNumber,
+                name: fullName,
+                partialName: partialName,
+                fieldType: fieldType,
+                value: value,
+                alternateName: alternateName,
+                mappingName: mappingName,
+                flags: flags,
+                maxLength: maxLength,
+                values: values.Count == 0 ? null : values,
+                defaultValue: defaultValue,
+                defaultValues: defaultValues.Count == 0 ? null : defaultValues,
+                options: options.Count == 0 ? null : options,
+                widgets: widgets.Count == 0 ? null : widgets.AsReadOnly()));
         }
 
         if (fieldKids.Count == 0) {

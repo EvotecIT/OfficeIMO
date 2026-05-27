@@ -1123,12 +1123,18 @@ public class PdfInspectorTests {
         Assert.Equal(PdfFormFieldKind.Text, text.Kind);
         Assert.Equal(42, text.MaxLength);
         Assert.Equal(new[] { "Secret" }, text.Values);
+        Assert.Equal("Draft", text.DefaultValue);
+        Assert.Equal(new[] { "Draft" }, text.DefaultValues);
+        Assert.True(text.HasDefaultValues);
         Assert.False(text.HasOptions);
+        Assert.False(text.HasDefaultSelectedOptions);
 
         PdfFormField choice = Assert.Single(info.FormFields, field => field.Name == "Country");
         Assert.Equal(PdfFormFieldKind.Choice, choice.Kind);
         Assert.Equal("[PL US]", choice.Value);
         Assert.Equal(new[] { "PL", "US" }, choice.Values);
+        Assert.Equal("[DE US]", choice.DefaultValue);
+        Assert.Equal(new[] { "DE", "US" }, choice.DefaultValues);
         Assert.True(choice.HasOptions);
         Assert.Equal(3, choice.OptionCount);
         Assert.Equal("PL", choice.Options[0].ExportValue);
@@ -1141,6 +1147,8 @@ public class PdfInspectorTests {
         Assert.Equal("United States", choice.Options[2].DisplayText);
         Assert.Equal(2, choice.SelectedOptionCount);
         Assert.Equal(new[] { "PL", "US" }, choice.SelectedOptions.Select(option => option.ExportValue).ToArray());
+        Assert.Equal(2, choice.DefaultSelectedOptionCount);
+        Assert.Equal(new[] { "DE", "US" }, choice.DefaultSelectedOptions.Select(option => option.ExportValue).ToArray());
     }
 
     [Fact]
@@ -1765,10 +1773,10 @@ public class PdfInspectorTests {
             "<< /Fields [6 0 R 7 0 R] >>",
             "endobj",
             "6 0 obj",
-            "<< /FT /Tx /T (Notes) /V (Secret) /MaxLen 42 >>",
+            "<< /FT /Tx /T (Notes) /V (Secret) /DV (Draft) /MaxLen 42 >>",
             "endobj",
             "7 0 obj",
-            "<< /FT /Ch /T (Country) /V [(PL) /US] /Opt [[(PL) (Poland)] (DE) [/US (United States)]] >>",
+            "<< /FT /Ch /T (Country) /V [(PL) /US] /DV [(DE) /US] /Opt [[(PL) (Poland)] (DE) [/US (United States)]] >>",
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 8 >>",
