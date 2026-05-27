@@ -219,6 +219,24 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void TextContentParser_AdvancesRunsThroughActiveTextMatrix() {
+        const string content = "BT /F1 10 Tf 2 0 0 2 10 20 Tm (A) Tj (B) Tj ET";
+
+        var spans = TextContentParser.Parse(
+            content,
+            static (_, bytes) => Encoding.ASCII.GetString(bytes),
+            static (_, bytes) => (bytes?.Length ?? 0) * 1000);
+
+        PdfTextSpan first = Assert.Single(spans, span => span.Text == "A");
+        PdfTextSpan second = Assert.Single(spans, span => span.Text == "B");
+        Assert.Equal(10, first.X, 3);
+        Assert.Equal(20, first.Y, 3);
+        Assert.Equal(20, first.Advance, 3);
+        Assert.Equal(30, second.X, 3);
+        Assert.Equal(20, second.Y, 3);
+    }
+
+    [Fact]
     public void PdfTextExtractor_ExtractAllText_ReadsPagesWithContentStreamArrays() {
         byte[] bytes = BuildPdfWithContentStreamArray();
 

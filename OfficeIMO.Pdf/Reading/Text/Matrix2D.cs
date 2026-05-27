@@ -4,6 +4,7 @@ internal struct Matrix2D {
     public double A, B, C, D, E, F;
     public Matrix2D(double a, double b, double c, double d, double e, double f) { A = a; B = b; C = c; D = d; E = e; F = f; }
     public static Matrix2D Identity => new Matrix2D(1, 0, 0, 1, 0, 0);
+    public static Matrix2D Translation(double x, double y) => new Matrix2D(1, 0, 0, 1, x, y);
     public (double X, double Y) Transform(double x, double y) {
         double nx = A * x + C * y + E;
         double ny = B * x + D * y + F;

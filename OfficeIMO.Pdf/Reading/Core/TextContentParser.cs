@@ -28,7 +28,9 @@ internal static class TextContentParser {
         var spans = new List<PdfTextSpan>();
         // Text state
         bool inText = false;
-        string font = "F1"; double size = 12; double x = 0, y = 0; double lineX = 0, lineY = 0; double leading = size * 1.2; double charSpacing = 0, wordSpacing = 0; double hScale = 1.0; double textRise = 0;
+        string font = "F1"; double size = 12; double leading = size * 1.2; double charSpacing = 0, wordSpacing = 0; double hScale = 1.0; double textRise = 0;
+        Matrix2D textMatrix = Matrix2D.Identity;
+        Matrix2D lineMatrix = Matrix2D.Identity;
         // Graphics state (CTM) and stack
         Matrix2D ctm = Matrix2D.Identity; var gstack = new System.Collections.Generic.Stack<Matrix2D>();
         // Operand buffer (tokens collected since last operator)
@@ -58,10 +60,10 @@ internal static class TextContentParser {
             if (op.Length == 0) { i++; continue; }
 
             switch (op) {
-                case "BT": inText = true; x = 0; y = 0; lineX = 0; lineY = 0; pendingGapPt = 0; args.Clear(); break;
+                case "BT": inText = true; textMatrix = Matrix2D.Identity; lineMatrix = Matrix2D.Identity; pendingGapPt = 0; args.Clear(); break;
                 case "ET": inText = false; pendingGapPt = 0; args.Clear(); break;
                 case "Tf": if (args.Count >= 2) { size = ToDouble(args[args.Count - 1]); font = ToName(args[args.Count - 2]); args.Clear(); } break;
-                case "Tm": if (args.Count >= 6) { x = ToDouble(args[args.Count - 2]); y = ToDouble(args[args.Count - 1]); lineX = x; lineY = y; pendingGapPt = 0; args.Clear(); } break;
+                case "Tm": if (args.Count >= 6) { SetTextMatrix(args); args.Clear(); } break;
                 case "Td": if (args.Count >= 2) { MoveTextLine(ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1])); args.Clear(); } break;
                 case "TD": if (args.Count >= 2) { double tx = ToDouble(args[args.Count - 2]); double ty = ToDouble(args[args.Count - 1]); leading = -ty; MoveTextLine(tx, ty); args.Clear(); } break;
                 case "TL": if (args.Count >= 1) { leading = ToDouble(args[args.Count - 1]); args.Clear(); } break;
@@ -89,18 +91,27 @@ internal static class TextContentParser {
         return spans;
 
         // Helpers
+        void SetTextMatrix(List<object> operands) {
+            lineMatrix = new Matrix2D(
+                ToDouble(operands[operands.Count - 6]),
+                ToDouble(operands[operands.Count - 5]),
+                ToDouble(operands[operands.Count - 4]),
+                ToDouble(operands[operands.Count - 3]),
+                ToDouble(operands[operands.Count - 2]),
+                ToDouble(operands[operands.Count - 1]));
+            textMatrix = lineMatrix;
+            pendingGapPt = 0;
+        }
+
         void MoveTextLine(double tx, double ty) {
-            lineX += tx;
-            lineY += ty;
-            x = lineX;
-            y = lineY;
+            lineMatrix = Matrix2D.Multiply(lineMatrix, Matrix2D.Translation(tx, ty));
+            textMatrix = lineMatrix;
             pendingGapPt = 0;
         }
 
         void MoveToNextTextLine() {
-            lineY -= leading;
-            x = lineX;
-            y = lineY;
+            lineMatrix = Matrix2D.Multiply(lineMatrix, Matrix2D.Translation(0, -leading));
+            textMatrix = lineMatrix;
             pendingGapPt = 0;
         }
 
@@ -166,10 +177,14 @@ internal static class TextContentParser {
             }
             if (sbOut.Length == 0) return;
             string textOut = NormalizeShatteredSpan(sbOut.ToString());
-            var (dx, dy) = ctm.Transform(x, y + textRise);
-            spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, advTotal));
+            var textOrigin = textMatrix.Transform(0, textRise);
+            var (dx, dy) = ctm.Transform(textOrigin.X, textOrigin.Y);
+            var textEnd = textMatrix.Transform(advTotal, textRise);
+            var (endX, endY) = ctm.Transform(textEnd.X, textEnd.Y);
+            double transformedAdvance = Math.Sqrt(((endX - dx) * (endX - dx)) + ((endY - dy) * (endY - dy)));
+            spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance));
             sbOutGlobal.Append(textOut);
-            x += advTotal;
+            textMatrix = Matrix2D.Multiply(textMatrix, Matrix2D.Translation(advTotal, 0));
         }
 
         void ShowTextArray(object arrObj) {
@@ -181,7 +196,7 @@ internal static class TextContentParser {
                 if (it is byte[] b) { ShowTextRun(b); }
                 else if (adjustKerningFromTJ && it is double num) {
                     double delta = -num / 1000.0 * size * hScale;
-                    x += delta;
+                    textMatrix = Matrix2D.Multiply(textMatrix, Matrix2D.Translation(delta, 0));
                     // Only positive visual gap should suggest a space
                     if (delta > 0) pendingGapPt += delta; else pendingGapPt = 0;
                 }
