@@ -187,6 +187,11 @@ public class PdfInspectorTests {
 
         Assert.True(report.CanRead);
         Assert.True(report.CanRewrite);
+        Assert.True(report.CanExtractText);
+        Assert.True(report.CanManipulatePages);
+        Assert.False(report.CanFillSimpleFormFields);
+        Assert.False(report.CanFlattenSimpleFormFields);
+        Assert.False(report.CanFillAndFlattenSimpleFormFields);
         Assert.Empty(report.Diagnostics);
         Assert.Empty(report.ReadBlockers);
         Assert.Empty(report.RewriteBlockers);
@@ -1034,6 +1039,11 @@ public class PdfInspectorTests {
 
         Assert.True(report.CanRead);
         Assert.False(report.CanRewrite);
+        Assert.True(report.CanExtractText);
+        Assert.False(report.CanManipulatePages);
+        Assert.False(report.CanFillSimpleFormFields);
+        Assert.False(report.CanFlattenSimpleFormFields);
+        Assert.False(report.CanFillAndFlattenSimpleFormFields);
         Assert.True(report.Probe.HasActiveContent);
         Assert.True(report.Probe.HasCatalogNameTrees);
         Assert.NotNull(report.DocumentInfo);
@@ -1050,6 +1060,11 @@ public class PdfInspectorTests {
 
         Assert.False(report.CanRead);
         Assert.False(report.CanRewrite);
+        Assert.False(report.CanExtractText);
+        Assert.False(report.CanManipulatePages);
+        Assert.False(report.CanFillSimpleFormFields);
+        Assert.False(report.CanFlattenSimpleFormFields);
+        Assert.False(report.CanFillAndFlattenSimpleFormFields);
         Assert.Null(report.DocumentInfo);
         Assert.True(report.Probe.HasEncryption);
         Assert.Contains("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.", report.Diagnostics);
@@ -1063,6 +1078,11 @@ public class PdfInspectorTests {
 
         Assert.True(report.CanRead);
         Assert.False(report.CanRewrite);
+        Assert.True(report.CanExtractText);
+        Assert.False(report.CanManipulatePages);
+        Assert.False(report.CanFillSimpleFormFields);
+        Assert.False(report.CanFlattenSimpleFormFields);
+        Assert.False(report.CanFillAndFlattenSimpleFormFields);
         Assert.NotNull(report.DocumentInfo);
         Assert.True(report.Probe.HasSignatures);
         Assert.True(report.DocumentInfo!.HasSignatures);
@@ -1084,6 +1104,11 @@ public class PdfInspectorTests {
 
         Assert.True(report.CanRead);
         Assert.False(report.CanRewrite);
+        Assert.True(report.CanExtractText);
+        Assert.False(report.CanManipulatePages);
+        Assert.True(report.CanFillSimpleFormFields);
+        Assert.False(report.CanFlattenSimpleFormFields);
+        Assert.False(report.CanFillAndFlattenSimpleFormFields);
         Assert.NotNull(report.DocumentInfo);
         Assert.False(report.Probe.HasSignatures);
         Assert.True(report.Probe.HasForms);
@@ -1105,6 +1130,26 @@ public class PdfInspectorTests {
         Assert.Equal(new[] { "Name" }, report.DocumentInfo.FormFieldNames);
         Assert.Empty(report.ReadBlockers);
         Assert.Contains("PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.", report.Diagnostics);
+        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Forms, "PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.");
+    }
+
+    [Fact]
+    public void Preflight_ReportsSimpleFormMutationGatesForWrappers() {
+        PdfDocumentPreflight report = PdfInspector.Preflight(BuildWidgetFormPdf());
+
+        Assert.True(report.CanRead);
+        Assert.False(report.CanRewrite);
+        Assert.True(report.CanExtractText);
+        Assert.False(report.CanManipulatePages);
+        Assert.True(report.CanFillSimpleFormFields);
+        Assert.True(report.CanFlattenSimpleFormFields);
+        Assert.True(report.CanFillAndFlattenSimpleFormFields);
+        Assert.NotNull(report.DocumentInfo);
+        Assert.True(report.DocumentInfo!.HasReadableFormFields);
+        Assert.True(report.DocumentInfo.HasFormWidgets);
+        Assert.Single(report.DocumentInfo.FormFields);
+        Assert.Single(report.DocumentInfo.FormWidgets);
+        Assert.Empty(report.ReadBlockers);
         AssertRewriteBlocker(report, PdfRewriteBlockerKind.Forms, "PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.");
     }
 
@@ -1273,6 +1318,11 @@ public class PdfInspectorTests {
 
         Assert.False(report.CanRead);
         Assert.False(report.CanRewrite);
+        Assert.False(report.CanExtractText);
+        Assert.False(report.CanManipulatePages);
+        Assert.False(report.CanFillSimpleFormFields);
+        Assert.False(report.CanFlattenSimpleFormFields);
+        Assert.False(report.CanFillAndFlattenSimpleFormFields);
         Assert.Null(report.DocumentInfo);
         Assert.Null(report.Probe.HeaderVersion);
         Assert.Contains("PDF header was not found.", report.Diagnostics);
@@ -1286,6 +1336,11 @@ public class PdfInspectorTests {
 
         Assert.False(report.CanRead);
         Assert.False(report.CanRewrite);
+        Assert.False(report.CanExtractText);
+        Assert.False(report.CanManipulatePages);
+        Assert.False(report.CanFillSimpleFormFields);
+        Assert.False(report.CanFlattenSimpleFormFields);
+        Assert.False(report.CanFillAndFlattenSimpleFormFields);
         Assert.NotNull(report.DocumentInfo);
         Assert.Empty(report.DocumentInfo!.Pages);
         Assert.Contains("No PDF pages were discovered.", report.Diagnostics);

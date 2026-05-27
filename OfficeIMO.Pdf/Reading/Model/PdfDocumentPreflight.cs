@@ -33,6 +33,21 @@ public sealed class PdfDocumentPreflight {
     /// <summary>True when OfficeIMO.Pdf can attempt rewrite-style manipulation without known security blockers.</summary>
     public bool CanRewrite { get; }
 
+    /// <summary>True when OfficeIMO.Pdf can attempt text and logical readback operations for this PDF.</summary>
+    public bool CanExtractText => CanRead;
+
+    /// <summary>True when OfficeIMO.Pdf can attempt page-level rewrite operations such as extract, split, merge, import, edit, stamp, and metadata updates.</summary>
+    public bool CanManipulatePages => CanRewrite;
+
+    /// <summary>True when OfficeIMO.Pdf can attempt simple AcroForm value updates for named text, choice, or button fields.</summary>
+    public bool CanFillSimpleFormFields => CanRead && !HasFormMutationBlocker() && HasSimpleFillableFormFields();
+
+    /// <summary>True when OfficeIMO.Pdf can attempt simple AcroForm flattening for text or button widgets with page-backed rectangles.</summary>
+    public bool CanFlattenSimpleFormFields => CanRead && !HasFormMutationBlocker() && HasSimpleFlattenableFormFields();
+
+    /// <summary>True when OfficeIMO.Pdf can attempt simple AcroForm value updates followed by simple widget flattening.</summary>
+    public bool CanFillAndFlattenSimpleFormFields => CanFillSimpleFormFields && CanFlattenSimpleFormFields;
+
     /// <summary>Human-readable diagnostics explaining blocked or risky operations.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
 
@@ -62,5 +77,68 @@ public sealed class PdfDocumentPreflight {
         }
 
         return false;
+    }
+
+    private bool HasFormMutationBlocker() {
+        return Probe.HasSignatures ||
+            Probe.HasActiveContent ||
+            DocumentInfo?.AcroFormSignaturesExist == true ||
+            DocumentInfo?.HasActiveContent == true;
+    }
+
+    private bool HasSimpleFillableFormFields() {
+        if (DocumentInfo is null || DocumentInfo.FormFields.Count == 0) {
+            return false;
+        }
+
+        for (int i = 0; i < DocumentInfo.FormFields.Count; i++) {
+            PdfFormField field = DocumentInfo.FormFields[i];
+            if (IsNamedSimpleFillField(field)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool HasSimpleFlattenableFormFields() {
+        if (DocumentInfo is null || DocumentInfo.FormFields.Count == 0) {
+            return false;
+        }
+
+        bool hasFlattenableWidget = false;
+        for (int i = 0; i < DocumentInfo.FormFields.Count; i++) {
+            PdfFormField field = DocumentInfo.FormFields[i];
+            if (!IsNamedSimpleFlattenField(field) || field.Widgets.Count == 0) {
+                return false;
+            }
+
+            for (int j = 0; j < field.Widgets.Count; j++) {
+                PdfFormWidget widget = field.Widgets[j];
+                if (!widget.ObjectNumber.HasValue ||
+                    !widget.PageNumber.HasValue ||
+                    widget.Width <= 0D ||
+                    widget.Height <= 0D) {
+                    return false;
+                }
+
+                hasFlattenableWidget = true;
+            }
+        }
+
+        return hasFlattenableWidget;
+    }
+
+    private static bool IsNamedSimpleFillField(PdfFormField field) {
+        return !string.IsNullOrEmpty(field.Name) &&
+            (field.Kind == PdfFormFieldKind.Text ||
+            field.Kind == PdfFormFieldKind.Choice ||
+            field.Kind == PdfFormFieldKind.Button);
+    }
+
+    private static bool IsNamedSimpleFlattenField(PdfFormField field) {
+        return !string.IsNullOrEmpty(field.Name) &&
+            (field.Kind == PdfFormFieldKind.Text ||
+            field.Kind == PdfFormFieldKind.Button);
     }
 }
