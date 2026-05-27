@@ -219,6 +219,41 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void TextContentParser_UsesTwoByteCid_WhenWidthEvidenceIdentifiesCidGlyphs() {
+        const string content = "BT /F1 12 Tf 0 0 Td <01000101> Tj ET";
+
+        var spans = TextContentParser.Parse(
+            content,
+            static (_, bytes) => DecodeSyntheticCid(bytes),
+            static (_, bytes) => MeasureSyntheticCid(bytes));
+
+        PdfTextSpan span = Assert.Single(spans);
+        Assert.Equal("AB", span.Text);
+        Assert.Equal(12, span.Advance, 3);
+
+        static string DecodeSyntheticCid(byte[] bytes) {
+            if (bytes.Length == 1) {
+                return ((char)bytes[0]).ToString();
+            }
+
+            if (bytes.Length == 2 && bytes[0] == 0x01) {
+                if (bytes[1] == 0x00) return "A";
+                if (bytes[1] == 0x01) return "B";
+            }
+
+            return string.Empty;
+        }
+
+        static double MeasureSyntheticCid(byte[] bytes) {
+            if (bytes.Length != 2 || bytes[0] != 0x01) {
+                return 0;
+            }
+
+            return bytes[1] == 0x00 ? 600 : 400;
+        }
+    }
+
+    [Fact]
     public void PdfReadPage_GetTextSpans_ReadsSimpleFontEncodingDifferences() {
         byte[] bytes = BuildPdfWithFontEncodingDifferences();
 

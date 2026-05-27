@@ -136,7 +136,11 @@ internal static class TextContentParser {
             if (bytes.Length >= 2) {
                 string one = decodeWithFont(font, new byte[] { bytes[0] });
                 string two = decodeWithFont(font, new byte[] { bytes[0], bytes[1] });
-                twoByte = IsNullOrEmptyDecodedGlyph(one) && !IsNullOrEmptyDecodedGlyph(two);
+                double firstByteWidth = sumWidth1000ForFont(font, new byte[] { bytes[0] });
+                double secondByteWidth = sumWidth1000ForFont(font, new byte[] { bytes[1] });
+                double pairWidth = sumWidth1000ForFont(font, new byte[] { bytes[0], bytes[1] });
+                twoByte = (IsNullOrEmptyDecodedGlyph(one) && !IsNullOrEmptyDecodedGlyph(two)) ||
+                    (firstByteWidth <= 0 && secondByteWidth <= 0 && pairWidth > 0);
             }
             var sbOut = new StringBuilder(bytes.Length);
             double advTotal = 0;
