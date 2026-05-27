@@ -4,10 +4,7 @@ namespace OfficeIMO.Pdf;
 /// Friendly presets for common table appearances.
 /// </summary>
 public static class TableStyles {
-    /// <summary>
-    /// Word table style names currently mapped to PDF presets.
-    /// </summary>
-    public static IReadOnlyList<string> SupportedWordStyleNames { get; } = Array.AsReadOnly(new[] {
+    private static readonly string[] CanonicalWordStyleNameValues = {
         "TableNormal",
         "TableGrid",
         "PlainTable1",
@@ -18,26 +15,39 @@ public static class TableStyles {
         "GridTable1LightAccent4",
         "GridTable1LightAccent5",
         "GridTable1LightAccent6",
-        "GridTable1Light-Accent1",
-        "GridTable1Light-Accent2",
-        "GridTable1Light-Accent3",
-        "GridTable1Light-Accent4",
-        "GridTable1Light-Accent5",
-        "GridTable1Light-Accent6",
         "ListTable1Light",
         "ListTable1LightAccent1",
         "ListTable1LightAccent2",
         "ListTable1LightAccent3",
         "ListTable1LightAccent4",
         "ListTable1LightAccent5",
-        "ListTable1LightAccent6",
+        "ListTable1LightAccent6"
+    };
+
+    private static readonly string[] WordStyleAliasNameValues = {
+        "GridTable1Light-Accent1",
+        "GridTable1Light-Accent2",
+        "GridTable1Light-Accent3",
+        "GridTable1Light-Accent4",
+        "GridTable1Light-Accent5",
+        "GridTable1Light-Accent6",
         "ListTable1Light-Accent1",
         "ListTable1Light-Accent2",
         "ListTable1Light-Accent3",
         "ListTable1Light-Accent4",
         "ListTable1Light-Accent5",
         "ListTable1Light-Accent6"
-    });
+    };
+
+    /// <summary>
+    /// Canonical Word table style names callers can present without duplicate alias spellings.
+    /// </summary>
+    public static IReadOnlyList<string> CanonicalWordStyleNames { get; } = Array.AsReadOnly(CanonicalWordStyleNameValues);
+
+    /// <summary>
+    /// Word table style names and aliases currently mapped to PDF presets.
+    /// </summary>
+    public static IReadOnlyList<string> SupportedWordStyleNames { get; } = Array.AsReadOnly(CreateSupportedWordStyleNames());
 
     /// <summary>
     /// Light preset: report-friendly header fill, soft grid, comfortable padding, and gentle row striping.
@@ -242,6 +252,13 @@ public static class TableStyles {
         6 => new WordAccentColors(PdfColor.FromRgb(197, 224, 179), PdfColor.FromRgb(168, 208, 141), PdfColor.FromRgb(226, 239, 217)),
         _ => throw new ArgumentOutOfRangeException(nameof(accentNumber), "Word table accent number must be between 1 and 6.")
     };
+
+    private static string[] CreateSupportedWordStyleNames() {
+        string[] names = new string[CanonicalWordStyleNameValues.Length + WordStyleAliasNameValues.Length];
+        Array.Copy(CanonicalWordStyleNameValues, names, CanonicalWordStyleNameValues.Length);
+        Array.Copy(WordStyleAliasNameValues, 0, names, CanonicalWordStyleNameValues.Length, WordStyleAliasNameValues.Length);
+        return names;
+    }
 
     private static string NormalizeWordTableStyleName(string styleName) {
         string trimmed = styleName.Trim();

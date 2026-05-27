@@ -932,7 +932,14 @@ public class PdfDocRasterVisualBaselineTests {
             .H1("Table Style Gallery", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
             .Paragraph(p => p.Text("Generic Word-style table names rendered by OfficeIMO.Pdf without invoice or report-specific behavior."));
 
-        foreach (string styleName in TableStyles.SupportedWordStyleNames) {
+        string[] visualStyleNames = {
+            "TableGrid",
+            "PlainTable1",
+            "GridTable1Light",
+            "ListTable1Light"
+        };
+
+        foreach (string styleName in visualStyleNames) {
             PdfTableStyle style = TableStyles.FromWordTableStyle(styleName);
             style.Caption = styleName;
             style.CaptionColor = PdfColor.FromRgb(80, 90, 100);

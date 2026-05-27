@@ -7858,12 +7858,6 @@ public class PdfDocVisualQualityTests {
             "GridTable1LightAccent4",
             "GridTable1LightAccent5",
             "GridTable1LightAccent6",
-            "GridTable1Light-Accent1",
-            "GridTable1Light-Accent2",
-            "GridTable1Light-Accent3",
-            "GridTable1Light-Accent4",
-            "GridTable1Light-Accent5",
-            "GridTable1Light-Accent6",
             "ListTable1Light",
             "ListTable1LightAccent1",
             "ListTable1LightAccent2",
@@ -7871,6 +7865,12 @@ public class PdfDocVisualQualityTests {
             "ListTable1LightAccent4",
             "ListTable1LightAccent5",
             "ListTable1LightAccent6",
+            "GridTable1Light-Accent1",
+            "GridTable1Light-Accent2",
+            "GridTable1Light-Accent3",
+            "GridTable1Light-Accent4",
+            "GridTable1Light-Accent5",
+            "GridTable1Light-Accent6",
             "ListTable1Light-Accent1",
             "ListTable1Light-Accent2",
             "ListTable1Light-Accent3",
@@ -7918,6 +7918,19 @@ public class PdfDocVisualQualityTests {
 
         Assert.Throws<ArgumentNullException>(() => TableStyles.FromWordTableStyle(null!));
         Assert.Throws<ArgumentNullException>(() => TableStyles.TryFromWordTableStyle(null!, out _));
+    }
+
+    [Fact]
+    public void TableStyles_ExposeCanonicalWordStyleNamesWithoutAliasSpellings() {
+        Assert.Contains("TableNormal", TableStyles.CanonicalWordStyleNames);
+        Assert.Contains("GridTable1LightAccent6", TableStyles.CanonicalWordStyleNames);
+        Assert.Contains("ListTable1LightAccent6", TableStyles.CanonicalWordStyleNames);
+        Assert.DoesNotContain("GridTable1Light-Accent1", TableStyles.CanonicalWordStyleNames);
+        Assert.DoesNotContain("ListTable1Light-Accent1", TableStyles.CanonicalWordStyleNames);
+
+        Assert.Contains("GridTable1Light-Accent1", TableStyles.SupportedWordStyleNames);
+        Assert.Contains("ListTable1Light-Accent1", TableStyles.SupportedWordStyleNames);
+        Assert.Equal(TableStyles.CanonicalWordStyleNames.Count, TableStyles.CanonicalWordStyleNames.Distinct(StringComparer.Ordinal).Count());
     }
 
     [Theory]
