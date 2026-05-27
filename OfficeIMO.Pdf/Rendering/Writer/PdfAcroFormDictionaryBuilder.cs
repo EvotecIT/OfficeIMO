@@ -38,6 +38,22 @@ internal static class PdfAcroFormDictionaryBuilder {
             " >>";
     }
 
+    internal static string BuildCheckBoxAppearanceStreamDictionary(double width, double height, int contentLength) {
+        Guard.Positive(width, nameof(width));
+        Guard.Positive(height, nameof(height));
+        if (contentLength < 0) {
+            throw new ArgumentOutOfRangeException(nameof(contentLength), "PDF appearance stream length cannot be negative.");
+        }
+
+        return "<< /Type /XObject /Subtype /Form /BBox [0 0 " +
+            Format(width) +
+            " " +
+            Format(height) +
+            "] /Length " +
+            contentLength.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " >>";
+    }
+
     internal static string BuildTextFieldAppearanceContent(double width, double height, string value, double fontSize) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
@@ -57,6 +73,34 @@ internal static class PdfAcroFormDictionaryBuilder {
             "0.75 G 1 w 0.5 0.5 " + Format(Math.Max(0D, width - 1D)) + " " + Format(Math.Max(0D, height - 1D)) + " re S\n" +
             "BT /Helv " + Format(fontSize) + " Tf 0 g " + Format(textX) + " " + Format(baseline) + " Td " + PdfSyntaxEscaper.LiteralString(clippedValue) + " Tj ET\n" +
             "Q\n";
+    }
+
+    internal static string BuildCheckBoxAppearanceContent(double width, double height, bool selected) {
+        Guard.Positive(width, nameof(width));
+        Guard.Positive(height, nameof(height));
+
+        double boxWidth = Math.Max(0D, width - 1D);
+        double boxHeight = Math.Max(0D, height - 1D);
+        string content =
+            "q\n" +
+            "1 1 1 rg 0 0 " + Format(width) + " " + Format(height) + " re f\n" +
+            "0.75 0.75 0.75 RG 0.5 0.5 " + Format(boxWidth) + " " + Format(boxHeight) + " re S\n";
+
+        if (selected) {
+            double markLeft = Math.Max(2D, width * 0.2D);
+            double markMidX = Math.Max(markLeft + 1D, width * 0.42D);
+            double markRight = Math.Max(markMidX + 1D, width * 0.8D);
+            double markMidY = Math.Max(2D, height * 0.25D);
+            double markLeftY = Math.Min(height - 2D, height * 0.52D);
+            double markRightY = Math.Min(height - 2D, height * 0.78D);
+            content +=
+                "0 0 0 RG 1.25 w " +
+                Format(markLeft) + " " + Format(markLeftY) + " m " +
+                Format(markMidX) + " " + Format(markMidY) + " l " +
+                Format(markRight) + " " + Format(markRightY) + " l S\n";
+        }
+
+        return content + "Q\n";
     }
 
     private static string Format(double value) => value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);

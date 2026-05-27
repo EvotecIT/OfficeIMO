@@ -58,6 +58,37 @@ internal static class PdfAnnotationDictionaryBuilder {
             " >> >>\n";
     }
 
+    internal static string BuildCheckBoxWidgetAnnotation(double x1, double y1, double x2, double y2, string name, bool isChecked, string checkedValueName, int offAppearanceId, int checkedAppearanceId) {
+        ValidateRectangle(x1, y1, x2, y2);
+        Guard.NotNullOrWhiteSpace(name, nameof(name));
+        Guard.NotNullOrWhiteSpace(checkedValueName, nameof(checkedValueName));
+        if (string.Equals(checkedValueName, "Off", StringComparison.Ordinal)) {
+            throw new ArgumentException("PDF check box selected value name cannot be Off.", nameof(checkedValueName));
+        }
+
+        string selectedName = isChecked ? checkedValueName : "Off";
+        return "<< /Type /Annot /Subtype /Widget /FT /Btn /T " +
+            PdfSyntaxEscaper.LiteralString(name) +
+            " /V /" +
+            PdfSyntaxEscaper.Name(selectedName) +
+            " /DV /" +
+            PdfSyntaxEscaper.Name(selectedName) +
+            " /Rect [" +
+            FormatCoordinate(x1) + " " +
+            FormatCoordinate(y1) + " " +
+            FormatCoordinate(x2) + " " +
+            FormatCoordinate(y2) +
+            "] /F 4 /AS /" +
+            PdfSyntaxEscaper.Name(selectedName) +
+            " /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N << /Off " +
+            PdfSyntaxEscaper.IndirectReference(offAppearanceId) +
+            " /" +
+            PdfSyntaxEscaper.Name(checkedValueName) +
+            " " +
+            PdfSyntaxEscaper.IndirectReference(checkedAppearanceId) +
+            " >> >> >>\n";
+    }
+
     private static string BuildContentsEntry(string? contents) =>
         string.IsNullOrWhiteSpace(contents)
             ? string.Empty

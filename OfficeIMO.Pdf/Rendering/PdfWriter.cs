@@ -180,13 +180,29 @@ internal static partial class PdfWriter {
             if (page.FormFields.Count > 0) {
                 int helveticaFontId = EnsureFont(PdfStandardFont.Helvetica);
                 foreach (var field in page.FormFields) {
+                    string formField;
                     double appearanceWidth = field.X2 - field.X1;
                     double appearanceHeight = field.Y2 - field.Y1;
-                    string appearanceContent = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(appearanceWidth, appearanceHeight, field.Value, field.FontSize);
-                    byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
-                    string appearanceDictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(appearanceWidth, appearanceHeight, helveticaFontId, appearanceBytes.Length);
-                    int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
-                    string formField = PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Value, field.FontSize, appearanceId);
+                    if (field.Kind == FormFieldAnnotationKind.CheckBox) {
+                        string offAppearance = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(appearanceWidth, appearanceHeight, selected: false);
+                        byte[] offAppearanceBytes = PdfEncoding.Latin1GetBytes(offAppearance);
+                        string offAppearanceDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(appearanceWidth, appearanceHeight, offAppearanceBytes.Length);
+                        int offAppearanceId = AddStreamObject(objects, offAppearanceDictionary, offAppearanceBytes);
+
+                        string checkedAppearance = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(appearanceWidth, appearanceHeight, selected: true);
+                        byte[] checkedAppearanceBytes = PdfEncoding.Latin1GetBytes(checkedAppearance);
+                        string checkedAppearanceDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(appearanceWidth, appearanceHeight, checkedAppearanceBytes.Length);
+                        int checkedAppearanceId = AddStreamObject(objects, checkedAppearanceDictionary, checkedAppearanceBytes);
+
+                        formField = PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.IsChecked, field.CheckedValueName, offAppearanceId, checkedAppearanceId);
+                    } else {
+                        string appearanceContent = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(appearanceWidth, appearanceHeight, field.Value, field.FontSize);
+                        byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
+                        string appearanceDictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(appearanceWidth, appearanceHeight, helveticaFontId, appearanceBytes.Length);
+                        int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
+                        formField = PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Value, field.FontSize, appearanceId);
+                    }
+
                     int formFieldId = AddObject(objects, formField);
                     pageAnnotIds.Add(formFieldId);
                     formFieldIds.Add(formFieldId);

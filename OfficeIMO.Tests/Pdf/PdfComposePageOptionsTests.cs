@@ -534,6 +534,10 @@ namespace OfficeIMO.Tests.Pdf {
                 "<< /Type /Annot /Subtype /Widget /FT /Tx /T (Person.Name) /V (Ada) /DV (Ada) /Rect [10 20.5 110 44.25] /F 4 /DA (/Helv 10 Tf 0 g) /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N 12 0 R >> >>\n",
                 PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(10, 20.5, 110, 44.25, "Person.Name", "Ada", 10, 12));
 
+            Assert.Equal(
+                "<< /Type /Annot /Subtype /Widget /FT /Btn /T (AcceptTerms) /V /Yes /DV /Yes /Rect [10 20.5 26 36.5] /F 4 /AS /Yes /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N << /Off 12 0 R /Yes 13 0 R >> >> >>\n",
+                PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(10, 20.5, 26, 36.5, "AcceptTerms", true, "Yes", 12, 13));
+
             Assert.Throws<ArgumentException>(() =>
                 PdfAnnotationDictionaryBuilder.BuildUriLinkAnnotation(10, 20, 110, 44, "not-a-uri"));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -542,6 +546,8 @@ namespace OfficeIMO.Tests.Pdf {
                 PdfAnnotationDictionaryBuilder.BuildUriLinkAnnotation(10, 20, 110, double.NaN, "https://evotec.xyz"));
             Assert.Throws<ArgumentException>(() =>
                 PdfAnnotationDictionaryBuilder.BuildGoToNamedDestinationLinkAnnotation(10, 20, 110, 44, " "));
+            Assert.Throws<ArgumentException>(() =>
+                PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(10, 20, 26, 36, "AcceptTerms", true, "Off", 12, 13));
         }
 
         [Fact]
@@ -558,8 +564,17 @@ namespace OfficeIMO.Tests.Pdf {
                 "<< /Type /XObject /Subtype /Form /BBox [0 0 120 20] /Resources << /Font << /Helv 3 0 R >> >> /Length " + Encoding.ASCII.GetByteCount(content) + " >>",
                 dictionary);
 
+            string checkedContent = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(16, 16, selected: true);
+            Assert.Contains(" l S", checkedContent);
+
+            string checkBoxDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(16, 16, Encoding.ASCII.GetByteCount(checkedContent));
+            Assert.Equal(
+                "<< /Type /XObject /Subtype /Form /BBox [0 0 16 16] /Length " + Encoding.ASCII.GetByteCount(checkedContent) + " >>",
+                checkBoxDictionary);
+
             Assert.Throws<ArgumentException>(() => PdfAcroFormDictionaryBuilder.BuildAcroFormDictionary(Array.Empty<int>(), 3));
             Assert.Throws<ArgumentOutOfRangeException>(() => PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(120, 20, 3, -1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(16, 16, -1));
         }
 
         [Fact]

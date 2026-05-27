@@ -1738,12 +1738,42 @@ internal static partial class PdfWriter {
                 Y1 = y - block.Height,
                 X2 = x + block.Width,
                 Y2 = y,
+                Kind = FormFieldAnnotationKind.Text,
                 Name = block.Name,
                 Value = block.Value,
                 FontSize = block.FontSize
             });
             pageDirty = true;
             y -= block.Height + block.SpacingAfter;
+        }
+
+        void RenderCheckBoxBlock(CheckBoxBlock block, double containerX, double containerWidth) {
+            double spacingBefore = ResolveTopLevelSpacingBefore(block.SpacingBefore);
+            double needed = spacingBefore + block.Size + block.SpacingAfter;
+            EnsureFixedFlowBlockFits("Check box", block.Size, needed, containerWidth);
+            if (y - needed < currentOpts.MarginBottom) {
+                NewPage();
+                spacingBefore = 0D;
+            }
+
+            if (spacingBefore > 0) {
+                y -= spacingBefore;
+            }
+
+            double x = GetAlignedObjectX(containerX, containerWidth, block.Size, block.Align);
+            currentPage!.FormFields.Add(new FormFieldAnnotation {
+                X1 = x,
+                Y1 = y - block.Size,
+                X2 = x + block.Size,
+                Y2 = y,
+                Kind = FormFieldAnnotationKind.CheckBox,
+                Name = block.Name,
+                Value = block.IsChecked ? block.CheckedValueName : "Off",
+                IsChecked = block.IsChecked,
+                CheckedValueName = block.CheckedValueName
+            });
+            pageDirty = true;
+            y -= block.Size + block.SpacingAfter;
         }
 
         void EnsureFixedFlowBlockFits(string blockName, double blockWidth, double blockHeight, double availableWidth) {
@@ -1993,6 +2023,10 @@ internal static partial class PdfWriter {
 
             if (block is TextFieldBlock textField) {
                 return textField.SpacingBefore + textField.Height + textField.SpacingAfter;
+            }
+
+            if (block is CheckBoxBlock checkBox) {
+                return checkBox.SpacingBefore + checkBox.Size + checkBox.SpacingAfter;
             }
 
             if (block is ImageBlock image) {
@@ -2932,6 +2966,8 @@ internal static partial class PdfWriter {
                     RenderHorizontalRuleBlock(hr, currentOpts.MarginLeft, width);
                 } else if (block is TextFieldBlock tf) {
                     RenderTextFieldBlock(tf, currentOpts.MarginLeft, width);
+                } else if (block is CheckBoxBlock cbx) {
+                    RenderCheckBoxBlock(cbx, currentOpts.MarginLeft, width);
                 } else if (block is ShapeBlock sbk) {
                     PdfDrawingStyle shapeStyle = ResolveDrawingStyle(sbk, currentOpts);
                     PdfDoc.ValidateDrawingStyle(shapeStyle, "Shape");

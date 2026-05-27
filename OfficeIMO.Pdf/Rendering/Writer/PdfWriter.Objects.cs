@@ -81,9 +81,17 @@ internal static partial class PdfWriter {
         public double Y1 { get; init; }
         public double X2 { get; init; }
         public double Y2 { get; init; }
+        public FormFieldAnnotationKind Kind { get; init; }
         public string Name { get; init; } = string.Empty;
         public string Value { get; init; } = string.Empty;
         public double FontSize { get; init; }
+        public bool IsChecked { get; init; }
+        public string CheckedValueName { get; init; } = "Yes";
+    }
+
+    private enum FormFieldAnnotationKind {
+        Text,
+        CheckBox
     }
 
     private sealed class PageBookmark {
