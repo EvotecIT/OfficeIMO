@@ -1072,14 +1072,14 @@ public static class PdfTextExtractor {
                     break;
                 case "'":
                     if (inText && args.Count >= 1) {
-                        RequestSpace();
+                        AppendLineBreak();
                         AppendTextRun(ToText(args[args.Count - 1]));
                     }
                     args.Clear();
                     break;
                 case "\"":
                     if (inText && args.Count >= 3) {
-                        RequestSpace();
+                        AppendLineBreak();
                         AppendTextRun(ToText(args[args.Count - 1]));
                     }
                     args.Clear();

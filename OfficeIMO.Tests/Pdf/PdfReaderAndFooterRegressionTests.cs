@@ -315,7 +315,7 @@ public class PdfReaderAndFooterRegressionTests {
 
         string text = PdfTextExtractor.ExtractAllText(bytes);
 
-        Assert.Contains("Hello world", text, StringComparison.Ordinal);
+        Assert.Matches("Hello\\s+world", text);
     }
 
     [Fact]
@@ -324,7 +324,26 @@ public class PdfReaderAndFooterRegressionTests {
 
         string text = PdfTextExtractor.ExtractAllText(bytes);
 
-        Assert.Contains("Hello world", text, StringComparison.Ordinal);
+        Assert.Matches("Hello\\s+world", text);
+    }
+
+    [Fact]
+    public void PdfReadDocument_ExtractText_TreatsDoubleQuoteOperatorAsLineAdvance() {
+        byte[] bytes = BuildPdfWithDoubleQuoteLineAdvanceOperator();
+
+        string text = PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.Matches("First\\r?\\nSecond", text);
+        Assert.DoesNotContain("FirstSecond", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfTextExtractor_ExtractAllText_TreatsQuoteOperatorsAsLineAdvance() {
+        byte[] singleQuote = BuildSingleStreamPdf("BT\n/F1 12 Tf\n72 720 Td\n(First) Tj\n(Second) '\nET\n");
+        byte[] doubleQuote = BuildPdfWithDoubleQuoteLineAdvanceOperator();
+
+        Assert.Matches("First\\r?\\nSecond", PdfTextExtractor.ExtractAllText(singleQuote));
+        Assert.Matches("First\\r?\\nSecond", PdfTextExtractor.ExtractAllText(doubleQuote));
     }
 
     [Fact]
@@ -1405,6 +1424,11 @@ public class PdfReaderAndFooterRegressionTests {
 
     private static byte[] BuildPdfWithDoubleQuoteOperator() {
         const string streamContent = "BT\n/F1 12 Tf\n72 720 Td\n(Hello) Tj\n0 0 ( world) \"\nET\n";
+        return BuildSingleStreamPdf(streamContent);
+    }
+
+    private static byte[] BuildPdfWithDoubleQuoteLineAdvanceOperator() {
+        const string streamContent = "BT\n/F1 12 Tf\n72 720 Td\n(First) Tj\n0 0 (Second) \"\nET\n";
         return BuildSingleStreamPdf(streamContent);
     }
 

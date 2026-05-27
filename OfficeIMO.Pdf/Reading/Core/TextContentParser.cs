@@ -78,7 +78,7 @@ internal static class TextContentParser {
                     args.Clear();
                     break;
                 case "\"": // set spacing and show text
-                    if (args.Count >= 3) { wordSpacing = ToDouble(args[args.Count - 3]); charSpacing = ToDouble(args[args.Count - 2]); ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; }
+                    if (args.Count >= 3) { wordSpacing = ToDouble(args[args.Count - 3]); charSpacing = ToDouble(args[args.Count - 2]); y -= leading; ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; }
                     args.Clear();
                     break;
                 case "Tj": if (args.Count >= 1) { ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; args.Clear(); } break;
