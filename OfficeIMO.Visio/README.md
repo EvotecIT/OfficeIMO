@@ -155,6 +155,12 @@ VisioDocument.Create("graph.vsdx")
         .StencilNode("events", "Events", stencils.Search("Event Grid").First())
         .Node("worker", "Worker")
         .Node("database", "Database", VisioGraphNodeKind.Data)
+        .NodeShapeData("gateway", "Owner", "Platform", "Owner",
+            VisioShapeDataType.String, "Owning support team")
+        .NodeHyperlink("gateway",
+            "https://learn.microsoft.com/azure/api-management/", "API docs")
+        .NodeShapeData("database", "Classification", "Confidential",
+            "Data classification", VisioShapeDataType.String)
         .Zone("runtime", "Runtime", "gateway", "events", "worker")
         .Root("gateway")
         .ControlEdge("gateway", "events", "publish")
@@ -168,7 +174,9 @@ The generic graph builder is for real node/edge maps that are not strict DAGs
 or one diagram domain. It supports layered, grid, and radial layouts; directed
 and undirected edges; cycles; disconnected components; background zones; native
 nodes; and source-aware `VisioStencilShape` nodes loaded from installed Visio
-or external `.vssx`/`.vstx` packages.
+or external `.vssx`/`.vstx` packages. Use `NodeShapeData` and `NodeHyperlink`
+to keep generated graph nodes searchable, inspectable, and linked to runbooks,
+dashboards, API docs, or data catalogs inside Visio.
 
 ## Quick sample (architecture diagram builder)
 

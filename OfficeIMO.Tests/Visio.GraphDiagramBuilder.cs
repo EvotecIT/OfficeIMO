@@ -124,6 +124,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GraphDiagramBuilderCanAttachShapeDataAndHyperlinksToNodes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .GraphDiagram("Metadata Graph", graph => graph
+                    .Node("api", "API", VisioGraphNodeKind.Emphasis)
+                    .Node("database", "Database", VisioGraphNodeKind.Data)
+                    .NodeShapeData("api", "Owner", "Platform", "Owner", VisioShapeDataType.String, "Owning team")
+                    .NodeShapeData("api", "Tier", "Public", "Service tier", VisioShapeDataType.String)
+                    .NodeShapeData("database", "Classification", "Confidential", "Data classification", VisioShapeDataType.String)
+                    .NodeHyperlink("api", "https://example.org/runbook", "Runbook")
+                    .NodeHyperlink("database", new Uri("https://example.org/data-catalog"), "Data catalog")
+                    .DataEdge("api", "database", "reads"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape api = page.Shapes.Single(shape => shape.Id == "api");
+            VisioShape database = page.Shapes.Single(shape => shape.Id == "database");
+            Assert.Equal("Platform", api.GetShapeDataValue("Owner"));
+            Assert.Equal("Public", api.GetShapeDataValue("Tier"));
+            Assert.Equal("Confidential", database.GetShapeDataValue("Classification"));
+            Assert.Contains(api.ShapeData, row => row.Name == "Owner" && row.Label == "Owner" && row.Prompt == "Owning team");
+            Assert.Contains(api.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/runbook" && hyperlink.Description == "Runbook");
+            Assert.Contains(database.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/data-catalog" && hyperlink.Description == "Data catalog");
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioShape loadedApi = loaded.Pages[0].Shapes.Single(shape => shape.Id == "api");
+            Assert.Equal("Platform", loadedApi.GetShapeDataValue("Owner"));
+            Assert.Contains(loadedApi.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/runbook" && hyperlink.Description == "Runbook");
+        }
+
+        [Fact]
         public void GraphDiagramBuilderRejectsUnknownEdgeEndpoints() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 

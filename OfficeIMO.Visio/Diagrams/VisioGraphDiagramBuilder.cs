@@ -34,6 +34,33 @@ namespace OfficeIMO.Visio.Diagrams {
             public double PinY { get; set; }
 
             public VisioShape? Shape { get; set; }
+
+            public List<NodeShapeDataItem> ShapeData { get; } = new();
+
+            public List<VisioHyperlink> Hyperlinks { get; } = new();
+        }
+
+        private sealed class NodeShapeDataItem {
+            public NodeShapeDataItem(string name, string? value, string? label, VisioShapeDataType? type, string? prompt, string? format) {
+                Name = name;
+                Value = value;
+                Label = label;
+                Type = type;
+                Prompt = prompt;
+                Format = format;
+            }
+
+            public string Name { get; }
+
+            public string? Value { get; }
+
+            public string? Label { get; }
+
+            public VisioShapeDataType? Type { get; }
+
+            public string? Prompt { get; }
+
+            public string? Format { get; }
         }
 
         private sealed class EdgeItem {
@@ -259,6 +286,41 @@ namespace OfficeIMO.Visio.Diagrams {
         public VisioGraphDiagramBuilder StencilNode(string id, string text, VisioStencilCatalog catalog, params string[] stencilQueries) {
             if (catalog == null) throw new ArgumentNullException(nameof(catalog));
             return StencilNode(id, text, catalog.FindBest(stencilQueries));
+        }
+
+        /// <summary>Adds or updates Shape Data metadata that will be written to a graph node.</summary>
+        public VisioGraphDiagramBuilder NodeShapeData(string nodeId, string name, string? value, string? label = null, VisioShapeDataType? type = null, string? prompt = null, string? format = null) {
+            string normalizedNodeId = RequireId(nodeId, nameof(nodeId), "Node id");
+            NodeItem node = GetKnownNode(normalizedNodeId, nameof(nodeId));
+            if (string.IsNullOrWhiteSpace(name)) {
+                throw new ArgumentException("Shape data name cannot be null or whitespace.", nameof(name));
+            }
+
+            string normalizedName = name.Trim();
+            node.ShapeData.RemoveAll(row => string.Equals(row.Name, normalizedName, StringComparison.Ordinal));
+            node.ShapeData.Add(new NodeShapeDataItem(normalizedName, value, label, type, prompt, format));
+            return this;
+        }
+
+        /// <summary>Adds a hyperlink that will be written to a graph node.</summary>
+        public VisioGraphDiagramBuilder NodeHyperlink(string nodeId, string address, string? description = null, string? subAddress = null) {
+            string normalizedNodeId = RequireId(nodeId, nameof(nodeId), "Node id");
+            NodeItem node = GetKnownNode(normalizedNodeId, nameof(nodeId));
+            if (string.IsNullOrWhiteSpace(address)) {
+                throw new ArgumentException("Hyperlink address cannot be null or whitespace.", nameof(address));
+            }
+
+            node.Hyperlinks.Add(new VisioHyperlink(address, description, subAddress));
+            return this;
+        }
+
+        /// <summary>Adds a hyperlink that will be written to a graph node.</summary>
+        public VisioGraphDiagramBuilder NodeHyperlink(string nodeId, Uri address, string? description = null, string? subAddress = null) {
+            if (address == null) {
+                throw new ArgumentNullException(nameof(address));
+            }
+
+            return NodeHyperlink(nodeId, address.ToString(), description, subAddress);
         }
 
         /// <summary>Adds a standard directed graph edge.</summary>
@@ -519,9 +581,27 @@ namespace OfficeIMO.Visio.Diagrams {
                 }
 
                 node.Shape = shape;
+                ApplyNodeMetadata(shape, node);
                 if (node.Stencil != null && !string.IsNullOrWhiteSpace(node.Text)) {
                     AddStencilNodeCaption(page, node, width, height);
                 }
+            }
+        }
+
+        private static void ApplyNodeMetadata(VisioShape shape, NodeItem node) {
+            foreach (NodeShapeDataItem data in node.ShapeData) {
+                shape.SetShapeData(data.Name, data.Value, data.Label, data.Type, data.Prompt, data.Format);
+            }
+
+            foreach (VisioHyperlink hyperlink in node.Hyperlinks) {
+                VisioHyperlink target = shape.AddHyperlink(hyperlink.Address ?? string.Empty, hyperlink.Description, hyperlink.SubAddress);
+                target.RowName = hyperlink.RowName;
+                target.ExtraInfo = hyperlink.ExtraInfo;
+                target.Frame = hyperlink.Frame;
+                target.NewWindow = hyperlink.NewWindow;
+                target.Default = hyperlink.Default;
+                target.Invisible = hyperlink.Invisible;
+                target.SortKey = hyperlink.SortKey;
             }
         }
 
@@ -745,6 +825,14 @@ namespace OfficeIMO.Visio.Diagrams {
             if (!_nodesById.ContainsKey(id)) {
                 throw new ArgumentException($"Unknown graph node id '{id}'.", parameterName);
             }
+        }
+
+        private NodeItem GetKnownNode(string id, string parameterName) {
+            if (_nodesById.TryGetValue(id, out NodeItem? node)) {
+                return node;
+            }
+
+            throw new ArgumentException($"Unknown graph node id '{id}'.", parameterName);
         }
 
         private static IReadOnlyList<string> NormalizeZoneNodeIds(string[] nodeIds) {

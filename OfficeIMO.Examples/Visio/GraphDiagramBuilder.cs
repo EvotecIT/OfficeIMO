@@ -35,6 +35,14 @@ namespace OfficeIMO.Examples.Visio {
 
                     graph
                         .Root("users")
+                        .NodeShapeData("gateway", "Owner", "Platform", "Owner", VisioShapeDataType.String, "Owning support team")
+                        .NodeShapeData("gateway", "Sla", "99.95%", "SLA", VisioShapeDataType.String)
+                        .NodeHyperlink("gateway", "https://learn.microsoft.com/azure/api-management/", "API Management docs")
+                        .NodeShapeData("sql", "Classification", "Confidential", "Data classification", VisioShapeDataType.String)
+                        .NodeShapeData("sql", "RecoveryTier", "BusinessCritical", "Recovery tier", VisioShapeDataType.String)
+                        .NodeHyperlink("sql", "https://learn.microsoft.com/azure/azure-sql/", "Azure SQL docs")
+                        .NodeShapeData("monitor", "Signal", "Logs and metrics", "Signal", VisioShapeDataType.String)
+                        .NodeHyperlink("monitor", "https://learn.microsoft.com/azure/azure-monitor/", "Azure Monitor docs")
                         .Zone("edge", "Edge", "users", "gateway")
                         .Zone("runtime", "Runtime", "events", "function", "worker", "batch", "monitor")
                         .Zone("data", "Data", "sql")
