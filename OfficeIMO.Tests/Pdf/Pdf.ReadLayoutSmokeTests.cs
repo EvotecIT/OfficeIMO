@@ -94,6 +94,9 @@ public sealed class PdfReadLayoutSmokeTests {
         });
 
         var page = Assert.Single(pages);
+        Assert.Contains(page.Paragraphs, paragraph => Normalize(paragraph.Text).Contains("Structuredtablereadbackmarker", StringComparison.Ordinal));
+        Assert.DoesNotContain(page.Paragraphs, paragraph => Normalize(paragraph.Text).Contains("A-100", StringComparison.Ordinal));
+
         var table = Assert.Single(page.TablesDetailed, t => t.Rows.Count >= 3 && t.Columns.Count >= 3);
         Assert.Contains(table.Rows, row => row.Length >= 3 &&
             Normalize(row[0]) == "Code" &&
@@ -161,6 +164,37 @@ public sealed class PdfReadLayoutSmokeTests {
                 Directory.Delete(directory, recursive: true);
             }
         }
+    }
+
+    [Fact]
+    public void PdfTextExtractor_ExtractStructuredByPage_GroupsParagraphLines() {
+        byte[] bytes = PdfDoc.Create(new PdfOptions {
+                PageWidth = 260,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Paragraph(p => p.Text("This structured paragraph should wrap across multiple nearby PDF text lines so wrappers can start from paragraph-like objects."))
+            .Table(new[] {
+                new[] { "Code", "Name", "Qty" },
+                new[] { "P-100", "Paragraph table text", "2" }
+            }, style: new PdfTableStyle {
+                ColumnWidthPoints = new System.Collections.Generic.List<double?> { 50, 100, 30 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        StructuredPage page = Assert.Single(PdfTextExtractor.ExtractStructuredByPage(bytes, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }));
+
+        StructuredParagraph paragraph = Assert.Single(page.Paragraphs, item => item.Text.Contains("structured paragraph", StringComparison.Ordinal));
+        Assert.True(paragraph.Lines.Count > 1);
+        Assert.Contains("structured paragraph", paragraph.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("P-100", paragraph.Text, StringComparison.Ordinal);
     }
 
     [Fact]

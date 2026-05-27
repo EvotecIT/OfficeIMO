@@ -210,90 +210,49 @@ public sealed class PdfLogicalPage {
             page.GetRotationDegrees(),
             elements.AsReadOnly(),
             textBlocks.AsReadOnly(),
-            BuildParagraphs(pageNumber, textBlocks, tables),
+            BuildParagraphs(pageNumber, structured.Paragraphs, textBlocks),
             tables.AsReadOnly(),
             images.AsReadOnly(),
             page.GetLinkAnnotations());
     }
 
-    private static IReadOnlyList<PdfLogicalParagraph> BuildParagraphs(int pageNumber, List<PdfLogicalTextBlock> textBlocks, IReadOnlyList<PdfLogicalTable> tables) {
-        var candidates = new List<PdfLogicalTextBlock>();
-        for (int i = 0; i < textBlocks.Count; i++) {
-            var block = textBlocks[i];
-            if (block.Kind != PdfLogicalElementKind.TextBlock || IsInsideTable(block, tables)) {
-                continue;
-            }
-
-            candidates.Add(block);
-        }
-
-        if (candidates.Count == 0) {
+    private static IReadOnlyList<PdfLogicalParagraph> BuildParagraphs(int pageNumber, List<StructuredParagraph> paragraphs, IReadOnlyList<PdfLogicalTextBlock> textBlocks) {
+        if (paragraphs.Count == 0) {
             return Array.Empty<PdfLogicalParagraph>();
         }
 
-        var gaps = new List<double>();
-        for (int i = 1; i < candidates.Count; i++) {
-            double gap = candidates[i - 1].BaselineY - candidates[i].BaselineY;
-            if (gap > 0.001) {
-                gaps.Add(gap);
+        var result = new List<PdfLogicalParagraph>(paragraphs.Count);
+        for (int i = 0; i < paragraphs.Count; i++) {
+            var paragraph = paragraphs[i];
+            var lines = new List<PdfLogicalTextBlock>(paragraph.Lines.Count);
+            for (int lineIndex = 0; lineIndex < paragraph.Lines.Count; lineIndex++) {
+                var line = paragraph.Lines[lineIndex];
+                PdfLogicalTextBlock? block = FindTextBlock(line, textBlocks);
+                if (block is not null) {
+                    lines.Add(block);
+                }
+            }
+
+            if (lines.Count > 0) {
+                result.Add(PdfLogicalParagraph.From(pageNumber, paragraph, lines));
             }
         }
 
-        double medianGap = Median(gaps);
-        double splitGap = medianGap <= 0 ? 18D : Math.Max(18D, medianGap * 1.35D);
-        double xTolerance = 18D;
-        var paragraphs = new List<PdfLogicalParagraph>();
-        var current = new List<PdfLogicalTextBlock> { candidates[0] };
-
-        for (int i = 1; i < candidates.Count; i++) {
-            var previous = candidates[i - 1];
-            var next = candidates[i];
-            double gap = previous.BaselineY - next.BaselineY;
-            bool split = gap > splitGap || Math.Abs(next.XStart - current[0].XStart) > xTolerance;
-            if (split) {
-                paragraphs.Add(PdfLogicalParagraph.From(pageNumber, current));
-                current = new List<PdfLogicalTextBlock>();
-            }
-
-            current.Add(next);
-        }
-
-        if (current.Count > 0) {
-            paragraphs.Add(PdfLogicalParagraph.From(pageNumber, current));
-        }
-
-        return paragraphs.AsReadOnly();
+        return result.AsReadOnly();
     }
 
-    private static bool IsInsideTable(PdfLogicalTextBlock block, IReadOnlyList<PdfLogicalTable> tables) {
-        for (int i = 0; i < tables.Count; i++) {
-            var table = tables[i];
-            if (table.Columns.Count == 0) {
-                continue;
-            }
-
-            if (block.BaselineY <= table.YTop + 0.001 &&
-                block.BaselineY >= table.YBottom - 0.001 &&
-                block.XEnd >= table.Columns[0].From - 2D) {
-                return true;
+    private static PdfLogicalTextBlock? FindTextBlock(StructuredLine line, IReadOnlyList<PdfLogicalTextBlock> textBlocks) {
+        for (int i = 0; i < textBlocks.Count; i++) {
+            var block = textBlocks[i];
+            if (block.Kind == PdfLogicalElementKind.TextBlock &&
+                Math.Abs(block.BaselineY - line.Y) <= 0.001 &&
+                Math.Abs(block.XStart - line.XStart) <= 0.001 &&
+                string.Equals(block.Text, line.Text.Trim(), StringComparison.Ordinal)) {
+                return block;
             }
         }
 
-        return false;
-    }
-
-    private static double Median(List<double> values) {
-        if (values.Count == 0) {
-            return 0D;
-        }
-
-        values.Sort();
-        int middle = values.Count / 2;
-        if ((values.Count & 1) == 1) {
-            return values[middle];
-        }
-
-        return (values[middle - 1] + values[middle]) / 2D;
+        return null;
     }
 
     private static string NormalizeForKindComparison(string text) {
@@ -411,16 +370,15 @@ public sealed class PdfLogicalParagraph {
     /// <summary>Bottom baseline Y coordinate in PDF points.</summary>
     public double YBottom { get; }
 
-    internal static PdfLogicalParagraph From(int pageNumber, IReadOnlyList<PdfLogicalTextBlock> lines) {
-        var text = string.Join(" ", lines.Select(line => line.Text));
+    internal static PdfLogicalParagraph From(int pageNumber, StructuredParagraph paragraph, IReadOnlyList<PdfLogicalTextBlock> lines) {
         return new PdfLogicalParagraph(
             pageNumber,
-            text,
+            paragraph.Text,
             lines.ToArray(),
-            lines.Min(line => line.XStart),
-            lines.Max(line => line.XEnd),
-            lines.Max(line => line.BaselineY),
-            lines.Min(line => line.BaselineY));
+            paragraph.XStart,
+            paragraph.XEnd,
+            paragraph.YTop,
+            paragraph.YBottom);
     }
 }
 

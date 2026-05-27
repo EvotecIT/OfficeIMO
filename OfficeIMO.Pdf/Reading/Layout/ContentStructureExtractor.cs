@@ -11,6 +11,7 @@ namespace OfficeIMO.Pdf;
 /// - ListItems: bullets and numbered list items
 /// - LeaderRows: generic leader rows (label + trailing value)
 /// - LinesDetailed: line geometry useful for higher-level extraction/debugging
+/// - Paragraphs: heuristic paragraph groups built from nearby non-list, non-table lines
 /// - Tables: simple rows detected via large X gaps (heuristic)
 /// </summary>
 public sealed class StructuredPage {
@@ -26,6 +27,8 @@ public sealed class StructuredPage {
     public List<StructuredListItem> ListNodes { get; } = new();
     /// <summary>Per-line geometry details (Y, XStart, XEnd, Text, Spans).</summary>
     public List<StructuredLine> LinesDetailed { get; } = new();
+    /// <summary>Heuristic paragraph groups built from nearby non-list, non-table lines.</summary>
+    public List<StructuredParagraph> Paragraphs { get; } = new();
     /// <summary>Simple table-like rows derived from large X gaps per line.</summary>
     public List<string[]> Tables { get; } = new();
     /// <summary>Optional horizontal bands (line groups) for diagnostics/structure.</summary>
@@ -93,6 +96,22 @@ public sealed class StructuredTablePage {
 
     /// <summary>Detected tables on this page.</summary>
     public List<StructuredTable> Tables { get; } = new();
+}
+
+/// <summary>Heuristic paragraph group built from nearby non-list, non-table lines.</summary>
+public sealed class StructuredParagraph {
+    /// <summary>Paragraph text with grouped lines joined by spaces.</summary>
+    public string Text { get; init; } = string.Empty;
+    /// <summary>Line geometry entries that make up the paragraph.</summary>
+    public List<StructuredLine> Lines { get; } = new();
+    /// <summary>Leftmost X coordinate (points).</summary>
+    public double XStart { get; init; }
+    /// <summary>Rightmost X coordinate (points).</summary>
+    public double XEnd { get; init; }
+    /// <summary>Top baseline Y coordinate (points).</summary>
+    public double YTop { get; init; }
+    /// <summary>Bottom baseline Y coordinate (points).</summary>
+    public double YBottom { get; init; }
 }
 
 /// <summary>Geometry detail for a single emitted line.</summary>
@@ -239,7 +258,110 @@ internal static class ContentStructureExtractor {
                 }
             }
         }
+        AddParagraphs(page, nonEmpty);
         return page;
+    }
+
+    private static void AddParagraphs(StructuredPage page, List<TextLayoutEngine.TextLine> lines) {
+        var candidates = new List<TextLayoutEngine.TextLine>();
+        foreach (var line in lines) {
+            string text = line.Text.Trim();
+            if (text.Length == 0 ||
+                ListRegex.IsMatch(text) ||
+                IsInsideTable(line, page.TablesDetailed)) {
+                continue;
+            }
+
+            candidates.Add(line);
+        }
+
+        if (candidates.Count == 0) {
+            return;
+        }
+
+        var gaps = new List<double>();
+        for (int i = 1; i < candidates.Count; i++) {
+            double gap = candidates[i - 1].Y - candidates[i].Y;
+            if (gap > 0.001) {
+                gaps.Add(gap);
+            }
+        }
+
+        double medianGap = Median(gaps);
+        double splitGap = medianGap <= 0 ? 18D : Math.Max(18D, medianGap * 1.35D);
+        double xTolerance = 18D;
+        var current = new List<TextLayoutEngine.TextLine> { candidates[0] };
+
+        for (int i = 1; i < candidates.Count; i++) {
+            var previous = candidates[i - 1];
+            var next = candidates[i];
+            double gap = previous.Y - next.Y;
+            bool split = gap > splitGap || Math.Abs(next.XStart - current[0].XStart) > xTolerance;
+            if (split) {
+                page.Paragraphs.Add(BuildParagraph(current));
+                current = new List<TextLayoutEngine.TextLine>();
+            }
+
+            current.Add(next);
+        }
+
+        if (current.Count > 0) {
+            page.Paragraphs.Add(BuildParagraph(current));
+        }
+    }
+
+    private static StructuredParagraph BuildParagraph(List<TextLayoutEngine.TextLine> lines) {
+        var paragraph = new StructuredParagraph {
+            Text = string.Join(" ", lines.Select(line => line.Text.Trim())),
+            XStart = lines.Min(line => line.XStart),
+            XEnd = lines.Max(line => line.XEnd),
+            YTop = lines.Max(line => line.Y),
+            YBottom = lines.Min(line => line.Y)
+        };
+
+        for (int i = 0; i < lines.Count; i++) {
+            var line = lines[i];
+            paragraph.Lines.Add(new StructuredLine {
+                Y = line.Y,
+                XStart = line.XStart,
+                XEnd = line.XEnd,
+                Text = line.Text,
+                SpanCount = line.Spans.Count
+            });
+        }
+
+        return paragraph;
+    }
+
+    private static bool IsInsideTable(TextLayoutEngine.TextLine line, List<StructuredTable> tables) {
+        for (int i = 0; i < tables.Count; i++) {
+            var table = tables[i];
+            if (table.Columns.Count == 0) {
+                continue;
+            }
+
+            if (line.Y <= table.YTop + 0.001 &&
+                line.Y >= table.YBottom - 0.001 &&
+                line.XEnd >= table.Columns[0].From - 2D) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static double Median(List<double> values) {
+        if (values.Count == 0) {
+            return 0D;
+        }
+
+        values.Sort();
+        int middle = values.Count / 2;
+        if ((values.Count & 1) == 1) {
+            return values[middle];
+        }
+
+        return (values[middle - 1] + values[middle]) / 2D;
     }
 
     private static void AddLeaderRow(StructuredPage page, string label, string value) {
