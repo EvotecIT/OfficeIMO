@@ -33,11 +33,14 @@ public sealed class PdfDocumentPreflight {
     /// <summary>True when OfficeIMO.Pdf can attempt rewrite-style manipulation without known security blockers.</summary>
     public bool CanRewrite { get; }
 
-    /// <summary>True when OfficeIMO.Pdf can attempt text and logical readback operations for this PDF.</summary>
+    /// <summary>True when OfficeIMO.Pdf can attempt text and structured text readback operations for this PDF.</summary>
     public bool CanExtractText => CanRead;
 
     /// <summary>True when OfficeIMO.Pdf can attempt image XObject extraction for this PDF.</summary>
     public bool CanExtractImages => DocumentInfo is not null && !HasImageExtractionBlocker();
+
+    /// <summary>True when OfficeIMO.Pdf can attempt logical object readback through PdfLogicalDocument for this PDF.</summary>
+    public bool CanReadLogicalObjects => CanRead;
 
     /// <summary>True when OfficeIMO.Pdf can attempt page-level rewrite operations such as extract, split, merge, import, edit, stamp, and metadata updates.</summary>
     public bool CanManipulatePages => CanRewrite;
@@ -89,6 +92,8 @@ public sealed class PdfDocumentPreflight {
                 return CanExtractText;
             case PdfPreflightCapability.ExtractImages:
                 return CanExtractImages;
+            case PdfPreflightCapability.ReadLogicalObjects:
+                return CanReadLogicalObjects;
             case PdfPreflightCapability.ManipulatePages:
                 return CanManipulatePages;
             case PdfPreflightCapability.FillSimpleFormFields:
@@ -113,6 +118,8 @@ public sealed class PdfDocumentPreflight {
                 return GetReadCapabilityDiagnostics("PDF text extraction is not available because OfficeIMO.Pdf cannot read this PDF.");
             case PdfPreflightCapability.ExtractImages:
                 return GetImageExtractionDiagnostics();
+            case PdfPreflightCapability.ReadLogicalObjects:
+                return GetReadCapabilityDiagnostics("PDF logical object extraction is not available because OfficeIMO.Pdf cannot read this PDF.");
             case PdfPreflightCapability.ManipulatePages:
                 return GetPageManipulationDiagnostics();
             case PdfPreflightCapability.FillSimpleFormFields:

@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 /// Wrapper-facing OfficeIMO.Pdf operation categories covered by preflight checks.
 /// </summary>
 public enum PdfPreflightCapability {
-    /// <summary>Text, structured, and logical readback operations.</summary>
+    /// <summary>Text and structured text readback operations.</summary>
     ExtractText,
 
     /// <summary>Image XObject extraction operations.</summary>
@@ -20,5 +20,8 @@ public enum PdfPreflightCapability {
     FlattenSimpleFormFields,
 
     /// <summary>Simple AcroForm value updates followed by simple widget flattening.</summary>
-    FillAndFlattenSimpleFormFields
+    FillAndFlattenSimpleFormFields,
+
+    /// <summary>Logical object readback through <see cref="PdfLogicalDocument"/>.</summary>
+    ReadLogicalObjects
 }

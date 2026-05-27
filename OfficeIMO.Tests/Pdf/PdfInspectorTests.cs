@@ -189,16 +189,19 @@ public class PdfInspectorTests {
         Assert.True(report.CanRewrite);
         Assert.True(report.CanExtractText);
         Assert.True(report.CanExtractImages);
+        Assert.True(report.CanReadLogicalObjects);
         Assert.True(report.CanManipulatePages);
         Assert.False(report.CanFillSimpleFormFields);
         Assert.False(report.CanFlattenSimpleFormFields);
         Assert.False(report.CanFillAndFlattenSimpleFormFields);
         Assert.True(report.Can(PdfPreflightCapability.ExtractText));
         Assert.True(report.Can(PdfPreflightCapability.ExtractImages));
+        Assert.True(report.Can(PdfPreflightCapability.ReadLogicalObjects));
         Assert.True(report.Can(PdfPreflightCapability.ManipulatePages));
         Assert.False(report.Can(PdfPreflightCapability.FillSimpleFormFields));
         Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractText));
         Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractImages));
+        Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.ReadLogicalObjects));
         Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages));
         Assert.Contains(
             "PDF does not contain named text, choice, or button AcroForm fields supported for simple form filling by OfficeIMO.Pdf.",
@@ -1052,6 +1055,7 @@ public class PdfInspectorTests {
         Assert.False(report.CanRewrite);
         Assert.True(report.CanExtractText);
         Assert.True(report.CanExtractImages);
+        Assert.True(report.CanReadLogicalObjects);
         Assert.False(report.CanManipulatePages);
         Assert.False(report.CanFillSimpleFormFields);
         Assert.False(report.CanFlattenSimpleFormFields);
@@ -1079,16 +1083,19 @@ public class PdfInspectorTests {
         Assert.False(report.CanRewrite);
         Assert.False(report.CanExtractText);
         Assert.False(report.CanExtractImages);
+        Assert.False(report.CanReadLogicalObjects);
         Assert.False(report.CanManipulatePages);
         Assert.False(report.CanFillSimpleFormFields);
         Assert.False(report.CanFlattenSimpleFormFields);
         Assert.False(report.CanFillAndFlattenSimpleFormFields);
         Assert.False(report.Can(PdfPreflightCapability.ExtractText));
         Assert.False(report.Can(PdfPreflightCapability.ExtractImages));
+        Assert.False(report.Can(PdfPreflightCapability.ReadLogicalObjects));
         Assert.False(report.Can(PdfPreflightCapability.ManipulatePages));
         Assert.False(report.Can(PdfPreflightCapability.FillSimpleFormFields));
         Assert.Contains("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractText));
         Assert.Contains("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractImages));
+        Assert.Contains("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ReadLogicalObjects));
         Assert.Contains("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.", report.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages));
         Assert.Contains("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.", report.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
         Assert.Null(report.DocumentInfo);
@@ -1106,6 +1113,7 @@ public class PdfInspectorTests {
         Assert.False(report.CanRewrite);
         Assert.True(report.CanExtractText);
         Assert.True(report.CanExtractImages);
+        Assert.True(report.CanReadLogicalObjects);
         Assert.False(report.CanManipulatePages);
         Assert.False(report.CanFillSimpleFormFields);
         Assert.False(report.CanFlattenSimpleFormFields);
@@ -1138,6 +1146,7 @@ public class PdfInspectorTests {
         Assert.False(report.CanRewrite);
         Assert.True(report.CanExtractText);
         Assert.True(report.CanExtractImages);
+        Assert.True(report.CanReadLogicalObjects);
         Assert.False(report.CanManipulatePages);
         Assert.True(report.CanFillSimpleFormFields);
         Assert.False(report.CanFlattenSimpleFormFields);
@@ -1181,6 +1190,7 @@ public class PdfInspectorTests {
         Assert.False(report.CanRewrite);
         Assert.True(report.CanExtractText);
         Assert.True(report.CanExtractImages);
+        Assert.True(report.CanReadLogicalObjects);
         Assert.False(report.CanManipulatePages);
         Assert.True(report.CanFillSimpleFormFields);
         Assert.True(report.CanFlattenSimpleFormFields);
@@ -1368,6 +1378,7 @@ public class PdfInspectorTests {
         Assert.False(report.CanRewrite);
         Assert.False(report.CanExtractText);
         Assert.False(report.CanExtractImages);
+        Assert.False(report.CanReadLogicalObjects);
         Assert.False(report.CanManipulatePages);
         Assert.False(report.CanFillSimpleFormFields);
         Assert.False(report.CanFlattenSimpleFormFields);
@@ -1387,6 +1398,7 @@ public class PdfInspectorTests {
         Assert.False(report.CanRewrite);
         Assert.False(report.CanExtractText);
         Assert.False(report.CanExtractImages);
+        Assert.False(report.CanReadLogicalObjects);
         Assert.False(report.CanManipulatePages);
         Assert.False(report.CanFillSimpleFormFields);
         Assert.False(report.CanFlattenSimpleFormFields);
@@ -1406,12 +1418,17 @@ public class PdfInspectorTests {
         Assert.False(report.CanRewrite);
         Assert.False(report.CanExtractText);
         Assert.True(report.CanExtractImages);
+        Assert.False(report.CanReadLogicalObjects);
         Assert.False(report.Can(PdfPreflightCapability.ExtractText));
         Assert.True(report.Can(PdfPreflightCapability.ExtractImages));
+        Assert.False(report.Can(PdfPreflightCapability.ReadLogicalObjects));
         Assert.Contains(
             "PDF page content streams use unsupported filter(s): DCTDecode.",
             report.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractText));
         Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractImages));
+        Assert.Contains(
+            "PDF page content streams use unsupported filter(s): DCTDecode.",
+            report.GetCapabilityDiagnostics(PdfPreflightCapability.ReadLogicalObjects));
         Assert.NotNull(report.DocumentInfo);
         Assert.Equal(1, report.DocumentInfo!.PageCount);
         AssertReadBlocker(
