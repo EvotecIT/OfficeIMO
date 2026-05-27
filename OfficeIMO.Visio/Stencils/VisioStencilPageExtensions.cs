@@ -81,7 +81,9 @@ namespace OfficeIMO.Visio.Stencils {
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Shape id cannot be null or whitespace.", nameof(id));
 
             VisioMeasurementUnit placementUnit = unit ?? page.DefaultUnit;
-            VisioMeasurementUnit sizeUnit = unit ?? (useStencilDefaultSize ? stencil.DefaultUnit : null) ?? page.DefaultUnit;
+            VisioMeasurementUnit sizeUnit = useStencilDefaultSize
+                ? stencil.DefaultUnit ?? page.DefaultUnit
+                : unit ?? page.DefaultUnit;
             VisioDocument? document = page.OwnerDocument;
             string shapeText = text ?? stencil.Name;
 

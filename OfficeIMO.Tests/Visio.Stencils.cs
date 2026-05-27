@@ -305,6 +305,7 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Learned Stencils", 20, 15, VisioMeasurementUnit.Centimeters);
             VisioShape shape = page.AddStencilShape(catalog, "wide-box", "wide", 5, 8);
+            VisioShape coordinateUnitShape = page.AddStencilShape(wideBox, "wide-cm", 6, 9, "Wide in cm", VisioMeasurementUnit.Centimeters);
             VisioShape explicitShape = page.AddStencilShape(catalog, "wide-box", "explicit", 10, 8, 4, 2, "Explicit size");
             VisioShape resized = page.AddRectangle(14, 8, 1, 1, "Resize me", VisioMeasurementUnit.Centimeters);
             page.ReplaceMaster(resized, wideBox, resizeToMaster: true);
@@ -314,6 +315,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(8.0 / 2.54, shape.PinY, 6);
             Assert.Equal(3.2, shape.Width, 6);
             Assert.Equal(1.1, shape.Height, 6);
+            Assert.Equal(6.0 / 2.54, coordinateUnitShape.PinX, 6);
+            Assert.Equal(9.0 / 2.54, coordinateUnitShape.PinY, 6);
+            Assert.Equal(3.2, coordinateUnitShape.Width, 6);
+            Assert.Equal(1.1, coordinateUnitShape.Height, 6);
             Assert.Equal(4.0 / 2.54, explicitShape.Width, 6);
             Assert.Equal(2.0 / 2.54, explicitShape.Height, 6);
             Assert.Equal(3.2, resized.Width, 6);
