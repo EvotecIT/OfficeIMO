@@ -8,10 +8,35 @@ public static class TableStyles {
     /// Word table style names currently mapped to PDF presets.
     /// </summary>
     public static IReadOnlyList<string> SupportedWordStyleNames { get; } = Array.AsReadOnly(new[] {
+        "TableNormal",
         "TableGrid",
         "PlainTable1",
         "GridTable1Light",
-        "ListTable1Light"
+        "GridTable1LightAccent1",
+        "GridTable1LightAccent2",
+        "GridTable1LightAccent3",
+        "GridTable1LightAccent4",
+        "GridTable1LightAccent5",
+        "GridTable1LightAccent6",
+        "GridTable1Light-Accent1",
+        "GridTable1Light-Accent2",
+        "GridTable1Light-Accent3",
+        "GridTable1Light-Accent4",
+        "GridTable1Light-Accent5",
+        "GridTable1Light-Accent6",
+        "ListTable1Light",
+        "ListTable1LightAccent1",
+        "ListTable1LightAccent2",
+        "ListTable1LightAccent3",
+        "ListTable1LightAccent4",
+        "ListTable1LightAccent5",
+        "ListTable1LightAccent6",
+        "ListTable1Light-Accent1",
+        "ListTable1Light-Accent2",
+        "ListTable1Light-Accent3",
+        "ListTable1Light-Accent4",
+        "ListTable1Light-Accent5",
+        "ListTable1Light-Accent6"
     });
 
     /// <summary>
@@ -70,17 +95,20 @@ public static class TableStyles {
             return true;
         }
 
-        if (string.Equals(normalized, "PlainTable1", StringComparison.OrdinalIgnoreCase)) {
+        if (string.Equals(normalized, "TableNormal", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalized, "PlainTable1", StringComparison.OrdinalIgnoreCase)) {
             style = PlainTable1();
             return true;
         }
 
-        if (string.Equals(normalized, "GridTable1Light", StringComparison.OrdinalIgnoreCase)) {
+        if (string.Equals(normalized, "GridTable1Light", StringComparison.OrdinalIgnoreCase) ||
+            IsAccentVariant(normalized, "GridTable1LightAccent")) {
             style = GridTable1Light();
             return true;
         }
 
-        if (string.Equals(normalized, "ListTable1Light", StringComparison.OrdinalIgnoreCase)) {
+        if (string.Equals(normalized, "ListTable1Light", StringComparison.OrdinalIgnoreCase) ||
+            IsAccentVariant(normalized, "ListTable1LightAccent")) {
             style = ListTable1Light();
             return true;
         }
@@ -184,5 +212,14 @@ public static class TableStyles {
         }
 
         return sb.ToString();
+    }
+
+    private static bool IsAccentVariant(string normalized, string prefix) {
+        if (!normalized.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        string suffix = normalized.Substring(prefix.Length);
+        return suffix.Length == 1 && suffix[0] >= '1' && suffix[0] <= '6';
     }
 }

@@ -7848,25 +7848,58 @@ public class PdfDocVisualQualityTests {
     [Fact]
     public void TableStyles_ResolveSupportedWordStyleNamesToFreshPdfStyles() {
         Assert.Equal(new[] {
+            "TableNormal",
             "TableGrid",
             "PlainTable1",
             "GridTable1Light",
-            "ListTable1Light"
+            "GridTable1LightAccent1",
+            "GridTable1LightAccent2",
+            "GridTable1LightAccent3",
+            "GridTable1LightAccent4",
+            "GridTable1LightAccent5",
+            "GridTable1LightAccent6",
+            "GridTable1Light-Accent1",
+            "GridTable1Light-Accent2",
+            "GridTable1Light-Accent3",
+            "GridTable1Light-Accent4",
+            "GridTable1Light-Accent5",
+            "GridTable1Light-Accent6",
+            "ListTable1Light",
+            "ListTable1LightAccent1",
+            "ListTable1LightAccent2",
+            "ListTable1LightAccent3",
+            "ListTable1LightAccent4",
+            "ListTable1LightAccent5",
+            "ListTable1LightAccent6",
+            "ListTable1Light-Accent1",
+            "ListTable1Light-Accent2",
+            "ListTable1Light-Accent3",
+            "ListTable1Light-Accent4",
+            "ListTable1Light-Accent5",
+            "ListTable1Light-Accent6"
         }, TableStyles.SupportedWordStyleNames);
 
+        PdfTableStyle tableNormal = TableStyles.FromWordTableStyle("Table Normal");
         PdfTableStyle tableGrid = TableStyles.FromWordTableStyle("Table Grid");
         PdfTableStyle plainTable = TableStyles.FromWordTableStyle("plain_table_1");
         bool resolvedGridLight = TableStyles.TryFromWordTableStyle("grid-table-1-light", out PdfTableStyle? gridLight);
+        PdfTableStyle gridLightAccent = TableStyles.FromWordTableStyle("GridTable1Light-Accent2");
         PdfTableStyle listTable = TableStyles.FromWordTableStyle(" list table 1 light ");
+        PdfTableStyle listTableAccent = TableStyles.FromWordTableStyle("ListTable1LightAccent5");
 
+        Assert.Null(tableNormal.BorderColor);
         Assert.Equal(PdfColor.FromRgb(191, 191, 191), tableGrid.BorderColor);
         Assert.Null(plainTable.BorderColor);
         Assert.True(resolvedGridLight);
         Assert.NotNull(gridLight);
         Assert.Equal(PdfColor.FromRgb(217, 217, 217), gridLight!.BorderColor);
         Assert.Equal(PdfColor.FromRgb(127, 127, 127), gridLight.FooterSeparatorColor);
+        Assert.Equal(PdfColor.FromRgb(217, 217, 217), gridLightAccent.BorderColor);
+        Assert.Equal(PdfColor.FromRgb(127, 127, 127), gridLightAccent.HeaderSeparatorColor);
         Assert.Equal(PdfColor.FromRgb(224, 224, 224), listTable.RowSeparatorColor);
         Assert.Equal(PdfColor.Black, listTable.FooterSeparatorColor);
+        Assert.Equal(PdfColor.FromRgb(224, 224, 224), listTableAccent.RowSeparatorColor);
+        Assert.Equal(PdfColor.Black, listTableAccent.HeaderSeparatorColor);
 
         PdfTableStyle independentListTable = TableStyles.FromWordTableStyle("ListTable1Light");
         listTable.CellPaddingX = 20;
@@ -7878,7 +7911,9 @@ public class PdfDocVisualQualityTests {
         var exception = Assert.Throws<ArgumentException>(() => TableStyles.FromWordTableStyle("GridTable7Colorful"));
         Assert.Equal("styleName", exception.ParamName);
         Assert.Contains("Unsupported Word table style 'GridTable7Colorful'.", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("Supported styles: TableGrid, PlainTable1, GridTable1Light, ListTable1Light", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Supported styles: TableNormal, TableGrid, PlainTable1, GridTable1Light", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("GridTable1Light-Accent6", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("ListTable1Light-Accent6", exception.Message, StringComparison.Ordinal);
 
         Assert.Throws<ArgumentNullException>(() => TableStyles.FromWordTableStyle(null!));
         Assert.Throws<ArgumentNullException>(() => TableStyles.TryFromWordTableStyle(null!, out _));
