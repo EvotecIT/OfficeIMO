@@ -195,12 +195,17 @@ namespace OfficeIMO.Tests.Pdf {
             var invalidLeaderException = Assert.Throws<ArgumentException>(() =>
                 new TextRun("Alpha", tabLeader: PdfTabLeaderStyle.Dots));
 
-            Assert.Contains("Tab leaders can only be applied to explicit tab runs.", invalidLeaderException.Message, StringComparison.Ordinal);
+            Assert.Contains("Tab leaders and alignment can only be applied to explicit tab runs.", invalidLeaderException.Message, StringComparison.Ordinal);
 
             var invalidEnumException = Assert.Throws<ArgumentException>(() =>
                 TextRun.Tab((PdfTabLeaderStyle)99));
 
             Assert.Contains("PDF tab leader style must be None or Dots.", invalidEnumException.Message, StringComparison.Ordinal);
+
+            var invalidAlignmentException = Assert.Throws<ArgumentException>(() =>
+                TextRun.Tab(alignment: (PdfTabAlignment)99));
+
+            Assert.Contains("PDF tab alignment must be Left or Right.", invalidAlignmentException.Message, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -453,6 +458,30 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void WrapRichRuns_RightAlignedTabsAccountForFollowingTokenWidth() {
+            var shortResult = InvokeWrapRichRuns(new[] {
+                new TextRun("A"),
+                TextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right),
+                new TextRun("12")
+            }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
+            var longResult = InvokeWrapRichRuns(new[] {
+                new TextRun("A"),
+                TextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right),
+                new TextRun("12345")
+            }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
+
+            var shortLine = Assert.Single(ExtractLines(shortResult));
+            var longLine = Assert.Single(ExtractLines(longResult));
+            double shortAdvance = ExtractLeadingAdvance(shortLine[1]);
+            double longAdvance = ExtractLeadingAdvance(longLine[1]);
+            double shortWidth = InvokePrivateFontMethod<double>("EstimateSimpleTextWidth", "12", PdfStandardFont.Helvetica, 12.0);
+            double longWidth = InvokePrivateFontMethod<double>("EstimateSimpleTextWidth", "12345", PdfStandardFont.Helvetica, 12.0);
+
+            Assert.True(longAdvance < shortAdvance, "Expected wider right-aligned tab text to consume less leading advance.");
+            Assert.Equal(shortAdvance + shortWidth, longAdvance + longWidth, 1);
+        }
+
+        [Fact]
         public void ParagraphTabs_RenderAsVisibleDefaultTabStopGap() {
             byte[] bytes = PdfDoc.Create(new PdfOptions {
                     DefaultFontSize = 12
@@ -535,6 +564,38 @@ namespace OfficeIMO.Tests.Pdf {
             }));
             var leader = Assert.Single(structuredPage.LeaderRows);
             Assert.Equal(new[] { "Revenue", "12" }, leader);
+        }
+
+        [Fact]
+        public void ParagraphTabs_RightAlignedDotLeadersAlignValueEnds() {
+            byte[] bytes = PdfDoc.Create(new PdfOptions {
+                    PageWidth = 360,
+                    PageHeight = 200,
+                    MarginLeft = 36,
+                    MarginRight = 36,
+                    MarginTop = 36,
+                    MarginBottom = 36,
+                    DefaultFontSize = 12,
+                    DefaultParagraphStyle = new PdfParagraphStyle {
+                        DefaultTabStopWidth = 216,
+                        SpacingAfter = 0
+                    }
+                })
+                .Paragraph(p => p.Text("A").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right).Text("12"))
+                .Paragraph(p => p.Text("Longer").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right).Text("12345"))
+                .ToBytes();
+
+            using var pdf = UglyToad.PdfPig.PdfDocument.Open(new MemoryStream(bytes));
+            var page = pdf.GetPage(1);
+            var digitEnds = page.Letters
+                .Where(letter => char.IsDigit(letter.Value[0]))
+                .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1))
+                .OrderByDescending(group => group.Key)
+                .Select(group => group.Max(letter => letter.EndBaseLine.X))
+                .ToArray();
+
+            Assert.Equal(2, digitEnds.Length);
+            Assert.InRange(Math.Abs(digitEnds[0] - digitEnds[1]), 0, 1.5);
         }
 
         [Fact]

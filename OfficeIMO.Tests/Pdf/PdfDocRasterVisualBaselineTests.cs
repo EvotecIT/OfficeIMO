@@ -393,11 +393,11 @@ public class PdfDocRasterVisualBaselineTests {
                 SpacingBefore = 6,
                 SpacingAfter = 8
             })
-            .Paragraph(p => p.Bold("Revenue").Tab(PdfTabLeaderStyle.Dots).Text("128 450"))
-            .Paragraph(p => p.Text("Operating cost").Tab(PdfTabLeaderStyle.Dots).Text("84 210"))
-            .Paragraph(p => p.Text("Margin").Tab(PdfTabLeaderStyle.Dots).Text("44 240"))
+            .Paragraph(p => p.Bold("Revenue").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right).Text("128 450"))
+            .Paragraph(p => p.Text("Operating cost").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right).Text("84 210"))
+            .Paragraph(p => p.Text("Margin").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right).Text("44 240"))
             .Spacer(4)
-            .Paragraph(p => p.Text("Left label").Tab().Text("plain tab").Tab(PdfTabLeaderStyle.Dots).Text("42"),
+            .Paragraph(p => p.Text("Left label").Tab().Text("plain tab").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right).Text("42"),
                 style: new PdfParagraphStyle {
                     DefaultTabStopWidth = 144,
                     SpacingBefore = 4,

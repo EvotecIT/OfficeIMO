@@ -117,6 +117,14 @@ internal static class Guard {
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void TabAlignment(PdfTabAlignment value, string paramName) {
+        if (value != PdfTabAlignment.Left &&
+            value != PdfTabAlignment.Right) {
+            throw new System.ArgumentException("PDF tab alignment must be Left or Right.", paramName);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void StandardFont(PdfStandardFont value, string paramName, string message) {
         if (value != PdfStandardFont.Helvetica &&
             value != PdfStandardFont.HelveticaOblique &&
