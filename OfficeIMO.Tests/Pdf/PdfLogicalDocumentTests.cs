@@ -39,6 +39,12 @@ public class PdfLogicalDocumentTests {
 
         PdfLogicalPage page = Assert.Single(logical.Pages);
         Assert.Equal("Logical sample", logical.Metadata.Title);
+        Assert.True(logical.HasSourcePage(1));
+        Assert.Same(page, Assert.Single(logical.PagesBySourcePageNumber[1]));
+        Assert.Same(page, Assert.Single(logical.GetPages(1)));
+        Assert.Empty(logical.GetPages(2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => logical.HasSourcePage(0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => logical.GetPages(0));
         PdfLogicalHeading heading = Assert.Single(page.Headings);
         Assert.Equal("Logical Heading", heading.Text);
         Assert.Equal(1, heading.Level);
@@ -116,6 +122,10 @@ public class PdfLogicalDocumentTests {
         Assert.Contains(logical.Pages[2].TextBlocks, block => block.Text.Contains("Second logical page", StringComparison.Ordinal));
         Assert.Contains(logical.Pages[3].TextBlocks, block => block.Text.Contains("Third logical page", StringComparison.Ordinal));
         Assert.Equal(2, logical.Pages.Count(page => page.PageNumber == 3));
+        Assert.True(logical.HasSourcePage(3));
+        Assert.Equal(new[] { 3, 3 }, logical.PagesBySourcePageNumber[3].Select(page => page.PageNumber).ToArray());
+        Assert.Same(logical.Pages[0], logical.GetPages(3)[0]);
+        Assert.Same(logical.Pages[3], logical.GetPages(3)[1]);
         Assert.Equal(2, logical.TextBlocks.Count(block => block.PageNumber == 3 && block.Text.Contains("Third logical page", StringComparison.Ordinal)));
         Assert.Equal(2, logical.GetElements(3).OfType<PdfLogicalTextBlock>().Count(block => block.Text.Contains("Third logical page", StringComparison.Ordinal)));
 

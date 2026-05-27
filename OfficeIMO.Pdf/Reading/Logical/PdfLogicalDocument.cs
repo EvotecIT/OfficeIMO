@@ -39,6 +39,7 @@ public interface IPdfLogicalElement {
 public sealed class PdfLogicalDocument {
     private const int AcroFormSignaturesExistFlag = 1;
     private const int AcroFormAppendOnlyFlag = 2;
+    private IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalPage>>? _pagesBySourcePageNumber;
     private IReadOnlyList<IPdfLogicalElement>? _elements;
     private IReadOnlyDictionary<PdfLogicalElementKind, IReadOnlyList<IPdfLogicalElement>>? _elementsByKind;
     private IReadOnlyDictionary<int, IReadOnlyList<IPdfLogicalElement>>? _elementsByPageNumber;
@@ -97,6 +98,29 @@ public sealed class PdfLogicalDocument {
 
     /// <summary>Logical pages in document order.</summary>
     public IReadOnlyList<PdfLogicalPage> Pages { get; }
+
+    /// <summary>Logical pages grouped by one-based source page number. Range-based loads can contain the same source page more than once.</summary>
+    public IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalPage>> PagesBySourcePageNumber {
+        get {
+            if (_pagesBySourcePageNumber is not null) {
+                return _pagesBySourcePageNumber;
+            }
+
+            var grouped = new Dictionary<int, List<PdfLogicalPage>>();
+            for (int i = 0; i < Pages.Count; i++) {
+                PdfLogicalPage page = Pages[i];
+                if (!grouped.TryGetValue(page.PageNumber, out List<PdfLogicalPage>? pages)) {
+                    pages = new List<PdfLogicalPage>();
+                    grouped.Add(page.PageNumber, pages);
+                }
+
+                pages.Add(page);
+            }
+
+            _pagesBySourcePageNumber = ToReadOnlyLookup(grouped);
+            return _pagesBySourcePageNumber;
+        }
+    }
 
     /// <summary>Top-level document outline/bookmark entries.</summary>
     public IReadOnlyList<PdfOutlineItem> Outlines { get; }
@@ -456,6 +480,15 @@ public sealed class PdfLogicalDocument {
     /// <summary>Number of pages in the logical document.</summary>
     public int PageCount => Pages.Count;
 
+    /// <summary>True when at least one logical page for the one-based source page number is present.</summary>
+    public bool HasSourcePage(int pageNumber) {
+        if (pageNumber <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
+        }
+
+        return PagesBySourcePageNumber.ContainsKey(pageNumber);
+    }
+
     /// <summary>True when at least one outline/bookmark entry was read from the catalog.</summary>
     public bool HasOutlines => Outlines.Count > 0;
 
@@ -483,6 +516,17 @@ public sealed class PdfLogicalDocument {
     /// <summary>True when at least one logical element of the requested kind is present.</summary>
     public bool HasElementKind(PdfLogicalElementKind kind) {
         return ElementsByKind.ContainsKey(kind);
+    }
+
+    /// <summary>Returns logical pages for a one-based source page number, preserving range-selection duplicates.</summary>
+    public IReadOnlyList<PdfLogicalPage> GetPages(int pageNumber) {
+        if (pageNumber <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
+        }
+
+        return PagesBySourcePageNumber.TryGetValue(pageNumber, out IReadOnlyList<PdfLogicalPage>? pages)
+            ? pages
+            : Array.Empty<PdfLogicalPage>();
     }
 
     /// <summary>Attempts to get a simple AcroForm field by its fully qualified field name.</summary>
