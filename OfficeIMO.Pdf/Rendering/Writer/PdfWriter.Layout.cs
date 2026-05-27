@@ -1343,6 +1343,14 @@ internal static partial class PdfWriter {
             StartPage(currentOpts);
         }
 
+        double ResolveTopLevelSpacingBefore(double spacingBefore) {
+            return y < yStart - 0.001 ? spacingBefore : 0D;
+        }
+
+        static double ResolveColumnSpacingBefore(double spacingBefore, double consumed) {
+            return consumed > 0.001 ? spacingBefore : 0D;
+        }
+
         void WriteLinesInternal(string fontRes, double fontSize, double lineHeight, double x, double widthUsed, double startY, System.Collections.Generic.IReadOnlyList<string> lines, PdfAlign align, PdfColor? color = null, bool applyBaselineTweak = false) {
             EnsurePage();
             pageDirty = true;
@@ -1648,10 +1656,14 @@ internal static partial class PdfWriter {
         void RenderShapeBlock(ShapeBlock block, double containerX, double containerWidth) {
             PdfDrawingStyle style = ResolveDrawingStyle(block, currentOpts);
             PdfDoc.ValidateDrawingStyle(style, "Shape");
-            double needed = style.SpacingBefore + block.Shape.Height + style.SpacingAfter;
+            double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
+            double needed = spacingBefore + block.Shape.Height + style.SpacingAfter;
             EnsureFixedFlowBlockFits("Shape", block.Shape.Width, needed, containerWidth);
-            if (y - needed < currentOpts.MarginBottom) { NewPage(); }
-            y -= style.SpacingBefore;
+            if (y - needed < currentOpts.MarginBottom) {
+                NewPage();
+                spacingBefore = 0D;
+            }
+            if (spacingBefore > 0) y -= spacingBefore;
             DrawShapeAt(block, style, containerX, containerWidth, y);
             AddShapeLinkAnnotation(block, style, containerX, containerWidth, y);
             y -= block.Shape.Height + style.SpacingAfter;
@@ -1660,10 +1672,14 @@ internal static partial class PdfWriter {
         void RenderDrawingBlock(DrawingBlock block, double containerX, double containerWidth) {
             PdfDrawingStyle style = ResolveDrawingStyle(block, currentOpts);
             PdfDoc.ValidateDrawingStyle(style, "Drawing");
-            double needed = style.SpacingBefore + block.Drawing.Height + style.SpacingAfter;
+            double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
+            double needed = spacingBefore + block.Drawing.Height + style.SpacingAfter;
             EnsureFixedFlowBlockFits("Drawing", block.Drawing.Width, needed, containerWidth);
-            if (y - needed < currentOpts.MarginBottom) { NewPage(); }
-            y -= style.SpacingBefore;
+            if (y - needed < currentOpts.MarginBottom) {
+                NewPage();
+                spacingBefore = 0D;
+            }
+            if (spacingBefore > 0) y -= spacingBefore;
             DrawDrawingAt(block, style, containerX, containerWidth, y);
             AddDrawingLinkAnnotation(block, style, containerX, containerWidth, y);
             y -= block.Drawing.Height + style.SpacingAfter;
@@ -1680,10 +1696,14 @@ internal static partial class PdfWriter {
         void RenderHorizontalRuleBlock(HorizontalRuleBlock block, double containerX, double containerWidth) {
             PdfHorizontalRuleStyle ruleStyle = ResolveHorizontalRuleStyle(block, currentOpts);
             ValidateHorizontalRule(ruleStyle);
-            double needed = ruleStyle.SpacingBefore + ruleStyle.Thickness + ruleStyle.SpacingAfter;
+            double spacingBefore = ResolveTopLevelSpacingBefore(ruleStyle.SpacingBefore);
+            double needed = spacingBefore + ruleStyle.Thickness + ruleStyle.SpacingAfter;
             EnsureFixedFlowBlockFits("Horizontal rule", containerWidth, needed, containerWidth);
-            if (y - needed < currentOpts.MarginBottom) { NewPage(); }
-            y -= ruleStyle.SpacingBefore;
+            if (y - needed < currentOpts.MarginBottom) {
+                NewPage();
+                spacingBefore = 0D;
+            }
+            if (spacingBefore > 0) y -= spacingBefore;
             double yLine = y - ruleStyle.Thickness * 0.5;
             DrawHLine(sb, ruleStyle.Color, ruleStyle.Thickness, containerX, containerX + containerWidth, yLine);
             pageDirty = true;
@@ -1751,12 +1771,14 @@ internal static partial class PdfWriter {
             int lineIndex = 0;
             bool firstSegment = true;
             var listFont = ChooseNormal(currentOpts.DefaultFont);
+            spacingBefore = ResolveTopLevelSpacingBefore(spacingBefore);
             if (spacingBefore > 0) {
                 if (y - spacingBefore < currentOpts.MarginBottom) {
                     NewPage();
+                    spacingBefore = 0D;
                 }
 
-                y -= spacingBefore;
+                if (spacingBefore > 0) y -= spacingBefore;
             }
 
             while (lineIndex < lines.Count) {
@@ -2187,7 +2209,7 @@ internal static partial class PdfWriter {
                         wrappedItems.Add(WrapSimpleText(bl.Items[itemIndex], availableWidth, baseFont, size));
                     }
 
-                    double listSpacingBefore = listStyle?.SpacingBefore ?? 0D;
+                    double listSpacingBefore = ResolveTopLevelSpacingBefore(listStyle?.SpacingBefore ?? 0D);
                     double listSpacingAfter = listStyle?.GetSpacingAfter(itemSpacing) ?? itemSpacing;
                     double listHeight = MeasureListKeepTogetherHeight(wrappedItems, leading, listSpacingBefore, itemSpacing, listSpacingAfter);
                     if (listStyle?.KeepTogether == true) {
@@ -2198,6 +2220,8 @@ internal static partial class PdfWriter {
 
                         if (y < yStart - 0.001 && y - listHeight < currentOpts.MarginBottom) {
                             NewPage();
+                            listSpacingBefore = 0D;
+                            listHeight = MeasureListKeepTogetherHeight(wrappedItems, leading, listSpacingBefore, itemSpacing, listSpacingAfter);
                         }
                     }
 
@@ -2207,6 +2231,8 @@ internal static partial class PdfWriter {
                         double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                         if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                             NewPage();
+                            listSpacingBefore = 0D;
+                            listHeight = MeasureListKeepTogetherHeight(wrappedItems, leading, listSpacingBefore, itemSpacing, listSpacingAfter);
                         }
                     }
 
@@ -2242,7 +2268,7 @@ internal static partial class PdfWriter {
                         wrappedItems.Add(WrapSimpleText(nl.Items[itemIndex], availableWidth, baseFont, size));
                     }
 
-                    double listSpacingBefore = listStyle?.SpacingBefore ?? 0D;
+                    double listSpacingBefore = ResolveTopLevelSpacingBefore(listStyle?.SpacingBefore ?? 0D);
                     double listSpacingAfter = listStyle?.GetSpacingAfter(itemSpacing) ?? itemSpacing;
                     double listHeight = MeasureListKeepTogetherHeight(wrappedItems, leading, listSpacingBefore, itemSpacing, listSpacingAfter);
                     if (listStyle?.KeepTogether == true) {
@@ -2253,6 +2279,8 @@ internal static partial class PdfWriter {
 
                         if (y < yStart - 0.001 && y - listHeight < currentOpts.MarginBottom) {
                             NewPage();
+                            listSpacingBefore = 0D;
+                            listHeight = MeasureListKeepTogetherHeight(wrappedItems, leading, listSpacingBefore, itemSpacing, listSpacingAfter);
                         }
                     }
 
@@ -2262,6 +2290,8 @@ internal static partial class PdfWriter {
                         double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                         if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                             NewPage();
+                            listSpacingBefore = 0D;
+                            listHeight = MeasureListKeepTogetherHeight(wrappedItems, leading, listSpacingBefore, itemSpacing, listSpacingAfter);
                         }
                     }
 
@@ -2885,7 +2915,7 @@ internal static partial class PdfWriter {
                     int ncols = rb.Columns.Count;
                     PdfRowStyle? rowStyle = rb.StyleSnapshot ?? currentOpts.DefaultRowStyleSnapshot;
                     double rowGap = rb.GapOverride ?? rowStyle?.Gap ?? PdfRowStyle.DefaultGap;
-                    double rowSpacingBefore = rowStyle?.SpacingBefore ?? 0D;
+                    double rowSpacingBefore = ResolveTopLevelSpacingBefore(rowStyle?.SpacingBefore ?? 0D);
                     double rowSpacingAfter = rowStyle?.SpacingAfter ?? 0D;
                     double totalGap = rowGap * Math.Max(0, ncols - 1);
                     if (totalGap >= contentWidth) {
@@ -3215,28 +3245,28 @@ internal static partial class PdfWriter {
                         foreach (var item in items) {
                             if (item is ColPar paragraph) {
                                 PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(paragraph.Block);
-                                total += GetParagraphSpacingBefore(paragraphStyle) + paragraph.Heights.Sum() + GetParagraphSpacingAfter(paragraphStyle, paragraph.Leading);
+                                total += ResolveColumnSpacingBefore(GetParagraphSpacingBefore(paragraphStyle), total) + paragraph.Heights.Sum() + GetParagraphSpacingAfter(paragraphStyle, paragraph.Leading);
                             } else if (item is ColHead heading) {
-                                total += heading.SpacingBefore + heading.Lines.Count * heading.Leading + heading.SpacingAfter;
+                                total += ResolveColumnSpacingBefore(heading.SpacingBefore, total) + heading.Lines.Count * heading.Leading + heading.SpacingAfter;
                             } else if (item is ColListItem listItem) {
-                                total += listItem.SpacingBefore + listItem.Lines.Count * listItem.Leading + listItem.SpacingAfter;
+                                total += ResolveColumnSpacingBefore(listItem.SpacingBefore, total) + listItem.Lines.Count * listItem.Leading + listItem.SpacingAfter;
                             } else if (item is ColPanel panel) {
-                                total += panel.Style.SpacingBefore + panel.Style.PaddingY + panel.Heights.Sum() + panel.Style.PaddingY + panel.Style.SpacingAfter;
+                                total += ResolveColumnSpacingBefore(panel.Style.SpacingBefore, total) + panel.Style.PaddingY + panel.Heights.Sum() + panel.Style.PaddingY + panel.Style.SpacingAfter;
                             } else if (item is ColTable table) {
-                                total += table.Style.SpacingBefore + table.CaptionHeight + table.RowHeights.Sum() + table.Style.SpacingAfter;
+                                total += ResolveColumnSpacingBefore(table.Style.SpacingBefore, total) + table.CaptionHeight + table.RowHeights.Sum() + table.Style.SpacingAfter;
                             } else if (item is ColRule rule) {
                                 PdfHorizontalRuleStyle ruleStyle = ResolveHorizontalRuleStyle(rule.Block, currentOpts);
                                 ValidateHorizontalRule(ruleStyle);
-                                total += ruleStyle.SpacingBefore + ruleStyle.Thickness + ruleStyle.SpacingAfter;
+                                total += ResolveColumnSpacingBefore(ruleStyle.SpacingBefore, total) + ruleStyle.Thickness + ruleStyle.SpacingAfter;
                             } else if (item is ColImg image) {
                                 PdfImageStyle imageStyle = ResolveImageStyle(image.Block, currentOpts);
-                                total += imageStyle.SpacingBefore + image.Block.Height + imageStyle.SpacingAfter;
+                                total += ResolveColumnSpacingBefore(imageStyle.SpacingBefore, total) + image.Block.Height + imageStyle.SpacingAfter;
                             } else if (item is ColShape shape) {
                                 PdfDrawingStyle shapeStyle = ResolveDrawingStyle(shape.Block, currentOpts);
-                                total += shapeStyle.SpacingBefore + shape.Block.Shape.Height + shapeStyle.SpacingAfter;
+                                total += ResolveColumnSpacingBefore(shapeStyle.SpacingBefore, total) + shape.Block.Shape.Height + shapeStyle.SpacingAfter;
                             } else if (item is ColDrawing drawing) {
                                 PdfDrawingStyle drawingStyle = ResolveDrawingStyle(drawing.Block, currentOpts);
-                                total += drawingStyle.SpacingBefore + drawing.Block.Drawing.Height + drawingStyle.SpacingAfter;
+                                total += ResolveColumnSpacingBefore(drawingStyle.SpacingBefore, total) + drawing.Block.Drawing.Height + drawingStyle.SpacingAfter;
                             } else if (item is ColSpacer spacerItem) {
                                 total += spacerItem.Block.Height;
                             }
@@ -3320,6 +3350,7 @@ internal static partial class PdfWriter {
 
                         if (y < yStart - 0.001 && y - rowKeepHeight < currentOpts.MarginBottom) {
                             NewPage();
+                            rowSpacingBefore = 0D;
                         }
                     }
 
@@ -3331,15 +3362,17 @@ internal static partial class PdfWriter {
                         double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                         if (nextHeight > 0.001 && rowHeight <= availableHeight + 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                             NewPage();
+                            rowSpacingBefore = 0D;
                         }
                     }
 
                     if (rowSpacingBefore > 0) {
                         if (y - rowSpacingBefore < currentOpts.MarginBottom) {
                             NewPage();
+                            rowSpacingBefore = 0D;
                         }
 
-                        y -= rowSpacingBefore;
+                        if (rowSpacingBefore > 0) y -= rowSpacingBefore;
                     }
 
                     bool AnyRemaining() {
@@ -3480,13 +3513,15 @@ internal static partial class PdfWriter {
                                 } else if (it is ColListItem listItem) {
                                     var lines = listItem.Lines;
                                     double leading = listItem.Leading;
+                                    double spacingBefore = line == 0 ? ResolveColumnSpacingBefore(listItem.SpacingBefore, consumed) : 0D;
                                     if (line == 0 && listItem.KeepTogether && listItem.IsFirstInKeepGroup) {
+                                        double keepGroupHeight = listItem.KeepGroupHeight - listItem.SpacingBefore + spacingBefore;
                                         double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
-                                        if (listItem.KeepGroupHeight > availableHeight + 0.001) {
+                                        if (keepGroupHeight > availableHeight + 0.001) {
                                             throw new ArgumentException("List height exceeds the available page content height.");
                                         }
 
-                                        if (listItem.KeepGroupHeight > remain + 0.001) {
+                                        if (keepGroupHeight > remain + 0.001) {
                                             if (consumed > 0) break;
                                             remain = 0;
                                             break;
@@ -3497,7 +3532,7 @@ internal static partial class PdfWriter {
                                         int nextItemIndex = idx + listItem.KeepWithNextGroupItemCount;
                                         if (nextItemIndex < items.Count) {
                                             double nextHeight = MeasureColItemFirstVisualHeight(items[nextItemIndex]);
-                                            double keepHeight = listItem.KeepWithNextGroupHeight + nextHeight;
+                                            double keepHeight = listItem.KeepWithNextGroupHeight - listItem.SpacingBefore + spacingBefore + nextHeight;
                                             double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                                             if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
                                                 if (consumed > 0) break;
@@ -3507,12 +3542,12 @@ internal static partial class PdfWriter {
                                         }
                                     }
 
-                                    if (line == 0 && listItem.SpacingBefore > 0) {
-                                        if (listItem.SpacingBefore > remain && consumed > 0) break;
-                                        if (listItem.SpacingBefore > remain && consumed == 0) { remain = 0; break; }
-                                        yCol -= listItem.SpacingBefore;
-                                        remain -= listItem.SpacingBefore;
-                                        consumed += listItem.SpacingBefore;
+                                    if (line == 0 && spacingBefore > 0) {
+                                        if (spacingBefore > remain && consumed > 0) break;
+                                        if (spacingBefore > remain && consumed == 0) { remain = 0; break; }
+                                        yCol -= spacingBefore;
+                                        remain -= spacingBefore;
+                                        consumed += spacingBefore;
                                     }
 
                                     double availableForLines = remain;
@@ -3561,9 +3596,10 @@ internal static partial class PdfWriter {
                                     var lines = panel.Lines;
                                     var heights = panel.Heights;
                                     double xPanel = xCol + panel.XOffset;
+                                    double spacingBefore = line == 0 ? ResolveColumnSpacingBefore(panelStyle.SpacingBefore, consumed) : 0D;
                                     if (line == 0 && panelStyle.KeepWithNext && idx + 1 < items.Count) {
                                         double nextHeight = MeasureColItemFirstVisualHeight(items[idx + 1]);
-                                        double panelHeight = panelStyle.SpacingBefore + panelStyle.PaddingY + heights.Sum() + panelStyle.PaddingY + panelStyle.SpacingAfter;
+                                        double panelHeight = spacingBefore + panelStyle.PaddingY + heights.Sum() + panelStyle.PaddingY + panelStyle.SpacingAfter;
                                         double keepHeight = panelHeight + nextHeight;
                                         double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                                         if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && keepHeight > remain + 0.001) {
@@ -3573,12 +3609,12 @@ internal static partial class PdfWriter {
                                         }
                                     }
 
-                                    if (line == 0 && panelStyle.SpacingBefore > 0) {
-                                        if (panelStyle.SpacingBefore > remain && consumed > 0) break;
-                                        if (panelStyle.SpacingBefore > remain && consumed == 0) { remain = 0; break; }
-                                        yCol -= panelStyle.SpacingBefore;
-                                        remain -= panelStyle.SpacingBefore;
-                                        consumed += panelStyle.SpacingBefore;
+                                    if (line == 0 && spacingBefore > 0) {
+                                        if (spacingBefore > remain && consumed > 0) break;
+                                        if (spacingBefore > remain && consumed == 0) { remain = 0; break; }
+                                        yCol -= spacingBefore;
+                                        remain -= spacingBefore;
+                                        consumed += spacingBefore;
                                     }
 
                                     if (panelStyle.KeepTogether) {
@@ -4021,7 +4057,8 @@ internal static partial class PdfWriter {
                                 } else if (it is ColRule cr) {
                                     PdfHorizontalRuleStyle hr2 = ResolveHorizontalRuleStyle(cr.Block, currentOpts);
                                     ValidateHorizontalRule(hr2);
-                                    double needed = hr2.SpacingBefore + hr2.Thickness + hr2.SpacingAfter;
+                                    double spacingBefore = ResolveColumnSpacingBefore(hr2.SpacingBefore, consumed);
+                                    double needed = spacingBefore + hr2.Thickness + hr2.SpacingAfter;
                                     EnsureFixedFlowBlockFits("Horizontal rule", wCol, needed, wCol);
                                     if (line == 0 && hr2.KeepWithNext && idx + 1 < items.Count) {
                                         double nextHeight = MeasureColItemFirstVisualHeight(items[idx + 1]);
@@ -4036,7 +4073,7 @@ internal static partial class PdfWriter {
 
                                     if (needed > remain && consumed > 0) break;
                                     if (needed > remain && consumed == 0) { remain = 0; break; }
-                                    yCol -= hr2.SpacingBefore;
+                                    if (spacingBefore > 0) yCol -= spacingBefore;
                                     double x1 = xCol, x2 = xCol + wCol, yLine = yCol - hr2.Thickness * 0.5;
                                     pageDirty = true;
                                     DrawHLine(sb, hr2.Color, hr2.Thickness, x1, x2, yLine);
@@ -4046,7 +4083,8 @@ internal static partial class PdfWriter {
                                     PdfImageStyle imageStyle = ResolveImageStyle(ib2, currentOpts);
                                     PdfDoc.ValidateImageStyleForBox(imageStyle, ib2.Width, ib2.Height, nameof(imageStyle.ClipPath));
                                     PdfDoc.ValidateImageFitDimensions(ib2.Info, imageStyle.Fit, nameof(imageStyle.Fit));
-                                    double needed = imageStyle.SpacingBefore + ib2.Height + imageStyle.SpacingAfter;
+                                    double spacingBefore = ResolveColumnSpacingBefore(imageStyle.SpacingBefore, consumed);
+                                    double needed = spacingBefore + ib2.Height + imageStyle.SpacingAfter;
                                     EnsureFixedFlowBlockFits("Image", ib2.Width, needed, wCol);
                                     if (imageStyle.KeepWithNext && idx + 1 < items.Count) {
                                         double nextHeight = MeasureColItemFirstVisualHeight(items[idx + 1]);
@@ -4061,7 +4099,7 @@ internal static partial class PdfWriter {
 
                                     if (needed > remain && consumed > 0) break;
                                     if (needed > remain && consumed == 0) { remain = 0; break; }
-                                    yCol -= imageStyle.SpacingBefore;
+                                    if (spacingBefore > 0) yCol -= spacingBefore;
                                     double xImg = xCol;
                                     if (imageStyle.Align == PdfAlign.Center) xImg = xCol + Math.Max(0, (wCol - ib2.Width) / 2);
                                     else if (imageStyle.Align == PdfAlign.Right) xImg = xCol + Math.Max(0, wCol - ib2.Width);
@@ -4074,7 +4112,8 @@ internal static partial class PdfWriter {
                                     var shape = cs.Block;
                                     PdfDrawingStyle shapeStyle = ResolveDrawingStyle(shape, currentOpts);
                                     PdfDoc.ValidateDrawingStyle(shapeStyle, "Shape");
-                                    double needed = shapeStyle.SpacingBefore + shape.Shape.Height + shapeStyle.SpacingAfter;
+                                    double spacingBefore = ResolveColumnSpacingBefore(shapeStyle.SpacingBefore, consumed);
+                                    double needed = spacingBefore + shape.Shape.Height + shapeStyle.SpacingAfter;
                                     EnsureFixedFlowBlockFits("Shape", shape.Shape.Width, needed, wCol);
                                     if (shapeStyle.KeepWithNext && idx + 1 < items.Count) {
                                         double nextHeight = MeasureColItemFirstVisualHeight(items[idx + 1]);
@@ -4089,7 +4128,7 @@ internal static partial class PdfWriter {
 
                                     if (needed > remain && consumed > 0) break;
                                     if (needed > remain && consumed == 0) { remain = 0; break; }
-                                    yCol -= shapeStyle.SpacingBefore;
+                                    if (spacingBefore > 0) yCol -= spacingBefore;
                                     DrawShapeAt(shape, shapeStyle, xCol, wCol, yCol);
                                     AddShapeLinkAnnotation(shape, shapeStyle, xCol, wCol, yCol);
                                     yCol -= shape.Shape.Height + shapeStyle.SpacingAfter;
@@ -4100,7 +4139,8 @@ internal static partial class PdfWriter {
                                     var drawing = cd.Block;
                                     PdfDrawingStyle drawingStyle = ResolveDrawingStyle(drawing, currentOpts);
                                     PdfDoc.ValidateDrawingStyle(drawingStyle, "Drawing");
-                                    double needed = drawingStyle.SpacingBefore + drawing.Drawing.Height + drawingStyle.SpacingAfter;
+                                    double spacingBefore = ResolveColumnSpacingBefore(drawingStyle.SpacingBefore, consumed);
+                                    double needed = spacingBefore + drawing.Drawing.Height + drawingStyle.SpacingAfter;
                                     EnsureFixedFlowBlockFits("Drawing", drawing.Drawing.Width, needed, wCol);
                                     if (drawingStyle.KeepWithNext && idx + 1 < items.Count) {
                                         double nextHeight = MeasureColItemFirstVisualHeight(items[idx + 1]);
@@ -4115,7 +4155,7 @@ internal static partial class PdfWriter {
 
                                     if (needed > remain && consumed > 0) break;
                                     if (needed > remain && consumed == 0) { remain = 0; break; }
-                                    yCol -= drawingStyle.SpacingBefore;
+                                    if (spacingBefore > 0) yCol -= spacingBefore;
                                     DrawDrawingAt(drawing, drawingStyle, xCol, wCol, yCol);
                                     AddDrawingLinkAnnotation(drawing, drawingStyle, xCol, wCol, yCol);
                                     yCol -= drawing.Drawing.Height + drawingStyle.SpacingAfter;
@@ -4172,7 +4212,8 @@ internal static partial class PdfWriter {
                     PdfImageStyle imageStyle = ResolveImageStyle(ib, currentOpts);
                     PdfDoc.ValidateImageStyleForBox(imageStyle, ib.Width, ib.Height, nameof(imageStyle.ClipPath));
                     PdfDoc.ValidateImageFitDimensions(ib.Info, imageStyle.Fit, nameof(imageStyle.Fit));
-                    double needed = imageStyle.SpacingBefore + ib.Height + imageStyle.SpacingAfter;
+                    double imageSpacingBefore = ResolveTopLevelSpacingBefore(imageStyle.SpacingBefore);
+                    double needed = imageSpacingBefore + ib.Height + imageStyle.SpacingAfter;
                     if (imageStyle.Align == PdfAlign.Center) xImg = currentOpts.MarginLeft + Math.Max(0, (contentWidth - ib.Width) / 2);
                     else if (imageStyle.Align == PdfAlign.Right) xImg = currentOpts.MarginLeft + Math.Max(0, contentWidth - ib.Width);
                     EnsureFixedFlowBlockFits("Image", ib.Width, needed, contentWidth);
@@ -4182,11 +4223,16 @@ internal static partial class PdfWriter {
                         double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                         if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                             NewPage();
+                            imageSpacingBefore = 0D;
+                            needed = ib.Height + imageStyle.SpacingAfter;
                         }
                     }
 
-                    if (y - needed < currentOpts.MarginBottom) { NewPage(); }
-                    y -= imageStyle.SpacingBefore;
+                    if (y - needed < currentOpts.MarginBottom) {
+                        NewPage();
+                        imageSpacingBefore = 0D;
+                    }
+                    if (imageSpacingBefore > 0) y -= imageSpacingBefore;
                     EnsurePage();
                     PageImage pageImage = CreatePageImage(ib, imageStyle, xImg, y - ib.Height);
                     currentPage!.Images.Add(pageImage);
@@ -4208,23 +4254,26 @@ internal static partial class PdfWriter {
                     double xLeft = currentOpts.MarginLeft;
                     if (panelStyle.Align == PdfAlign.Center) xLeft = currentOpts.MarginLeft + Math.Max(0, (contentWidth - innerWidth) / 2);
                     else if (panelStyle.Align == PdfAlign.Right) xLeft = currentOpts.MarginLeft + Math.Max(0, contentWidth - innerWidth);
+                    double panelSpacingBefore = ResolveTopLevelSpacingBefore(panelStyle.SpacingBefore);
 
                     if (panelStyle.KeepWithNext && nextBlock != null && lines.Count > 0) {
-                        double panelHeight = panelStyle.SpacingBefore + panelStyle.PaddingY + lineHeights.Sum() + panelStyle.PaddingY + panelStyle.SpacingAfter;
+                        double panelHeight = panelSpacingBefore + panelStyle.PaddingY + lineHeights.Sum() + panelStyle.PaddingY + panelStyle.SpacingAfter;
                         double nextHeight = MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, size);
                         double keepHeight = panelHeight + nextHeight;
                         double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
                         if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                             NewPage();
+                            panelSpacingBefore = 0D;
                         }
                     }
 
-                    if (panelStyle.SpacingBefore > 0) {
-                        if (y < yStart - 0.001 && y - panelStyle.SpacingBefore < currentOpts.MarginBottom) {
+                    if (panelSpacingBefore > 0) {
+                        if (y - panelSpacingBefore < currentOpts.MarginBottom) {
                             NewPage();
+                            panelSpacingBefore = 0D;
                         }
 
-                        y -= panelStyle.SpacingBefore;
+                        if (panelSpacingBefore > 0) y -= panelSpacingBefore;
                     }
 
                     if (panelStyle.KeepTogether) {

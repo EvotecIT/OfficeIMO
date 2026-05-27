@@ -934,6 +934,49 @@ public class PdfDocVisualQualityTests {
         Assert.InRange(Math.Abs(defaultTopY - spacedTopY), 0, 1.5);
     }
 
+    [Theory]
+    [InlineData("bullet-list", "ListTopMarker")]
+    [InlineData("numbered-list", "ListTopMarker")]
+    [InlineData("panel", "PanelTopMarker")]
+    [InlineData("horizontal-rule", "AfterFixedMarker")]
+    [InlineData("image", "AfterFixedMarker")]
+    [InlineData("shape", "AfterFixedMarker")]
+    [InlineData("drawing", "AfterFixedMarker")]
+    [InlineData("row", "RowTopMarker")]
+    public void FlowBlock_SuppressesSpacingBeforeAtPageTop(string blockKind, string marker) {
+        byte[] defaultBytes = CreateTopLevelFlowSpacingBeforeProbe(blockKind, 0);
+        byte[] spacedBytes = CreateTopLevelFlowSpacingBeforeProbe(blockKind, 28);
+
+        using var defaultPdf = PdfDocument.Open(new MemoryStream(defaultBytes));
+        using var spacedPdf = PdfDocument.Open(new MemoryStream(spacedBytes));
+
+        double defaultTopY = FindWordStartY(defaultPdf.GetPage(1), marker);
+        double spacedTopY = FindWordStartY(spacedPdf.GetPage(1), marker);
+
+        Assert.InRange(Math.Abs(defaultTopY - spacedTopY), 0, 1.5);
+    }
+
+    [Theory]
+    [InlineData("bullet-list", "ColumnListMarker")]
+    [InlineData("numbered-list", "ColumnListMarker")]
+    [InlineData("panel", "ColumnPanelMarker")]
+    [InlineData("horizontal-rule", "ColumnAfterFixedMarker")]
+    [InlineData("image", "ColumnAfterFixedMarker")]
+    [InlineData("shape", "ColumnAfterFixedMarker")]
+    [InlineData("drawing", "ColumnAfterFixedMarker")]
+    public void RowColumnFlowBlock_SuppressesSpacingBeforeAtColumnTop(string blockKind, string marker) {
+        byte[] defaultBytes = CreateColumnFlowSpacingBeforeProbe(blockKind, 0);
+        byte[] spacedBytes = CreateColumnFlowSpacingBeforeProbe(blockKind, 28);
+
+        using var defaultPdf = PdfDocument.Open(new MemoryStream(defaultBytes));
+        using var spacedPdf = PdfDocument.Open(new MemoryStream(spacedBytes));
+
+        double defaultTopY = FindWordStartY(defaultPdf.GetPage(1), marker);
+        double spacedTopY = FindWordStartY(spacedPdf.GetPage(1), marker);
+
+        Assert.InRange(Math.Abs(defaultTopY - spacedTopY), 0, 1.5);
+    }
+
     [Fact]
     public void PdfDoc_DefaultPanelStyleAppliesToFollowingPanelsAndSnapshotsInput() {
         var style = new PanelStyle {
@@ -1014,7 +1057,7 @@ public class PdfDocVisualQualityTests {
         using var pdf = PdfDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
         string rawPdf = Encoding.ASCII.GetString(bytes);
-        double ruleBottomY = 180 - 20 - 3 - 2;
+        double ruleBottomY = 180 - 20 - 2;
         double paragraphTopY = FindWordStartY(page, "AfterDefaultRule") + fontSize * 0.74;
         double clearance = ruleBottomY - paragraphTopY;
 
@@ -4500,7 +4543,7 @@ public class PdfDocVisualQualityTests {
 
         Assert.Contains("0.102 0.2 0.302 RG", content);
         Assert.Contains("3 w", content);
-        Assert.Contains("20 154.5 m 220 154.5 l S", content);
+        Assert.Contains("20 158.5 m 220 158.5 l S", content);
     }
 
     [Fact]
@@ -4527,7 +4570,7 @@ public class PdfDocVisualQualityTests {
         using var pdf = PdfDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
 
-        double ruleBottomY = 180 - 20 - 4 - 3;
+        double ruleBottomY = 180 - 20 - 3;
         double paragraphTopY = FindWordStartY(page, "Guarded") + fontSize * 0.74;
         double clearance = ruleBottomY - paragraphTopY;
 
@@ -4563,7 +4606,7 @@ public class PdfDocVisualQualityTests {
         using var pdf = PdfDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
 
-        double ruleBottomY = 180 - 20 - 4 - 3;
+        double ruleBottomY = 180 - 20 - 3;
         double paragraphTopY = FindWordStartY(page, "Guarded") + fontSize * 0.74;
         double clearance = ruleBottomY - paragraphTopY;
 
@@ -5707,7 +5750,7 @@ public class PdfDocVisualQualityTests {
         Assert.Contains("0.8 0.702 0.6 rg", content);
         Assert.Contains("0.102 0.2 0.302 RG", content);
         Assert.Contains("2.5 w", content);
-        Assert.Contains("70 120 100 36 re B", content);
+        Assert.Contains("70 124 100 36 re B", content);
     }
 
     [Fact]
@@ -5925,10 +5968,10 @@ public class PdfDocVisualQualityTests {
         Assert.Contains("0.8 0.702 0.6 rg", content);
         Assert.Contains("0.102 0.2 0.302 RG", content);
         Assert.Contains("2 w", content);
-        Assert.Contains("78 120 m", content);
-        Assert.Contains("162 120 l", content);
-        Assert.Contains("166.418 120 170 123.582 170 128 c", content);
-        Assert.Contains("70 123.582 73.582 120 78 120 c h B", content);
+        Assert.Contains("78 124 m", content);
+        Assert.Contains("162 124 l", content);
+        Assert.Contains("166.418 124 170 127.582 170 132 c", content);
+        Assert.Contains("70 127.582 73.582 124 78 124 c h B", content);
     }
 
     [Fact]
@@ -5959,7 +6002,7 @@ public class PdfDocVisualQualityTests {
         Assert.Contains("0.2 0.4 0.6 RG", content);
         Assert.Contains("2 w", content);
         Assert.Contains("[6 3] 0 d", content);
-        Assert.Contains("70 156 m 170 116 l S", content);
+        Assert.Contains("70 160 m 170 120 l S", content);
     }
 
     [Fact]
@@ -5992,7 +6035,7 @@ public class PdfDocVisualQualityTests {
         Assert.Contains("3 w", content);
         Assert.Contains("2 J", content);
         Assert.Contains("2 j", content);
-        Assert.Contains("70 156 m 170 156 l S", content);
+        Assert.Contains("70 160 m 170 160 l S", content);
     }
 
     [Fact]
@@ -6265,9 +6308,9 @@ public class PdfDocVisualQualityTests {
         Assert.Contains("2 w", content);
         Assert.Contains("1 J", content);
         Assert.Contains("[2 3] 0 d", content);
-        Assert.Contains("160 136 m", content);
-        Assert.Contains("160 147.046 142.091 156 120 156 c", content);
-        Assert.Contains("142.091 116 160 124.954 160 136 c B", content);
+        Assert.Contains("160 140 m", content);
+        Assert.Contains("160 151.046 142.091 160 120 160 c", content);
+        Assert.Contains("142.091 120 160 128.954 160 140 c B", content);
     }
 
     [Fact]
@@ -6296,9 +6339,9 @@ public class PdfDocVisualQualityTests {
         Assert.Contains("0.961 0.961 0.961 rg", content);
         Assert.Contains("0.275 0.51 0.706 RG", content);
         Assert.Contains("1.5 w", content);
-        Assert.Contains("80 116 m", content);
-        Assert.Contains("120 156 l", content);
-        Assert.Contains("160 116 l", content);
+        Assert.Contains("80 120 m", content);
+        Assert.Contains("120 160 l", content);
+        Assert.Contains("160 120 l", content);
         Assert.Contains("h B", content);
     }
 
@@ -6328,7 +6371,7 @@ public class PdfDocVisualQualityTests {
         Assert.Contains("0.275 0.51 0.706 RG", content);
         Assert.Contains("2 w", content);
         Assert.Contains("1 j", content);
-        Assert.Contains("80 116 m", content);
+        Assert.Contains("80 120 m", content);
         Assert.Contains("h S", content);
     }
 
@@ -6358,8 +6401,8 @@ public class PdfDocVisualQualityTests {
         Assert.Contains("0.961 0.961 0.961 rg", content);
         Assert.Contains("0.275 0.51 0.706 RG", content);
         Assert.Contains("1.5 w", content);
-        Assert.Contains("80 116 m", content);
-        Assert.Contains("100 156 140 156 160 116 c", content);
+        Assert.Contains("80 120 m", content);
+        Assert.Contains("100 160 140 160 160 120 c", content);
         Assert.Contains("h", content);
         Assert.Contains("B", content);
     }
@@ -6395,13 +6438,13 @@ public class PdfDocVisualQualityTests {
         string content = Encoding.ASCII.GetString(bytes);
 
         Assert.Contains("0.961 0.961 0.961 rg", content);
-        Assert.Contains("60 96 120 60 re f", content);
+        Assert.Contains("60 100 120 60 re f", content);
         Assert.Contains("0.275 0.51 0.706 rg", content);
         Assert.Contains("0 0 0 RG", content);
         Assert.Contains("1.25 w", content);
-        Assert.Contains("80 111 m", content);
-        Assert.Contains("120 141 l", content);
-        Assert.Contains("160 111 l", content);
+        Assert.Contains("80 115 m", content);
+        Assert.Contains("120 145 l", content);
+        Assert.Contains("160 115 l", content);
         Assert.Contains("h B", content);
     }
 
@@ -11604,6 +11647,104 @@ public class PdfDocVisualQualityTests {
         return PdfDoc.Create(options)
             .Paragraph(p => p.Text("IndentedMarker alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau."), style: style)
             .ToBytes();
+    }
+
+    private static byte[] CreateTopLevelFlowSpacingBeforeProbe(string blockKind, double spacingBefore) {
+        var options = CreateFlowSpacingProbeOptions();
+        var paragraphStyle = new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0 };
+        var doc = PdfDoc.Create(options);
+
+        switch (blockKind) {
+            case "bullet-list":
+                doc.Bullets(new[] { "ListTopMarker" }, style: new PdfListStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, ItemSpacing = 0 });
+                break;
+            case "numbered-list":
+                doc.Numbered(new[] { "ListTopMarker" }, style: new PdfListStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, ItemSpacing = 0 });
+                break;
+            case "panel":
+                doc.PanelParagraph(p => p.Text("PanelTopMarker"), new PanelStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, PaddingX = 4, PaddingY = 4 });
+                break;
+            case "horizontal-rule":
+                doc.HR(style: new PdfHorizontalRuleStyle { Thickness = 2, SpacingBefore = spacingBefore, SpacingAfter = 0 })
+                    .Paragraph(p => p.Text("AfterFixedMarker"), style: paragraphStyle);
+                break;
+            case "image":
+                doc.Image(CreateMinimalRgbPng(), 24, 12, style: new PdfImageStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
+                    .Paragraph(p => p.Text("AfterFixedMarker"), style: paragraphStyle);
+                break;
+            case "shape":
+                doc.Shape(OfficeShape.Rectangle(24, 12), style: new PdfDrawingStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
+                    .Paragraph(p => p.Text("AfterFixedMarker"), style: paragraphStyle);
+                break;
+            case "drawing":
+                doc.Drawing(new OfficeDrawing(24, 12).AddShape(OfficeShape.Rectangle(24, 12), 0, 0), style: new PdfDrawingStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
+                    .Paragraph(p => p.Text("AfterFixedMarker"), style: paragraphStyle);
+                break;
+            case "row":
+                doc.Compose(document => document.Page(page => page.Content(content => content.Row(row => row
+                    .Style(new PdfRowStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
+                    .Column(100, column => column.Paragraph(p => p.Text("RowTopMarker"), style: paragraphStyle))))));
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(blockKind), blockKind, "Unknown flow block kind.");
+        }
+
+        return doc.ToBytes();
+    }
+
+    private static byte[] CreateColumnFlowSpacingBeforeProbe(string blockKind, double spacingBefore) {
+        var options = CreateFlowSpacingProbeOptions();
+        return PdfDoc.Create(options)
+            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row
+                .Column(100, column => AddColumnFlowSpacingBeforeProbe(column, blockKind, spacingBefore))))))
+            .ToBytes();
+    }
+
+    private static void AddColumnFlowSpacingBeforeProbe(PdfRowColumnCompose column, string blockKind, double spacingBefore) {
+        var paragraphStyle = new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0 };
+
+        switch (blockKind) {
+            case "bullet-list":
+                column.Bullets(new[] { "ColumnListMarker" }, style: new PdfListStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, ItemSpacing = 0 });
+                break;
+            case "numbered-list":
+                column.Numbered(new[] { "ColumnListMarker" }, style: new PdfListStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, ItemSpacing = 0 });
+                break;
+            case "panel":
+                column.PanelParagraph(p => p.Text("ColumnPanelMarker"), new PanelStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, PaddingX = 4, PaddingY = 4 });
+                break;
+            case "horizontal-rule":
+                column.HR(style: new PdfHorizontalRuleStyle { Thickness = 2, SpacingBefore = spacingBefore, SpacingAfter = 0 })
+                    .Paragraph(p => p.Text("ColumnAfterFixedMarker"), style: paragraphStyle);
+                break;
+            case "image":
+                column.Image(CreateMinimalRgbPng(), 24, 12, style: new PdfImageStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
+                    .Paragraph(p => p.Text("ColumnAfterFixedMarker"), style: paragraphStyle);
+                break;
+            case "shape":
+                column.Shape(OfficeShape.Rectangle(24, 12), style: new PdfDrawingStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
+                    .Paragraph(p => p.Text("ColumnAfterFixedMarker"), style: paragraphStyle);
+                break;
+            case "drawing":
+                column.Drawing(new OfficeDrawing(24, 12).AddShape(OfficeShape.Rectangle(24, 12), 0, 0), style: new PdfDrawingStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
+                    .Paragraph(p => p.Text("ColumnAfterFixedMarker"), style: paragraphStyle);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(blockKind), blockKind, "Unknown flow block kind.");
+        }
+    }
+
+    private static PdfOptions CreateFlowSpacingProbeOptions() {
+        return new PdfOptions {
+            PageWidth = 320,
+            PageHeight = 220,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 30,
+            MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 10
+        };
     }
 
     private static OfficeDrawing CreateKeepWithNextDrawingScene() {
