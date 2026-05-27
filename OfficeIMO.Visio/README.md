@@ -138,6 +138,7 @@ using System.Linq;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
 using OfficeIMO.Visio.Stencils;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 var installed = VisioStencilPackageCatalog.DiscoverInstalledVisioPackages()
     .Where(path => Path.GetFileName(path).StartsWith("AZURE", StringComparison.OrdinalIgnoreCase));
@@ -161,6 +162,10 @@ VisioDocument.Create("graph.vsdx")
             "https://learn.microsoft.com/azure/api-management/", "API docs")
         .NodeShapeData("database", "Classification", "Confidential",
             "Data classification", VisioShapeDataType.String)
+        .NodeStyle("worker", style => {
+            style.FillColor = Color.FromRgb(73, 80, 87);
+            style.LineColor = Color.FromRgb(45, 52, 59);
+        })
         .Zone("runtime", "Runtime", "gateway", "events", "worker")
         .Root("gateway")
         .ControlEdge("gateway-publishes-events", "gateway", "events", "publish")
@@ -170,6 +175,10 @@ VisioDocument.Create("graph.vsdx")
         .DataEdge("worker-writes-database", "worker", "database", "write")
         .EdgeHyperlink("worker-writes-database",
             "https://example.org/contracts/write-model", "Write contract")
+        .EdgeStyle("worker-writes-database", style => {
+            style.LineColor = Color.FromRgb(0, 102, 204);
+            style.LineWeight = 0.026D;
+        })
         .DataEdge("database", "gateway", "read model"))
     .Save();
 ```
@@ -182,7 +191,9 @@ or external `.vssx`/`.vstx` packages. Use `NodeShapeData` and `NodeHyperlink`
 to keep generated graph nodes searchable, inspectable, and linked to runbooks,
 dashboards, API docs, or data catalogs inside Visio. Named edges can also carry
 connector hyperlinks with `EdgeHyperlink`, which is useful for API contracts,
-message schemas, queries, and relationship-specific runbooks.
+message schemas, queries, and relationship-specific runbooks. Use `NodeStyle`
+and `EdgeStyle` for local visual emphasis without cloning or forking a whole
+theme.
 
 ## Quick sample (architecture diagram builder)
 

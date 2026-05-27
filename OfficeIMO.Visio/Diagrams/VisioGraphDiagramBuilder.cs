@@ -35,6 +35,8 @@ namespace OfficeIMO.Visio.Diagrams {
 
             public VisioShape? Shape { get; set; }
 
+            public VisioShapeStyle? StyleOverride { get; set; }
+
             public List<NodeShapeDataItem> ShapeData { get; } = new();
 
             public List<VisioHyperlink> Hyperlinks { get; } = new();
@@ -84,6 +86,8 @@ namespace OfficeIMO.Visio.Diagrams {
             public string? Label { get; }
 
             public bool Directed { get; }
+
+            public VisioConnectorStyle? StyleOverride { get; set; }
 
             public List<VisioHyperlink> Hyperlinks { get; } = new();
         }
@@ -309,6 +313,26 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
+        /// <summary>Overrides the visual style for a graph node.</summary>
+        public VisioGraphDiagramBuilder NodeStyle(string nodeId, VisioShapeStyle style) {
+            if (style == null) throw new ArgumentNullException(nameof(style));
+            string normalizedNodeId = RequireId(nodeId, nameof(nodeId), "Node id");
+            NodeItem node = GetKnownNode(normalizedNodeId, nameof(nodeId));
+            node.StyleOverride = style.Clone();
+            return this;
+        }
+
+        /// <summary>Overrides the visual style for a graph node by editing a theme-derived style copy.</summary>
+        public VisioGraphDiagramBuilder NodeStyle(string nodeId, Action<VisioShapeStyle> configure) {
+            if (configure == null) throw new ArgumentNullException(nameof(configure));
+            string normalizedNodeId = RequireId(nodeId, nameof(nodeId), "Node id");
+            NodeItem node = GetKnownNode(normalizedNodeId, nameof(nodeId));
+            VisioShapeStyle style = (node.StyleOverride ?? GetNodeStyle(node.Kind)).Clone();
+            configure(style);
+            node.StyleOverride = style;
+            return this;
+        }
+
         /// <summary>Adds a hyperlink that will be written to a graph node.</summary>
         public VisioGraphDiagramBuilder NodeHyperlink(string nodeId, string address, string? description = null, string? subAddress = null) {
             string normalizedNodeId = RequireId(nodeId, nameof(nodeId), "Node id");
@@ -406,6 +430,26 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             return EdgeHyperlink(edgeId, address.ToString(), description, subAddress);
+        }
+
+        /// <summary>Overrides the visual style for a named graph edge connector.</summary>
+        public VisioGraphDiagramBuilder EdgeStyle(string edgeId, VisioConnectorStyle style) {
+            if (style == null) throw new ArgumentNullException(nameof(style));
+            string normalizedEdgeId = RequireId(edgeId, nameof(edgeId), "Edge id");
+            EdgeItem edge = GetKnownEdge(normalizedEdgeId, nameof(edgeId));
+            edge.StyleOverride = style.Clone();
+            return this;
+        }
+
+        /// <summary>Overrides the visual style for a named graph edge connector by editing a theme-derived style copy.</summary>
+        public VisioGraphDiagramBuilder EdgeStyle(string edgeId, Action<VisioConnectorStyle> configure) {
+            if (configure == null) throw new ArgumentNullException(nameof(configure));
+            string normalizedEdgeId = RequireId(edgeId, nameof(edgeId), "Edge id");
+            EdgeItem edge = GetKnownEdge(normalizedEdgeId, nameof(edgeId));
+            VisioConnectorStyle style = (edge.StyleOverride ?? GetConnectorStyle(edge.Kind, edge.Directed)).Clone();
+            configure(style);
+            edge.StyleOverride = style;
+            return this;
         }
 
         private void AddEdge(string? edgeId, string fromId, string toId, VisioGraphConnectorKind kind, string? label, bool directed) {
@@ -640,11 +684,14 @@ namespace OfficeIMO.Visio.Diagrams {
                 VisioShape shape;
                 if (node.Stencil != null) {
                     shape = page.AddStencilShape(node.Stencil, node.Id, node.PinX, node.PinY, width, height, string.Empty);
+                    if (node.StyleOverride != null) {
+                        node.StyleOverride.ApplyTo(shape);
+                    }
                 } else {
                     shape = new VisioShape(node.Id, node.PinX, node.PinY, width, height, node.Text) {
                         NameU = masterNameU,
                     };
-                    GetNodeStyle(node.Kind).ApplyTo(shape);
+                    (node.StyleOverride ?? GetNodeStyle(node.Kind)).ApplyTo(shape);
                     page.Shapes.Add(shape);
                 }
 
@@ -712,7 +759,7 @@ namespace OfficeIMO.Visio.Diagrams {
                     connector.Id = edge.Id;
                 }
 
-                GetConnectorStyle(edge.Kind, edge.Directed).ApplyTo(connector);
+                (edge.StyleOverride ?? GetConnectorStyle(edge.Kind, edge.Directed)).ApplyTo(connector);
                 connector.Label = edge.Label;
                 ApplyEdgeMetadata(connector, edge);
                 if (_layout != VisioGraphLayout.Radial) {

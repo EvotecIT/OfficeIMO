@@ -4,6 +4,7 @@ using System.Linq;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
 using OfficeIMO.Visio.Stencils;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Examples.Visio {
     public static class GraphDiagramBuilder {
@@ -43,6 +44,11 @@ namespace OfficeIMO.Examples.Visio {
                         .NodeHyperlink("sql", "https://learn.microsoft.com/azure/azure-sql/", "Azure SQL docs")
                         .NodeShapeData("monitor", "Signal", "Logs and metrics", "Signal", VisioShapeDataType.String)
                         .NodeHyperlink("monitor", "https://learn.microsoft.com/azure/azure-monitor/", "Azure Monitor docs")
+                        .NodeStyle("batch", style => {
+                            style.FillColor = Color.FromRgb(73, 80, 87);
+                            style.LineColor = Color.FromRgb(45, 52, 59);
+                            style.LineWeight = 0.026D;
+                        })
                         .Zone("edge", "Edge", "users", "gateway")
                         .Zone("runtime", "Runtime", "events", "function", "worker", "batch", "monitor")
                         .Zone("data", "Data", "sql")
@@ -55,6 +61,10 @@ namespace OfficeIMO.Examples.Visio {
                         .ControlEdge("worker", "batch", "schedule")
                         .DataEdge("worker-writes-sql", "worker", "sql", "write")
                         .EdgeHyperlink("worker-writes-sql", "https://learn.microsoft.com/azure/azure-sql/database/connect-query-dotnet-core", "SQL client docs")
+                        .EdgeStyle("worker-writes-sql", style => {
+                            style.LineColor = Color.FromRgb(0, 102, 204);
+                            style.LineWeight = 0.026D;
+                        })
                         .DataEdge("sql", "function", "read model")
                         .Relationship("monitor", "function", "metrics")
                         .Relationship("monitor", "worker", "logs")

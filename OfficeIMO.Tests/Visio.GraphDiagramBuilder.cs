@@ -5,6 +5,7 @@ using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
 using OfficeIMO.Visio.Stencils;
 using Xunit;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public class VisioGraphDiagramBuilderTests {
@@ -160,6 +161,46 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Platform", loadedApi.GetShapeDataValue("Owner"));
             Assert.Contains(loadedApi.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/runbook" && hyperlink.Description == "Runbook");
             Assert.Contains(loadedConnector.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/openapi.json" && hyperlink.Description == "API contract");
+        }
+
+        [Fact]
+        public void GraphDiagramBuilderCanOverrideNodeAndNamedEdgeStyles() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            Color nodeFill = Color.FromRgb(245, 104, 85);
+            Color nodeLine = Color.FromRgb(160, 44, 34);
+            Color edgeLine = Color.FromRgb(112, 48, 160);
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .GraphDiagram("Styled Graph", graph => graph
+                    .Theme(VisioStyleTheme.Technical())
+                    .Node("api", "API")
+                    .Node("database", "Database", VisioGraphNodeKind.Data)
+                    .NodeStyle("api", style => {
+                        style.FillColor = nodeFill;
+                        style.LineColor = nodeLine;
+                        style.LineWeight = 0.031D;
+                    })
+                    .DataEdge("api-reads-database", "api", "database", "reads")
+                    .EdgeStyle("api-reads-database", style => {
+                        style.LineColor = edgeLine;
+                        style.LineWeight = 0.033D;
+                        style.LinePattern = 2;
+                        style.EndArrow = EndArrow.Arrow;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape api = page.Shapes.Single(shape => shape.Id == "api");
+            VisioConnector connector = page.Connectors.Single(edge => edge.Id == "api-reads-database");
+            Assert.Equal(nodeFill, api.FillColor);
+            Assert.Equal(nodeLine, api.LineColor);
+            Assert.Equal(0.031D, api.LineWeight, 3);
+            Assert.Equal(edgeLine, connector.LineColor);
+            Assert.Equal(0.033D, connector.LineWeight, 3);
+            Assert.Equal(2, connector.LinePattern);
+            Assert.Equal(EndArrow.Arrow, connector.EndArrow);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
         }
 
         [Fact]
