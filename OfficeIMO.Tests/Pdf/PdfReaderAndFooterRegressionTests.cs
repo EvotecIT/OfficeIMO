@@ -378,6 +378,24 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfReadPage_ExtractStructured_HonorsHeaderFooterIgnoreBands() {
+        byte[] bytes = BuildSingleStreamPdf("BT\n/F1 12 Tf\n1 0 0 1 72 760 Tm\n(Header line) Tj\n1 0 0 1 72 400 Tm\n(Body line) Tj\n1 0 0 1 72 30 Tm\n(Footer line) Tj\nET\n");
+
+        var page = PdfReadDocument.Load(bytes).Pages[0].ExtractStructured(new PdfTextLayoutOptions {
+            IgnoreHeaderHeight = 60,
+            IgnoreFooterHeight = 60,
+            ForceSingleColumn = true
+        });
+
+        Assert.Contains("Body line", page.Lines);
+        Assert.DoesNotContain("Header line", page.Lines);
+        Assert.DoesNotContain("Footer line", page.Lines);
+        Assert.Contains(page.LinesDetailed, line => line.Text == "Body line");
+        Assert.DoesNotContain(page.LinesDetailed, line => line.Text == "Header line");
+        Assert.DoesNotContain(page.LinesDetailed, line => line.Text == "Footer line");
+    }
+
+    [Fact]
     public void PdfTextExtractor_ExtractAllText_ReadsTDTextPositioningAsLineAdvance() {
         byte[] bytes = BuildPdfWithTDTextPositioning();
 

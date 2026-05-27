@@ -445,6 +445,14 @@ public static class PdfReadPageExtensions {
     /// <param name="options">Optional layout options.</param>
     public static StructuredPage ExtractStructured(this PdfReadPage page, PdfTextLayoutOptions? options = null) {
         var spans = page.GetTextSpans();
+        if (options is not null && (options.IgnoreHeaderHeight > 0 || options.IgnoreFooterHeight > 0)) {
+            var (_, h) = page.GetPageSize();
+            double topCut = h - options.IgnoreHeaderHeight;
+            double bottomCut = options.IgnoreFooterHeight;
+            spans = spans.Where(span => (options.IgnoreHeaderHeight <= 0 || span.Y < topCut)
+                                     && (options.IgnoreFooterHeight <= 0 || span.Y > bottomCut)).ToList();
+        }
+
         var engineOpts = options?.ToEngineOptions();
         return ContentStructureExtractor.Extract(spans, engineOpts ?? new TextLayoutEngine.Options());
     }
