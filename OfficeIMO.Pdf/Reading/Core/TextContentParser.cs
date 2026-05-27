@@ -10,6 +10,28 @@ internal static class TextContentParser {
         "er", "ers", "ed", "ly", "ology", "ologies"
     };
 
+    private readonly struct TextGraphicsState {
+        public Matrix2D Ctm { get; }
+        public string Font { get; }
+        public double Size { get; }
+        public double Leading { get; }
+        public double CharSpacing { get; }
+        public double WordSpacing { get; }
+        public double HScale { get; }
+        public double TextRise { get; }
+
+        public TextGraphicsState(Matrix2D ctm, string font, double size, double leading, double charSpacing, double wordSpacing, double hScale, double textRise) {
+            Ctm = ctm;
+            Font = font;
+            Size = size;
+            Leading = leading;
+            CharSpacing = charSpacing;
+            WordSpacing = wordSpacing;
+            HScale = hScale;
+            TextRise = textRise;
+        }
+    }
+
     internal readonly struct FormInvocation {
         public string Name { get; }
         public Matrix2D Transform { get; }
@@ -32,7 +54,7 @@ internal static class TextContentParser {
         Matrix2D textMatrix = Matrix2D.Identity;
         Matrix2D lineMatrix = Matrix2D.Identity;
         // Graphics state (CTM) and stack
-        Matrix2D ctm = Matrix2D.Identity; var gstack = new System.Collections.Generic.Stack<Matrix2D>();
+        Matrix2D ctm = Matrix2D.Identity; var gstack = new System.Collections.Generic.Stack<TextGraphicsState>();
         // Operand buffer (tokens collected since last operator)
         var args = new List<object>(8);
         int i = 0; int n = content.Length;
@@ -72,8 +94,26 @@ internal static class TextContentParser {
                 case "Tw": if (args.Count >= 1) { wordSpacing = ToDouble(args[args.Count - 1]); args.Clear(); } break;
                 case "Tz": if (args.Count >= 1) { hScale = ToDouble(args[args.Count - 1]) / 100.0; args.Clear(); } break;
                 case "Ts": if (args.Count >= 1) { textRise = ToDouble(args[args.Count - 1]); args.Clear(); } break;
-                case "q": gstack.Push(ctm); args.Clear(); break;
-                case "Q": ctm = gstack.Count > 0 ? gstack.Pop() : Matrix2D.Identity; args.Clear(); break;
+                case "q":
+                    gstack.Push(new TextGraphicsState(ctm, font, size, leading, charSpacing, wordSpacing, hScale, textRise));
+                    args.Clear();
+                    break;
+                case "Q":
+                    if (gstack.Count > 0) {
+                        var state = gstack.Pop();
+                        ctm = state.Ctm;
+                        font = state.Font;
+                        size = state.Size;
+                        leading = state.Leading;
+                        charSpacing = state.CharSpacing;
+                        wordSpacing = state.WordSpacing;
+                        hScale = state.HScale;
+                        textRise = state.TextRise;
+                    } else {
+                        ctm = Matrix2D.Identity;
+                    }
+                    args.Clear();
+                    break;
                 case "cm": if (args.Count >= 6) { var m2 = new Matrix2D(ToDouble(args[args.Count - 6]), ToDouble(args[args.Count - 5]), ToDouble(args[args.Count - 4]), ToDouble(args[args.Count - 3]), ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1])); ctm = Matrix2D.Multiply(ctm, m2); args.Clear(); } break;
                 case "'": // move to next line and show text
                     if (args.Count >= 1) { MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; }

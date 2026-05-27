@@ -254,6 +254,34 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void TextContentParser_RestoresTextStateAcrossGraphicsStateStack() {
+        const string content = "BT /F1 10 Tf 0 0 Td (A) Tj ET q BT /F2 20 Tf 10 Tc 50 Tz 5 Ts 10 0 Td (B) Tj ET Q BT 20 0 Td (C) Tj ET";
+
+        var spans = TextContentParser.Parse(
+            content,
+            static (_, bytes) => Encoding.ASCII.GetString(bytes),
+            static (font, bytes) => font == "F2" ? (bytes?.Length ?? 0) * 1000 : (bytes?.Length ?? 0) * 500);
+
+        PdfTextSpan first = Assert.Single(spans, span => span.Text == "A");
+        PdfTextSpan scoped = Assert.Single(spans, span => span.Text == "B");
+        PdfTextSpan restored = Assert.Single(spans, span => span.Text == "C");
+
+        Assert.Equal("F1", first.FontResource);
+        Assert.Equal(10, first.FontSize);
+        Assert.Equal(5, first.Advance, 3);
+
+        Assert.Equal("F2", scoped.FontResource);
+        Assert.Equal(20, scoped.FontSize);
+        Assert.Equal(5, scoped.Y, 3);
+
+        Assert.Equal("F1", restored.FontResource);
+        Assert.Equal(10, restored.FontSize);
+        Assert.Equal(20, restored.X, 3);
+        Assert.Equal(0, restored.Y, 3);
+        Assert.Equal(5, restored.Advance, 3);
+    }
+
+    [Fact]
     public void PdfReadPage_GetTextSpans_ReadsSimpleFontEncodingDifferences() {
         byte[] bytes = BuildPdfWithFontEncodingDifferences();
 
