@@ -7,6 +7,7 @@ internal static partial class PdfWriter {
         // Layout blocks into pages and create per-page content streams.
         var layout = LayoutBlocks(blocks, opts);
         ValidateNamedDestinationLinks(layout.Pages);
+        ValidateGeneratedFormFieldNames(layout.Pages);
 
         // Build PDF objects as byte arrays, then assemble with xref.
         var objects = new List<byte[]>();
@@ -307,6 +308,17 @@ internal static partial class PdfWriter {
 
                 if (!destinations.Contains(annotation.DestinationName!)) {
                     throw new ArgumentException($"PDF bookmark link target '{annotation.DestinationName}' was not found.");
+                }
+            }
+        }
+    }
+
+    private static void ValidateGeneratedFormFieldNames(IReadOnlyList<LayoutResult.Page> pages) {
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var page in pages) {
+            foreach (var field in page.FormFields) {
+                if (!names.Add(field.Name)) {
+                    throw new ArgumentException("PDF generated form field names must be unique: " + field.Name);
                 }
             }
         }

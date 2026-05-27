@@ -258,5 +258,10 @@ public class PdfFormCreationTests {
         Assert.Throws<ArgumentException>(() => PdfDoc.Create().MultiSelectChoiceField("Countries", new[] { "One" }, values: new[] { "Two" }));
         Assert.Throws<ArgumentException>(() => PdfDoc.Create().MultiSelectChoiceField("Countries", new[] { "One" }, values: new[] { "One", "One" }));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDoc.Create().MultiSelectChoiceField("Countries", new[] { "One" }, height: 0));
+
+        Assert.Throws<ArgumentException>(() => PdfDoc.Create()
+            .TextField("Email")
+            .CheckBox("Email")
+            .ToBytes());
     }
 }

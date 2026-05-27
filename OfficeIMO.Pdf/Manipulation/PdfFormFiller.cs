@@ -199,7 +199,7 @@ public static class PdfFormFiller {
         var widgets = new Dictionary<int, FlattenWidgetState>();
         var removableObjects = new HashSet<int>();
         for (int i = 0; i < fields.Items.Count; i++) {
-            CollectFlattenWidgets(objects, fields.Items[i], null, null, null, widgets, removableObjects, new HashSet<int>(), ref nextObjectNumber);
+            CollectFlattenWidgets(objects, fields.Items[i], null, null, null, null, widgets, removableObjects, new HashSet<int>(), ref nextObjectNumber);
         }
 
         if (widgets.Count == 0) {
@@ -441,6 +441,7 @@ public static class PdfFormFiller {
         string? inheritedFieldType,
         string? inheritedDisplayValue,
         string? inheritedName,
+        PdfArray? inheritedChoiceOptions,
         Dictionary<int, FlattenWidgetState> widgets,
         HashSet<int> removableObjects,
         HashSet<int> visited,
@@ -464,11 +465,12 @@ public static class PdfFormFiller {
         string? partialName = TryReadText(objects, field, "T");
         string? fullName = CombineFieldName(inheritedName, partialName);
         string? fieldType = TryReadName(objects, field, "FT") ?? inheritedFieldType;
+        PdfArray? choiceOptions = TryReadChoiceOptions(objects, field) ?? inheritedChoiceOptions;
         IReadOnlyList<string>? values = TryReadSimpleValues(objects, field, "V");
         string? value = values is { Count: > 0 } ? values[0] : inheritedDisplayValue;
         bool isButtonField = string.Equals(fieldType, "Btn", StringComparison.Ordinal);
         string? appearanceValue = string.Equals(fieldType, "Ch", StringComparison.Ordinal)
-            ? TryResolveChoiceDisplayValue(objects, field, values) ?? JoinSimpleValues(values) ?? inheritedDisplayValue
+            ? TryResolveChoiceDisplayValue(objects, choiceOptions, values) ?? JoinSimpleValues(values) ?? inheritedDisplayValue
             : value;
 
         if (IsWidget(field)) {
@@ -504,7 +506,7 @@ public static class PdfFormFiller {
         }
 
         for (int i = 0; i < kids.Items.Count; i++) {
-            CollectFlattenWidgets(objects, kids.Items[i], fieldType, appearanceValue, fullName, widgets, removableObjects, visited, ref nextObjectNumber);
+            CollectFlattenWidgets(objects, kids.Items[i], fieldType, appearanceValue, fullName, choiceOptions, widgets, removableObjects, visited, ref nextObjectNumber);
         }
     }
 
@@ -695,8 +697,13 @@ public static class PdfFormFiller {
         }
 
         if (string.Equals(fieldType, "Ch", StringComparison.Ordinal)) {
+            bool isMultiSelectChoice = (fieldFlags & MultiSelectChoiceFlag) != 0;
+            if (values.Count > 1 && !isMultiSelectChoice) {
+                throw new ArgumentException("PDF scalar choice field cannot be filled with multiple values.", nameof(value));
+            }
+
             IReadOnlyList<ChoiceFillValue> choiceValues = ResolveChoiceFillValues(objects, choiceOptions, (fieldFlags & EditableChoiceFlag) != 0, values);
-            if (choiceValues.Count > 1 || (fieldFlags & MultiSelectChoiceFlag) != 0) {
+            if (isMultiSelectChoice) {
                 field.Items["V"] = CreateStringArray(choiceValues.Select(item => item.ExportValue));
                 SetTextWidgetAppearances(objects, field, string.Join(", ", choiceValues.Select(item => item.DisplayValue)), new HashSet<int>(), ref nextObjectNumber);
                 return;
@@ -1064,10 +1071,9 @@ public static class PdfFormFiller {
             : null;
     }
 
-    private static string? TryResolveChoiceDisplayValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, IReadOnlyList<string>? exportValues) {
+    private static string? TryResolveChoiceDisplayValue(Dictionary<int, PdfIndirectObject> objects, PdfArray? options, IReadOnlyList<string>? exportValues) {
         if (exportValues is not { Count: > 0 } ||
-            !dictionary.Items.TryGetValue("Opt", out var optionsObject) ||
-            ResolveObject(objects, optionsObject) is not PdfArray options ||
+            options is null ||
             options.Items.Count == 0) {
             return null;
         }
