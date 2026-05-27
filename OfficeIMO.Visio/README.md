@@ -129,6 +129,47 @@ nodes and directed relationships. It automatically grows the page, places
 component/data/external/decision nodes, routes dependencies, supports semantic
 coordinate or side-placed callouts, and rejects cycles.
 
+## Quick sample (graph diagram builder)
+
+```csharp
+using System;
+using System.IO;
+using System.Linq;
+using OfficeIMO.Visio;
+using OfficeIMO.Visio.Diagrams;
+using OfficeIMO.Visio.Stencils;
+
+var installed = VisioStencilPackageCatalog.DiscoverInstalledVisioPackages()
+    .Where(path => Path.GetFileName(path).StartsWith("AZURE", StringComparison.OrdinalIgnoreCase));
+var stencils = VisioStencilPackageCatalog.LoadMany(installed,
+    new VisioStencilPackageLoadOptions {
+        IncludeUnsupportedMasters = true
+    });
+
+VisioDocument.Create("graph.vsdx")
+    .GraphDiagram("Event-driven graph", graph => graph
+        .Title()
+        .Layout(VisioGraphLayout.Layered)
+        .Direction(VisioGraphDirection.LeftToRight)
+        .StencilNode("gateway", "API", stencils.Search("API Management").First())
+        .StencilNode("events", "Events", stencils.Search("Event Grid").First())
+        .Node("worker", "Worker")
+        .Node("database", "Database", VisioGraphNodeKind.Data)
+        .Zone("runtime", "Runtime", "gateway", "events", "worker")
+        .Root("gateway")
+        .ControlEdge("gateway", "events", "publish")
+        .Edge("events", "worker", "trigger")
+        .DataEdge("worker", "database", "write")
+        .DataEdge("database", "gateway", "read model"))
+    .Save();
+```
+
+The generic graph builder is for real node/edge maps that are not strict DAGs
+or one diagram domain. It supports layered, grid, and radial layouts; directed
+and undirected edges; cycles; disconnected components; background zones; native
+nodes; and source-aware `VisioStencilShape` nodes loaded from installed Visio
+or external `.vssx`/`.vstx` packages.
+
 ## Quick sample (architecture diagram builder)
 
 ```csharp
@@ -1061,7 +1102,7 @@ See `OfficeIMO.Examples/Visio/*` for more.
 - 📄 Pages: ✅ add/remove pages
 - 🧱 Shapes: ✅ basic shapes from masters (rectangle, etc.), ✅ set text
 - 🔗 Connectors: ✅ basic connectors between shapes
-- 🧭 Diagram builders: ✅ flowchart builder with vertical and two-column continuation layouts plus branch routing, ✅ block diagram builder with grid regions and data/control flows, ✅ architecture builder with infrastructure components, regions, and routed data/control/dependency flows, ✅ network builder with zones, devices, links, and legends, ✅ sequence builder with participants, lifelines, message types, and self-calls, ✅ swimlane builder with lanes, phases, activities, handoffs, and exception paths, ✅ org chart builder with hierarchy, assistants, team bands, vacancies, and external roles, ✅ timeline builder with date-scaled milestones and span lanes
+- 🧭 Diagram builders: ✅ flowchart builder with vertical and two-column continuation layouts plus branch routing, ✅ generic graph builder with cycles, disconnected components, layered/grid/radial layouts, zones, and package-backed stencil nodes, ✅ block diagram builder with grid regions and data/control flows, ✅ architecture builder with infrastructure components, regions, and routed data/control/dependency flows, ✅ network builder with zones, devices, links, and legends, ✅ sequence builder with participants, lifelines, message types, and self-calls, ✅ swimlane builder with lanes, phases, activities, handoffs, and exception paths, ✅ org chart builder with hierarchy, assistants, team bands, vacancies, and external roles, ✅ timeline builder with date-scaled milestones and span lanes
 - 🧰 Native stencils: ✅ built-in searchable catalogs for basic, flowchart, block-diagram, architecture, network, sequence, swimlane, org-chart, and timeline shapes
 - 🎨 Style themes: ✅ reusable shape/connector/text styles and Modern/Office/Fluent/Technical/Minimal/Dark/Print authoring presets
 - 🔎 Rich editing: ✅ recursive shape queries, shape/data/text/master/layer/hyperlink selectors, connector neighbor queries, page layers, shape and connector hyperlinks, bulk style/data/layer/hyperlink edits, align/distribute, resize-to-text, center content, and fit-to-content

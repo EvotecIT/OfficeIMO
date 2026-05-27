@@ -199,11 +199,17 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--visio-graph")) {
+                Visio.GraphDiagramBuilder.Example_GraphDiagramBuilder(folderPath, HasArgument(args, "--open-visio") || HasArgument(args, "--visio-open"));
+                return;
+            }
+
             // Visio - Core Examples
             // Visio.BasicVisioDocument.Example_BasicVisio(folderPath, false);
             // Visio.FlowchartBuilder.Example_FlowchartBuilder(folderPath, false);
             // Visio.BlockDiagramBuilder.Example_BlockDiagramBuilder(folderPath, false);
             // Visio.DependencyDiagramBuilder.Example_DependencyDiagramBuilder(folderPath, false);
+            // Visio.GraphDiagramBuilder.Example_GraphDiagramBuilder(folderPath, false);
             // Visio.ArchitectureDiagramBuilder.Example_ArchitectureDiagramBuilder(folderPath, false);
             // Visio.NetworkDiagramBuilder.Example_NetworkDiagramBuilder(folderPath, false);
             // Visio.NetworkTopologyDiagramBuilder.Example_NetworkTopologyDiagramBuilder(folderPath, false);

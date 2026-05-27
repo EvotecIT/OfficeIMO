@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Visio {
         public static void Example_VisioShowcase(string folderPath, bool openVisio, bool exportPreviews) {
             Console.WriteLine("[*] Visio - Showcase examples");
             string showcasePath = Path.Combine(folderPath, "Visio Showcase");
-            Directory.CreateDirectory(showcasePath);
+            PrepareShowcaseDirectory(showcasePath);
 
             List<VisioShowcaseExample> examples = new() {
                 new VisioShowcaseExample("01 Basic fluent shapes", () => FluentBasicVisio.Example_FluentBasicVisio(showcasePath, false)),
@@ -20,16 +20,17 @@ namespace OfficeIMO.Examples.Visio {
                 new VisioShowcaseExample("05 Sequence builder", () => SequenceDiagramBuilder.Example_SequenceDiagramBuilder(showcasePath, false)),
                 new VisioShowcaseExample("06 Network topology builder", () => NetworkTopologyDiagramBuilder.Example_NetworkTopologyDiagramBuilder(showcasePath, false)),
                 new VisioShowcaseExample("07 Azure architecture builder", () => ArchitectureDiagramBuilder.Example_ArchitectureDiagramBuilder(showcasePath, false)),
-                new VisioShowcaseExample("08 Editing and data", () => ShapeDataEditing.Example_ShapeDataEditing(showcasePath, false)),
-                new VisioShowcaseExample("09 Containers and routing", () => ContainerEditing.Example_ContainerEditing(showcasePath, false)),
-                new VisioShowcaseExample("10 Visual quality gallery", () => VisualQualityGallery.Example_VisualQualityGallery(showcasePath, false))
+                new VisioShowcaseExample("08 Generic graph builder", () => GraphDiagramBuilder.Example_GraphDiagramBuilder(showcasePath, false)),
+                new VisioShowcaseExample("09 Editing and data", () => ShapeDataEditing.Example_ShapeDataEditing(showcasePath, false)),
+                new VisioShowcaseExample("10 Containers and routing", () => ContainerEditing.Example_ContainerEditing(showcasePath, false)),
+                new VisioShowcaseExample("11 Visual quality gallery", () => VisualQualityGallery.Example_VisualQualityGallery(showcasePath, false))
             };
             string? externalStencilPack = Environment.GetEnvironmentVariable("OFFICEIMO_VISIO_STENCIL_PACK");
             if (!string.IsNullOrWhiteSpace(externalStencilPack) && File.Exists(externalStencilPack)) {
-                examples.Add(new VisioShowcaseExample("11 External VSSX stencil pack", () => ExternalStencilPack.Example_ExternalStencilPack(showcasePath, false, externalStencilPack)));
+                examples.Add(new VisioShowcaseExample("12 External VSSX stencil pack", () => ExternalStencilPack.Example_ExternalStencilPack(showcasePath, false, externalStencilPack)));
             }
             if (global::OfficeIMO.Visio.Stencils.VisioStencilPackageCatalog.DiscoverInstalledVisioPackages().Count > 0) {
-                examples.Add(new VisioShowcaseExample("12 Installed Visio stencil packages", () => InstalledVisioStencils.Example_InstalledVisioStencils(showcasePath, false)));
+                examples.Add(new VisioShowcaseExample("13 Installed Visio stencil packages", () => InstalledVisioStencils.Example_InstalledVisioStencils(showcasePath, false)));
             }
 
             foreach (VisioShowcaseExample example in examples) {
@@ -51,6 +52,18 @@ namespace OfficeIMO.Examples.Visio {
 
             if (openVisio && generatedFiles.Count > 0) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(generatedFiles[0]) { UseShellExecute = true });
+            }
+        }
+
+        private static void PrepareShowcaseDirectory(string showcasePath) {
+            Directory.CreateDirectory(showcasePath);
+            foreach (string filePath in Directory.EnumerateFiles(showcasePath, "*.vsdx", SearchOption.AllDirectories)) {
+                File.Delete(filePath);
+            }
+
+            string previewPath = Path.Combine(showcasePath, "Preview");
+            if (Directory.Exists(previewPath)) {
+                Directory.Delete(previewPath, recursive: true);
             }
         }
 
