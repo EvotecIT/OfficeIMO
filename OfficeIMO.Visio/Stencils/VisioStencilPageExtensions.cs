@@ -87,6 +87,12 @@ namespace OfficeIMO.Visio.Stencils {
             VisioDocument? document = page.OwnerDocument;
             string shapeText = text ?? stencil.Name;
 
+            if (document != null &&
+                !string.IsNullOrWhiteSpace(stencil.SourcePackagePath) &&
+                document.TryGetMaster(stencil.MasterNameU, out _) == false) {
+                document.ImportStencilMasters(stencil.SourcePackagePath!, new[] { stencil.MasterNameU });
+            }
+
             if (document?.TryGetMaster(stencil.MasterNameU, out VisioMaster? registeredMaster) == true && registeredMaster != null) {
                 x = x.ToInches(placementUnit);
                 y = y.ToInches(placementUnit);

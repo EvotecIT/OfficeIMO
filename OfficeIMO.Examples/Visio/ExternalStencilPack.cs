@@ -33,7 +33,6 @@ namespace OfficeIMO.Examples.Visio {
             }
 
             VisioDocument document = VisioDocument.Create(filePath);
-            document.ImportStencilMastersAndGet(stencilPackPath, selected.Select(shape => shape.MasterNameU));
             VisioPage page = document.AddPage("External Stencil Pack", 14, 8.5);
             page.Grid(visible: false, snap: true);
 

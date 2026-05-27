@@ -556,14 +556,50 @@ doc.Save();
 ```
 
 `VisioStencilPackageCatalog.Load(...)` reads master metadata from `.vsdx`,
-`.vssx`, and `.vstx` packages. It does not use those files as runtime templates;
-by default it only exposes masters that OfficeIMO can generate natively and, when
-master parts are present, learns the native master width and height as reusable
-catalog metadata. The `MasterNames` filter can target the universal name, visible
-name, relationship id, numeric id, or normalized slug discovered in the package. Set
-`IncludeUnsupportedMasters` only when a generic generated placeholder is useful
-for discovery, migration tooling, or keeping a learned palette placeable without
-shipping the source stencil or template.
+`.vssx`, `.vstx`, and the macro-enabled package variants. It does not use those
+files as runtime templates. The `MasterNames` filter can target the universal
+name, visible name, relationship id, numeric id, or normalized slug discovered in
+the package.
+
+When you want real external artwork, load the package catalog with
+`IncludeUnsupportedMasters = true` and place shapes from that catalog. Package
+catalog shapes retain their `SourcePackagePath`, so `AddStencilShape(...)`
+auto-imports the required raw master XML, relationships, media, colors, styles,
+fonts, and theme into the generated `.vsdx`:
+
+```csharp
+using OfficeIMO.Visio;
+using OfficeIMO.Visio.Stencils;
+
+var catalog = VisioStencilPackageCatalog.Load("Azure.vssx",
+    new VisioStencilPackageLoadOptions {
+        IncludeUnsupportedMasters = true
+    });
+
+var doc = VisioDocument.Create("external-stencils.vsdx");
+var page = doc.AddPage("Architecture", 14, 8.5);
+
+var api = page.AddStencilShape(catalog.Get("API Management"), "api", 2, 5);
+var queue = page.AddStencilShape(catalog.Search("Service Bus").First(), "queue", 5, 5);
+
+page.AddConnector(api, queue, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+doc.Save();
+```
+
+Use `LoadMany(...)` or `LoadDirectory(...)` to compose a palette from many packs.
+`DiscoverInstalledVisioPackages()` finds the local Microsoft Visio `.vssx` and
+`.vstx` content folders without automating Visio, letting you build diagrams from
+installed Visio stencils while keeping OfficeIMO itself dependency-free:
+
+```csharp
+var installed = VisioStencilPackageCatalog.DiscoverInstalledVisioPackages()
+    .Where(path => Path.GetFileName(path).StartsWith("AZURE", StringComparison.OrdinalIgnoreCase));
+var azure = VisioStencilPackageCatalog.LoadMany(installed,
+    new VisioStencilPackageLoadOptions {
+        CatalogName = "Installed Azure Stencils",
+        IncludeUnsupportedMasters = true
+    });
+```
 
 `VisioStencilCatalog.Save(...)` and `VisioStencilCatalog.Load(...)` persist
 OfficeIMO-native catalog metadata as a small XML manifest. This is useful for

@@ -440,6 +440,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageCatalogLoadManyAutoImportsSourceMasters() {
+            string firstPackage = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            string secondPackage = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            CreatePackageWithRawGroupMaster(firstPackage, "FancyCloud", "Fancy Cloud");
+            CreatePackageWithRawGroupMaster(secondPackage, "DataVault", "Data Vault");
+
+            VisioStencilCatalog catalog = VisioStencilPackageCatalog.LoadMany(new[] { firstPackage, secondPackage }, new VisioStencilPackageLoadOptions {
+                CatalogName = "Combined",
+                IncludeUnsupportedMasters = true
+            });
+
+            VisioStencilShape cloudStencil = catalog.Get("fancy-cloud");
+            VisioStencilShape vaultStencil = catalog.Get("data-vault");
+            string manifestPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xml");
+            catalog.Save(manifestPath);
+            VisioStencilCatalog reloadedCatalog = VisioStencilCatalog.Load(manifestPath);
+            Assert.Equal(Path.GetFullPath(firstPackage), reloadedCatalog.Get("fancy-cloud").SourcePackagePath);
+
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("External Stencils");
+            VisioShape cloud = page.AddStencilShape(cloudStencil, "cloud", 2, 4);
+            VisioShape vault = page.AddStencilShape(vaultStencil, "vault", 5, 4);
+            document.Save();
+
+            Assert.Equal(Path.GetFullPath(firstPackage), cloudStencil.SourcePackagePath);
+            Assert.Equal(Path.GetFullPath(secondPackage), vaultStencil.SourcePackagePath);
+            Assert.Equal(cloudStencil.MasterNameU, cloud.MasterNameU);
+            Assert.Equal(vaultStencil.MasterNameU, vault.MasterNameU);
+            Assert.NotNull(cloud.Master);
+            Assert.NotNull(vault.Master);
+            Assert.Empty(VisioValidator.Validate(filePath));
+
+            using ZipArchive zip = ZipFile.OpenRead(filePath);
+            Assert.NotNull(zip.GetEntry("visio/masters/master1.xml"));
+            Assert.NotNull(zip.GetEntry("visio/masters/master2.xml"));
+        }
+
+        [Fact]
         public void CatalogThrowsForUnknownStencilShape() {
             KeyNotFoundException exception = Assert.Throws<KeyNotFoundException>(() => VisioStencils.BasicShapes.Get("not-here"));
 

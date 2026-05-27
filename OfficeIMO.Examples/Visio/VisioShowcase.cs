@@ -28,6 +28,9 @@ namespace OfficeIMO.Examples.Visio {
             if (!string.IsNullOrWhiteSpace(externalStencilPack) && File.Exists(externalStencilPack)) {
                 examples.Add(new VisioShowcaseExample("11 External VSSX stencil pack", () => ExternalStencilPack.Example_ExternalStencilPack(showcasePath, false, externalStencilPack)));
             }
+            if (global::OfficeIMO.Visio.Stencils.VisioStencilPackageCatalog.DiscoverInstalledVisioPackages().Count > 0) {
+                examples.Add(new VisioShowcaseExample("12 Installed Visio stencil packages", () => InstalledVisioStencils.Example_InstalledVisioStencils(showcasePath, false)));
+            }
 
             foreach (VisioShowcaseExample example in examples) {
                 Console.WriteLine($"  - {example.Name}");

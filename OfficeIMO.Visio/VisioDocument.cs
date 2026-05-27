@@ -5,6 +5,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
+using OfficeIMO.Visio.Stencils;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -233,6 +234,32 @@ namespace OfficeIMO.Visio {
 
                 RegisterMaster(master);
                 imported.Add(master);
+            }
+
+            return imported.AsReadOnly();
+        }
+
+        /// <summary>
+        /// Imports the package-backed masters required by the provided stencil shapes.
+        /// Shapes loaded from multiple `.vssx`, `.vstx`, or `.vsdx` packages are grouped by source package.
+        /// </summary>
+        /// <param name="shapes">Stencil shapes with <see cref="VisioStencilShape.SourcePackagePath"/> metadata.</param>
+        public void ImportStencilMasters(IEnumerable<VisioStencilShape> shapes) {
+            ImportStencilMastersAndGet(shapes);
+        }
+
+        /// <summary>
+        /// Imports the package-backed masters required by the provided stencil shapes and returns the imported masters.
+        /// </summary>
+        /// <param name="shapes">Stencil shapes with <see cref="VisioStencilShape.SourcePackagePath"/> metadata.</param>
+        public IReadOnlyList<VisioMaster> ImportStencilMastersAndGet(IEnumerable<VisioStencilShape> shapes) {
+            if (shapes == null) throw new ArgumentNullException(nameof(shapes));
+
+            List<VisioMaster> imported = new();
+            foreach (IGrouping<string, VisioStencilShape> group in shapes
+                .Where(shape => shape != null && !string.IsNullOrWhiteSpace(shape.SourcePackagePath))
+                .GroupBy(shape => shape.SourcePackagePath!, StringComparer.OrdinalIgnoreCase)) {
+                imported.AddRange(ImportStencilMastersAndGet(group.Key, group.Select(shape => shape.MasterNameU)));
             }
 
             return imported.AsReadOnly();

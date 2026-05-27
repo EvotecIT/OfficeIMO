@@ -194,6 +194,11 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--visio-installed-stencils")) {
+                Visio.InstalledVisioStencils.Example_InstalledVisioStencils(folderPath, HasArgument(args, "--open-visio") || HasArgument(args, "--visio-open"));
+                return;
+            }
+
             // Visio - Core Examples
             // Visio.BasicVisioDocument.Example_BasicVisio(folderPath, false);
             // Visio.FlowchartBuilder.Example_FlowchartBuilder(folderPath, false);
