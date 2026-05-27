@@ -329,6 +329,7 @@ namespace OfficeIMO.Excel {
         private ExcelSheet? _pendingDirectCellValueSheet;
         private bool _materializingDeferredDataSetImport;
         private bool _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark;
+        private int _directDataSetExternalCellMutationPreservationDepth;
 
         /// <summary>
         /// Diagnostics for the most recent save operation.
@@ -390,6 +391,9 @@ namespace OfficeIMO.Excel {
 
         internal bool IsMaterializingDeferredDataSetImport => _materializingDeferredDataSetImport;
 
+        internal bool IsPreservingDirectDataSetExternalCellMutation
+            => _directDataSetExternalCellMutationPreservationDepth > 0;
+
         internal bool HasDirectDataSetFastSaveState
             => _materializedDirectDataSetFastSaveModel != null
                || _directDataSetSaveCandidate?.IsValid == true;
@@ -433,7 +437,10 @@ namespace OfficeIMO.Excel {
 
                 int lastDirectRow = sheetModel.Table.RowCount + (sheetModel.IncludeHeaders ? 1 : 0);
                 if (row > lastDirectRow || column > sheetModel.Table.ColumnCount) {
-                    return PreserveDirectDataSetFastSaveStateDuringDirtyMarks();
+                    _directDataSetSaveCandidatePreservationDepth++;
+                    _materializedDirectDataSetFastSaveModelPreservationDepth++;
+                    _directDataSetExternalCellMutationPreservationDepth++;
+                    return new DirectDataSetExternalCellMutationPreservationScope(this);
                 }
 
                 if (hasMaterializedModel) {
@@ -495,6 +502,34 @@ namespace OfficeIMO.Excel {
 
                 if (document._materializedDirectDataSetFastSaveModelPreservationDepth > 0) {
                     document._materializedDirectDataSetFastSaveModelPreservationDepth--;
+                }
+            }
+        }
+
+        private sealed class DirectDataSetExternalCellMutationPreservationScope : IDisposable {
+            private ExcelDocument? _document;
+
+            internal DirectDataSetExternalCellMutationPreservationScope(ExcelDocument document) {
+                _document = document;
+            }
+
+            public void Dispose() {
+                var document = _document;
+                if (document == null) {
+                    return;
+                }
+
+                _document = null;
+                if (document._directDataSetSaveCandidatePreservationDepth > 0) {
+                    document._directDataSetSaveCandidatePreservationDepth--;
+                }
+
+                if (document._materializedDirectDataSetFastSaveModelPreservationDepth > 0) {
+                    document._materializedDirectDataSetFastSaveModelPreservationDepth--;
+                }
+
+                if (document._directDataSetExternalCellMutationPreservationDepth > 0) {
+                    document._directDataSetExternalCellMutationPreservationDepth--;
                 }
             }
         }

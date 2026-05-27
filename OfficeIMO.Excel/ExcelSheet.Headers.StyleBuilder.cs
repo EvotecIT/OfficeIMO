@@ -22,7 +22,8 @@ namespace OfficeIMO.Excel {
                 return this;
             }
 
-            if (_sheet.Document.TrySetDirectTabularSaveCandidateColumnNumberFormat(_sheet, _colIndex, numberFormat)) {
+            if (_startRow > 1
+                && _sheet.Document.TrySetDirectTabularSaveCandidateColumnNumberFormat(_sheet, _colIndex, numberFormat)) {
                 return this;
             }
 

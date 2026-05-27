@@ -75,8 +75,8 @@ namespace OfficeIMO.Excel {
         private bool TryWriteExtendedWorkbookPackage(Stream destination, ExcelSaveOptions? options, bool updateDocumentState, out string? skipReason, CancellationToken ct = default) {
             skipReason = null;
 
-            if (destination == null || !destination.CanWrite || !destination.CanSeek) {
-                skipReason = "Destination stream must be writable and seekable.";
+            if (destination == null || !destination.CanWrite) {
+                skipReason = "Destination stream must be writable.";
                 return false;
             }
 
@@ -143,13 +143,28 @@ namespace OfficeIMO.Excel {
             }
 
             ct.ThrowIfCancellationRequested();
-            PrepareDestinationStreamForWrite(destination);
+            MemoryStream? nonSeekableBuffer = null;
+            Stream writeTarget = destination;
+            if (!destination.CanSeek) {
+                nonSeekableBuffer = new MemoryStream();
+                writeTarget = nonSeekableBuffer;
+            }
+
+            PrepareDestinationStreamForWrite(writeTarget);
             ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.PrepareDestination");
-            ExtendedWorkbookPackageWriter.Write(destination, model, ct, Execution);
+            ExtendedWorkbookPackageWriter.Write(writeTarget, model, ct, Execution);
             ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.WritePackage");
 
-            destination.Flush();
-            destination.Seek(0, SeekOrigin.Begin);
+            writeTarget.Flush();
+            if (nonSeekableBuffer != null) {
+                nonSeekableBuffer.Position = 0;
+                nonSeekableBuffer.CopyTo(destination);
+                destination.Flush();
+                nonSeekableBuffer.Dispose();
+            } else {
+                destination.Seek(0, SeekOrigin.Begin);
+            }
+
             ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.FlushAndSeek");
             if (updateDocumentState) {
                 _packageDirty = false;
@@ -251,16 +266,6 @@ namespace OfficeIMO.Excel {
                         workbookRelationshipId,
                         workbookPart.RelationshipType,
                         NormalizePackagePartPath(workbookPart.Uri),
-                        isExternal: false),
-                    new ExtendedRelationshipModel(
-                        "rIdCore",
-                        "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
-                        "docProps/core.xml",
-                        isExternal: false),
-                    new ExtendedRelationshipModel(
-                        "rIdApp",
-                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
-                        "docProps/app.xml",
                         isExternal: false)
                 };
 
@@ -287,6 +292,28 @@ namespace OfficeIMO.Excel {
                         external.RelationshipType,
                         external.Uri.ToString(),
                         isExternal: true));
+                }
+
+                if (!packageRelationships.Any(static relationship => string.Equals(
+                    relationship.RelationshipType,
+                    "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+                    StringComparison.Ordinal))) {
+                    packageRelationships.Add(new ExtendedRelationshipModel(
+                        CreateRelationshipId(packageRelationships),
+                        "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+                        "docProps/core.xml",
+                        isExternal: false));
+                }
+
+                if (!packageRelationships.Any(static relationship => string.Equals(
+                    relationship.RelationshipType,
+                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+                    StringComparison.Ordinal))) {
+                    packageRelationships.Add(new ExtendedRelationshipModel(
+                        CreateRelationshipId(packageRelationships),
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+                        "docProps/app.xml",
+                        isExternal: false));
                 }
 
                 var directWorksheetModels = directDataSetModel == null
@@ -338,6 +365,15 @@ namespace OfficeIMO.Excel {
                 }
 
                 return map;
+            }
+
+            private static string CreateRelationshipId(IReadOnlyList<ExtendedRelationshipModel> relationships) {
+                for (int i = 1; ; i++) {
+                    string id = "rId" + InvariantNumberText.Get(i);
+                    if (!relationships.Any(relationship => string.Equals(relationship.Id, id, StringComparison.Ordinal))) {
+                        return id;
+                    }
+                }
             }
 
             private static bool TryCollectPart(

@@ -4248,6 +4248,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_InsertObjects_ExternalCellMutationDoesNotMaterializeDeferredRows() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+
+                Assert.True(document.HasDeferredDirectDataSetImport);
+
+                sheet.CellValue(2, 4, "Manual side note");
+
+                Assert.True(document.HasDeferredDirectDataSetImport);
+                var sourceCells = sheet.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                Assert.Equal("Manual side note", GetSpreadsheetCellText(document._spreadSheetDocument, sourceCells["D2"]));
+
+                document.Save(memory);
+
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("North", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("Manual side note", GetSpreadsheetCellText(spreadsheet, cells["D2"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
         public void PerformanceReview_InsertObjects_DirectOverlayNumberFormatRemapsIntoDirectStyles() {
             using var memory = new MemoryStream();
             var rows = new[] {
@@ -4374,6 +4412,43 @@ namespace OfficeIMO.Tests {
                     File.Delete(path);
                 }
             }
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_NonSeekableStreamSaveUsesExtendedFastSaveModel() {
+            using var stream = new NonSeekableWriteStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+                sheet.AddPivotTable(
+                    "A1:C4",
+                    "F20",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+
+                document.Save(stream);
+
+                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            using var memory = new MemoryStream(stream.ToArray());
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.PivotTableParts.Any());
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("North", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("East", GetSpreadsheetCellText(spreadsheet, cells["A4"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
         [Fact]
@@ -4681,7 +4756,8 @@ namespace OfficeIMO.Tests {
                         });
                 document._spreadSheetDocument.AddExternalRelationship(
                     "https://schemas.example.org/officeimo/review",
-                    new Uri("https://example.org/package-root"));
+                    new Uri("https://example.org/package-root"),
+                    "rIdCore");
 
                 document.InsertDataSet(dataSet);
                 var sheet = document.Sheets.First(item => string.Equals(item.Name, "Items", StringComparison.Ordinal));
@@ -4708,6 +4784,7 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(spreadsheet.WorkbookPart!.SharedStringTablePart);
             Assert.NotNull(spreadsheet.CustomFilePropertiesPart);
             var packageRelationship = Assert.Single(spreadsheet.ExternalRelationships);
+            Assert.Equal("rIdCore", packageRelationship.Id);
             Assert.Equal("https://schemas.example.org/officeimo/review", packageRelationship.RelationshipType);
             Assert.Equal("https://example.org/package-root", packageRelationship.Uri.ToString());
 
@@ -4897,6 +4974,34 @@ namespace OfficeIMO.Tests {
             var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             Assert.Equal("#,##0.000", GetCellNumberFormatCode(spreadsheet, cells["B2"]));
             Assert.Equal("yyyy-mm-dd hh:mm", GetCellNumberFormatCode(spreadsheet, cells["C2"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_HeaderNumberFormatIncludeHeaderFormatsHeaderCell() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19, 8, 30, 0)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20, 9, 45, 0))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.ColumnStyleByHeader("Score", includeHeader: true).NumberFormat("#,##0.000");
+
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("#,##0.000", GetCellNumberFormatCode(spreadsheet, cells["B1"]));
+            Assert.Equal("#,##0.000", GetCellNumberFormatCode(spreadsheet, cells["B2"]));
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
@@ -6491,6 +6596,35 @@ namespace OfficeIMO.Tests {
             }
 
             return value;
+        }
+
+        private sealed class NonSeekableWriteStream : Stream {
+            private readonly MemoryStream _inner = new();
+
+            public override bool CanRead => false;
+
+            public override bool CanSeek => false;
+
+            public override bool CanWrite => true;
+
+            public override long Length => throw new NotSupportedException();
+
+            public override long Position {
+                get => throw new NotSupportedException();
+                set => throw new NotSupportedException();
+            }
+
+            public byte[] ToArray() => _inner.ToArray();
+
+            public override void Flush() => _inner.Flush();
+
+            public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+            public override void SetLength(long value) => throw new NotSupportedException();
+
+            public override void Write(byte[] buffer, int offset, int count) => _inner.Write(buffer, offset, count);
         }
     }
 }
