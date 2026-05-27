@@ -1218,7 +1218,7 @@ namespace OfficeIMO.Visio {
                 WriteHyperlinkSection(writer, ns, shape.Hyperlinks);
                 double geometryWidth = shape.Width > 0 ? shape.Width : masterWidth;
                 double geometryHeight = shape.Height > 0 ? shape.Height : masterHeight;
-                WriteShapeGeometry(writer, ns, shape.PreservedGeometrySections, master.NameU, geometryWidth, geometryHeight);
+                WriteShapeGeometry(writer, ns, shape.PreservedGeometrySections, master.NameU, geometryWidth, geometryHeight, writeGeneratedGeometryWhenEmpty: false);
                 WriteConnectionSection(writer, ns, shape.ConnectionPoints);
                 WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData);
                 WriteTextElement(writer, ns, shape.Text, shape.PreservedTextElement, shape.PreservedTextValue);
