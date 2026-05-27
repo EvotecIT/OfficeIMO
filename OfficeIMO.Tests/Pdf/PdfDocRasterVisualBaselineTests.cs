@@ -386,7 +386,7 @@ public class PdfDocRasterVisualBaselineTests {
             })
             .Meta(title: "OfficeIMO.Pdf Tabs and Leaders", author: "OfficeIMO")
             .H1("Tabs and Leaders", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
-            .Paragraph(p => p.Text("A compact visual gate for Word-like paragraph tabs, dotted leaders, and structured readback rhythm."))
+            .Paragraph(p => p.Text("A compact visual gate for Word-like paragraph tabs, leader styles, and structured readback rhythm."))
             .HR(style: new PdfHorizontalRuleStyle {
                 Color = PdfColor.FromRgb(183, 194, 207),
                 Thickness = 0.8,
@@ -398,6 +398,8 @@ public class PdfDocRasterVisualBaselineTests {
             .Paragraph(p => p.Text("Margin").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right).Text("44 240"))
             .Paragraph(p => p.Text("Tax rate").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator).Text("8.50"))
             .Paragraph(p => p.Text("Total").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator).Text("1450.75"))
+            .Paragraph(p => p.Text("Milestone").Tab(PdfTabLeaderStyle.Hyphens, PdfTabAlignment.Right).Text("Q4"))
+            .Paragraph(p => p.Text("Signature").Tab(PdfTabLeaderStyle.Underscores, PdfTabAlignment.Left).Text("approved"))
             .Spacer(4)
             .Paragraph(p => p.Text("Left label").Tab().Text("plain tab").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Center).Text("center"),
                 style: new PdfParagraphStyle {
@@ -406,7 +408,7 @@ public class PdfDocRasterVisualBaselineTests {
                     SpacingAfter = 2
                 })
             .PanelParagraph(
-                p => p.Text("The dots are paragraph tab leaders, not invoice-specific rendering. They should align values while remaining extractable as leader rows."),
+                p => p.Text("Tab leaders are paragraph primitives, not invoice-specific rendering. Dotted value rows should align while remaining extractable as leader rows."),
                 new PanelStyle {
                     Background = PdfColor.FromRgb(248, 250, 252),
                     BorderColor = PdfColor.FromRgb(183, 194, 207),

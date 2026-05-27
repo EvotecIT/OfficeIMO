@@ -200,7 +200,7 @@ namespace OfficeIMO.Tests.Pdf {
             var invalidEnumException = Assert.Throws<ArgumentException>(() =>
                 TextRun.Tab((PdfTabLeaderStyle)99));
 
-            Assert.Contains("PDF tab leader style must be None or Dots.", invalidEnumException.Message, StringComparison.Ordinal);
+            Assert.Contains("PDF tab leader style must be None, Dots, Hyphens, or Underscores.", invalidEnumException.Message, StringComparison.Ordinal);
 
             var invalidAlignmentException = Assert.Throws<ArgumentException>(() =>
                 TextRun.Tab(alignment: (PdfTabAlignment)99));
@@ -457,6 +457,24 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal(PdfTabLeaderStyle.Dots, ExtractLeadingTabLeader(line[1]));
         }
 
+        [Theory]
+        [InlineData(PdfTabLeaderStyle.Hyphens)]
+        [InlineData(PdfTabLeaderStyle.Underscores)]
+        public void WrapRichRuns_CarriesNonDotLeaderFromExplicitTabRun(PdfTabLeaderStyle leaderStyle) {
+            var result = InvokeWrapRichRuns(new[] {
+                new TextRun("A"),
+                TextRun.Tab(leaderStyle),
+                new TextRun("B")
+            }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
+
+            var line = Assert.Single(ExtractLines(result));
+            Assert.Equal(new[] { "A", "B" }, line.ConvertAll(ExtractText).ToArray());
+            Assert.False(ExtractLeadingSpace(line[0]));
+            Assert.True(ExtractLeadingSpace(line[1]));
+            Assert.False(ExtractLeadingSpaceIsExpandable(line[1]));
+            Assert.Equal(leaderStyle, ExtractLeadingTabLeader(line[1]));
+        }
+
         [Fact]
         public void WrapRichRuns_RightAlignedTabsAccountForFollowingTokenWidth() {
             var shortResult = InvokeWrapRichRuns(new[] {
@@ -612,6 +630,32 @@ namespace OfficeIMO.Tests.Pdf {
             }));
             var leader = Assert.Single(structuredPage.LeaderRows);
             Assert.Equal(new[] { "Revenue", "12" }, leader);
+        }
+
+        [Theory]
+        [InlineData(PdfTabLeaderStyle.Hyphens, "-")]
+        [InlineData(PdfTabLeaderStyle.Underscores, "_")]
+        public void ParagraphTabs_RenderNonDotLeaders(PdfTabLeaderStyle leaderStyle, string expectedGlyph) {
+            byte[] bytes = PdfDoc.Create(new PdfOptions {
+                    PageWidth = 360,
+                    PageHeight = 180,
+                    MarginLeft = 36,
+                    MarginRight = 36,
+                    MarginTop = 36,
+                    MarginBottom = 36,
+                    DefaultFontSize = 12,
+                    DefaultParagraphStyle = new PdfParagraphStyle {
+                        DefaultTabStopWidth = 216,
+                        SpacingAfter = 0
+                    }
+                })
+                .Paragraph(p => p.Text("Status").Tab(leaderStyle).Text("Ready"))
+                .ToBytes();
+
+            using var pdf = UglyToad.PdfPig.PdfDocument.Open(new MemoryStream(bytes));
+            var glyphCount = pdf.GetPage(1).Letters.Count(letter => letter.Value == expectedGlyph);
+
+            Assert.True(glyphCount >= 3, $"Expected {leaderStyle} tab leaders to render with '{expectedGlyph}' glyphs. Glyph count: {glyphCount}.");
         }
 
         [Fact]

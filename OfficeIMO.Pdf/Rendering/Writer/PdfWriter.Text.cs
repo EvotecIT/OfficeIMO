@@ -443,8 +443,8 @@ internal static partial class PdfWriter {
                     double baseGap = s.LeadingAdvance > 0 ? s.LeadingAdvance : MeasureRichText(" ", s.Font, fontSize, s.Baseline);
                     double gap = baseGap + (s.LeadingSpaceIsExpandable ? wordSpacing : 0);
 
-                    if (s.LeadingTabLeader == PdfTabLeaderStyle.Dots) {
-                        string leader = BuildDotLeaderText(gap, s.Font, fontSize, s.Baseline);
+                    if (s.LeadingTabLeader != PdfTabLeaderStyle.None) {
+                        string leader = BuildTabLeaderText(gap, s.Font, fontSize, s.Baseline, s.LeadingTabLeader);
                         if (leader.Length > 0) {
                             content
                                 .TextMatrix(lineXOrigin + xCursor, lineY)
@@ -520,13 +520,24 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static string BuildDotLeaderText(double gap, PdfStandardFont font, double fontSize, PdfTextBaseline baseline) {
-        double dotWidth = MeasureRichText(".", font, fontSize, baseline);
-        if (dotWidth <= 0 || gap <= dotWidth * 3D) {
+    private static string BuildTabLeaderText(double gap, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfTabLeaderStyle leaderStyle) {
+        string leaderGlyph = leaderStyle switch {
+            PdfTabLeaderStyle.Dots => ".",
+            PdfTabLeaderStyle.Hyphens => "-",
+            PdfTabLeaderStyle.Underscores => "_",
+            _ => string.Empty
+        };
+
+        if (leaderGlyph.Length == 0) {
             return string.Empty;
         }
 
-        int count = Math.Max(3, (int)Math.Floor(gap / dotWidth));
-        return new string('.', count);
+        double glyphWidth = MeasureRichText(leaderGlyph, font, fontSize, baseline);
+        if (glyphWidth <= 0 || gap <= glyphWidth * 3D) {
+            return string.Empty;
+        }
+
+        int count = Math.Max(3, (int)Math.Floor(gap / glyphWidth));
+        return new string(leaderGlyph[0], count);
     }
 }
