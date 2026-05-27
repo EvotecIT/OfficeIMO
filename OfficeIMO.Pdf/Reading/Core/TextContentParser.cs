@@ -318,7 +318,7 @@ internal static class TextContentParser {
             if (propertyObject is InlineDictionary dictionary &&
                 dictionary.Items.TryGetValue("ActualText", out var value) &&
                 value is byte[] bytes) {
-                return new ActualTextValue(DecodePdfTextString(bytes));
+                return new ActualTextValue(PdfTextString.Decode(bytes));
             }
 
             return null;
@@ -503,28 +503,6 @@ internal static class TextContentParser {
         static double ToDouble(object o) { return o is double d ? d : 0.0; }
         static string ToName(object o) { return o as string ?? string.Empty; }
         static byte[] ToBytes(object o) { return o as byte[] ?? Array.Empty<byte>(); }
-
-        static string DecodePdfTextString(byte[] bytes) {
-            if (bytes.Length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF) {
-                var builder = new StringBuilder((bytes.Length - 2) / 2);
-                for (int k = 2; k + 1 < bytes.Length; k += 2) {
-                    builder.Append((char)((bytes[k] << 8) | bytes[k + 1]));
-                }
-
-                return builder.ToString();
-            }
-
-            if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE) {
-                var builder = new StringBuilder((bytes.Length - 2) / 2);
-                for (int k = 2; k + 1 < bytes.Length; k += 2) {
-                    builder.Append((char)(bytes[k] | (bytes[k + 1] << 8)));
-                }
-
-                return builder.ToString();
-            }
-
-            return PdfWinAnsiEncoding.Decode(bytes);
-        }
 
         // Helpers (left empty for future metrics)
         // NormalizeThinSpaces removed in favor of per-glyph join logic

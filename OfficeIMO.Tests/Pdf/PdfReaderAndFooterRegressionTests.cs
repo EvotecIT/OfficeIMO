@@ -312,6 +312,21 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfReadPage_GetTextSpans_ReadsUtf8MarkedContentActualText() {
+        byte[] bytes = BuildSingleStreamPdf(
+            "/Span << /ActualText <EFBBBF5A6564> >> BDC\n" +
+            "BT\n/F1 12 Tf\n72 720 Td\n(X) Tj\nET\n" +
+            "EMC\n");
+
+        var span = Assert.Single(PdfReadDocument.Load(bytes).Pages[0].GetTextSpans());
+
+        Assert.Equal("Zed", span.Text);
+        Assert.Equal(72, span.X, 3);
+        Assert.Equal(720, span.Y, 3);
+        Assert.Equal(PdfWriter.EstimateSimpleTextWidth("X", PdfStandardFont.Helvetica, 12), span.Advance, 3);
+    }
+
+    [Fact]
     public void PdfReadPage_GetTextSpans_ResolvesMarkedContentActualTextFromPropertiesResource() {
         byte[] bytes = BuildSingleStreamPdfWithMarkedContentProperties(
             "/Span /MC0 BDC\n" +

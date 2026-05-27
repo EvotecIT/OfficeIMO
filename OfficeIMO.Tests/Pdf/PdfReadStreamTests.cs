@@ -16,7 +16,7 @@ public class PdfReadStreamTests {
 
         Assert.Single(document.Pages);
         Assert.Equal("Stream read", document.Metadata.Title);
-        Assert.Contains("Streamreadabletext", document.ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Stream readable text", document.ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
