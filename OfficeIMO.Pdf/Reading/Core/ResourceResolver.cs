@@ -214,6 +214,10 @@ internal static class ResourceResolver {
     }
 
     private static System.Func<byte[], string> BuildBaseEncodingDecoder(string encoding) {
+        if (string.Equals(encoding, "StandardEncoding", System.StringComparison.Ordinal)) {
+            return PdfStandardEncoding.Decode;
+        }
+
         if (string.Equals(encoding, "MacRomanEncoding", System.StringComparison.Ordinal)) {
             return PdfMacRomanEncoding.Decode;
         }

@@ -68,6 +68,30 @@ public class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void ExtractTextByPage_UsesSimpleFontStandardEncoding() {
+        byte[] pdf = BuildExternalSinglePagePdf(
+            "BT\n/F13 12 Tf\n72 720 Td\n<27206020A920AEAFE1F1> Tj\nET\n",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /StandardEncoding >>");
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+        string normalized = Normalize(pageText);
+
+        Assert.Contains("\u2019 \u2018 '", normalized, StringComparison.Ordinal);
+        Assert.Contains("fifl\u00C6\u00E6", normalized, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExtractTextByPage_UsesSimpleFontEncodingDifferencesWithStandardBase() {
+        byte[] pdf = BuildExternalSinglePagePdf(
+            "BT\n/F13 12 Tf\n72 720 Td\n<2720AE20AF> Tj\nET\n",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /BaseEncoding /StandardEncoding /Differences [ 174 /Euro ] >> >>");
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+
+        Assert.Contains("\u2019 \u20AC fl", Normalize(pageText), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SplitPages_ReadsExternalProducerPdfWithInheritedResourcesAndContentArrays() {
         byte[] pdf = BuildExternalTwoPagePdf();
 
