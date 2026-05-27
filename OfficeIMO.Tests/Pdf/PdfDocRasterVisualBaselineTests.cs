@@ -958,7 +958,55 @@ public class PdfDocRasterVisualBaselineTests {
             doc.Table(rows, PdfAlign.Left, style);
         }
 
+        doc.Table(CreateWordAccentSwatchRows(), PdfAlign.Left, CreateWordAccentSwatchStyle());
+
         return doc.ToBytes();
+    }
+
+    private static string[][] CreateWordAccentSwatchRows() {
+        return new[] {
+            new[] { "Role", "A1", "A2", "A3", "A4", "A5", "A6" },
+            new[] { "Grid line", string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty },
+            new[] { "Strong line", string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty },
+            new[] { "List band", string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty }
+        };
+    }
+
+    private static PdfTableStyle CreateWordAccentSwatchStyle() {
+        var style = TableStyles.ListTable1Light();
+        style.Caption = "Accent swatches";
+        style.CaptionColor = PdfColor.FromRgb(80, 90, 100);
+        style.CaptionFontSize = 8.5;
+        style.CaptionSpacingAfter = 4;
+        style.SpacingBefore = 6;
+        style.SpacingAfter = 4;
+        style.FontSize = 8.5;
+        style.HeaderFontSize = 8.5;
+        style.CellPaddingX = 5;
+        style.CellPaddingY = 3;
+        style.ColumnWidthPoints = new List<double?> { 76, 45, 45, 45, 45, 45, 45 };
+        style.AutoFitColumns = false;
+        style.Alignments = new List<PdfColumnAlign> {
+            PdfColumnAlign.Left,
+            PdfColumnAlign.Center,
+            PdfColumnAlign.Center,
+            PdfColumnAlign.Center,
+            PdfColumnAlign.Center,
+            PdfColumnAlign.Center,
+            PdfColumnAlign.Center
+        };
+
+        var cellFills = new Dictionary<(int Row, int Column), PdfColor>();
+        for (int accent = 1; accent <= 6; accent++) {
+            PdfTableStyle grid = TableStyles.FromWordTableStyle("GridTable1LightAccent" + accent.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            PdfTableStyle list = TableStyles.FromWordTableStyle("ListTable1LightAccent" + accent.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            cellFills[(1, accent)] = grid.BorderColor ?? PdfColor.White;
+            cellFills[(2, accent)] = grid.HeaderSeparatorColor ?? PdfColor.White;
+            cellFills[(3, accent)] = list.RowStripeFill ?? PdfColor.White;
+        }
+
+        style.CellFills = cellFills;
+        return style;
     }
 
     private static byte[] CreateLinksAndRules() {
